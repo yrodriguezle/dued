@@ -14,3 +14,8 @@ export const OFF_IN_PROGRESS = 'OFF_IN_PROGRESS';
 export const SET_MENU = '@customization/SET_MENU';
 export const MENU_TOGGLE = '@customization/MENU_TOGGLE';
 export const MENU_OPEN = '@customization/MENU_OPEN';
+
+export const RECEIVE_VIEW_SETTINGS = 'RECEIVE_VIEW_SETTINGS';
+export const RECEIVE_SET_VIEW_SETTINGS = 'RECEIVE_SET_VIEW_SETTINGS';
+export const RECEIVE_VIEWNAME_VIEW_SETTINGS = 'RECEIVE_VIEWNAME_VIEW_SETTINGS';
+export const RESET_VIEW_SETTINGS = 'RESET_VIEW_SETTINGS';

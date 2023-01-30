@@ -21,7 +21,7 @@ const initialState = {
           id: 'home',
           title: 'Home',
           type: 'item',
-          url: '/dued',
+          url: '/',
           icon: HomeOutlined,
           breadcrumbs: false,
         },
