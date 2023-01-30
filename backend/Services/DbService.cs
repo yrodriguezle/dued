@@ -28,11 +28,11 @@ namespace DueD.Services
                     command.CommandTimeout = Globals.MAXIMUM_COMMAND_QUERY_OPERATION_TIMEOUT;
                     using MySqlDataReader reader = await command.ExecuteReaderAsync().ConfigureAwait(false);
                     {
-                        if ((bool)(reader?.HasRows))
+                        if (!(bool)(reader?.HasRows))
                         {
-                            return callback(reader);
+                            return default;
                         }
-                        return default;
+                        return callback(reader);
                     }
                 }
             }
@@ -111,6 +111,33 @@ namespace DueD.Services
             {
                 _logger.LogError(exception.Message);
                 return false;
+            }
+        }
+
+        public async Task<int> GetQueryRecordsCount(string sqlQuery, string whereClause = "")
+        {
+            try
+            {
+                string connectionString = _configuration.GetConnectionString("Default");
+                string whereStatement = !string.IsNullOrEmpty(whereClause)
+                    ? $" WHERE {whereClause} "
+                    : string.Empty;
+                string querySql = @$"SELECT COUNT(*) AS TotalRows FROM {sqlQuery}
+					{whereStatement}
+				";
+                return await ExecuteSqlQuery(connectionString, querySql, (MySqlDataReader reader) => {
+                    while (reader.Read())
+                    {
+                        return reader.IsDBNull(reader.GetOrdinal("TotalRows"))
+                            ? 0
+                            : reader.GetFieldValue<int>(reader.GetOrdinal("TotalRows"));
+                    }
+                    return 0;
+                });
+            }
+            catch (Exception)
+            {
+                return 0;
             }
         }
     }

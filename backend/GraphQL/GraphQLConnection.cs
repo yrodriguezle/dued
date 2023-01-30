@@ -20,13 +20,11 @@ using GraphQL.DataLoader;
 using GraphQL.Builders;
 using GraphQL.Types.Relay.DataObjects;
 
-using AMICO4forWEB.Services;
-using AMICO4forWEB.Helpers;
-using AMICO4forWEB.Models;
 using DueD.Repositories;
 using DueD.Helpers;
 using DueD.GraphQL;
 using DueD.Services;
+using static DueD.Helpers.Globals;
 
 namespace AMICO4forWEB.DataAccess.GraphQL
 {
@@ -41,12 +39,12 @@ namespace AMICO4forWEB.DataAccess.GraphQL
         const string OFFSET_KEYWORD = "OFFSET";
         static readonly string[] intTypes = { "Int16", "Int32", "Byte" };
 
-        private static IKey GetIKey(EntityEntry entry)
+        private static IKey? GetIKey(EntityEntry entry)
         {
             return entry.Metadata.FindPrimaryKey();
         }
 
-        private static string GetEntityName(EntityEntry entry)
+        private static string? GetEntityName(EntityEntry entry)
         {
             return entry.Metadata.GetTableName();
         }
@@ -122,7 +120,7 @@ namespace AMICO4forWEB.DataAccess.GraphQL
                         case "Date":
                             scalarCastingTypes.Add($"CONVERT(NVARCHAR, {fieldName}, 120)"); // 120 yyyy-mm-dd hh:mi:ss ODBC canonical (24 hour clock)
                             DateTime.TryParse(value.Trim(), out DateTime dateTimeValue);
-                            string dateTimeValueString = Convert.ToDateTime(dateTimeValue).ToString(UtilityHelper.DATETIME_FORMAT_DB).Replace(".", ":");
+                            string dateTimeValueString = Convert.ToDateTime(dateTimeValue).ToString(Globals.DATETIME_FORMAT_DB).Replace(".", ":");
                             scalarValuesArray.Add(dateTimeValueString);
                             break;
                         default:
@@ -279,7 +277,7 @@ namespace AMICO4forWEB.DataAccess.GraphQL
                     if (propInfo is not null)
                     {
                         string fieldName = propInfo.Name;
-                        string fieldType = propInfo.PropertyType.Name.Contains("Nullable")
+                        string? fieldType = propInfo.PropertyType.Name.Contains("Nullable")
                              ? Nullable.GetUnderlyingType(propInfo.PropertyType)?.Name
                              : propInfo.PropertyType.Name;
                         orderByTypes.Add($"{entityName}.{fieldName}", fieldType);
