@@ -67,10 +67,7 @@ namespace DueD.Services
                     {
                         return false;
                     }
-                    else
-                    {
-                        throw exception;
-                    }
+                    throw;
                 }
                 finally
                 {

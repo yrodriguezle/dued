@@ -7,7 +7,7 @@ namespace DueD.Repositories
 {
     public class RepositoryBase<T> : IRepositoryBase<T> where T : class
     {
-        private readonly DbSet<T> _dbSet;
+        public readonly DbSet<T> _dbSet;
         protected DataContext _dataContext { get; set; }
 
         public RepositoryBase(DataContext dataContext)
@@ -23,6 +23,10 @@ namespace DueD.Repositories
         public async Task<IEnumerable<T>> GetFiltered(Expression<Func<T, bool>> expression)
         {
             return await _dbSet.Where(expression).ToListAsync();
+        }
+        public async Task<IEnumerable<T>> GetBySqlAsync(string sql)
+        {
+            return await _dbSet.FromSqlRaw(sql).ToListAsync();
         }
         public async Task<T> AddOrUpdate(T entity)
         {

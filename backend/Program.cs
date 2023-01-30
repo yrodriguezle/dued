@@ -26,6 +26,8 @@ builder.Services.AddDbContext<DataContext>((options) => {
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
 });
 
+builder.Services.AddTransient<DbService>();
+
 builder.Services.AddResponseCompression(options =>
 {
     options.EnableForHttps = true;

@@ -23,6 +23,10 @@ using GraphQL.Types.Relay.DataObjects;
 using AMICO4forWEB.Services;
 using AMICO4forWEB.Helpers;
 using AMICO4forWEB.Models;
+using DueD.Repositories;
+using DueD.Helpers;
+using DueD.GraphQL;
+using DueD.Services;
 
 namespace AMICO4forWEB.DataAccess.GraphQL
 {
@@ -232,40 +236,33 @@ namespace AMICO4forWEB.DataAccess.GraphQL
             this IEnumerable<TSource> enumerable,
             ResolveConnectionContext<TParent> context,
             IDataLoaderContextAccessor accessor,
-            IRepositoryWrapper repository,
-            IRepositoryWrapperConfig repositoryConfig,
+            IRepository repository,
             IConfiguration configuration,
-            ITenantService tenantService,
-            AslModel sqlModel,
-            ILogger<AMICO4DBServices> logger)
+            ConnectionArguments sqlModel,
+            DbService dbService,
+            ILogger<DueDQueries> logger)
             where TSource : class
             where TParent : class
         {
             try
             {
-                // Initialize database services
-                AMICO4DBServices dbServices = new AMICO4DBServices(configuration, null, null, tenantService, logger);
-
                 // Get primary keys
                 TSource entity = Activator.CreateInstance<TSource>();
-                EntityEntry entry = repositoryConfig is IRepositoryWrapperConfig
-                    ? repositoryConfig.DbContext.Entry(entity)
-                    : repository.DbContext.Entry(entity);
+                EntityEntry entry = repository.DbContext.Entry(entity);
                 string entityName = $"{GetEntityName(entry)}";
                 IKey primaryKey = GetIKey(entry);
-                Dictionary<string, object> primaryKeys = primaryKey.Properties.ToDictionary(
-                    (prop) => prop.Name,
-                    (prop) => prop.PropertyInfo.GetValue(entity));
+                Dictionary<string, object?> primaryKeys = primaryKey.Properties.ToDictionary((prop) => prop.Name, (prop) => prop.PropertyInfo?.GetValue(entity));
 
-                string orderByClause = !string.IsNullOrWhiteSpace(sqlModel.OrderBy)
+                string orderByClause = !string.IsNullOrWhiteSpace(sqlModel.OrderBy) 
                     ? sqlModel.OrderBy
                     : string.Join(",", primaryKeys.Keys.Select(key => $"{entityName}.{key}").ToArray());
+
                 // User cannot set direction when using pagination query, it must be set by directive
                 orderByClause = Regex.Replace(orderByClause, @"\s*ASC(\s+|$)|\s*DESC(\s+|$)|\s+", string.Empty, RegexOptions.IgnoreCase);
 
                 if (context.After == null && context.Before == null)
                 {
-                    bool orderByIsAnUniqueCombination = await dbServices.AreUniqueFieldsInTable(entityName, orderByClause, repository != null);
+                    bool orderByIsAnUniqueCombination = await dbService.AreUniqueFieldsInTable(entityName, orderByClause, repository != null);
                     if (!orderByIsAnUniqueCombination)
                     {
                         throw new Exception($"ORDER BY keys: `{orderByClause}` are not unique for table: {entityName}!");
@@ -273,17 +270,17 @@ namespace AMICO4forWEB.DataAccess.GraphQL
                 }
 
                 // Set order types
-                Dictionary<string, string> orderByTypes = new Dictionary<string, string>();
+                Dictionary<string, string> orderByTypes = new();
                 string[] orderByFields = orderByClause.Split(",").Select((field) => field.Replace($"{entityName}.", string.Empty)).ToArray();
                 PropertyInfo[] entityProps = entity.GetType().GetProperties();
                 orderByFields.ToList().ForEach((field) =>
                 {
                     PropertyInfo propInfo = entityProps.FirstOrDefault((pInfo) => pInfo.Name == field);
-                    if (propInfo is PropertyInfo)
+                    if (propInfo is not null)
                     {
                         string fieldName = propInfo.Name;
                         string fieldType = propInfo.PropertyType.Name.Contains("Nullable")
-                             ? Nullable.GetUnderlyingType(propInfo.PropertyType).Name
+                             ? Nullable.GetUnderlyingType(propInfo.PropertyType)?.Name
                              : propInfo.PropertyType.Name;
                         orderByTypes.Add($"{entityName}.{fieldName}", fieldType);
                     }
@@ -323,7 +320,7 @@ namespace AMICO4forWEB.DataAccess.GraphQL
                     : string.Empty;
 
                 // Set where
-                List<string> whereStatements = new List<string>();
+                List<string> whereStatements = new();
                 if (!string.IsNullOrWhiteSpace(sqlModel.Where))
                 {
                     whereStatements.Add(sqlModel.Where);
@@ -355,33 +352,20 @@ namespace AMICO4forWEB.DataAccess.GraphQL
 
                 // Get raw data for totalCount
                 int totalCount = 0;
-                if (repositoryConfig != null)
-                {
-                    AMICO4CONFIGGenericService<TSource> genericRepository = new AMICO4CONFIGGenericService<TSource>(configuration, tenantService, repositoryConfig.DbContext);
-                    IDataLoader<IEnumerable<TSource>> loader = accessor.Context.GetOrAddLoader(
-                        "GetBySql",
-                        () => genericRepository.Entity.GetBySqlAsync(sqlQuery));
-                    resultset = (await loader.LoadAsync().GetResultAsync()).OfType<TSource>();
-                    resultset = repositoryConfig.DbContext.SetCursorKeys(resultset, orderByKeys);
-                    totalCount = await dbServices.GetConfigTableRecordsCount(sqlTotalRowsQuery);
-                }
-                else
-                {
-                    AMICO4GenericService<TSource> genericRepository = new AMICO4GenericService<TSource>(configuration, tenantService, repository.DbContext);
-                    IDataLoader<IEnumerable<TSource>> loader = accessor.Context.GetOrAddLoader(
-                        "GetBySql",
-                        () => genericRepository.Entity.GetBySqlAsync(sqlQuery));
-                    resultset = (await loader.LoadAsync().GetResultAsync()).OfType<TSource>();
-                    resultset = repository.DbContext.SetCursorKeys(resultset, orderByKeys);
-                    totalCount = await dbServices.GetQueryRecordsCount(sqlTotalRowsQuery);
-                }
+                GenericService<TSource> genericRepository = new(configuration, repository.DbContext);
+
+
+                IDataLoader<IEnumerable<TSource>> loader = accessor.Context.GetOrAddLoader("GetBySql", () => genericRepository.Entity.GetBySqlAsync(sqlQuery));
+                resultset = (await loader.LoadAsync().GetResultAsync()).OfType<TSource>();
+                resultset = repository.DbContext.SetCursorKeys(resultset, orderByKeys);
+                totalCount = await dbService.GetQueryRecordsCount(sqlTotalRowsQuery);
 
                 return SetConnectionObject(resultset, context, totalCount, pageSize, direction);
             }
             catch (Exception exception)
             {
                 logger.LogError(exception.Message);
-                throw exception;
+                throw;
             }
         }
     }

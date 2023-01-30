@@ -2,44 +2,42 @@
 
 namespace DueD.Repositories
 {
+    public interface IGenericRepository<TEntity> : IRepositoryBase<TEntity> { }
 
-    public interface IGenericRepository<TEntity>
+    public class GenericRepository<TEntity> : RepositoryBase<TEntity>, IGenericRepository<TEntity> where TEntity : class
     {
-        DataContext DbContext { get; }
-
-        IGenericRepository<TEntity> Entity { get; }
-
-        void SaveChanges();
-        Task<int> SaveChangesAsync();
+        private DataContext _dbContext;
+        public GenericRepository(DataContext dbContext) : base(dbContext)
+        {
+            _dbContext = dbContext;
+        }
     }
 
-    public class GenericRepository<TEntity> : IGenericRepository<TEntity> where TEntity : class
+    public interface IGenericRepositoryWrapper<TEntity>
+    {
+        DataContext DbContext { get; }
+        IGenericRepository<TEntity> Entity { get; }
+    }
+
+    public class GenericService<TEntity> : IGenericRepositoryWrapper<TEntity> where TEntity : class
     {
         protected readonly IConfiguration _configuration;
-        private DataContext _repoContext;
+        
+        private DataContext _dbContext;
 
         public IGenericRepository<TEntity> Entity
         {
             get
             {
-                _repoContext = new DataContext(_configuration);
-                return new GenericRepository<TEntity>(_repoContext);
+                _dbContext = new DataContext(_configuration);
+                return new GenericRepository<TEntity>(_dbContext);
             }
         }
-
-        public GenericRepository(IConfiguration configuration, DataContext repositoryContext)
+        public GenericService(IConfiguration configuration, DataContext dbContext)
         {
             _configuration = configuration;
-            _repoContext = repositoryContext;
+            _dbContext = dbContext;
         }
-        public DataContext DbContext { get { return _repoContext; } }
-        public void SaveChanges()
-        {
-            _repoContext.SaveChanges();
-        }
-        public async Task<int> SaveChangesAsync()
-        {
-            return await _repoContext.SaveChangesAsync();
-        }
+        public DataContext DbContext { get { return _dbContext; } }
     }
 }
