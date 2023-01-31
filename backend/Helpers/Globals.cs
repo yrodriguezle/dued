@@ -2,6 +2,8 @@
 {
     public static class Globals
     {
+        public const string ADMIN_INTERNAL_USER = "Superadmin";
+
         public const int MAXIMUM_OPERATION_RETRY_TIME = 10;                     // Secondi
         public const int MAXIMUM_COMMAND_QUERY_OPERATION_TIMEOUT = 180;         // Secondi
         public const int MAXIMUM_LOCK_DURATION_TIME = 120;                      // Secondi
