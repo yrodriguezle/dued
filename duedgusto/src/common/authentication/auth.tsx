@@ -17,3 +17,9 @@ export const setAuthToken = (accessTokenAndrefreshToken: AuthToken) => {
   };
   localStorage.setItem('jwtToken', JSON.stringify(newAuthToken));
 };
+
+export const getLastUserTheme = (): ThemeMode => localStorage.getItem('theme') as ThemeMode || 'default';
+
+export const setLastUserTheme = (theme: string) => localStorage.setItem('theme', theme);
+
+export const removeAuthToken = () => localStorage.removeItem('jwtToken');

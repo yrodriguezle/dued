@@ -16,3 +16,12 @@ type AuthToken = {
   token: string
   refreshToken: string
 } | null;
+
+type CallbackStoreSet = (state: Store) => Partial<Store>;
+type StoreSet = (callback: CallbackStoreSet) => void;
+interface Store {
+  user: User
+  receiveUser: (payload: User) => void
+}
+
+type ThemeMode = 'light' | 'dark' | 'default';

@@ -1,10 +1,15 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { ApolloProvider } from '@apollo/client';
+import '@fontsource/roboto/300.css';
+import '@fontsource/roboto/400.css';
+import '@fontsource/roboto/500.css';
+import '@fontsource/roboto/700.css';
+
 import App from './App'
-import './index.css'
 import packageJson from '../package.json';
 import configureClient from './graphql/configureClient';
-import { ApolloProvider } from '@apollo/client';
+import './assets/css/app.css';
 
 (async function render() {
   const response = await fetch(
