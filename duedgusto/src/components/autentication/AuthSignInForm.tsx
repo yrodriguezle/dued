@@ -1,7 +1,24 @@
 import { Box } from '@mui/system';
-import { Formik } from 'formik';
+import { Button } from '@mui/material';
+import { Formik, FormikHelpers } from 'formik';
+import { z } from 'zod';
 
-function AuthSignInForm({ onSubmit }) {
+import FormikTextField from '../common/form/FormikTextField';
+import FormikCheckbox from '../common/form/FormikCheckbox';
+
+const Schema = z.object({
+  username: z.string().min(1, { message: 'Il nome utente è richiesto.' }),
+  password: z.string().min(1, { message: 'La password è obbligatoria.' }),
+  alwaysConnected: z.boolean(),
+});
+
+export type AuthSignInValues = z.infer<typeof Schema>;
+
+interface AuthSignInFormProps {
+  onSubmit: (values: AuthSignInValues, formikHelpers: FormikHelpers<AuthSignInValues>) => void | Promise<unknown>
+}
+
+function AuthSignInForm({ onSubmit }: AuthSignInFormProps) {
   return (
     <Formik
       enableReinitialize
@@ -10,10 +27,18 @@ function AuthSignInForm({ onSubmit }) {
         password: '',
         alwaysConnected: true,
       }}
-      validationSchema={Schema}
+      validate={(values) => {
+        const result = Schema.safeParse(values);
+        if (result.success) {
+          return;
+        }
+        return Object.fromEntries(
+          result.error.issues.map(({ path, message }) => [path[0], message]),
+        );
+      }}
       onSubmit={onSubmit}
     >
-      {({ handleSubmit }) => (
+      {({ handleSubmit, isSubmitting }) => (
         <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
           <Box sx={{ mt: 1 }}>
             <FormikTextField

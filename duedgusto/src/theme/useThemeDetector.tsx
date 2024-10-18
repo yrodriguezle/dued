@@ -9,6 +9,19 @@ function useThemeDetector() {
   const [darkMode, setDarkMode] = useState(getDefaultTheme() === "dark");
 
   useEffect(() => {
+    const favicon = document.getElementById("favicon") as HTMLLinkElement;
+    if (!favicon) {
+      return;
+    }
+    if (darkMode) {
+      favicon.href = "/src/assets/img/logo_to_dark.png";
+    } else {
+      favicon.href = "/src/assets/img/logo_to_light.png";
+    }
+  }, [darkMode])
+  
+
+  useEffect(() => {
     const handleChangeSystemTheme = () => {
       if (themeMode === 'default') {
         const defaultMode = getDefaultTheme();

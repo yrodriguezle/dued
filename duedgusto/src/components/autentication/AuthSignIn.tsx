@@ -1,7 +1,12 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Alert, CssBaseline, Typography } from "@mui/material";
 import { Box, useMediaQuery, useTheme } from "@mui/system";
 import LogoSection from "../layout/LogoSection";
+import AuthSignInForm, { AuthSignInValues } from "./AuthSignInForm";
+import login from "../../api/authentication/login";
+import { setAuthToken, setRememberPassword } from "../../common/authentication/auth";
+import useProgress from "../common/progress/useProgress";
+import useGetLoggedUser from "../../common/authentication/useGetLoggedUser";
 
 function Copyright() {
   return (
@@ -14,8 +19,41 @@ function Copyright() {
 function AuthSignIn() {
   const theme = useTheme();
   const matchDownSm = useMediaQuery(theme.breakpoints.down('sm'));
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [message, setMessage] = useState('');
+  const { setOnInProgress, setOffInProgress} = useProgress();
+  const fetchUser = useGetLoggedUser();
+
+  // const onError = (response: Response) => {
+  //   console.log(response);
+  // }
+
+  const handleSubmit = useCallback(
+    async (values: AuthSignInValues) => {
+      try {
+        setOnInProgress();
+        setMessage('');
+        const { username, password } = values;
+        const data = await login({ username, password });
+        if (data && 'token' in data && 'refreshToken' in data) {
+          const { token, refreshToken } = data;
+          setAuthToken({ token, refreshToken });
+          setRememberPassword(values.alwaysConnected);
+
+          const user = await fetchUser();
+          console.log(user);
+        }
+      } catch (error) {
+        if (error && typeof error === 'object' && 'message' in error) {
+          setMessage(error.message as string);
+          return;
+        }
+        throw error;
+      } finally {
+        setOffInProgress();
+      }
+    },
+    [fetchUser, setOffInProgress, setOnInProgress],
+  );
 
   return (
     <div
@@ -47,7 +85,7 @@ function AuthSignIn() {
         >
           {message ? <Alert severity="error" sx={{ mb: 2, width: '100%' }}>{message}</Alert> : null}
           <LogoSection />
-          sing in form
+          <AuthSignInForm onSubmit={handleSubmit} />
         </Box>
         <Copyright  />
       </Box>
