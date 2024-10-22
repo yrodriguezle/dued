@@ -1,6 +1,8 @@
 import { useCallback, useState } from "react";
 import { Alert, CssBaseline, Typography } from "@mui/material";
 import { Box, useMediaQuery, useTheme } from "@mui/system";
+import { useNavigate } from "react-router-dom";
+
 import LogoSection from "../layout/LogoSection";
 import AuthSignInForm, { AuthSignInValues } from "./AuthSignInForm";
 import login from "../../api/authentication/login";
@@ -22,10 +24,7 @@ function AuthSignIn() {
   const [message, setMessage] = useState('');
   const { setOnInProgress, setOffInProgress} = useProgress();
   const fetchUser = useGetLoggedUser();
-
-  // const onError = (response: Response) => {
-  //   console.log(response);
-  // }
+  const navigate = useNavigate();
 
   const handleSubmit = useCallback(
     async (values: AuthSignInValues) => {
@@ -38,9 +37,8 @@ function AuthSignIn() {
           const { token, refreshToken } = data;
           setAuthToken({ token, refreshToken });
           setRememberPassword(values.alwaysConnected);
-
-          const user = await fetchUser();
-          console.log(user);
+          await fetchUser();
+          navigate((window as Global).ROOT_URL || '', { replace: true })
         }
       } catch (error) {
         if (error && typeof error === 'object' && 'message' in error) {
@@ -52,7 +50,7 @@ function AuthSignIn() {
         setOffInProgress();
       }
     },
-    [fetchUser, setOffInProgress, setOnInProgress],
+    [fetchUser, navigate, setOffInProgress, setOnInProgress],
   );
 
   return (

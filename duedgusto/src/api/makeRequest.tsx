@@ -32,9 +32,6 @@ async function makeRequest<T, InputData>({
   });
 
   if (response.ok) {
-    // if (['amico4config/pushconnection', 'amico4config/logout'].includes(path)) {
-    //   return null;
-    // }
     const contentLength = response.headers.get('content-length');
     if (contentLength === '0') {
       return null;

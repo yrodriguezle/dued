@@ -1,3 +1,4 @@
+
 interface Global extends Window {
   API_ENDPOINT?: string
   GRAPHQL_ENDPOINT?: string
@@ -30,14 +31,33 @@ interface InProgress {
   [key: string]: boolean
 }
 
+type SidebarMenuItemType = 'group' | 'item' | 'collapse';
+interface SidebarMenuItem {
+  id: string
+  type: string
+  title?: string
+  url?: string
+  icon?: ReactElement
+  breadcrumbs?: boolean
+  children?: SidebarMenuItem[]
+}
+interface Sidebar {
+  isOpen: string[]
+  opened: boolean
+  navGroup: SidebarMenuItem[]
+}
+
 type CallbackStoreSet = (state: Store) => Partial<Store>;
 type StoreSet = (callback: CallbackStoreSet) => void;
 interface Store {
   user: User
   inProgress: InProgress
+  sidebar: Sidebar
   receiveUser: (payload: User) => void
   onInProgress: (payload: string) => void
   offInProgress: (payload: string) => void
+  toggleSidebarOpened: () => void
+  receiveSidebarMenuOpen: (payload: string) => void
 }
 
 type ThemeMode = 'light' | 'dark' | 'default';

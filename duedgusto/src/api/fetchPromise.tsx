@@ -4,6 +4,7 @@ function fetchPromise(input: RequestInfo | URL, init?: RequestInit): Promise<Res
       .then((response) => {
         if (response.ok) {
           resolve(response);
+          return;
         }
         response.json().then((body) => reject(body));
       });
