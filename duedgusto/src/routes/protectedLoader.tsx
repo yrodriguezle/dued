@@ -25,9 +25,9 @@ export const protectedLoader = async () => {
     return user;
   }
 
-  const { data} = await fetchLoggedUser();
-  if (data?.account?.currentUser) {
-    const { account: { currentUser } } = data;
+  const reult = await fetchLoggedUser();
+  if (reult?.data?.account?.currentUser) {
+    const { account: { currentUser } } = reult.data;
     const { receiveUser } = useStore.getState();
     receiveUser(currentUser);
     return currentUser;

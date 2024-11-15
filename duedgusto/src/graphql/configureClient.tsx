@@ -11,6 +11,8 @@ import refreshToken from "../api/authentication/refreshToken";
 import logger from "../common/logger/logger";
 import showToast from "../common/toast/showToast";
 import omitDeep from "../common/bones/omitDeep";
+import appMessages from "../messages/appMessages";
+import hideToast from "../common/toast/hideToast";
 
 let apolloClient: ApolloClient<NormalizedCacheObject> | undefined;
 
@@ -20,7 +22,9 @@ function configureClient() {
   }
 
   const httpLink = new HttpLink({ uri: (window as Global).GRAPHQL_ENDPOINT });
-  const wsLink = new WebSocketLink(new SubscriptionClient((window as Global).GRAPHQL_WEBSOCKET || '', { reconnect: true }));
+  const wsClient = new SubscriptionClient((window as Global).GRAPHQL_WEBSOCKET || '', { reconnect: true });
+  const wsLink = new WebSocketLink(wsClient);
+
   const splitLink = split(
     ({ query }) => {
       const definition = getMainDefinition(query);
@@ -144,6 +148,28 @@ function configureClient() {
   });
 
   apolloClient = client;
+
+  const showToasrError = () => showToast({
+    type: 'error',
+    position: 'bottom-right',
+    message: appMessages.error.networkError,
+    autoClose: false,
+    toastId: 'network-error',
+  });
+  
+  // Gestisci errori di connessione
+  wsClient.onError(() => {
+    showToasrError();
+  });
+  wsClient.onDisconnected(() => {
+    showToasrError();
+  });
+
+  // Gestisci errori di riconnessione
+  wsClient.onReconnected(() => {
+    hideToast('network-error');
+  });
+
   return client;
 }
 
