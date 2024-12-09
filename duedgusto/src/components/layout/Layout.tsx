@@ -8,7 +8,7 @@ function Layout() {
     <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--neutralLighterAlt)' }}>
       <CssBaseline />
       <Header />
-      <div>
+      <div style={{ marginTop: 64 }}>
         Layout
         <Outlet />
       </div>
