@@ -15,11 +15,11 @@
 }
 
 @font-face {
-  font-family: 'Yesteryear';
+  font-family: 'BrunoAce Regular';
   font-style: normal;
   font-weight: 400;
-  src: local('Yesteryear'), local('Yesteryear'),
-    url('../fonts/Yesteryear-Regular.ttf') format('truetype');
+  src: local('BrunoAce Regular'), local('BrunoAce Regular'),
+    url('../fonts/BrunoAce-Regular.ttf') format('truetype');
 }
 
 [data-theme="light"] {

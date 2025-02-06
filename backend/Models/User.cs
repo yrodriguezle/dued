@@ -1,30 +1,16 @@
-﻿using DueD.Helpers;
-using System;
-using System.Collections.Generic;
+﻿using System.ComponentModel.DataAnnotations;
 
-namespace DueD.Models
+namespace duedgusto.Models;
+
+public class User
 {
-    public class User : IEntity
-    {
-        public User()
-        {
-            Keys = Guid.NewGuid().ToString();
-        }
+    [Key]
+    public int Id { get; set; }
+    public required string Username { get; set; }
+    public required string PasswordHash { get; set; }
+    public required string RefreshToken { get; set; }
 
-        public int UserId { get; set; }
-        public string? UserName { get; set; }
-        public string? FirstName { get; set; }
-        public string? LastName { get; set; }
-        public string? Description { get; set; }
-        public byte[]? PasswordHash { get; set; }
-        public byte[]? PasswordSalt { get; set; }
-        public bool? AdminPrivilege { get; set; }
-        public bool? Disabled { get; set; }
-        public bool? LogActivity { get; set; }
-        public TimeSpan? LimitAccessStartTime { get; set; }
-        public TimeSpan? LimitAccessEndTime { get; set; }
-        public string? RememberToken { get; set; }
-
-        public string Keys { get; set; }
-    }
+    // Relazione con Role
+    public int RoleId { get; set; }
+    public required Role Role { get; set; }
 }

@@ -1,7 +1,7 @@
 {
-  "API_ENDPOINT": "https://localhost:5002",
-  "GRAPHQL_ENDPOINT": "https://localhost:5002/graphql",
-  "GRAPHQL_WEBSOCKET": "wss://localhost:5002/graphql",
+  "API_ENDPOINT": "https://192.168.1.135:5002",
+  "GRAPHQL_ENDPOINT": "https://192.168.1.135:5002/graphql",
+  "GRAPHQL_WEBSOCKET": "wss://192.168.1.135:5002/graphql",
   "COPYRIGHT": "Copyright © 2022 Powered by iansoft",
   "ROOT_URL": "/dued"
 }

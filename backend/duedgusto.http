@@ -1,0 +1,6 @@
+@duedgusto_HostAddress = http://localhost:5115
+
+GET {{duedgusto_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
