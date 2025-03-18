@@ -1,13 +1,24 @@
 ﻿using System.Text;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.IdentityModel.Tokens.Jwt;
 
 using Microsoft.IdentityModel.Tokens;
-using duedgusto.Models;
-using System.Security.Cryptography;
 using Microsoft.Extensions.Primitives;
 
 namespace duedgusto.Services;
+
+public interface IJwtService
+{
+    string GenerateAccessToken(IEnumerable<Claim> claims);
+    string GenerateRefreshToken();
+    ClaimsPrincipal GetPrincipalFromExpiredToken(string token);
+    int GetClaimUserIdFromToken(string token);
+    string GetTokenFromHttpContextAccessor(IHttpContextAccessor accessor);
+    int GetUserID();
+    int GetUserID(ClaimsPrincipal principal);
+    string GetUserName();
+}
 
 public class JwtService : IJwtService
 {

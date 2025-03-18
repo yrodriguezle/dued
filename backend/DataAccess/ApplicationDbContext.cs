@@ -1,6 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-
-using duedgusto.Models;
+using duedgusto.Models.Database;
 
 namespace duedgusto.DataAccess;
 

@@ -1,10 +1,14 @@
 using duedgusto.DataAccess;
+using duedgusto.Services;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
 builder.Services.AddControllers();
+
+// Configure DI for application services
+builder.Services.AddTransient<IJwtService, JwtService>();
 
 // Data repositories
 builder.Services.AddDbContext<ApplicationDbContext>(ServiceLifetime.Transient);

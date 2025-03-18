@@ -4,6 +4,9 @@ using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+
+using GraphQL;
+
 using duedgusto.DataAccess;
 
 namespace duedgusto.Helpers;
@@ -107,7 +110,7 @@ public static class EFHelper
         return true;
     }
     public static TRepository? GetRepository<T, TRepository>(IRepositoryWrapper repositoryWrapper)
-        where T : class, IEntity
+        where T : class
         where TRepository : class, IRepositoryBase<T>
     {
         PropertyInfo propertyInfo = repositoryWrapper.GetType()

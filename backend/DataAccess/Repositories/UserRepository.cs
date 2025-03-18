@@ -1,17 +1,12 @@
 ﻿using System.Security.Claims;
 
 using Microsoft.EntityFrameworkCore;
-
-using duedgusto.Models;
 using duedgusto.Services;
+using duedgusto.Models.Database;
+using duedgusto.Models.Common;
 
 namespace duedgusto.DataAccess;
 
-public class TokenResponse(string token, string refreshToken)
-{
-    public string Token { get; set; } = token;
-    public string RefreshToken { get; set; } = refreshToken;
-}
 
 public interface IUserRepository : IRepositoryBase<User>
 {
