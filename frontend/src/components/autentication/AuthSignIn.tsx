@@ -5,10 +5,10 @@ import { useNavigate } from "react-router-dom";
 
 import LogoSection from "../layout/LogoSection";
 import AuthSignInForm, { AuthSignInValues } from "./AuthSignInForm";
-import login from "../../api/authentication/login";
-import { setAuthToken, setRememberPassword } from "../../common/authentication/auth";
+import { setRememberPassword } from "../../common/authentication/auth";
 import useProgress from "../common/progress/useProgress";
 import useGetLoggedUser from "../../common/authentication/useGetLoggedUser";
+import useSignIn from "../../graphql/user/useSignIn";
 
 function Copyright() {
   return (
@@ -23,6 +23,7 @@ function AuthSignIn() {
   const matchDownSm = useMediaQuery(theme.breakpoints.down('sm'));
   const [message, setMessage] = useState('');
   const { setOnInProgress, setOffInProgress} = useProgress();
+  const { signIn } = useSignIn();
   const fetchUser = useGetLoggedUser();
   const navigate = useNavigate();
 
@@ -32,10 +33,8 @@ function AuthSignIn() {
         setOnInProgress();
         setMessage('');
         const { username, password } = values;
-        const data = await login({ username, password });
-        if (data && 'token' in data && 'refreshToken' in data) {
-          const { token, refreshToken } = data;
-          setAuthToken({ token, refreshToken });
+        const signinSuccesful = await signIn({ username, password });
+        if (signinSuccesful) {
           setRememberPassword(values.alwaysConnected);
           await fetchUser();
           navigate((window as Global).ROOT_URL || '', { replace: true })
@@ -50,7 +49,7 @@ function AuthSignIn() {
         setOffInProgress();
       }
     },
-    [fetchUser, navigate, setOffInProgress, setOnInProgress],
+    [fetchUser, navigate, setOffInProgress, setOnInProgress, signIn],
   );
 
   return (
