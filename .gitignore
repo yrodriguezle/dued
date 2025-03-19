@@ -14,7 +14,12 @@ dist-ssr
 
 # Editor directories and files
 .vscode/*
-/.vs
+.vs
 !.vscode/extensions.json
 .idea
 .DS_Store
+
+# .NET compiled files
+bin
+obj
+packages
