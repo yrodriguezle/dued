@@ -2,12 +2,21 @@
 
 namespace duedgusto.Services.GraphQL;
 
-public static class GraphQLService
+public class GraphQLService
 {
-    public static IServiceProvider GetIServiceProvider(IResolveFieldContext<object?> context)
+    public static IServiceProvider GetServiceProvider(IResolveFieldContext<object?> context)
     {
-        using IServiceScope? scope = context.RequestServices?.CreateScope();
-        IServiceProvider services = scope?.ServiceProvider ?? throw new Exception();
-        return services;
+        if (context.RequestServices == null)
+        {
+            throw new InvalidOperationException("RequestServices non è disponibile.");
+        }
+
+        IServiceScope scope = context.RequestServices.CreateScope();
+        return scope.ServiceProvider;
+    }
+    public static T GetService<T>(IResolveFieldContext<object?> context) where T : class
+    {
+        IServiceProvider serviceProvider = GetServiceProvider(context);
+        return serviceProvider.GetRequiredService<T>();
     }
 }

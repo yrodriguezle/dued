@@ -19,10 +19,8 @@ public class AuthQueries : ObjectGraphType
             {
                 GraphQLUserContext? userContext = context.UserContext as GraphQLUserContext;
                 ClaimsPrincipal principal = userContext?.User ?? throw new Exception("No claims");
-                IServiceProvider services = GraphQLService.GetIServiceProvider(context);
+                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
                 int userId = jwtService.GetUserID(principal);
-
-                AppDbContext dbContext = services.GetService<AppDbContext>() ?? throw new Exception("No service AppDbContext");
                 return await dbContext.User.FirstOrDefaultAsync((x) => x.UserId == userId);
             });
     }

@@ -12,7 +12,7 @@ using duedgusto.DataAccess;
 namespace duedgusto.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250319113420_InitialCreate")]
+    [Migration("20250319155028_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -42,14 +42,19 @@ namespace duedgusto.Migrations
                     b.Property<string>("FirstName")
                         .HasColumnType("longtext");
 
-                    b.Property<string>("LastName")
-                        .HasColumnType("longtext");
+                    b.Property<byte[]>("Hash")
+                        .IsRequired()
+                        .HasColumnType("longblob");
 
-                    b.Property<string>("PasswordHash")
+                    b.Property<string>("LastName")
                         .HasColumnType("longtext");
 
                     b.Property<string>("RefreshToken")
                         .HasColumnType("longtext");
+
+                    b.Property<byte[]>("Salt")
+                        .IsRequired()
+                        .HasColumnType("longblob");
 
                     b.Property<string>("UserName")
                         .IsRequired()

@@ -12,6 +12,8 @@ using duedgusto.GraphQL;
 using duedgusto.DataAccess;
 using duedgusto.GraphQL.Authentication;
 using duedgusto.Services.Jwt;
+using duedgusto.Services.HashPassword;
+using duedgusto.SeedData;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +21,7 @@ builder.Services.AddHttpContextAccessor();
 
 // Add services to the container.
 builder.Services.AddTransient<IJwtService, JwtService>();
+builder.Services.AddTransient<PasswordService>();
 
 builder.Services.AddSingleton(services => new GraphQLSchema(new SelfActivatingServiceProvider(services)));
 builder.Services.AddSingleton<GraphQLQueries>();
@@ -91,5 +94,11 @@ app.UseGraphQL<GraphQLSchema>("/graphql", opt =>
 {
     opt.AuthorizationRequired = false;
 });
+
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    await SeedData.Initialize(services);
+}
 
 app.Run();

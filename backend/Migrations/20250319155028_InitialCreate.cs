@@ -31,8 +31,8 @@ namespace duedgusto.Migrations
                     Disabled = table.Column<bool>(type: "tinyint(1)", nullable: true),
                     RefreshToken = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    PasswordHash = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_unicode_ci")
-                        .Annotation("MySql:CharSet", "utf8mb4")
+                    Hash = table.Column<byte[]>(type: "longblob", nullable: false),
+                    Salt = table.Column<byte[]>(type: "longblob", nullable: false)
                 },
                 constraints: table =>
                 {

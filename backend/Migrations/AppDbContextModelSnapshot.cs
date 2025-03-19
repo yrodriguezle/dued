@@ -39,14 +39,19 @@ namespace duedgusto.Migrations
                     b.Property<string>("FirstName")
                         .HasColumnType("longtext");
 
-                    b.Property<string>("LastName")
-                        .HasColumnType("longtext");
+                    b.Property<byte[]>("Hash")
+                        .IsRequired()
+                        .HasColumnType("longblob");
 
-                    b.Property<string>("PasswordHash")
+                    b.Property<string>("LastName")
                         .HasColumnType("longtext");
 
                     b.Property<string>("RefreshToken")
                         .HasColumnType("longtext");
+
+                    b.Property<byte[]>("Salt")
+                        .IsRequired()
+                        .HasColumnType("longblob");
 
                     b.Property<string>("UserName")
                         .IsRequired()

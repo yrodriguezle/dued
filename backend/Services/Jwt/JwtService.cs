@@ -33,7 +33,14 @@ public class JwtService : IJwtService
     }
     public SymmetricSecurityKey GetJwtKey()
     {
-        byte[] key = Encoding.UTF8.GetBytes(_configuration.GetSection("Jwt")["Key"] ?? string.Empty);
+        string keyString = _configuration.GetSection("Jwt")["Key"] ?? string.Empty;
+
+        if (string.IsNullOrEmpty(keyString) || keyString.Length < 32)
+        {
+            throw new InvalidOperationException("JWT Key must be at least 32 characters long.");
+        }
+
+        byte[] key = Encoding.UTF8.GetBytes(keyString);
         return new SymmetricSecurityKey(key);
     }
     public TokenValidationParameters GetTokenValidationParameters()

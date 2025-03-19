@@ -1,19 +1,24 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using System.Security.Cryptography;
 
 namespace duedgusto.Services.HashPassword;
 
 public class PasswordService
 {
-    private readonly PasswordHasher<string> _passwordHasher = new();
-
-    public string HashPassword(string password)
+    public static void HashPassword(string password, out byte[] hash, out byte[] salt)
     {
-        return _passwordHasher.HashPassword(string.Empty, password);
+        using HMACSHA256 hmac = new();
+        salt = hmac.Key;
+        hash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
     }
 
-    public bool VerifyPassword(string hashedPassword, string providedPassword)
+    public static bool VerifyPassword(string password, byte[] hash, byte[] salt)
     {
-        var result = _passwordHasher.VerifyHashedPassword(string.Empty, hashedPassword, providedPassword);
-        return result == PasswordVerificationResult.Success;
+        using HMACSHA256 hmac = new(salt);
+        var computedHash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
+        for (int i = 0; i < computedHash.Length; i++)
+        {
+            if (computedHash[i] != hash[i]) return false;
+        }
+        return true;
     }
 }
