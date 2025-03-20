@@ -14,15 +14,11 @@ dist-ssr
 
 # Editor directories and files
 .vscode/*
-.vs
 !.vscode/extensions.json
 .idea
 .DS_Store
-
-# .NET compiled files
-bin
-obj
-packages
-
-# Node.js
-node_modules/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

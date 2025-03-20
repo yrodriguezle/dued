@@ -1,6 +1,6 @@
+import { Form, Formik, FormikHelpers } from 'formik';
 import { Box } from '@mui/system';
 import { Button } from '@mui/material';
-import { Formik, FormikHelpers } from 'formik';
 import { z } from 'zod';
 
 import FormikTextField from '../common/form/FormikTextField';
@@ -38,45 +38,47 @@ function AuthSignInForm({ onSubmit }: AuthSignInFormProps) {
       }}
       onSubmit={onSubmit}
     >
-      {({ handleSubmit, isSubmitting }) => (
-        <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
-          <Box sx={{ mt: 1 }}>
-            <FormikTextField
-              label="Nome utente:"
-              placeholder="Nome utente"
-              name="username"
-              margin="normal"
-              autoComplete="off"
-              autoFocus
-              required
-              fullWidth
-            />
-            <FormikTextField
-              label="Password:"
-              placeholder="Password"
-              name="password"
-              type="password"
-              margin="normal"
-              autoComplete="off"
-              required
-              fullWidth
-            />
-            <FormikCheckbox
-              label="Rimani connesso"
-              name="alwaysConnected"
-            />
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              sx={{ mt: 2, mb: 2 }}
-              disabled={isSubmitting}
-            >
-              Connetti
-            </Button>
-          </Box>
-        </Box>
-      )}
+      {({ isSubmitting }) => {
+        return (
+          <Form>
+            <Box sx={{ mt: 1 }}>
+              <FormikTextField
+                label="Nome utente:"
+                placeholder="Nome utente"
+                name="username"
+                margin="normal"
+                autoComplete="off"
+                autoFocus
+                required
+                fullWidth
+              />
+              <FormikTextField
+                label="Password:"
+                placeholder="Password"
+                name="password"
+                type="password"
+                margin="normal"
+                autoComplete="off"
+                required
+                fullWidth
+              />
+              <FormikCheckbox
+                label="Rimani connesso"
+                name="alwaysConnected"
+              />
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                sx={{ mt: 2, mb: 2 }}
+                disabled={isSubmitting}
+              >
+                Connetti
+              </Button>
+            </Box>
+          </Form>
+        );
+      }}
     </Formik>
   )
 }
