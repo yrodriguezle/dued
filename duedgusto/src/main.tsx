@@ -3,6 +3,11 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router";
 import { ApolloProvider } from "@apollo/client";
 
+import '@fontsource/roboto/300.css';
+import '@fontsource/roboto/400.css';
+import '@fontsource/roboto/500.css';
+import '@fontsource/roboto/700.css';
+
 import App from "./App.tsx";
 import packageJson from "../package.json";
 import configureClient from "./graphql/configureClient.tsx";

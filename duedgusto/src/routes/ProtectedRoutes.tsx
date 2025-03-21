@@ -12,7 +12,7 @@ const HomePage = () => <div>HomePage</div>;
 
 function ProtectedRoutes() {
   if (!isAuthenticated()) {
-    return <Navigate to={"/login"} replace />;
+    return <Navigate to={"/signin"} replace />;
   }
   return (
     <Routes>

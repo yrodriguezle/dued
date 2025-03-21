@@ -59,3 +59,8 @@ interface Store {
 }
 
 type ThemeMode = "light" | "dark" | "default";
+type Theme = Exclude<ThemeMode, "default">;
+interface UserTheme {
+  mode: ThemeMode;
+  theme: Theme;
+}
