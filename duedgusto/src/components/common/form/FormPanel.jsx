@@ -1,55 +1,62 @@
 /* eslint-disable no-unused-vars */
 import React, {
-  useCallback, useEffect, useMemo, useRef, useState,
-} from 'react';
-import isEmpty from 'lodash/isEmpty';
-import MuiAccordion from '@mui/material/Accordion';
-import ArrowForwardIosSharpIcon from '@mui/icons-material/ArrowForwardIosSharp';
-import MuiAccordionSummary from '@mui/material/AccordionSummary';
-import MuiAccordionDetails from '@mui/material/AccordionDetails';
-import Typography from '@mui/material/Typography';
-import { useFormikContext } from 'formik';
-import { useSelector } from 'react-redux';
-import { styled } from '@mui/material/styles';
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import isEmpty from "lodash/isEmpty";
+import MuiAccordion from "@mui/material/Accordion";
+import ArrowForwardIosSharpIcon from "@mui/icons-material/ArrowForwardIosSharp";
+import MuiAccordionSummary from "@mui/material/AccordionSummary";
+import MuiAccordionDetails from "@mui/material/AccordionDetails";
+import Typography from "@mui/material/Typography";
+import { useFormikContext } from "formik";
+import { useSelector } from "react-redux";
+import { styled } from "@mui/material/styles";
 
-import useResizeObserver from '../hooks/useResizeObserver';
-import { getBooleanFromString } from '../../../common/utils';
-import { getElementByNameOrId, getErrorFields } from '../../../common/validators';
+import useResizeObserver from "../hooks/useResizeObserver";
+import { getBooleanFromString } from "../../../common/utils";
+import {
+  getElementByNameOrId,
+  getErrorFields,
+} from "../../../common/validators";
 
 const Accordion = styled((props) => (
   <MuiAccordion disableGutters elevation={0} square {...props} />
 ))(({ theme }) => ({
   border: `1px solid ${theme.palette.divider}`,
-  '&:not(:last-child)': {
+  "&:not(:last-child)": {
     borderBottom: 0,
   },
-  '&:before': {
-    display: 'none',
+  "&:before": {
+    display: "none",
   },
 }));
 
 const AccordionSummary = styled((props) => (
   <MuiAccordionSummary
-    expandIcon={<ArrowForwardIosSharpIcon sx={{ fontSize: '0.9rem' }} />}
+    expandIcon={<ArrowForwardIosSharpIcon sx={{ fontSize: "0.9rem" }} />}
     {...props}
   />
 ))(({ theme }) => ({
   backgroundColor:
-    theme.palette.mode === 'dark'
-      ? 'rgba(255, 255, 255, .05)'
-      : 'rgba(0, 0, 0, .03)',
-  flexDirection: 'row-reverse',
-  '& .MuiAccordionSummary-expandIconWrapper.Mui-expanded': {
-    transform: 'rotate(90deg)',
+    theme.palette.mode === "dark"
+      ? "rgba(255, 255, 255, .05)"
+      : "rgba(0, 0, 0, .03)",
+  flexDirection: "row-reverse",
+  "& .MuiAccordionSummary-expandIconWrapper.Mui-expanded": {
+    transform: "rotate(90deg)",
   },
-  '& .MuiAccordionSummary-content': {
+  "& .MuiAccordionSummary-content": {
     marginLeft: theme.spacing(1),
   },
 }));
 
 const AccordionDetails = styled(MuiAccordionDetails)(({ theme }) => ({
   padding: theme.spacing(2),
-  borderTop: '1px solid rgba(0, 0, 0, .125)',
+  borderTop: "1px solid rgba(0, 0, 0, .125)",
 }));
 
 function FormPanel({
@@ -68,27 +75,31 @@ function FormPanel({
   const mounted = useRef(false);
   useEffect(() => {
     mounted.current = true;
-    return () => { mounted.current = false; };
+    return () => {
+      mounted.current = false;
+    };
   }, []);
   const [isExpanded, toggleExpanded] = useState(defaultExpanded);
   const [height, setHeight] = useState();
-  const [overflow, setOverflow] = useState('unset');
+  const [overflow, setOverflow] = useState("unset");
   const [bodyRef, { contentRect }] = useResizeObserver();
   const containerRef = useRef();
   const formikProps = useFormikContext();
   const { errors, values } = useMemo(() => formikProps || {}, [formikProps]);
 
-  const setting = useSelector((state) => (state.viewSettings.viewSettings || {})[id] || {});
+  const setting = useSelector(
+    (state) => (state.viewSettings.viewSettings || {})[id] || {}
+  );
 
   useEffect(() => {
     const timer = setTimeout(() => {
       if (!isEmpty(setting) && mounted.current) {
         const toggle = getBooleanFromString(setting.settingValue);
         if (toggle) {
-          setTimeout(() => setOverflow('unset'), 100);
+          setTimeout(() => setOverflow("unset"), 100);
           toggleExpanded(true);
         } else {
-          setOverflow('hidden');
+          setOverflow("hidden");
           toggleExpanded(false);
         }
       }
@@ -103,29 +114,29 @@ function FormPanel({
     }
   }, [contentRect]);
 
-  const handleExpanded = useCallback(
-    (toggle) => {
-      if (mounted.current) {
-        if (toggle) {
-          setTimeout(() => setOverflow('unset'), 100);
-          toggleExpanded(true);
-        } else {
-          setOverflow('hidden');
-          toggleExpanded(false);
-        }
+  const handleExpanded = useCallback((toggle) => {
+    if (mounted.current) {
+      if (toggle) {
+        setTimeout(() => setOverflow("unset"), 100);
+        toggleExpanded(true);
+      } else {
+        setOverflow("hidden");
+        toggleExpanded(false);
       }
-    },
-    [],
-  );
+    }
+  }, []);
 
-  const currentHeight = useMemo(() => (isExpanded ? height : 0), [height, isExpanded]);
+  const currentHeight = useMemo(
+    () => (isExpanded ? height : 0),
+    [height, isExpanded]
+  );
   useEffect(() => {
     if (mounted.current && disabled !== undefined) {
       if (disabled) {
-        setOverflow('hidden');
+        setOverflow("hidden");
         toggleExpanded(false);
       } else {
-        setTimeout(() => setOverflow('unset'), 100);
+        setTimeout(() => setOverflow("unset"), 100);
         toggleExpanded(true);
       }
     }
@@ -134,10 +145,10 @@ function FormPanel({
   useEffect(() => {
     if (mounted.current && collapsed !== undefined) {
       if (collapsed) {
-        setTimeout(() => setOverflow('unset'), 100);
+        setTimeout(() => setOverflow("unset"), 100);
         toggleExpanded(true);
       } else {
-        setOverflow('hidden');
+        setOverflow("hidden");
         toggleExpanded(false);
       }
     }
@@ -145,18 +156,24 @@ function FormPanel({
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (mounted.current
-        && typeof errors === 'object'
-        && Object.keys(errors).length
-        && Object.values(errors).some((error) => error)
+      if (
+        mounted.current &&
+        typeof errors === "object" &&
+        Object.keys(errors).length &&
+        Object.values(errors).some((error) => error) &&
         // && containerRef.current.contains(document.activeElement)
-        && !isExpanded) {
+        !isExpanded
+      ) {
         const [firstFieldError] = getErrorFields(errors);
         const element = getElementByNameOrId(firstFieldError);
         if (element && containerRef.current.contains(element)) {
           handleExpanded(true);
           setTimeout(() => {
-            element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+            element.scrollIntoView({
+              behavior: "smooth",
+              block: "center",
+              inline: "nearest",
+            });
           }, 150);
         }
       }
@@ -164,19 +181,16 @@ function FormPanel({
     return () => clearTimeout(timer);
   }, [errors, handleExpanded, isExpanded]);
 
-  const handleClick = useCallback(
-    () => {
-      if (onClick && typeof onClick === 'function') {
-        onClick();
-      } else {
-        handleExpanded(!isExpanded);
-      }
-    },
-    [handleExpanded, isExpanded, onClick],
-  );
+  const handleClick = useCallback(() => {
+    if (onClick && typeof onClick === "function") {
+      onClick();
+    } else {
+      handleExpanded(!isExpanded);
+    }
+  }, [handleExpanded, isExpanded, onClick]);
 
   const renderChild = useMemo(() => {
-    if (typeof children === 'function') {
+    if (typeof children === "function") {
       return children({ isExpanded });
     }
     return children;
@@ -185,24 +199,22 @@ function FormPanel({
   const renderSubHeader = useMemo(() => {
     if (!isExpanded && !isEmpty(subHeader)) {
       return subHeader
-        .map((key) => values[key] || '')
+        .map((key) => values[key] || "")
         .filter((required) => required)
-        .join(' ');
+        .join(" ");
     }
-    return '';
+    return "";
   }, [isExpanded, subHeader, values]);
 
   return (
     <Accordion expanded={isExpanded} onChange={handleClick}>
       <AccordionSummary aria-controls="panel1d-content" id="panel1d-header">
         <Typography>
-          {[header, renderSubHeader].filter((required) => required).join(' - ')}
+          {[header, renderSubHeader].filter((required) => required).join(" - ")}
         </Typography>
         {headerAsComponent}
       </AccordionSummary>
-      <AccordionDetails>
-        {renderChild}
-      </AccordionDetails>
+      <AccordionDetails>{renderChild}</AccordionDetails>
     </Accordion>
   );
 }

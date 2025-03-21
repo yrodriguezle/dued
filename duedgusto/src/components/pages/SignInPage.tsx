@@ -1,4 +1,4 @@
-import AuthSignIn from "../authentication/AuthSignIn"
+import AuthSignIn from "../authentication/AuthSignIn";
 
 function SignInPage() {
   return (
@@ -7,7 +7,7 @@ function SignInPage() {
         <AuthSignIn />
       </div>
     </div>
-  )
+  );
 }
 
-export default SignInPage
+export default SignInPage;

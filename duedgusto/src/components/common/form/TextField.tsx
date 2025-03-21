@@ -8,16 +8,18 @@ import React, {
   useState,
   FocusEventHandler,
   ChangeEventHandler,
-} from 'react';
-import MTextField, { TextFieldProps as MTextFieldProps } from '@mui/material/TextField';
-import InputAdornment from '@mui/material/InputAdornment';
-import IconButton from '@mui/material/IconButton';
-import { useTheme } from '@mui/material/styles';
-import { EyeTwoTone, EyeInvisibleTwoTone } from '@ant-design/icons';
-import { blueGrey } from '@mui/material/colors';
+} from "react";
+import MTextField, {
+  TextFieldProps as MTextFieldProps,
+} from "@mui/material/TextField";
+import InputAdornment from "@mui/material/InputAdornment";
+import IconButton from "@mui/material/IconButton";
+import { useTheme } from "@mui/material/styles";
+import { EyeTwoTone, EyeInvisibleTwoTone } from "@ant-design/icons";
+import { blueGrey } from "@mui/material/colors";
 
-
-export interface TextFieldProps extends Omit<MTextFieldProps<'standard'>, 'onChange'> {
+export interface TextFieldProps
+  extends Omit<MTextFieldProps<"standard">, "onChange"> {
   value?: string;
   name: string;
   textUpperCase?: boolean;
@@ -35,18 +37,14 @@ export interface TextFieldRef {
   getValue: () => string;
 }
 
-const handleMouseDownPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
+const handleMouseDownPassword = (
+  event: React.MouseEvent<HTMLButtonElement>
+) => {
   event.preventDefault();
 };
 
 const TextField = forwardRef<TextFieldRef, TextFieldProps>(
-  ({
-    value = '',
-    name,
-    textUpperCase,
-    onChange,
-    ...props
-  }, ref) => {
+  ({ value = "", name, textUpperCase, onChange, ...props }, ref) => {
     const inputRef = useRef<HTMLInputElement | null>(null);
     const caretSelection = useRef<{ start: number; end: number } | null>(null);
     const [innerValue, setInnerValue] = useState<string>(value);
@@ -56,7 +54,7 @@ const TextField = forwardRef<TextFieldRef, TextFieldProps>(
 
     const handleClickShowPassword = useCallback(
       () => setShowPassword((prev) => !prev),
-      [],
+      []
     );
 
     useEffect(() => {
@@ -75,7 +73,7 @@ const TextField = forwardRef<TextFieldRef, TextFieldProps>(
         if (textUpperCase) {
           transformedValue = transformedValue.toUpperCase();
         }
-        if (onChange && typeof onChange === 'function') {
+        if (onChange && typeof onChange === "function") {
           onChange(name, transformedValue);
         } else {
           setInnerValue(transformedValue);
@@ -85,7 +83,7 @@ const TextField = forwardRef<TextFieldRef, TextFieldProps>(
           end: event.target.selectionEnd || 0,
         };
       },
-      [name, onChange, textUpperCase],
+      [name, onChange, textUpperCase]
     );
 
     const handleFocus: FocusEventHandler<HTMLInputElement> = useCallback(
@@ -95,7 +93,7 @@ const TextField = forwardRef<TextFieldRef, TextFieldProps>(
           props.onFocus(event);
         }
       },
-      [props],
+      [props]
     );
 
     const handleBlur: FocusEventHandler<HTMLInputElement> = useCallback(
@@ -105,7 +103,7 @@ const TextField = forwardRef<TextFieldRef, TextFieldProps>(
           props.onBlur(event);
         }
       },
-      [props],
+      [props]
     );
 
     useImperativeHandle(
@@ -125,14 +123,14 @@ const TextField = forwardRef<TextFieldRef, TextFieldProps>(
         },
         getValue: () => innerValue,
       }),
-      [innerValue],
+      [innerValue]
     );
 
     const inputType = useMemo(() => {
-      if (props.type === 'password') {
-        return showPassword ? 'text' : 'password';
+      if (props.type === "password") {
+        return showPassword ? "text" : "password";
       }
-      return props.type || 'text';
+      return props.type || "text";
     }, [props.type, showPassword]);
 
     return (
@@ -145,25 +143,37 @@ const TextField = forwardRef<TextFieldRef, TextFieldProps>(
         spellCheck={false}
         slotProps={{
           input: {
-            endAdornment: props.type === 'password' ? (
-              <InputAdornment position="end">
-                <IconButton
-                  aria-label="toggle password visibility"
-                  onClick={handleClickShowPassword}
-                  onMouseDown={handleMouseDownPassword}
-                >
-                  {showPassword ? (
-                    <EyeInvisibleTwoTone twoToneColor={props.error ? theme.palette.error.main : blueGrey[500]} />
-                  ) : (
-                    <EyeTwoTone twoToneColor={props.error ? theme.palette.error.main : blueGrey[500]} />
-                  )}
-                </IconButton>
-              </InputAdornment>
-            ) : undefined,
+            endAdornment:
+              props.type === "password" ? (
+                <InputAdornment position="end">
+                  <IconButton
+                    disabled={props.disabled}
+                    aria-label="toggle password visibility"
+                    onClick={handleClickShowPassword}
+                    onMouseDown={handleMouseDownPassword}
+                  >
+                    {showPassword ? (
+                      <EyeInvisibleTwoTone
+                        disabled={props.disabled}
+                        twoToneColor={
+                          props.error ? theme.palette.error.main : blueGrey[500]
+                        }
+                      />
+                    ) : (
+                      <EyeTwoTone
+                        disabled={props.disabled}
+                        twoToneColor={
+                          props.error ? theme.palette.error.main : blueGrey[500]
+                        }
+                      />
+                    )}
+                  </IconButton>
+                </InputAdornment>
+              ) : undefined,
           },
           inputLabel: {
-            shrink: !!innerValue || focused
-          }
+            shrink: !!innerValue || focused,
+          },
         }}
         {...props}
         onFocus={handleFocus}

@@ -1,23 +1,23 @@
 import { describe, expect, it } from "vitest";
 import omitDeep from "../omitDeep";
 
-describe('omitDeep', () => {
-  it('should omit properties in object in deep', () => {
+describe("omitDeep", () => {
+  it("should omit properties in object in deep", () => {
     const input = [
       {
         a: {
           b: {
             c: {
               d: {
-                f: { _typename: 'OmitType' },
-                array1: [{ a: { _typename: 'OmitType' } }],
-                array2: [{ b: { _typename: 'OmitType' } }],
+                f: { _typename: "OmitType" },
+                array1: [{ a: { _typename: "OmitType" } }],
+                array2: [{ b: { _typename: "OmitType" } }],
               },
             },
           },
         },
       },
-      ['_typename'],
+      ["_typename"],
     ];
     const expected = {
       a: {
@@ -32,9 +32,9 @@ describe('omitDeep', () => {
         },
       },
     };
-    expect(omitDeep(input[0], ['_typename'])).toEqual(expected);
+    expect(omitDeep(input[0], ["_typename"])).toEqual(expected);
   });
-  it('should omit properties in object in deep', () => {
+  it("should omit properties in object in deep", () => {
     const input = [
       {
         uirecent: {
@@ -45,7 +45,7 @@ describe('omitDeep', () => {
           userID: 71,
         },
       },
-      ['_typename'],
+      ["_typename"],
     ];
     const expected = {
       uirecent: {
@@ -56,6 +56,6 @@ describe('omitDeep', () => {
         userID: 71,
       },
     };
-    expect(omitDeep(input[0], ['_typename'])).toEqual(expected);
+    expect(omitDeep(input[0], ["_typename"])).toEqual(expected);
   });
 });

@@ -8,10 +8,7 @@ class PromiseQueue {
 
   add(operation: () => Promise<any>): Promise<any> {
     return new Promise((resolve, reject) => {
-      this.queue = this.queue
-        .then(operation)
-        .then(resolve)
-        .catch(reject);
+      this.queue = this.queue.then(operation).then(resolve).catch(reject);
     });
   }
 }

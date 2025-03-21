@@ -4,8 +4,8 @@ import { getCurrentUser } from "./queries";
 async function fetchLoggedUser() {
   const client = configureClient();
   return await client.query({
-    query: getCurrentUser
+    query: getCurrentUser,
   });
 }
 
-export default fetchLoggedUser
+export default fetchLoggedUser;

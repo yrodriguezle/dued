@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 
-const getDefaultTheme = () => (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+const getDefaultTheme = () =>
+  window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 
 function useTheme() {
-  const [userTheme, setUserTheme] = useState<UserTheme>({ mode: "default", theme: getDefaultTheme() });
+  const [userTheme, setUserTheme] = useState<UserTheme>({
+    mode: "default",
+    theme: getDefaultTheme(),
+  });
 
   useEffect(() => {
     const favicon = document.getElementById("favicon") as HTMLLinkElement;
@@ -35,9 +39,12 @@ function useTheme() {
     };
     handleChangeSystemTheme();
 
-    const mediaQueryList: MediaQueryList = window.matchMedia("(prefers-color-scheme: dark)");
+    const mediaQueryList: MediaQueryList = window.matchMedia(
+      "(prefers-color-scheme: dark)"
+    );
     mediaQueryList.addEventListener("change", handleChangeSystemTheme);
-    return () => mediaQueryList.removeEventListener("change", handleChangeSystemTheme);
+    return () =>
+      mediaQueryList.removeEventListener("change", handleChangeSystemTheme);
   }, [userTheme.mode]);
 
   const onChangeTheme = useCallback(async (theme: ThemeMode) => {

@@ -10,10 +10,13 @@ function omitDeep(value: any, omitArrayProperties: string[] = []): any {
   if (getType(value) === "object") {
     return Object.keys(value)
       .filter((key: string) => !omitArrayProperties.includes(key))
-      .reduce((acc: any, key: string) => ({
-        ...acc,
-        [key]: omitDeep(value[key], omitArrayProperties),
-      }), {});
+      .reduce(
+        (acc: any, key: string) => ({
+          ...acc,
+          [key]: omitDeep(value[key], omitArrayProperties),
+        }),
+        {}
+      );
   }
   return value;
 }

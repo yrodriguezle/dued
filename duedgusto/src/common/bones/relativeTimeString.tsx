@@ -11,7 +11,7 @@ const year = day * 365;
  */
 export function relativeTimeString(
   date: Date | number,
-  lang = navigator.language,
+  lang = navigator.language
 ): string {
   const time = date instanceof Date ? date.getTime() : date;
   const delta = Math.round((time - Date.now()) / 1000);
@@ -36,7 +36,7 @@ export function relativeTimeString(
   }
   const rtf = new Intl.RelativeTimeFormat(lang, {
     numeric: "auto",
-    style: 'narrow',
+    style: "narrow",
   });
 
   return rtf.format(Math.floor(delta / divider), timeType);

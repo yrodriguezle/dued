@@ -1,25 +1,31 @@
 @font-face {
-  font-family: 'Anton';
+  font-family: "Anton";
   font-style: normal;
   font-weight: 400;
-  src: local('Anton'), local('Anton'),
-    url('../fonts/Anton-Regular.ttf') format('truetype');
+  src:
+    local("Anton"),
+    local("Anton"),
+    url("../fonts/Anton-Regular.ttf") format("truetype");
 }
 
 @font-face {
-  font-family: 'Shadows Into Light';
+  font-family: "Shadows Into Light";
   font-style: normal;
   font-weight: 400;
-  src: local('Shadows Into Light'), local('Shadows Into Light'),
-    url('../fonts/ShadowsIntoLight-Regular.ttf') format('truetype');
+  src:
+    local("Shadows Into Light"),
+    local("Shadows Into Light"),
+    url("../fonts/ShadowsIntoLight-Regular.ttf") format("truetype");
 }
 
 @font-face {
-  font-family: 'BrunoAce Regular';
+  font-family: "BrunoAce Regular";
   font-style: normal;
   font-weight: 400;
-  src: local('BrunoAce Regular'), local('BrunoAce Regular'),
-    url('../fonts/BrunoAce-Regular.ttf') format('truetype');
+  src:
+    local("BrunoAce Regular"),
+    local("BrunoAce Regular"),
+    url("../fonts/BrunoAce-Regular.ttf") format("truetype");
 }
 
 [data-theme="light"] {
@@ -42,16 +48,16 @@
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu",
+    "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family:
+    source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
 }
 
 .box {
@@ -84,15 +90,15 @@ code {
 }
 
 .st0 {
-  fill: #00576F;
+  fill: #00576f;
 }
 
 .st1 {
-  fill: #F49E00;
+  fill: #f49e00;
 }
 
 .st2 {
-  fill: #FFFFFF;
+  fill: #ffffff;
 }
 
 .header-bar {
@@ -101,5 +107,5 @@ code {
   border-bottom: 1px solid var(--border);
   -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
-  background-color: rgba(248, 249, 250, .7);
+  background-color: rgba(248, 249, 250, 0.7);
 }

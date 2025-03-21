@@ -1,21 +1,24 @@
-import { Form, Formik, FormikHelpers } from 'formik';
-import { Box } from '@mui/system';
-import { Button } from '@mui/material';
-import { z } from 'zod';
+import { Form, Formik, FormikHelpers } from "formik";
+import { Box } from "@mui/system";
+import { Button } from "@mui/material";
+import { z } from "zod";
 
-import FormikTextField from '../common/form/FormikTextField';
-import FormikCheckbox from '../common/form/FormikCheckbox';
+import FormikTextField from "../common/form/FormikTextField";
+import FormikCheckbox from "../common/form/FormikCheckbox";
 
 const Schema = z.object({
-  username: z.string().min(1, { message: 'Il nome utente è richiesto.' }),
-  password: z.string().min(1, { message: 'La password è obbligatoria.' }),
+  username: z.string().min(1, { message: "Il nome utente è richiesto." }),
+  password: z.string().min(1, { message: "La password è obbligatoria." }),
   alwaysConnected: z.boolean(),
 });
 
 export type AuthSignInValues = z.infer<typeof Schema>;
 
 interface AuthSignInFormProps {
-  onSubmit: (values: AuthSignInValues, formikHelpers: FormikHelpers<AuthSignInValues>) => void | Promise<unknown>
+  onSubmit: (
+    values: AuthSignInValues,
+    formikHelpers: FormikHelpers<AuthSignInValues>
+  ) => void | Promise<unknown>;
 }
 
 function AuthSignInForm({ onSubmit }: AuthSignInFormProps) {
@@ -23,8 +26,8 @@ function AuthSignInForm({ onSubmit }: AuthSignInFormProps) {
     <Formik
       enableReinitialize
       initialValues={{
-        username: '',
-        password: '',
+        username: "",
+        password: "",
         alwaysConnected: true,
       }}
       validate={(values) => {
@@ -33,14 +36,14 @@ function AuthSignInForm({ onSubmit }: AuthSignInFormProps) {
           return;
         }
         return Object.fromEntries(
-          result.error.issues.map(({ path, message }) => [path[0], message]),
+          result.error.issues.map(({ path, message }) => [path[0], message])
         );
       }}
       onSubmit={onSubmit}
     >
       {({ isSubmitting }) => {
         return (
-          <Form>
+          <Form noValidate>
             <Box sx={{ mt: 1 }}>
               <FormikTextField
                 label="Nome utente:"
@@ -62,10 +65,7 @@ function AuthSignInForm({ onSubmit }: AuthSignInFormProps) {
                 required
                 fullWidth
               />
-              <FormikCheckbox
-                label="Rimani connesso"
-                name="alwaysConnected"
-              />
+              <FormikCheckbox label="Rimani connesso" name="alwaysConnected" />
               <Button
                 type="submit"
                 fullWidth
@@ -80,7 +80,7 @@ function AuthSignInForm({ onSubmit }: AuthSignInFormProps) {
         );
       }}
     </Formik>
-  )
+  );
 }
 
-export default AuthSignInForm
+export default AuthSignInForm;

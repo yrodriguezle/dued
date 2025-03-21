@@ -28,7 +28,8 @@ builder.Services.AddSingleton<GraphQLQueries>();
 
 builder.Services.AddControllers();
 
-builder.Services.AddDbContext<AppDbContext>(options => {
+builder.Services.AddDbContext<AppDbContext>(options =>
+{
     string connectionString = builder.Configuration.GetConnectionString("Default") ?? string.Empty;
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
 });
@@ -57,7 +58,8 @@ builder.Services.AddGraphQL((ctx) => ctx
     .ConfigureExecution(async (options, next) =>
     {
         var logger = options.RequestServices!.GetRequiredService<ILogger<Program>>();
-        options.UnhandledExceptionDelegate = (exception) => {
+        options.UnhandledExceptionDelegate = (exception) =>
+        {
             logger.LogError("{Error} occurred", exception.OriginalException.Message);
             return Task.CompletedTask;
         };
@@ -75,6 +77,8 @@ builder.Services.AddGraphQL((ctx) => ctx
     .UseApolloTracing(_ => builder.Environment.IsDevelopment())
     .AddGraphTypes(typeof(GraphQLSchema).Assembly));
 
+builder.Services.AddCors();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -83,6 +87,13 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors(builder => builder
+    .AllowAnyHeader()
+    .AllowAnyMethod()
+    .SetIsOriginAllowed((host) => true)
+    .AllowCredentials()
+ );
 
 app.UseAuthentication();
 

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import * as React from 'react';
-import invariant from 'tiny-warning';
+import * as React from "react";
+import invariant from "tiny-warning";
 import {
   FieldConfig,
   FieldInputProps,
@@ -13,8 +13,8 @@ import {
   getIn,
   isEmptyChildren,
   isFunction,
-} from 'formik';
-import isEqual from '../../../common/bones/isEqual';
+} from "formik";
+import isEqual from "../../../common/bones/isEqual";
 
 type $FixMe = any;
 
@@ -32,10 +32,15 @@ type FastFieldConfig<T> = FieldConfig & {
   ) => boolean;
 };
 
-type FastFieldAttributes<T> = GenericFieldHTMLAttributes & FastFieldConfig<T> & T;
+type FastFieldAttributes<T> = GenericFieldHTMLAttributes &
+  FastFieldConfig<T> &
+  T;
 
-type FastFieldInnerProps<Values = $FixMe, Props = $FixMe> = FastFieldAttributes<Props> & {
-  formik: FormikContextType<Values>
+type FastFieldInnerProps<
+  Values = $FixMe,
+  Props = $FixMe,
+> = FastFieldAttributes<Props> & {
+  formik: FormikContextType<Values>;
   params?: any;
 };
 
@@ -43,32 +48,35 @@ type FastFieldInnerProps<Values = $FixMe, Props = $FixMe> = FastFieldAttributes<
  * Custom Field component for quickly hooking into Formik
  * context and wiring up forms.
  */
-class FastFieldInner<Values = $FixMe, Props = $FixMe> extends React.Component<FastFieldInnerProps<Values, Props>, $FixMe> {
+class FastFieldInner<Values = $FixMe, Props = $FixMe> extends React.Component<
+  FastFieldInnerProps<Values, Props>,
+  $FixMe
+> {
   constructor(props: FastFieldInnerProps<Values, Props>) {
     super(props);
     const { render, children, component, as: is, name } = props;
     invariant(
       !render,
-      `<FastField render> has been deprecated. Please use a child callback function instead: <FastField name={${name}}>{props => ...}</FastField> instead.`,
+      `<FastField render> has been deprecated. Please use a child callback function instead: <FastField name={${name}}>{props => ...}</FastField> instead.`
     );
     invariant(
       !(component && render),
-      'You should not use <FastField component> and <FastField render> in the same <FastField> component; <FastField component> will be ignored',
+      "You should not use <FastField component> and <FastField render> in the same <FastField> component; <FastField component> will be ignored"
     );
 
     invariant(
       !(is && children && isFunction(children)),
-      'You should not use <FastField as> and <FastField children> as a function in the same <FastField> component; <FastField as> will be ignored.',
+      "You should not use <FastField as> and <FastField children> as a function in the same <FastField> component; <FastField as> will be ignored."
     );
 
     invariant(
       !(component && children && isFunction(children)),
-      'You should not use <FastField component> and <FastField children> as a function in the same <FastField> component; <FastField component> will be ignored.',
+      "You should not use <FastField component> and <FastField children> as a function in the same <FastField> component; <FastField component> will be ignored."
     );
 
     invariant(
       !(render && children && !isEmptyChildren(children)),
-      'You should not use <FastField render> and <FastField children> in the same <FastField> component; <FastField children> will be ignored',
+      "You should not use <FastField render> and <FastField children> in the same <FastField> component; <FastField children> will be ignored"
     );
   }
 
@@ -76,15 +84,17 @@ class FastFieldInner<Values = $FixMe, Props = $FixMe> extends React.Component<Fa
     if (this.props.shouldUpdate) {
       return this.props.shouldUpdate(props, this.props);
     }
-    const shouldUpdate = (
-      props.name !== this.props.name
-      || getIn(props.formik.values, this.props.name) !== getIn(this.props.formik.values, this.props.name)
-      || getIn(props.formik.errors, this.props.name) !== getIn(this.props.formik.errors, this.props.name)
-      || getIn(props.formik.touched, this.props.name) !== getIn(this.props.formik.touched, this.props.name)
-      || !isEqual(this.props.params, props.params)
-      || Object.keys(this.props).length !== Object.keys(props).length
-      || props.formik.isSubmitting !== this.props.formik.isSubmitting
-    );
+    const shouldUpdate =
+      props.name !== this.props.name ||
+      getIn(props.formik.values, this.props.name) !==
+        getIn(this.props.formik.values, this.props.name) ||
+      getIn(props.formik.errors, this.props.name) !==
+        getIn(this.props.formik.errors, this.props.name) ||
+      getIn(props.formik.touched, this.props.name) !==
+        getIn(this.props.formik.touched, this.props.name) ||
+      !isEqual(this.props.params, props.params) ||
+      Object.keys(this.props).length !== Object.keys(props).length ||
+      props.formik.isSubmitting !== this.props.formik.isSubmitting;
 
     return shouldUpdate;
   }
@@ -151,43 +161,45 @@ class FastFieldInner<Values = $FixMe, Props = $FixMe> extends React.Component<Fa
     }
 
     if (isFunction(children)) {
-      return (children as (props: FastFieldProps<Values>) => React.ReactNode)(bag);
+      return (children as (props: FastFieldProps<Values>) => React.ReactNode)(
+        bag
+      );
     }
 
     if (component) {
       // This behavior is backwards compat with earlier Formik 0.9 to 1.x
-      if (typeof component === 'string') {
+      if (typeof component === "string") {
         const { innerRef, ...rest } = props;
         return React.createElement(
           component,
           { ref: innerRef, ...field, ...(rest as $FixMe) },
-          children,
+          children
         );
       }
       // We don't pass `meta` for backwards compat
       return React.createElement(
         component as React.ComponentClass<$FixMe>,
         { field, form: formik, ...props },
-        children,
+        children
       );
     }
 
     // default to input here so we can check for both `as` and `children` above
-    const asElement = is || 'input';
+    const asElement = is || "input";
 
-    if (typeof asElement === 'string') {
+    if (typeof asElement === "string") {
       const { innerRef, ...rest } = props;
       return React.createElement(
         asElement,
         { ref: innerRef, ...field, ...(rest as $FixMe) },
-        children,
+        children
       );
     }
 
     return React.createElement(
       asElement as React.ComponentClass,
       { ...field, ...props },
-      children,
+      children
     );
   }
 }

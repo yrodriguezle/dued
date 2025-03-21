@@ -2,13 +2,13 @@ import { TypedDocumentNode, gql } from "@apollo/client";
 
 interface SignInData {
   authentication: {
-    signIn: AuthToken
-  }
+    signIn: AuthToken;
+  };
 }
 
 export type SigninValues = {
-  username: string
-  password: string
+  username: string;
+  password: string;
 };
 
 export const mutationSignIn: TypedDocumentNode<SignInData, SigninValues> = gql`
@@ -19,17 +19,21 @@ export const mutationSignIn: TypedDocumentNode<SignInData, SigninValues> = gql`
         refreshToken
       }
     }
-  }`;
+  }
+`;
 
 interface RefreshTokenData {
   authentication: {
-    refreshToken: AuthToken
-  }
+    refreshToken: AuthToken;
+  };
 }
 interface RefreshTokenValues {
-  refreshToken: string
+  refreshToken: string;
 }
-export const mutationRefreshToken: TypedDocumentNode<RefreshTokenData, RefreshTokenValues> = gql`
+export const mutationRefreshToken: TypedDocumentNode<
+  RefreshTokenData,
+  RefreshTokenValues
+> = gql`
   mutation RefreshToken($refreshToken: String!) {
     authentication {
       refreshToken(refreshToken: $refreshToken) {
@@ -37,4 +41,5 @@ export const mutationRefreshToken: TypedDocumentNode<RefreshTokenData, RefreshTo
         refreshToken
       }
     }
-  }`;
+  }
+`;

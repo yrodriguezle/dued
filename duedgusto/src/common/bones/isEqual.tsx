@@ -3,14 +3,19 @@ function getType(obj: unknown): string {
   return {}.toString.call(obj).slice(8, -1).toLowerCase();
 }
 function sortObject<T extends { [key: string]: unknown }>(obj: T): T {
-  if (getType(obj) !== 'object') {
+  if (getType(obj) !== "object") {
     return obj;
   }
 
   const sorted: { [key: string]: unknown } = {};
-  Object.keys(obj).sort().forEach((key) => {
-    sorted[key] = typeof obj[key] === 'object' && obj[key] !== null ? sortObject(obj[key] as T) : obj[key];
-  });
+  Object.keys(obj)
+    .sort()
+    .forEach((key) => {
+      sorted[key] =
+        typeof obj[key] === "object" && obj[key] !== null
+          ? sortObject(obj[key] as T)
+          : obj[key];
+    });
 
   return sorted as T;
 }
@@ -21,7 +26,12 @@ const isEqual = (first: any, second: any): boolean => {
   }
 
   // Check for null or undefined values
-  if (first === undefined || first === null || second === undefined || second === null) {
+  if (
+    first === undefined ||
+    first === null ||
+    second === undefined ||
+    second === null
+  ) {
     return false;
   }
 
@@ -39,7 +49,7 @@ const isEqual = (first: any, second: any): boolean => {
   }
 
   // Object
-  if (getType(first) === 'object') {
+  if (getType(first) === "object") {
     const sortedSource = sortObject(first);
     const sortedTarget = sortObject(second);
     const sourceKeys = Object.keys(sortedSource);
@@ -50,7 +60,9 @@ const isEqual = (first: any, second: any): boolean => {
     if (!sourceKeys.every((key, index) => isEqual(key, targetKeys[index]))) {
       return false;
     }
-    return sourceKeys.every((key) => isEqual(sortedSource[key], sortedTarget[key]));
+    return sourceKeys.every((key) =>
+      isEqual(sortedSource[key], sortedTarget[key])
+    );
   }
 
   return false;
