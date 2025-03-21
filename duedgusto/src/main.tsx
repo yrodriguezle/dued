@@ -3,15 +3,16 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router";
 import { ApolloProvider } from "@apollo/client";
 
-import '@fontsource/roboto/300.css';
-import '@fontsource/roboto/400.css';
-import '@fontsource/roboto/500.css';
-import '@fontsource/roboto/700.css';
+import "@fontsource/roboto/300.css";
+import "@fontsource/roboto/400.css";
+import "@fontsource/roboto/500.css";
+import "@fontsource/roboto/700.css";
 
-import App from "./App.tsx";
+import App from "./App";
+import fetchConfiguration from "./api/fetchConfiguration";
+import configureClient from "./graphql/configureClient";
 import packageJson from "../package.json";
-import configureClient from "./graphql/configureClient.tsx";
-import fetchConfiguration from "./api/fetchConfiguration.tsx";
+import "./assets/css/app.css";
 
 (async function render() {
   const response = await fetchConfiguration();

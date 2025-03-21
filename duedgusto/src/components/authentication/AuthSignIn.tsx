@@ -1,0 +1,88 @@
+import { useCallback, useState } from "react";
+import { useNavigate } from "react-router";
+import { Alert, Box, useMediaQuery, useTheme } from "@mui/material";
+
+import useProgress from "../common/progress/useProgress";
+import useSignIn from "../../graphql/user/useSignIn";
+import useGetLoggedUser from "../../common/authentication/useGetLoggedUser";
+import { setRememberPassword } from "../../common/authentication/auth";
+import LogoSection from "../common/logo/LogoSection";
+import AuthSignInForm, { AuthSignInValues } from "./AuthSignInForm";
+import Copyright from "../common/copyright/Copyright";
+
+function AuthSignIn() {
+  const theme = useTheme();
+  const matchDownSm = useMediaQuery(theme.breakpoints.down("sm"));
+  const [message, setMessage] = useState("");
+  const { setOnInProgress, setOffInProgress } = useProgress();
+  const { signIn } = useSignIn();
+  const fetchUser = useGetLoggedUser();
+  const navigate = useNavigate();
+
+  const handleSubmit = useCallback(
+    async (values: AuthSignInValues) => {
+      try {
+        setOnInProgress();
+        setMessage("");
+        const { username, password } = values;
+        const signinSuccesful = await signIn({ username, password });
+        if (signinSuccesful) {
+          setRememberPassword(values.alwaysConnected);
+          await fetchUser();
+          navigate("/gestionale", { replace: true });
+        }
+      } catch (error) {
+        if (error && typeof error === "object" && "message" in error) {
+          setMessage(error.message as string);
+          return;
+        }
+        throw error;
+      } finally {
+        setOffInProgress();
+      }
+    },
+    [fetchUser, navigate, setOffInProgress, setOnInProgress, signIn]
+  );
+
+  return (
+    <div
+      className="login-card"
+      style={{
+        backgroundColor: "var(--cardBackground)",
+        minWidth: matchDownSm ? "90%" : undefined,
+        width: matchDownSm ? "90%" : undefined,
+      }}
+    >
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          paddingLeft: 2,
+          paddingRight: 2,
+          background: "transparent",
+        }}
+      >
+        <Box
+          sx={{
+            marginTop: 1,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+          }}
+        >
+          {message ? (
+            <Alert severity="error" sx={{ mb: 2, width: "100%" }}>
+              {message}
+            </Alert>
+          ) : null}
+          <LogoSection />
+          <AuthSignInForm onSubmit={handleSubmit} />
+        </Box>
+        <Copyright />
+      </Box>
+    </div>
+  );
+}
+
+export default AuthSignIn;

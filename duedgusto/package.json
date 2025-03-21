@@ -12,6 +12,7 @@
     "env:staging": "node env .env.staging"
   },
   "dependencies": {
+    "@ant-design/icons": "^6.0.0",
     "@apollo/client": "^3.13.4",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
@@ -19,10 +20,12 @@
     "@mui/icons-material": "^6.4.8",
     "@mui/material": "^6.4.8",
     "dayjs": "^1.11.13",
+    "formik": "^2.4.6",
     "graphql": "^16.10.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router": "^7.4.0",
+    "zod": "^3.24.2",
     "zustand": "^5.0.3"
   },
   "devDependencies": {

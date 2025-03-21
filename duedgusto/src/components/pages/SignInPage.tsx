@@ -1,6 +1,12 @@
+import AuthSignIn from "../authentication/AuthSignIn"
+
 function SignInPage() {
   return (
-    <div>SignInPage</div>
+    <div className="box">
+      <div className="box-item">
+        <AuthSignIn />
+      </div>
+    </div>
   )
 }
 
