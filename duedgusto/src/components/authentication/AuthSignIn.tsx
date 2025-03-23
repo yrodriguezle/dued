@@ -26,11 +26,13 @@ function AuthSignIn() {
         setMessage("");
         const { username, password } = values;
         const signinSuccesful = await signIn({ username, password });
-        if (signinSuccesful) {
-          setRememberPassword(values.alwaysConnected);
-          await fetchUser();
-          navigate("/gestionale", { replace: true });
+        if (!signinSuccesful) {
+          setMessage("Utente o password non validi!");
+          return;
         }
+        setRememberPassword(values.alwaysConnected);
+        await fetchUser();
+        navigate("/gestionale", { replace: true });
       } catch (error) {
         if (error && typeof error === "object" && "message" in error) {
           setMessage(error.message as string);

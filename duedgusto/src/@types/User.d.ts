@@ -5,4 +5,5 @@ type User = {
   firstName: string;
   lastName: string;
   description: string;
+  disabled;
 } | null;

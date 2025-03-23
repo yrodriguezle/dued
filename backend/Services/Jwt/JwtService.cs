@@ -10,7 +10,6 @@ namespace duedgusto.Services.Jwt;
 
 public interface IJwtService
 {
-    SymmetricSecurityKey GetJwtKey();
     ClaimsPrincipal GetPrincipalFromExpiredToken(string token);
     int GetClaimUserIdFromToken(string token);
     int GetUserID();
@@ -43,20 +42,6 @@ public class JwtService : IJwtService
         byte[] key = Encoding.UTF8.GetBytes(keyString);
         return new SymmetricSecurityKey(key);
     }
-    public TokenValidationParameters GetTokenValidationParameters()
-    {
-        TokenValidationParameters parameters = new()
-        {
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = GetJwtKey(),
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidIssuer = _configuration.GetSection("Jwt")["Issuer"],
-            ValidAudience = _configuration.GetSection("Jwt")["Audience"],
-            ValidateLifetime = true
-        };
-        return parameters;
-    }
     public string GetTokenFromAccessor(IHttpContextAccessor contextAccessor)
     {
         if (contextAccessor?.HttpContext != null)
@@ -69,7 +54,11 @@ public class JwtService : IJwtService
     }
     public ClaimsPrincipal GetPrincipalFromExpiredToken(string token)
     {
-        TokenValidationParameters parameters = GetTokenValidationParameters();
+        string keyString = _configuration.GetSection("Jwt")["Key"] ?? string.Empty;
+        string validIssuer = _configuration["Jwt:Issuer"] ?? string.Empty;
+        string validAudience = _configuration["Jwt:Audience"] ?? string.Empty;
+
+        TokenValidationParameters parameters = JwtTokenParameters.GetTokenValidationParameters(keyString, validIssuer, validAudience);
         parameters.ValidateLifetime = false;
         JwtSecurityTokenHandler tokenHandler = new();
         ClaimsPrincipal principal = tokenHandler.ValidateToken(token, parameters, out SecurityToken securityToken);
@@ -115,7 +104,7 @@ public class JwtService : IJwtService
             claims: claims,
             notBefore: DateTime.UtcNow,
             expires: DateTime.UtcNow.AddDays(7),
-            signingCredentials: new SigningCredentials(GetJwtKey(), SecurityAlgorithms.HmacSha256)
+            signingCredentials: new SigningCredentials(JwtTokenParameters.GetJwtKey(_configuration.GetSection("Jwt")["Key"] ?? string.Empty), SecurityAlgorithms.HmacSha256)
         );
         return new JwtSecurityTokenHandler().WriteToken(jwtToken);
     }
@@ -131,7 +120,11 @@ public class JwtService : IJwtService
         try
         {
             string token = GetTokenFromAccessor(_contextAccessor);
-            TokenValidationParameters parameters = GetTokenValidationParameters();
+            string keyString = _configuration.GetSection("Jwt")["Key"] ?? string.Empty;
+            string validIssuer = _configuration["Jwt:Issuer"] ?? string.Empty;
+            string validAudience = _configuration["Jwt:Audience"] ?? string.Empty;
+
+            TokenValidationParameters parameters = JwtTokenParameters.GetTokenValidationParameters(keyString, validIssuer, validAudience);
             JwtSecurityTokenHandler tokenHandler = new();
             ClaimsPrincipal principal = tokenHandler.ValidateToken(token, parameters, out SecurityToken securityToken);
 

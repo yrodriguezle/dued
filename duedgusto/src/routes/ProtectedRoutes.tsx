@@ -1,12 +1,6 @@
-import { Navigate, Outlet, Route, Routes } from "react-router";
+import { Navigate, Route, Routes } from "react-router";
 import { isAuthenticated } from "../common/authentication/auth";
-
-const Layout = () => (
-  <div>
-    <div>Layout</div>
-    <Outlet />
-  </div>
-);
+import Layout from "../components/layout/Layout";
 
 const HomePage = () => <div>HomePage</div>;
 

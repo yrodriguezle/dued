@@ -1,8 +1,4 @@
-using System.Text;
-using System.Diagnostics;
-
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 using GraphQL;
@@ -20,11 +16,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddHttpContextAccessor();
 
 // Add services to the container.
-builder.Services.AddTransient<IJwtService, JwtService>();
 builder.Services.AddTransient<PasswordService>();
 
 builder.Services.AddSingleton(services => new GraphQLSchema(new SelfActivatingServiceProvider(services)));
 builder.Services.AddSingleton<GraphQLQueries>();
+builder.Services.AddSingleton<AuthQueries>();
 
 builder.Services.AddControllers();
 
@@ -34,22 +30,23 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
 });
 
-byte[] key = Encoding.UTF8.GetBytes(builder.Configuration.GetSection("Jwt")["Key"] ?? string.Empty);
+string keyString = builder.Configuration.GetSection("Jwt")["Key"] ?? string.Empty;
+string validIssuer = builder.Configuration["Jwt:Issuer"] ?? string.Empty;
+string validAudience = builder.Configuration["Jwt:Audience"] ?? string.Empty;
+
+var jwtHelper = new JwtHelper(keyString, SecurityKeyType.SymmetricSecurityKey);
+builder.Services.AddSingleton(jwtHelper);
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.RequireHttpsMetadata = false;
-        options.SaveToken = true;
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(key),
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidAudience = builder.Configuration["Jwt:Audience"]
-        };
-    });
+    .AddJwtBearer(opts => opts.TokenValidationParameters = jwtHelper.TokenValidationParameters);
+
+//builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+//    .AddJwtBearer(options =>
+//    {
+//        options.RequireHttpsMetadata = false;
+//        options.SaveToken = true;
+//        options.TokenValidationParameters = JwtTokenParameters.GetTokenValidationParameters(keyString, validIssuer, validAudience); 
+//    });
 
 // GraphQl
 builder.Services.AddGraphQL((ctx) => ctx
@@ -58,23 +55,32 @@ builder.Services.AddGraphQL((ctx) => ctx
     .ConfigureExecution(async (options, next) =>
     {
         var logger = options.RequestServices!.GetRequiredService<ILogger<Program>>();
+
+        var httpContextAccessor = options.RequestServices!.GetRequiredService<IHttpContextAccessor>();
+        var user = httpContextAccessor.HttpContext?.User;
+        logger.LogInformation($"User authenticated: {user?.Identity?.IsAuthenticated}");
+
         options.UnhandledExceptionDelegate = (exception) =>
         {
             logger.LogError("{Error} occurred", exception.OriginalException.Message);
             return Task.CompletedTask;
         };
 
-        var timer = Stopwatch.StartNew();
+        // var timer = Stopwatch.StartNew();
         var result = await next(options);
-        result.Extensions ??= [];
-        result.Extensions["elapsedMs"] = timer.ElapsedMilliseconds;
+        // result.Extensions ??= [];
+        // result.Extensions["elapsedMs"] = timer.ElapsedMilliseconds;
         return result;
     })
     .AddSystemTextJson()
     .AddDataLoader()
     .AddAuthorizationRule()
-    .AddUserContextBuilder(context => new GraphQLUserContext(context.User.Identity?.IsAuthenticated == true ? context.User : null))
-    .UseApolloTracing(_ => builder.Environment.IsDevelopment())
+    .AddUserContextBuilder(context =>
+    {
+        var result = new GraphQLUserContext(context.User.Identity?.IsAuthenticated == true ? context.User : null);
+        return result;
+    })
+    // .UseApolloTracing(_ => builder.Environment.IsDevelopment())
     .AddGraphTypes(typeof(GraphQLSchema).Assembly));
 
 builder.Services.AddCors();

@@ -1,26 +1,31 @@
 ﻿using System.Security.Claims;
 
+using Microsoft.EntityFrameworkCore;
+
+using GraphQL;
 using GraphQL.Types;
 
 using duedgusto.Models;
 using duedgusto.Services.GraphQL;
-using duedgusto.Services.Jwt;
 using duedgusto.DataAccess;
-using Microsoft.EntityFrameworkCore;
+using duedgusto.Services.Jwt;
 
 namespace duedgusto.GraphQL.Authentication;
 
 public class AuthQueries : ObjectGraphType
 {
-    public AuthQueries(IJwtService jwtService)
+    public AuthQueries()
     {
+        this.Authorize();
         Field<UserType, User>(Name = "currentUser")
             .ResolveAsync(async (context) =>
             {
                 GraphQLUserContext? userContext = context.UserContext as GraphQLUserContext;
                 ClaimsPrincipal principal = userContext?.User ?? throw new Exception("No claims");
+                JwtHelper jwtHelper = GraphQLService.GetService<JwtHelper>(context);
+                int userId = jwtHelper.GetUserID(principal);
+
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
-                int userId = jwtService.GetUserID(principal);
                 return await dbContext.User.FirstOrDefaultAsync((x) => x.UserId == userId);
             });
     }

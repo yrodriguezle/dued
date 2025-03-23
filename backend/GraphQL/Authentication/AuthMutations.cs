@@ -23,7 +23,7 @@ public class AuthMutations : ObjectGraphType
             .ResolveAsync(async context =>
             {
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
-                IJwtService jwtService = GraphQLService.GetService<IJwtService>(context);
+                JwtHelper jwtHelper = GraphQLService.GetService<JwtHelper>(context);
 
                 string username = context.GetArgument<string>("username");
                 string password = context.GetArgument<string>("password");
@@ -36,14 +36,41 @@ public class AuthMutations : ObjectGraphType
                 Claim[] usersClaims = [
                     new Claim(ClaimTypes.Name, user.UserName),
                     new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-                    new Claim("userId", user.UserId.ToString()),
+                    new Claim("UserId", user.UserId.ToString()),
                 ];
-                string jwtToken = jwtService.GenerateAccessToken(usersClaims);
-                string jwtRefreshToken = jwtService.GenerateRefreshToken();
-                user.RefreshToken = jwtRefreshToken;
+
+                var (RefreshToken, Token) = jwtHelper.CreateSignedToken(usersClaims);
+
+                user.RefreshToken = RefreshToken;
 
                 await dbContext.SaveChangesAsync();
-                return new TokenResponse(jwtToken, jwtRefreshToken);
+                return new TokenResponse(Token, RefreshToken);
             });
+        Field<TokenResponseType, TokenResponse>("refreshToken")
+              .Argument<NonNullGraphType<StringGraphType>>("refreshToken")
+              .ResolveAsync(async context =>
+              {
+                  AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                  JwtHelper jwtHelper = GraphQLService.GetService<JwtHelper>(context);
+
+                  string refreshToken = context.GetArgument<string>("refreshToken");
+                  User? user = await dbContext.User.FirstOrDefaultAsync(u => u.RefreshToken == refreshToken);
+
+                  if (user == null)
+                  {
+                      context.Errors.Add(new ExecutionError("Invalid refresh token"));
+                      return null;
+                  }
+                  Claim[] userClaims = [
+                      new Claim(ClaimTypes.Name, user.UserName),
+                      new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+                      new Claim("UserId", user.UserId.ToString()),
+                  ];
+                  var (RefreshToken, Token) = jwtHelper.CreateSignedToken(userClaims);
+                  user.RefreshToken = RefreshToken;
+
+                  await dbContext.SaveChangesAsync();
+                  return new TokenResponse(Token, RefreshToken);
+              });
     }
 }

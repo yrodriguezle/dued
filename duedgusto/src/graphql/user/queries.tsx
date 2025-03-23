@@ -2,14 +2,14 @@ import { gql, TypedDocumentNode } from "@apollo/client";
 import { userFragment } from "./fragment";
 
 interface GetUserData {
-  account: {
+  authentication: {
     currentUser: User;
   };
 }
 export const getCurrentUser: TypedDocumentNode<GetUserData> = gql(`
   ${userFragment}
   query GetCurrentUser {
-    account {
+    authentication {
       currentUser {
         ...UserFragment
       }
