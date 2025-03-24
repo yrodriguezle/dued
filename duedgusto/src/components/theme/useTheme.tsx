@@ -1,13 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
-
-const getDefaultTheme = () =>
-  window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+import { useEffect } from "react";
+import useStore from "../../store/useStore";
 
 function useTheme() {
-  const [userTheme, setUserTheme] = useState<UserTheme>({
-    mode: "default",
-    theme: getDefaultTheme(),
-  });
+  const { userTheme, changeTheme } = useStore((store) => store);
 
   useEffect(() => {
     const favicon = document.getElementById("favicon") as HTMLLinkElement;
@@ -24,17 +19,7 @@ function useTheme() {
   useEffect(() => {
     const handleChangeSystemTheme = () => {
       if (userTheme.mode === "default") {
-        const defaultMode = getDefaultTheme();
-        document.documentElement.setAttribute("data-theme", defaultMode);
-        setUserTheme({ mode: "default", theme: defaultMode });
-      }
-      if (userTheme.mode === "dark") {
-        document.documentElement.setAttribute("data-theme", "dark");
-        setUserTheme({ mode: "default", theme: "dark" });
-      }
-      if (userTheme.mode === "light") {
-        document.documentElement.setAttribute("data-theme", "light");
-        setUserTheme({ mode: "default", theme: "light" });
+        changeTheme("default");
       }
     };
     handleChangeSystemTheme();
@@ -43,29 +28,14 @@ function useTheme() {
       "(prefers-color-scheme: dark)"
     );
     mediaQueryList.addEventListener("change", handleChangeSystemTheme);
-    return () =>
+    return () => {
       mediaQueryList.removeEventListener("change", handleChangeSystemTheme);
-  }, [userTheme.mode]);
-
-  const onChangeTheme = useCallback(async (theme: ThemeMode) => {
-    if (theme === "dark") {
-      document.documentElement.setAttribute("data-theme", "dark");
-      setUserTheme({ mode: "dark", theme: "dark" });
-      return;
-    }
-    if (theme === "light") {
-      document.documentElement.setAttribute("data-theme", "light");
-      setUserTheme({ mode: "light", theme: "light" });
-      return;
-    }
-    const defaultMode = getDefaultTheme();
-    document.documentElement.setAttribute("data-theme", defaultMode);
-    setUserTheme({ mode: "default", theme: defaultMode });
-  }, []);
+    };
+  }, [changeTheme, userTheme.mode]);
 
   return {
     userTheme,
-    onChangeTheme,
+    changeTheme,
   };
 }
 

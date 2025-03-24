@@ -56,6 +56,9 @@ interface Store {
   offInProgress: (payload: string) => void;
   toggleSidebarOpened: () => void;
   receiveSidebarMenuOpen: (payload: string) => void;
+  // userTheme
+  userTheme: UserTheme;
+  changeTheme: (theme: ThemeMode) => void;
 }
 
 type ThemeMode = "light" | "dark" | "default";

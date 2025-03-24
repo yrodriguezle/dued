@@ -1,6 +1,6 @@
-import Typography from "@mui/material/Typography";
+import Typography, { TypographyProps } from "@mui/material/Typography";
 
-function LogoSection() {
+function LogoSection(props: TypographyProps) {
   return (
     <Typography
       component="h1"
@@ -13,6 +13,7 @@ function LogoSection() {
             ? theme.palette.secondary.light
             : theme.palette.primary.dark,
       }}
+      {...props}
     >
       2D Gusto
     </Typography>

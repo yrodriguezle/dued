@@ -10,7 +10,7 @@ async function refreshToken() {
     const { data } = await apolloClient.mutate({
       mutation: mutationRefreshToken,
       variables: {
-        refreshToken: authHeaders?.refreshToken || '',
+        refreshToken: authHeaders?.refreshToken || "",
       },
     });
     const result = data?.authentication.refreshToken;
@@ -20,9 +20,9 @@ async function refreshToken() {
     }
     return false;
   } catch (error) {
-    console.error('Error loading data:', error);
-    throw new Response('Failed to load data', { status: 500 });
+    console.error("Error loading data:", error);
+    throw new Response("Failed to load data", { status: 500 });
   }
 }
 
-export default refreshToken
+export default refreshToken;

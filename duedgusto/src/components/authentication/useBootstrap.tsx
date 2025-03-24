@@ -1,28 +1,25 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import useGetLoggedUser from "../../common/authentication/useGetLoggedUser";
-import { useNavigate } from "react-router";
 import useStore from "../../store/useStore";
+import useSignOut from "../../common/authentication/useSignOut";
 
 function useBootstrap() {
-  const { user } = useStore((store) => store);
-  const navigate = useNavigate();
+  const { user, inProgress } = useStore((store) => store);
   const fetchUser = useGetLoggedUser();
-  const hasFetchedRef = useRef(false); // Flag per evitare chiamate multiple
+  const signOut = useSignOut();
 
   useEffect(() => {
-    console.log('useBootstrap', user);
-    if (!hasFetchedRef.current && !user) {
-      hasFetchedRef.current = true; // Impostiamo il flag per non ripetere il fetch
-      (async function bootstrap() {
+    (async () => {
+      if (!inProgress.fetchUser && !user) {
         try {
           await fetchUser();
         } catch (error) {
-          console.log('error', error);
-          navigate("/signin", { replace: true });
+          console.log(error);
+          signOut();
         }
-      })();
-    }
-  }, [fetchUser, navigate, user]);
+      }
+    })();
+  }, [fetchUser, inProgress.fetchUser, signOut, user]);
 }
 
 export default useBootstrap;

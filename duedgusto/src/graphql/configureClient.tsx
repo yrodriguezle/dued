@@ -8,11 +8,15 @@ import {
 } from "@apollo/client";
 import { onError } from "@apollo/client/link/error";
 import { fromPromise } from "@apollo/client/link/utils";
-import { getAuthHeaders } from "../common/authentication/auth";
+import {
+  getAuthHeaders,
+  removeAuthToken,
+  removeLastActivity,
+} from "../common/authentication/auth";
 import refreshToken from "./user/refreshToken";
 
 interface ApolloClienContext {
-  headers?: HeadersInit
+  headers?: HeadersInit;
 }
 
 let apolloClient: ApolloClient<NormalizedCacheObject> | undefined;
@@ -22,7 +26,7 @@ let isRefreshing = false;
 let pendingRequests: Array<() => void> = [];
 
 const resolvePendingRequests = () => {
-  pendingRequests.forEach(callback => callback());
+  pendingRequests.forEach((callback) => callback());
   pendingRequests = [];
 };
 
@@ -50,20 +54,22 @@ function configureClient() {
     return forward(operation);
   });
 
-  const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) => {
-    // Se riceviamo errori GraphQL relativi all'autenticazione...
-    if (graphQLErrors && graphQLErrors.some(err => err.extensions?.code === "UNAUTHENTICATED")) {
-      // Se un refresh è già in corso, aspettiamo che venga risolto
+  const errorLink = onError(({ graphQLErrors, operation, forward }) => {
+    if (
+      graphQLErrors &&
+      graphQLErrors.some((err) => err.extensions?.code === "ACCESS_DENIED")
+    ) {
       if (!isRefreshing) {
         isRefreshing = true;
         refreshToken()
-          .then(success => {
+          .then((success) => {
             if (success) {
               resolvePendingRequests();
             }
           })
           .catch(() => {
-            // Gestisci eventuali errori nel refresh token (es. logout)
+            removeAuthToken();
+            removeLastActivity();
           })
           .finally(() => {
             isRefreshing = false;
@@ -72,42 +78,9 @@ function configureClient() {
 
       // Restituisci una promise che attende il completamento del refresh prima di ripetere la richiesta
       return fromPromise(
-        new Promise(resolve => {
+        new Promise((resolve) => {
           pendingRequests.push(() => {
             // Aggiorna le intestazioni con il nuovo token
-            const authHeaders = getAuthHeaders();
-            operation.setContext(({ headers = {} }) => ({
-              headers: {
-                ...headers,
-                ...authHeaders,
-              },
-            }));
-            resolve(null);
-          });
-        })
-      ).flatMap(() => forward(operation));
-    }
-
-    // Se networkError restituisce 401, possiamo applicare una logica simile
-    if (networkError && "statusCode" in networkError && networkError.statusCode === 401) {
-      if (!isRefreshing) {
-        isRefreshing = true;
-        refreshToken()
-          .then(success => {
-            if (success) {
-              resolvePendingRequests();
-            }
-          })
-          .catch(() => {
-            // Gestisci errori nel refresh
-          })
-          .finally(() => {
-            isRefreshing = false;
-          });
-      }
-      return fromPromise(
-        new Promise(resolve => {
-          pendingRequests.push(() => {
             const authHeaders = getAuthHeaders();
             operation.setContext(({ headers = {} }) => ({
               headers: {
@@ -123,9 +96,6 @@ function configureClient() {
   });
 
   apolloClient = new ApolloClient({
-    // link: from([
-    //   authLink.concat(httpLink),
-    // ]),
     link: from([errorLink, authLink, httpLink]),
     cache: new InMemoryCache(),
   });
