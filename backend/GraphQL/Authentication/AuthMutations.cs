@@ -46,31 +46,5 @@ public class AuthMutations : ObjectGraphType
                 await dbContext.SaveChangesAsync();
                 return new TokenResponse(Token, RefreshToken);
             });
-        Field<TokenResponseType, TokenResponse>("refreshToken")
-              .Argument<NonNullGraphType<StringGraphType>>("refreshToken")
-              .ResolveAsync(async context =>
-              {
-                  AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
-                  JwtHelper jwtHelper = GraphQLService.GetService<JwtHelper>(context);
-
-                  string refreshToken = context.GetArgument<string>("refreshToken");
-                  User? user = await dbContext.User.FirstOrDefaultAsync(u => u.RefreshToken == refreshToken);
-
-                  if (user == null)
-                  {
-                      context.Errors.Add(new ExecutionError("Invalid refresh token"));
-                      return null;
-                  }
-                  Claim[] userClaims = [
-                      new Claim(ClaimTypes.Name, user.UserName),
-                      new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-                      new Claim("UserId", user.UserId.ToString()),
-                  ];
-                  var (RefreshToken, Token) = jwtHelper.CreateSignedToken(userClaims);
-                  user.RefreshToken = RefreshToken;
-
-                  await dbContext.SaveChangesAsync();
-                  return new TokenResponse(Token, RefreshToken);
-              });
     }
 }
