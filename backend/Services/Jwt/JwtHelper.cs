@@ -29,21 +29,13 @@ public class JwtHelper
     /// </remarks>
     public JwtHelper(string key, SecurityKeyType keyType)
     {
-        // load the key
-        switch (keyType)
+        (_securityKey, _securityAlgorithm) = keyType switch
         {
-            case SecurityKeyType.SymmetricSecurityKey:
-                (_securityKey, _securityAlgorithm) = CreateSymmetricSecurityKey(key);
-                break;
-            case SecurityKeyType.PublicKey:
-                (_securityKey, _securityAlgorithm) = CreateAsymmetricSecurityKey(key, false);
-                break;
-            case SecurityKeyType.PrivateKey:
-                (_securityKey, _securityAlgorithm) = CreateAsymmetricSecurityKey(key, true);
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(keyType));
-        }
+            SecurityKeyType.SymmetricSecurityKey => CreateSymmetricSecurityKey(key),
+            SecurityKeyType.PublicKey => CreateAsymmetricSecurityKey(key, false),
+            SecurityKeyType.PrivateKey => CreateAsymmetricSecurityKey(key, true),
+            _ => throw new ArgumentOutOfRangeException(nameof(keyType)),
+        };
 
         // prepare the signing credentials
         _signingCredentials = new(_securityKey, _securityAlgorithm);

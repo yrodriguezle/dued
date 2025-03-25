@@ -40,14 +40,6 @@ builder.Services.AddSingleton(jwtHelper);
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(opts => opts.TokenValidationParameters = jwtHelper.TokenValidationParameters);
 
-//builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-//    .AddJwtBearer(options =>
-//    {
-//        options.RequireHttpsMetadata = false;
-//        options.SaveToken = true;
-//        options.TokenValidationParameters = JwtTokenParameters.GetTokenValidationParameters(keyString, validIssuer, validAudience); 
-//    });
-
 // GraphQl
 builder.Services.AddGraphQL((ctx) => ctx
     .AddSchema<GraphQLSchema>()
