@@ -1,25 +1,29 @@
-import { useEffect } from "react";
-import useGetLoggedUser from "../../common/authentication/useGetLoggedUser";
+import { useEffect, useRef } from "react";
 import useStore from "../../store/useStore";
-import useSignOut from "../../common/authentication/useSignOut";
+import fetchLoggedUser from "../../api/fetchLoggedUser";
+import { isAuthenticated } from "../../common/authentication/auth";
 
 function useBootstrap() {
-  const { user, inProgress } = useStore((store) => store);
-  const fetchUser = useGetLoggedUser();
-  const signOut = useSignOut();
+  const { user, inProgress, receiveUser, onInProgress, offInProgress } = useStore((store) => store);
+  const promiseLock = useRef<Promise<void> | null>(null);
 
   useEffect(() => {
-    (async () => {
-      if (!inProgress.fetchUser && !user) {
+    async function bootstrap() {
+      if (promiseLock.current || inProgress.fetchUser || user || !isAuthenticated()) return;
+      promiseLock.current = (async () => {
         try {
-          await fetchUser();
-        } catch (error) {
-          console.log(error);
-          signOut();
+          onInProgress("fetchUser");
+          const currentUser = await fetchLoggedUser();
+          receiveUser(currentUser || null);
+        } finally {
+          offInProgress("fetchUser");
+          promiseLock.current = null;
         }
-      }
-    })();
-  }, [fetchUser, inProgress.fetchUser, signOut, user]);
+      })();
+      await promiseLock.current;
+    }
+    bootstrap();
+  }, [inProgress.fetchUser, offInProgress, onInProgress, receiveUser, user]);
 }
 
 export default useBootstrap;

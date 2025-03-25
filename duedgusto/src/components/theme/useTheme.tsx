@@ -24,9 +24,7 @@ function useTheme() {
     };
     handleChangeSystemTheme();
 
-    const mediaQueryList: MediaQueryList = window.matchMedia(
-      "(prefers-color-scheme: dark)"
-    );
+    const mediaQueryList: MediaQueryList = window.matchMedia("(prefers-color-scheme: dark)");
     mediaQueryList.addEventListener("change", handleChangeSystemTheme);
     return () => {
       mediaQueryList.removeEventListener("change", handleChangeSystemTheme);

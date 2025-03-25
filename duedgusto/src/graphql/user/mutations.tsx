@@ -30,10 +30,7 @@ interface RefreshTokenData {
 interface RefreshTokenValues {
   refreshToken: string;
 }
-export const mutationRefreshToken: TypedDocumentNode<
-  RefreshTokenData,
-  RefreshTokenValues
-> = gql`
+export const mutationRefreshToken: TypedDocumentNode<RefreshTokenData, RefreshTokenValues> = gql`
   mutation RefreshToken($refreshToken: String!) {
     authentication {
       refreshToken(refreshToken: $refreshToken) {

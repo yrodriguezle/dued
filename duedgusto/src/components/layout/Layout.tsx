@@ -1,6 +1,6 @@
 import { Outlet } from "react-router";
 import useBootstrap from "../authentication/useBootstrap";
-import HeaderBar from "./HeaderBar";
+import HeaderBar from "./headerBar/HeaderBar";
 
 function Layout() {
   useBootstrap();

@@ -1,11 +1,5 @@
 import { useState } from "react";
-import {
-  IconButton,
-  ListItemIcon,
-  Menu,
-  MenuItem,
-  Tooltip,
-} from "@mui/material";
+import { IconButton, ListItemIcon, Menu, MenuItem, Tooltip } from "@mui/material";
 import ContrastIcon from "@mui/icons-material/Contrast";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import BrightnessMediumIcon from "@mui/icons-material/BrightnessMedium";
@@ -33,34 +27,20 @@ function ThemeMenuButton() {
           <ContrastIcon />
         </IconButton>
       </Tooltip>
-      <Menu
-        id="theme-menu"
-        anchorEl={anchorEl}
-        open={!!anchorEl}
-        onClose={() => setAnchorEl(null)}
-      >
-        <MenuItem
-          onClick={() => handleChangeTheme("light")}
-          selected={userTheme.mode === "light"}
-        >
+      <Menu id="theme-menu" anchorEl={anchorEl} open={!!anchorEl} onClose={() => setAnchorEl(null)}>
+        <MenuItem onClick={() => handleChangeTheme("light")} selected={userTheme.mode === "light"}>
           <ListItemIcon>
             <LightModeIcon fontSize="small" />
           </ListItemIcon>
           Chiaro
         </MenuItem>
-        <MenuItem
-          onClick={() => handleChangeTheme("default")}
-          selected={userTheme.mode === "default"}
-        >
+        <MenuItem onClick={() => handleChangeTheme("default")} selected={userTheme.mode === "default"}>
           <ListItemIcon>
             <BrightnessMediumIcon fontSize="small" />
           </ListItemIcon>
           Sistema
         </MenuItem>
-        <MenuItem
-          onClick={() => handleChangeTheme("dark")}
-          selected={userTheme.mode === "dark"}
-        >
+        <MenuItem onClick={() => handleChangeTheme("dark")} selected={userTheme.mode === "dark"}>
           <ListItemIcon>
             <DarkModeIcon fontSize="small" />
           </ListItemIcon>

@@ -7,6 +7,7 @@ import "@fontsource/roboto/300.css";
 import "@fontsource/roboto/400.css";
 import "@fontsource/roboto/500.css";
 import "@fontsource/roboto/700.css";
+import "react-toastify/dist/ReactToastify.css";
 
 import App from "./App";
 import fetchConfiguration from "./api/fetchConfiguration";
@@ -26,8 +27,7 @@ import "./assets/css/app.css";
   globalThisWithProperties.GRAPHQL_ENDPOINT = data.GRAPHQL_ENDPOINT;
   globalThisWithProperties.GRAPHQL_WEBSOCKET = data.GRAPHQL_WEBSOCKET;
   globalThisWithProperties.COPYRIGHT = data.COPYRIGHT;
-  globalThisWithProperties.CONNECTION_INTERVAL_UPDATE_TIME =
-    data.CONNECTION_INTERVAL_UPDATE_TIME;
+  globalThisWithProperties.CONNECTION_INTERVAL_UPDATE_TIME = data.CONNECTION_INTERVAL_UPDATE_TIME;
   globalThisWithProperties.LOGON_TIME = 60;
   globalThisWithProperties.SEARCHBOX_CONTAINER_MIN_WIDTH = 300;
   globalThisWithProperties.appVersion = packageJson.version;

@@ -16,7 +16,6 @@ type MakeRequest<InputData> = {
   data?: InputData;
   headers?: HeadersInit;
   failOnForbidden?: boolean;
-  // onError?: (response: Response) => void
 };
 
 // AuthToken

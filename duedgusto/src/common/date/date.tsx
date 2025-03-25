@@ -17,8 +17,7 @@ const defaultServices = {
   dayjs,
 };
 
-export const datePattern =
-  /^([0]?[1-9]|[1|2][0-9]|[3][0|1])[./-]([0]?[1-9]|[1|2][0-9]|[3][0|1])(?<separator>[./-])([0-9]{4}|[0-9]{2})$/;
+export const datePattern = /^([0]?[1-9]|[1|2][0-9]|[3][0|1])[./-]([0]?[1-9]|[1|2][0-9]|[3][0|1])(?<separator>[./-])([0-9]{4}|[0-9]{2})$/;
 
 export const getFormatOfDate = (date: string = ""): string => {
   if (date.split("/").length === 3) {
@@ -31,42 +30,26 @@ export const getFormatOfDate = (date: string = ""): string => {
 };
 
 export const determineDateFormat = (dateString: string) => {
-  const isDDMMYYYYWithTime: boolean =
-    /^\d{2}\/\d{2}\/\d{4}( \d{2}:\d{2}:\d{2})?$/.test(dateString);
+  const isDDMMYYYYWithTime: boolean = /^\d{2}\/\d{2}\/\d{4}( \d{2}:\d{2}:\d{2})?$/.test(dateString);
   if (isDDMMYYYYWithTime) {
     return dateString.includes(":") ? "DD/MM/YYYY HH:mm:ss" : "DD/MM/YYYY";
   }
-  const isYYYYMMDDWithTime: boolean =
-    /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2})?$/.test(dateString);
+  const isYYYYMMDDWithTime: boolean = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2})?$/.test(dateString);
   if (isYYYYMMDDWithTime) {
     return dateString.includes(":") ? "YYYY-MM-DDTHH:mm:ss" : "YYYY-MM-DD";
   }
   return undefined;
 };
 
-export const isValidDate = (
-  date: string | Date,
-  format: string[] = [
-    "YYYY-MM-DDTHH:mm:ss",
-    "YYYY-MM-DD HH:mm",
-    "YYYY-MM-DD",
-    "DD/MM/YYYY",
-  ]
-): boolean => {
+export const isValidDate = (date: string | Date, format: string[] = ["YYYY-MM-DDTHH:mm:ss", "YYYY-MM-DD HH:mm", "YYYY-MM-DD", "DD/MM/YYYY"]): boolean => {
   if (!date) {
     return false;
   }
   return dayjs(date, format, true).isValid();
 };
 
-export const getFullFormatDate = (
-  validDate: string,
-  format: string
-): dayjs.Dayjs | undefined => {
-  const standardFormat = format
-    .toUpperCase()
-    .replace(/G/g, "D")
-    .replace(/A/g, "Y");
+export const getFullFormatDate = (validDate: string, format: string): dayjs.Dayjs | undefined => {
+  const standardFormat = format.toUpperCase().replace(/G/g, "D").replace(/A/g, "Y");
   if (dayjs(validDate, standardFormat, true).isValid()) {
     return dayjs(validDate, standardFormat);
   }
@@ -82,215 +65,101 @@ export const getFormattedDateTime = (date: string): string | null => {
 };
 
 export const formatDate = (date: string) =>
-  isValidDate(date) &&
-  !date.startsWith("1899-12-30") &&
-  !date.startsWith("1900-01-01") &&
-  !date.startsWith("0001-01-01")
+  isValidDate(date) && !date.startsWith("1899-12-30") && !date.startsWith("1900-01-01") && !date.startsWith("0001-01-01")
     ? dayjs(date, ["YYYY-MM-DD", "DD/MM/YYYY"]).format("YYYY-MM-DDT00:00:00")
     : null;
 
-export function formatDateTime(
-  date: Date,
-  locale: string = "it-IT",
-  options?: Intl.DateTimeFormatOptions
-): string {
+export function formatDateTime(date: Date, locale: string = "it-IT", options?: Intl.DateTimeFormatOptions): string {
   const formatter = new Intl.DateTimeFormat(locale, options);
   return formatter.format(date);
 }
 
-export const getCurrentDate = (
-  format = "YYYY-MM-DDT00:00:00",
-  services = defaultServices
-) => services.dayjs().format(format);
+export const getCurrentDate = (format = "YYYY-MM-DDT00:00:00", services = defaultServices) => services.dayjs().format(format);
 
-export const getDaysInMonth = (services = defaultServices) =>
-  services.dayjs().daysInMonth();
+export const getDaysInMonth = (services = defaultServices) => services.dayjs().daysInMonth();
 
-export const getStartOfCurrentQuarter = (
-  format = "YYYY-MM-DD",
-  services = defaultServices
-) => {
+export const getStartOfCurrentQuarter = (format = "YYYY-MM-DD", services = defaultServices) => {
   return services.dayjs().startOf("quarter").format(format);
 };
 
-export const getEndOfCurrentQuarter = (
-  format = "YYYY-MM-DD",
-  services = defaultServices
-) => {
+export const getEndOfCurrentQuarter = (format = "YYYY-MM-DD", services = defaultServices) => {
   return services.dayjs().endOf("quarter").format(format);
 };
 
-export const getStartOfPreviousQuarter = (
-  format = "YYYY-MM-DD",
-  services = defaultServices
-) => {
+export const getStartOfPreviousQuarter = (format = "YYYY-MM-DD", services = defaultServices) => {
   return services.dayjs().subtract(1, "Q").startOf("quarter").format(format);
 };
 
-export const getEndOfPreviousQuarter = (
-  format = "YYYY-MM-DD",
-  services = defaultServices
-) => {
+export const getEndOfPreviousQuarter = (format = "YYYY-MM-DD", services = defaultServices) => {
   return services.dayjs().subtract(1, "Q").endOf("quarter").format(format);
 };
 
-export const getEndOfMonth = (
-  monthsToAdd: number,
-  format = "YYYY-MM-DD",
-  services = defaultServices
-) => {
-  return services
-    .dayjs()
-    .add(monthsToAdd, "months")
-    .endOf("month")
-    .format(format);
+export const getEndOfMonth = (monthsToAdd: number, format = "YYYY-MM-DD", services = defaultServices) => {
+  return services.dayjs().add(monthsToAdd, "months").endOf("month").format(format);
 };
 
-export const getStartOfPreviousMonth = (
-  format = "YYYY-MM-DD",
-  services = defaultServices
-) => {
+export const getStartOfPreviousMonth = (format = "YYYY-MM-DD", services = defaultServices) => {
   return services.dayjs().subtract(1, "months").startOf("month").format(format);
 };
-export const getEndOfPreviousMonth = (
-  format = "YYYY-MM-DD",
-  services = defaultServices
-) => {
+export const getEndOfPreviousMonth = (format = "YYYY-MM-DD", services = defaultServices) => {
   return services.dayjs().subtract(1, "months").endOf("month").format(format);
 };
 
-export const getStartOfPreviousYear = (
-  format = "YYYY-MM-DD",
-  services = defaultServices
-) => {
+export const getStartOfPreviousYear = (format = "YYYY-MM-DD", services = defaultServices) => {
   return services.dayjs().subtract(1, "years").startOf("year").format(format);
 };
 
-export const getEndOfPreviousYear = (
-  format = "YYYY-MM-DD",
-  services = defaultServices
-) => {
+export const getEndOfPreviousYear = (format = "YYYY-MM-DD", services = defaultServices) => {
   return services.dayjs().subtract(1, "years").endOf("year").format(format);
 };
 
-export const formatItalianDate = (date: string, services = defaultServices) =>
-  services.dayjs(date, ["YYYY-MM-DD", "DD/MM/YYYY"]).format("DD/MM/YYYY");
+export const formatItalianDate = (date: string, services = defaultServices) => services.dayjs(date, ["YYYY-MM-DD", "DD/MM/YYYY"]).format("DD/MM/YYYY");
 
-export const getTimeFromDate = (date: string, services = defaultServices) =>
-  isValidDate(date) ? services.dayjs(date).format("HH:mm") : "00:00";
+export const getTimeFromDate = (date: string, services = defaultServices) => (isValidDate(date) ? services.dayjs(date).format("HH:mm") : "00:00");
 
-export const addMilliseconds = (
-  { date, milliseconds }: { date: string; milliseconds: number },
-  services = defaultServices
-) => {
-  return services
-    .dayjs(date)
-    .add(milliseconds, "milliseconds")
-    .format("YYYY-MM-DDTHH:mm:ss");
+export const addMilliseconds = ({ date, milliseconds }: { date: string; milliseconds: number }, services = defaultServices) => {
+  return services.dayjs(date).add(milliseconds, "milliseconds").format("YYYY-MM-DDTHH:mm:ss");
 };
 
-export const isDateBefore = (
-  { date, threshold }: { date: string; threshold: string },
-  services = defaultServices
-) => {
+export const isDateBefore = ({ date, threshold }: { date: string; threshold: string }, services = defaultServices) => {
   return services.dayjs(date).isBefore(services.dayjs(threshold));
 };
 
-export const isDateSameOrBefore = (
-  { fromDate, toDate }: { fromDate: string; toDate: string },
-  services = defaultServices
-) => {
+export const isDateSameOrBefore = ({ fromDate, toDate }: { fromDate: string; toDate: string }, services = defaultServices) => {
   return services.dayjs(fromDate).isSameOrBefore(services.dayjs(toDate));
 };
 
-export const isDateSameOrAfter = (
-  { fromDate, toDate }: { fromDate: string; toDate: string },
-  services = defaultServices
-) => {
+export const isDateSameOrAfter = ({ fromDate, toDate }: { fromDate: string; toDate: string }, services = defaultServices) => {
   return services.dayjs(fromDate).isSameOrAfter(services.dayjs(toDate));
 };
 
-export const isDateSame = (
-  { fromDate, toDate }: { fromDate: string; toDate: string },
-  services = defaultServices
-) => {
+export const isDateSame = ({ fromDate, toDate }: { fromDate: string; toDate: string }, services = defaultServices) => {
   return services.dayjs(fromDate).isSame(services.dayjs(toDate));
 };
 
-export const isDateAfter = (
-  { fromDate, toDate }: { fromDate: string; toDate: string },
-  services = defaultServices
-) => {
+export const isDateAfter = ({ fromDate, toDate }: { fromDate: string; toDate: string }, services = defaultServices) => {
   return services.dayjs(fromDate).isAfter(services.dayjs(toDate));
 };
 
-export const getFormattedDate = (
-  date: string,
-  format = "DD/MM/YYYY",
-  services = defaultServices
-) => {
+export const getFormattedDate = (date: string, format = "DD/MM/YYYY", services = defaultServices) => {
   if (!date) {
     return "";
   }
-  const validDate = services
-    .dayjs(date, determineDateFormat(date), true)
-    .format("YYYY-MM-DDTHH:mm:ss");
+  const validDate = services.dayjs(date, determineDateFormat(date), true).format("YYYY-MM-DDTHH:mm:ss");
   if (isDateAfter({ fromDate: validDate, toDate: "1900-01-01" })) {
     return services.dayjs(validDate).format(format);
   }
   return "";
 };
 
-export const subtractYears = ({
-  fromDate,
-  years,
-  format = "YYYY-MM-DD",
-}: {
-  fromDate: string;
-  years: number;
-  format?: string;
-}) => {
+export const subtractYears = ({ fromDate, years, format = "YYYY-MM-DD" }: { fromDate: string; years: number; format?: string }) => {
   return dayjs(fromDate).subtract(years, "years").format(format);
 };
 
 export const datePickerStrings = {
-  months: [
-    "Gennaio",
-    "Febbraio",
-    "Marzo",
-    "Aprile",
-    "Maggio",
-    "Giugno",
-    "Luglio",
-    "Agosto",
-    "Settembre",
-    "Ottobre",
-    "Novembre",
-    "Dicembre",
-  ],
-  shortMonths: [
-    "Gen",
-    "Feb",
-    "Mar",
-    "Apr",
-    "Mag",
-    "Giu",
-    "Lug",
-    "Ago",
-    "Set",
-    "Ott",
-    "Nov",
-    "Dic",
-  ],
-  days: [
-    "Domenica",
-    "Lunedì",
-    "Martedì",
-    "Mercoledì",
-    "Giovedì",
-    "Venerdì",
-    "Sabato",
-  ],
+  months: ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"],
+  shortMonths: ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"],
+  days: ["Domenica", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"],
   shortDays: ["Dom", "Lun", "Mar", "Mer", "Gio", "Ven", "Sab"],
   goToToday: "Vai ad oggi",
   prevMonthAriaLabel: "Vai al mese precedente",
@@ -372,34 +241,21 @@ export const autoCompleteTimeField = (val: string) => {
   }
 };
 
-export const autoCompleteField = (
-  value: string,
-  withTime: boolean = false,
-  services = defaultServices
-) => {
+export const autoCompleteField = (value: string, withTime: boolean = false, services = defaultServices) => {
   const dateTimeParts = (value.toString() || "").split(" ");
   const dateParts = dateTimeParts[0].split("/");
   const currentYear = services.dayjs().year();
 
   if (dateParts.length === 3) {
     const [day, month, year] = dateParts;
-    if (
-      Number(day) < 1 ||
-      Number(day) > 31 ||
-      Number(month) < 1 ||
-      Number(month) > 12
-    ) {
+    if (Number(day) < 1 || Number(day) > 31 || Number(month) < 1 || Number(month) > 12) {
       throw new Error("Invalid format date");
     }
     switch (year.length) {
       case 1:
       case 2: {
         const stringYear = `${currentYear.toString().slice(0, -year.length)}${year}`;
-        const date = new Date(
-          Number(stringYear),
-          Number(month) - 1,
-          Number(day)
-        );
+        const date = new Date(Number(stringYear), Number(month) - 1, Number(day));
         return services.dayjs(date).format("YYYY-MM-DD");
       }
       default: {
@@ -408,57 +264,30 @@ export const autoCompleteField = (
         const maxOrMinYear = Math.min(minYear, 2099);
         if (withTime && dateTimeParts[1]) {
           const timeParts = autoCompleteTimeField(dateTimeParts[1]).split(":");
-          const hour = (timeParts[0] || "").length
-            ? limitTime(timeParts[0], "23")
-            : 0;
-          const minutes = (timeParts[1] || "").length
-            ? limitTime(timeParts[1], "59")
-            : 0;
-          return services
-            .dayjs(
-              new Date(
-                maxOrMinYear,
-                Number(month) - 1,
-                Number(day),
-                Number(hour),
-                Number(minutes)
-              )
-            )
-            .format("YYYY-MM-DD HH:mm");
+          const hour = (timeParts[0] || "").length ? limitTime(timeParts[0], "23") : 0;
+          const minutes = (timeParts[1] || "").length ? limitTime(timeParts[1], "59") : 0;
+          return services.dayjs(new Date(maxOrMinYear, Number(month) - 1, Number(day), Number(hour), Number(minutes))).format("YYYY-MM-DD HH:mm");
         }
-        return services
-          .dayjs(new Date(maxOrMinYear, Number(month) - 1, Number(day)))
-          .format(withTime ? "YYYY-MM-DD HH:mm" : "YYYY-MM-DD");
+        return services.dayjs(new Date(maxOrMinYear, Number(month) - 1, Number(day))).format(withTime ? "YYYY-MM-DD HH:mm" : "YYYY-MM-DD");
       }
     }
   }
 
   if (dateParts.length === 2) {
     const [day, month] = dateParts;
-    const date = new Date(
-      Number(services.dayjs().format("YYYY")),
-      Number(month) - 1,
-      Number(day)
-    );
+    const date = new Date(Number(services.dayjs().format("YYYY")), Number(month) - 1, Number(day));
     return services.dayjs(date).format("YYYY-MM-DD");
   }
 
   if (dateParts.length === 1 && dateParts[0]) {
     const [day] = dateParts;
-    const date = new Date(
-      Number(dayjs().format("YYYY")),
-      Number(services.dayjs().format("MM")) - 1,
-      Number(day)
-    );
+    const date = new Date(Number(dayjs().format("YYYY")), Number(services.dayjs().format("MM")) - 1, Number(day));
     return services.dayjs(date).format("YYYY-MM-DD");
   }
   return null;
 };
 
-export const getWeekOfYearFromDate = (
-  date: string,
-  services = defaultServices
-) => {
+export const getWeekOfYearFromDate = (date: string, services = defaultServices) => {
   const formattedDate = getFormattedDate(date, "YYYY-MM-DD");
   return formattedDate ? services.dayjs(formattedDate).isoWeek() : 0;
 };
@@ -472,13 +301,9 @@ export const getMonthName = (monthNumber: number) => {
   return date.toLocaleString("it-IT", { month: "short" });
 };
 
-export const getDayName = (date = new Date(), locale = "it-IT") =>
-  date.toLocaleDateString(locale, { weekday: "short" });
+export const getDayName = (date = new Date(), locale = "it-IT") => date.toLocaleDateString(locale, { weekday: "short" });
 
-export const getAddedDate = (
-  { fromDate = "", period = 6, format = "YYYY-MM-DD" },
-  services = defaultServices
-) => {
+export const getAddedDate = ({ fromDate = "", period = 6, format = "YYYY-MM-DD" }, services = defaultServices) => {
   if (!fromDate || !isValidDate(fromDate)) {
     throw new Error("`fromDate` must be required or date is not valid");
   }
@@ -527,9 +352,7 @@ export const getDatesInRange = (
     fromDate: dates[dates.length - 1] || fromDate,
     period,
   });
-  const endDate: string = isValidDate(toDate)
-    ? toDate
-    : services.dayjs().add(2, "year").format();
+  const endDate: string = isValidDate(toDate) ? toDate : services.dayjs().add(2, "year").format();
 
   if (isDateAfter({ fromDate: nextDate, toDate: endDate }, services)) {
     return dates;

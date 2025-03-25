@@ -1,19 +1,9 @@
-import {
-  ApolloClient,
-  ApolloLink,
-  from,
-  HttpLink,
-  InMemoryCache,
-  NormalizedCacheObject,
-} from "@apollo/client";
+import { ApolloClient, ApolloLink, from, HttpLink, InMemoryCache, NormalizedCacheObject } from "@apollo/client";
 import { onError } from "@apollo/client/link/error";
 import { fromPromise } from "@apollo/client/link/utils";
-import {
-  getAuthHeaders,
-  removeAuthToken,
-  removeLastActivity,
-} from "../common/authentication/auth";
-import refreshToken from "./user/refreshToken";
+import { getAuthHeaders } from "../common/authentication/auth";
+import refreshToken from "../api/refreshToken";
+import onRefreshFails from "../common/authentication/onRefreshFails";
 
 interface ApolloClienContext {
   headers?: HeadersInit;
@@ -55,10 +45,7 @@ function configureClient() {
   });
 
   const errorLink = onError(({ graphQLErrors, operation, forward }) => {
-    if (
-      graphQLErrors &&
-      graphQLErrors.some((err) => err.extensions?.code === "ACCESS_DENIED")
-    ) {
+    if (graphQLErrors && graphQLErrors.some((err) => err.extensions?.code === "ACCESS_DENIED")) {
       if (!isRefreshing) {
         isRefreshing = true;
         refreshToken()
@@ -68,8 +55,7 @@ function configureClient() {
             }
           })
           .catch(() => {
-            removeAuthToken();
-            removeLastActivity();
+            onRefreshFails();
           })
           .finally(() => {
             isRefreshing = false;

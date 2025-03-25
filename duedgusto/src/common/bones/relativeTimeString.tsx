@@ -9,10 +9,7 @@ const year = day * 365;
  * Convert a date to a relative time string, such as
  * "a minute ago", "in 2 hours", "yesterday", "3 months ago", etc.
  */
-export function relativeTimeString(
-  date: Date | number,
-  lang = navigator.language
-): string {
+export function relativeTimeString(date: Date | number, lang = navigator.language): string {
   const time = date instanceof Date ? date.getTime() : date;
   const delta = Math.round((time - Date.now()) / 1000);
   const absoluteDelta = Math.abs(delta);

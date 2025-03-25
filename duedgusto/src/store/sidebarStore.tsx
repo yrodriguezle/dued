@@ -1,10 +1,4 @@
-import {
-  ClockCircleOutlined,
-  HomeOutlined,
-  LockOutlined,
-  StarOutlined,
-  UnorderedListOutlined,
-} from "@ant-design/icons";
+import { ClockCircleOutlined, HomeOutlined, LockOutlined, StarOutlined, UnorderedListOutlined } from "@ant-design/icons";
 
 function sidebarStore(set: StoreSet) {
   return {

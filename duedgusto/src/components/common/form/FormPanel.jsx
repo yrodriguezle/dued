@@ -1,11 +1,5 @@
 /* eslint-disable no-unused-vars */
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import isEmpty from "lodash/isEmpty";
 import MuiAccordion from "@mui/material/Accordion";
 import ArrowForwardIosSharpIcon from "@mui/icons-material/ArrowForwardIosSharp";
@@ -18,14 +12,9 @@ import { styled } from "@mui/material/styles";
 
 import useResizeObserver from "../hooks/useResizeObserver";
 import { getBooleanFromString } from "../../../common/utils";
-import {
-  getElementByNameOrId,
-  getErrorFields,
-} from "../../../common/validators";
+import { getElementByNameOrId, getErrorFields } from "../../../common/validators";
 
-const Accordion = styled((props) => (
-  <MuiAccordion disableGutters elevation={0} square {...props} />
-))(({ theme }) => ({
+const Accordion = styled((props) => <MuiAccordion disableGutters elevation={0} square {...props} />)(({ theme }) => ({
   border: `1px solid ${theme.palette.divider}`,
   "&:not(:last-child)": {
     borderBottom: 0,
@@ -35,16 +24,8 @@ const Accordion = styled((props) => (
   },
 }));
 
-const AccordionSummary = styled((props) => (
-  <MuiAccordionSummary
-    expandIcon={<ArrowForwardIosSharpIcon sx={{ fontSize: "0.9rem" }} />}
-    {...props}
-  />
-))(({ theme }) => ({
-  backgroundColor:
-    theme.palette.mode === "dark"
-      ? "rgba(255, 255, 255, .05)"
-      : "rgba(0, 0, 0, .03)",
+const AccordionSummary = styled((props) => <MuiAccordionSummary expandIcon={<ArrowForwardIosSharpIcon sx={{ fontSize: "0.9rem" }} />} {...props} />)(({ theme }) => ({
+  backgroundColor: theme.palette.mode === "dark" ? "rgba(255, 255, 255, .05)" : "rgba(0, 0, 0, .03)",
   flexDirection: "row-reverse",
   "& .MuiAccordionSummary-expandIconWrapper.Mui-expanded": {
     transform: "rotate(90deg)",
@@ -59,19 +40,7 @@ const AccordionDetails = styled(MuiAccordionDetails)(({ theme }) => ({
   borderTop: "1px solid rgba(0, 0, 0, .125)",
 }));
 
-function FormPanel({
-  defaultExpanded = true,
-  header,
-  subHeader,
-  headerAsComponent,
-  children,
-  id,
-  viewName,
-  collapsed,
-  disabled,
-  disableCollapse,
-  onClick,
-}) {
+function FormPanel({ defaultExpanded = true, header, subHeader, headerAsComponent, children, id, viewName, collapsed, disabled, disableCollapse, onClick }) {
   const mounted = useRef(false);
   useEffect(() => {
     mounted.current = true;
@@ -87,9 +56,7 @@ function FormPanel({
   const formikProps = useFormikContext();
   const { errors, values } = useMemo(() => formikProps || {}, [formikProps]);
 
-  const setting = useSelector(
-    (state) => (state.viewSettings.viewSettings || {})[id] || {}
-  );
+  const setting = useSelector((state) => (state.viewSettings.viewSettings || {})[id] || {});
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -126,10 +93,7 @@ function FormPanel({
     }
   }, []);
 
-  const currentHeight = useMemo(
-    () => (isExpanded ? height : 0),
-    [height, isExpanded]
-  );
+  const currentHeight = useMemo(() => (isExpanded ? height : 0), [height, isExpanded]);
   useEffect(() => {
     if (mounted.current && disabled !== undefined) {
       if (disabled) {
@@ -209,9 +173,7 @@ function FormPanel({
   return (
     <Accordion expanded={isExpanded} onChange={handleClick}>
       <AccordionSummary aria-controls="panel1d-content" id="panel1d-header">
-        <Typography>
-          {[header, renderSubHeader].filter((required) => required).join(" - ")}
-        </Typography>
+        <Typography>{[header, renderSubHeader].filter((required) => required).join(" - ")}</Typography>
         {headerAsComponent}
       </AccordionSummary>
       <AccordionDetails>{renderChild}</AccordionDetails>

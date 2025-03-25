@@ -11,10 +11,7 @@ function sortObject<T extends { [key: string]: unknown }>(obj: T): T {
   Object.keys(obj)
     .sort()
     .forEach((key) => {
-      sorted[key] =
-        typeof obj[key] === "object" && obj[key] !== null
-          ? sortObject(obj[key] as T)
-          : obj[key];
+      sorted[key] = typeof obj[key] === "object" && obj[key] !== null ? sortObject(obj[key] as T) : obj[key];
     });
 
   return sorted as T;
@@ -26,12 +23,7 @@ const isEqual = (first: any, second: any): boolean => {
   }
 
   // Check for null or undefined values
-  if (
-    first === undefined ||
-    first === null ||
-    second === undefined ||
-    second === null
-  ) {
+  if (first === undefined || first === null || second === undefined || second === null) {
     return false;
   }
 
@@ -60,9 +52,7 @@ const isEqual = (first: any, second: any): boolean => {
     if (!sourceKeys.every((key, index) => isEqual(key, targetKeys[index]))) {
       return false;
     }
-    return sourceKeys.every((key) =>
-      isEqual(sortedSource[key], sortedTarget[key])
-    );
+    return sourceKeys.every((key) => isEqual(sortedSource[key], sortedTarget[key]));
   }
 
   return false;

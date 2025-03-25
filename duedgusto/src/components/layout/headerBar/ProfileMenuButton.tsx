@@ -1,13 +1,5 @@
 import { useState } from "react";
-import {
-  Avatar,
-  IconButton,
-  ListItemIcon,
-  Menu,
-  MenuItem,
-  Tooltip,
-  Typography,
-} from "@mui/material";
+import { Avatar, IconButton, ListItemIcon, Menu, MenuItem, Tooltip, Typography } from "@mui/material";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import useSignOut from "../../../common/authentication/useSignOut";
 import LogoutIcon from "@mui/icons-material/Logout";

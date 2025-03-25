@@ -15,10 +15,7 @@ const Schema = z.object({
 export type AuthSignInValues = z.infer<typeof Schema>;
 
 interface AuthSignInFormProps {
-  onSubmit: (
-    values: AuthSignInValues,
-    formikHelpers: FormikHelpers<AuthSignInValues>
-  ) => void | Promise<unknown>;
+  onSubmit: (values: AuthSignInValues, formikHelpers: FormikHelpers<AuthSignInValues>) => void | Promise<unknown>;
 }
 
 function AuthSignInForm({ onSubmit }: AuthSignInFormProps) {
@@ -35,9 +32,7 @@ function AuthSignInForm({ onSubmit }: AuthSignInFormProps) {
         if (result.success) {
           return;
         }
-        return Object.fromEntries(
-          result.error.issues.map(({ path, message }) => [path[0], message])
-        );
+        return Object.fromEntries(result.error.issues.map(({ path, message }) => [path[0], message]));
       }}
       onSubmit={onSubmit}
     >
@@ -45,34 +40,10 @@ function AuthSignInForm({ onSubmit }: AuthSignInFormProps) {
         return (
           <Form noValidate>
             <Box sx={{ mt: 1 }}>
-              <FormikTextField
-                label="Nome utente:"
-                placeholder="Nome utente"
-                name="username"
-                margin="normal"
-                autoComplete="off"
-                autoFocus
-                required
-                fullWidth
-              />
-              <FormikTextField
-                label="Password:"
-                placeholder="Password"
-                name="password"
-                type="password"
-                margin="normal"
-                autoComplete="off"
-                required
-                fullWidth
-              />
+              <FormikTextField label="Nome utente:" placeholder="Nome utente" name="username" margin="normal" autoComplete="off" autoFocus required fullWidth />
+              <FormikTextField label="Password:" placeholder="Password" name="password" type="password" margin="normal" autoComplete="off" required fullWidth />
               <FormikCheckbox label="Rimani connesso" name="alwaysConnected" />
-              <Button
-                type="submit"
-                fullWidth
-                variant="contained"
-                sx={{ mt: 2, mb: 2 }}
-                disabled={isSubmitting}
-              >
+              <Button type="submit" fullWidth variant="contained" sx={{ mt: 2, mb: 2 }} disabled={isSubmitting}>
                 Connetti
               </Button>
             </Box>
