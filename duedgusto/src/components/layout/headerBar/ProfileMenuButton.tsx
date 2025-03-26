@@ -1,10 +1,13 @@
 import { useState } from "react";
-import { Avatar, IconButton, ListItemIcon, Menu, MenuItem, Tooltip, Typography } from "@mui/material";
+import { IconButton, ListItemIcon, Menu, MenuItem, Tooltip, Typography } from "@mui/material";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import useSignOut from "../../../common/authentication/useSignOut";
 import LogoutIcon from "@mui/icons-material/Logout";
+import Persona from "./Persona";
+import useStore from "../../../store/useStore";
 
 function ProfileMenuButton() {
+  const user = useStore((store) => store.user);
   const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
   const signOut = useSignOut();
 
@@ -20,7 +23,7 @@ function ProfileMenuButton() {
     <>
       <Tooltip title="Impostazioni">
         <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-          <Avatar alt="Remy Sharp" src="/static/images/avatar/2.jpg" />
+          <Persona alt={`${user?.firstName} ${user?.lastName}`} text={`${user?.firstName} ${user?.lastName}`} />
         </IconButton>
       </Tooltip>
       <Menu
