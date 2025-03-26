@@ -1,19 +1,36 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Outlet } from "react-router";
-import { Box } from "@mui/material";
+import { Box, useMediaQuery, useTheme } from "@mui/material";
 
 import useBootstrap from "../authentication/useBootstrap";
 import HeaderBar from "./headerBar/HeaderBar";
 import Sidebar from "./sideBar/Sidebar";
+import { getDrawerOpen, setDrawerOpen } from "../../common/ui/drawer";
 
 function Layout() {
-  const [drawerOpen, setDrawerOpen] = useState(true);
-  const [headerHeight, setHeaderHeight] = useState(64);
-  const toggleDrawer = () => {
-    setDrawerOpen((prev) => !prev);
-  };
-
   useBootstrap();
+  const [drawerOpen, setOpen] = useState(getDrawerOpen());
+  const [headerHeight, setHeaderHeight] = useState(64);
+
+  const toggleDrawer = () => {
+    setOpen((prev) => {
+      setTimeout(() => {
+        setDrawerOpen(!prev);
+      }, 0);
+      return !prev;
+    });
+  };
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
+  useEffect(() => {
+    if (isMobile) {
+      setOpen(false);
+      setTimeout(() => {
+        setDrawerOpen(false);
+      }, 0);
+    }
+  }, [isMobile]);
 
   return (
     <Box>
@@ -26,7 +43,7 @@ function Layout() {
           height: `calc(100vh - ${headerHeight}px)`,
         }}
       >
-        <Sidebar open={drawerOpen} />
+        <Sidebar drawerOpen={drawerOpen} />
         <Box
           component="main"
           sx={{

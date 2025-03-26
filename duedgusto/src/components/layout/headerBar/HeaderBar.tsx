@@ -35,7 +35,7 @@ function HeaderBar({ drawerOpen, setHeaderHeight, toggleDrawer }: HeaderBarProps
     >
       <Toolbar disableGutters variant="dense">
         <DrawerMenuButton drawerOpen={drawerOpen} toggleDrawer={toggleDrawer} />
-        <LogoSection variant="h5" />
+        <LogoSection variant="h6" />
         <Box sx={{ marginLeft: "auto" }}>
           <ThemeMenuButton />
           <ProfileMenuButton />

@@ -1,25 +1,51 @@
-import List from "@mui/material/List";
-import Divider from "@mui/material/Divider";
+import DashboardIcon from "@mui/icons-material/Dashboard";
 
-import ListItem from "@mui/material/ListItem";
-import ListItemButton from "@mui/material/ListItemButton";
-import ListItemIcon from "@mui/material/ListItemIcon";
-import ListItemText from "@mui/material/ListItemText";
-import InboxIcon from "@mui/icons-material/MoveToInbox";
-import MailIcon from "@mui/icons-material/Mail";
 import Drawer from "./Drawer";
+import NestedList, { MenuItem } from "./NestedList";
+import logger from "../../../common/logger/logger";
 
 export const drawerWidth = 240;
 
+const menuItems: MenuItem[] = [
+  {
+    label: "Dashboard",
+    icon: <DashboardIcon />,
+    onClick: () => logger.log("Dashboard cliccato"),
+  },
+  {
+    label: "Utenti",
+    icon: <DashboardIcon />,
+    children: [
+      { label: "Profilo", icon: <DashboardIcon />, onClick: () => logger.log("Profilo cliccato") },
+      { label: "Sicurezza", icon: <DashboardIcon />, onClick: () => logger.log("Sicurezza cliccato") },
+    ],
+  },
+  {
+    label: "Report",
+    icon: <DashboardIcon />,
+    children: [
+      {
+        label: "Settimanale",
+        icon: <DashboardIcon />,
+        children: [
+          { label: "Gennaio", icon: <DashboardIcon />, onClick: () => logger.log("Gennaio") },
+          { label: "Febbraio", icon: <DashboardIcon />, onClick: () => logger.log("Febbraio") },
+        ],
+      },
+    ],
+  },
+];
+
 interface SidebarProps {
-  open: boolean;
+  drawerOpen: boolean;
 }
 
-function Sidebar({ open }: SidebarProps) {
+function Sidebar({ drawerOpen }: SidebarProps) {
   return (
-    <Drawer variant="permanent" open={open}>
-      <Divider />
-      <List>
+    <Drawer variant="permanent" open={drawerOpen}>
+      <div style={{ marginTop: `42px` }}></div>
+      <NestedList drawerOpen={drawerOpen} items={menuItems} />
+      {/* <List>
         {["Inbox", "Starred", "Send email", "Drafts"].map((text, index) => (
           <ListItem key={text} disablePadding sx={{ display: "block" }}>
             <ListItemButton
@@ -115,7 +141,7 @@ function Sidebar({ open }: SidebarProps) {
             </ListItemButton>
           </ListItem>
         ))}
-      </List>
+      </List> */}
     </Drawer>
   );
 }
