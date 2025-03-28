@@ -94,7 +94,15 @@ const NestedListItem: React.FC<NestedListItemProps> = ({ item, drawerOpen }) => 
         >
           {item.icon}
         </ListItemIcon>
-        <ListItemText primary={item.label} sx={{ opacity: drawerOpen ? 1 : 0 }} />
+        <ListItemText
+          primary={item.label}
+          slotProps={{
+            primary: {
+              fontSize: "small",
+            },
+          }}
+          sx={{ opacity: drawerOpen ? 1 : 0 }}
+        />
         {item.children && drawerOpen ? open ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" /> : null}
       </ListItemButton>
       {item.children && (
