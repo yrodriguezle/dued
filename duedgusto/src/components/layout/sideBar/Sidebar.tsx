@@ -30,20 +30,6 @@ const menuItems: MenuItem[] = [
       },
     ],
   },
-  // {
-  //   label: "Report",
-  //   icon: <DashboardIcon />,
-  //   children: [
-  //     {
-  //       label: "Settimanale",
-  //       icon: <DashboardIcon />,
-  //       children: [
-  //         { label: "Gennaio", icon: <DashboardIcon />, onClick: () => logger.log("Gennaio") },
-  //         { label: "Febbraio", icon: <DashboardIcon />, onClick: () => logger.log("Febbraio") },
-  //       ],
-  //     },
-  //   ],
-  // },
 ];
 
 interface SidebarProps {
