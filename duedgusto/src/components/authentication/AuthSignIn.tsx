@@ -50,7 +50,7 @@ function AuthSignIn() {
     <div
       className="login-card"
       style={{
-        backgroundColor: "var(--cardBackground)",
+        backgroundColor: theme.palette.mode === "dark" ? theme.palette.grey[900] : theme.palette.grey[50],
         minWidth: matchDownSm ? "90%" : undefined,
         width: matchDownSm ? "90%" : undefined,
       }}
