@@ -44,20 +44,37 @@ interface Sidebar {
   navGroup: SidebarMenuItem[];
 }
 
+interface ConfirmDialog {
+  open: boolean;
+  title: string | JSX.Element
+  content: string | JSX.Element
+  acceptLabel?: string | JSX.Element
+  cancelLabel?: string | JSX.Element
+  onAccept: (value: boolean | PromiseLike<boolean>) => void
+  onCancel?: (value: boolean | PromiseLike<boolean>) => void
+}
+
+type ServerStatus = "ONLINE" | "OFFLINE";
+
 type CallbackStoreSet = (state: Store) => Partial<Store>;
 type StoreSet = (callback: CallbackStoreSet) => void;
 interface Store {
+  // user
   user: User;
-  inProgress: InProgress;
-  sidebar: Sidebar;
   receiveUser: (payload: User) => void;
+  // inProgress
+  inProgress: InProgress;
   onInProgress: (payload: string) => void;
   offInProgress: (payload: string) => void;
-  toggleSidebarOpened: () => void;
-  receiveSidebarMenuOpen: (payload: string) => void;
   // userTheme
   userTheme: UserTheme;
   changeTheme: (theme: ThemeMode) => void;
+  // confirmDialog
+  confirmDialog: ConfirmDialog;
+  setConfirmValues: (payload: ConfirmDialog) => void;
+  // serverStatus
+  serverStatus: ServerStatus;
+  receiveServerStatus: (serverStatus: ServerStatus) => void;
 }
 
 type ThemeMode = "light" | "dark" | "default";

@@ -1,9 +1,11 @@
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import GroupIcon from "@mui/icons-material/Group";
+import SwipeableDrawer from "@mui/material/SwipeableDrawer";
 
 import Drawer from "./Drawer";
 import NestedList, { MenuItem } from "./NestedList";
 import logger from "../../../common/logger/logger";
+import { useCallback } from "react";
 
 export const drawerWidth = 240;
 
@@ -20,12 +22,10 @@ const menuItems: MenuItem[] = [
     children: [
       {
         label: "Profilo",
-        // icon: <DashboardIcon />,
         onClick: () => logger.log("Profilo cliccato"),
       },
       {
         label: "Sicurezza",
-        // icon: <DashboardIcon />,
         onClick: () => logger.log("Sicurezza cliccato"),
       },
     ],
@@ -34,14 +34,51 @@ const menuItems: MenuItem[] = [
 
 interface SidebarProps {
   drawerOpen: boolean;
+  drawerSwipeable: boolean;
+  mobileDrawerOpen: boolean;
+  setMobileDrawerOpen: (mobileOpen: boolean) => void;
+  onListItemClick: (hasChildren: boolean) => void;
+  onCloseSwipeable: () => void;
 }
 
-function Sidebar({ drawerOpen }: SidebarProps) {
+const iOS = typeof navigator !== "undefined" && /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+function Sidebar({
+  drawerOpen,
+  drawerSwipeable,
+  mobileDrawerOpen,
+  setMobileDrawerOpen,
+  onListItemClick,
+  onCloseSwipeable,
+}: SidebarProps) {
+
+
+  const renderDrawer = useCallback(
+    (open: boolean) => (
+      <Drawer variant="permanent" open={open}>
+        <div style={{ marginTop: `50px` }}></div>
+        <NestedList
+          items={menuItems}
+          drawerOpen={open}
+          onListItemClick={onListItemClick}
+        />
+      </Drawer>
+    ),
+    [onListItemClick],
+  );
+
   return (
-    <Drawer variant="permanent" open={drawerOpen}>
-      <div style={{ marginTop: `50px` }}></div>
-      <NestedList drawerOpen={drawerOpen} items={menuItems} />
-    </Drawer>
+    drawerSwipeable ? (
+      <SwipeableDrawer
+        open={mobileDrawerOpen}
+        onOpen={() => setMobileDrawerOpen(true)}
+        onClose={onCloseSwipeable}
+        disableBackdropTransition={!iOS}
+        disableDiscovery={iOS}
+      >
+        {renderDrawer(true)}
+      </SwipeableDrawer>
+    ) : renderDrawer(drawerOpen)
   );
 }
 

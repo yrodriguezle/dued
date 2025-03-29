@@ -3,6 +3,7 @@ import { ToastContainer } from "react-toastify";
 import { Outlet } from "react-router";
 import useTheme from "../components/theme/useTheme";
 import theme from "../components/theme/theme";
+import Confirm from "../components/common/confirm/Confirm";
 
 function Root() {
   const { userTheme } = useTheme();
@@ -12,6 +13,7 @@ function Root() {
       <CssBaseline />
       <Outlet />
       <ToastContainer theme={userTheme.theme} />
+      <Confirm />
     </ThemeProvider>
   );
 }

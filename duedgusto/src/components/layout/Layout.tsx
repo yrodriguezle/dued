@@ -1,47 +1,32 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Outlet } from "react-router";
-import { Box, useMediaQuery, useTheme } from "@mui/material";
-import SwipeableDrawer from "@mui/material/SwipeableDrawer";
+import Box from "@mui/material/Box";
 
 import useBootstrap from "../authentication/useBootstrap";
 import HeaderBar from "./headerBar/HeaderBar";
 import Sidebar from "./sideBar/Sidebar";
-import { getDrawerOpen, setDrawerOpen } from "../../common/ui/drawer";
-
-const iOS = typeof navigator !== "undefined" && /iPad|iPhone|iPod/.test(navigator.userAgent);
+import useSideBar from "./sideBar/useSideBar";
 
 function Layout() {
-  useBootstrap();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-
-  const [drawerOpen, setOpen] = useState(getDrawerOpen());
-  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [headerHeight, setHeaderHeight] = useState(64);
-
-  const toggleDrawer = () => {
-    if (isMobile) {
-      setMobileDrawerOpen((prev) => !prev);
-    } else {
-      setOpen((prev) => {
-        setTimeout(() => setDrawerOpen(!prev), 0);
-        return !prev;
-      });
-    }
-  };
-
-  useEffect(() => {
-    if (isMobile) {
-      setOpen(false);
-      setTimeout(() => {
-        setDrawerOpen(false);
-      }, 0);
-    }
-  }, [isMobile]);
+  useBootstrap();
+  const {
+    drawerOpen,
+    drawerSwipeable,
+    mobileDrawerOpen,
+    toggleDrawer,
+    setMobileDrawerOpen,
+    onCloseSwipeable,
+    onListItemClick,
+  } = useSideBar();
 
   return (
     <Box>
-      <HeaderBar drawerOpen={drawerOpen} setHeaderHeight={setHeaderHeight} toggleDrawer={toggleDrawer} />
+      <HeaderBar
+        drawerOpen={drawerOpen}
+        setHeaderHeight={setHeaderHeight}
+        toggleDrawer={toggleDrawer}
+      />
       <Box
         sx={{
           display: "flex",
@@ -50,13 +35,14 @@ function Layout() {
           height: `calc(100vh - ${headerHeight}px)`,
         }}
       >
-        {isMobile ? (
-          <SwipeableDrawer open={mobileDrawerOpen} onOpen={() => setMobileDrawerOpen(true)} onClose={() => setMobileDrawerOpen(false)} disableBackdropTransition={!iOS} disableDiscovery={iOS}>
-            <Sidebar drawerOpen={true} />
-          </SwipeableDrawer>
-        ) : (
-          <Sidebar drawerOpen={drawerOpen} />
-        )}
+        <Sidebar
+          drawerOpen={drawerOpen}
+          drawerSwipeable={drawerSwipeable}
+          mobileDrawerOpen={mobileDrawerOpen}
+          setMobileDrawerOpen={setMobileDrawerOpen}
+          onListItemClick={onListItemClick}
+          onCloseSwipeable={onCloseSwipeable}
+        />
         <Box
           component="main"
           sx={{

@@ -19,24 +19,31 @@ export interface MenuItem {
 interface NestedListItemProps {
   item: MenuItem;
   drawerOpen: boolean;
+  onListItemClick: (hasChildren: boolean) => void;
 }
 
 interface NestedListProps {
   items: MenuItem[];
   drawerOpen: boolean;
+  onListItemClick: (hasChildren: boolean) => void;
 }
 
-const NestedList: React.FC<NestedListProps> = ({ drawerOpen, items }) => {
+const NestedList: React.FC<NestedListProps> = ({ drawerOpen, items, onListItemClick }) => {
   return (
     <List component="nav" sx={{ p: 0, m: 1 }}>
       {items.map((item, index) => (
-        <NestedListItem key={index} drawerOpen={drawerOpen} item={item} />
+        <NestedListItem
+          key={index}
+          drawerOpen={drawerOpen}
+          item={item}
+          onListItemClick={onListItemClick}
+        />
       ))}
     </List>
   );
 };
 
-const NestedListItem: React.FC<NestedListItemProps> = ({ item, drawerOpen }) => {
+const NestedListItem: React.FC<NestedListItemProps> = ({ item, drawerOpen, onListItemClick }) => {
   const [open, setOpen] = useState(false);
   const location = useLocation();
 
@@ -62,9 +69,12 @@ const NestedListItem: React.FC<NestedListItemProps> = ({ item, drawerOpen }) => 
     if (item.children) {
       setOpen((prev) => !prev);
     }
-    if (item.onClick) {
-      item.onClick();
+    if (drawerOpen) {
+      if (item.onClick) {
+        item.onClick();
+      }
     }
+    onListItemClick(!!item.children);
   };
 
   const highlight = active || (item.children && open);
@@ -109,7 +119,12 @@ const NestedListItem: React.FC<NestedListItemProps> = ({ item, drawerOpen }) => 
         <Collapse in={open && drawerOpen} timeout="auto" unmountOnExit>
           <List component="div" disablePadding>
             {item.children.map((child, index) => (
-              <NestedListItem key={index} drawerOpen={drawerOpen} item={child} />
+              <NestedListItem
+                key={index}
+                drawerOpen={drawerOpen}
+                item={child}
+                onListItemClick={onListItemClick}
+              />
             ))}
           </List>
         </Collapse>
