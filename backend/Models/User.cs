@@ -11,4 +11,6 @@ public class User
     public string? RefreshToken { get; set; } = string.Empty;
     public required byte[] Hash { get; set; }
     public required byte[] Salt { get; set; }
+    public int RoleId { get; set; }
+    public Role Role { get; set; } = null!;
 }

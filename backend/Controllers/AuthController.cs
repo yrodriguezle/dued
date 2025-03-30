@@ -21,16 +21,46 @@ public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper) : Contr
     public async Task<IActionResult> GetAuthenticatedUser()
     {
         int userId = Convert.ToInt32(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-        if (userId == 0) {
+        if (userId == 0)
+        {
             return Unauthorized(new { message = "Utente non autenticato" });
         }
-        User? user = await dbContext.User.FirstOrDefaultAsync((x) => x.UserId == userId);
+
+        User? user = await dbContext.User
+            .Include(u => u.Role)
+            .ThenInclude(r => r.Menus)
+            .FirstOrDefaultAsync(x => x.UserId == userId);
+
         if (user == null)
         {
             return Unauthorized(new { message = "Utente non autenticato" });
         }
-        return Ok(user);
+
+        return Ok(new
+        {
+            user.UserId,
+            user.UserName,
+            user.FirstName,
+            user.LastName,
+            user.Description,
+            user.Disabled,
+            Role = user.Role != null ? new
+            {
+                user.Role.RoleId,
+                user.Role.RoleName,
+                user.Role.RoleDescription
+            } : null,
+            Menus = user.Role != null ? user.Role.Menus.Select(m => new
+            {
+                m.MenuId,
+                m.Title,
+                m.Path,
+                m.Icon,
+                m.IsVisible
+            }) : []
+        });
     }
+
 
     [HttpPost("signin"), AllowAnonymous]
     public async Task<IActionResult> SignIn([FromBody] SignInRequest request)

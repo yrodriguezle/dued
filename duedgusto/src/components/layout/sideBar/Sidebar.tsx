@@ -1,36 +1,36 @@
-import DashboardIcon from "@mui/icons-material/Dashboard";
-import GroupIcon from "@mui/icons-material/Group";
 import SwipeableDrawer from "@mui/material/SwipeableDrawer";
 
 import Drawer from "./Drawer";
 import NestedList, { MenuItem } from "./NestedList";
 import logger from "../../../common/logger/logger";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
+import useStore from "../../../store/useStore";
+import getLazyIcon from "./getLazyIcon";
 
 export const drawerWidth = 240;
 
-const menuItems: MenuItem[] = [
-  {
-    label: "Dashboard",
-    icon: <DashboardIcon />,
-    path: "/gestionale",
-    onClick: () => logger.log("Dashboard cliccato"),
-  },
-  {
-    label: "Utenti",
-    icon: <GroupIcon />,
-    children: [
-      {
-        label: "Profilo",
-        onClick: () => logger.log("Profilo cliccato"),
-      },
-      {
-        label: "Sicurezza",
-        onClick: () => logger.log("Sicurezza cliccato"),
-      },
-    ],
-  },
-];
+// const menuItems: MenuItem[] = [
+//   {
+//     label: "Dashboard",
+//     icon: <DashboardIcon />,
+//     path: "/gestionale",
+//     onClick: () => logger.log("Dashboard cliccato"),
+//   },
+//   {
+//     label: "Utenti",
+//     icon: <GroupIcon />,
+//     children: [
+//       {
+//         label: "Profilo",
+//         onClick: () => logger.log("Profilo cliccato"),
+//       },
+//       {
+//         label: "Sicurezza",
+//         onClick: () => logger.log("Sicurezza cliccato"),
+//       },
+//     ],
+//   },
+// ];
 
 interface SidebarProps {
   drawerOpen: boolean;
@@ -51,7 +51,28 @@ function Sidebar({
   onListItemClick,
   onCloseSwipeable,
 }: SidebarProps) {
+  const user = useStore((store) => store.user);
 
+  const menuItems: MenuItem[] = useMemo(() => {
+    if (!user || !user?.menus) return [];
+    const { menus } = user;
+    const topMenus = menus.filter((m) => !m?.parentMenu);
+
+    const buildMenuItem = (menu: Menu): MenuItem => {
+      const children = menus.filter(
+        (m) => m && m.parentMenu && m.parentMenu.menuId === menu?.menuId
+      );
+      return {
+        label: menu?.title || "",
+        icon: getLazyIcon(menu?.icon),
+        path: menu?.path || "",
+        onClick: () => logger.log(`${menu?.title} cliccato`),
+        children: children.map(buildMenuItem),
+      };
+    };
+
+    return topMenus.filter(Boolean).map(buildMenuItem);
+  }, [user]);
 
   const renderDrawer = useCallback(
     (open: boolean) => (
@@ -64,7 +85,7 @@ function Sidebar({
         />
       </Drawer>
     ),
-    [onListItemClick],
+    [menuItems, onListItemClick],
   );
 
   return (

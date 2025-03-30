@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 using GraphQL;
+using GraphQL.Types;
 using GraphQL.MicrosoftDI;
 
 using duedgusto.GraphQL;
@@ -18,9 +19,7 @@ builder.Services.AddHttpContextAccessor();
 // Add services to the container.
 builder.Services.AddTransient<PasswordService>();
 
-builder.Services.AddSingleton(services => new GraphQLSchema(new SelfActivatingServiceProvider(services)));
-builder.Services.AddSingleton<GraphQLQueries>();
-builder.Services.AddSingleton<AuthQueries>();
+builder.Services.AddSingleton<ISchema, GraphQLSchema>(services => new GraphQLSchema(new SelfActivatingServiceProvider(services)));
 
 builder.Services.AddControllers();
 
@@ -107,7 +106,8 @@ app.UseGraphQL<GraphQLSchema>("/graphql", opt =>
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
-    await SeedData.Initialize(services);
+    await SeedSuperadmin.Initialize(services);
+    await SeedMenus.Initialize(services);
 }
 
 app.Run();

@@ -1,9 +1,11 @@
 type User = {
-  __typename: "UserType";
+  __typename: "User";
   userId: number;
   userName: string;
   firstName: string;
   lastName: string;
   description: string;
-  disabled;
+  disabled: boolean;
+  role: Role;
+  menus: Menu[];
 } | null;

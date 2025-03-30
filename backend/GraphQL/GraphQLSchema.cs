@@ -1,5 +1,4 @@
 ﻿using GraphQL.Types;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace duedgusto.GraphQL;
 
