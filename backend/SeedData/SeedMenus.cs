@@ -26,7 +26,7 @@ public static class SeedMenus
             var dashboardMenu = new Menu
             {
                 Title = "Dashboard",
-                Path = "/gestionale/dashboard",
+                Path = "/gestionale",
                 Icon = "Dashboard",
                 IsVisible = true,
                 Roles = [superAdminRole]

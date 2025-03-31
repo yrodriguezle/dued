@@ -2,41 +2,21 @@ import getLazyIcon from "../../components/layout/sideBar/getLazyIcon";
 import { MenuItem } from "../../components/layout/sideBar/NestedList";
 import { navigateTo } from "../navigator/navigator";
 
-interface HashTable {
-  [key: string]: MenuItem;
-}
+const createMenuItem = (menu: Menu, menus: Menu[]): MenuItem => {
+  const children = menus.filter((m) => m?.parentMenuId === menu?.menuId);
+  const path = menu?.path || "";
+  return {
+    label: menu?.title || "",
+    icon: getLazyIcon(menu?.icon),
+    path,
+    onClick: path ? () => navigateTo(menu?.path || "") : undefined,
+    children: children.length ? children.map((m) => createMenuItem(m, menus)) : undefined,
+  };
+};
 
 function createDataTree(dataset: Menu[]): MenuItem[] {
-  const hashTable = dataset.reduce((accumulator, item) => {
-    if (!item) {
-      return accumulator;
-    }
-    const result: MenuItem = {
-      label: item.title,
-      icon: getLazyIcon(item.icon),
-      path: item.path,
-      onClick: () => navigateTo(item.path),
-      children: item.parentMenuId ? [] : undefined,
-    };
-    return {
-      ...accumulator,
-      [item.menuId]: result,
-    };
-  }, {} as HashTable);
-
-  const dataTree: MenuItem[] = [];
-
-  dataset.forEach((aData) => {
-    if (!aData) {
-      return;
-    }
-    if (aData?.parentMenuId) {
-      hashTable[aData.parentMenuId].children?.push(hashTable[aData.menuId]);
-    } else {
-      dataTree.push(hashTable[aData.menuId]);
-    }
-  });
-  return dataTree;
+  const paretns: Menu[] = dataset.filter((menu) => !menu?.parentMenuId);
+  return paretns.map((menu) => createMenuItem(menu, dataset));
 }
 
 export default createDataTree;

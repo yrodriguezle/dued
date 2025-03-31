@@ -56,7 +56,8 @@ public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper) : Contr
                 m.Title,
                 m.Path,
                 m.Icon,
-                m.IsVisible
+                m.IsVisible,
+                m.ParentMenuId
             }) : []
         });
     }
@@ -85,7 +86,7 @@ public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper) : Contr
 
         (string RefreshToken, string Token) = jwtHelper.CreateSignedToken(claims);
         user.RefreshToken = RefreshToken;
-        
+
         await dbContext.SaveChangesAsync();
 
         TokenResponse response = new(Token, RefreshToken);
