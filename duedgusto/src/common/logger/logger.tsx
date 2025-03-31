@@ -7,7 +7,7 @@ const log = (...messages: any[]) => {
   }
 };
 
-const warning = (...messages: any[]) => {
+const warn = (...messages: any[]) => {
   if (loggingEnabled) {
     console.warn(...messages); // eslint-disable-line no-console
   }
@@ -39,7 +39,7 @@ const timeEnd = (...labels: string[]) => {
 
 const logger = {
   log,
-  warning,
+  warn,
   error,
   time,
   timeLog,

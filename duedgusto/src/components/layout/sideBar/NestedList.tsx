@@ -10,10 +10,10 @@ import { useLocation } from "react-router";
 
 export interface MenuItem {
   label: string;
-  onClick?: () => void;
   icon?: JSX.Element;
-  children?: MenuItem[];
   path?: string;
+  children?: MenuItem[];
+  onClick?: () => void;
 }
 
 interface NestedListItemProps {
@@ -32,12 +32,7 @@ const NestedList: React.FC<NestedListProps> = ({ drawerOpen, items, onListItemCl
   return (
     <List component="nav" sx={{ p: 0, m: 1 }}>
       {items.map((item, index) => (
-        <NestedListItem
-          key={index}
-          drawerOpen={drawerOpen}
-          item={item}
-          onListItemClick={onListItemClick}
-        />
+        <NestedListItem key={index} drawerOpen={drawerOpen} item={item} onListItemClick={onListItemClick} />
       ))}
     </List>
   );
@@ -119,12 +114,7 @@ const NestedListItem: React.FC<NestedListItemProps> = ({ item, drawerOpen, onLis
         <Collapse in={open && drawerOpen} timeout="auto" unmountOnExit>
           <List component="div" disablePadding>
             {item.children.map((child, index) => (
-              <NestedListItem
-                key={index}
-                drawerOpen={drawerOpen}
-                item={child}
-                onListItemClick={onListItemClick}
-              />
+              <NestedListItem key={index} drawerOpen={drawerOpen} item={child} onListItemClick={onListItemClick} />
             ))}
           </List>
         </Collapse>

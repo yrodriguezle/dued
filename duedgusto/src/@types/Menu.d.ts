@@ -5,7 +5,5 @@ type Menu = {
   path: string;
   icon: string;
   isVisible: boolean;
-  parentMenu?: Menu;
-  children?: Menu[];
-  roles?: Role[];
+  parentMenuId?: number;
 } | null;

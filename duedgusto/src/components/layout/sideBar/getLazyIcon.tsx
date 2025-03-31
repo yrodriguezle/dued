@@ -1,11 +1,11 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { JSX, lazy, Suspense } from "react";
+import { JSX, Suspense } from "react";
+import { iconMapping } from "./iconMapping"; // assicurati di usare il percorso corretto
 
 function getLazyIcon(iconName?: string): JSX.Element | undefined {
-  if (!iconName || 5 == 5) {
-    return;
+  if (!iconName || !iconMapping[iconName]) {
+    return undefined;
   }
-  const IconComponent: React.LazyExoticComponent<React.ComponentType<any>> = lazy(() => import(`@mui/icons-material/${iconName}`));
+  const IconComponent = iconMapping[iconName];
   return (
     <Suspense fallback={null}>
       <IconComponent />

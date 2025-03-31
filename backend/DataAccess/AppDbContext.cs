@@ -11,7 +11,7 @@ public class AppDbContext : DbContext
     {
         _configuration = configuration;
     }
-    
+
     public DbSet<User> User { get; set; }
     public DbSet<Role> Roles { get; set; }
     public DbSet<Menu> Menus { get; set; }
@@ -29,7 +29,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<User>(entity =>
         {
             entity
-                .ToTable("users")
+                .ToTable("Users")
                 .HasCharSet("utf8mb4")
                 .UseCollation("utf8mb4_unicode_ci")
                 .HasKey((x) => x.UserId);
@@ -42,7 +42,7 @@ public class AppDbContext : DbContext
         });
         modelBuilder.Entity<Role>(entity =>
         {
-            entity.ToTable("roles")
+            entity.ToTable("Roles")
                 .HasCharSet("utf8mb4")
                 .UseCollation("utf8mb4_unicode_ci")
                 .HasKey(x => x.RoleId);
@@ -59,7 +59,7 @@ public class AppDbContext : DbContext
             );
         modelBuilder.Entity<Menu>(entity =>
         {
-            entity.ToTable("menus")
+            entity.ToTable("Menus")
                 .HasCharSet("utf8mb4")
                 .UseCollation("utf8mb4_unicode_ci")
                 .HasKey(x => x.MenuId);
