@@ -1,5 +1,7 @@
 function UserDetails() {
-  return <div>UserDetails</div>;
+  return (
+    <div>UserDetails</div>
+  )
 }
 
-export default UserDetails;
+export default UserDetails

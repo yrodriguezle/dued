@@ -17,7 +17,6 @@ public class MenuType : ObjectGraphType<Menu>
         Field(x => x.IsVisible, typeof(BooleanGraphType));
         Field(x => x.FilePath, typeof(StringGraphType));
         Field(x => x.ViewName, typeof(StringGraphType));
-        Field(x => x.IsVisible, typeof(BooleanGraphType));
         Field(x => x.ParentMenuId, typeof(IntGraphType));
     }
 }

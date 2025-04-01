@@ -8,29 +8,6 @@ import createDataTree from "../../../common/ui/createDataTree";
 
 export const drawerWidth = 240;
 
-// const menuItems: MenuItem[] = [
-//   {
-//     label: "Dashboard",
-//     icon: <DashboardIcon />,
-//     path: "/gestionale",
-//     onClick: () => logger.log("Dashboard cliccato"),
-//   },
-//   {
-//     label: "Utenti",
-//     icon: <GroupIcon />,
-//     children: [
-//       {
-//         label: "Profilo",
-//         onClick: () => logger.log("Profilo cliccato"),
-//       },
-//       {
-//         label: "Sicurezza",
-//         onClick: () => logger.log("Sicurezza cliccato"),
-//       },
-//     ],
-//   },
-// ];
-
 interface SidebarProps {
   drawerOpen: boolean;
   drawerSwipeable: boolean;

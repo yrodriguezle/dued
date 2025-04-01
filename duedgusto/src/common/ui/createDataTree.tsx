@@ -1,6 +1,5 @@
 import getLazyIcon from "../../components/layout/sideBar/getLazyIcon";
 import { MenuItem } from "../../components/layout/sideBar/NestedList";
-import logger from "../logger/logger";
 import { navigateTo } from "../navigator/navigator";
 
 const createMenuItem = (menu: Menu, menus: Menu[]): MenuItem => {
@@ -12,9 +11,8 @@ const createMenuItem = (menu: Menu, menus: Menu[]): MenuItem => {
     path,
     onClick: path
       ? () => {
-          logger.log("navigateTo", menu?.path);
-          navigateTo(menu?.path || "", { replace: true });
-        }
+        navigateTo(menu?.path || "", { replace: true });
+      }
       : undefined,
     children: children.length ? children.map((m) => createMenuItem(m, menus)) : undefined,
   };

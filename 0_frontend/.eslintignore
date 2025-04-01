@@ -1,7 +1,0 @@
-src/reportWebVitals.js
-src/**/__tests__/**
-src/*.test.*
-src/assets/*
-fix-ag-grid/*
-scripts/*
-config/*
