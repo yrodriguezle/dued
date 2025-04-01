@@ -29,6 +29,8 @@ public static class SeedMenus
                 Path = "/gestionale",
                 Icon = "Dashboard",
                 IsVisible = true,
+                ViewName = "Dashboard",
+                FilePath = "dashboard",
                 Roles = [superAdminRole]
             };
             dbContext.Menus.Add(dashboardMenu);
@@ -47,20 +49,24 @@ public static class SeedMenus
 
             var utentiChild1 = new Menu
             {
-                Title = "User List",
-                Path = "/gestionale/users/list",
+                Title = "Lista utenti",
+                Path = "/gestionale/users-list",
                 Icon = string.Empty,
                 IsVisible = true,
+                ViewName = "UserList",
+                FilePath = "users",
                 ParentMenu = utentiMenu,
                 Roles = [superAdminRole]
             };
 
             var utentiChild2 = new Menu
             {
-                Title = "User Details",
-                Path = "/gestionale/users/details",
+                Title = "Gestione utenti",
+                Path = "/gestionale/users-details",
                 Icon = string.Empty,
                 IsVisible = true,
+                ViewName = "UserDetails",
+                FilePath = "users",
                 ParentMenu = utentiMenu,
                 Roles = [superAdminRole]
             };
@@ -83,20 +89,24 @@ public static class SeedMenus
 
             var ruoliChild1 = new Menu
             {
-                Title = "Role List",
-                Path = "/gestionale/roles/list",
+                Title = "Lista ruoli",
+                Path = "/gestionale/roles-list",
                 Icon = string.Empty,
                 IsVisible = true,
+                ViewName = "RoleList",
+                FilePath = "roles",
                 ParentMenu = ruoliMenu,
                 Roles = [superAdminRole]
             };
 
             var ruoliChild2 = new Menu
             {
-                Title = "Role Details",
-                Path = "/gestionale/roles/details",
+                Title = "Gestione ruoli",
+                Path = "/gestionale/roles-details",
                 Icon = string.Empty,
                 IsVisible = true,
+                ViewName = "RoleDetails",
+                FilePath = "roles",
                 ParentMenu = ruoliMenu,
                 Roles = [superAdminRole]
             };
@@ -119,20 +129,24 @@ public static class SeedMenus
 
             var menusChild1 = new Menu
             {
-                Title = "Menu List",
-                Path = "/gestionale/menus/list",
+                Title = "List menù",
+                Path = "/gestionale/menus-list",
                 Icon = string.Empty,
                 IsVisible = true,
+                ViewName = "MenuList",
+                FilePath = "menu",
                 ParentMenu = menusMenu,
                 Roles = [superAdminRole]
             };
 
             var menusChild2 = new Menu
             {
-                Title = "Menu Details",
-                Path = "/gestionale/menus/details",
+                Title = "Gestione menù",
+                Path = "/gestionale/menus-details",
                 Icon = string.Empty,
                 IsVisible = true,
+                ViewName = "MenuDetails",
+                FilePath = "menu",
                 ParentMenu = menusMenu,
                 Roles = [superAdminRole]
             };
@@ -150,6 +164,8 @@ public static class SeedMenus
                 Path = "/gestionale/settings",
                 Icon = "Settings",
                 IsVisible = true,
+                ViewName = "SettingsDetails",
+                FilePath = "settings",
                 Roles = [superAdminRole]
             };
             dbContext.Menus.Add(settingsMenu);

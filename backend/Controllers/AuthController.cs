@@ -56,8 +56,10 @@ public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper) : Contr
                 m.Title,
                 m.Path,
                 m.Icon,
+                m.ViewName,
+                m.FilePath,
                 m.IsVisible,
-                m.ParentMenuId
+                m.ParentMenuId,
             }) : []
         });
     }

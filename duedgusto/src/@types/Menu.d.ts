@@ -6,4 +6,6 @@ type Menu = {
   icon: string;
   isVisible: boolean;
   parentMenuId?: number;
+  filePath?: string;
+  viewName?: string;
 } | null;
