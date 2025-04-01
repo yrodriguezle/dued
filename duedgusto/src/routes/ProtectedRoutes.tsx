@@ -21,7 +21,7 @@ function ProtectedRoutes() {
         {menuRoutes
           .filter((menu) => menu?.path)
           .map((menu) => {
-            const routePath = menu?.path.replace("/gestionale", "") || "/";
+            const routePath = menu?.path.replace("/gestionale/", "") || "/";
             const element = routesMapping.find(({ path }) => path === menu?.path)?.element;
             return <Route key={menu?.path} path={routePath} element={element} />;
           })}

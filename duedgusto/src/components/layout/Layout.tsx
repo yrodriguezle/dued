@@ -1,15 +1,13 @@
 import { useState } from "react";
 import { Outlet } from "react-router";
 import Box from "@mui/material/Box";
-
-import useBootstrap from "../authentication/useBootstrap";
 import HeaderBar from "./headerBar/HeaderBar";
 import Sidebar from "./sideBar/Sidebar";
 import useSideBar from "./sideBar/useSideBar";
 
 function Layout() {
   const [headerHeight, setHeaderHeight] = useState(64);
-  useBootstrap();
+
   const {
     drawerOpen,
     drawerSwipeable,

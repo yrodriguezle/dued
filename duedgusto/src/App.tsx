@@ -4,6 +4,7 @@ import ProtectedRoutes from "./routes/ProtectedRoutes";
 import SignInPage from "./components/pages/SignInPage";
 import { useEffect } from "react";
 import { setNavigator } from "./common/navigator/navigator";
+import useBootstrap from "./components/authentication/useBootstrap";
 
 function App() {
   const navigate = useNavigate();
@@ -11,10 +12,12 @@ function App() {
     setNavigator(navigate);
   }, [navigate]);
 
+  useBootstrap();
+
   return (
     <Routes>
       <Route path="/" element={<Root />}>
-        <Route path="/gestionale/*" element={<ProtectedRoutes />} />
+        <Route path="gestionale/*" element={<ProtectedRoutes />} />
         <Route path="signin" element={<SignInPage />} />
 
         <Route path="*" element={<Navigate to={"/gestionale"} replace />} />
