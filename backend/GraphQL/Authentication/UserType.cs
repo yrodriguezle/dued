@@ -16,7 +16,6 @@ public class UserType : AsyncNodeGraphType<User>
     {
         Name = "User";
         Id(x => x.UserId);
-        Field(x => x.UserId, typeof(IntGraphType));
         Field(x => x.UserName, typeof(StringGraphType));
         Field(x => x.FirstName, typeof(StringGraphType));
         Field(x => x.LastName, typeof(StringGraphType));

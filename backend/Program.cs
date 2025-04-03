@@ -64,11 +64,7 @@ builder.Services.AddGraphQL((ctx) => ctx
             logger.LogError("{Error} occurred", exception.OriginalException.Message);
             return Task.CompletedTask;
         };
-
-        // var timer = Stopwatch.StartNew();
         var result = await next(options);
-        // result.Extensions ??= [];
-        // result.Extensions["elapsedMs"] = timer.ElapsedMilliseconds;
         return result;
     })
     .AddSystemTextJson()
@@ -79,7 +75,6 @@ builder.Services.AddGraphQL((ctx) => ctx
         var result = new GraphQLUserContext(context.User.Identity?.IsAuthenticated == true ? context.User : null);
         return result;
     })
-    // .UseApolloTracing(_ => builder.Environment.IsDevelopment())
     .AddGraphTypes(typeof(GraphQLSchema).Assembly));
 
 builder.Services.AddCors();
