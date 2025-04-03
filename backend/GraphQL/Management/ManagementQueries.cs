@@ -1,19 +1,24 @@
 ﻿using GraphQL.Types;
 
-namespace duedgusto.GraphQL.Management;
+using Microsoft.EntityFrameworkCore;
+
+using duedgusto.DataAccess;
 using duedgusto.GraphQL.Authentication;
+using duedgusto.Services.GraphQL;
+
+namespace duedgusto.GraphQL.Management;
 
 public class ManagementQueries : ObjectGraphType
 {
     public ManagementQueries()
     {
-        Connection<UserType>()
-            .Name("items")
+        Connection<UserType>("users")
             .PageSize(10)
-            .ResolveAsync(async ctx =>
+            .ResolveAsync(async (context) =>
             {
-                var loader = accessor.Context.GetOrAddLoader("GetAllItems", repository.GetItems);
-                return ConnectionUtils.ToConnection(await loader.LoadAsync().GetResultAsync(), ctx);
+                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                var loader = accessor.Context.GetOrAddLoader("GetUsers", dbContext.User.ToListAsync);
+                return ConnectionUtils.ToConnection(await loader.LoadAsync().GetResultAsync(), context);
             });
     }
 }
