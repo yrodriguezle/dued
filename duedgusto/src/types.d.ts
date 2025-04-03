@@ -83,3 +83,21 @@ interface UserTheme {
   mode: ThemeMode;
   theme: Theme;
 }
+
+
+interface SearchboxOptions<T> {
+  query: string
+  id: keyof T
+  fieldName: keyof T
+  tableName: string
+  view?: string
+  additionalWhere?: string
+  join?: string
+  where?: string
+  items: DatagridColDef<T>[]
+  modal: {
+    title: string
+    fragment?: string
+    items: DatagridColDef<T>[]
+  }
+}

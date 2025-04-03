@@ -8,23 +8,11 @@ import useSideBar from "./sideBar/useSideBar";
 function Layout() {
   const [headerHeight, setHeaderHeight] = useState(64);
 
-  const {
-    drawerOpen,
-    drawerSwipeable,
-    mobileDrawerOpen,
-    toggleDrawer,
-    setMobileDrawerOpen,
-    onCloseSwipeable,
-    onListItemClick,
-  } = useSideBar();
+  const { drawerOpen, drawerSwipeable, mobileDrawerOpen, toggleDrawer, setMobileDrawerOpen, onCloseSwipeable, onListItemClick } = useSideBar();
 
   return (
     <Box>
-      <HeaderBar
-        drawerOpen={drawerOpen}
-        setHeaderHeight={setHeaderHeight}
-        toggleDrawer={toggleDrawer}
-      />
+      <HeaderBar drawerOpen={drawerOpen} setHeaderHeight={setHeaderHeight} toggleDrawer={toggleDrawer} />
       <Box
         sx={{
           display: "flex",
@@ -46,7 +34,7 @@ function Layout() {
           sx={{
             flexGrow: 1,
             transition: "margin 0.3s",
-            padding: 2,
+            // padding: 2,
           }}
         >
           <Outlet />

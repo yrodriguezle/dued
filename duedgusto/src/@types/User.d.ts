@@ -6,6 +6,7 @@ type User = {
   lastName: string;
   description: string;
   disabled: boolean;
+  roleId: number;
   role: Role;
   menus: Menu[];
 } | null;
