@@ -1,4 +1,6 @@
-﻿using GraphQL.Types;
+﻿using GraphQL;
+using GraphQL.Types;
+using GraphQL.Relay.Types;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -8,7 +10,7 @@ using duedgusto.Services.GraphQL;
 
 namespace duedgusto.GraphQL.Authentication;
 
-public class UserType : ObjectGraphType<User>
+public class UserType : AsyncNodeGraphType<User>
 {
     public UserType()
     {
@@ -35,5 +37,11 @@ public class UserType : ObjectGraphType<User>
                     .Where(m => m.Roles.Any(r => r.RoleId == roleId))
                     .ToListAsync();
             });
+    }
+
+    public override async Task<User> GetById(IResolveFieldContext<object> context, string id)
+    {
+        AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+        return await dbContext.User.FirstAsync((x) => x.UserId == Convert.ToInt32(id));
     }
 }

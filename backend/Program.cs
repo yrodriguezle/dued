@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using GraphQL;
 using GraphQL.Types;
 using GraphQL.MicrosoftDI;
+using GraphQL.Relay.Types;
+using GraphQL.Types.Relay;
 
 using duedgusto.GraphQL;
 using duedgusto.DataAccess;
@@ -20,6 +22,12 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddTransient<PasswordService>();
 
 builder.Services.AddSingleton<ISchema, GraphQLSchema>(services => new GraphQLSchema(new SelfActivatingServiceProvider(services)));
+
+// Add GraphQL services for relay types
+builder.Services.AddTransient(typeof(ConnectionType<>));
+builder.Services.AddTransient(typeof(EdgeType<>));
+builder.Services.AddTransient<NodeInterface>();
+builder.Services.AddTransient<PageInfoType>();
 
 builder.Services.AddControllers();
 
