@@ -20,6 +20,7 @@
     "@fontsource/roboto": "^5.2.5",
     "@mui/icons-material": "^6.4.8",
     "@mui/material": "^6.4.8",
+    "ag-grid-react": "^33.2.1",
     "dayjs": "^1.11.13",
     "formik": "^2.4.6",
     "graphql": "^16.10.0",
