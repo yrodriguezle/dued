@@ -2,8 +2,9 @@
 import { Form, Formik } from "formik";
 import { z } from "zod";
 
-import FormToolbar from "../../common/form/toolbar/FormToolbar";
+// import FormToolbar from "../../common/form/toolbar/FormToolbar";
 import UserForm from "./userUiMutation/UserForm";
+import FormikToolbar from "../../common/form/toolbar/FormikToolbar";
 
 type FormikUserValues = Exclude<User, null>;
 
@@ -22,7 +23,7 @@ function UserDetails() {
     <Formik initialValues={{ nome: "" }} onSubmit={(values) => console.log(values)}>
       {() => (
         <Form noValidate>
-          <FormToolbar />
+          <FormikToolbar />
           <UserForm />
         </Form>
       )}

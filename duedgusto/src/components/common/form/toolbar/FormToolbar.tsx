@@ -10,7 +10,7 @@ import { Delete, Edit, Save } from "@mui/icons-material";
 function FormToolbar() {
   const { dirty, isValid } = useFormikContext();
   return (
-    <AppBar position="static" color="default" elevation={0} sx={{ mb: 1 }}>
+    <AppBar position="relative" color="default" elevation={0} sx={{ mb: 1 }}>
       <Toolbar variant="dense">
         <Stack direction="row" spacing={1}>
           <Button color="secondary" startIcon={<Edit />}>

@@ -1,12 +1,9 @@
 ﻿using System.Data;
 using System.Data.Common;
-
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
-
 using GraphQL;
 using GraphQL.DataLoader;
-
 using duedgusto.DataAccess;
 
 namespace duedgusto.Services.GraphQL;
@@ -19,7 +16,6 @@ public class GraphQLService
         {
             throw new InvalidOperationException("RequestServices non è disponibile.");
         }
-
         IServiceScope scope = context.RequestServices.CreateScope();
         return scope.ServiceProvider;
     }
@@ -32,54 +28,52 @@ public class GraphQLService
 
     public static async Task<Connection<T>> GetConnectionAsync<T>(
         IResolveFieldContext<object?> context,
-        string whereClause,
+        string? whereClause,
+        string? orderByClause,
         Func<T, string> cursorSelector
     ) where T : class
     {
         // Recupera il DbContext e il DataLoader dal contesto
         AppDbContext dbContext = GetService<AppDbContext>(context);
         IDataLoaderContextAccessor dataLoaderAccessor = GetService<IDataLoaderContextAccessor>(context);
-        DataLoaderContext dataLoader = dataLoaderAccessor.Context;
+        var dataLoader = dataLoaderAccessor.Context;
 
-        // Recupera i parametri di paginazione tramite GetArgument
-        int first = context.GetArgument<int?>("first") ?? 10;
-        string? after = context.GetArgument<string>("after");
+        // Recupera i parametri di paginazione:
+        // "pageSize" indica il numero di elementi per pagina
+        int pageSize = context.GetArgument<int?>("pageSize") ?? 10;
+        // "cursor" rappresenta l'offset numerico, con default 0 se non specificato
+        int offset = context.GetArgument<int?>("cursor") ?? 0;
 
-        // Recupera i metadati EF per il tipo T
-        IEntityType entityType = dbContext.Model.FindEntityType(typeof(T)) ?? throw new InvalidOperationException($"EntityType non trovato per {typeof(T).Name}");
-
-        // Recupera il nome della tabella (GetTableName è disponibile in EF Core 3+)
+        // Recupera i metadati EF per il tipo T e il nome della tabella
+        IEntityType entityType = dbContext.Model.FindEntityType(typeof(T))
+            ?? throw new InvalidOperationException($"EntityType non trovato per {typeof(T).Name}");
         string tableName = entityType.GetTableName() ?? typeof(T).Name;
 
-        // Recupera il nome della chiave primaria (prendiamo il primo se ci sono più chiavi)
-        IProperty primaryKeyProperty = (entityType.FindPrimaryKey()?.Properties.FirstOrDefault()) ?? throw new InvalidOperationException("Chiave primaria non trovata.");
+        // Recupera la chiave primaria, da usare come default per orderByClause se non specificata
+        IProperty primaryKeyProperty = entityType.FindPrimaryKey()?.Properties.FirstOrDefault()
+            ?? throw new InvalidOperationException("Chiave primaria non trovata.");
         string primaryKey = primaryKeyProperty.Name;
 
-        // Costruisci la lista delle condizioni
-        List<string> conditions = [];
-        if (!string.IsNullOrWhiteSpace(whereClause))
+        // Se orderByClause non è specificato, usa per default la chiave primaria
+        if (string.IsNullOrWhiteSpace(orderByClause))
         {
-            conditions.Add(whereClause);
-        }
-        if (!string.IsNullOrEmpty(after) && int.TryParse(after, out int afterValue))
-        {
-            conditions.Add($"{primaryKey} > {afterValue}");
+            orderByClause = primaryKey;
         }
 
-        string conditionSql = conditions.Count != 0 ? " WHERE " + string.Join(" AND ", conditions) : "";
+        // Costruisce la clausola WHERE se presente
+        string conditionSql = !string.IsNullOrWhiteSpace(whereClause) ? " WHERE " + whereClause : "";
 
-        // Costruisci la query SQL per gli elementi e per il conteggio
-        string sqlQuery = $"SELECT * FROM {tableName}{conditionSql} ORDER BY {primaryKey} LIMIT {first}";
+        // Costruisci la query SQL con ORDER BY, LIMIT e OFFSET
+        string sqlQuery = $"SELECT * FROM {tableName}{conditionSql} ORDER BY {orderByClause} LIMIT {pageSize} OFFSET {offset}";
         string sqlCountQuery = $"SELECT COUNT(*) FROM {tableName}{conditionSql}";
 
-        // Nome del DataLoader: "Get" + NomeTabella
-        string loaderKey = $"Get{tableName}";
-
-        // Usa il DataLoader per caricare gli elementi in batch
-        IDataLoader<List<T>> loader = dataLoader.GetOrAddLoader(loaderKey, () => dbContext.Set<T>().FromSqlRaw(sqlQuery).ToListAsync());
+        // Definisce un loader key che tenga conto di offset, pageSize, where e orderBy per il caching
+        string loaderKey = $"Get{tableName}_{offset}_{pageSize}_{whereClause}_{orderByClause}";
+        IDataLoader<List<T>> loader = dataLoader.GetOrAddLoader(loaderKey, () =>
+            dbContext.Set<T>().FromSqlRaw(sqlQuery).ToListAsync());
         List<T> items = await loader.LoadAsync().GetResultAsync();
 
-        // Esegui la query per ottenere il totale delle righe
+        // Esegue la query per ottenere il totale delle righe
         int totalCount = 0;
         using (DbConnection connection = dbContext.Database.GetDbConnection())
         {
@@ -87,12 +81,9 @@ public class GraphQLService
             {
                 await connection.OpenAsync();
             }
-
-            using (DbCommand command = connection.CreateCommand())
-            {
-                command.CommandText = sqlCountQuery;
-                totalCount = Convert.ToInt32(await command.ExecuteScalarAsync());
-            }
+            using DbCommand command = connection.CreateCommand();
+            command.CommandText = sqlCountQuery;
+            totalCount = Convert.ToInt32(await command.ExecuteScalarAsync());
         }
 
         // Converte la lista di elementi in una Connection Relay
@@ -120,7 +111,6 @@ public class GraphQLService
         string? startCursor = edges.FirstOrDefault()?.Cursor;
         string? endCursor = edges.LastOrDefault()?.Cursor;
 
-        // In questo esempio, HasNextPage e HasPreviousPage sono impostati a false.
         var pageInfo = new PageInfo
         {
             StartCursor = startCursor,
@@ -138,7 +128,8 @@ public class GraphQLService
     }
 }
 
-// Definizione dei modelli per la Connection Relay
+// Modelli per la Connection Relay
+
 public class Connection<T>
 {
     public IEnumerable<Edge<T>> Edges { get; set; } = Enumerable.Empty<Edge<T>>();

@@ -46,12 +46,12 @@ interface Sidebar {
 
 interface ConfirmDialog {
   open: boolean;
-  title: string | JSX.Element
-  content: string | JSX.Element
-  acceptLabel?: string | JSX.Element
-  cancelLabel?: string | JSX.Element
-  onAccept: (value: boolean | PromiseLike<boolean>) => void
-  onCancel?: (value: boolean | PromiseLike<boolean>) => void
+  title: string | JSX.Element;
+  content: string | JSX.Element;
+  acceptLabel?: string | JSX.Element;
+  cancelLabel?: string | JSX.Element;
+  onAccept: (value: boolean | PromiseLike<boolean>) => void;
+  onCancel?: (value: boolean | PromiseLike<boolean>) => void;
 }
 
 type ServerStatus = "ONLINE" | "OFFLINE";
@@ -82,22 +82,4 @@ type Theme = Exclude<ThemeMode, "default">;
 interface UserTheme {
   mode: ThemeMode;
   theme: Theme;
-}
-
-
-interface SearchboxOptions<T> {
-  query: string
-  id: keyof T
-  fieldName: keyof T
-  tableName: string
-  view?: string
-  additionalWhere?: string
-  join?: string
-  where?: string
-  items: DatagridColDef<T>[]
-  modal: {
-    title: string
-    fragment?: string
-    items: DatagridColDef<T>[]
-  }
 }
