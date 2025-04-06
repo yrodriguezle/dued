@@ -1,8 +1,9 @@
 import { useMemo } from "react";
 import capitalize from "../../common/bones/capitalize";
+import { gql, TypedDocumentNode } from "@apollo/client";
 
-interface UseQueryParamsBase {
-  queryName: string;
+interface UseQueryParamsBase<T> {
+  queryName: keyof RelayData<T>;
   where?: string;
   orderBy?: string;
   cursor?: number;
@@ -10,18 +11,18 @@ interface UseQueryParamsBase {
 }
 
 // Caso in cui body è un array di chiavi di T (es. keyof T)
-interface UseQueryParamsArray<T> extends UseQueryParamsBase {
+interface UseQueryParamsArray<T> extends UseQueryParamsBase<T> {
   body: (keyof T)[];
   fragment?: never;
 }
 
 // Caso in cui body è una stringa, e quindi deve essere specificato fragment
-interface UseQueryParamsString extends UseQueryParamsBase {
+interface UseQueryParamsString<T> extends UseQueryParamsBase<T> {
   body: string;
   fragment: string;
 }
 
-type UseQueryParamsProps<T> = UseQueryParamsArray<T> | UseQueryParamsString;
+type UseQueryParamsProps<T> = UseQueryParamsArray<T> | UseQueryParamsString<T>;
 
 function useQueryParams<T>(queryParams: UseQueryParamsProps<T>) {
   // Se body è una stringa, è obbligatorio che fragment sia presente
@@ -29,9 +30,9 @@ function useQueryParams<T>(queryParams: UseQueryParamsProps<T>) {
     throw new Error("Il parametro 'fragment' è obbligatorio quando body è una stringa.");
   }
 
-  const query = useMemo(
-    () => `${queryParams.fragment || ""}
-      query Get${capitalize(queryParams.queryName)}By (
+  const query: TypedDocumentNode<RelayData<T>, RelayVariables> = useMemo(
+    () => gql(`${queryParams.fragment || ""}
+      query Get${capitalize(queryParams.queryName as string)}By (
         $where: String,
         $pageSize: Int,
         $orderBy: String,
@@ -57,11 +58,11 @@ function useQueryParams<T>(queryParams: UseQueryParamsProps<T>) {
           }
         }
       }
-    `,
+    `),
     [queryParams.body, queryParams.fragment, queryParams.queryName]
   );
 
-  const variables = useMemo(
+  const variables: RelayVariables = useMemo(
     () => ({
       pageSize: queryParams.pageSize,
       where: (queryParams.where || "").replace(/\n/g, " ").replace(/\s\s+/g, " ").trim(),

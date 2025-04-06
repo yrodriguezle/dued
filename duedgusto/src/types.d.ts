@@ -83,3 +83,27 @@ interface UserTheme {
   mode: ThemeMode;
   theme: Theme;
 }
+
+interface RelayPageInfo {
+  hasNextPage: boolean
+  endCursor: string|null
+  hasPreviousPage: boolean
+  startCursor: string|null
+}
+
+interface RelayResult<T> {
+  totalCount: number
+  pageInfo: RelayPageInfo
+  items: T[]
+}
+
+interface RelayData<T> {
+  [key: string]: RelayResult<T>
+}
+
+interface RelayVariables {
+  pageSize: number
+  where: string
+  orderBy?: string
+  cursor?: number
+}
