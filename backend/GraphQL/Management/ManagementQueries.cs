@@ -1,9 +1,10 @@
 ﻿using GraphQL;
 using GraphQL.Types;
+using GraphQL.Types.Relay.DataObjects;
 
-using duedgusto.GraphQL.Authentication;
-using duedgusto.Services.GraphQL;
 using duedgusto.Models;
+using duedgusto.Services.GraphQL;
+using duedgusto.GraphQL.Authentication;
 
 namespace duedgusto.GraphQL.Management;
 
