@@ -23,7 +23,7 @@ function useSearchboxQueryParams<T>(props: UseSearchboxQueryParamsProps<T>) {
 
   const where = useMemo(() => {
     const values = (props.value ? props.value.toString().trim().split(" ") : []).map((value) => `"%${value}%"`);
-    const lookupFieldName = `[${props.options.tableName}].${props.fieldName}`;
+    const lookupFieldName = `${props.options.tableName}.${props.fieldName}`;
     const regularWhere = values.length ? `${lookupFieldName} LIKE ${values.join(` AND ${lookupFieldName} LIKE `)}` : "";
 
     const additionalWhere = props.options.additionalWhere || "";

@@ -1,11 +1,11 @@
-import { useMemo } from "react";
+import React, { Suspense, useMemo } from "react";
 import { Navigate, Route, Routes } from "react-router";
 import { isAuthenticated } from "../common/authentication/auth";
 import Layout from "../components/layout/Layout";
-import { routesMapping } from "./routesMapping";
+import { Fallback, routesMapping } from "./routesMapping";
 import useStore from "../store/useStore";
 
-const HomePage = () => <div>HomePage</div>;
+const HomePage = React.lazy(() => import("../components/pages/HomePage.tsx"));
 
 function ProtectedRoutes() {
   const user = useStore((store) => store.user);
@@ -17,7 +17,14 @@ function ProtectedRoutes() {
   return (
     <Routes>
       <Route element={<Layout />}>
-        <Route index element={<HomePage />} />
+        <Route
+          index
+          element={
+            <Suspense fallback={<Fallback />}>
+              <HomePage />
+            </Suspense>
+          }
+        />
         {menuRoutes
           .filter((menu) => menu?.path)
           .map((menu) => {

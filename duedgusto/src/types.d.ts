@@ -84,26 +84,30 @@ interface UserTheme {
   theme: Theme;
 }
 
+type ExactlyOne<T> = {
+  [K in keyof T]: { [P in K]: T[K] } & Partial<Record<Exclude<keyof T, K>, never>>;
+}[keyof T];
+
 interface RelayPageInfo {
-  hasNextPage: boolean
-  endCursor: string|null
-  hasPreviousPage: boolean
-  startCursor: string|null
+  hasNextPage: boolean;
+  endCursor: string | null;
+  hasPreviousPage: boolean;
+  startCursor: string | null;
 }
 
 interface RelayResult<T> {
-  totalCount: number
-  pageInfo: RelayPageInfo
-  items: T[]
+  totalCount: number;
+  pageInfo: RelayPageInfo;
+  items: T[];
 }
 
 interface RelayData<T> {
-  [key: string]: RelayResult<T>
+  management: ExactlyOne<Record<string, RelayResult<T>>>;
 }
 
 interface RelayVariables {
-  pageSize: number
-  where: string
-  orderBy?: string
-  cursor?: number
+  pageSize: number;
+  where: string;
+  orderBy?: string;
+  cursor?: number;
 }

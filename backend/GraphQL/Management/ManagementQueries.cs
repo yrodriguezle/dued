@@ -14,6 +14,7 @@ public class ManagementQueries : ObjectGraphType
         Connection<UserType>("users")
             .Argument<StringGraphType>("where")
             .Argument<StringGraphType>("orderBy")
+            .Argument<IntGraphType>("cursor")
             .ResolveAsync(async (context) =>
             {
                 Connection<User> connection = await GraphQLService.GetConnectionAsync<User>(
@@ -29,6 +30,7 @@ public class ManagementQueries : ObjectGraphType
         Connection<MenuType>("menus")
             .Argument<StringGraphType>("where")
             .Argument<StringGraphType>("orderBy")
+            .Argument<IntGraphType>("cursor")
             .ResolveAsync(async (context) =>
             {
                 Connection<Menu> connection = await GraphQLService.GetConnectionAsync<Menu>(
@@ -44,6 +46,7 @@ public class ManagementQueries : ObjectGraphType
         Connection<RoleType>("roles")
             .Argument<StringGraphType>("where")
             .Argument<StringGraphType>("orderBy")
+            .Argument<IntGraphType>("cursor")
             .ResolveAsync(async (context) =>
             {
                 Connection<Role> connection = await GraphQLService.GetConnectionAsync<Role>(

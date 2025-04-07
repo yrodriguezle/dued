@@ -36,11 +36,11 @@ public class GraphQLService
         // Recupera il DbContext e il DataLoader dal contesto
         AppDbContext dbContext = GetService<AppDbContext>(context);
         IDataLoaderContextAccessor dataLoaderAccessor = GetService<IDataLoaderContextAccessor>(context);
-        var dataLoader = dataLoaderAccessor.Context;
+        DataLoaderContext dataLoader = dataLoaderAccessor.Context;
 
         // Recupera i parametri di paginazione:
         // "pageSize" indica il numero di elementi per pagina
-        int pageSize = context.GetArgument<int?>("pageSize") ?? 10;
+        int pageSize = context.GetArgument<int?>("first") ?? 10;
         // "cursor" rappresenta l'offset numerico, con default 0 se non specificato
         int offset = context.GetArgument<int?>("cursor") ?? 0;
 

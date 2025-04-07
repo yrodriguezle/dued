@@ -3,20 +3,18 @@ import capitalize from "../../common/bones/capitalize";
 import { gql, TypedDocumentNode } from "@apollo/client";
 
 interface UseQueryParamsBase<T> {
-  queryName: keyof RelayData<T>;
+  queryName: keyof RelayData<T>["management"];
   where?: string;
   orderBy?: string;
   cursor?: number;
   pageSize: number;
 }
 
-// Caso in cui body è un array di chiavi di T (es. keyof T)
 interface UseQueryParamsArray<T> extends UseQueryParamsBase<T> {
   body: (keyof T)[];
   fragment?: never;
 }
 
-// Caso in cui body è una stringa, e quindi deve essere specificato fragment
 interface UseQueryParamsString<T> extends UseQueryParamsBase<T> {
   body: string;
   fragment: string;
@@ -25,13 +23,13 @@ interface UseQueryParamsString<T> extends UseQueryParamsBase<T> {
 type UseQueryParamsProps<T> = UseQueryParamsArray<T> | UseQueryParamsString<T>;
 
 function useQueryParams<T>(queryParams: UseQueryParamsProps<T>) {
-  // Se body è una stringa, è obbligatorio che fragment sia presente
   if (typeof queryParams.body === "string" && !queryParams.fragment) {
     throw new Error("Il parametro 'fragment' è obbligatorio quando body è una stringa.");
   }
 
   const query: TypedDocumentNode<RelayData<T>, RelayVariables> = useMemo(
-    () => gql(`${queryParams.fragment || ""}
+    () =>
+      gql(`${queryParams.fragment || ""}
       query Get${capitalize(queryParams.queryName as string)}By (
         $where: String,
         $pageSize: Int,
@@ -41,7 +39,7 @@ function useQueryParams<T>(queryParams: UseQueryParamsProps<T>) {
         management {
           ${queryParams.queryName} (
             where: $where,
-            pageSize: $pageSize,
+            first: $pageSize,
             orderBy: $orderBy,
             cursor: $cursor,
           ) {
