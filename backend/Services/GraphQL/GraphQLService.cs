@@ -76,11 +76,11 @@ public class GraphQLService
             totalCount = Convert.ToInt32(await command.ExecuteScalarAsync());
         }
 
-        List<Edge<T>> edges = items.Select(item => new Edge<T>
+        List<Edge<T>> edges = [.. items.Select(item => new Edge<T>
         {
             Node = item,
             Cursor = cursorSelector(item)
-        }).ToList();
+        })];
 
         string? startCursor = edges.FirstOrDefault()?.Cursor;
         string? endCursor = edges.LastOrDefault()?.Cursor;
