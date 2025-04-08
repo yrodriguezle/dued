@@ -1,34 +1,22 @@
-import useFetchData from "../../graphql/common/useFetchData";
-import roleSearchboxOptions from "../common/form/searchbox/searchboxOptions/roleSearchboxOptions";
+import { useState } from "react";
+import Searchbox from "../common/form/searchbox/Searchbox";
 import userSearchboxOption from "../common/form/searchbox/searchboxOptions/userSearchboxOptions";
-import useSearchboxQueryParams from "../common/form/searchbox/useSearchboxQueryParams";
 
 function HomePage() {
-  const { query: qU, variables: vU } = useSearchboxQueryParams({
-    options: userSearchboxOption,
-    value: "super",
-    fieldName: "userName",
-  });
-
-  useFetchData({
-    query: qU,
-    variables: vU,
-    // fetchPolicy: "cache-first",
-  });
-
-  const { query: qR, variables: vR } = useSearchboxQueryParams({
-    options: roleSearchboxOptions,
-    value: "super",
-    fieldName: "roleName",
-  });
-
-  useFetchData({
-    query: qR,
-    variables: vR,
-    // fetchPolicy: "cache-first",
-  });
-
-  return <div>HomePage</div>;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [searchValue, setSearchValue] = useState("");
+  return (
+    <div style={{ padding: 20 }}>
+      <h1>HomePage</h1>
+      <Searchbox
+        // Se non si utilizza il campo fieldName, allora name deve essere una chiave di User (in questo esempio "userName")
+        name="userName"
+        value={searchValue}
+        orderBy="userName"
+        options={userSearchboxOption}
+      />
+    </div>
+  );
 }
 
 export default HomePage;

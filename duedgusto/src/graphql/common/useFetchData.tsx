@@ -94,7 +94,6 @@ function useFetchData<T>({
       if (skip) return;
       setLoading(true);
       const result = await subscribeFirstPage();
-      logger.log("result", result);
       setItems(result.items);
       setTotalCount(result.totalCount);
       setHasMore(result.hasMore);
