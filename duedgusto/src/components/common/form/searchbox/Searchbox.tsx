@@ -104,7 +104,16 @@ function Searchbox<T>({ id, name, value, orderBy, fieldName, options }: Searchbo
 
   return (
     <div style={{ position: "relative" }}>
-      <TextField id={searchBoxId} label="Cerca" value={innerValue} onChange={handleInputChange} variant="outlined" fullWidth inputRef={inputRef} />
+      <TextField
+        id={searchBoxId}
+        label="Cerca"
+        size="small"
+        value={innerValue}
+        onChange={handleInputChange}
+        variant="outlined"
+        fullWidth
+        inputRef={inputRef}
+      />
       {resultsVisible && (
         <div
           style={{

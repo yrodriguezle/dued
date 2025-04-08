@@ -2,18 +2,13 @@
 import { AgGridReact } from "ag-grid-react";
 import type { GridReadyEvent, RowClickedEvent, ColDef } from "ag-grid-community";
 
-// Registriamo i moduli necessari tramite ModuleRegistry
 import { ClientSideRowModelModule, ModuleRegistry } from "ag-grid-community";
-// import { ClientSideRowModelModule } from "ag-grid-community/client-side-row-model";
 ModuleRegistry.registerModules([ClientSideRowModelModule]);
 
-// Importa il tema Balham
-import { themeBalham } from "ag-grid-community";
+import { themeBalham, colorSchemeDark, colorSchemeLight } from "ag-grid-community";
 
-// Importa i CSS: usa il tema Balham
-import "ag-grid-community/styles/ag-grid.css";
-import "ag-grid-community/styles/ag-theme-balham.css";
 import { DatagridColDef } from "../../../../@types/searchbox";
+import useStore from "../../../../store/useStore";
 
 interface GridResultsProps<T> {
   loading: boolean;
@@ -23,7 +18,11 @@ interface GridResultsProps<T> {
   onRowClicked: (event: RowClickedEvent) => void;
 }
 
+const themeLight = themeBalham.withPart(colorSchemeLight);
+const themeDark = themeBalham.withPart(colorSchemeDark);
+
 function GridResults<T>({ loading, items, columnDefs, onGridReady, onRowClicked }: GridResultsProps<T>) {
+  const { userTheme } = useStore((store) => store);
   if (loading) {
     return <div style={{ padding: 16 }}>Caricamento...</div>;
   }
@@ -35,7 +34,7 @@ function GridResults<T>({ loading, items, columnDefs, onGridReady, onRowClicked 
   return (
     <div className="ag-theme-balham" style={{ width: "100%" }}>
       <AgGridReact
-        theme={themeBalham}
+        theme={userTheme.mode === "light" ? themeLight : themeDark}
         rowData={items}
         columnDefs={columnDefs as unknown as ColDef<T, any>[]}
         onGridReady={onGridReady}
