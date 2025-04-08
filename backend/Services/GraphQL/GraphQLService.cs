@@ -47,7 +47,7 @@ public class GraphQLService
         IEntityType entityType = dbContext.Model.FindEntityType(typeof(T)) ?? throw new InvalidOperationException($"EntityType non trovato per {typeof(T).Name}");
         string tableName = entityType.GetTableName() ?? typeof(T).Name;
 
-        IProperty primaryKeyProperty = entityType.FindPrimaryKey()?.Properties.FirstOrDefault() ?? throw new InvalidOperationException("Chiave primaria non trovata.");
+        IProperty primaryKeyProperty = entityType.FindPrimaryKey()?.Properties[0] ?? throw new InvalidOperationException("Chiave primaria non trovata.");
         string primaryKey = primaryKeyProperty.Name;
 
         if (string.IsNullOrWhiteSpace(orderByClause))

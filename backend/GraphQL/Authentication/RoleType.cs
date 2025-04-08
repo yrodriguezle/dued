@@ -1,10 +1,6 @@
 ﻿using GraphQL.Types;
 
-using Microsoft.EntityFrameworkCore;
-
 using duedgusto.Models;
-using duedgusto.DataAccess;
-using duedgusto.Services.GraphQL;
 
 namespace duedgusto.GraphQL.Authentication;
 
