@@ -1,29 +1,29 @@
 import { useMemo } from "react";
-import { DatagridColDef, SearchboxOptions } from "../../../../@types/searchbox";
+import { SearchboxOptions } from "../../../../@types/searchbox";
 import useQueryParams from "../../../../graphql/common/useQueryParams";
 
-interface UseSearchboxQueryParamsProps<T> {
+interface UseSearchboxQueryParamsProps<T, K extends keyof T> {
   options: SearchboxOptions<T>;
   orderBy?: string;
   value: string;
-  fieldName: string;
+  fieldName: K;
   modal?: boolean;
   pageSize?: number;
 }
 
-function useSearchboxQueryParams<T>(props: UseSearchboxQueryParamsProps<T>) {
-  const body = useMemo(() => {
+function useSearchboxQueryParams<T, K extends keyof T>(props: UseSearchboxQueryParamsProps<T, K>) {
+  const body = useMemo<(keyof T)[]>(() => {
     if (props.modal) {
       const modalFields = props.options.modal.items.map((item) => item.field);
       return modalFields;
     }
-    const fields = props.options.items.map((item) => item.field) as DatagridColDef<T>[];
+    const fields = props.options.items.map((item) => item.field);
     return fields;
   }, [props.modal, props.options.items, props.options.modal.items]);
 
   const where = useMemo(() => {
     const values = (props.value ? props.value.toString().trim().split(" ") : []).map((value) => `"%${value}%"`);
-    const lookupFieldName = `${props.options.tableName}.${props.fieldName}`;
+    const lookupFieldName = `${props.options.tableName}.${String(props.fieldName)}`;
     const regularWhere = values.length ? `${lookupFieldName} LIKE ${values.join(` AND ${lookupFieldName} LIKE `)}` : "";
 
     const additionalWhere = props.options.additionalWhere || "";
@@ -38,7 +38,7 @@ function useSearchboxQueryParams<T>(props: UseSearchboxQueryParamsProps<T>) {
     where,
     orderBy: props.orderBy,
     pageSize: props.pageSize || 10,
-    body: body as (keyof T)[],
+    body,
   });
 }
 

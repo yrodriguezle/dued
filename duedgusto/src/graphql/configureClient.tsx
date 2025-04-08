@@ -83,7 +83,25 @@ function configureClient() {
 
   apolloClient = new ApolloClient({
     link: from([errorLink, authLink, httpLink]),
-    cache: new InMemoryCache(),
+    cache: new InMemoryCache({
+      typePolicies: {
+        Query: {
+          fields: {
+            connection: {
+              // Indica ad Apollo di ignorare gli argomenti per questo campo, oppure
+              // se preferisci, specifica quali argomenti utilizzabili per differenziare i campi
+              keyArgs: false,
+              merge(existing = {}, incoming) {
+                // Logica di merge: unisci gli oggetti esistenti e quelli in arrivo.
+                // Questo esempio esegue una fusione superficiale; adatta la logica
+                // in base alla struttura dei tuoi dati
+                return { ...existing, ...incoming };
+              },
+            },
+          },
+        },
+      },
+    }),
   });
   return apolloClient;
 }

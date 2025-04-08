@@ -3,7 +3,7 @@ import capitalize from "../../common/bones/capitalize";
 import { gql, TypedDocumentNode } from "@apollo/client";
 
 interface UseQueryParamsBase<T> {
-  queryName: keyof RelayData<T>["management"];
+  queryName: keyof RelayData<T>["connection"];
   where?: string;
   orderBy?: string;
   cursor?: number;
@@ -36,7 +36,7 @@ function useQueryParams<T>(queryParams: UseQueryParamsProps<T>) {
         $orderBy: String,
         $cursor: Int
       ) {
-        management {
+        connection {
           ${queryParams.queryName} (
             where: $where,
             first: $pageSize,

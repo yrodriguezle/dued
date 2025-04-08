@@ -42,12 +42,13 @@ function useFetchData<T>({
   const client = useApolloClient();
 
   const fetchItems = useCallback(
-    async () => client.query({
-      query,
-      variables,
-      fetchPolicy: 'cache-first',
-    }),
-    [client, query, variables],
+    async () =>
+      client.query({
+        query,
+        variables,
+        fetchPolicy: "cache-first",
+      }),
+    [client, query, variables]
   );
 
   const subscribeFirstPage = useCallback(
@@ -61,9 +62,9 @@ function useFetchData<T>({
           next: ({ data: firstPage }) => {
             const nextPage = reverseGrid ? "hasPreviousPage" : "hasNextPage";
             const queryName = getQueryName(query);
-            const totalCount = firstPage && firstPage.management[queryName]?.totalCount;
-            const hasMore = firstPage?.management[queryName]?.pageInfo[nextPage];
-            const { items = [] } = (firstPage && firstPage.management[queryName]) || {};
+            const totalCount = firstPage && firstPage.connection[queryName]?.totalCount;
+            const hasMore = firstPage?.connection[queryName]?.pageInfo[nextPage];
+            const { items = [] } = (firstPage && firstPage.connection[queryName]) || {};
             const newItems = reverseGrid ? items.slice().reverse() : items;
             resolve({
               totalCount,
@@ -93,6 +94,7 @@ function useFetchData<T>({
       if (skip) return;
       setLoading(true);
       const result = await subscribeFirstPage();
+      logger.log("result", result);
       setItems(result.items);
       setTotalCount(result.totalCount);
       setHasMore(result.hasMore);
@@ -103,59 +105,60 @@ function useFetchData<T>({
   }, [skip, subscribeFirstPage]);
 
   const subscribeToMore = useCallback(
-    (): Promise<RelayResult<T>> => new Promise((resolve) => {
-      if (loadMoreSubscription.current?.unsubscribe) {
-        loadMoreSubscription.current.unsubscribe();
-      }
-      if (loading && !hasMore && fetchingMore) {
-        return;
-      }
-      setFetchingMore(true);
-      const observable = client.watchQuery({
-        query,
-        variables: {
-          ...variables,
-          after: cursor,
-        },
-        fetchPolicy
-      });
-      loadMoreSubscription.current = observable.subscribe({
-        next: ({ data: nextPage }) => {
-          const nextPageInfo = reverseGrid ? "hasPreviousPage" : "hasNextPage";
-          const queryName = getQueryName(query);
-          const totalCount = nextPage && nextPage.management[queryName]?.totalCount;
-          const hasMore = nextPage?.management[queryName]?.pageInfo[nextPageInfo];
-          const { items = [] } = (nextPage && nextPage.management[queryName]) || {};
-          const newItems = reverseGrid ? items.slice().reverse() : items;
-          setItems((prevItems) => [...prevItems, ...newItems]);
-          setTotalCount(totalCount);
-          setHasMore(hasMore);
-          let newCursor = 0;
-          setCursor((prevCursor) => {
-            newCursor = prevCursor + newItems.length;
-            return newCursor;
-          });
-          resolve({
-            totalCount,
-            hasMore,
-            items: newItems,
-            cursor: newCursor,
-          });
-        },
-        error: (err) => {
-          setFetchingMore(false);
-          const errorMessage = err.message || "Error fetching data";
-          logger.log(errorMessage);
-          resolve({
-            totalCount: 0,
-            hasMore: false,
-            items: [],
-            cursor: 0,
-          });
-        },
-      });
-    }),
-    [client, cursor, fetchPolicy, fetchingMore, hasMore, loading, query, reverseGrid, variables],
+    (): Promise<RelayResult<T>> =>
+      new Promise((resolve) => {
+        if (loadMoreSubscription.current?.unsubscribe) {
+          loadMoreSubscription.current.unsubscribe();
+        }
+        if (loading && !hasMore && fetchingMore) {
+          return;
+        }
+        setFetchingMore(true);
+        const observable = client.watchQuery({
+          query,
+          variables: {
+            ...variables,
+            after: cursor,
+          },
+          fetchPolicy,
+        });
+        loadMoreSubscription.current = observable.subscribe({
+          next: ({ data: nextPage }) => {
+            const nextPageInfo = reverseGrid ? "hasPreviousPage" : "hasNextPage";
+            const queryName = getQueryName(query);
+            const totalCount = nextPage && nextPage.connection[queryName]?.totalCount;
+            const hasMore = nextPage?.connection[queryName]?.pageInfo[nextPageInfo];
+            const { items = [] } = (nextPage && nextPage.connection[queryName]) || {};
+            const newItems = reverseGrid ? items.slice().reverse() : items;
+            setItems((prevItems) => [...prevItems, ...newItems]);
+            setTotalCount(totalCount);
+            setHasMore(hasMore);
+            let newCursor = 0;
+            setCursor((prevCursor) => {
+              newCursor = prevCursor + newItems.length;
+              return newCursor;
+            });
+            resolve({
+              totalCount,
+              hasMore,
+              items: newItems,
+              cursor: newCursor,
+            });
+          },
+          error: (err) => {
+            setFetchingMore(false);
+            const errorMessage = err.message || "Error fetching data";
+            logger.log(errorMessage);
+            resolve({
+              totalCount: 0,
+              hasMore: false,
+              items: [],
+              cursor: 0,
+            });
+          },
+        });
+      }),
+    [client, cursor, fetchPolicy, fetchingMore, hasMore, loading, query, reverseGrid, variables]
   );
 
   return {
@@ -166,7 +169,7 @@ function useFetchData<T>({
     fetchItems,
     subscribeToMore,
     loading,
-  }
+  };
 }
 
 export default useFetchData;

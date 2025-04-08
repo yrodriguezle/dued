@@ -102,7 +102,7 @@ interface RelayResult<T> {
 }
 
 interface RelayData<T> {
-  management: ExactlyOne<Record<string, RelayResult<T>>>;
+  connection: ExactlyOne<Record<string, RelayResult<T>>>;
 }
 
 interface RelayVariables {

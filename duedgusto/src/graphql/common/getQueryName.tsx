@@ -8,19 +8,19 @@ function getQueryName<T>(query: TypedDocumentNode<RelayData<T>, RelayVariables>)
     throw new Error("No operation definition found in the provided query document.");
   }
 
-  const managementField = operationDefinition.selectionSet.selections.find((selection) => selection.kind === "Field" && selection.name.value === "management") as FieldNode | undefined;
+  const connectionField = operationDefinition.selectionSet.selections.find((selection) => selection.kind === "Field" && selection.name.value === "connection") as FieldNode | undefined;
 
-  if (!managementField) {
-    throw new Error("No 'management' field found in the query document.");
+  if (!connectionField) {
+    throw new Error("No 'connection' field found in the query document.");
   }
 
-  if (!managementField.selectionSet || managementField.selectionSet.selections.length === 0) {
-    throw new Error("No fields found under 'management' in the query document.");
+  if (!connectionField.selectionSet || connectionField.selectionSet.selections.length === 0) {
+    throw new Error("No fields found under 'connection' in the query document.");
   }
 
-  const queryField = managementField.selectionSet.selections[0];
+  const queryField = connectionField.selectionSet.selections[0];
   if (queryField.kind !== "Field" || !queryField.name?.value) {
-    throw new Error("No valid query name found under 'management' field.");
+    throw new Error("No valid query name found under 'connection' field.");
   }
 
   return queryField.name.value;
