@@ -5,7 +5,7 @@ type ColumnAction = "update" | "remove";
 interface DatagridColDef<T> extends ColDef<T> {
   graphField?: string;
   action?: ColumnAction;
-  field: Extract<keyof T, string>; // Utilizziamo Extract per assicurare che sia una stringa
+  field: Extract<keyof T, string>;
 }
 
 interface SearchboxOptions<T> {

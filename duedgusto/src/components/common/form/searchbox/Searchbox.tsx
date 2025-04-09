@@ -1,49 +1,33 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import TextField from "@mui/material/TextField";
-import { GridReadyEvent, RowClickedEvent } from "ag-grid-community";
+import TextField, { TextFieldProps } from "@mui/material/TextField";
+import { RowClickedEvent } from "ag-grid-community";
 
 import { SearchboxOptions } from "../../../../@types/searchbox";
 import useSearchboxQueryParams from "./useSearchboxQueryParams";
 import useFetchData from "../../../../graphql/common/useFetchData";
 import GridResults from "./GridResults";
 
-interface BaseSearchboxProps<T> {
+export interface SearchboxProps<T> extends Omit<TextFieldProps<"standard">, "onChange"> {
   id?: string;
+  options: SearchboxOptions<T>;
+  fieldName?: Extract<keyof T, string>;
+  name: string;
   value: string;
   orderBy?: string;
-  options: SearchboxOptions<T>;
+  onChange?: (name: string, value: string) => void;
 }
 
-interface SearchboxPropsWithFieldName<T> extends BaseSearchboxProps<T> {
-  fieldName: keyof T;
-  name?: string;
-}
-
-interface SearchboxPropsWithoutFieldName<T> extends BaseSearchboxProps<T> {
-  fieldName?: undefined;
-  name: keyof T;
-}
-
-type SearchboxProps<T> = SearchboxPropsWithFieldName<T> | SearchboxPropsWithoutFieldName<T>;
-
-function Searchbox<T>({ id, name, value, orderBy, fieldName, options }: SearchboxProps<T>) {
+function Searchbox<T>({ id, name, value, orderBy, fieldName, options, ...props }: SearchboxProps<T>) {
   const [innerValue, setInnerValue] = useState(value);
   const [resultsVisible, setResultsVisible] = useState(false);
-  const [selection, setSelection] = useState<T | null>(null);
+  // const [selection, setSelection] = useState<T | null>(null);
 
-  // Calcola il campo di lookup:
-  const lookupFieldName = useMemo<keyof T>(() => {
-    if (fieldName !== undefined) {
-      return fieldName;
-    }
-    return name as keyof T;
+  const lookupFieldName = useMemo<Extract<keyof T, string>>(() => {
+    return fieldName || (name as Extract<keyof T, string>);
   }, [fieldName, name]);
 
-  // Genera un ID univoco per il searchbox
   const searchBoxId = useMemo(() => id || `${options.query}-${String(name || fieldName)}-searchbox`, [fieldName, id, name, options.query]);
 
-  // Genera query e variabili dai dati passati via options
   const { query, variables } = useSearchboxQueryParams({
     options,
     value: innerValue,
@@ -51,17 +35,18 @@ function Searchbox<T>({ id, name, value, orderBy, fieldName, options }: Searchbo
     orderBy,
   });
 
-  // Recupera i dati con useFetchData
-  const { hasMore, totalCount, items, cursor, fetchItems, subscribeToMore, loading } = useFetchData({
+  const {
+    // hasMore,
+    // totalCount,
+    items,
+    // cursor,
+    // fetchItems,
+    // subscribeToMore,
+    loading,
+  } = useFetchData({
     query,
     variables,
   });
-
-  // Callback quando la griglia è pronta
-  const onGridReady = useCallback((params: GridReadyEvent) => {
-    // Puoi salvare l'API della griglia se necessario:
-    // setGridApi(params.api);
-  }, []);
 
   // Gestione del click sulla riga
   const onRowClicked = useCallback(
@@ -69,7 +54,7 @@ function Searchbox<T>({ id, name, value, orderBy, fieldName, options }: Searchbo
       const selectedData: T = event.data;
       // Ad esempio, aggiorna l'input con il valore del campo di ricerca
       setInnerValue(String(selectedData[lookupFieldName]));
-      setSelection(selectedData);
+      // setSelection(selectedData);
       setResultsVisible(false);
     },
     [lookupFieldName]
@@ -104,16 +89,7 @@ function Searchbox<T>({ id, name, value, orderBy, fieldName, options }: Searchbo
 
   return (
     <div style={{ position: "relative" }}>
-      <TextField
-        id={searchBoxId}
-        label="Cerca"
-        size="small"
-        value={innerValue}
-        onChange={handleInputChange}
-        variant="outlined"
-        fullWidth
-        inputRef={inputRef}
-      />
+      <TextField id={searchBoxId} label="Cerca" size="small" value={innerValue} variant="outlined" fullWidth inputRef={inputRef} {...props} onChange={handleInputChange} />
       {resultsVisible && (
         <div
           style={{
@@ -129,7 +105,7 @@ function Searchbox<T>({ id, name, value, orderBy, fieldName, options }: Searchbo
             marginTop: 4,
           }}
         >
-          <GridResults<T> loading={loading} items={items} columnDefs={options.items} onGridReady={onGridReady} onRowClicked={onRowClicked} />
+          <GridResults<T> loading={loading} items={items} columnDefs={options.items} onRowClicked={onRowClicked} />
         </div>
       )}
     </div>

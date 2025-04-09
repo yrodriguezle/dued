@@ -1,12 +1,9 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Form, Formik } from "formik";
 import { z } from "zod";
 
-// import FormToolbar from "../../common/form/toolbar/FormToolbar";
 import UserForm from "./userUiMutation/UserForm";
 import FormikToolbar from "../../common/form/toolbar/FormikToolbar";
-
-type FormikUserValues = Exclude<User, null>;
+import logger from "../../../common/logger/logger";
 
 const Schema = z.object({
   userId: z.number(),
@@ -18,9 +15,30 @@ const Schema = z.object({
   disabled: z.boolean(),
 });
 
+export type FormikUserValues = z.infer<typeof Schema>;
+
 function UserDetails() {
+  const initialValues: FormikUserValues = {
+    userId: 0,
+    roleId: 0,
+    userName: "",
+    firstName: "",
+    lastName: "",
+    description: "",
+    disabled: false,
+  };
+  const validate = (values: FormikUserValues) => {
+    const result = Schema.safeParse(values);
+    if (result.success) {
+      return;
+    }
+    return Object.fromEntries(result.error.issues.map(({ path, message }) => [path[0], message]));
+  };
+  const onSubmit = (values: FormikUserValues) => {
+    logger.log("onSubmit", values);
+  };
   return (
-    <Formik initialValues={{ nome: "" }} onSubmit={(values) => console.log(values)}>
+    <Formik enableReinitialize initialValues={initialValues} sta validate={validate} onSubmit={onSubmit}>
       {() => (
         <Form noValidate>
           <FormikToolbar />

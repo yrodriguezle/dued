@@ -14,38 +14,29 @@ function Confirm() {
   const { confirmDialog, setConfirmValues, receiveServerStatus } = useStore((store) => store);
   const { open, title, content, cancelLabel, acceptLabel } = confirmDialog;
 
-  const onDismiss = useCallback(
-    () => {
-      setConfirmValues({
-        open: false,
-        title: "",
-        content: "",
-        onAccept: () => Promise.resolve(true),
-      });
-      receiveServerStatus(ONLINE);
-    },
-    [receiveServerStatus, setConfirmValues],
-  );
+  const onDismiss = useCallback(() => {
+    setConfirmValues({
+      open: false,
+      title: "",
+      content: "",
+      onAccept: () => Promise.resolve(true),
+    });
+    receiveServerStatus(ONLINE);
+  }, [receiveServerStatus, setConfirmValues]);
 
-  const handleAccept = useCallback(
-    async () => {
-      if (confirmDialog.onAccept) {
-        await confirmDialog.onAccept();
-      }
-      onDismiss();
-    },
-    [confirmDialog, onDismiss],
-  );
+  const handleAccept = useCallback(async () => {
+    if (confirmDialog.onAccept) {
+      await confirmDialog.onAccept();
+    }
+    onDismiss();
+  }, [confirmDialog, onDismiss]);
 
-  const handleCancel = useCallback(
-    async () => {
-      if (confirmDialog.onCancel) {
-        await confirmDialog.onCancel();
-      }
-      onDismiss();
-    },
-    [confirmDialog, onDismiss],
-  );
+  const handleCancel = useCallback(async () => {
+    if (confirmDialog.onCancel) {
+      await confirmDialog.onCancel();
+    }
+    onDismiss();
+  }, [confirmDialog, onDismiss]);
 
   // useEffect(() => {
   //   if (open) {
@@ -62,22 +53,15 @@ function Confirm() {
   return (
     <Dialog open={open} onClose={handleCancel}>
       <DialogTitle>{title}</DialogTitle>
-      <DialogContent>
-        {content}
-      </DialogContent>
+      <DialogContent>{content}</DialogContent>
       <DialogActions>
-        {cancelLabel ? (
-          <Button onClick={handleCancel}>Disagree</Button>
-        ) : null}
-        <Button
-          onClick={handleAccept}
-          color="primary"
-        >
+        {cancelLabel ? <Button onClick={handleCancel}>Disagree</Button> : null}
+        <Button onClick={handleAccept} color="primary">
           {acceptLabel}
         </Button>
       </DialogActions>
     </Dialog>
-  )
-};
+  );
+}
 
 export default Confirm;

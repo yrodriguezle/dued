@@ -10,10 +10,7 @@ interface BaseModalState<R = any> {
   [key: string]: any;
 }
 
-const getPromiseModal = <T extends BaseModalState<R>, R = any>(
-  fn: Callback<T>,
-  otherParams: Partial<T> = {}
-): Promise<R> =>
+const getPromiseModal = <T extends BaseModalState<R>, R = any>(fn: Callback<T>, otherParams: Partial<T> = {}): Promise<R> =>
   new Promise((resolve) => {
     const handleClose = (response: R) => {
       fn((prevValues) => ({

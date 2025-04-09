@@ -1,9 +1,9 @@
-import { exec } from 'child_process';
-import path from 'path';
+import { exec } from "child_process";
+import path from "path";
 
-console.log('Sistema operativo:', process.platform);
+console.log("Sistema operativo:", process.platform);
 
-const rmCommand = process.platform === 'win32' ? "rd /s /q node_modules" : 'rm -rf node_modules';
+const rmCommand = process.platform === "win32" ? "rd /s /q node_modules" : "rm -rf node_modules";
 
 exec(rmCommand, (error, stdout, stderr) => {
   if (error) {
@@ -14,5 +14,5 @@ exec(rmCommand, (error, stdout, stderr) => {
     console.error(`stderr: ${stderr}`);
     return;
   }
-  console.log('node_modules eliminata con successo');
+  console.log("node_modules eliminata con successo");
 });

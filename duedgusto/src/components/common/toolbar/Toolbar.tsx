@@ -1,8 +1,5 @@
-
 function Toolbar() {
-  return (
-    <div>Toolbar</div>
-  )
+  return <div>Toolbar</div>;
 }
 
-export default Toolbar
+export default Toolbar;

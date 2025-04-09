@@ -10,12 +10,13 @@ function confirmDialogStore(set: StoreSet) {
 
   return {
     confirmDialog,
-    setConfirmValues: (payload: ConfirmDialog) => set((state) => ({
-      confirmDialog: {
-        ...state.confirmDialog,
-        ...payload,
-      }
-    })),
+    setConfirmValues: (payload: ConfirmDialog) =>
+      set((state) => ({
+        confirmDialog: {
+          ...state.confirmDialog,
+          ...payload,
+        },
+      })),
   };
 }
 

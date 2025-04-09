@@ -11,8 +11,8 @@ const createMenuItem = (menu: Menu, menus: Menu[]): MenuItem => {
     path,
     onClick: path
       ? () => {
-        navigateTo(menu?.path || "", { replace: true });
-      }
+          navigateTo(menu?.path || "", { replace: true });
+        }
       : undefined,
     children: children.length ? children.map((m) => createMenuItem(m, menus)) : undefined,
   };

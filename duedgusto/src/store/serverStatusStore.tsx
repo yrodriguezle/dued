@@ -1,4 +1,3 @@
-
 export const ONLINE: ServerStatus = "ONLINE";
 export const OFFLINE: ServerStatus = "OFFLINE";
 

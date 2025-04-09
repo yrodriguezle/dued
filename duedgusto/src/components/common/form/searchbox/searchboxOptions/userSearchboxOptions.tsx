@@ -1,6 +1,6 @@
 import { DatagridColDef, SearchboxOptions } from "../../../../../@types/searchbox";
 
-type UserSearchbox = Exclude<User, null>;
+export type UserSearchbox = Exclude<User, null>;
 
 const items: DatagridColDef<UserSearchbox>[] = [
   {

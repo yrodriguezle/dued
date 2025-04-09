@@ -13,8 +13,8 @@ import useStore from "../../../../store/useStore";
 interface GridResultsProps<T> {
   loading: boolean;
   items: T[];
-  columnDefs: DatagridColDef<T>[]; // Se hai colonne tipizzate diversamente, adatta questo tipo
-  onGridReady: (params: GridReadyEvent) => void;
+  columnDefs: DatagridColDef<T>[];
+  onGridReady?: (params: GridReadyEvent) => void;
   onRowClicked: (event: RowClickedEvent) => void;
 }
 

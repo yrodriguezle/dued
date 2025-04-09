@@ -1,9 +1,9 @@
-import { useCallback } from "react"
+import { useCallback } from "react";
 import useStore from "../../../store/useStore";
 
 let trafficLightPromise = Promise.resolve(true);
 
-type Confirm = Omit<ConfirmDialog, "open" | "onAccept">
+type Confirm = Omit<ConfirmDialog, "open" | "onAccept">;
 
 function useConfirm() {
   const setConfirmValues = useStore((store) => store.setConfirmValues);
@@ -24,9 +24,8 @@ function useConfirm() {
       });
       return trafficLightPromise;
     },
-    [setConfirmValues],
-  )
-
+    [setConfirmValues]
+  );
 }
 
-export default useConfirm
+export default useConfirm;

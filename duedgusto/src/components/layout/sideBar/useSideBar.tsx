@@ -38,14 +38,14 @@ function useSideBar() {
     if (!isMobile) {
       setDrawerSwipeable(false);
     }
-    setMobileDrawerOpen(false)
+    setMobileDrawerOpen(false);
   };
 
   useEffect(() => {
     if (isMobile) {
       setDrawerSwipeable(true);
     }
-  }, [isMobile])
+  }, [isMobile]);
 
   useEffect(() => {
     if (drawerSwipeable) {
@@ -67,4 +67,4 @@ function useSideBar() {
   };
 }
 
-export default useSideBar
+export default useSideBar;
