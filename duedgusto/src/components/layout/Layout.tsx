@@ -34,7 +34,6 @@ function Layout() {
           sx={{
             flexGrow: 1,
             transition: "margin 0.3s",
-            // padding: 2,
           }}
         >
           <Outlet />
