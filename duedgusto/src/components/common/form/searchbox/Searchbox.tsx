@@ -5,8 +5,7 @@ import { RowClickedEvent } from "ag-grid-community";
 import { SearchboxOptions } from "../../../../@types/searchbox";
 import useSearchboxQueryParams from "./useSearchboxQueryParams";
 import useFetchData from "../../../../graphql/common/useFetchData";
-import GridResults from "./GridResults";
-import { useTheme } from "@mui/material/styles";
+import ContainerGridResults from "./ContainerGridResults";
 
 export interface SearchboxProps<T> extends Omit<TextFieldProps<"standard">, "onChange"> {
   id?: string;
@@ -83,32 +82,14 @@ function Searchbox<T>({ id, name, value, orderBy, fieldName, options, ...props }
     };
   }, []);
 
-  // Aggiorna l'innerValue se il prop value cambia
   useEffect(() => {
     setInnerValue(value || "");
   }, [value]);
 
-  const theme = useTheme();
   return (
     <div style={{ position: "relative" }}>
       <TextField id={searchBoxId} size="small" margin="dense" value={innerValue} variant="outlined" fullWidth inputRef={inputRef} {...props} onChange={handleInputChange} />
-      {resultsVisible && (
-        <div
-          style={{
-            position: "absolute",
-            top: "100%",
-            left: 0,
-            right: 0,
-            maxHeight: 300,
-            overflowY: "auto",
-            zIndex: 10,
-            backgroundColor: theme.palette.grey[theme.palette.mode === "light" ? 100 : 900],
-            marginTop: -6,
-          }}
-        >
-          <GridResults<T> loading={loading} items={items} columnDefs={options.items} onRowClicked={onRowClicked} />
-        </div>
-      )}
+      {resultsVisible && <ContainerGridResults<T> searchBoxId={searchBoxId} loading={loading} items={items} columnDefs={options.items} onRowClicked={onRowClicked} />}
     </div>
   );
 }

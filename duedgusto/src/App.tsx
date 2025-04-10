@@ -1,8 +1,9 @@
+import { useEffect } from "react";
 import { Navigate, Route, Routes, useNavigate } from "react-router";
+
 import Root from "./routes/Root";
 import ProtectedRoutes from "./routes/ProtectedRoutes";
 import SignInPage from "./components/pages/SignInPage";
-import { useEffect } from "react";
 import { setNavigator } from "./common/navigator/navigator";
 import useBootstrap from "./components/authentication/useBootstrap";
 
