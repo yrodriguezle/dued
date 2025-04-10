@@ -27,7 +27,6 @@ function useResizeObserver(): UseResizeObserverResult {
     const resizeObserver = new ResizeObserver((entries) => {
       if (entries.length === 0) return;
       const { width, height } = entries[0].contentRect;
-      console.log("setDimensions", { width, height });
       setDimensions({ width, height });
     });
 

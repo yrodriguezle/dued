@@ -68,10 +68,10 @@ function Searchbox<T>({ id, name, value, orderBy, fieldName, options, ...props }
   };
 
   // Nascondi i risultati cliccando fuori dall'input
-  const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (inputRef.current && !inputRef.current.contains(event.target as Node)) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setResultsVisible(false);
       }
     };
@@ -87,8 +87,8 @@ function Searchbox<T>({ id, name, value, orderBy, fieldName, options, ...props }
   }, [value]);
 
   return (
-    <div style={{ position: "relative" }}>
-      <TextField id={searchBoxId} size="small" margin="dense" value={innerValue} variant="outlined" fullWidth inputRef={inputRef} {...props} onChange={handleInputChange} />
+    <div ref={containerRef} style={{ position: "relative" }}>
+      <TextField id={searchBoxId} size="small" margin="dense" value={innerValue} variant="outlined" fullWidth  {...props} onChange={handleInputChange} />
       {resultsVisible && <ContainerGridResults<T> searchBoxId={searchBoxId} loading={loading} items={items} columnDefs={options.items} onRowClicked={onRowClicked} />}
     </div>
   );
