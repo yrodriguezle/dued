@@ -1,9 +1,11 @@
+import { useCallback } from "react";
 import { Form, Formik } from "formik";
 import { z } from "zod";
 
 import UserForm from "./userUiMutation/UserForm";
 import FormikToolbar from "../../common/form/toolbar/FormikToolbar";
 import logger from "../../../common/logger/logger";
+import { UserSearchbox } from "../../common/form/searchbox/searchboxOptions/userSearchboxOptions";
 
 const Schema = z.object({
   userId: z.number(),
@@ -27,6 +29,14 @@ function UserDetails() {
     description: "",
     disabled: false,
   };
+
+  const handleSelectedItem = useCallback(
+    (item: UserSearchbox) => {
+      logger.log(item);
+    },
+    [],
+  );
+
   const validate = (values: FormikUserValues) => {
     const result = Schema.safeParse(values);
     if (result.success) {
@@ -34,15 +44,17 @@ function UserDetails() {
     }
     return Object.fromEntries(result.error.issues.map(({ path, message }) => [path[0], message]));
   };
+
   const onSubmit = (values: FormikUserValues) => {
     logger.log("onSubmit", values);
   };
+
   return (
     <Formik enableReinitialize initialValues={initialValues} sta validate={validate} onSubmit={onSubmit}>
       {() => (
         <Form noValidate>
           <FormikToolbar />
-          <UserForm />
+          <UserForm onSelectItem={handleSelectedItem} />
         </Form>
       )}
     </Formik>

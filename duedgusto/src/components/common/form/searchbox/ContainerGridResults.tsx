@@ -10,7 +10,13 @@ interface ContainerGridResultsProps<T> extends GridResultsProps<T> {
   searchBoxId: string;
 }
 
-function ContainerGridResults<T>({ searchBoxId, loading, items, columnDefs, onRowClicked }: ContainerGridResultsProps<T>) {
+function ContainerGridResults<T>({
+  searchBoxId,
+  loading,
+  items,
+  columnDefs,
+  onSelectedItem,
+}: ContainerGridResultsProps<T>) {
   const mounted = useRef(false);
   useEffect(() => {
     mounted.current = true;
@@ -50,10 +56,15 @@ function ContainerGridResults<T>({ searchBoxId, loading, items, columnDefs, onRo
         left: 0,
         right: 0,
         top: "100%",
-        // height: "20vh",
+        height: "30vh",
       }}
     >
-      <GridResults<T> loading={loading} items={items} columnDefs={columnDefs} onRowClicked={onRowClicked} />
+      <GridResults<T>
+        loading={loading}
+        items={items}
+        columnDefs={columnDefs}
+        onSelectedItem={onSelectedItem}
+      />
     </Paper>
   );
 }

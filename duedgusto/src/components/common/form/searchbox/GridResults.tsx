@@ -1,40 +1,58 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useCallback, useRef } from "react";
 import { AgGridReact } from "ag-grid-react";
-import type { RowClickedEvent, ColDef } from "ag-grid-community";
-
-import { ClientSideRowModelModule, ModuleRegistry } from "ag-grid-community";
-ModuleRegistry.registerModules([ClientSideRowModelModule]);
-
-import { themeQuartz, colorSchemeDark, colorSchemeLight } from "ag-grid-community";
-
+import type { ColDef, RowDoubleClickedEvent, CellKeyDownEvent } from "ag-grid-community";
 import { DatagridColDef } from "../../../../@types/searchbox";
-import useStore from "../../../../store/useStore";
-
+import AgGrid from "../../datagrid/AgGrid";
 export interface GridResultsProps<T> {
   loading: boolean;
   items: T[];
   columnDefs: DatagridColDef<T>[];
-  onRowClicked: (event: RowClickedEvent) => void;
+  onSelectedItem: (item: T, event: RowDoubleClickedEvent<T>|CellKeyDownEvent<T>) => void;  
 }
 
-const themeLight = themeQuartz.withPart(colorSchemeLight);
-const themeDark = themeQuartz.withPart(colorSchemeDark);
+function GridResults<T>({ 
+  loading, 
+  items, 
+  columnDefs,
+  onSelectedItem,
+}: GridResultsProps<T>) {
+  const gridRef = useRef<AgGridReact<T>>(null);
 
-function GridResults<T>({ loading, items, columnDefs, onRowClicked }: GridResultsProps<T>) {
-  const { userTheme } = useStore((store) => store);
+  const handleRowDoubleClicked = useCallback(
+    (params: RowDoubleClickedEvent<T>) => {
+      if (!params.data) {
+        return;
+      }
+      onSelectedItem(params.data, params);
+    },
+    [onSelectedItem],
+  );
 
-  if (loading) {
-    return <div style={{ padding: 16 }}>Caricamento...</div>;
-  }
+  const handleCellKeyDown = useCallback(
+    (params: CellKeyDownEvent<T> ) => {
+      if (!params.data || !params.event) {
+        return;
+      }
+      const keyboardEvent = params.event as KeyboardEvent;
+      if (keyboardEvent.key === "Enter" && params.data) {
+        onSelectedItem(params.data, params);
+      }
+    },
+    [onSelectedItem],
+  );
 
   return (
-    <AgGridReact
-      theme={userTheme.mode === "light" ? themeLight : themeDark}
+    <AgGrid
+      ref={gridRef}
       rowData={items}
-      columnDefs={columnDefs as unknown as ColDef<T, any>[]}
-      onRowClicked={onRowClicked}
+      columnDefs={columnDefs as unknown as ColDef<T>[]}
+      onRowDoubleClicked={handleRowDoubleClicked}
+      onCellKeyDown={handleCellKeyDown}
       rowSelection="single"
-      domLayout="autoHeight"
+      loading={loading}
+      defaultColDef={{
+        sortable: false,
+      }}
     />
   );
 }

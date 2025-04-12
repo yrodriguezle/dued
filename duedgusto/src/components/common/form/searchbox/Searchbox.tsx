@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import TextField, { TextFieldProps } from "@mui/material/TextField";
-import { RowClickedEvent } from "ag-grid-community";
 
 import { SearchboxOptions } from "../../../../@types/searchbox";
 import useSearchboxQueryParams from "./useSearchboxQueryParams";
@@ -15,9 +14,20 @@ export interface SearchboxProps<T> extends Omit<TextFieldProps<"standard">, "onC
   value: string;
   orderBy?: string;
   onChange?: (name: string, value: string) => void;
+  onSelectItem: (item: T) => void;
 }
 
-function Searchbox<T>({ id, name, value, orderBy, fieldName, options, ...props }: SearchboxProps<T>) {
+function Searchbox<T>({
+  id,
+  name,
+  value,
+  orderBy,
+  fieldName,
+  options,
+  onChange,
+  onSelectItem,
+  ...props
+}: SearchboxProps<T>) {
   const [innerValue, setInnerValue] = useState(value);
   const [resultsVisible, setResultsVisible] = useState(false);
   // const [selection, setSelection] = useState<T | null>(null);
@@ -48,26 +58,24 @@ function Searchbox<T>({ id, name, value, orderBy, fieldName, options, ...props }
     variables,
   });
 
-  // Gestione del click sulla riga
-  const onRowClicked = useCallback(
-    (event: RowClickedEvent) => {
-      const selectedData: T = event.data;
-      // Ad esempio, aggiorna l'input con il valore del campo di ricerca
-      setInnerValue(String(selectedData[lookupFieldName]));
-      // setSelection(selectedData);
+  const handleSelectedItem = useCallback(
+    (item: T) => {
+      if (onChange && item && item[lookupFieldName]) {
+        onChange(name, item[lookupFieldName] as string);
+      }
+      setInnerValue(String(item[lookupFieldName]));
+      onSelectItem(item);
       setResultsVisible(false);
     },
-    [lookupFieldName]
+    [],
   );
 
-  // Gestione del cambiamento dell'input
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = event.target.value;
     setInnerValue(newValue);
     setResultsVisible(newValue.trim().length > 0);
   };
 
-  // Nascondi i risultati cliccando fuori dall'input
   const containerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -88,8 +96,25 @@ function Searchbox<T>({ id, name, value, orderBy, fieldName, options, ...props }
 
   return (
     <div ref={containerRef} style={{ position: "relative" }}>
-      <TextField id={searchBoxId} size="small" margin="dense" value={innerValue} variant="outlined" fullWidth  {...props} onChange={handleInputChange} />
-      {resultsVisible && <ContainerGridResults<T> searchBoxId={searchBoxId} loading={loading} items={items} columnDefs={options.items} onRowClicked={onRowClicked} />}
+      <TextField
+        id={searchBoxId}
+        size="small"
+        margin="dense"
+        value={innerValue}
+        variant="outlined"
+        fullWidth
+        {...props}
+        onChange={handleInputChange}
+      />
+      {resultsVisible ? (
+        <ContainerGridResults<T> 
+          searchBoxId={searchBoxId}
+          loading={loading}
+          items={items}
+          columnDefs={options.items}
+          onSelectedItem={handleSelectedItem}
+        />
+      ) : null}
     </div>
   );
 }

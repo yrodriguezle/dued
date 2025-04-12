@@ -5,10 +5,17 @@ import userSearchboxOption, { UserSearchbox } from "../../../common/form/searchb
 import FormikSearchbox from "../../../common/form/searchbox/FormikSearchbox";
 import { FormikUserValues } from "../UserDetails";
 
-function UserForm() {
+interface UserFormProps {
+  onSelectItem: (item: UserSearchbox) => void;
+}
+
+function UserForm({
+  onSelectItem,
+}: UserFormProps) {
   const formik = useFormikContext<FormikUserValues>();
+
   return (
-    <Box sx={{ paddingX: 5 }}>
+    <Box sx={{ paddingX: 3 }}>
       <FormikSearchbox<FormikUserValues, UserSearchbox>
         label="Nome utente:"
         placeholder="Nome utente"
@@ -20,11 +27,23 @@ function UserForm() {
         fullWidth
         fieldName="userName"
         options={userSearchboxOption}
+        onSelectItem={onSelectItem}
       />
       <FormikTextField label="Nome:" placeholder="Nome" name="firstName" margin="normal" autoComplete="off" required fullWidth />
       <FormikTextField label="Cognome:" placeholder="Cognome" name="lastName" margin="normal" autoComplete="off" required fullWidth />
       <FormikTextField label="Descrizione:" placeholder="Descrizione" name="description" margin="normal" autoComplete="off" required fullWidth />
-      <FormControlLabel control={<Switch id="disabled" name="disabled" checked={formik.values.disabled} onChange={formik.handleChange} color="primary" />} label="Disabilitato" />
+      <FormControlLabel
+        control={
+          <Switch
+            id="disabled"
+            name="disabled"
+            checked={formik.values.disabled}
+            onChange={formik.handleChange}
+            color="primary"
+          />
+        }
+        label="Disabilitato"
+      />
     </Box>
   );
 }
