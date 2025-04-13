@@ -5,7 +5,7 @@ const defaultServices = {
   getAuthToken,
 };
 
-async function refreshToken(services = defaultServices) {
+async function refreshToken(services = defaultServices): Promise<boolean> {
   const authToken = services.getAuthToken();
   const response = await services.fetch(`${(window as Global).API_ENDPOINT}/api/auth/refresh`, {
     method: "POST",
@@ -18,12 +18,18 @@ async function refreshToken(services = defaultServices) {
       "Content-Type": "application/json;charset=UTF-8",
     },
   });
+
   if (response.ok) {
     const responseData: AuthToken = await response.json();
     setAuthToken(responseData);
     return true;
   }
-  return false;
+
+  if (response.status === 401) {
+    return false;
+  }
+
+  throw new Error(`Error refreshing token: ${response.status}`);
 }
 
 export default refreshToken;

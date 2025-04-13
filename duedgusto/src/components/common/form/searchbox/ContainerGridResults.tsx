@@ -16,6 +16,7 @@ function ContainerGridResults<T>({
   items,
   columnDefs,
   onSelectedItem,
+  onGridReady,
 }: ContainerGridResultsProps<T>) {
   const mounted = useRef(false);
   useEffect(() => {
@@ -64,6 +65,7 @@ function ContainerGridResults<T>({
         items={items}
         columnDefs={columnDefs}
         onSelectedItem={onSelectedItem}
+        onGridReady={onGridReady}
       />
     </Paper>
   );

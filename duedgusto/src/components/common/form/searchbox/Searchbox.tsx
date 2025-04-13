@@ -5,6 +5,7 @@ import { SearchboxOptions } from "../../../../@types/searchbox";
 import useSearchboxQueryParams from "./useSearchboxQueryParams";
 import useFetchData from "../../../../graphql/common/useFetchData";
 import ContainerGridResults from "./ContainerGridResults";
+import { GridReadyEvent } from "ag-grid-community";
 
 export interface SearchboxProps<T> extends Omit<TextFieldProps<"standard">, "onChange"> {
   id?: string;
@@ -32,6 +33,9 @@ function Searchbox<T>({
   const [resultsVisible, setResultsVisible] = useState(false);
   // const [selection, setSelection] = useState<T | null>(null);
 
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const resultListRef = useRef<GridReadyEvent<T>>(null);
+
   const lookupFieldName = useMemo<Extract<keyof T, string>>(() => {
     return fieldName || (name as Extract<keyof T, string>);
   }, [fieldName, name]);
@@ -58,6 +62,13 @@ function Searchbox<T>({
     variables,
   });
 
+  const handleResultGridReady = useCallback(
+    (event: GridReadyEvent<T>) => {
+      resultListRef.current = event;
+    },
+    [resultListRef],
+  );
+
   const handleSelectedItem = useCallback(
     (item: T) => {
       if (onChange && item && item[lookupFieldName]) {
@@ -67,7 +78,7 @@ function Searchbox<T>({
       onSelectItem(item);
       setResultsVisible(false);
     },
-    [],
+    [lookupFieldName, name, onChange, onSelectItem],
   );
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,6 +86,41 @@ function Searchbox<T>({
     setInnerValue(newValue);
     setResultsVisible(newValue.trim().length > 0);
   };
+
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (resultsVisible && event.key === "ArrowDown" && resultListRef.current?.api.isDestroyed() === false) {
+        event.preventDefault();
+        resultListRef.current.api.deselectAll();
+        const node = resultListRef.current.api.getDisplayedRowAtIndex(0);
+        node?.setSelected(true);
+      }
+      if (event.key === 'Escape' || event.key === 'Tab') {
+        setResultsVisible((prevResultVisible) => {
+          if (prevResultVisible && event.key === 'Escape') {
+            event.stopPropagation();
+          }
+          return false;
+        });
+      }
+      if (event.key === 'Enter') {
+        if (innerValue && items?.length) {
+          const item = items.find((item) => String(item[lookupFieldName]) === innerValue);
+          if (!item) {
+            return;
+          }
+          handleSelectedItem(item)
+        }
+        if (inputRef.current) {
+          inputRef.current.focus();
+        }
+      }
+      if (props.onKeyDown) {
+        props.onKeyDown(event);
+      }
+    },
+    [handleSelectedItem, innerValue, items, lookupFieldName, props, resultsVisible],
+  );
 
   const containerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -97,6 +143,7 @@ function Searchbox<T>({
   return (
     <div ref={containerRef} style={{ position: "relative" }}>
       <TextField
+        inputRef={inputRef}
         id={searchBoxId}
         size="small"
         margin="dense"
@@ -105,13 +152,15 @@ function Searchbox<T>({
         fullWidth
         {...props}
         onChange={handleInputChange}
+        onKeyDown={handleKeyDown}
       />
       {resultsVisible ? (
-        <ContainerGridResults<T> 
+        <ContainerGridResults<T>
           searchBoxId={searchBoxId}
           loading={loading}
           items={items}
           columnDefs={options.items}
+          onGridReady={handleResultGridReady}
           onSelectedItem={handleSelectedItem}
         />
       ) : null}
