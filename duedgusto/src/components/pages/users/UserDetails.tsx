@@ -6,6 +6,7 @@ import UserForm from "./userUiMutation/UserForm";
 import FormikToolbar from "../../common/form/toolbar/FormikToolbar";
 import logger from "../../../common/logger/logger";
 import { UserSearchbox } from "../../common/form/searchbox/searchboxOptions/userSearchboxOptions";
+import { formStatuses } from "../../../common/globals/constants";
 
 const Schema = z.object({
   userId: z.number(),
@@ -47,7 +48,13 @@ function UserDetails() {
   };
 
   return (
-    <Formik enableReinitialize initialValues={initialValues} sta validate={validate} onSubmit={onSubmit}>
+    <Formik
+      enableReinitialize
+      initialValues={initialValues}
+      initialStatus={{ formStatus: formStatuses.INSERT, isFormLocked: false }}
+      validate={validate}
+      onSubmit={onSubmit}
+    >
       {() => (
         <Form noValidate>
           <FormikToolbar />
