@@ -1,5 +1,5 @@
-import { useCallback } from "react";
-import { Form, Formik } from "formik";
+import { useCallback, useRef } from "react";
+import { Form, Formik, FormikProps } from "formik";
 import { z } from "zod";
 
 import UserForm from "./userUiMutation/UserForm";
@@ -7,6 +7,9 @@ import FormikToolbar from "../../common/form/toolbar/FormikToolbar";
 import logger from "../../../common/logger/logger";
 import { UserSearchbox } from "../../common/form/searchbox/searchboxOptions/userSearchboxOptions";
 import { formStatuses } from "../../../common/globals/constants";
+import useConfirm from "../../common/confirm/useConfirm";
+import useInitializeValues from "./useInitializeValues";
+import setInitialFocus from "./setInitialFocus";
 
 const Schema = z.object({
   userId: z.number(),
@@ -21,27 +24,39 @@ const Schema = z.object({
 export type FormikUserValues = z.infer<typeof Schema>;
 
 function UserDetails() {
-  const initialValues: FormikUserValues = {
-    userId: 0,
-    roleId: 0,
-    userName: "",
-    firstName: "",
-    lastName: "",
-    description: "",
-    disabled: false,
-  };
+  const formRef = useRef<FormikProps<FormikUserValues>>(null);
+  const { initialValues, handleInitializeValues } = useInitializeValues({ skipInitialize: false });
+
+  const onConfirm = useConfirm();
+
+  const handleResetForm = useCallback(
+    async (hasChanges: boolean) => {
+      const confirmed = !hasChanges || await onConfirm({
+        title: "Gestione utenti",
+        content: "Sei sicuro di voler annullare le modifiche?",
+        acceptLabel: "Si",
+        cancelLabel: "No",
+      });
+      if (!confirmed) {
+        return;
+      }
+      await handleInitializeValues();
+      formRef.current?.resetForm();
+      setInitialFocus();
+    },
+    [handleInitializeValues, onConfirm],
+  );
 
   const handleSelectedItem = useCallback((item: UserSearchbox) => {
-    logger.log(item);
-  }, []);
-
-  const validate = (values: FormikUserValues) => {
-    const result = Schema.safeParse(values);
-    if (result.success) {
-      return;
-    }
-    return Object.fromEntries(result.error.issues.map(({ path, message }) => [path[0], message]));
-  };
+    handleInitializeValues(item).then(() => {
+      setTimeout(() => {
+        formRef.current?.setStatus({
+          formStatus: formStatuses.UPDATE,
+          isFormLocked: true,
+        });
+      }, 0);
+    });
+  }, [handleInitializeValues]);
 
   const onSubmit = (values: FormikUserValues) => {
     logger.log("onSubmit", values);
@@ -49,15 +64,24 @@ function UserDetails() {
 
   return (
     <Formik
+      innerRef={formRef}
       enableReinitialize
       initialValues={initialValues}
       initialStatus={{ formStatus: formStatuses.INSERT, isFormLocked: false }}
-      validate={validate}
+      validate={(values: FormikUserValues) => {
+        const result = Schema.safeParse(values);
+        if (result.success) {
+          return;
+        }
+        return Object.fromEntries(result.error.issues.map(({ path, message }) => [path[0], message]));
+      }}
       onSubmit={onSubmit}
     >
       {() => (
         <Form noValidate>
-          <FormikToolbar />
+          <FormikToolbar
+            onFormReset={handleResetForm}
+          />
           <UserForm onSelectItem={handleSelectedItem} />
         </Form>
       )}

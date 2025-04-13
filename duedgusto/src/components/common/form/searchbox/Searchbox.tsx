@@ -132,7 +132,7 @@ function Searchbox<T>({ id, name, value, orderBy, fieldName, options, onChange, 
 
   return (
     <div ref={containerRef} style={{ position: "relative" }}>
-      <TextField inputRef={inputRef} id={searchBoxId} size="small" margin="dense" value={innerValue} variant="outlined" fullWidth {...props} onChange={handleInputChange} onKeyDown={handleKeyDown} />
+      <TextField inputRef={inputRef} id={searchBoxId} size="small" margin="dense" value={innerValue} name={name} variant="outlined" fullWidth {...props} onChange={handleInputChange} onKeyDown={handleKeyDown} />
       {resultsVisible ? (
         <ContainerGridResults<T> searchBoxId={searchBoxId} loading={loading} items={items} columnDefs={options.items} onGridReady={handleResultGridReady} onSelectedItem={handleSelectedItem} />
       ) : null}

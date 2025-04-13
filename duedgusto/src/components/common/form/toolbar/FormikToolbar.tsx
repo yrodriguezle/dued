@@ -9,6 +9,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from "@mui/icons-material/Save";
 import DeleteIcon from "@mui/icons-material/Delete";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import AddIcon from '@mui/icons-material/Add';
 import FormikToolbarButton from "./FormikToolbarButton";
 import { useFormikContext } from "formik";
 import { formStatuses } from "../../../../common/globals/constants";
@@ -23,6 +24,7 @@ interface FormikToolbarProps {
   disabledSave?: boolean;
   disabledDelete?: boolean;
   disabledUnlockButton?: boolean;
+  onFormReset: (hasChanges: boolean) => Promise<void>;
 }
 
 export default function FormikToolbar({
@@ -30,6 +32,7 @@ export default function FormikToolbar({
   disabledSave,
   disabledDelete,
   disabledUnlockButton,
+  onFormReset,
 }: FormikToolbarProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -40,8 +43,8 @@ export default function FormikToolbar({
   } = formikProps;
 
   const disableUnlock = useMemo(() => updateDenied || status.formStatus === formStatuses.INSERT || disabledUnlockButton, [disabledUnlockButton, status.formStatus, updateDenied])
-  const disableSave = useMemo(() => status.isFormLocked || isSubmitting || insertDenied || updateDenied
-    || (disabledSave !== undefined ? disabledSave : !dirty), [dirty, disabledSave, insertDenied, isSubmitting, status.isFormLocked, updateDenied]);
+  const disableSave = useMemo(() => Boolean(status.isFormLocked || isSubmitting || insertDenied || updateDenied
+    || (disabledSave !== undefined ? disabledSave : !dirty)), [dirty, disabledSave, insertDenied, isSubmitting, status.isFormLocked, updateDenied]);
   const disableDelete = useMemo(() => deleteDenied || insertDenied || updateDenied || disabledDelete || status.formStatus === formStatuses.INSERT, [deleteDenied, disabledDelete, insertDenied, status.formStatus, updateDenied]);
 
   return (
@@ -68,6 +71,12 @@ export default function FormikToolbar({
             disabled={disableSave}
           >
             Salva
+          </FormikToolbarButton>
+          <FormikToolbarButton
+            startIcon={<AddIcon />}
+            onClick={() => onFormReset(!disableSave)}
+          >
+            Nuovo
           </FormikToolbarButton>
           <FormikToolbarButton
             startIcon={<DeleteIcon />}
