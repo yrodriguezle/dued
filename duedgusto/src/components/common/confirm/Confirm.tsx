@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
@@ -9,10 +9,10 @@ import useStore from "../../../store/useStore";
 import { ONLINE } from "../../../store/serverStatusStore";
 
 function Confirm() {
-  // const acceptButtonRef = useRef<HTMLAnchorElement>(null);
-  // const cancelButtonRef = useRef<HTMLAnchorElement>(null);
   const { confirmDialog, setConfirmValues, receiveServerStatus } = useStore((store) => store);
   const { open, title, content, cancelLabel, acceptLabel } = confirmDialog;
+
+  const acceptButtonRef = useRef<HTMLButtonElement>(null); // ref per il bottone
 
   const onDismiss = useCallback(() => {
     setConfirmValues({
@@ -26,29 +26,26 @@ function Confirm() {
 
   const handleAccept = useCallback(async () => {
     if (confirmDialog.onAccept) {
-      await confirmDialog.onAccept();
+      confirmDialog.onAccept(true);
     }
     onDismiss();
   }, [confirmDialog, onDismiss]);
 
   const handleCancel = useCallback(async () => {
     if (confirmDialog.onCancel) {
-      await confirmDialog.onCancel();
+      confirmDialog.onCancel(true);
     }
     onDismiss();
   }, [confirmDialog, onDismiss]);
 
-  // useEffect(() => {
-  //   if (open) {
-  //     setTimeout(() => {
-  //       if (cancelButtonRef.current) {
-  //         cancelButtonRef.current.focus();
-  //       } else if (acceptButtonRef.current) {
-  //         acceptButtonRef.current.focus();
-  //       }
-  //     }, 100);
-  //   }
-  // }, [hiddenConfirm]);
+  useEffect(() => {
+    if (open && acceptButtonRef.current) {
+      // Piccolo timeout per aspettare che il dialog sia renderizzato
+      setTimeout(() => {
+        acceptButtonRef.current?.focus();
+      }, 0);
+    }
+  }, [open]);
 
   return (
     <Dialog open={open} onClose={handleCancel}>
@@ -56,7 +53,11 @@ function Confirm() {
       <DialogContent>{content}</DialogContent>
       <DialogActions>
         {cancelLabel ? <Button onClick={handleCancel}>Disagree</Button> : null}
-        <Button onClick={handleAccept} color="primary">
+        <Button
+          onClick={handleAccept}
+          color="primary"
+          ref={acceptButtonRef}
+        >
           {acceptLabel}
         </Button>
       </DialogActions>

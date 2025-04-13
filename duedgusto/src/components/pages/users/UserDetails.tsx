@@ -10,6 +10,7 @@ import { formStatuses } from "../../../common/globals/constants";
 import useConfirm from "../../common/confirm/useConfirm";
 import useInitializeValues from "./useInitializeValues";
 import setInitialFocus from "./setInitialFocus";
+import sleep from "../../../common/bones/sleep";
 
 const Schema = z.object({
   userId: z.number(),
@@ -40,9 +41,13 @@ function UserDetails() {
       if (!confirmed) {
         return;
       }
-      await handleInitializeValues();
-      formRef.current?.resetForm();
-      setInitialFocus();
+      if (formRef.current?.status.formStatus === formStatuses.UPDATE) {
+        await handleInitializeValues();
+      } else {
+        formRef.current?.resetForm();
+        await sleep(200);
+        setInitialFocus();
+      }
     },
     [handleInitializeValues, onConfirm],
   );

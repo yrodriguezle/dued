@@ -74,6 +74,9 @@ function Searchbox<T>({ id, name, value, orderBy, fieldName, options, onChange, 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = event.target.value;
     setInnerValue(newValue);
+    if (onChange) {
+      onChange(name, newValue);
+    }
     setResultsVisible(newValue.trim().length > 0);
   };
 
