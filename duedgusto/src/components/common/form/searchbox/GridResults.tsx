@@ -10,13 +10,7 @@ export interface GridResultsProps<T> {
   onGridReady: (event: GridReadyEvent<T>) => void;
 }
 
-function GridResults<T>({
-  loading,
-  items,
-  columnDefs,
-  onSelectedItem,
-  onGridReady,
-}: GridResultsProps<T>) {
+function GridResults<T>({ loading, items, columnDefs, onSelectedItem, onGridReady }: GridResultsProps<T>) {
   const gridRef = useRef<GridReadyEvent<T>>(null);
 
   const handleGridReady = useCallback(
@@ -24,7 +18,7 @@ function GridResults<T>({
       gridRef.current = event;
       onGridReady(event);
     },
-    [onGridReady],
+    [onGridReady]
   );
 
   const handleRowSelected = useCallback((params: RowSelectedEvent<T>) => {
@@ -47,7 +41,7 @@ function GridResults<T>({
       }
       onSelectedItem(params.data, params);
     },
-    [onSelectedItem],
+    [onSelectedItem]
   );
 
   const handleCellKeyDown = useCallback(
@@ -60,7 +54,7 @@ function GridResults<T>({
         onSelectedItem(params.data, params);
       }
     },
-    [onSelectedItem],
+    [onSelectedItem]
   );
 
   const rowSelection = useMemo<RowSelectionOptions | "single" | "multiple">(() => {

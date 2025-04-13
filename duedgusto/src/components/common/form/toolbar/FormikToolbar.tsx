@@ -1,11 +1,20 @@
-import { Box, Toolbar, IconButton, Button, useMediaQuery, useTheme } from "@mui/material";
+import {
+  Box,
+  Toolbar,
+  IconButton,
+  useMediaQuery,
+  useTheme,
+} from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
 import DeleteIcon from "@mui/icons-material/Delete";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import FormikToolbarButton from "./FormikToolbarButton";
+import { useFormikContext } from "formik";
 
-export default function FormikToolbar() {
+export default function FormikToolbar<FormikValues>() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const formik = useFormikContext<FormikValues>();
 
   return (
     <Box sx={{ borderBottom: 1, borderColor: "divider", bgcolor: "background.paper" }}>
@@ -20,62 +29,12 @@ export default function FormikToolbar() {
         }}
       >
         <Box sx={{ height: 48, display: "flex", alignItems: "stretch" }}>
-          <Button
-            startIcon={<SaveIcon />}
-            sx={{
-              height: "100%",
-              minHeight: "100%",
-              borderRadius: 0,
-              padding: "0 16px",
-              display: "flex",
-              alignItems: "center",
-              textTransform: "none",
-              transition: theme.transitions.create(["background-color"], {
-                duration: theme.transitions.duration.short,
-              }),
-              "&:hover": {
-                backgroundColor: theme.palette.action.hover,
-                height: "100%",
-              },
-              "&:active": {
-                backgroundColor: theme.palette.action.selected,
-                height: "100%",
-              },
-              "&.Mui-disabled": {
-                color: theme.palette.text.disabled,
-                height: "100%",
-              },
-            }}
-          >
+          <FormikToolbarButton startIcon={<SaveIcon />}>
             Salva
-          </Button>
-          <Button
-            startIcon={<DeleteIcon />}
-            color="error"
-            sx={{
-              height: "100%",
-              minHeight: "100%",
-              borderRadius: 0,
-              padding: "0 16px",
-              display: "flex",
-              alignItems: "center",
-              textTransform: "none",
-              transition: theme.transitions.create(["background-color"], {
-                duration: theme.transitions.duration.short,
-              }),
-              "&:hover": {
-                backgroundColor: theme.palette.action.hover,
-              },
-              "&:active": {
-                backgroundColor: theme.palette.action.selected,
-              },
-              "&.Mui-disabled": {
-                color: theme.palette.text.disabled,
-              },
-            }}
-          >
+          </FormikToolbarButton>
+          <FormikToolbarButton startIcon={<DeleteIcon />} color="error">
             Elimina
-          </Button>
+          </FormikToolbarButton>
         </Box>
         {isMobile ? (
           <IconButton
@@ -89,7 +48,9 @@ export default function FormikToolbar() {
             <MoreVertIcon />
           </IconButton>
         ) : (
-          <Box sx={{ display: "flex", alignItems: "stretch", gap: 1 }}>{/* Altri bottoni, se necessario */}</Box>
+          <Box sx={{ display: "flex", alignItems: "stretch", gap: 1 }}>
+            {/* Altri bottoni */}
+          </Box>
         )}
       </Toolbar>
     </Box>

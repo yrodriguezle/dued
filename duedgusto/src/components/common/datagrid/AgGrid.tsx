@@ -6,29 +6,15 @@ import { themeQuartz, colorSchemeDark, colorSchemeLight } from "ag-grid-communit
 import { AG_GRID_LOCALE_IT } from "./i18n/it-IT";
 import useStore from "../../../store/useStore";
 
-ModuleRegistry.registerModules([
-  AllCommunityModule,
-]);
+ModuleRegistry.registerModules([AllCommunityModule]);
 const themeLight = themeQuartz.withPart(colorSchemeLight);
 const themeDark = themeQuartz.withPart(colorSchemeDark);
 
-function AgGridInner<TData>(
-  agGridProps: AgGridReactProps<TData>,
-  ref: ForwardedRef<AgGridReact<TData>>
-) {
+function AgGridInner<TData>(agGridProps: AgGridReactProps<TData>, ref: ForwardedRef<AgGridReact<TData>>) {
   const { userTheme } = useStore((store) => store);
-  return (
-    <AgGridReact<TData>
-      localeText={AG_GRID_LOCALE_IT}
-      theme={userTheme.mode === "light" ? themeLight : themeDark}
-      ref={ref}
-      {...agGridProps}
-    />
-  );
+  return <AgGridReact<TData> localeText={AG_GRID_LOCALE_IT} theme={userTheme.mode === "light" ? themeLight : themeDark} ref={ref} {...agGridProps} />;
 }
 
-const AgGrid = forwardRef(AgGridInner) as <TData>(
-  props: AgGridReactProps<TData> & { ref?: ForwardedRef<AgGridReact<TData>> }
-) => JSX.Element;
+const AgGrid = forwardRef(AgGridInner) as <TData>(props: AgGridReactProps<TData> & { ref?: ForwardedRef<AgGridReact<TData>> }) => JSX.Element;
 
 export default AgGrid;

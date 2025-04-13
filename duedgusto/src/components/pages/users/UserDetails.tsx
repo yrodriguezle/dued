@@ -30,12 +30,9 @@ function UserDetails() {
     disabled: false,
   };
 
-  const handleSelectedItem = useCallback(
-    (item: UserSearchbox) => {
-      logger.log(item);
-    },
-    [],
-  );
+  const handleSelectedItem = useCallback((item: UserSearchbox) => {
+    logger.log(item);
+  }, []);
 
   const validate = (values: FormikUserValues) => {
     const result = Schema.safeParse(values);

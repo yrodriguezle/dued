@@ -29,12 +29,7 @@
       "label": "watch",
       "command": "dotnet",
       "type": "process",
-      "args": [
-        "watch",
-        "run",
-        "--project",
-        "${workspaceFolder}/duedgusto.sln"
-      ],
+      "args": ["watch", "run", "--project", "${workspaceFolder}/duedgusto.sln"],
       "problemMatcher": "$msCompile"
     }
   ]
