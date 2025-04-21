@@ -1,10 +1,10 @@
 import { Switch, FormControlLabel, Box } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import { useFormikContext } from "formik";
-import FormikTextField from "../../../common/form/FormikTextField";
-import userSearchboxOption, { UserSearchbox } from "../../../common/form/searchbox/searchboxOptions/userSearchboxOptions";
-import FormikSearchbox from "../../../common/form/searchbox/FormikSearchbox";
-import { FormikUserValues } from "../UserDetails";
+import FormikTextField from "../../common/form/FormikTextField";
+import userSearchboxOption, { UserSearchbox } from "../../common/form/searchbox/searchboxOptions/userSearchboxOptions";
+import FormikSearchbox from "../../common/form/searchbox/FormikSearchbox";
+import { FormikUserValues } from "./UserDetails";
 
 interface UserFormProps {
   onSelectItem: (item: UserSearchbox) => void;
@@ -33,7 +33,18 @@ function UserForm({ onSelectItem }: UserFormProps) {
           <FormikTextField label="Nome:" placeholder="Nome" name="firstName" margin="normal" autoComplete="off" required fullWidth />
           <FormikTextField label="Cognome:" placeholder="Cognome" name="lastName" margin="normal" autoComplete="off" required fullWidth />
           <FormikTextField label="Descrizione:" placeholder="Descrizione" name="description" margin="normal" autoComplete="off" required fullWidth />
-          <FormControlLabel control={<Switch id="disabled" name="disabled" checked={formik.values.disabled} onChange={formik.handleChange} color="primary" />} label="Disabilitato" />
+          <FormControlLabel
+            control={(
+              <Switch
+                id="disabled"
+                name="disabled"
+                checked={formik.values.disabled}
+                onChange={formik.handleChange}
+                color="primary"
+              />
+            )}
+            label="Disabilitato"
+          />
         </Box>
       </Grid>
     </Grid>

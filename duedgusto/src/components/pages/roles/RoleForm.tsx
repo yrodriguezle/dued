@@ -1,0 +1,37 @@
+import { Box, Grid } from "@mui/material";
+import roleSearchboxOptions, { RoleSearchbox } from "../../common/form/searchbox/searchboxOptions/roleSearchboxOptions";
+import FormikSearchbox from "../../common/form/searchbox/FormikSearchbox";
+import { FormikRoleValues } from "./RoleDetails";
+import FormikTextField from "../../common/form/FormikTextField";
+
+interface RoleFormProps {
+  onSelectItem: (item: RoleSearchbox) => void;
+}
+
+function RoleForm(props: RoleFormProps) {
+  const { onSelectItem } = props;
+  return (
+    <Grid container spacing={2} sx={{ marginTop: 1, paddingX: 3 }}>
+      <Grid xs={12} sm={8}>
+        <Box>
+          <FormikSearchbox<FormikRoleValues, RoleSearchbox>
+            label="Nome ruolo:"
+            placeholder="Nome ruolo"
+            name="roleName"
+            margin="normal"
+            autoComplete="off"
+            autoFocus
+            required
+            fullWidth
+            fieldName="roleName"
+            options={roleSearchboxOptions}
+            onSelectItem={onSelectItem}
+          />
+          <FormikTextField label="Descrizione:" placeholder="Descrizione" name="roleDescription" margin="normal" autoComplete="off" required fullWidth />
+        </Box>
+      </Grid>
+    </Grid>
+  )
+}
+
+export default RoleForm

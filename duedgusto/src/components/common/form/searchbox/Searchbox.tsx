@@ -1,11 +1,16 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { FocusEventHandler, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import TextField, { TextFieldProps } from "@mui/material/TextField";
+import InputAdornment from "@mui/material/InputAdornment";
+import IconButton from "@mui/material/IconButton";
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import CircularProgress from '@mui/material/CircularProgress';
+import { GridReadyEvent } from "ag-grid-community";
 
 import { SearchboxOptions } from "../../../../@types/searchbox";
 import useSearchboxQueryParams from "./useSearchboxQueryParams";
 import useFetchData from "../../../../graphql/common/useFetchData";
 import ContainerGridResults from "./ContainerGridResults";
-import { GridReadyEvent } from "ag-grid-community";
+import logger from "../../../../common/logger/logger";
 
 export interface SearchboxProps<T> extends Omit<TextFieldProps<"standard">, "onChange"> {
   id?: string;
@@ -21,7 +26,7 @@ export interface SearchboxProps<T> extends Omit<TextFieldProps<"standard">, "onC
 function Searchbox<T>({ id, name, value, orderBy, fieldName, options, onChange, onSelectItem, ...props }: SearchboxProps<T>) {
   const [innerValue, setInnerValue] = useState(value);
   const [resultsVisible, setResultsVisible] = useState(false);
-  // const [selection, setSelection] = useState<T | null>(null);
+  const [focused, setFocus] = useState<boolean>(!!props.autoFocus);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const resultListRef = useRef<GridReadyEvent<T>>(null);
@@ -40,12 +45,7 @@ function Searchbox<T>({ id, name, value, orderBy, fieldName, options, onChange, 
   });
 
   const {
-    // hasMore,
-    // totalCount,
     items,
-    // cursor,
-    // fetchItems,
-    // subscribeToMore,
     loading,
   } = useFetchData({
     query,
@@ -89,8 +89,8 @@ function Searchbox<T>({ id, name, value, orderBy, fieldName, options, onChange, 
         node?.setSelected(true);
       }
       if (event.key === "Escape" || event.key === "Tab") {
-        setResultsVisible((prevResultVisible) => {
-          if (prevResultVisible && event.key === "Escape") {
+        setResultsVisible((prev) => {
+          if (prev && event.key === "Escape") {
             event.stopPropagation();
           }
           return false;
@@ -98,19 +98,13 @@ function Searchbox<T>({ id, name, value, orderBy, fieldName, options, onChange, 
       }
       if (event.key === "Enter") {
         if (innerValue && items?.length) {
-          const item = items.find((item) => String(item[lookupFieldName]) === innerValue);
-          if (!item) {
-            return;
-          }
+          const item = items.find((i) => String(i[lookupFieldName]) === innerValue);
+          if (!item) return;
           handleSelectedItem(item);
         }
-        if (inputRef.current) {
-          inputRef.current.focus();
-        }
+        inputRef.current?.focus();
       }
-      if (props.onKeyDown) {
-        props.onKeyDown(event);
-      }
+      props.onKeyDown?.(event);
     },
     [handleSelectedItem, innerValue, items, lookupFieldName, props, resultsVisible]
   );
@@ -122,23 +116,79 @@ function Searchbox<T>({ id, name, value, orderBy, fieldName, options, onChange, 
         setResultsVisible(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   useEffect(() => {
     setInnerValue(value || "");
   }, [value]);
 
+  const handleOpenModal = useCallback(() => {
+    logger.log('handleOpenModal');
+  }, []);
+
+  const handleFocus: FocusEventHandler<HTMLInputElement> = useCallback(
+    (event) => {
+      setFocus(true);
+      props.onFocus?.(event);
+    },
+    [props]
+  );
+
+  const handleBlur: FocusEventHandler<HTMLInputElement> = useCallback(
+    (event) => {
+      setFocus(false);
+      props.onBlur?.(event);
+    },
+    [props]
+  );
+
   return (
     <div ref={containerRef} style={{ position: "relative" }}>
-      <TextField inputRef={inputRef} id={searchBoxId} size="small" margin="dense" value={innerValue} name={name} variant="outlined" fullWidth {...props} onChange={handleInputChange} onKeyDown={handleKeyDown} />
-      {resultsVisible ? (
-        <ContainerGridResults<T> searchBoxId={searchBoxId} loading={loading} items={items} columnDefs={options.items} onGridReady={handleResultGridReady} onSelectedItem={handleSelectedItem} />
-      ) : null}
+      <TextField
+        inputRef={inputRef}
+        id={searchBoxId}
+        size="small"
+        margin="dense"
+        value={innerValue}
+        name={name}
+        variant="outlined"
+        fullWidth
+        {...props}
+        onChange={handleInputChange}
+        onKeyDown={handleKeyDown}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        slotProps={{
+          input: {
+            endAdornment: (
+              <InputAdornment position="end">
+                {loading ? (
+                  <CircularProgress size={20} />
+                ) : (
+                  <IconButton edge="end" disabled={props.disabled} onClick={handleOpenModal} onMouseDown={(e) => e.preventDefault()}>
+                    <ExpandMoreIcon />
+                  </IconButton>
+                )}
+              </InputAdornment>
+            ),
+          },
+          inputLabel: {
+            shrink: !!innerValue || focused,
+          },
+        }}
+      />
+      {resultsVisible && (
+        <ContainerGridResults<T>
+          searchBoxId={searchBoxId}
+          loading={loading}
+          items={items}
+          columnDefs={options.items}
+          onGridReady={handleResultGridReady}
+          onSelectedItem={handleSelectedItem}
+        />
+      )}
     </div>
   );
 }

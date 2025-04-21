@@ -13,7 +13,7 @@ import AddIcon from '@mui/icons-material/Add';
 import FormikToolbarButton from "./FormikToolbarButton";
 import { useFormikContext } from "formik";
 import { formStatuses } from "../../../../common/globals/constants";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 
 interface FormikToolbarProps {
   permissions?: {
@@ -47,6 +47,17 @@ export default function FormikToolbar({
     || (disabledSave !== undefined ? disabledSave : !dirty)), [dirty, disabledSave, insertDenied, isSubmitting, status.isFormLocked, updateDenied]);
   const disableDelete = useMemo(() => deleteDenied || insertDenied || updateDenied || disabledDelete || status.formStatus === formStatuses.INSERT, [deleteDenied, disabledDelete, insertDenied, status.formStatus, updateDenied]);
 
+  const formLocked = useMemo(() => Boolean(formikProps.status?.isFormLocked), [formikProps.status?.isFormLocked]);
+  const handleUnlockForm = useCallback(
+    () => {
+      formikProps.setStatus({
+        formStatus: formStatuses.UPDATE,
+        isFormLocked: !formLocked,
+      });
+    },
+    [formLocked, formikProps],
+  );
+
   return (
     <Box sx={{ borderBottom: 1, borderColor: "divider", bgcolor: "background.paper" }}>
       <Toolbar
@@ -63,12 +74,14 @@ export default function FormikToolbar({
           <FormikToolbarButton
             startIcon={<EditIcon />}
             disabled={disableUnlock}
+            onClick={handleUnlockForm}
           >
             {status.isFormLocked || status.formStatus === formStatuses.INSERT ? 'Modifica' : 'Annulla'}
           </FormikToolbarButton>
           <FormikToolbarButton
             startIcon={<SaveIcon />}
             disabled={disableSave}
+            onClick={formikProps.submitForm}
           >
             Salva
           </FormikToolbarButton>

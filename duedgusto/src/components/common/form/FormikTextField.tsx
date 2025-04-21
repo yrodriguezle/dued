@@ -45,19 +45,21 @@ interface FormikTextFieldProps<Values> extends Omit<TextFieldProps, "onChange" |
 function FormikTextField<Values>({ name, onChange, onBlur, params, ...props }: FormikTextFieldProps<Values>, ref: Ref<TextFieldRef>) {
   return (
     <FastField name={name} params={params}>
-      {({ field, form, meta }: FastFieldProps) => (
-        <TextField
-          name={field.name}
-          value={field.value}
-          onChange={(...innerProps) => handleChange(...innerProps, field, form, onChange)}
-          onBlur={(event) => handleBlur(event, field, form, onBlur)}
-          disabled={form.isSubmitting || form.status?.isFormLocked}
-          error={Boolean(meta.touched && meta.error)}
-          helperText={meta.touched && meta.error}
-          {...props}
-          ref={ref}
-        />
-      )}
+      {({ field, form, meta }: FastFieldProps) => {
+        return (
+          <TextField
+            name={field.name}
+            value={field.value}
+            onChange={(...innerProps) => handleChange(...innerProps, field, form, onChange)}
+            onBlur={(event) => handleBlur(event, field, form, onBlur)}
+            disabled={form.isSubmitting || form.status?.isFormLocked}
+            error={Boolean(meta.touched && meta.error)}
+            helperText={meta.touched && meta.error}
+            {...props}
+            ref={ref}
+          />
+        );
+      }}
     </FastField>
   );
 }

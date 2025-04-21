@@ -17,6 +17,13 @@ const items: DatagridColDef<RoleSearchbox>[] = [
     sortable: true,
     width: 200,
   },
+  {
+    headerName: "Descrizione",
+    field: "roleDescription",
+    filter: true,
+    sortable: true,
+    width: 200,
+  },
 ];
 
 const roleSearchboxOptions: SearchboxOptions<RoleSearchbox> = {

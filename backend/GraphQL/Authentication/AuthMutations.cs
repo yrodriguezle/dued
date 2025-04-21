@@ -10,6 +10,7 @@ using duedgusto.DataAccess;
 using duedgusto.Models;
 using duedgusto.Services.HashPassword;
 using duedgusto.Services.Jwt;
+using duedgusto.Helpers;
 
 namespace duedgusto.GraphQL.Authentication;
 
@@ -45,6 +46,32 @@ public class AuthMutations : ObjectGraphType
 
                 await dbContext.SaveChangesAsync();
                 return new TokenResponse(Token, RefreshToken);
+            });
+        
+        Field<RoleType, Role>("mutateRole")
+            .Argument<NonNullGraphType<RoleInputType>>("role", "Dati del ruolo da creare o aggiornare")
+            .ResolveAsync(async context =>
+            {
+                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                Role input = context.GetArgument<Role>("role");
+
+                Role? existing = await dbContext.Roles.FindAsync(input.RoleId);
+                Role updated = await EntityFrameworkHelper.AddOrUpdate(input, existing, dbContext);
+                await dbContext.SaveChangesAsync();
+                return updated;
+            });
+
+        Field<UserType, User>("mutateUser")
+            .Argument<NonNullGraphType<UserInputType>>("user", "Dati dell'utente da creare o aggiornare")
+            .ResolveAsync(async context =>
+            {
+                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                User input = context.GetArgument<User>("user");
+
+                User? existingUser = await dbContext.User.FindAsync(input.UserId);
+                User updatedUser = await EntityFrameworkHelper.AddOrUpdate(input, existingUser, dbContext);
+                await dbContext.SaveChangesAsync();
+                return updatedUser;
             });
     }
 }
