@@ -47,7 +47,7 @@ public class AuthMutations : ObjectGraphType
                 await dbContext.SaveChangesAsync();
                 return new TokenResponse(Token, RefreshToken);
             });
-        
+
         Field<RoleType, Role>("mutateRole")
             .Argument<NonNullGraphType<RoleInputType>>("role", "Dati del ruolo da creare o aggiornare")
             .ResolveAsync(async context =>
@@ -56,7 +56,7 @@ public class AuthMutations : ObjectGraphType
                 Role input = context.GetArgument<Role>("role");
 
                 Role? existing = await dbContext.Roles.FindAsync(input.RoleId);
-                Role updated = await EntityFrameworkHelper.AddOrUpdate(input, existing, dbContext);
+                Role updated = await dbContext.AddOrUpdateAsync(input);
                 await dbContext.SaveChangesAsync();
                 return updated;
             });
@@ -69,7 +69,7 @@ public class AuthMutations : ObjectGraphType
                 User input = context.GetArgument<User>("user");
 
                 User? existingUser = await dbContext.User.FindAsync(input.UserId);
-                User updatedUser = await EntityFrameworkHelper.AddOrUpdate(input, existingUser, dbContext);
+                User updatedUser = await dbContext.AddOrUpdateAsync(input);
                 await dbContext.SaveChangesAsync();
                 return updatedUser;
             });
