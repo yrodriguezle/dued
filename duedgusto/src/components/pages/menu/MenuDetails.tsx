@@ -1,30 +1,43 @@
 import { Form, Formik, FormikProps } from "formik";
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { z } from "zod";
 import useInitializeValues from "./useInitializeValues";
 import useConfirm from "../../common/confirm/useConfirm";
 import { formStatuses } from "../../../common/globals/constants";
 import sleep from "../../../common/bones/sleep";
 import setInitialFocus from "./setInitialFocus";
-import { MenuSearchbox } from "../../common/form/searchbox/searchboxOptions/menuSearchboxOptions";
 import FormikToolbar from "../../common/form/toolbar/FormikToolbar";
-import MenuForm from "./MenuForm";
 import { Box, Paper, Typography } from "@mui/material";
-import useSubmitMenu from "../../../graphql/menus/useSubmitMenu";
 import showToast from "../../../common/toast/showToast";
+import MenuForm from "./MenuForm";
+import { menuFragment } from "../../../graphql/menus/fragments";
+import useGetAll from "../../../graphql/common/useGetAll";
+import { MenuNonNull } from "../../common/form/searchbox/searchboxOptions/menuSearchboxOptions";
+import useStore from "../../../store/useStore";
 
-const Schema = z.object({
-  menuId: z.number(),
-  menuName: z.string().nonempty("Nome menu è obbligatorio"),
-  menuDescription: z.string().optional(),
-});
+const Schema = z.object({});
 
 export type FormikMenuValues = z.infer<typeof Schema>;
 
 function MenuDetails() {
   const formRef = useRef<FormikProps<FormikMenuValues>>(null);
-  const { initialValues, handleInitializeValues } = useInitializeValues({ skipInitialize: false });
-  const { submitMenu } = useSubmitMenu();
+  const { initialValues, handleInitializeValues } = useInitializeValues();
+  const { onInProgress, offInProgress } = useStore((store) => store);
+
+  const { loading, data } = useGetAll<MenuNonNull>({
+    fragment: menuFragment,
+    queryName: "menus",
+    fragmentBody: "...MenuFragment",
+    fetchPolicy: "network-only",
+  });
+
+  useEffect(() => {
+    if (loading) {
+      onInProgress("global");
+    } else {
+      offInProgress("global");
+    }
+  }, [loading, onInProgress, offInProgress]);
 
   const onConfirm = useConfirm();
 
@@ -52,33 +65,8 @@ function MenuDetails() {
     [handleInitializeValues, onConfirm]
   );
 
-  const handleSelectedItem = useCallback(
-    (item: MenuSearchbox) => {
-      handleInitializeValues(item).then(() => {
-        setTimeout(() => {
-          formRef.current?.setStatus({
-            formStatus: formStatuses.UPDATE,
-            isFormLocked: true,
-          });
-        }, 0);
-      });
-    },
-    [handleInitializeValues]
-  );
-
-  const onSubmit = async (values: FormikMenuValues) => {
+  const onSubmit = async () => {
     try {
-      const menu = await submitMenu({
-        menu: {
-          menuId: values.menuId,
-          menuName: values.menuName,
-          menuDescription: values.menuDescription ?? "",
-        },
-      });
-      if (!menu) {
-        throw new Error("Errore nella risposta del server");
-      }
-      handleSelectedItem(menu);
       showToast({
         type: "success",
         position: "bottom-right",
@@ -120,7 +108,7 @@ function MenuDetails() {
               Gestione menu
             </Typography>
             <Paper elevation={3} sx={{ padding: 1 }}>
-              <MenuForm onSelectItem={handleSelectedItem} />
+              <MenuForm items={data} />
             </Paper>
           </Box>
         </Form>

@@ -20,7 +20,7 @@ interface UseQueryParamsString<T> extends UseQueryParamsBase<T> {
   fragment: string;
 }
 
-type UseQueryParamsProps<T> = UseQueryParamsArray<T> | UseQueryParamsString<T>;
+export type UseQueryParamsProps<T> = UseQueryParamsArray<T> | UseQueryParamsString<T>;
 
 function useQueryParams<T>(queryParams: UseQueryParamsProps<T>) {
   if (typeof queryParams.body === "string" && !queryParams.fragment) {
