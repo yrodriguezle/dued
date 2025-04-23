@@ -1,5 +1,5 @@
 import { Form, Formik, FormikProps } from "formik";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import useInitializeValues from "./useInitializeValues";
 import useConfirm from "../../common/confirm/useConfirm";
@@ -23,6 +23,7 @@ function MenuDetails() {
   const formRef = useRef<FormikProps<FormikMenuValues>>(null);
   const { initialValues, handleInitializeValues } = useInitializeValues();
   const { onInProgress, offInProgress } = useStore((store) => store);
+  const [menus, setMenus] = useState<MenuNonNull[]>([]);
 
   const { loading, data } = useGetAll<MenuNonNull>({
     fragment: menuFragment,
@@ -30,6 +31,14 @@ function MenuDetails() {
     fragmentBody: "...MenuFragment",
     fetchPolicy: "network-only",
   });
+
+  // const menus = useMemo(() => data.map((item) => ({ ...item })), [data]);
+
+  useEffect(() => {
+    if (data.length) {
+      setMenus(data.map((item) => ({ ...item })));
+    }
+  }, [data]);
 
   useEffect(() => {
     if (loading) {
@@ -86,34 +95,38 @@ function MenuDetails() {
   };
 
   return (
-    <Formik
-      innerRef={formRef}
-      enableReinitialize
-      initialValues={initialValues}
-      initialStatus={{ formStatus: formStatuses.INSERT, isFormLocked: false }}
-      validate={(values: FormikMenuValues) => {
-        const result = Schema.safeParse(values);
-        if (result.success) {
-          return;
-        }
-        return Object.fromEntries(result.error.issues.map(({ path, message }) => [path[0], message]));
-      }}
-      onSubmit={onSubmit}
-    >
-      {() => (
-        <Form noValidate>
-          <FormikToolbar onFormReset={handleResetForm} />
-          <Box sx={{ marginTop: 1, paddingX: 2 }}>
-            <Typography variant="h5" gutterBottom>
-              Gestione menu
-            </Typography>
-            <Paper elevation={3} sx={{ padding: 1 }}>
-              <MenuForm items={data} />
-            </Paper>
-          </Box>
-        </Form>
-      )}
-    </Formik>
+    <Box>
+      <Formik
+        innerRef={formRef}
+        enableReinitialize
+        initialValues={initialValues}
+        initialStatus={{ formStatus: formStatuses.INSERT, isFormLocked: false }}
+        validate={(values: FormikMenuValues) => {
+          const result = Schema.safeParse(values);
+          if (result.success) {
+            return;
+          }
+          return Object.fromEntries(result.error.issues.map(({ path, message }) => [path[0], message]));
+        }}
+        onSubmit={onSubmit}
+      >
+        {() => (
+          <Form noValidate>
+            <FormikToolbar onFormReset={handleResetForm} />
+            <Box sx={{ marginTop: 1, paddingX: 2 }}>
+              <Typography variant="h5" gutterBottom>
+                Gestione menu
+              </Typography>
+            </Box>
+          </Form>
+        )}
+      </Formik>
+      <Box sx={{ marginTop: 1, paddingX: 2 }}>
+        <Paper elevation={3} sx={{ padding: 1 }}>
+          <MenuForm menus={menus} />
+        </Paper>
+      </Box>
+    </Box>
   );
 }
 

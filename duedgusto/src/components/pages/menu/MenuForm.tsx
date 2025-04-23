@@ -3,14 +3,16 @@ import { MenuNonNull } from "../../common/form/searchbox/searchboxOptions/menuSe
 import Datagrid from "../../common/datagrid/Datagrid";
 
 interface MenuFormProps {
-  items: MenuNonNull[];
+  menus: MenuNonNull[];
 }
 
 const MenuForm = (props: MenuFormProps) => {
   return (
     <Box sx={{ marginTop: 1, paddingX: 1, height: "80vh" }}>
       <Datagrid
-        items={props.items}
+        items={props.menus}
+        getRowId={({ data }) => data.menuId.toString()}
+        singleClickEdit
         columnDefs={[
           {
             headerName: "ID",
@@ -26,6 +28,7 @@ const MenuForm = (props: MenuFormProps) => {
             filter: true,
             sortable: true,
             width: 200,
+            editable: true,
           },
           {
             headerName: "Titolo",
@@ -33,6 +36,7 @@ const MenuForm = (props: MenuFormProps) => {
             filter: true,
             sortable: true,
             width: 200,
+            editable: true,
           },
           {
             headerName: "View",

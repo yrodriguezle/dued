@@ -1,12 +1,12 @@
 import { JSX, ForwardedRef, forwardRef } from "react";
 import { AgGridReact, AgGridReactProps } from "ag-grid-react";
-import { AllCommunityModule, ModuleRegistry } from "ag-grid-community";
+import { AllCommunityModule, ValidationModule, ModuleRegistry } from "ag-grid-community";
 import { themeQuartz, colorSchemeDark, colorSchemeLight } from "ag-grid-community";
 
 import { AG_GRID_LOCALE_IT } from "./i18n/it-IT";
 import useStore from "../../../store/useStore";
 
-ModuleRegistry.registerModules([AllCommunityModule]);
+ModuleRegistry.registerModules([AllCommunityModule, ValidationModule]);
 const themeLight = themeQuartz.withPart(colorSchemeLight);
 const themeDark = themeQuartz.withPart(colorSchemeDark);
 

@@ -1,15 +1,14 @@
 import { useCallback, useRef } from "react";
 import { ColDef, GridReadyEvent } from "ag-grid-community";
-import { DatagridColDef } from "../../../@types/searchbox";
+import { AgGridReactProps } from "ag-grid-react";
 import AgGrid from "./AgGrid";
 
-interface GridResultsProps<T> {
+interface DatagridProps<T> extends AgGridReactProps<T> {
   items: T[];
-  columnDefs: DatagridColDef<T>[];
   onGridReady?: (event: GridReadyEvent<T>) => void;
 }
 
-function Datagrid<T>(props: GridResultsProps<T>) {
+function Datagrid<T>(props: DatagridProps<T>) {
   const gridRef = useRef<GridReadyEvent<T>>(null);
 
   const handleGridReady = useCallback(
