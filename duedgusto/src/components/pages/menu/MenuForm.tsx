@@ -8,8 +8,9 @@ interface MenuFormProps {
 
 const MenuForm = (props: MenuFormProps) => {
   return (
-    <Box sx={{ marginTop: 1, paddingX: 1, height: "80vh" }}>
+    <Box sx={{ marginTop: 1, paddingX: 1 }}>
       <Datagrid
+        height="80vh"
         items={props.menus}
         getRowId={({ data }) => data.menuId.toString()}
         singleClickEdit

@@ -7,7 +7,7 @@ import { formStatuses } from "../../../common/globals/constants";
 import sleep from "../../../common/bones/sleep";
 import setInitialFocus from "./setInitialFocus";
 import FormikToolbar from "../../common/form/toolbar/FormikToolbar";
-import { Box, Paper, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import showToast from "../../../common/toast/showToast";
 import MenuForm from "./MenuForm";
 import { menuFragment } from "../../../graphql/menus/fragments";
@@ -121,10 +121,8 @@ function MenuDetails() {
           </Form>
         )}
       </Formik>
-      <Box sx={{ marginTop: 1, paddingX: 2 }}>
-        <Paper elevation={3} sx={{ padding: 1 }}>
-          <MenuForm menus={menus} />
-        </Paper>
+      <Box sx={{ marginTop: 1, paddingX: 1 }}>
+        <MenuForm menus={menus} />
       </Box>
     </Box>
   );
