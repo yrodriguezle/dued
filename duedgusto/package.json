@@ -21,7 +21,7 @@
     "@mui/icons-material": "^6.4.8",
     "@mui/material": "^6.4.8",
     "ag-grid-community": "^33.2.1",
-    "ag-grid-enterprise": "^33.2.3",
+    "ag-grid-enterprise": "^33.2.1",
     "ag-grid-react": "^33.2.1",
     "dayjs": "^1.11.13",
     "formik": "^2.4.6",
