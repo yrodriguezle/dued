@@ -1,5 +1,10 @@
 import React, { useEffect } from "react";
 import Box from "@mui/material/Box";
+import Stack from '@mui/material/Stack';
+import Button from '@mui/material/Button';
+import ButtonGroup from "@mui/material/ButtonGroup";
+import AddIcon from '@mui/icons-material/Add';
+import RemoveIcon from '@mui/icons-material/Remove';
 
 import useStore from "../../../store/useStore";
 import { themeDark, themeLight } from "./datagridThemes";
@@ -31,6 +36,11 @@ const DatagridToolbar: React.FC = () => {
     }, 0);
   }, [theme]);
 
+  // const handleShowCode: React.MouseEventHandler<HTMLButtonElement> = () => {
+  //   // Logica per mostrare il pannello codice...
+  //   console.log('Mostra codice!');
+  // };
+
   return (
     <Box className={wrapperClass}>
       <Box
@@ -39,10 +49,44 @@ const DatagridToolbar: React.FC = () => {
           height: 38,
           border: "var(--ag-header-row-border)",
           borderBottom: "unset",
-          borderRadius: "4px 4px 0 0"
+          borderRadius: "4px 4px 0 0",
+          paddingX: 1,
+          display: "flex",
+          alignItems: "center",
         }}
       >
-        DatagridToolbar
+        <Stack direction="row" spacing={1}>
+          <ButtonGroup size="small" variant="text" aria-label="Datagrid toolbar">
+            <Button
+              size="small"
+              // variant="outlined"
+              startIcon={<AddIcon />}
+              sx={{
+                minHeight: 0,
+                height: 32,
+                paddingY: 0.5,
+                paddingX: 1.5,
+                alignSelf: 'center',
+              }}
+            >
+              Nuova riga
+            </Button>
+            <Button
+              size="small"
+              // variant="outlined"
+              startIcon={<RemoveIcon />}
+              sx={{
+                minHeight: 0,
+                height: 32,
+                paddingY: 0.5,
+                paddingX: 1.5,
+                alignSelf: 'center',
+              }}
+            >
+              Cancella riga
+            </Button>
+          </ButtonGroup>
+        </Stack>
       </Box>
     </Box>
   );
