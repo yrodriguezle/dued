@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useRef } from "react";
 import { ColDef, GridReadyEvent } from "ag-grid-community";
 import { AgGridReactProps } from "ag-grid-react";
 import Box from "@mui/material/Box";
@@ -7,63 +6,65 @@ import Box from "@mui/material/Box";
 import AgGrid from "./AgGrid";
 import DatagridToolbar from "./DatagridToolbar";
 
-interface DatagridProps<T> extends AgGridReactProps<T> {
+interface BaseDatagridProps<T> extends AgGridReactProps<T> {
   height: string;
   items: T[];
   onGridReady?: (event: GridReadyEvent<T>) => void;
-  getNewRow?: () => T;
+  columnDefs: ColDef<T>[];
 }
 
+interface NormalModeProps<T> extends BaseDatagridProps<T> {
+  presentation?: undefined;
+  getNewRow: () => T;
+  readOnly: boolean;
+}
+
+interface PresentationModeProps<T> extends BaseDatagridProps<T> {
+  presentation: true;
+  getNewRow?: never;
+  readOnly?: never;
+}
+
+type DatagridProps<T> = NormalModeProps<T> | PresentationModeProps<T>;
+
 function Datagrid<T>(props: DatagridProps<T>) {
-  const gridRef = useRef<GridReadyEvent<T>>(null);
-  const { dataGridProps, gridProps } = useMemo(() => {
-    const { height, items, onGridReady, getNewRow, ...rest } = props;
-    return {
-      dataGridProps: {
-        items,
-        height,
-        onGridReady,
-        getNewRow,
-      },
-      gridProps: rest,
-    };
-  }, [props]);
+  const isPresentation = props.presentation === true;
+  const gridRef = useRef<GridReadyEvent<T> | null>(null);
+  const { items, height, onGridReady, columnDefs } = props;
 
-  const handleGridReady = useCallback(
-    (event: GridReadyEvent<T>) => {
-      gridRef.current = event;
-      dataGridProps.onGridReady?.(event);
-    },
-    [dataGridProps]
-  );
+  const handleGridReady = useCallback((event: GridReadyEvent<T>) => {
+    gridRef.current = event;
+    onGridReady?.(event);
+  }, [onGridReady]);
 
-  const handleAddRow = () => {
-    if (!gridRef.current || !dataGridProps.getNewRow) return;
-    gridRef.current.api.applyTransaction({ add: [dataGridProps.getNewRow()], addIndex: 0 });
-  };
+  const handleAddRow = useCallback(() => {
+    if (!gridRef.current || isPresentation) return;
+    const newRow = (props as NormalModeProps<T>).getNewRow();
+    gridRef.current.api.applyTransaction({ add: [newRow], addIndex: 0 });
+  }, [isPresentation, props]);
 
-  const handleDeleteSelected = () => {
-    if (!gridRef.current) return;
+  const handleDeleteSelected = useCallback(() => {
+    if (!gridRef.current || isPresentation) return;
     const selected = gridRef.current.api.getSelectedRows();
     if (selected.length === 0) return;
     gridRef.current.api.applyTransaction({ remove: selected });
-  };
+  }, [isPresentation]);
 
   return (
-    <Box
-      sx={{
-        height: props.height,
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      <DatagridToolbar />
+    <Box sx={{ height, display: "flex", flexDirection: "column" }}>
+      {!isPresentation && (
+        <DatagridToolbar
+          readOnly={props.readOnly}
+          gridRef={gridRef} 
+          onAdd={handleAddRow}
+          onDelete={handleDeleteSelected}
+        />
+      )}
       <Box sx={{ flex: 1 }} className="datagrid-root">
         <AgGrid
-          {...gridProps}
+          rowData={items}
+          columnDefs={columnDefs as ColDef<T>[]}
           onGridReady={handleGridReady}
-          rowData={props.items}
-          columnDefs={props.columnDefs as unknown as ColDef<T>[]}
         />
       </Box>
     </Box>

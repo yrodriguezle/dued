@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import { RefObject, useEffect } from "react";
 import Box from "@mui/material/Box";
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
@@ -8,13 +8,21 @@ import RemoveIcon from '@mui/icons-material/Remove';
 
 import useStore from "../../../store/useStore";
 import { themeDark, themeLight } from "./datagridThemes";
+import { GridReadyEvent } from "ag-grid-community";
+
+interface DatagridToolbarProps<T> {
+  readOnly: boolean;
+  gridRef?: RefObject<GridReadyEvent<T> | null>;
+  onAdd: () => void;
+  onDelete: () => void;
+}
 
 interface Cache {
   _paramsCssCache: string;
   _cssClassCache: string;
 }
 
-const DatagridToolbar: React.FC = () => {
+const DatagridToolbar = <T,>({ onAdd, onDelete }: DatagridToolbarProps<T>) => {
   const { userTheme } = useStore((store) => store);
   const theme = (userTheme.mode === "light" ? themeLight : themeDark) as unknown as Cache;
 
@@ -36,11 +44,6 @@ const DatagridToolbar: React.FC = () => {
     }, 0);
   }, [theme]);
 
-  // const handleShowCode: React.MouseEventHandler<HTMLButtonElement> = () => {
-  //   // Logica per mostrare il pannello codice...
-  //   console.log('Mostra codice!');
-  // };
-
   return (
     <Box className={wrapperClass}>
       <Box
@@ -59,8 +62,8 @@ const DatagridToolbar: React.FC = () => {
           <ButtonGroup size="small" variant="text" aria-label="Datagrid toolbar">
             <Button
               size="small"
-              // variant="outlined"
               startIcon={<AddIcon />}
+              onClick={onAdd}
               sx={{
                 minHeight: 0,
                 height: 32,
@@ -73,8 +76,8 @@ const DatagridToolbar: React.FC = () => {
             </Button>
             <Button
               size="small"
-              // variant="outlined"
               startIcon={<RemoveIcon />}
+              onClick={onDelete}
               sx={{
                 minHeight: 0,
                 height: 32,

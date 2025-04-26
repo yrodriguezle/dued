@@ -24,6 +24,10 @@ interface FormikToolbarProps {
   disabledSave?: boolean;
   disabledDelete?: boolean;
   disabledUnlockButton?: boolean;
+  hideUnlockButton?: boolean;
+  hideSaveButton?: boolean;
+  hideNewButton?: boolean;
+  hideDeleteButton?: boolean;
   onFormReset: (hasChanges: boolean) => Promise<void>;
 }
 
@@ -32,6 +36,10 @@ export default function FormikToolbar({
   disabledSave,
   disabledDelete,
   disabledUnlockButton,
+  hideUnlockButton,
+  hideSaveButton,
+  hideNewButton,
+  hideDeleteButton,
   onFormReset,
 }: FormikToolbarProps) {
   const theme = useTheme();
@@ -39,15 +47,34 @@ export default function FormikToolbar({
   const formikProps = useFormikContext();
   const { insertDenied, updateDenied, deleteDenied } = permissions || {};
   const {
-    isSubmitting, status, dirty, // touched, errors, values, submitForm,
+    isSubmitting,
+    status,
+    dirty,
   } = formikProps;
 
-  const disableUnlock = useMemo(() => updateDenied || status.formStatus === formStatuses.INSERT || disabledUnlockButton, [disabledUnlockButton, status.formStatus, updateDenied])
-  const disableSave = useMemo(() => Boolean(status.isFormLocked || isSubmitting || insertDenied || updateDenied
-    || (disabledSave !== undefined ? disabledSave : !dirty)), [dirty, disabledSave, insertDenied, isSubmitting, status.isFormLocked, updateDenied]);
-  const disableDelete = useMemo(() => deleteDenied || insertDenied || updateDenied || disabledDelete || status.formStatus === formStatuses.INSERT, [deleteDenied, disabledDelete, insertDenied, status.formStatus, updateDenied]);
+  const disableUnlock = useMemo(
+    () => updateDenied || status.formStatus === formStatuses.INSERT || disabledUnlockButton,
+    [disabledUnlockButton, status.formStatus, updateDenied]
+  );
+  const disableSave = useMemo(
+    () => Boolean(
+      status.isFormLocked ||
+      isSubmitting ||
+      insertDenied ||
+      updateDenied ||
+      (disabledSave !== undefined ? disabledSave : !dirty)
+    ),
+    [dirty, disabledSave, insertDenied, isSubmitting, status.isFormLocked, updateDenied]
+  );
+  const disableDelete = useMemo(
+    () => deleteDenied || insertDenied || updateDenied || disabledDelete || status.formStatus === formStatuses.INSERT,
+    [deleteDenied, disabledDelete, insertDenied, status.formStatus, updateDenied]
+  );
 
-  const formLocked = useMemo(() => Boolean(formikProps.status?.isFormLocked), [formikProps.status?.isFormLocked]);
+  const formLocked = useMemo(
+    () => Boolean(formikProps.status?.isFormLocked),
+    [formikProps.status?.isFormLocked]
+  );
   const handleUnlockForm = useCallback(
     () => {
       formikProps.setStatus({
@@ -55,7 +82,7 @@ export default function FormikToolbar({
         isFormLocked: !formLocked,
       });
     },
-    [formLocked, formikProps],
+    [formLocked, formikProps]
   );
 
   return (
@@ -71,33 +98,41 @@ export default function FormikToolbar({
         }}
       >
         <Box sx={{ height: 48, display: "flex", alignItems: "stretch" }}>
-          <FormikToolbarButton
-            startIcon={<EditIcon />}
-            disabled={disableUnlock}
-            onClick={handleUnlockForm}
-          >
-            {status.isFormLocked || status.formStatus === formStatuses.INSERT ? 'Modifica' : 'Annulla'}
-          </FormikToolbarButton>
-          <FormikToolbarButton
-            startIcon={<SaveIcon />}
-            disabled={disableSave}
-            onClick={formikProps.submitForm}
-          >
-            Salva
-          </FormikToolbarButton>
-          <FormikToolbarButton
-            startIcon={<AddIcon />}
-            onClick={() => onFormReset(!disableSave)}
-          >
-            Nuovo
-          </FormikToolbarButton>
-          <FormikToolbarButton
-            startIcon={<DeleteIcon />}
-            color="error"
-            disabled={disableDelete}
-          >
-            Elimina
-          </FormikToolbarButton>
+          {!hideUnlockButton && (
+            <FormikToolbarButton
+              startIcon={<EditIcon />}
+              disabled={disableUnlock}
+              onClick={handleUnlockForm}
+            >
+              {status.isFormLocked || status.formStatus === formStatuses.INSERT ? 'Modifica' : 'Annulla'}
+            </FormikToolbarButton>
+          )}
+          {!hideSaveButton && (
+            <FormikToolbarButton
+              startIcon={<SaveIcon />}
+              disabled={disableSave}
+              onClick={formikProps.submitForm}
+            >
+              Salva
+            </FormikToolbarButton>
+          )}
+          {!hideNewButton && (
+            <FormikToolbarButton
+              startIcon={<AddIcon />}
+              onClick={() => onFormReset(!disableSave)}
+            >
+              Nuovo
+            </FormikToolbarButton>
+          )}
+          {!hideDeleteButton && (
+            <FormikToolbarButton
+              startIcon={<DeleteIcon />}
+              color="error"
+              disabled={disableDelete}
+            >
+              Elimina
+            </FormikToolbarButton>
+          )}
         </Box>
         {isMobile ? (
           <IconButton

@@ -32,8 +32,6 @@ function MenuDetails() {
     fetchPolicy: "network-only",
   });
 
-  // const menus = useMemo(() => data.map((item) => ({ ...item })), [data]);
-
   useEffect(() => {
     if (data.length) {
       setMenus(data.map((item) => ({ ...item })));
@@ -100,7 +98,7 @@ function MenuDetails() {
         innerRef={formRef}
         enableReinitialize
         initialValues={initialValues}
-        initialStatus={{ formStatus: formStatuses.INSERT, isFormLocked: false }}
+        initialStatus={{ formStatus: formStatuses.UPDATE, isFormLocked: true }}
         validate={(values: FormikMenuValues) => {
           const result = Schema.safeParse(values);
           if (result.success) {
@@ -112,18 +110,22 @@ function MenuDetails() {
       >
         {() => (
           <Form noValidate>
-            <FormikToolbar onFormReset={handleResetForm} />
+            <FormikToolbar
+              onFormReset={handleResetForm}
+              hideNewButton
+              hideDeleteButton
+            />
             <Box sx={{ marginTop: 1, paddingX: 2 }}>
               <Typography variant="h5" gutterBottom>
                 Gestione menu
               </Typography>
             </Box>
+            <Box sx={{ marginTop: 1, paddingX: 1 }}>
+              <MenuForm menus={menus} />
+            </Box>
           </Form>
         )}
       </Formik>
-      <Box sx={{ marginTop: 1, paddingX: 1 }}>
-        <MenuForm menus={menus} />
-      </Box>
     </Box>
   );
 }

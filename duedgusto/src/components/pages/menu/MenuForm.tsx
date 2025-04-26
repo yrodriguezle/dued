@@ -1,72 +1,53 @@
-import Box from "@mui/material/Box";
-import { MenuNonNull } from "../../common/form/searchbox/searchboxOptions/menuSearchboxOptions";
-import Datagrid from "../../common/datagrid/Datagrid";
+import React from 'react';
+import Box from '@mui/material/Box';
+import { MenuNonNull } from '../../common/form/searchbox/searchboxOptions/menuSearchboxOptions';
+import Datagrid from '../../common/datagrid/Datagrid';
+import { useFormikContext } from 'formik';
 
 interface MenuFormProps {
   menus: MenuNonNull[];
 }
 
-const MenuForm = (props: MenuFormProps) => {
+const MenuForm: React.FC<MenuFormProps> = ({ menus }) => {
+  const { status } = useFormikContext();
+  
+  const getNewRow = (): MenuNonNull => ({
+    __typename: "Menu",
+    menuId: 0,
+    parentMenuId: 0,
+    title: "",
+    path: "",
+    icon: "",
+    isVisible: true,
+    filePath: "",
+    viewName: "",
+  });
+
   return (
-    <Box sx={{ marginTop: 1, paddingX: 1 }}>
+    <Box sx={{ marginTop: 1, paddingX: 1, height: '80vh' }}>
       <Datagrid
-        height="80vh"
-        items={props.menus}
+        height="100%"
+        items={menus}
         getRowId={({ data }) => data.menuId.toString()}
         singleClickEdit
+        treeData
+        treeDataParentIdField="parentMenuId"
+        readOnly={status.isFormLocked as boolean}
+        getNewRow={getNewRow}
+        groupDefaultExpanded={-1}
+        autoGroupColumnDef={{
+          headerName: 'Titolo',
+          field: 'title',
+          cellRenderer: 'agGroupCellRenderer',
+          filter: true,
+          sortable: true,
+          width: 200,
+        }}
         columnDefs={[
-          {
-            headerName: "ID",
-            field: "menuId",
-            filter: true,
-            sortable: true,
-            width: 100,
-            hide: true,
-          },
-          {
-            headerName: "Icona",
-            field: "icon",
-            filter: true,
-            sortable: true,
-            width: 200,
-            editable: true,
-          },
-          {
-            headerName: "Titolo",
-            field: "title",
-            filter: true,
-            sortable: true,
-            width: 200,
-            editable: true,
-          },
-          {
-            headerName: "View",
-            field: "viewName",
-            filter: true,
-            sortable: true,
-            width: 200,
-          },
-          {
-            headerName: "Path",
-            field: "path",
-            filter: true,
-            sortable: true,
-            width: 200,
-          },
-          {
-            headerName: "Menu padre",
-            field: "parentMenuId",
-            filter: true,
-            sortable: true,
-            width: 200,
-          },
-          {
-            headerName: "Visibile",
-            field: "isVisible",
-            filter: true,
-            sortable: true,
-            width: 200,
-          },
+          { headerName: 'Icona', field: 'icon', filter: true, sortable: true, width: 150, editable: true },
+          { headerName: 'View', field: 'viewName', filter: true, sortable: true, width: 150 },
+          { headerName: 'Path', field: 'path', filter: true, sortable: true, width: 200, editable: true },
+          { headerName: 'Visibile', field: 'isVisible', filter: true, sortable: true, width: 120 },
         ]}
       />
     </Box>
