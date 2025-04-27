@@ -12,9 +12,10 @@ import RoleForm from "./RoleForm";
 import { Box, Paper, Typography } from "@mui/material";
 import useSubmitRole from "../../../graphql/roles/useSubmitRole";
 import showToast from "../../../common/toast/showToast";
-// import useGetAll from "../../../graphql/common/useGetAll";
-// import { menuFragment } from "../../../graphql/menus/fragments";
-// import { MenuNonNull } from "../../common/form/searchbox/searchboxOptions/menuSearchboxOptions";
+import useGetAll from "../../../graphql/common/useGetAll";
+import { menuFragment } from "../../../graphql/menus/fragments";
+import { MenuNonNull } from "../../common/form/searchbox/searchboxOptions/menuSearchboxOptions";
+import RoleMenus from "./RoleMenus";
 
 const Schema = z.object({
   roleId: z.number(),
@@ -29,18 +30,14 @@ function RoleDetails() {
   const formRef = useRef<FormikProps<FormikRoleValues>>(null);
   const { initialValues, handleInitializeValues } = useInitializeValues({ skipInitialize: false });
   const { submitRole } = useSubmitRole();
-
   const onConfirm = useConfirm();
 
-  // const {
-  //   // loading: menusLoading,
-  //   data: menus,
-  // } = useGetAll<MenuNonNull>({
-  //   fragmentBody: menuFragment,
-
-  //   queryName: "menus",
-  //   fetchPolicy: "network-only"
-  // });
+  const { data } = useGetAll<MenuNonNull>({
+    fragment: menuFragment,
+    queryName: "menus",
+    fragmentBody: "...MenuFragment",
+    fetchPolicy: "network-only",
+  });
 
   const handleResetForm = useCallback(
     async (hasChanges: boolean) => {
@@ -130,10 +127,15 @@ function RoleDetails() {
             <Typography variant="h5" gutterBottom>
               Gestione ruoli
             </Typography>
-            <Paper elevation={3} sx={{ padding: 1 }}>
+            <Paper sx={{ padding: 1 }}>
               <RoleForm
-                menus={[]}
+                menus={data}
                 onSelectItem={handleSelectedItem}
+              />
+            </Paper>
+            <Paper sx={{ marginTop: 2, padding: 1 }}>
+              <RoleMenus
+                menus={data}
               />
             </Paper>
           </Box>

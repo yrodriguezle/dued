@@ -30,9 +30,9 @@ type DatagridProps<T> = NormalModeProps<T> | PresentationModeProps<T>;
 function Datagrid<T>(props: DatagridProps<T>) {
   // const [canAddNewRow, setCanAddNewRow] = useState(true);
   // const [canDeleteRow, setCanDeleteRow] = useState(false);
-  const isPresentation = props.presentation === true;
   const gridRef = useRef<GridReadyEvent<T> | null>(null);
-  const { readOnly, items, height, onGridReady, getNewRow, ...gridProps } = props;
+  const { presentation, readOnly, items, height, onGridReady, getNewRow, ...gridProps } = props;
+  const isPresentation = presentation === true;
 
   const handleGridReady = useCallback((event: GridReadyEvent<T>) => {
     gridRef.current = event;
@@ -77,8 +77,8 @@ function Datagrid<T>(props: DatagridProps<T>) {
       )}
       <Box sx={{ flex: 1 }} className="datagrid-root">
         <AgGrid
-          {...gridProps}
           rowSelection={rowSelection}
+          {...gridProps}
           rowData={items}
           onGridReady={handleGridReady}
         />
