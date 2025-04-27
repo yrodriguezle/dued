@@ -12,11 +12,15 @@ import RoleForm from "./RoleForm";
 import { Box, Paper, Typography } from "@mui/material";
 import useSubmitRole from "../../../graphql/roles/useSubmitRole";
 import showToast from "../../../common/toast/showToast";
+// import useGetAll from "../../../graphql/common/useGetAll";
+// import { menuFragment } from "../../../graphql/menus/fragments";
+// import { MenuNonNull } from "../../common/form/searchbox/searchboxOptions/menuSearchboxOptions";
 
 const Schema = z.object({
   roleId: z.number(),
   roleName: z.string().nonempty("Nome role è obbligatorio"),
   roleDescription: z.string().optional(),
+  menuIds: z.array(z.number()),
 });
 
 export type FormikRoleValues = z.infer<typeof Schema>;
@@ -27,6 +31,16 @@ function RoleDetails() {
   const { submitRole } = useSubmitRole();
 
   const onConfirm = useConfirm();
+
+  // const {
+  //   // loading: menusLoading,
+  //   data: menus,
+  // } = useGetAll<MenuNonNull>({
+  //   fragmentBody: menuFragment,
+
+  //   queryName: "menus",
+  //   fetchPolicy: "network-only"
+  // });
 
   const handleResetForm = useCallback(
     async (hasChanges: boolean) => {
@@ -81,7 +95,7 @@ function RoleDetails() {
         autoClose: 2000,
         toastId: "success",
       });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       showToast({
         type: "error",
@@ -117,7 +131,10 @@ function RoleDetails() {
               Gestione ruoli
             </Typography>
             <Paper elevation={3} sx={{ padding: 1 }}>
-              <RoleForm onSelectItem={handleSelectedItem} />
+              <RoleForm
+                menus={[]}
+                onSelectItem={handleSelectedItem}
+              />
             </Paper>
           </Box>
         </Form>

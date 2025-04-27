@@ -17,6 +17,7 @@ function useInitializeValues({
       roleId: 0,
       roleName: "",
       roleDescription: "",
+      menuIds: [],
     };
     return initialValues;
   }, []);

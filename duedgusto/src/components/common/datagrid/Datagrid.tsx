@@ -1,5 +1,5 @@
-import { useCallback, useRef } from "react";
-import { ColDef, GridReadyEvent } from "ag-grid-community";
+import { useCallback, useMemo, useRef } from "react";
+import { ColDef, GridReadyEvent, RowSelectionOptions } from "ag-grid-community";
 import { AgGridReactProps } from "ag-grid-react";
 import Box from "@mui/material/Box";
 
@@ -28,9 +28,11 @@ interface PresentationModeProps<T> extends BaseDatagridProps<T> {
 type DatagridProps<T> = NormalModeProps<T> | PresentationModeProps<T>;
 
 function Datagrid<T>(props: DatagridProps<T>) {
+  // const [canAddNewRow, setCanAddNewRow] = useState(true);
+  // const [canDeleteRow, setCanDeleteRow] = useState(false);
   const isPresentation = props.presentation === true;
   const gridRef = useRef<GridReadyEvent<T> | null>(null);
-  const { items, height, onGridReady, columnDefs } = props;
+  const { readOnly, items, height, onGridReady, getNewRow, ...gridProps } = props;
 
   const handleGridReady = useCallback((event: GridReadyEvent<T>) => {
     gridRef.current = event;
@@ -39,9 +41,12 @@ function Datagrid<T>(props: DatagridProps<T>) {
 
   const handleAddRow = useCallback(() => {
     if (!gridRef.current || isPresentation) return;
-    const newRow = (props as NormalModeProps<T>).getNewRow();
-    gridRef.current.api.applyTransaction({ add: [newRow], addIndex: 0 });
-  }, [isPresentation, props]);
+    const newRow = getNewRow?.();
+    if (!newRow) return;
+    gridRef.current.api.stopEditing();
+    gridRef.current.api.applyTransaction({ add: [newRow] });
+
+  }, [getNewRow, isPresentation]);
 
   const handleDeleteSelected = useCallback(() => {
     if (!gridRef.current || isPresentation) return;
@@ -50,20 +55,31 @@ function Datagrid<T>(props: DatagridProps<T>) {
     gridRef.current.api.applyTransaction({ remove: selected });
   }, [isPresentation]);
 
+  const rowSelection = useMemo<RowSelectionOptions<T> | undefined>(() => {
+    if (!isPresentation && !readOnly) {
+      return {
+        mode: 'singleRow',
+      };
+    }
+    return undefined;
+  }, [isPresentation, readOnly]);
+
+
   return (
     <Box sx={{ height, display: "flex", flexDirection: "column" }}>
       {!isPresentation && (
         <DatagridToolbar
-          readOnly={props.readOnly}
-          gridRef={gridRef} 
+          readOnly={readOnly}
+          gridRef={gridRef}
           onAdd={handleAddRow}
           onDelete={handleDeleteSelected}
         />
       )}
       <Box sx={{ flex: 1 }} className="datagrid-root">
         <AgGrid
+          {...gridProps}
+          rowSelection={rowSelection}
           rowData={items}
-          columnDefs={columnDefs as ColDef<T>[]}
           onGridReady={handleGridReady}
         />
       </Box>

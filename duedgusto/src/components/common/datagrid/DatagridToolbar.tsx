@@ -11,7 +11,7 @@ import { themeDark, themeLight } from "./datagridThemes";
 import { GridReadyEvent } from "ag-grid-community";
 
 interface DatagridToolbarProps<T> {
-  readOnly: boolean;
+  readOnly?: boolean;
   gridRef?: RefObject<GridReadyEvent<T> | null>;
   onAdd: () => void;
   onDelete: () => void;
@@ -22,7 +22,7 @@ interface Cache {
   _cssClassCache: string;
 }
 
-const DatagridToolbar = <T,>({ onAdd, onDelete }: DatagridToolbarProps<T>) => {
+const DatagridToolbar = <T,>({ readOnly, onAdd, onDelete }: DatagridToolbarProps<T>) => {
   const { userTheme } = useStore((store) => store);
   const theme = (userTheme.mode === "light" ? themeLight : themeDark) as unknown as Cache;
 
@@ -64,6 +64,7 @@ const DatagridToolbar = <T,>({ onAdd, onDelete }: DatagridToolbarProps<T>) => {
               size="small"
               startIcon={<AddIcon />}
               onClick={onAdd}
+              disabled={readOnly}
               sx={{
                 minHeight: 0,
                 height: 32,
@@ -78,6 +79,7 @@ const DatagridToolbar = <T,>({ onAdd, onDelete }: DatagridToolbarProps<T>) => {
               size="small"
               startIcon={<RemoveIcon />}
               onClick={onDelete}
+              disabled={readOnly}
               sx={{
                 minHeight: 0,
                 height: 32,

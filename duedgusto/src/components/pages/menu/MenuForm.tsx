@@ -1,4 +1,3 @@
-import React from 'react';
 import Box from '@mui/material/Box';
 import { MenuNonNull } from '../../common/form/searchbox/searchboxOptions/menuSearchboxOptions';
 import Datagrid from '../../common/datagrid/Datagrid';
@@ -10,11 +9,11 @@ interface MenuFormProps {
 
 const MenuForm: React.FC<MenuFormProps> = ({ menus }) => {
   const { status } = useFormikContext();
-  
+
   const getNewRow = (): MenuNonNull => ({
     __typename: "Menu",
     menuId: 0,
-    parentMenuId: 0,
+    parentMenuId: null,
     title: "",
     path: "",
     icon: "",

@@ -24,6 +24,12 @@ const items: DatagridColDef<RoleSearchbox>[] = [
     sortable: true,
     width: 200,
   },
+  {
+    field: "menuIds",
+    filter: true,
+    sortable: true,
+    width: 200,
+  },
 ];
 
 const roleSearchboxOptions: SearchboxOptions<RoleSearchbox> = {
