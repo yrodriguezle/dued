@@ -7,6 +7,7 @@ import LogoSection from "../../common/logo/LogoSection";
 import ThemeMenuButton from "../headerBar/ThemeMenuButton";
 import ProfileMenuButton from "../headerBar/ProfileMenuButton";
 import DrawerMenuButton from "./DrawerMenuButton";
+import HeaderViewTitle from "./HeaderViewTitle";
 
 interface HeaderBarProps {
   drawerOpen: boolean;
@@ -36,6 +37,7 @@ function HeaderBar({ drawerOpen, setHeaderHeight, toggleDrawer }: HeaderBarProps
       <Toolbar disableGutters variant="dense">
         <DrawerMenuButton drawerOpen={drawerOpen} toggleDrawer={toggleDrawer} />
         <LogoSection variant="h6" />
+        <HeaderViewTitle />
         <Box sx={{ marginLeft: "auto" }}>
           <ThemeMenuButton />
           <ProfileMenuButton />

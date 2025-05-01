@@ -1,5 +1,5 @@
 import { Form, Formik, FormikProps } from "formik";
-import { useCallback, useRef } from "react";
+import { useCallback, useContext, useEffect, useRef } from "react";
 import { z } from "zod";
 import useInitializeValues from "./useInitializeValues";
 import useConfirm from "../../common/confirm/useConfirm";
@@ -16,6 +16,7 @@ import useGetAll from "../../../graphql/common/useGetAll";
 import { menuFragment } from "../../../graphql/menus/fragments";
 import { MenuNonNull } from "../../common/form/searchbox/searchboxOptions/menuSearchboxOptions";
 import RoleMenus from "./RoleMenus";
+import PageTitleContext from "../../layout/headerBar/PageTitleContext";
 
 const Schema = z.object({
   roleId: z.number(),
@@ -27,10 +28,15 @@ const Schema = z.object({
 export type FormikRoleValues = z.infer<typeof Schema>;
 
 function RoleDetails() {
+  const { title, setTitle } = useContext(PageTitleContext);
   const formRef = useRef<FormikProps<FormikRoleValues>>(null);
   const { initialValues, handleInitializeValues } = useInitializeValues({ skipInitialize: false });
   const { submitRole } = useSubmitRole();
   const onConfirm = useConfirm();
+
+  useEffect(() => {
+    setTitle("Gestione ruoli");
+  }, [setTitle]);
 
   const { data } = useGetAll<MenuNonNull>({
     fragment: menuFragment,
@@ -103,6 +109,7 @@ function RoleDetails() {
     }
   };
 
+  
   return (
     <Formik
       innerRef={formRef}
@@ -123,9 +130,9 @@ function RoleDetails() {
           <FormikToolbar
             onFormReset={handleResetForm}
           />
-          <Box sx={{ marginTop: 1, paddingX: 2 }}>
-            <Typography variant="h5" gutterBottom>
-              Gestione ruoli
+          <Box className="scrollable-box" sx={{ marginTop: 1, paddingX: 2, overflow: 'auto', height: 'calc(100vh - 64px - 38px)' }}>
+            <Typography id="view-title" variant="h5" gutterBottom>
+              {title}
             </Typography>
             <Paper sx={{ padding: 1 }}>
               <RoleForm
