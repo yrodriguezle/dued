@@ -26,14 +26,14 @@ function useInitializeValues({
 
   const handleInitializeValues = useCallback(
     async (values?: FormikRoleValues) => {
-      setInitialValues((prev) => mergeWithDefaults(values, prev));
+      setInitialValues((prev) => mergeWithDefaults(values || getDefaultInitialValues(), prev));
       if (!values) {
         setInitialFocus();
       }
 
       return true;
     },
-    []
+    [getDefaultInitialValues]
   );
 
   useEffect(() => {

@@ -77,6 +77,7 @@ function GridResults<T>({ loading, items, columnDefs, onSelectedItem, onGridRead
       loading={loading}
       defaultColDef={{
         sortable: false,
+        suppressMovable: true,
       }}
     />
   );

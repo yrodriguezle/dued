@@ -59,10 +59,6 @@ const TextField = forwardRef<TextFieldRef, TextFieldProps>(({ value = "", name, 
       } else {
         setInnerValue(transformedValue);
       }
-      caretSelection.current = {
-        start: event.target.selectionStart || 0,
-        end: event.target.selectionEnd || 0,
-      };
     },
     [name, onChange, textUpperCase]
   );

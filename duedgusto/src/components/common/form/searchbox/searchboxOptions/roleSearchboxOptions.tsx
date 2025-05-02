@@ -1,4 +1,5 @@
 import { DatagridColDef, SearchboxOptions } from "../../../../../@types/searchbox";
+import { hiddenColumnProperties } from "../../../datagrid/datagridUtils";
 
 export type RoleSearchbox = Exclude<Role, null>;
 
@@ -28,7 +29,8 @@ const items: DatagridColDef<RoleSearchbox>[] = [
     field: "menuIds",
     filter: true,
     sortable: true,
-    width: 200,
+    ...hiddenColumnProperties,
+    valueFormatter: ({ value }) => value?.join(","),
   },
 ];
 

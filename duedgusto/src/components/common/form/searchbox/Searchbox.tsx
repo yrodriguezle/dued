@@ -50,6 +50,7 @@ function Searchbox<T>({ id, name, value, orderBy, fieldName, options, onChange, 
   } = useFetchData({
     query,
     variables,
+    skip: innerValue.trim().length === 0,
   });
 
   const handleResultGridReady = useCallback(
@@ -96,9 +97,9 @@ function Searchbox<T>({ id, name, value, orderBy, fieldName, options, onChange, 
           return false;
         });
       }
-      if (event.key === "Enter") {
+      if (event.key === "Enter" || event.key === "Tab") {
         if (innerValue && items?.length) {
-          const item = items.find((i) => String(i[lookupFieldName]) === innerValue);
+          const item = items.find((i) => String(i[lookupFieldName]).toLowerCase() === innerValue.toLowerCase());
           if (!item) return;
           handleSelectedItem(item);
         }
@@ -167,7 +168,13 @@ function Searchbox<T>({ id, name, value, orderBy, fieldName, options, onChange, 
                 {loading ? (
                   <CircularProgress size={20} />
                 ) : (
-                  <IconButton edge="end" disabled={props.disabled} onClick={handleOpenModal} onMouseDown={(e) => e.preventDefault()}>
+                  <IconButton
+                    tabIndex={-1}
+                    edge="end"
+                    disabled={props.disabled}
+                    onClick={handleOpenModal}
+                    onMouseDown={(e) => e.preventDefault()}
+                  >
                     <ExpandMoreIcon />
                   </IconButton>
                 )}

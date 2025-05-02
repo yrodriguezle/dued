@@ -17,6 +17,7 @@ import { menuFragment } from "../../../graphql/menus/fragments";
 import { MenuNonNull } from "../../common/form/searchbox/searchboxOptions/menuSearchboxOptions";
 import RoleMenus from "./RoleMenus";
 import PageTitleContext from "../../layout/headerBar/PageTitleContext";
+import { GridReadyEvent } from "ag-grid-community";
 
 const Schema = z.object({
   roleId: z.number(),
@@ -28,6 +29,7 @@ const Schema = z.object({
 export type FormikRoleValues = z.infer<typeof Schema>;
 
 function RoleDetails() {
+  const gridRef = useRef<GridReadyEvent<MenuNonNull> | null>(null);
   const { title, setTitle } = useContext(PageTitleContext);
   const formRef = useRef<FormikProps<FormikRoleValues>>(null);
   const { initialValues, handleInitializeValues } = useInitializeValues({ skipInitialize: false });
@@ -56,20 +58,35 @@ function RoleDetails() {
       if (!confirmed) {
         return;
       }
-      if (formRef.current?.status.formStatus === formStatuses.UPDATE) {
-        await handleInitializeValues();
-      } else {
-        formRef.current?.resetForm();
-        await sleep(200);
-        setInitialFocus();
+
+      if (!gridRef.current?.api.isDestroyed() && (gridRef.current?.api.getDisplayedRowCount() ?? 0) > 0) {
+        gridRef.current?.api.deselectAll();
       }
+      await handleInitializeValues();
+      formRef.current?.resetForm();
+      await sleep(200);
+      setInitialFocus();
     },
     [handleInitializeValues, onConfirm],
   );
 
+  const handleGridReady = useCallback((event: GridReadyEvent<MenuNonNull>) => {
+    gridRef.current = event;
+  }, []);
+
   const handleSelectedItem = useCallback((item: RoleSearchbox) => {
     handleInitializeValues(item).then(() => {
       setTimeout(() => {
+        if (!gridRef.current?.api.isDestroyed() && (gridRef.current?.api.getDisplayedRowCount() ?? 0) > 0) {
+          gridRef.current?.api.forEachNode((node) => {
+            if (!node.data) return;
+            if (item.menuIds.includes(node.data.menuId)) {
+              node.setSelected(true);
+            } else {
+              node.setSelected(false);
+            }
+          });
+        }
         formRef.current?.setStatus({
           formStatus: formStatuses.UPDATE,
           isFormLocked: true,
@@ -109,7 +126,6 @@ function RoleDetails() {
     }
   };
 
-
   return (
     <Formik
       innerRef={formRef}
@@ -143,6 +159,7 @@ function RoleDetails() {
             <Paper sx={{ marginTop: 2, padding: 1 }}>
               <RoleMenus
                 menus={data}
+                onGridReady={handleGridReady}
               />
             </Paper>
           </Box>
