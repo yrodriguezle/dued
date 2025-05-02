@@ -1,5 +1,5 @@
 import { Form, Formik, FormikProps } from "formik";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import useInitializeValues from "./useInitializeValues";
 import useConfirm from "../../common/confirm/useConfirm";
@@ -14,6 +14,7 @@ import { menuFragment } from "../../../graphql/menus/fragments";
 import useGetAll from "../../../graphql/common/useGetAll";
 import { MenuNonNull } from "../../common/form/searchbox/searchboxOptions/menuSearchboxOptions";
 import useStore from "../../../store/useStore";
+import PageTitleContext from "../../layout/headerBar/PageTitleContext";
 
 const Schema = z.object({});
 
@@ -24,6 +25,11 @@ function MenuDetails() {
   const { initialValues, handleInitializeValues } = useInitializeValues();
   const { onInProgress, offInProgress } = useStore((store) => store);
   const [menus, setMenus] = useState<MenuNonNull[]>([]);
+
+  const { title, setTitle } = useContext(PageTitleContext);
+  useEffect(() => {
+    setTitle("Gestione voci di menu");
+  }, [setTitle]);
 
   const { loading, data } = useGetAll<MenuNonNull>({
     fragment: menuFragment,
@@ -117,7 +123,7 @@ function MenuDetails() {
             />
             <Box sx={{ marginTop: 1, paddingX: 2 }}>
               <Typography variant="h5" gutterBottom>
-                Gestione menu
+                {title}
               </Typography>
             </Box>
             <Box sx={{ marginTop: 1, paddingX: 1 }}>

@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import Box from '@mui/material/Box';
 import { MenuNonNull } from '../../common/form/searchbox/searchboxOptions/menuSearchboxOptions';
 import Datagrid from '../../common/datagrid/Datagrid';
@@ -9,6 +10,7 @@ interface MenuFormProps {
 
 const MenuForm: React.FC<MenuFormProps> = ({ menus }) => {
   const { status } = useFormikContext();
+  const readOnly = useMemo(() => status.isFormLocked as boolean, [status.isFormLocked]);
 
   const getNewRow = (): MenuNonNull => ({
     __typename: "Menu",
@@ -23,15 +25,15 @@ const MenuForm: React.FC<MenuFormProps> = ({ menus }) => {
   });
 
   return (
-    <Box sx={{ marginTop: 1, paddingX: 1, height: '80vh' }}>
+    <Box sx={{ marginTop: 1, paddingX: 1, height: '83vh' }}>
       <Datagrid
         height="100%"
         items={menus}
         getRowId={({ data }) => data.menuId.toString()}
         singleClickEdit
-        treeData
+        treeData={readOnly}
         treeDataParentIdField="parentMenuId"
-        readOnly={status.isFormLocked as boolean}
+        readOnly={readOnly}
         getNewRow={getNewRow}
         groupDefaultExpanded={-1}
         autoGroupColumnDef={{
@@ -43,10 +45,12 @@ const MenuForm: React.FC<MenuFormProps> = ({ menus }) => {
           width: 200,
         }}
         columnDefs={[
-          { headerName: 'Icona', field: 'icon', filter: true, sortable: true, width: 150, editable: true },
-          { headerName: 'View', field: 'viewName', filter: true, sortable: true, width: 150 },
-          { headerName: 'Path', field: 'path', filter: true, sortable: true, width: 200, editable: true },
-          { headerName: 'Visibile', field: 'isVisible', filter: true, sortable: true, width: 120 },
+          { headerName: 'Id', field: 'menuId', sortable: false, width: 120, editable: false, hide: readOnly },
+          { headerName: 'Icona', field: 'icon', sortable: true, width: 150, editable: true },
+          { headerName: 'View', field: 'viewName', sortable: true, width: 150 },
+          { headerName: 'Path', field: 'path', sortable: true, width: 200, editable: true },
+          { headerName: 'Visibile', field: 'isVisible', sortable: true, width: 120 },
+          { headerName: 'Padre', field: 'parentMenuId', sortable: false, width: 120, editable: true, hide: readOnly },
         ]}
       />
     </Box>
