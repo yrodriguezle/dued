@@ -14,11 +14,16 @@ interface RoleMenusProps {
 function RoleMenus({ menus, onGridReady }: RoleMenusProps) {
   const [opened, setOpened] = useState('');
   const { status } = useFormikContext();
-  const readOnly = useMemo(() => status.isFormLocked as boolean, [status.isFormLocked]);
+  const { isFormLocked } = useMemo(() => {
+    return {
+      isFormLocked: status.isFormLocked as boolean,
+      formStatus: status.formStatus as string,
+    }
+  }, [status.formStatus, status.isFormLocked]);
 
   useEffect(() => {
     setTimeout(() => {
-      if (readOnly) {
+      if (isFormLocked) {
         const containers = document.querySelectorAll('div[role="presentation"][data-ref="eCheckbox"].ag-labeled.ag-label-align-right.ag-checkbox.ag-input-field:not(.ag-disabled)');
         containers.forEach(container => {
           container.classList.add('ag-disabled');
@@ -45,8 +50,8 @@ function RoleMenus({ menus, onGridReady }: RoleMenusProps) {
           }
         });
       }
-    }, 0)
-  }, [readOnly, opened]);
+    }, 0);
+  }, [isFormLocked, opened]);
 
   const onRowGroupOpened = useCallback(
     (event: RowGroupOpenedEvent) => {
@@ -70,12 +75,6 @@ function RoleMenus({ menus, onGridReady }: RoleMenusProps) {
           headerName: 'Titolo',
           field: 'title',
           cellRenderer: 'agGroupCellRenderer',
-          cellRendererParams: {
-            // disables ↵ Enter to expand/collapse
-            suppressEnterExpand: true,
-            // disables double-click to expand/collapse
-            suppressDoubleClickExpand: true,
-          },
           filter: true,
           sortable: true,
           width: 200,
@@ -90,7 +89,7 @@ function RoleMenus({ menus, onGridReady }: RoleMenusProps) {
         rowSelection={{
           mode: "multiRow",
           groupSelects: "descendants",
-          headerCheckbox: !readOnly
+          headerCheckbox: !isFormLocked
         }}
         onGridReady={onGridReady}
       />
