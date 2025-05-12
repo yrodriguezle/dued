@@ -2,9 +2,8 @@ import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo
 import MTextField, { TextFieldProps as MTextFieldProps } from "@mui/material/TextField";
 import InputAdornment from "@mui/material/InputAdornment";
 import IconButton from "@mui/material/IconButton";
-import { useTheme } from "@mui/material/styles";
-import { EyeTwoTone, EyeInvisibleTwoTone } from "@ant-design/icons";
-import { blueGrey } from "@mui/material/colors";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 
 export interface TextFieldProps extends Omit<MTextFieldProps<"standard">, "onChange"> {
   value?: string;
@@ -34,8 +33,6 @@ const TextField = forwardRef<TextFieldRef, TextFieldProps>(({ value = "", name, 
   const [innerValue, setInnerValue] = useState<string>(value);
   const [focused, setFocus] = useState<boolean>(!!props.autoFocus);
   const [showPassword, setShowPassword] = useState<boolean>(false);
-  const theme = useTheme();
-
   const handleClickShowPassword = useCallback(() => setShowPassword((prev) => !prev), []);
 
   useEffect(() => {
@@ -124,11 +121,7 @@ const TextField = forwardRef<TextFieldRef, TextFieldProps>(({ value = "", name, 
             props.type === "password" ? (
               <InputAdornment position="end">
                 <IconButton disabled={props.disabled} aria-label="toggle password visibility" onClick={handleClickShowPassword} onMouseDown={handleMouseDownPassword}>
-                  {showPassword ? (
-                    <EyeInvisibleTwoTone disabled={props.disabled} twoToneColor={props.error ? theme.palette.error.main : blueGrey[500]} />
-                  ) : (
-                    <EyeTwoTone disabled={props.disabled} twoToneColor={props.error ? theme.palette.error.main : blueGrey[500]} />
-                  )}
+                  {showPassword ? <VisibilityOffIcon color={props.error ? "error" : "inherit"} /> : <VisibilityIcon color={props.error ? "error" : "inherit"} />}
                 </IconButton>
               </InputAdornment>
             ) : undefined,

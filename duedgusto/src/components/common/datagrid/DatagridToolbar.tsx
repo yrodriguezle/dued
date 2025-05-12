@@ -1,16 +1,17 @@
 import { RefObject, useEffect } from "react";
 import Box from "@mui/material/Box";
-import Stack from '@mui/material/Stack';
-import Button from '@mui/material/Button';
+import Stack from "@mui/material/Stack";
+import Button from "@mui/material/Button";
 import ButtonGroup from "@mui/material/ButtonGroup";
-import AddIcon from '@mui/icons-material/Add';
-import RemoveIcon from '@mui/icons-material/Remove';
+import AddIcon from "@mui/icons-material/Add";
+import RemoveIcon from "@mui/icons-material/Remove";
 
 import useStore from "../../../store/useStore";
 import { themeDark, themeLight } from "./datagridThemes";
 import { GridReadyEvent } from "ag-grid-community";
 
 interface DatagridToolbarProps<T> {
+  canAddNewRow: boolean;
   readOnly?: boolean;
   gridRef?: RefObject<GridReadyEvent<T> | null>;
   onAdd: () => void;
@@ -22,7 +23,7 @@ interface Cache {
   _cssClassCache: string;
 }
 
-const DatagridToolbar = <T,>({ readOnly, onAdd, onDelete }: DatagridToolbarProps<T>) => {
+const DatagridToolbar = <T,>({ canAddNewRow, readOnly, onAdd, onDelete }: DatagridToolbarProps<T>) => {
   const { userTheme } = useStore((store) => store);
   const theme = (userTheme.mode === "light" ? themeLight : themeDark) as unknown as Cache;
 
@@ -64,13 +65,13 @@ const DatagridToolbar = <T,>({ readOnly, onAdd, onDelete }: DatagridToolbarProps
               size="small"
               startIcon={<AddIcon />}
               onClick={onAdd}
-              disabled={readOnly}
+              disabled={readOnly || !canAddNewRow}
               sx={{
                 minHeight: 0,
                 height: 32,
                 paddingY: 0.5,
                 paddingX: 1.5,
-                alignSelf: 'center',
+                alignSelf: "center",
               }}
             >
               Nuova riga
@@ -85,7 +86,7 @@ const DatagridToolbar = <T,>({ readOnly, onAdd, onDelete }: DatagridToolbarProps
                 height: 32,
                 paddingY: 0.5,
                 paddingX: 1.5,
-                alignSelf: 'center',
+                alignSelf: "center",
               }}
             >
               Cancella riga
