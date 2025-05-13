@@ -1,10 +1,14 @@
 import { useMemo } from "react";
 import Box from "@mui/material/Box";
+import * as MuiIcons from "@mui/icons-material";
+
 import { MenuNonNull } from "../../common/form/searchbox/searchboxOptions/menuSearchboxOptions";
 import Datagrid from "../../common/datagrid/Datagrid";
 import { useFormikContext } from "formik";
 import MenuIconRenderer from "../../common/datagrid/cellRenderers/MenuIconRenderer";
-import MenuIconEditor from "../../common/datagrid/cellEditors/menuIcon/MenuIconEditor";
+import { IconName } from "../../common/icon/IconFactory";
+
+const iconNames = Object.keys(MuiIcons) as IconName[];
 
 interface MenuFormProps {
   menus: MenuNonNull[];
@@ -27,10 +31,10 @@ const MenuForm: React.FC<MenuFormProps> = ({ menus }) => {
   });
 
   return (
-    <Box id="poloppppp" sx={{ marginTop: 1, paddingX: 1, height: "83vh" }}>
+    <Box sx={{ marginTop: 1, paddingX: 1, height: "82vh" }}>
       <Datagrid
         height="100%"
-        items={menus}
+        rowData={menus}
         getRowId={({ data }) => data.menuId.toString()}
         singleClickEdit
         treeData={readOnly}
@@ -39,33 +43,73 @@ const MenuForm: React.FC<MenuFormProps> = ({ menus }) => {
         getNewRow={getNewRow}
         groupDefaultExpanded={-1}
         autoGroupColumnDef={{
-          headerName: "Titolo",
+          headerName: "Voce di menù",
           field: "title",
           cellRenderer: "agGroupCellRenderer",
-          filter: true,
-          sortable: true,
+          filter: false,
+          sortable: false,
           width: 200,
         }}
         columnDefs={[
-          { headerName: "Id", field: "menuId", sortable: false, width: 120, editable: false, hide: readOnly },
+          {
+            headerName: "Id",
+            field: "menuId",
+            width: 50,
+            editable: false,
+            hide: readOnly,
+          },
           {
             headerName: "Icona",
             field: "icon",
             sortable: true,
-            width: 150,
-            editable: true,
+            width: 180,
+            editable: !readOnly,
             cellRenderer: MenuIconRenderer,
             cellRendererParams: {
               fontSize: "small",
             },
-            cellEditor: MenuIconEditor,
-            // cellEditorPopup: true,
-            // cellEditorPopupPosition: "over",
+            cellEditor: "agRichSelectCellEditor",
+            cellEditorParams: {
+              cellRenderer: MenuIconRenderer,
+              values: iconNames,
+              searchType: "match",
+              allowTyping: true,
+              filterList: true,
+              highlightMatch: true,
+              valueListMaxHeight: 220,
+            },
           },
-          { headerName: "View", field: "viewName", sortable: true, width: 150 },
-          { headerName: "Path", field: "path", sortable: true, width: 200, editable: true },
-          { headerName: "Visibile", field: "isVisible", sortable: true, width: 120 },
-          { headerName: "Padre", field: "parentMenuId", sortable: false, width: 120, editable: true, hide: readOnly },
+          {
+            headerName: "Voce di menù",
+            field: "title",
+            width: 150,
+            editable: !readOnly,
+          },
+          {
+            headerName: "Nome view",
+            field: "viewName",
+            width: 150,
+            editable: !readOnly,
+          },
+          {
+            headerName: "Path",
+            field: "path",
+            sortable: true,
+            width: 200,
+            editable: !readOnly,
+          },
+          {
+            headerName: "Visibile",
+            field: "isVisible",
+            width: 90,
+          },
+          {
+            headerName: "Padre",
+            field: "parentMenuId",
+            width: 120,
+            editable: !readOnly,
+            hide: readOnly,
+          },
         ]}
       />
     </Box>

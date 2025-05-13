@@ -1,25 +1,33 @@
 import { PopperProps } from "@mui/material/";
 import Paper from "@mui/material/Paper";
 import Callout from "../../../callout/Callout";
+import { useMemo } from "react";
 
-interface FloatingPopperProps extends PopperProps {
-  target: HTMLElement | string | null;
+interface FloatingPopperProps extends Omit<PopperProps, "anchorEl"> {
+  anchorEl: HTMLElement | string | null;
 }
 
 function FloatingPopper(props: FloatingPopperProps) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { target, anchorEl, children, ...paperProps } = props;
-  if (!target) return null;
+  const { anchorEl, children, ...popperProps } = props;
+  const paperProps = useMemo(() => {
+    const {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      disablePortal,
+      ...rest
+    } = popperProps;
+    return rest;
+  }, [popperProps]);
+
+  if (!anchorEl) return null;
   const content =
     typeof children === "function"
       ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
         children(props as any)
       : children;
 
-  console.log("content", content);
   return (
     <Callout
-      target={target}
+      target={anchorEl}
       onDismiss={() => {
         /* handled by Autocomplete onClose */
       }}

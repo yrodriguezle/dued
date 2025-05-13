@@ -28,7 +28,7 @@ function MenuDetails() {
 
   const { title, setTitle } = useContext(PageTitleContext);
   useEffect(() => {
-    setTitle("Gestione voci di menu");
+    setTitle("Gestione voci di menù");
   }, [setTitle]);
 
   const { loading, data } = useGetAll<MenuNonNull>({
@@ -116,11 +116,7 @@ function MenuDetails() {
       >
         {() => (
           <Form noValidate>
-            <FormikToolbar
-              onFormReset={handleResetForm}
-              hideNewButton
-              hideDeleteButton
-            />
+            <FormikToolbar onFormReset={handleResetForm} hideNewButton hideDeleteButton />
             <Box sx={{ marginTop: 1, paddingX: 2 }}>
               <Typography variant="h5" gutterBottom>
                 {title}

@@ -1,48 +1,52 @@
-import { useCallback, useMemo, useRef, useState } from "react";
-import { ColDef, Column, GridReadyEvent, IRowNode, RowPinnedType, RowSelectionOptions } from "ag-grid-community";
-import { AgGridReactProps } from "ag-grid-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { CellEditingStartedEvent, Column, GridReadyEvent, IRowNode, RowPinnedType, RowSelectionOptions } from "ag-grid-community";
 import Box from "@mui/material/Box";
 
 import AgGrid from "./AgGrid";
 import DatagridToolbar from "./DatagridToolbar";
-import { IRowEvent } from "../../../@types/datagrid";
 import getFirstEditableColumn from "./getFirstEditableColumn";
-interface BaseDatagridProps<T> extends AgGridReactProps<T> {
-  height: string;
-  items: T[];
-  onGridReady?: (event: GridReadyEvent<T>) => void;
-  columnDefs: ColDef<T>[];
-  addNewRowAt?: "top" | "bottom";
-}
+import { DatagridData, DatagridProps, IRowEvent } from "./@types/Datagrid";
+import { DatagridStatus } from "../../../common/globals/constants";
 
-interface NormalModeProps<T> extends BaseDatagridProps<T> {
-  presentation?: undefined;
-  getNewRow: () => T;
-  readOnly: boolean;
-}
-
-interface PresentationModeProps<T> extends BaseDatagridProps<T> {
-  presentation: true;
-  getNewRow?: never;
-  readOnly?: never;
-}
-
-type DatagridProps<T> = NormalModeProps<T> | PresentationModeProps<T>;
-
-function Datagrid<T>(props: DatagridProps<T>) {
+function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
+  const [ready, setReady] = useState(false);
   const [canAddNewRow, setCanAddNewRow] = useState(true);
   // const [canDeleteRow, setCanDeleteRow] = useState(false);
+  const [items, setItems] = useState<DatagridData<T>[]>([]);
   const gridRef = useRef<GridReadyEvent<T> | null>(null);
-  const { addNewRowAt, presentation, readOnly, items, height, onGridReady, getNewRow, ...gridProps } = props;
+  const { addNewRowAt, presentation, readOnly, height, onGridReady, getNewRow, ...gridProps } = props;
   const isPresentation = presentation === true;
+  // const previousEditingNode = useRef<IRowNode<DatagridData<T>>>(null);
 
   const handleGridReady = useCallback(
     (event: GridReadyEvent<T>) => {
       gridRef.current = event;
+      setReady(true);
       onGridReady?.(event);
     },
     [onGridReady]
   );
+
+  const initRowData = useCallback(() => {
+    const pRowData = props.rowData || [];
+    setItems(
+      pRowData.map((data) => ({
+        ...data,
+        status: DatagridStatus.Unchanged,
+      }))
+    );
+  }, [props.rowData]);
+
+  const handleCellEditingStarted = useCallback((params: CellEditingStartedEvent) => {
+    params.api.deselectAll();
+    setCanAddNewRow(false);
+  }, []);
+
+  useEffect(() => {
+    if (!ready) return;
+    initRowData();
+    gridRef.current?.api.addEventListener("cellEditingStarted", handleCellEditingStarted);
+  }, [handleCellEditingStarted, initRowData, ready]);
 
   const gotoEditCell = useCallback(
     (rowIndex: number, colIdOrColumn: string | Column, rowPinned?: RowPinnedType) =>
@@ -113,11 +117,20 @@ function Datagrid<T>(props: DatagridProps<T>) {
     return undefined;
   }, [isPresentation, readOnly]);
 
+  const context = useMemo(
+    () => ({
+      onGridReady,
+      initRowData,
+      props,
+    }),
+    [initRowData, onGridReady, props]
+  );
+
   return (
     <Box sx={{ height, display: "flex", flexDirection: "column" }}>
       {!isPresentation && <DatagridToolbar readOnly={readOnly} gridRef={gridRef} canAddNewRow={canAddNewRow} onAdd={handleAddNewRow} onDelete={handleDeleteSelected} />}
       <Box sx={{ flex: 1 }} className="datagrid-root">
-        <AgGrid rowSelection={rowSelection} {...gridProps} rowData={items} onGridReady={handleGridReady} />
+        <AgGrid rowSelection={rowSelection} context={context} {...gridProps} rowData={items} onGridReady={handleGridReady} />
       </Box>
     </Box>
   );

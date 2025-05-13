@@ -1,11 +1,10 @@
 import { Column } from "ag-grid-community";
-import { IRowEvent } from "../../../@types/datagrid";
+import { IRowEvent } from "./Datagrid";
 import isCellEditable from "./isCellEditable";
 
 const getFirstEditableColumn = <T,>(rowEvent: IRowEvent<T>) => {
   const columns: Column[] = rowEvent.api.getAllDisplayedColumns();
-  const col = columns
-    .find((column) => isCellEditable(column, rowEvent));
+  const col = columns.find((column) => isCellEditable(column, rowEvent));
   return col;
 };
 
