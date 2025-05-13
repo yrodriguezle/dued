@@ -1,4 +1,4 @@
-import { ColDef, GridApi, GridReadyEvent, IRowNode } from "ag-grid-community";
+import { ColDef, Column, GridApi, GridReadyEvent, IRowNode } from "ag-grid-community";
 import { AgGridReactProps } from "ag-grid-react";
 import { DatagridStatus } from "../../../../common/globals/constants";
 
@@ -8,28 +8,29 @@ interface DatagridAuxData {
 
 type DatagridData<T extends Record<string, unknown>> = DatagridAuxData & T;
 
-interface IRowEvent<TData> {
-  data: TData;
-  node: IRowNode<TData>;
-  api: GridApi<TData>;
-  // column?: Column;
+interface IRowEvent<T extends Record<string, unknown>> {
+  data: DatagridData<T>;
+  node: IRowNode<DatagridData<T>>;
+  api: GridApi<DatagridData<T>>;
+  column?: Column;
 }
 
-interface BaseDatagridProps<T> extends AgGridReactProps<T> {
+interface BaseDatagridProps<T extends Record<string, unknown>> extends AgGridReactProps<T> {
   height: string;
-  // items: T[];
-  onGridReady?: (event: GridReadyEvent<T>) => void;
-  columnDefs: ColDef<T>[];
+  onGridReady?: (event: GridReadyEvent<DatagridData<T>>) => void;
+  columnDefs: ColDef<DatagridData<T>>[];
   addNewRowAt?: "top" | "bottom";
 }
-interface EditingModeProps<T> extends BaseDatagridProps<T> {
+interface EditingModeProps<T extends Record<string, unknown>> extends BaseDatagridProps<T> {
   presentation?: undefined;
   getNewRow: () => T;
   readOnly: boolean;
 }
-interface PresentationModeProps<T> extends BaseDatagridProps<T> {
+interface PresentationModeProps<T extends Record<string, unknown>> extends BaseDatagridProps<T> {
   presentation: true;
   getNewRow?: never;
   readOnly?: never;
 }
-type DatagridProps<T> = EditingModeProps<T> | PresentationModeProps<T>;
+type DatagridProps<T extends Record<string, unknown>> = EditingModeProps<T> | PresentationModeProps<T>;
+
+type ValidateRow<T extends Record<string, unknown>> = (node: IRowNode<DatagridData<T>>) => Promise<{ id: string }>;
