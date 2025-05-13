@@ -31,7 +31,7 @@ const MenuForm: React.FC<MenuFormProps> = ({ menus }) => {
   });
 
   return (
-    <Box sx={{ marginTop: 1, paddingX: 1, height: "82vh" }}>
+    <Box sx={{ marginTop: 1, paddingX: 1, height: '80vh' }}>
       <Datagrid
         height="100%"
         rowData={menus}

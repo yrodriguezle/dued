@@ -7,15 +7,16 @@ interface SubmitRoleData {
   };
 }
 
-export interface SubmitRoleValues {
+export interface  SubmitRoleValues {
   role: RoleInput;
+  menuIds: number[];
 }
 
 export const mutationSubmitRole: TypedDocumentNode<SubmitRoleData, SubmitRoleValues> = gql`
   ${roleFragment}
-  mutation SubmitRole($role: RoleInput!) {
+  mutation SubmitRole($role: RoleInput!, $menuIds: [Int!]!) {
     authentication {
-      mutateRole(role: $role) {
+      mutateRole(role: $role, menuIds: $menuIds) {
         ...RoleFragment
       }
     }

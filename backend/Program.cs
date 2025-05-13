@@ -37,6 +37,17 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
 });
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAllDev", policy =>
+    {
+        policy.AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials()
+              .SetIsOriginAllowed(origin => true);
+    });
+});
+
 string keyString = builder.Configuration.GetSection("Jwt")["Key"] ?? string.Empty;
 string validIssuer = builder.Configuration["Jwt:Issuer"] ?? string.Empty;
 string validAudience = builder.Configuration["Jwt:Audience"] ?? string.Empty;
@@ -77,8 +88,6 @@ builder.Services.AddGraphQL((ctx) => ctx
     })
     .AddGraphTypes(typeof(GraphQLSchema).Assembly));
 
-builder.Services.AddCors();
-
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -88,12 +97,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseCors(builder => builder
-    .AllowAnyHeader()
-    .AllowAnyMethod()
-    .SetIsOriginAllowed((host) => true)
-    .AllowCredentials()
- );
+app.UseCors("AllowAllDev");
 
 app.UseAuthentication();
 

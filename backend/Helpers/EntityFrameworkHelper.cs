@@ -209,27 +209,6 @@ public static class EntityFrameworkHelper
     return true;
   }
 
-  // public static async Task UpdateBulkNestedProperty<TEntity, TNested>(
-  //     this DbContext context,
-  //     TEntity entity,
-  //     Expression<Func<TEntity, ICollection<TNested>>> navigation,
-  //     List<TNested> incomingRows,
-  //     Expression<Func<TNested, bool>> filter)
-  //     where TEntity : class
-  //     where TNested : class
-  // {
-  //     var dbRows = await context.Set<TNested>().Where(filter).AsNoTracking().ToListAsync();
-  //     var changes = incomingRows.GetEntitiesToAddOrUpdateOrDelete(dbRows, context);
-  //     var property = navigation.Compile().Invoke(entity);
-  //     if (property != null)
-  //     {
-  //         context.Set<TNested>().RemoveRange(changes.ToDelete);
-  //         property.Clear();
-  //         property.AddRange(changes.ToAdd);
-  //         context.Set<TNested>().UpdateRange(changes.ToUpdate);
-  //     }
-  // }
-
   public static async Task<bool> UpdateBulkWithIncludesAsync<TEntity>(
       this DbContext context,
       IEnumerable<TEntity> incomingRows,

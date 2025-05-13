@@ -97,12 +97,24 @@ function RoleDetails() {
 
   const onSubmit = async (values: FormikRoleValues) => {
     try {
+      const menuIds = gridRef.current?.api.getSelectedNodes().map((node) => node.data?.menuId as number) || [];
+      if (menuIds.length === 0) {
+        showToast({
+          type: "warning",
+          position: "bottom-right",
+          message: "Selezionare almeno un menu",
+          autoClose: 2000,
+          toastId: "warning",
+        });
+        return;
+      }
       const role = await submitRole({
         role: {
           roleId: values.roleId,
           roleName: values.roleName,
           roleDescription: values.roleDescription ?? "",
         },
+        menuIds,
       });
       if (!role) {
         throw new Error("Errore nella risposta del server");

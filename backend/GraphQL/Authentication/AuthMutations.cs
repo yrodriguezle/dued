@@ -50,15 +50,44 @@ public class AuthMutations : ObjectGraphType
 
         Field<RoleType, Role>("mutateRole")
             .Argument<NonNullGraphType<RoleInputType>>("role", "Dati del ruolo da creare o aggiornare")
+            .Argument<NonNullGraphType<ListGraphType<IntGraphType>>>("menuIds", "ID dei menu associati al ruolo")
             .ResolveAsync(async context =>
             {
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
                 Role input = context.GetArgument<Role>("role");
+                List<int> menuIds = context.GetArgument<List<int>>("menuIds");
+                Role? role = await dbContext.Roles
+                    .Include(r => r.Menus)
+                    .FirstOrDefaultAsync(r => r.RoleId == input.RoleId);
+                
+                if (role == null)
+                {
+                    role = new Role();
+                    dbContext.Roles.Add(role);
+                }
 
-                Role? existing = await dbContext.Roles.FindAsync(input.RoleId);
-                Role updated = await dbContext.AddOrUpdateAsync(input);
+                role.RoleName = input.RoleName;
+                role.RoleDescription = input.RoleDescription;
+
+                List<Menu> selectedMenus = await dbContext.Menus
+                    .Where(m => menuIds.Contains(m.MenuId))
+                    .ToListAsync();
+                
+                // Rimuovi i vecchi
+                role.Menus
+                    .Where(m => !menuIds.Contains(m.MenuId))
+                    .ToList()
+                    .ForEach(m => role.Menus.Remove(m));
+
+                // Aggiungi i nuovi
+                selectedMenus
+                    .Where(m => !role.Menus.Any(rm => rm.MenuId == m.MenuId))
+                    .ToList()
+                    .ForEach(m => role.Menus.Add(m));
+                
+                
                 await dbContext.SaveChangesAsync();
-                return updated;
+                return role;
             });
 
         Field<UserType, User>("mutateUser")
