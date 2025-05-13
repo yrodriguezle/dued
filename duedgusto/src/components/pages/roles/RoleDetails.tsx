@@ -6,7 +6,7 @@ import useConfirm from "../../common/confirm/useConfirm";
 import { formStatuses } from "../../../common/globals/constants";
 import sleep from "../../../common/bones/sleep";
 import setInitialFocus from "./setInitialFocus";
-import { RoleSearchbox } from "../../common/form/searchbox/searchboxOptions/roleSearchboxOptions";
+import { RoleNonNull } from "../../common/form/searchbox/searchboxOptions/roleSearchboxOptions";
 import FormikToolbar from "../../common/form/toolbar/FormikToolbar";
 import RoleForm from "./RoleForm";
 import { Box, Paper, Typography } from "@mui/material";
@@ -74,7 +74,7 @@ function RoleDetails() {
     gridRef.current = event;
   }, []);
 
-  const handleSelectedItem = useCallback((item: RoleSearchbox) => {
+  const handleSelectedItem = useCallback((item: RoleNonNull) => {
     handleInitializeValues(item).then(() => {
       setTimeout(() => {
         if (!gridRef.current?.api.isDestroyed() && (gridRef.current?.api.getDisplayedRowCount() ?? 0) > 0) {
