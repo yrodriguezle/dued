@@ -31,7 +31,7 @@ const MenuForm: React.FC<MenuFormProps> = ({ menus }) => {
   });
 
   return (
-    <Box sx={{ marginTop: 1, paddingX: 1, height: '80vh' }}>
+    <Box sx={{ marginTop: 1, paddingX: 1, height: "80vh" }}>
       <Datagrid
         height="100%"
         rowData={menus}
@@ -77,6 +77,14 @@ const MenuForm: React.FC<MenuFormProps> = ({ menus }) => {
               filterList: true,
               highlightMatch: true,
               valueListMaxHeight: 220,
+            },
+            valueSetter: (params) => {
+              if (params.newValue !== params.oldValue) {
+                params.data.icon = params.newValue;
+                params.context.gotoEditCell(params.node?.rowIndex, params.column);
+                return true;
+              }
+              return false;
             },
           },
           {

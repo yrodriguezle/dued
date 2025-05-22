@@ -8,6 +8,7 @@ import getFirstEditableColumn from "./getFirstEditableColumn";
 import { DatagridData, DatagridProps, IRowEvent } from "./@types/Datagrid";
 import { DatagridStatus } from "../../../common/globals/constants";
 import { AgGridReactProps } from "ag-grid-react";
+import useGridValidation from "./validation/useGridValidation";
 
 function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
   const [ready, setReady] = useState(false);
@@ -48,6 +49,8 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
     initRowData();
     gridRef.current?.api.addEventListener("cellEditingStarted", handleCellEditingStarted);
   }, [handleCellEditingStarted, initRowData, ready]);
+
+  const { validateRow, validatePreviousEditedRow } = useGridValidation<DatagridData<T>>();
 
   const gotoEditCell = useCallback(
     (rowIndex: number, colIdOrColumn: string | Column, rowPinned?: RowPinnedType) =>
@@ -124,8 +127,10 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
       onGridReady,
       initRowData,
       gotoEditCell,
+      validateRow,
+      validatePreviousEditedRow,
     }),
-    [gotoEditCell, initRowData, onGridReady, props]
+    [gotoEditCell, initRowData, onGridReady, props, validatePreviousEditedRow, validateRow]
   );
 
   return (

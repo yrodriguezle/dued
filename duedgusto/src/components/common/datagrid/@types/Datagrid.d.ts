@@ -9,7 +9,7 @@ interface DatagridAuxData {
 type DatagridData<T extends Record<string, unknown>> = DatagridAuxData & T;
 
 interface IRowEvent<T extends Record<string, unknown>> {
-  data: DatagridData<T>;
+  data?: DatagridData<T>;
   node: IRowNode<DatagridData<T>>;
   api: GridApi<DatagridData<T>>;
   column?: Column;

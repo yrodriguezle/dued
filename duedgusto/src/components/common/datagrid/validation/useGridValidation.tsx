@@ -1,6 +1,6 @@
 import { CellEditingStartedEvent } from "ag-grid-community";
 import { useCallback } from "react";
-import { DatagridData, ValidateRow } from "../@types/Datagrid";
+import { DatagridData, IRowEvent, ValidateRow } from "../@types/Datagrid";
 import { DatagridStatus } from "../../../../common/globals/constants";
 import showToast from "../../../../common/toast/showToast";
 import reportError from "../../../../common/bones/reportError";
@@ -42,9 +42,15 @@ function useGridValidation<T extends Record<string, unknown>>() {
           node.setDataValue("status", DatagridStatus.Invalid);
 
           if (!validationOnly) {
-            const firstEditableColumn = getFirstEditableColumn(event);
-            if (firstEditableColumn) {
-              gotoEditCell(node.rowIndex ?? 0, firstEditableColumn);
+            const rowEvent: IRowEvent<DatagridData<T>> = {
+              data: node.data,
+              node,
+              api: event.api,
+              column: event.column,
+            };
+            const firstEditableColumn = getFirstEditableColumn(rowEvent);
+            if (firstEditableColumn && event.context.gotoEditCell) {
+              event.context.gotoEditCell(node.rowIndex ?? 0, firstEditableColumn);
             }
           }
         });
@@ -81,6 +87,11 @@ function useGridValidation<T extends Record<string, unknown>>() {
     },
     [validateRow]
   );
+
+  return {
+    validateRow,
+    validatePreviousEditedRow,
+  };
 }
 
 export default useGridValidation;
