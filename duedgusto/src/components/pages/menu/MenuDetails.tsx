@@ -3,7 +3,7 @@ import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import useInitializeValues from "./useInitializeValues";
 import useConfirm from "../../common/confirm/useConfirm";
-import { formStatuses } from "../../../common/globals/constants";
+import { DatagridStatus, formStatuses } from "../../../common/globals/constants";
 import sleep from "../../../common/bones/sleep";
 import setInitialFocus from "./setInitialFocus";
 import FormikToolbar from "../../common/form/toolbar/FormikToolbar";
@@ -12,11 +12,13 @@ import showToast from "../../../common/toast/showToast";
 import MenuForm from "./MenuForm";
 import { menuFragment } from "../../../graphql/menus/fragments";
 import useGetAll from "../../../graphql/common/useGetAll";
-import { MenuNonNull } from "../../common/form/searchbox/searchboxOptions/menuSearchboxOptions";
+import { MenuNonNull, MenuWithStatus } from "../../common/form/searchbox/searchboxOptions/menuSearchboxOptions";
 import useStore from "../../../store/useStore";
 import PageTitleContext from "../../layout/headerBar/PageTitleContext";
 
-const Schema = z.object({});
+const Schema = z.object({
+  gridDirty: z.boolean(),
+});
 
 export type FormikMenuValues = z.infer<typeof Schema>;
 
@@ -24,7 +26,7 @@ function MenuDetails() {
   const formRef = useRef<FormikProps<FormikMenuValues>>(null);
   const { initialValues, handleInitializeValues } = useInitializeValues();
   const { onInProgress, offInProgress } = useStore((store) => store);
-  const [menus, setMenus] = useState<MenuNonNull[]>([]);
+  const [menus, setMenus] = useState<MenuWithStatus[]>([]);
 
   const { title, setTitle } = useContext(PageTitleContext);
   useEffect(() => {
@@ -40,7 +42,12 @@ function MenuDetails() {
 
   useEffect(() => {
     if (data.length) {
-      setMenus(data.map((item) => ({ ...item })));
+      setMenus(
+        data.map((item) => ({
+          ...item,
+          status: DatagridStatus.Unchanged,
+        }))
+      );
     }
   }, [data]);
 

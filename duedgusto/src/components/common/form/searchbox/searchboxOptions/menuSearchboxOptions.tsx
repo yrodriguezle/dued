@@ -1,6 +1,11 @@
 import { DatagridColDef, SearchboxOptions } from "../../../../../@types/searchbox";
+import { DatagridStatus } from "../../../../../common/globals/constants";
 
 export type MenuNonNull = Exclude<Menu, null>;
+
+export type MenuWithStatus = MenuNonNull & {
+  status: DatagridStatus;
+};
 
 const items: DatagridColDef<MenuNonNull>[] = [
   {

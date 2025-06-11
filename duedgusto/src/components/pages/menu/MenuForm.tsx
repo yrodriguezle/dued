@@ -1,24 +1,29 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import Box from "@mui/material/Box";
 import * as MuiIcons from "@mui/icons-material";
 
-import { MenuNonNull } from "../../common/form/searchbox/searchboxOptions/menuSearchboxOptions";
+import { MenuNonNull, MenuWithStatus } from "../../common/form/searchbox/searchboxOptions/menuSearchboxOptions";
 import Datagrid from "../../common/datagrid/Datagrid";
 import { useFormikContext } from "formik";
 import MenuIconRenderer from "../../common/datagrid/cellRenderers/MenuIconRenderer";
 import { IconName } from "../../common/icon/IconFactory";
+import { DatagridData } from "../../common/datagrid/@types/Datagrid";
+import { CellValueChangedEvent, RowDataUpdatedEvent } from "ag-grid-community";
+import { FormikMenuValues } from "./MenuDetails";
+import { DatagridStatus } from "../../../common/globals/constants";
+import useDebouncedCallback from "../../common/debounced/useDebouncedCallback";
 
 const iconNames = Object.keys(MuiIcons) as IconName[];
 
 interface MenuFormProps {
-  menus: MenuNonNull[];
+  menus: MenuWithStatus[];
 }
 
 const MenuForm: React.FC<MenuFormProps> = ({ menus }) => {
-  const { status } = useFormikContext();
+  const { status, setFieldValue } = useFormikContext<FormikMenuValues>();
   const readOnly = useMemo(() => status.isFormLocked as boolean, [status.isFormLocked]);
 
-  const getNewRow = (): MenuNonNull => ({
+  const getNewRow = (): MenuWithStatus => ({
     __typename: "Menu",
     menuId: 0,
     parentMenuId: null,
@@ -28,11 +33,31 @@ const MenuForm: React.FC<MenuFormProps> = ({ menus }) => {
     isVisible: true,
     filePath: "",
     viewName: "",
+    status: DatagridStatus.Added,
   });
+
+  const handleRowDataUpdated = useCallback(
+    (event: RowDataUpdatedEvent<DatagridData<MenuWithStatus>>) => {
+      const gridData: DatagridData<MenuWithStatus>[] = event.context.getGridData();
+      const dirty = gridData.some(({ status }) => status === DatagridStatus.Modified);
+      setFieldValue("gridDirty", dirty);
+    },
+    [setFieldValue]
+  );
+
+  const handleCellValueChanged = useDebouncedCallback(
+    (event: CellValueChangedEvent<DatagridData<MenuWithStatus>>) => {
+      const gridData: DatagridData<MenuWithStatus>[] = event.context.getGridData();
+      const dirty = gridData.some(({ status }) => status === DatagridStatus.Modified);
+      setFieldValue("gridDirty", dirty);
+    },
+    [],
+    1
+  );
 
   return (
     <Box sx={{ marginTop: 1, paddingX: 1, height: "80vh" }}>
-      <Datagrid
+      <Datagrid<DatagridData<MenuNonNull>>
         height="100%"
         rowData={menus}
         getRowId={({ data }) => data.menuId.toString()}
@@ -50,6 +75,8 @@ const MenuForm: React.FC<MenuFormProps> = ({ menus }) => {
           sortable: false,
           width: 200,
         }}
+        onRowDataUpdated={handleRowDataUpdated}
+        onCellValueChanged={handleCellValueChanged}
         columnDefs={[
           {
             headerName: "Id",

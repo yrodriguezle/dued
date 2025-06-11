@@ -6,7 +6,8 @@ interface DatagridAuxData {
   status: DatagridStatus;
 }
 
-type DatagridData<T extends Record<string, unknown>> = DatagridAuxData & T;
+// type DatagridData<T extends Record<string, unknown>> = DatagridAuxData & T;
+type DatagridData<T extends Record<string, unknown>> = DatagridAuxData & T & Record<string, unknown>;
 
 interface IRowEvent<T extends Record<string, unknown>> {
   data?: DatagridData<T>;
@@ -34,3 +35,6 @@ interface PresentationModeProps<T extends Record<string, unknown>> extends BaseD
 type DatagridProps<T extends Record<string, unknown>> = EditingModeProps<T> | PresentationModeProps<T>;
 
 type ValidateRow<T extends Record<string, unknown>> = (node: IRowNode<DatagridData<T>>) => Promise<{ id: string }>;
+
+type DatagridIRowEvent<T> = IRowEvent<DatagridData<T>>;
+type DatagridRowDataUpdatedEvent<T> = RowDataUpdatedEvent<DatagridData<T>>;

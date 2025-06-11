@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CellEditingStartedEvent, Column, GridReadyEvent, IRowNode, RowPinnedType } from "ag-grid-community";
+import { Column, GridReadyEvent, IRowNode, RowPinnedType } from "ag-grid-community";
 import Box from "@mui/material/Box";
 
 import AgGrid from "./AgGrid";
@@ -9,6 +9,7 @@ import { DatagridData, DatagridProps, IRowEvent } from "./@types/Datagrid";
 import { DatagridStatus } from "../../../common/globals/constants";
 import { AgGridReactProps } from "ag-grid-react";
 import useGridValidation from "./validation/useGridValidation";
+import useEditingGrid from "./editing/useEditingGrid";
 
 function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
   const [ready, setReady] = useState(false);
@@ -39,16 +40,15 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
     );
   }, [props.rowData]);
 
-  const handleCellEditingStarted = useCallback((params: CellEditingStartedEvent) => {
-    params.api.deselectAll();
-    setCanAddNewRow(false);
-  }, []);
-
   useEffect(() => {
     if (!ready) return;
     initRowData();
-    gridRef.current?.api.addEventListener("cellEditingStarted", handleCellEditingStarted);
-  }, [handleCellEditingStarted, initRowData, ready]);
+  }, [initRowData, ready]);
+
+  const { handleCellEditingStarted, handleCellValueChanged } = useEditingGrid(ready, gridRef, previousEditingNode);
+  useEffect(() => {
+    setCanAddNewRow(!readOnly);
+  }, [readOnly]);
 
   const { validateRow, validatePreviousEditedRow } = useGridValidation<DatagridData<T>>();
 
@@ -120,6 +120,20 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
     gridRef.current.api.applyTransaction({ remove: selected });
   }, [isPresentation]);
 
+  const getGridData = useCallback(() => {
+    const gridData: DatagridData<T>[] = [];
+    if (!gridRef.current?.api) {
+      return gridData;
+    }
+    gridRef.current.api.forEachLeafNode((node) => {
+      if (!node.data) {
+        return;
+      }
+      gridData.push(node.data);
+    });
+    return gridData;
+  }, []);
+
   const context = useMemo(
     () => ({
       previousEditingNode,
@@ -129,15 +143,18 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
       gotoEditCell,
       validateRow,
       validatePreviousEditedRow,
+      getGridData,
+      handleCellEditingStarted,
+      handleCellValueChanged,
     }),
-    [gotoEditCell, initRowData, onGridReady, props, validatePreviousEditedRow, validateRow]
+    [getGridData, gotoEditCell, handleCellEditingStarted, handleCellValueChanged, initRowData, onGridReady, props, validatePreviousEditedRow, validateRow]
   );
 
   return (
     <Box sx={{ height, display: "flex", flexDirection: "column" }}>
       {!isPresentation && <DatagridToolbar readOnly={readOnly} gridRef={gridRef} canAddNewRow={canAddNewRow} onAdd={handleAddNewRow} onDelete={handleDeleteSelected} />}
       <Box sx={{ flex: 1 }} className="datagrid-root">
-        <AgGrid context={context} {...(gridProps as AgGridReactProps<DatagridData<T>>)} rowData={items} onGridReady={handleGridReady} />
+        <AgGrid context={context} {...(gridProps as AgGridReactProps<DatagridData<T>>)} rowData={items} onGridReady={handleGridReady} rowSelection={readOnly ? undefined : { mode: "singleRow" }} />
       </Box>
     </Box>
   );
