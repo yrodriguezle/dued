@@ -1,5 +1,5 @@
 import { Form, Formik, FormikProps } from "formik";
-import { useCallback, useContext, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef } from "react";
 import { z } from "zod";
 import useInitializeValues from "./useInitializeValues";
 import useConfirm from "../../common/confirm/useConfirm";
@@ -26,7 +26,6 @@ function MenuDetails() {
   const formRef = useRef<FormikProps<FormikMenuValues>>(null);
   const { initialValues, handleInitializeValues } = useInitializeValues();
   const { onInProgress, offInProgress } = useStore((store) => store);
-  const [menus, setMenus] = useState<MenuWithStatus[]>([]);
 
   const { title, setTitle } = useContext(PageTitleContext);
   useEffect(() => {
@@ -39,17 +38,10 @@ function MenuDetails() {
     fragmentBody: "...MenuFragment",
     fetchPolicy: "network-only",
   });
-
-  useEffect(() => {
-    if (data.length) {
-      setMenus(
-        data.map((item) => ({
-          ...item,
-          status: DatagridStatus.Unchanged,
-        }))
-      );
-    }
-  }, [data]);
+  const menus = useMemo<MenuWithStatus[]>(() => data.map((item) => ({
+    ...item,
+    status: DatagridStatus.Unchanged,
+  })), [data]);
 
   useEffect(() => {
     if (loading) {

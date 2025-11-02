@@ -5,8 +5,9 @@ import Box from "@mui/material/Box";
 
 import AgGrid from "./AgGrid";
 import DatagridToolbar from "./DatagridToolbar";
-import { IRowEvent } from "../../../@types/datagrid";
 import getFirstEditableColumn from "./getFirstEditableColumn";
+import { DatagridData } from "../../common/datagrid/@types/Datagrid";
+
 interface BaseDatagridProps<T> extends AgGridReactProps<T> {
   height: string;
   items: T[];
@@ -29,8 +30,7 @@ interface PresentationModeProps<T> extends BaseDatagridProps<T> {
 
 type DatagridProps<T> = NormalModeProps<T> | PresentationModeProps<T>;
 
-function Datagrid<T>(props: DatagridProps<T>) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
   const [canAddNewRow, setCanAddNewRow] = useState(true);
   // const [canDeleteRow, setCanDeleteRow] = useState(false);
   const gridRef = useRef<GridReadyEvent<T> | null>(null);
@@ -99,11 +99,9 @@ function Datagrid<T>(props: DatagridProps<T>) {
     gridRef.current.api.applyTransaction({ remove: selected });
   }, [isPresentation]);
 
-  const rowSelection = useMemo<RowSelectionOptions<T> | undefined>(() => {
+  const rowSelection = useMemo<"single" | "multiple" | RowSelectionOptions<DatagridData<DatagridData<T>>> | undefined>(() => {
     if (!isPresentation && !readOnly) {
-      return {
-        mode: 'singleRow',
-      };
+      return "single";
     }
     return undefined;
   }, [isPresentation, readOnly]);
@@ -113,6 +111,7 @@ function Datagrid<T>(props: DatagridProps<T>) {
     <Box sx={{ height, display: "flex", flexDirection: "column" }}>
       {!isPresentation && (
         <DatagridToolbar
+          canAddNewRow={canAddNewRow}
           readOnly={readOnly}
           gridRef={gridRef}
           onAdd={handleAddNewRow}
@@ -120,7 +119,7 @@ function Datagrid<T>(props: DatagridProps<T>) {
         />
       )}
       <Box sx={{ flex: 1 }} className="datagrid-root">
-        <AgGrid
+        <AgGrid<DatagridData<T>>
           rowSelection={rowSelection}
           {...gridProps}
           rowData={items}
