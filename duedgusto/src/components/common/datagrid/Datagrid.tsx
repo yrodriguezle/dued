@@ -1,115 +1,94 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Column, GridReadyEvent, IRowNode, RowPinnedType } from "ag-grid-community";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { ColDef, Column, GridReadyEvent, IRowNode, RowPinnedType, RowSelectionOptions } from "ag-grid-community";
+import { AgGridReactProps } from "ag-grid-react";
 import Box from "@mui/material/Box";
 
 import AgGrid from "./AgGrid";
 import DatagridToolbar from "./DatagridToolbar";
+import { IRowEvent } from "../../../@types/datagrid";
 import getFirstEditableColumn from "./getFirstEditableColumn";
-import { DatagridData, DatagridProps, IRowEvent } from "./@types/Datagrid";
-import { DatagridStatus } from "../../../common/globals/constants";
-import { AgGridReactProps } from "ag-grid-react";
-import useGridValidation from "./validation/useGridValidation";
-import useEditingGrid from "./editing/useEditingGrid";
+interface BaseDatagridProps<T> extends AgGridReactProps<T> {
+  height: string;
+  items: T[];
+  onGridReady?: (event: GridReadyEvent<T>) => void;
+  columnDefs: ColDef<T>[];
+  addNewRowAt?: "top" | "bottom";
+}
 
-function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
-  const [ready, setReady] = useState(false);
+interface NormalModeProps<T> extends BaseDatagridProps<T> {
+  presentation?: undefined;
+  getNewRow: () => T;
+  readOnly: boolean;
+}
+
+interface PresentationModeProps<T> extends BaseDatagridProps<T> {
+  presentation: true;
+  getNewRow?: never;
+  readOnly?: never;
+}
+
+type DatagridProps<T> = NormalModeProps<T> | PresentationModeProps<T>;
+
+function Datagrid<T>(props: DatagridProps<T>) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [canAddNewRow, setCanAddNewRow] = useState(true);
   // const [canDeleteRow, setCanDeleteRow] = useState(false);
-  const [items, setItems] = useState<DatagridData<T>[]>([]);
-  const gridRef = useRef<GridReadyEvent<DatagridData<T>> | null>(null);
-  const { addNewRowAt, presentation, readOnly, height, onGridReady, getNewRow, ...gridProps } = props;
+  const gridRef = useRef<GridReadyEvent<T> | null>(null);
+  const { addNewRowAt, presentation, readOnly, items, height, onGridReady, getNewRow, ...gridProps } = props;
   const isPresentation = presentation === true;
-  const previousEditingNode = useRef<IRowNode<DatagridData<T>>>(null);
 
-  const handleGridReady = useCallback(
-    (event: GridReadyEvent<DatagridData<T>>) => {
-      gridRef.current = event;
-      setReady(true);
-      onGridReady?.(event);
-    },
-    [onGridReady]
-  );
-
-  const initRowData = useCallback(() => {
-    const pRowData = props.rowData || [];
-    setItems(
-      pRowData.map((data) => ({
-        ...data,
-        status: DatagridStatus.Unchanged,
-      }))
-    );
-  }, [props.rowData]);
-
-  useEffect(() => {
-    if (!ready) return;
-    initRowData();
-  }, [initRowData, ready]);
-
-  const { handleCellEditingStarted, handleCellValueChanged } = useEditingGrid(ready, gridRef, previousEditingNode);
-  useEffect(() => {
-    setCanAddNewRow(!readOnly);
-  }, [readOnly]);
-
-  const { validateRow, validatePreviousEditedRow } = useGridValidation<DatagridData<T>>();
+  const handleGridReady = useCallback((event: GridReadyEvent<T>) => {
+    gridRef.current = event;
+    onGridReady?.(event);
+  }, [onGridReady]);
 
   const gotoEditCell = useCallback(
-    (rowIndex: number, colIdOrColumn: string | Column, rowPinned?: RowPinnedType) =>
-      new Promise<boolean>((resolve) => {
-        if (!gridRef.current) {
-          resolve(false);
-          return;
-        }
-        if (rowIndex + 1 > gridRef.current.api.getDisplayedRowCount()) {
-          resolve(true);
-          return;
-        }
-        gridRef.current.api.ensureColumnVisible(colIdOrColumn);
-        setTimeout(() => {
-          if (!gridRef.current) {
-            resolve(false);
-            return;
-          }
-          gridRef.current.api.setFocusedCell(rowIndex, colIdOrColumn, rowPinned);
-          gridRef.current.api.startEditingCell({ rowIndex, colKey: colIdOrColumn, rowPinned });
-          resolve(true);
-        }, 1);
-      }),
-    []
+    (rowIndex: number, colIdOrColumn: string | Column, rowPinned?: RowPinnedType) => new Promise<boolean>((resolve) => {
+      if (!gridRef.current) throw new Error("Grid is not ready");
+      if (rowIndex + 1 > gridRef.current.api.getDisplayedRowCount()) {
+        resolve(true);
+        return;
+      }
+      gridRef.current.api.ensureColumnVisible(colIdOrColumn);
+      setTimeout(() => {
+        if (!gridRef.current) throw new Error("Grid is not ready");
+        gridRef.current.api.setFocusedCell(rowIndex, colIdOrColumn, rowPinned);
+        gridRef.current.api.startEditingCell({ rowIndex, colKey: colIdOrColumn, rowPinned });
+        resolve(true);
+      }, 1);
+    }),
+    [],
   );
 
-  const handleInsertSingleRow = useCallback((rowData: DatagridData<T>, addIndex?: number) => {
+  const handleInsertSingleRow = useCallback((rowData: T, addIndex?: number): IRowNode<T> => {
     if (!gridRef.current) throw new Error("Grid is not ready");
     const rowNode = gridRef.current.api.applyTransaction({ add: [rowData], addIndex });
     if (!rowNode) throw new Error("RowNode is null or undefined");
     return rowNode.add[0];
   }, []);
 
-  const handleAddNewRowAt = useCallback(
-    (index: number | undefined) => {
-      if (!getNewRow || !gridRef.current) return;
-      const newRowData: DatagridData<T> = {
-        ...(getNewRow?.() || ({} as T)),
-        status: DatagridStatus.Added,
-      };
-      gridRef.current.api.stopEditing();
-      const node = handleInsertSingleRow(newRowData, index);
-      const rowEvent: IRowEvent<DatagridData<T>> = {
-        data: newRowData,
-        node,
-        api: gridRef.current.api,
-      };
-      const firstEditableColumn = getFirstEditableColumn(rowEvent);
-      if (firstEditableColumn) {
-        gotoEditCell(node.rowIndex ?? 0, firstEditableColumn);
-      }
-      return node;
-    },
-    [getNewRow, gotoEditCell, handleInsertSingleRow]
-  );
+  const handleAddNewRowAt = useCallback((index: number | undefined) => {
+    if (!getNewRow || !gridRef.current) return;
+    const newRowData = getNewRow?.();
+    gridRef.current.api.stopEditing();
+    const node = handleInsertSingleRow(newRowData, index);
+    setCanAddNewRow(false);
+    const rowEvent: IRowEvent<T> = {
+      data: newRowData,
+      node,
+      api: gridRef.current.api,
+    };
+    const firstEditableColumn = getFirstEditableColumn(rowEvent);
+    if (firstEditableColumn) {
+      gotoEditCell(node.rowIndex ?? 0, firstEditableColumn);
+    }
+    return node;
+
+  }, [getNewRow, gotoEditCell, handleInsertSingleRow]);
 
   const handleAddNewRow = useCallback(() => {
     if (!gridRef.current) return;
-    const node = handleAddNewRowAt(addNewRowAt === "top" ? 0 : undefined);
+    const node = handleAddNewRowAt((addNewRowAt === "top") ? 0 : undefined);
     return node;
   }, [addNewRowAt, handleAddNewRowAt]);
 
@@ -120,41 +99,33 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
     gridRef.current.api.applyTransaction({ remove: selected });
   }, [isPresentation]);
 
-  const getGridData = useCallback(() => {
-    const gridData: DatagridData<T>[] = [];
-    if (!gridRef.current?.api) {
-      return gridData;
+  const rowSelection = useMemo<RowSelectionOptions<T> | undefined>(() => {
+    if (!isPresentation && !readOnly) {
+      return {
+        mode: 'singleRow',
+      };
     }
-    gridRef.current.api.forEachLeafNode((node) => {
-      if (!node.data) {
-        return;
-      }
-      gridData.push(node.data);
-    });
-    return gridData;
-  }, []);
+    return undefined;
+  }, [isPresentation, readOnly]);
 
-  const context = useMemo(
-    () => ({
-      previousEditingNode,
-      props,
-      onGridReady,
-      initRowData,
-      gotoEditCell,
-      validateRow,
-      validatePreviousEditedRow,
-      getGridData,
-      handleCellEditingStarted,
-      handleCellValueChanged,
-    }),
-    [getGridData, gotoEditCell, handleCellEditingStarted, handleCellValueChanged, initRowData, onGridReady, props, validatePreviousEditedRow, validateRow]
-  );
 
   return (
     <Box sx={{ height, display: "flex", flexDirection: "column" }}>
-      {!isPresentation && <DatagridToolbar readOnly={readOnly} gridRef={gridRef} canAddNewRow={canAddNewRow} onAdd={handleAddNewRow} onDelete={handleDeleteSelected} />}
+      {!isPresentation && (
+        <DatagridToolbar
+          readOnly={readOnly}
+          gridRef={gridRef}
+          onAdd={handleAddNewRow}
+          onDelete={handleDeleteSelected}
+        />
+      )}
       <Box sx={{ flex: 1 }} className="datagrid-root">
-        <AgGrid context={context} {...(gridProps as AgGridReactProps<DatagridData<T>>)} rowData={items} onGridReady={handleGridReady} rowSelection={readOnly ? undefined : { mode: "singleRow" }} />
+        <AgGrid
+          rowSelection={rowSelection}
+          {...gridProps}
+          rowData={items}
+          onGridReady={handleGridReady}
+        />
       </Box>
     </Box>
   );
