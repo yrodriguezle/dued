@@ -6,7 +6,6 @@ interface DatagridAuxData {
   status: DatagridStatus;
 }
 
-// type DatagridData<T extends Record<string, unknown>> = DatagridAuxData & T;
 type DatagridData<T extends Record<string, unknown>> = DatagridAuxData & T & Record<string, unknown>;
 
 interface IRowEvent<T extends Record<string, unknown>> {
@@ -36,5 +35,9 @@ type DatagridProps<T extends Record<string, unknown>> = EditingModeProps<T> | Pr
 
 type ValidateRow<T extends Record<string, unknown>> = (node: IRowNode<DatagridData<T>>) => Promise<{ id: string }>;
 
+type DatagridAgGridProps<T> = AgGridReactProps<DatagridData<T>>;
+type DatagridColDef<T> = ColDef<DatagridData<T>>;
+type DatagridColGroupDef<T> = ColGroupDef<DatagridData<T>>;
 type DatagridIRowEvent<T> = IRowEvent<DatagridData<T>>;
 type DatagridRowDataUpdatedEvent<T> = RowDataUpdatedEvent<DatagridData<T>>;
+type DatagridCellValueChangedEvent<T> = CellValueChangedEvent<DatagridData<T>>;

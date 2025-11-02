@@ -11,7 +11,8 @@
     "env:development": "node env .env.development",
     "env:staging": "node env .env.staging",
     "clear": "node clear.js",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package",
+    "ts:check": "tsc --noEmit"
   },
   "dependencies": {
     "@apollo/client": "^3.13.4",

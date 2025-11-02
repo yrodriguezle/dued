@@ -4,12 +4,18 @@ import { useFormikContext } from "formik";
 import { Box } from "@mui/material";
 import { GridReadyEvent, RowGroupOpenedEvent } from "ag-grid-community";
 import AgGrid from "../../common/datagrid/AgGrid";
-import { MenuNonNull } from "../../common/form/searchbox/searchboxOptions/menuSearchboxOptions";
+import { MenuNonNull, MenuWithStatus } from "../../common/form/searchbox/searchboxOptions/menuSearchboxOptions";
+import { DatagridStatus } from "../../../common/globals/constants";
+import { DatagridAuxData, DatagridData } from "../../common/datagrid/@types/Datagrid";
 
 interface RoleMenusProps {
   menus: MenuNonNull[];
-  onGridReady: (event: GridReadyEvent<MenuNonNull>) => void
+  onGridReady: (event: GridReadyEvent<DatagridData<MenuWithStatus>>) => void
 }
+
+const initialStatus: DatagridAuxData = {
+  status: DatagridStatus.Unchanged
+};
 
 function RoleMenus({ menus, onGridReady }: RoleMenusProps) {
   const [opened, setOpened] = useState('');
@@ -62,10 +68,15 @@ function RoleMenus({ menus, onGridReady }: RoleMenusProps) {
     [],
   );
 
+  const rowData = useMemo<DatagridData<MenuWithStatus>[]>(() => menus.map((item) => ({
+    ...item,
+    ...initialStatus,
+  })), [menus]);
+
   return (
     <Box sx={{ marginTop: 1, paddingX: 1, height: '60vh' }}>
       <AgGrid<MenuNonNull>
-        rowData={menus}
+        rowData={rowData}
         getRowId={({ data }) => data.menuId.toString()}
         treeData
         treeDataParentIdField="parentMenuId"
