@@ -54,75 +54,78 @@ const MenuForm: React.FC<MenuFormProps> = ({ menus }) => {
     1
   );
 
-  const columnDefs = useMemo<DatagridColDef<MenuWithStatus>[]>(() => [
-    {
-      headerName: "Id",
-      field: "menuId",
-      width: 50,
-      editable: false,
-      hide: readOnly,
-    },
-    {
-      headerName: "Icona",
-      field: "icon",
-      sortable: true,
-      width: 180,
-      editable: !readOnly,
-      cellRenderer: MenuIconRenderer,
-      cellRendererParams: {
-        fontSize: "small",
+  const columnDefs = useMemo<DatagridColDef<MenuWithStatus>[]>(
+    () => [
+      {
+        headerName: "Id",
+        field: "menuId",
+        width: 50,
+        editable: false,
+        hide: readOnly,
       },
-      cellEditor: "agRichSelectCellEditor",
-      cellEditorParams: {
+      {
+        headerName: "Icona",
+        field: "icon",
+        sortable: true,
+        width: 180,
+        editable: !readOnly,
         cellRenderer: MenuIconRenderer,
-        values: iconNames,
-        searchType: "match",
-        allowTyping: true,
-        filterList: true,
-        highlightMatch: true,
-        valueListMaxHeight: 220,
+        cellRendererParams: {
+          fontSize: "small",
+        },
+        cellEditor: "agRichSelectCellEditor",
+        cellEditorParams: {
+          cellRenderer: MenuIconRenderer,
+          values: iconNames,
+          searchType: "match",
+          allowTyping: true,
+          filterList: true,
+          highlightMatch: true,
+          valueListMaxHeight: 220,
+        },
+        valueSetter: (params) => {
+          if (params.newValue !== params.oldValue) {
+            params.data.icon = params.newValue;
+            params.context.gotoEditCell(params.node?.rowIndex, params.column);
+            return true;
+          }
+          return false;
+        },
       },
-      valueSetter: (params) => {
-        if (params.newValue !== params.oldValue) {
-          params.data.icon = params.newValue;
-          params.context.gotoEditCell(params.node?.rowIndex, params.column);
-          return true;
-        }
-        return false;
+      {
+        headerName: "Voce di menù",
+        field: "title",
+        width: 150,
+        editable: !readOnly,
       },
-    },
-    {
-      headerName: "Voce di menù",
-      field: "title",
-      width: 150,
-      editable: !readOnly,
-    },
-    {
-      headerName: "Nome view",
-      field: "viewName",
-      width: 150,
-      editable: !readOnly,
-    },
-    {
-      headerName: "Path",
-      field: "path",
-      sortable: true,
-      width: 200,
-      editable: !readOnly,
-    },
-    {
-      headerName: "Visibile",
-      field: "isVisible",
-      width: 90,
-    },
-    {
-      headerName: "Padre",
-      field: "parentMenuId",
-      width: 120,
-      editable: !readOnly,
-      hide: readOnly,
-    },
-  ], [readOnly])
+      {
+        headerName: "Nome view",
+        field: "viewName",
+        width: 150,
+        editable: !readOnly,
+      },
+      {
+        headerName: "Path",
+        field: "path",
+        sortable: true,
+        width: 200,
+        editable: !readOnly,
+      },
+      {
+        headerName: "Visibile",
+        field: "isVisible",
+        width: 90,
+      },
+      {
+        headerName: "Padre",
+        field: "parentMenuId",
+        width: 120,
+        editable: !readOnly,
+        hide: readOnly,
+      },
+    ],
+    [readOnly]
+  );
 
   return (
     <Box sx={{ marginTop: 1, paddingX: 1, height: "80vh" }}>
