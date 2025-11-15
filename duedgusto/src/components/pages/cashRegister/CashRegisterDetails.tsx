@@ -20,6 +20,7 @@ import useSubmitCashRegister from "../../../graphql/cashRegister/useSubmitCashRe
 import useCloseCashRegister from "../../../graphql/cashRegister/useCloseCashRegister";
 import useStore from "../../../store/useStore";
 import { toast } from "react-toastify";
+import { getCurrentDate, getFormattedDate } from "../../../common/date/date";
 
 const CashCountSchema = z.object({
   denominationId: z.number(),
@@ -46,7 +47,7 @@ function CashRegisterDetails() {
   const formRef = useRef<FormikProps<FormikCashRegisterValues>>(null);
   const { title, setTitle } = useContext(PageTitleContext);
   const user = useStore((state) => state.user);
-  const [currentDate, setCurrentDate] = React.useState<string>(dayjs().format("YYYY-MM-DD"));
+  const [currentDate, setCurrentDate] = useState<string>(getCurrentDate("YYYY-MM-DD"));
 
   const { initialValues, handleInitializeValues } = useInitializeValues({
     skipInitialize: false,
@@ -61,14 +62,23 @@ function CashRegisterDetails() {
     skip: !id,
   });
 
-  // When no ID, we'll load the cash register for the selected date
-  // For now, we initialize with empty form for new entry
+  // Navigate between days for cash register entry
   const handlePreviousDay = useCallback(() => {
-    setCurrentDate(dayjs(currentDate).subtract(1, "day").format("YYYY-MM-DD"));
+    // Parse date and subtract 1 day
+    const [year, month, day] = currentDate.split("-").map(Number);
+    const date = new Date(year, month - 1, day);
+    date.setDate(date.getDate() - 1);
+    const newDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    setCurrentDate(newDate);
   }, [currentDate]);
 
   const handleNextDay = useCallback(() => {
-    setCurrentDate(dayjs(currentDate).add(1, "day").format("YYYY-MM-DD"));
+    // Parse date and add 1 day
+    const [year, month, day] = currentDate.split("-").map(Number);
+    const date = new Date(year, month - 1, day);
+    date.setDate(date.getDate() + 1);
+    const newDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    setCurrentDate(newDate);
   }, [currentDate]);
 
   const { submitCashRegister } = useSubmitCashRegister();
@@ -223,7 +233,7 @@ function CashRegisterDetails() {
                       <ArrowBack fontSize="small" />
                     </IconButton>
                     <Typography variant="body2" sx={{ minWidth: "120px", textAlign: "center" }}>
-                      {dayjs(currentDate).format("DD/MM/YYYY")}
+                      {getFormattedDate(currentDate, "DD/MM/YYYY")}
                     </Typography>
                     <IconButton size="small" onClick={handleNextDay} title="Giorno successivo">
                       <ArrowForward fontSize="small" />
