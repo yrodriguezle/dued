@@ -2,12 +2,29 @@
 
 using duedgusto.Models;
 using duedgusto.DataAccess;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace duedgusto.SeedData;
 
 public static class SeedMenus
 {
+    private static void UpdateMenuIfNeeded(Menu menu, string title, string? path, string icon, bool isVisible,
+        string? viewName, string? filePath, Role superAdminRole, Menu? parentMenu, ref bool needsUpdate)
+    {
+        if (menu.Title != title) { menu.Title = title; needsUpdate = true; }
+        if (menu.Path != (path ?? string.Empty)) { menu.Path = path ?? string.Empty; needsUpdate = true; }
+        if (menu.Icon != icon) { menu.Icon = icon; needsUpdate = true; }
+        if (menu.IsVisible != isVisible) { menu.IsVisible = isVisible; needsUpdate = true; }
+        if (menu.ViewName != (viewName ?? string.Empty)) { menu.ViewName = viewName ?? string.Empty; needsUpdate = true; }
+        if (menu.FilePath != (filePath ?? string.Empty)) { menu.FilePath = filePath ?? string.Empty; needsUpdate = true; }
+        if (menu.ParentMenuId != parentMenu?.MenuId) { menu.ParentMenu = parentMenu; needsUpdate = true; }
+
+        if (!menu.Roles.Any(r => r.RoleId == superAdminRole.RoleId))
+        {
+            menu.Roles.Add(superAdminRole);
+            needsUpdate = true;
+        }
+    }
+
     public static async Task Initialize(IServiceProvider serviceProvider)
     {
         using IServiceScope scope = serviceProvider.CreateScope();
@@ -16,29 +33,49 @@ public static class SeedMenus
         Role? superAdminRole = await dbContext.Roles
             .Include(r => r.Menus)
             .FirstOrDefaultAsync(r => r.RoleName == "SuperAdmin");
-        if (superAdminRole == null || superAdminRole.Menus.Any())
+        if (superAdminRole == null)
         {
             return;
         }
 
-        if (!await dbContext.Menus.AnyAsync(m => m.Path == "/gestionale/dashboard"))
+        var dashboardMenu = await dbContext.Menus
+            .Include(m => m.Roles)
+            .FirstOrDefaultAsync(m => m.Path == "/gestionale/dashboard");
+
+        if (dashboardMenu == null)
         {
-            var dashboardMenu = new Menu
+            dashboardMenu = new Menu
             {
                 Title = "Dashboard",
-                Path = "/gestionale",
+                Path = "/gestionale/dashboard",
                 Icon = "Dashboard",
                 IsVisible = true,
                 ViewName = "Dashboard",
-                FilePath = "dashboard",
+                FilePath = "dashboard/Dashboard.tsx",
                 Roles = [superAdminRole]
             };
             dbContext.Menus.Add(dashboardMenu);
         }
-
-        if (!await dbContext.Menus.AnyAsync(m => m.Path == "/gestionale/users"))
+        else
         {
-            var utentiMenu = new Menu
+            bool needsUpdate = false;
+            UpdateMenuIfNeeded(dashboardMenu, "Dashboard", "/gestionale/dashboard", "Dashboard", true,
+                "Dashboard", "dashboard/Dashboard.tsx", superAdminRole, null, ref needsUpdate);
+
+            if (needsUpdate)
+            {
+                dbContext.Menus.Update(dashboardMenu);
+            }
+        }
+
+        // Menu padre Utenti (senza path)
+        var utentiMenu = await dbContext.Menus
+            .Include(m => m.Roles)
+            .FirstOrDefaultAsync(m => m.Title == "Utenti" && m.Path == string.Empty);
+
+        if (utentiMenu == null)
+        {
+            utentiMenu = new Menu
             {
                 Title = "Utenti",
                 Path = string.Empty,
@@ -46,39 +83,89 @@ public static class SeedMenus
                 IsVisible = true,
                 Roles = [superAdminRole]
             };
+            dbContext.Menus.Add(utentiMenu);
+            await dbContext.SaveChangesAsync(); // Save per ottenere MenuId
+        }
+        else
+        {
+            bool needsUpdate = false;
+            UpdateMenuIfNeeded(utentiMenu, "Utenti", null, "Group", true, null, null, superAdminRole, null, ref needsUpdate);
+            if (needsUpdate)
+            {
+                dbContext.Menus.Update(utentiMenu);
+            }
+        }
 
-            var utentiChild1 = new Menu
+        // Child: Lista utenti
+        var utentiChild1 = await dbContext.Menus
+            .Include(m => m.Roles)
+            .FirstOrDefaultAsync(m => m.Path == "/gestionale/users-list");
+
+        if (utentiChild1 == null)
+        {
+            utentiChild1 = new Menu
             {
                 Title = "Lista utenti",
                 Path = "/gestionale/users-list",
                 Icon = string.Empty,
                 IsVisible = true,
                 ViewName = "UserList",
-                FilePath = "users",
+                FilePath = "users/UserList.tsx",
                 ParentMenu = utentiMenu,
                 Roles = [superAdminRole]
             };
+            dbContext.Menus.Add(utentiChild1);
+        }
+        else
+        {
+            bool needsUpdate = false;
+            UpdateMenuIfNeeded(utentiChild1, "Lista utenti", "/gestionale/users-list", string.Empty, true,
+                "UserList", "users/UserList.tsx", superAdminRole, utentiMenu, ref needsUpdate);
+            if (needsUpdate)
+            {
+                dbContext.Menus.Update(utentiChild1);
+            }
+        }
 
-            var utentiChild2 = new Menu
+        // Child: Gestione utenti
+        var utentiChild2 = await dbContext.Menus
+            .Include(m => m.Roles)
+            .FirstOrDefaultAsync(m => m.Path == "/gestionale/users-details");
+
+        if (utentiChild2 == null)
+        {
+            utentiChild2 = new Menu
             {
                 Title = "Gestione utenti",
                 Path = "/gestionale/users-details",
                 Icon = string.Empty,
                 IsVisible = true,
                 ViewName = "UserDetails",
-                FilePath = "users",
+                FilePath = "users/UserDetails.tsx",
                 ParentMenu = utentiMenu,
                 Roles = [superAdminRole]
             };
-
-            dbContext.Menus.Add(utentiMenu);
-            dbContext.Menus.Add(utentiChild1);
             dbContext.Menus.Add(utentiChild2);
         }
-
-        if (!await dbContext.Menus.AnyAsync(m => m.Path == "/gestionale/roles"))
+        else
         {
-            var ruoliMenu = new Menu
+            bool needsUpdate = false;
+            UpdateMenuIfNeeded(utentiChild2, "Gestione utenti", "/gestionale/users-details", string.Empty, true,
+                "UserDetails", "users/UserDetails.tsx", superAdminRole, utentiMenu, ref needsUpdate);
+            if (needsUpdate)
+            {
+                dbContext.Menus.Update(utentiChild2);
+            }
+        }
+
+        // Menu padre Ruoli (senza path)
+        var ruoliMenu = await dbContext.Menus
+            .Include(m => m.Roles)
+            .FirstOrDefaultAsync(m => m.Title == "Ruoli" && m.Path == string.Empty);
+
+        if (ruoliMenu == null)
+        {
+            ruoliMenu = new Menu
             {
                 Title = "Ruoli",
                 Path = string.Empty,
@@ -86,39 +173,89 @@ public static class SeedMenus
                 IsVisible = true,
                 Roles = [superAdminRole]
             };
+            dbContext.Menus.Add(ruoliMenu);
+            await dbContext.SaveChangesAsync(); // Save per ottenere MenuId
+        }
+        else
+        {
+            bool needsUpdate = false;
+            UpdateMenuIfNeeded(ruoliMenu, "Ruoli", null, "Engineering", true, null, null, superAdminRole, null, ref needsUpdate);
+            if (needsUpdate)
+            {
+                dbContext.Menus.Update(ruoliMenu);
+            }
+        }
 
-            var ruoliChild1 = new Menu
+        // Child: Lista ruoli
+        var ruoliChild1 = await dbContext.Menus
+            .Include(m => m.Roles)
+            .FirstOrDefaultAsync(m => m.Path == "/gestionale/roles-list");
+
+        if (ruoliChild1 == null)
+        {
+            ruoliChild1 = new Menu
             {
                 Title = "Lista ruoli",
                 Path = "/gestionale/roles-list",
                 Icon = string.Empty,
                 IsVisible = true,
                 ViewName = "RoleList",
-                FilePath = "roles",
+                FilePath = "roles/RoleList.tsx",
                 ParentMenu = ruoliMenu,
                 Roles = [superAdminRole]
             };
+            dbContext.Menus.Add(ruoliChild1);
+        }
+        else
+        {
+            bool needsUpdate = false;
+            UpdateMenuIfNeeded(ruoliChild1, "Lista ruoli", "/gestionale/roles-list", string.Empty, true,
+                "RoleList", "roles/RoleList.tsx", superAdminRole, ruoliMenu, ref needsUpdate);
+            if (needsUpdate)
+            {
+                dbContext.Menus.Update(ruoliChild1);
+            }
+        }
 
-            var ruoliChild2 = new Menu
+        // Child: Gestione ruoli
+        var ruoliChild2 = await dbContext.Menus
+            .Include(m => m.Roles)
+            .FirstOrDefaultAsync(m => m.Path == "/gestionale/roles-details");
+
+        if (ruoliChild2 == null)
+        {
+            ruoliChild2 = new Menu
             {
                 Title = "Gestione ruoli",
                 Path = "/gestionale/roles-details",
                 Icon = string.Empty,
                 IsVisible = true,
                 ViewName = "RoleDetails",
-                FilePath = "roles",
+                FilePath = "roles/RoleDetails.tsx",
                 ParentMenu = ruoliMenu,
                 Roles = [superAdminRole]
             };
-
-            dbContext.Menus.Add(ruoliMenu);
-            dbContext.Menus.Add(ruoliChild1);
             dbContext.Menus.Add(ruoliChild2);
         }
-
-        if (!await dbContext.Menus.AnyAsync(m => m.Path == "/gestionale/menus"))
+        else
         {
-            var menusMenu = new Menu
+            bool needsUpdate = false;
+            UpdateMenuIfNeeded(ruoliChild2, "Gestione ruoli", "/gestionale/roles-details", string.Empty, true,
+                "RoleDetails", "roles/RoleDetails.tsx", superAdminRole, ruoliMenu, ref needsUpdate);
+            if (needsUpdate)
+            {
+                dbContext.Menus.Update(ruoliChild2);
+            }
+        }
+
+        // Menu padre Menù (senza path)
+        var menusMenu = await dbContext.Menus
+            .Include(m => m.Roles)
+            .FirstOrDefaultAsync(m => m.Title == "Menù" && m.Path == string.Empty);
+
+        if (menusMenu == null)
+        {
+            menusMenu = new Menu
             {
                 Title = "Menù",
                 Path = string.Empty,
@@ -126,49 +263,109 @@ public static class SeedMenus
                 IsVisible = true,
                 Roles = [superAdminRole]
             };
+            dbContext.Menus.Add(menusMenu);
+            await dbContext.SaveChangesAsync(); // Save per ottenere MenuId
+        }
+        else
+        {
+            bool needsUpdate = false;
+            UpdateMenuIfNeeded(menusMenu, "Menù", null, "List", true, null, null, superAdminRole, null, ref needsUpdate);
+            if (needsUpdate)
+            {
+                dbContext.Menus.Update(menusMenu);
+            }
+        }
 
-            var menusChild1 = new Menu
+        // Child: Lista menù
+        var menusChild1 = await dbContext.Menus
+            .Include(m => m.Roles)
+            .FirstOrDefaultAsync(m => m.Path == "/gestionale/menus-list");
+
+        if (menusChild1 == null)
+        {
+            menusChild1 = new Menu
             {
                 Title = "List menù",
                 Path = "/gestionale/menus-list",
                 Icon = string.Empty,
                 IsVisible = true,
                 ViewName = "MenuList",
-                FilePath = "menu",
+                FilePath = "menu/MenuList.tsx",
                 ParentMenu = menusMenu,
                 Roles = [superAdminRole]
             };
+            dbContext.Menus.Add(menusChild1);
+        }
+        else
+        {
+            bool needsUpdate = false;
+            UpdateMenuIfNeeded(menusChild1, "List menù", "/gestionale/menus-list", string.Empty, true,
+                "MenuList", "menu/MenuList.tsx", superAdminRole, menusMenu, ref needsUpdate);
+            if (needsUpdate)
+            {
+                dbContext.Menus.Update(menusChild1);
+            }
+        }
 
-            var menusChild2 = new Menu
+        // Child: Gestione menù
+        var menusChild2 = await dbContext.Menus
+            .Include(m => m.Roles)
+            .FirstOrDefaultAsync(m => m.Path == "/gestionale/menus-details");
+
+        if (menusChild2 == null)
+        {
+            menusChild2 = new Menu
             {
                 Title = "Gestione menù",
                 Path = "/gestionale/menus-details",
                 Icon = string.Empty,
                 IsVisible = true,
                 ViewName = "MenuDetails",
-                FilePath = "menu",
+                FilePath = "menu/MenuDetails.tsx",
                 ParentMenu = menusMenu,
                 Roles = [superAdminRole]
             };
-
-            dbContext.Menus.Add(menusMenu);
-            dbContext.Menus.Add(menusChild1);
             dbContext.Menus.Add(menusChild2);
         }
-
-        if (!await dbContext.Menus.AnyAsync(m => m.Path == "/gestionale/settings"))
+        else
         {
-            var settingsMenu = new Menu
+            bool needsUpdate = false;
+            UpdateMenuIfNeeded(menusChild2, "Gestione menù", "/gestionale/menus-details", string.Empty, true,
+                "MenuDetails", "menu/MenuDetails.tsx", superAdminRole, menusMenu, ref needsUpdate);
+            if (needsUpdate)
+            {
+                dbContext.Menus.Update(menusChild2);
+            }
+        }
+
+        // Menu Impostazioni
+        var settingsMenu = await dbContext.Menus
+            .Include(m => m.Roles)
+            .FirstOrDefaultAsync(m => m.Path == "/gestionale/settings");
+
+        if (settingsMenu == null)
+        {
+            settingsMenu = new Menu
             {
                 Title = "Impostazioni",
                 Path = "/gestionale/settings",
                 Icon = "Settings",
                 IsVisible = true,
                 ViewName = "SettingsDetails",
-                FilePath = "settings",
+                FilePath = "settings/SettingsDetails.tsx",
                 Roles = [superAdminRole]
             };
             dbContext.Menus.Add(settingsMenu);
+        }
+        else
+        {
+            bool needsUpdate = false;
+            UpdateMenuIfNeeded(settingsMenu, "Impostazioni", "/gestionale/settings", "Settings", true,
+                "SettingsDetails", "settings/SettingsDetails.tsx", superAdminRole, null, ref needsUpdate);
+            if (needsUpdate)
+            {
+                dbContext.Menus.Update(settingsMenu);
+            }
         }
 
         await dbContext.SaveChangesAsync();

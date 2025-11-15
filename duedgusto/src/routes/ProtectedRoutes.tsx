@@ -2,8 +2,9 @@ import React, { Suspense, useMemo } from "react";
 import { Navigate, Route, Routes } from "react-router";
 import { isAuthenticated } from "../common/authentication/auth";
 import Layout from "../components/layout/Layout";
-import { Fallback, routesMapping } from "./routesMapping";
+import { Fallback } from "./routesMapping";
 import useStore from "../store/useStore";
+import { loadDynamicComponent } from "./dynamicComponentLoader";
 
 const HomePage = React.lazy(() => import("../components/pages/HomePage.tsx"));
 
@@ -14,6 +15,7 @@ function ProtectedRoutes() {
   if (!isAuthenticated()) {
     return <Navigate to={"/signin"} replace />;
   }
+
   return (
     <Routes>
       <Route element={<Layout />}>
@@ -26,11 +28,22 @@ function ProtectedRoutes() {
           }
         />
         {menuRoutes
-          .filter((menu) => menu?.path)
+          .filter((menu) => menu?.path && menu?.filePath)
           .map((menu) => {
             const routePath = menu?.path.replace("/gestionale/", "") || "/";
-            const element = routesMapping.find(({ path }) => path === menu?.path)?.element;
-            return <Route key={menu?.path} path={routePath} element={element} />;
+            const DynamicComponent = loadDynamicComponent(menu?.filePath || "");
+
+            return (
+              <Route
+                key={menu?.path}
+                path={routePath}
+                element={
+                  <Suspense fallback={<Fallback />}>
+                    <DynamicComponent />
+                  </Suspense>
+                }
+              />
+            );
           })}
         <Route index element={<Navigate to="/dashboard" replace />} />
       </Route>
