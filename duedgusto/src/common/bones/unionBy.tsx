@@ -12,9 +12,9 @@ function unionBy<T>(array1: T[], array2: T[], iteratee: MapFunc<T>): T[] {
   });
 
   const result = Array.from(new Set([...mergeArrays, ...array2.filter((x) => !uniqValues.has(iteratee(x)))]));
-  return result.toSorted((a, b) => {
-    const valueA = iteratee(a);
-    const valueB = iteratee(b);
+  return result.slice().sort((a: T, b: T) => {
+    const valueA = iteratee(a) as number;
+    const valueB = iteratee(b) as number;
     return valueA - valueB;
   });
 }

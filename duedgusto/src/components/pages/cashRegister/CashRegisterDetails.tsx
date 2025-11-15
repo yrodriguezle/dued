@@ -9,6 +9,7 @@ import CashRegisterForm from "./CashRegisterForm";
 import logger from "../../../common/logger/logger";
 import { formStatuses } from "../../../common/globals/constants";
 import useInitializeValues from "./useInitializeValues";
+import useConfirm from "../../common/confirm/useConfirm";
 import PageTitleContext from "../../layout/headerBar/PageTitleContext";
 import useQueryDenominations from "../../../graphql/cashRegister/useQueryDenominations";
 import useQueryCashRegister from "../../../graphql/cashRegister/useQueryCashRegister";
@@ -90,6 +91,7 @@ function CashRegisterDetails() {
 
   const { submitCashRegister } = useSubmitCashRegister();
   const { closeCashRegister, loading: closing } = useCloseCashRegister();
+  const onConfirm = useConfirm();
 
   useEffect(() => {
     setTitle("Gestione Cassa");
@@ -102,11 +104,11 @@ function CashRegisterDetails() {
         registerId: cashRegister.registerId,
         date: cashRegister.date,
         userId: cashRegister.userId,
-        openingCounts: cashRegister.openingCounts.map((c) => ({
+        openingCounts: cashRegister.openingCounts.map((c: CashCount) => ({
           denominationId: c.denominationId,
           quantity: c.quantity,
         })),
-        closingCounts: cashRegister.closingCounts.map((c) => ({
+        closingCounts: cashRegister.closingCounts.map((c: CashCount) => ({
           denominationId: c.denominationId,
           quantity: c.quantity,
         })),

@@ -8,8 +8,8 @@ import Datagrid from "../../common/datagrid/Datagrid";
 import ListToolbar from "../../common/form/toolbar/ListToolbar";
 import PageTitleContext from "../../layout/headerBar/PageTitleContext";
 import useFetchData from "../../../graphql/common/useFetchData";
-import { cashRegisterFragment } from "../../../graphql/cashRegister/fragments";
-import { DatagridColDef, DatagridData, DatagridRowDoubleClickedEvent } from "../../common/datagrid/@types/Datagrid";
+import { getCashRegisters } from "../../../graphql/cashRegister/queries";
+import { DatagridData, DatagridRowDoubleClickedEvent } from "../../common/datagrid/@types/Datagrid";
 import useConfirm from "../../common/confirm/useConfirm";
 import showToast from "../../../common/toast/showToast";
 
@@ -24,11 +24,13 @@ function CashRegisterList() {
     setTitle("Lista Chiusure Cassa");
   }, [setTitle]);
 
-  const { data: cashRegisters, loading } = useFetchData<CashRegister>({
-    fragment: cashRegisterFragment,
-    queryName: "cashRegistersConnection",
-    schemaPath: "cashManagement",
-    fragmentBody: "...CashRegisterFragment",
+  const { items: cashRegisters, loading } = useFetchData<CashRegister>({
+    query: getCashRegisters,
+    variables: {
+      pageSize: 50,
+      where: "",
+      orderBy: "date desc",
+    },
     fetchPolicy: "network-only",
   });
 
@@ -90,12 +92,15 @@ function CashRegisterList() {
 
   const handleRowDoubleClicked = useCallback(
     (event: DatagridRowDoubleClickedEvent<CashRegister>) => {
-      navigate(`/gestionale/cassa/details/${event.data.registerId}`);
+      const data = event.data as CashRegister | undefined;
+      if (data?.registerId) {
+        navigate(`/gestionale/cassa/details/${data.registerId}`);
+      }
     },
     [navigate]
   );
 
-  const columnDefs = useMemo<DatagridColDef<CashRegister>[]>(
+  const columnDefs = useMemo<any[]>(
     () => [
       {
         field: "date",

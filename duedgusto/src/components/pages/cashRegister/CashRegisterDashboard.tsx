@@ -130,10 +130,10 @@ function CashRegisterDashboard() {
         <Grid item xs={12} sm={6} md={3}>
           <KPICard
             title="Differenza Cassa Oggi"
-            value={`€ ${kpis?.todayDifference >= 0 ? "+" : ""}${kpis?.todayDifference?.toFixed(2) || "0.00"}`}
-            subtitle={Math.abs(kpis?.todayDifference || 0) > 5 ? "Superata soglia!" : "Nella norma"}
+            value={`€ ${(kpis?.todayDifference ?? 0) >= 0 ? "+" : ""}${(kpis?.todayDifference ?? 0)?.toFixed(2) || "0.00"}`}
+            subtitle={Math.abs(kpis?.todayDifference ?? 0) > 5 ? "Superata soglia!" : "Nella norma"}
             icon={<PointOfSaleIcon sx={{ fontSize: 48 }} />}
-            color={Math.abs(kpis?.todayDifference || 0) > 5 ? "warning" : "success"}
+            color={Math.abs(kpis?.todayDifference ?? 0) > 5 ? "warning" : "success"}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
