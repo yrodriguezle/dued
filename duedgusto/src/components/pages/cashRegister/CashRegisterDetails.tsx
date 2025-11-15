@@ -6,16 +6,13 @@ import { ArrowBack, ArrowForward } from "@mui/icons-material";
 import { useParams, useNavigate } from "react-router";
 
 import CashRegisterForm from "./CashRegisterForm";
-import FormikToolbar from "../../common/form/toolbar/FormikToolbar";
 import logger from "../../../common/logger/logger";
 import { formStatuses } from "../../../common/globals/constants";
-import useConfirm from "../../common/confirm/useConfirm";
 import useInitializeValues from "./useInitializeValues";
-import setInitialFocus from "./setInitialFocus";
-import sleep from "../../../common/bones/sleep";
 import PageTitleContext from "../../layout/headerBar/PageTitleContext";
 import useQueryDenominations from "../../../graphql/cashRegister/useQueryDenominations";
 import useQueryCashRegister from "../../../graphql/cashRegister/useQueryCashRegister";
+import useQueryCashRegisterByDate from "../../../graphql/cashRegister/useQueryCashRegisterByDate";
 import useSubmitCashRegister from "../../../graphql/cashRegister/useSubmitCashRegister";
 import useCloseCashRegister from "../../../graphql/cashRegister/useCloseCashRegister";
 import useStore from "../../../store/useStore";
@@ -56,11 +53,21 @@ function CashRegisterDetails() {
 
   const { denominations, loading: loadingDenominations } = useQueryDenominations();
 
-  // Load by ID if provided, otherwise by date
-  const { cashRegister, loading: loadingCashRegister } = useQueryCashRegister({
+  // Load by ID if provided (edit mode)
+  const { cashRegister: cashRegisterById, loading: loadingCashRegisterById } = useQueryCashRegister({
     registerId: Number(id) || 0,
     skip: !id,
   });
+
+  // Load by date if no ID (new/create mode)
+  const { cashRegister: cashRegisterByDate, loading: loadingCashRegisterByDate } = useQueryCashRegisterByDate({
+    date: currentDate,
+    skip: !!id, // Only load by date when not editing an existing record
+  });
+
+  // Use appropriate cash register based on context
+  const cashRegister = id ? cashRegisterById : cashRegisterByDate;
+  const loadingCashRegister = id ? loadingCashRegisterById : loadingCashRegisterByDate;
 
   // Navigate between days for cash register entry
   const handlePreviousDay = useCallback(() => {
@@ -84,14 +91,13 @@ function CashRegisterDetails() {
   const { submitCashRegister } = useSubmitCashRegister();
   const { closeCashRegister, loading: closing } = useCloseCashRegister();
 
-  const onConfirm = useConfirm();
-
   useEffect(() => {
     setTitle("Gestione Cassa");
   }, [setTitle]);
 
+  // Initialize form with cash register data when available
   useEffect(() => {
-    if (cashRegister && id) {
+    if (cashRegister) {
       const formikValues: FormikCashRegisterValues = {
         registerId: cashRegister.registerId,
         date: cashRegister.date,
@@ -116,30 +122,27 @@ function CashRegisterDetails() {
           isFormLocked: cashRegister.status !== "DRAFT",
         });
       }, 0);
+    } else if (!id) {
+      // Initialize with today's date for new entry
+      const newFormikValues: FormikCashRegisterValues = {
+        date: currentDate,
+        userId: user?.userId || 0,
+        openingCounts: [],
+        closingCounts: [],
+        supplierExpenses: 0,
+        dailyExpenses: 0,
+        notes: "",
+        status: "DRAFT",
+      };
+      handleInitializeValues(newFormikValues);
+      setTimeout(() => {
+        formRef.current?.setStatus({
+          formStatus: formStatuses.INSERT,
+          isFormLocked: false,
+        });
+      }, 0);
     }
-  }, [cashRegister, id, handleInitializeValues]);
-
-  const handleResetForm = useCallback(
-    async (hasChanges: boolean) => {
-      const confirmed = !hasChanges || await onConfirm({
-        title: "Gestione Cassa",
-        content: "Sei sicuro di voler annullare le modifiche?",
-        acceptLabel: "Si",
-        cancelLabel: "No",
-      });
-      if (!confirmed) {
-        return;
-      }
-      if (formRef.current?.status.formStatus === formStatuses.UPDATE) {
-        await handleInitializeValues();
-      } else {
-        formRef.current?.resetForm();
-        await sleep(200);
-        setInitialFocus();
-      }
-    },
-    [handleInitializeValues, onConfirm]
-  );
+  }, [cashRegister, id, handleInitializeValues, currentDate, user?.userId]);
 
   const onSubmit = async (values: FormikCashRegisterValues) => {
     try {
@@ -215,9 +218,8 @@ function CashRegisterDetails() {
       }}
       onSubmit={onSubmit}
     >
-      {({ status }) => (
+      {({ status, isSubmitting, isValid, dirty }) => (
         <Form noValidate>
-          <FormikToolbar onFormReset={handleResetForm} />
           <Box
             className="scrollable-box"
             sx={{ marginTop: 1, paddingX: 2, overflow: "auto", height: "calc(100vh - 64px - 41px)" }}
@@ -227,30 +229,38 @@ function CashRegisterDetails() {
                 <Typography id="view-title" variant="h5">
                   {title}
                 </Typography>
-                {!id && (
-                  <Stack direction="row" alignItems="center" spacing={1}>
-                    <IconButton size="small" onClick={handlePreviousDay} title="Giorno precedente">
-                      <ArrowBack fontSize="small" />
-                    </IconButton>
-                    <Typography variant="body2" sx={{ minWidth: "120px", textAlign: "center" }}>
-                      {getFormattedDate(currentDate, "DD/MM/YYYY")}
-                    </Typography>
-                    <IconButton size="small" onClick={handleNextDay} title="Giorno successivo">
-                      <ArrowForward fontSize="small" />
-                    </IconButton>
-                  </Stack>
-                )}
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <IconButton size="small" onClick={handlePreviousDay} title="Giorno precedente">
+                    <ArrowBack fontSize="small" />
+                  </IconButton>
+                  <Typography variant="body2" sx={{ minWidth: "120px", textAlign: "center" }}>
+                    {getFormattedDate(currentDate, "DD/MM/YYYY")}
+                  </Typography>
+                  <IconButton size="small" onClick={handleNextDay} title="Giorno successivo">
+                    <ArrowForward fontSize="small" />
+                  </IconButton>
+                </Stack>
               </Box>
-              {status?.formStatus === formStatuses.UPDATE && status?.isFormLocked === false && (
+              <Stack direction="row" spacing={2} alignItems="center">
                 <Button
                   variant="contained"
-                  color="warning"
-                  onClick={handleCloseCashRegister}
-                  disabled={closing}
+                  color="primary"
+                  type="submit"
+                  disabled={isSubmitting || !isValid || status?.isFormLocked}
                 >
-                  Chiudi Cassa
+                  Salva
                 </Button>
-              )}
+                {status?.formStatus === formStatuses.UPDATE && status?.isFormLocked === false && (
+                  <Button
+                    variant="contained"
+                    color="warning"
+                    onClick={handleCloseCashRegister}
+                    disabled={closing}
+                  >
+                    Chiudi Cassa
+                  </Button>
+                )}
+              </Stack>
             </Box>
             <CashRegisterForm denominations={denominations} cashRegister={cashRegister} />
           </Box>
