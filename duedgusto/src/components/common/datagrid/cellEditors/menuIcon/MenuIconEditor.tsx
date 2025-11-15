@@ -88,7 +88,7 @@ const MenuIconEditor = (props: CustomCellEditorProps) => {
         //   },
         // }}
       />
-      <FloatingPopper target="#menu-editor-id" open>
+      <FloatingPopper anchorEl="#menu-editor-id" open>
         FloatingPopper
       </FloatingPopper>
     </div>
