@@ -18,6 +18,7 @@ import { MenuNonNull } from "../../common/form/searchbox/searchboxOptions/menuSe
 import RoleMenus from "./RoleMenus";
 import PageTitleContext from "../../layout/headerBar/PageTitleContext";
 import { GridReadyEvent } from "ag-grid-community";
+import { DatagridData } from "../../common/datagrid/@types/Datagrid";
 
 const Schema = z.object({
   roleId: z.number(),
@@ -29,7 +30,7 @@ const Schema = z.object({
 export type FormikRoleValues = z.infer<typeof Schema>;
 
 function RoleDetails() {
-  const gridRef = useRef<GridReadyEvent<MenuNonNull> | null>(null);
+  const gridRef = useRef<GridReadyEvent<DatagridData<MenuNonNull>> | null>(null);
   const { title, setTitle } = useContext(PageTitleContext);
   const formRef = useRef<FormikProps<FormikRoleValues>>(null);
   const { initialValues, handleInitializeValues } = useInitializeValues({ skipInitialize: false });
@@ -70,7 +71,7 @@ function RoleDetails() {
     [handleInitializeValues, onConfirm],
   );
 
-  const handleGridReady = useCallback((event: GridReadyEvent<MenuNonNull>) => {
+  const handleGridReady = useCallback((event: GridReadyEvent<DatagridData<MenuNonNull>>) => {
     gridRef.current = event;
   }, []);
 

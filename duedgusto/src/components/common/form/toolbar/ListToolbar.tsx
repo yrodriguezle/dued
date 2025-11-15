@@ -18,6 +18,8 @@ interface ListToolbarProps {
   hideSaveButton?: boolean;
   hideNewButton?: boolean;
   hideDeleteButton?: boolean;
+  onNew?: () => void;
+  onDelete?: () => void;
 }
 
 function ListToolbar({
@@ -25,6 +27,8 @@ function ListToolbar({
   disabledDelete,
   hideNewButton,
   hideDeleteButton,
+  onNew,
+  onDelete,
 }: ListToolbarProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -49,7 +53,7 @@ function ListToolbar({
           {!hideNewButton && (
             <FormikToolbarButton
               startIcon={<AddIcon />}
-            // onClick={() => onFormReset(!disableSave)}
+              onClick={onNew}
             >
               Nuovo
             </FormikToolbarButton>
@@ -59,6 +63,7 @@ function ListToolbar({
               startIcon={<DeleteIcon />}
               color="error"
               disabled={disableDelete}
+              onClick={onDelete}
             >
               Elimina
             </FormikToolbarButton>

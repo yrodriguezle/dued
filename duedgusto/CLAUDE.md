@@ -109,22 +109,26 @@ permessi utente e un'architettura modulare per la gestione di utenti, ruoli e me
 ### Pattern Importanti
 
 **Generazione Route Dinamiche**: Le route non sono definite staticamente. Invece, vengono generate a runtime in base ai permessi menu dell'utente (memorizzati in `user.menus`). Il componente
-`ProtectedRoutes` filtra i menu con percorsi e li mappa a componenti caricati in modo lazy da `routesMapping`.
+`ProtectedRoutes` (`src/routes/ProtectedRoutes.tsx`) filtra i menu con percorsi e li mappa a componenti caricati in modo lazy da `routesMapping`. Per aggiungere nuove route:
+1. Aggiungi il componente lazy-loaded in `src/routes/routesMapping.tsx`
+2. Assicurati che il percorso corrisponda ai permessi menu dell'utente nel database
 
-**Coda Refresh Token**: Quando si verifica un errore `ACCESS_DENIED`, l'error link di Apollo Client previene richieste di refresh duplicate usando un flag `isRefreshing` e mette in coda le richieste
-in sospeso in `pendingRequests`. Dopo il successo del refresh, tutte le richieste in coda vengono risolte con header aggiornati.
+**Coda Refresh Token**: Quando si verifica un errore `ACCESS_DENIED`, l'error link di Apollo Client (`src/graphql/configureClient.tsx`) previene richieste di refresh duplicate usando un flag `isRefreshing` e mette in coda le richieste
+in sospeso in `pendingRequests`. Dopo il successo del refresh, tutte le richieste in coda vengono risolte con header aggiornati. Questo pattern previene race condition durante il refresh del token.
 
 **Libreria Utility Personalizzata**: La directory `src/common/bones/` contiene implementazioni personalizzate di funzioni utility comuni (come lodash) per evitare dipendenze esterne. Queste includono
-`flatMap`, `keyBy`, `omitDeep`, `isEmpty`, ecc.
+`flatMap`, `keyBy`, `omitDeep`, `isEmpty`, `debounce`, `isEqual`, ecc. Preferisci queste implementazioni interne piuttosto che aggiungere librerie esterne come lodash.
 
 **Guidato dalla Configurazione**: L'applicazione legge la configurazione runtime da `public/config.json` piuttosto che da variabili d'ambiente, permettendo allo stesso build di essere deployato su più
-ambienti senza ricompilare.
+ambienti senza ricompilare. Per cambiare l'ambiente backend, modifica solo `public/config.json`.
 
 **Integrazione Formik + Material-UI**: I form usano Formik con componenti campo Material-UI personalizzati (`FormikTextField`, `FormikCheckbox`, `FormikSearchbox`) che connettono lo stato campo di
-Formik ai componenti MUI.
+Formik ai componenti MUI. Questi componenti si trovano in `src/components/common/form/`.
 
 **Integrazione AG Grid**: Le tabelle dati usano AG Grid Enterprise (`ag-grid-react`, `ag-grid-enterprise`) con localizzazione personalizzata (traduzioni italiane in
-`src/components/common/datagrid/i18n/`).
+`src/components/common/datagrid/i18n/`). Tutti i datagrids dovrebbero estendere i componenti base in `src/components/common/datagrid/`.
+
+**Navigator Globale**: L'applicazione usa un wrapper del navigator di React Router (`src/common/navigator/navigator.tsx`) inizializzato in `App.tsx`, permettendo la navigazione programmatica da fuori dei componenti React (es. da error handlers o utility functions).
 
 ## Configurazione TypeScript
 
@@ -134,7 +138,7 @@ Il progetto usa i riferimenti di progetto TypeScript:
 - `tsconfig.app.json` - Configurazione codice sorgente applicazione
 - `tsconfig.node.json` - Configurazione Node/strumenti build
 
-Tutti i file sorgente usano l'estensione `.tsx` anche per file TypeScript non-JSX (decisione architetturale).
+**IMPORTANTE**: Tutti i file sorgente usano l'estensione `.tsx` anche per file TypeScript non-JSX (decisione architetturale del progetto). Quando crei nuovi file, usa sempre `.tsx` invece di `.ts`.
 
 ## Configurazione Ambiente
 
@@ -148,27 +152,30 @@ La configurazione runtime viene caricata da `public/config.json` (non file `.env
 
 ## Regole ESLint
 
-Regole ESLint personalizzate applicate:
+Regole ESLint personalizzate applicate (`eslint.config.js`):
 
-- `no-console: warn` - Avviso sull'uso di console
-- `object-shorthand: ["error", "always"]` - Richiede sintassi object shorthand
-- Regole React Hooks applicate tramite `eslint-plugin-react-hooks`
+- `no-console: warn` - Avviso sull'uso di console (usa `logger` da `src/common/logger/` invece)
+- `object-shorthand: ["error", "always"]` - Richiede sintassi object shorthand (es. `{ name }` invece di `{ name: name }`)
+- `react-refresh/only-export-components: warn` - Assicura che i componenti siano esportati correttamente per HMR
+- Regole React Hooks applicate tramite `eslint-plugin-react-hooks` (rispetta le regole degli hooks)
 
-## Dipendenze
+## Dipendenze Principali
 
 **Framework Core**: React 19, React Router 7, TypeScript 5.7
 
-**Libreria UI**: Material-UI v6 (@mui/material, @emotion/react, @emotion/styled)
+**Libreria UI**: Material-UI v6 (@mui/material, @emotion/react, @emotion/styled) - Usa componenti MUI per consistenza
 
-**Recupero Dati**: Apollo Client 3 con GraphQL
+**Recupero Dati**: Apollo Client 3 con GraphQL - Tutte le operazioni backend usano GraphQL
 
-**Gestione Stato**: Zustand 5
+**Gestione Stato**: Zustand 5 - Store modulare diviso per dominio (vedi `src/store/`)
 
-**Form**: Formik 2 con validazione Zod
+**Form**: Formik 2 con validazione Zod - Usa i wrapper Formik+MUI personalizzati
 
-**Data Grid**: AG Grid Enterprise (richiede licenza)
+**Data Grid**: AG Grid Enterprise 33 (richiede licenza valida)
 
 **Strumento Build**: Vite 6 con plugin SWC per fast refresh
+
+**Altri**: dayjs (date), react-toastify (notifiche), patch-package (patch dipendenze)
 
 ## Problemi Comuni
 
@@ -180,3 +187,36 @@ alcuni problemi di tipo.
 **Conflitti Porta**: Il server dev gira sulla porta 4001. Se questa porta è in uso, modifica `vite.config.ts`.
 
 **HTTPS in Sviluppo**: Il `config.json` predefinito usa URL HTTPS (`https://localhost:4000`). Assicurati che l'API backend supporti HTTPS o aggiorna la configurazione per HTTP.
+
+## Convenzioni e Workflow
+
+### Organizzazione del Codice
+
+- **Componenti**: I componenti React seguono la struttura `pages/` (pagine), `layout/` (layout), `common/` (riutilizzabili)
+- **Operazioni GraphQL**: Organizzate per dominio in `src/graphql/` (es. `user/`, `roles/`, `menus/`)
+- **Tipi**: Tipi di dominio in `src/@types/`, tipi globali in `src/types.d.ts`
+- **Utility**: Utility personalizzate in `src/common/bones/`, organizzate per funzionalità
+
+### Aggiungere Nuove Funzionalità
+
+Per aggiungere una nuova pagina/funzionalità:
+
+1. Crea il componente pagina in `src/components/pages/[feature]/`
+2. Aggiungi le operazioni GraphQL in `src/graphql/[feature]/`
+3. Aggiungi la route in `src/routes/routesMapping.tsx` con lazy loading
+4. Assicurati che i permessi menu corrispondano nel database
+5. Crea eventuali tipi TypeScript necessari in `src/@types/`
+
+### Testing e Validazione
+
+- Esegui `npm run ts:check` prima di committare per verificare errori di tipo
+- Esegui `npm run lint` per verificare problemi di stile
+- Testa sempre con il server di sviluppo (`npm run dev`) dopo modifiche
+- Verifica che l'autenticazione funzioni correttamente dopo modifiche al flusso auth
+
+### Gestione dello Stato
+
+- Usa Zustand store per stato globale dell'applicazione
+- Crea nuove slice store in `src/store/` seguendo il pattern esistente
+- Usa Apollo Client cache per dati GraphQL
+- Preferisci lo stato locale React quando possibile
