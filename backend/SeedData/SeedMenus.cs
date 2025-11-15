@@ -368,6 +368,98 @@ public static class SeedMenus
             }
         }
 
+        // Menu Cassa (Dashboard)
+        var cassaMenu = await dbContext.Menus
+            .Include(m => m.Roles)
+            .FirstOrDefaultAsync(m => m.Path == "/gestionale/cassa");
+
+        if (cassaMenu == null)
+        {
+            cassaMenu = new Menu
+            {
+                Title = "Cassa",
+                Path = "/gestionale/cassa",
+                Icon = "PointOfSale",
+                IsVisible = true,
+                ViewName = "CashRegisterDashboard",
+                FilePath = "cashRegister/CashRegisterDashboard.tsx",
+                Roles = [superAdminRole]
+            };
+            dbContext.Menus.Add(cassaMenu);
+        }
+        else
+        {
+            bool needsUpdate = false;
+            UpdateMenuIfNeeded(cassaMenu, "Cassa", "/gestionale/cassa", "PointOfSale", true,
+                "CashRegisterDashboard", "cashRegister/CashRegisterDashboard.tsx", superAdminRole, null, ref needsUpdate);
+            if (needsUpdate)
+            {
+                dbContext.Menus.Update(cassaMenu);
+            }
+        }
+
+        // Child: Lista Cassa
+        var cassaChild1 = await dbContext.Menus
+            .Include(m => m.Roles)
+            .FirstOrDefaultAsync(m => m.Path == "/gestionale/cassa/list");
+
+        if (cassaChild1 == null)
+        {
+            cassaChild1 = new Menu
+            {
+                Title = "Lista Cassa",
+                Path = "/gestionale/cassa/list",
+                Icon = "List",
+                IsVisible = true,
+                ViewName = "CashRegisterList",
+                FilePath = "cashRegister/CashRegisterList.tsx",
+                ParentMenu = cassaMenu,
+                Roles = [superAdminRole]
+            };
+            dbContext.Menus.Add(cassaChild1);
+        }
+        else
+        {
+            bool needsUpdate = false;
+            UpdateMenuIfNeeded(cassaChild1, "Lista Cassa", "/gestionale/cassa/list", "List", true,
+                "CashRegisterList", "cashRegister/CashRegisterList.tsx", superAdminRole, cassaMenu, ref needsUpdate);
+            if (needsUpdate)
+            {
+                dbContext.Menus.Update(cassaChild1);
+            }
+        }
+
+        // Child: Vista Mensile
+        var cassaChild2 = await dbContext.Menus
+            .Include(m => m.Roles)
+            .FirstOrDefaultAsync(m => m.Path == "/gestionale/cassa/monthly");
+
+        if (cassaChild2 == null)
+        {
+            cassaChild2 = new Menu
+            {
+                Title = "Vista Mensile",
+                Path = "/gestionale/cassa/monthly",
+                Icon = "CalendarMonth",
+                IsVisible = true,
+                ViewName = "MonthlyView",
+                FilePath = "cashRegister/MonthlyView.tsx",
+                ParentMenu = cassaMenu,
+                Roles = [superAdminRole]
+            };
+            dbContext.Menus.Add(cassaChild2);
+        }
+        else
+        {
+            bool needsUpdate = false;
+            UpdateMenuIfNeeded(cassaChild2, "Vista Mensile", "/gestionale/cassa/monthly", "CalendarMonth", true,
+                "MonthlyView", "cashRegister/MonthlyView.tsx", superAdminRole, cassaMenu, ref needsUpdate);
+            if (needsUpdate)
+            {
+                dbContext.Menus.Update(cassaChild2);
+            }
+        }
+
         await dbContext.SaveChangesAsync();
     }
 }

@@ -2,7 +2,17 @@
   "permissions": {
     "allow": [
       "Bash(npm run ts:check:*)",
-      "Bash(npm run lint:*)"
+      "Bash(npm run lint:*)",
+      "Bash(npm install:*)",
+      "Bash(node -e:*)",
+      "Bash(dir:*)",
+      "Bash(dotnet ef migrations add:*)",
+      "Bash(mysql:*)",
+      "Bash(cat:*)",
+      "Bash(curl:*)",
+      "Bash(tasklist:*)",
+      "Bash(findstr:*)",
+      "Bash(npx eslint:*)"
     ],
     "deny": [],
     "ask": []
