@@ -100,6 +100,7 @@ function CashRegisterList() {
     [navigate]
   );
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const columnDefs = useMemo<any[]>(
     () => [
       {
