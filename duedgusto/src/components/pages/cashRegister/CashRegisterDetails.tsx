@@ -218,7 +218,7 @@ function CashRegisterDetails() {
       }}
       onSubmit={onSubmit}
     >
-      {({ status, isSubmitting, isValid, dirty }) => (
+      {({ status, isSubmitting, isValid }) => (
         <Form noValidate>
           <Box
             className="scrollable-box"

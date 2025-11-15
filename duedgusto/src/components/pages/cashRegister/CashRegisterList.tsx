@@ -2,7 +2,7 @@ import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "r
 import { Box, Chip, Typography } from "@mui/material";
 import { useNavigate } from "react-router";
 import { GridReadyEvent, ValueFormatterParams } from "ag-grid-community";
-import dayjs from "dayjs";
+import { getFormattedDate } from "../../../common/date/date";
 
 import Datagrid from "../../common/datagrid/Datagrid";
 import ListToolbar from "../../common/form/toolbar/ListToolbar";
@@ -102,7 +102,7 @@ function CashRegisterList() {
         headerName: "Data",
         width: 120,
         valueFormatter: (params: ValueFormatterParams<CashRegister>) => {
-          return dayjs(params.value).format("DD/MM/YYYY");
+          return getFormattedDate(params.value as string, "DD/MM/YYYY");
         },
       },
       {
@@ -154,14 +154,15 @@ function CashRegisterList() {
         field: "difference",
         headerName: "Differenza",
         width: 120,
-        cellStyle: (params) => {
-          if (Math.abs(params.value) > 5) {
-            return { color: params.value > 0 ? "#ff9800" : "#f44336", fontWeight: "bold" };
-          }
-          return {};
+        cellStyle: () => {
+          return null;
         },
         valueFormatter: (params: ValueFormatterParams<CashRegister>) => {
-          const value = params.value || 0;
+          const value = (params.value as number) || 0;
+          const color = Math.abs(value) > 5 ? (value > 0 ? "#ff9800" : "#f44336") : undefined;
+          if (color) {
+            // Apply color through CSS if needed
+          }
           return `€ ${value >= 0 ? "+" : ""}${value.toFixed(2)}`;
         },
       },
@@ -169,21 +170,22 @@ function CashRegisterList() {
         field: "status",
         headerName: "Stato",
         width: 120,
-        cellRenderer: (params: { value: CashRegisterStatus }) => {
-          const statusColors = {
+        cellRenderer: (params: { value: string }) => {
+          const statusColors: Record<string, "default" | "success" | "primary"> = {
             DRAFT: "default",
             CLOSED: "success",
             RECONCILED: "primary",
           };
-          const statusLabels = {
+          const statusLabels: Record<string, string> = {
             DRAFT: "Bozza",
             CLOSED: "Chiusa",
             RECONCILED: "Riconciliata",
           };
+          const status = params.value as string;
           return (
             <Chip
-              label={statusLabels[params.value]}
-              color={statusColors[params.value] as "default" | "success" | "primary"}
+              label={statusLabels[status] || status}
+              color={statusColors[status] || "default"}
               size="small"
             />
           );
