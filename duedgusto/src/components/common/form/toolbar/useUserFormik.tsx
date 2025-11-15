@@ -1,7 +1,7 @@
 import { useFormik } from "formik";
 import { z } from "zod";
 
-const UserSchema = z.object({
+const userSchema = z.object({
   userId: z.number(),
   roleId: z.number().min(1, "L'utente deve avere un Ruolo"),
   userName: z.string().nonempty("Nome utente è obbligatorio"),
@@ -11,16 +11,27 @@ const UserSchema = z.object({
   disabled: z.boolean(),
 });
 
-export type UserValues = z.infer<typeof UserSchema>;
+export type UserValues = z.infer<typeof userSchema>;
 
-function useUserFormik() {
+interface UseUserFormikProps {
+  initialValues: UserValues;
+  onSubmit: (values: UserValues) => void;
+}
+
+function useUserFormik({ initialValues, onSubmit }: UseUserFormikProps) {
   const formik = useFormik<UserValues>({
     initialValues,
-    validationSchema: toFormikValidationSchema(userSchema),
-    onSubmit: (values) => {
-      onSubmit(values);
+    validate: (values) => {
+      const result = userSchema.safeParse(values);
+      if (result.success) {
+        return {};
+      }
+      return Object.fromEntries(result.error.issues.map(({ path, message }) => [path[0], message]));
     },
+    onSubmit,
   });
+
+  return formik;
 }
 
 export default useUserFormik;

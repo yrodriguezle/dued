@@ -10,8 +10,6 @@ const protectedLoader = async () => {
     globalThis.API_ENDPOINT = data.API_ENDPOINT;
   }
 
-  console.log("protectedLoader");
-
   if (!isAuthenticated()) {
     return redirect("/login");
   }
