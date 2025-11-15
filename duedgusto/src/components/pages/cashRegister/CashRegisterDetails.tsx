@@ -1,7 +1,8 @@
-import { useCallback, useContext, useEffect, useRef } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Form, Formik, FormikProps } from "formik";
 import { z } from "zod";
-import { Box, Typography, Button } from "@mui/material";
+import { Box, Typography, Button, IconButton, Stack } from "@mui/material";
+import { ArrowBack, ArrowForward } from "@mui/icons-material";
 import { useParams, useNavigate } from "react-router";
 
 import CashRegisterForm from "./CashRegisterForm";
@@ -45,6 +46,7 @@ function CashRegisterDetails() {
   const formRef = useRef<FormikProps<FormikCashRegisterValues>>(null);
   const { title, setTitle } = useContext(PageTitleContext);
   const user = useStore((state) => state.user);
+  const [currentDate, setCurrentDate] = React.useState<string>(dayjs().format("YYYY-MM-DD"));
 
   const { initialValues, handleInitializeValues } = useInitializeValues({
     skipInitialize: false,
@@ -52,10 +54,22 @@ function CashRegisterDetails() {
   });
 
   const { denominations, loading: loadingDenominations } = useQueryDenominations();
+
+  // Load by ID if provided, otherwise by date
   const { cashRegister, loading: loadingCashRegister } = useQueryCashRegister({
     registerId: Number(id) || 0,
     skip: !id,
   });
+
+  // When no ID, we'll load the cash register for the selected date
+  // For now, we initialize with empty form for new entry
+  const handlePreviousDay = useCallback(() => {
+    setCurrentDate(dayjs(currentDate).subtract(1, "day").format("YYYY-MM-DD"));
+  }, [currentDate]);
+
+  const handleNextDay = useCallback(() => {
+    setCurrentDate(dayjs(currentDate).add(1, "day").format("YYYY-MM-DD"));
+  }, [currentDate]);
 
   const { submitCashRegister } = useSubmitCashRegister();
   const { closeCashRegister, loading: closing } = useCloseCashRegister();
@@ -199,9 +213,24 @@ function CashRegisterDetails() {
             sx={{ marginTop: 1, paddingX: 2, overflow: "auto", height: "calc(100vh - 64px - 41px)" }}
           >
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-              <Typography id="view-title" variant="h5">
-                {title}
-              </Typography>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <Typography id="view-title" variant="h5">
+                  {title}
+                </Typography>
+                {!id && (
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <IconButton size="small" onClick={handlePreviousDay} title="Giorno precedente">
+                      <ArrowBack fontSize="small" />
+                    </IconButton>
+                    <Typography variant="body2" sx={{ minWidth: "120px", textAlign: "center" }}>
+                      {dayjs(currentDate).format("DD/MM/YYYY")}
+                    </Typography>
+                    <IconButton size="small" onClick={handleNextDay} title="Giorno successivo">
+                      <ArrowForward fontSize="small" />
+                    </IconButton>
+                  </Stack>
+                )}
+              </Box>
               {status?.formStatus === formStatuses.UPDATE && status?.isFormLocked === false && (
                 <Button
                   variant="contained"

@@ -38,9 +38,37 @@ public static class SeedMenus
             return;
         }
 
+        // Clean up duplicate Dashboard menus (keep only one with correct path and filePath)
+        var dashboardMenus = await dbContext.Menus
+            .Where(m => m.Title == "Dashboard" && m.ParentMenuId == null)
+            .ToListAsync();
+
+        if (dashboardMenus.Count > 1)
+        {
+            // Keep the one with the correct path, remove others
+            var correctDashboard = dashboardMenus.FirstOrDefault(m => m.Path == "/gestionale/dashboard");
+            var toRemove = dashboardMenus.Where(m => m != correctDashboard).ToList();
+
+            foreach (var menu in toRemove)
+            {
+                dbContext.Menus.Remove(menu);
+            }
+
+            await dbContext.SaveChangesAsync();
+        }
+
+        // First, try to find existing dashboard menu by path
         var dashboardMenu = await dbContext.Menus
             .Include(m => m.Roles)
             .FirstOrDefaultAsync(m => m.Path == "/gestionale/dashboard");
+
+        // If not found, try to find by title (for backwards compatibility with old seed data)
+        if (dashboardMenu == null)
+        {
+            dashboardMenu = await dbContext.Menus
+                .Include(m => m.Roles)
+                .FirstOrDefaultAsync(m => m.Title == "Dashboard" && m.ParentMenuId == null);
+        }
 
         if (dashboardMenu == null)
         {
@@ -50,8 +78,8 @@ public static class SeedMenus
                 Path = "/gestionale/dashboard",
                 Icon = "Dashboard",
                 IsVisible = true,
-                ViewName = "Dashboard",
-                FilePath = "dashboard/Dashboard.tsx",
+                ViewName = "HomePage",
+                FilePath = "HomePage.tsx",
                 Roles = [superAdminRole]
             };
             dbContext.Menus.Add(dashboardMenu);
@@ -60,7 +88,7 @@ public static class SeedMenus
         {
             bool needsUpdate = false;
             UpdateMenuIfNeeded(dashboardMenu, "Dashboard", "/gestionale/dashboard", "Dashboard", true,
-                "Dashboard", "dashboard/Dashboard.tsx", superAdminRole, null, ref needsUpdate);
+                "HomePage", "HomePage.tsx", superAdminRole, null, ref needsUpdate);
 
             if (needsUpdate)
             {
@@ -457,6 +485,46 @@ public static class SeedMenus
             if (needsUpdate)
             {
                 dbContext.Menus.Update(cassaChild2);
+            }
+        }
+
+        // Remove old "Nuova Cassa" route if it exists (consolidated to /cassa/details)
+        var oldNewCassaMenu = await dbContext.Menus
+            .FirstOrDefaultAsync(m => m.Path == "/gestionale/cassa/new");
+        if (oldNewCassaMenu != null)
+        {
+            dbContext.Menus.Remove(oldNewCassaMenu);
+            await dbContext.SaveChangesAsync();
+        }
+
+        // Child: Gestione Cassa (visible, for creating and editing cash registers with day navigation)
+        var cassaChild4 = await dbContext.Menus
+            .Include(m => m.Roles)
+            .FirstOrDefaultAsync(m => m.Path == "/gestionale/cassa/details");
+
+        if (cassaChild4 == null)
+        {
+            cassaChild4 = new Menu
+            {
+                Title = "Gestione Cassa",
+                Path = "/gestionale/cassa/details",
+                Icon = "Edit",
+                IsVisible = true,
+                ViewName = "CashRegisterDetails",
+                FilePath = "cashRegister/CashRegisterDetails.tsx",
+                ParentMenu = cassaMenu,
+                Roles = [superAdminRole]
+            };
+            dbContext.Menus.Add(cassaChild4);
+        }
+        else
+        {
+            bool needsUpdate = false;
+            UpdateMenuIfNeeded(cassaChild4, "Gestione Cassa", "/gestionale/cassa/details", "Edit", true,
+                "CashRegisterDetails", "cashRegister/CashRegisterDetails.tsx", superAdminRole, cassaMenu, ref needsUpdate);
+            if (needsUpdate)
+            {
+                dbContext.Menus.Update(cassaChild4);
             }
         }
 

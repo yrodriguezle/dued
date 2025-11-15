@@ -47,7 +47,8 @@ permessi utente e un'architettura modulare per la gestione di utenti, ruoli e me
      - `/signin` - Pagina pubblica di accesso
      - `/gestionale/*` - Route protette che richiedono autenticazione
    - Le route protette sono generate dinamicamente in base ai permessi menu dell'utente autenticato
-   - Le definizioni delle route si trovano in `src/routes/routesMapping.tsx` con componenti caricati in modo lazy
+   - Il componente `ProtectedRoutes` (`src/routes/ProtectedRoutes.tsx`) legge la configurazione dei menu dall'utente (`user.menus`) e carica dinamicamente i componenti pagina tramite `loadDynamicComponent()`
+   - Ogni menu memorizzato nel database deve avere un campo `filePath` che punta al percorso del componente (es. `src/components/pages/users/UserList.tsx`)
 
 3. **Sistema di Autenticazione** (`src/common/authentication/`, `src/graphql/configureClient.tsx`)
 
@@ -109,9 +110,12 @@ permessi utente e un'architettura modulare per la gestione di utenti, ruoli e me
 ### Pattern Importanti
 
 **Generazione Route Dinamiche**: Le route non sono definite staticamente. Invece, vengono generate a runtime in base ai permessi menu dell'utente (memorizzati in `user.menus`). Il componente
-`ProtectedRoutes` (`src/routes/ProtectedRoutes.tsx`) filtra i menu con percorsi e li mappa a componenti caricati in modo lazy da `routesMapping`. Per aggiungere nuove route:
-1. Aggiungi il componente lazy-loaded in `src/routes/routesMapping.tsx`
-2. Assicurati che il percorso corrisponda ai permessi menu dell'utente nel database
+`ProtectedRoutes` (`src/routes/ProtectedRoutes.tsx`) filtra i menu con percorsi e li mappa a componenti caricati dinamicamente tramite `loadDynamicComponent()`. Per aggiungere nuove route:
+1. Crea il componente pagina in `src/components/pages/[feature]/[ComponentName].tsx`
+2. Crea un menu nel database con i seguenti campi:
+   - `path`: il percorso della route (es. `/gestionale/users-list`)
+   - `filePath`: il percorso relativo al componente da caricare (es. `src/components/pages/users/UserList.tsx`)
+3. Assegna il menu all'utente tramite i permessi per renderlo visibile nella navigazione
 
 **Coda Refresh Token**: Quando si verifica un errore `ACCESS_DENIED`, l'error link di Apollo Client (`src/graphql/configureClient.tsx`) previene richieste di refresh duplicate usando un flag `isRefreshing` e mette in coda le richieste
 in sospeso in `pendingRequests`. Dopo il successo del refresh, tutte le richieste in coda vengono risolte con header aggiornati. Questo pattern previene race condition durante il refresh del token.
@@ -203,9 +207,11 @@ Per aggiungere una nuova pagina/funzionalità:
 
 1. Crea il componente pagina in `src/components/pages/[feature]/`
 2. Aggiungi le operazioni GraphQL in `src/graphql/[feature]/`
-3. Aggiungi la route in `src/routes/routesMapping.tsx` con lazy loading
-4. Assicurati che i permessi menu corrispondano nel database
-5. Crea eventuali tipi TypeScript necessari in `src/@types/`
+3. Crea un record nel database nella tabella `menus` con:
+   - `path`: il percorso della route (es. `/gestionale/cassa/new`)
+   - `filePath`: il percorso relativo al file componente (es. `src/components/pages/cashRegister/CashRegisterDetails.tsx`)
+   - Altri campi come `label`, `icon`, `order` per la navigazione sidebar
+4. Crea eventuali tipi TypeScript necessari in `src/@types/`
 
 ### Testing e Validazione
 

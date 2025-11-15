@@ -42,7 +42,7 @@ function CashRegisterList() {
   }, []);
 
   const handleNew = useCallback(() => {
-    navigate("/gestionale/cassa/new");
+    navigate("/gestionale/cassa/details");
   }, [navigate]);
 
   const handleDelete = useCallback(async () => {
@@ -90,7 +90,7 @@ function CashRegisterList() {
 
   const handleRowDoubleClicked = useCallback(
     (event: DatagridRowDoubleClickedEvent<CashRegister>) => {
-      navigate(`/gestionale/cassa/${event.data.registerId}`);
+      navigate(`/gestionale/cassa/details/${event.data.registerId}`);
     },
     [navigate]
   );
@@ -203,11 +203,13 @@ function CashRegisterList() {
       </Box>
       <Box sx={{ flex: 1, paddingX: 2, paddingBottom: 2 }}>
         <Datagrid
-          rowData={cashRegisters}
+          items={cashRegisters || []}
           columnDefs={columnDefs}
+          height="100%"
           loading={loading}
           onGridReady={handleGridReady}
           onRowDoubleClicked={handleRowDoubleClicked}
+          presentation
         />
       </Box>
     </Box>

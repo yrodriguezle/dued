@@ -2,7 +2,7 @@ import React, { Suspense, useMemo } from "react";
 import { Navigate, Route, Routes } from "react-router";
 import { isAuthenticated } from "../common/authentication/auth";
 import Layout from "../components/layout/Layout";
-import { Fallback } from "./routesMapping";
+import { Fallback } from "./RoutesFallback";
 import useStore from "../store/useStore";
 import { loadDynamicComponent } from "./dynamicComponentLoader";
 
@@ -30,13 +30,16 @@ function ProtectedRoutes() {
         {menuRoutes
           .filter((menu) => menu?.path && menu?.filePath)
           .map((menu) => {
+            // Convert /gestionale/cassa/details to cassa/details and support dynamic routes
             const routePath = menu?.path.replace("/gestionale/", "") || "/";
+            // Support routes with parameters: /gestionale/cassa/details -> cassa/:id
+            const finalPath = routePath === "cassa/details" ? "cassa/:id" : routePath;
             const DynamicComponent = loadDynamicComponent(menu?.filePath || "");
 
             return (
               <Route
                 key={menu?.path}
-                path={routePath}
+                path={finalPath}
                 element={
                   <Suspense fallback={<Fallback />}>
                     <DynamicComponent />
