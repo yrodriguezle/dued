@@ -98,6 +98,20 @@ function configureClient() {
                 return { ...existing, ...incoming };
               },
             },
+            cashManagement: {
+              // Merge function for cashManagement field to avoid cache loss warnings
+              // This field doesn't have a stable ID, so we use keyArgs: false to merge
+              // all requests into a single cache entry
+              keyArgs: false,
+              merge(existing = {}, incoming) {
+                // Deep merge of existing and incoming data
+                // Preserve denominations if incoming doesn't have them
+                return {
+                  ...existing,
+                  ...incoming,
+                };
+              },
+            },
           },
         },
       },
