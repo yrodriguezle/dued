@@ -63,12 +63,9 @@ public static class SeedMenus
             .FirstOrDefaultAsync(m => m.Path == "/gestionale/dashboard");
 
         // If not found, try to find by title (for backwards compatibility with old seed data)
-        if (dashboardMenu == null)
-        {
-            dashboardMenu = await dbContext.Menus
-                .Include(m => m.Roles)
-                .FirstOrDefaultAsync(m => m.Title == "Dashboard" && m.ParentMenuId == null);
-        }
+        dashboardMenu ??= await dbContext.Menus
+            .Include(m => m.Roles)
+            .FirstOrDefaultAsync(m => m.Title == "Dashboard" && m.ParentMenuId == null);
 
         if (dashboardMenu == null)
         {
@@ -79,7 +76,7 @@ public static class SeedMenus
                 Icon = "Dashboard",
                 IsVisible = true,
                 ViewName = "HomePage",
-                FilePath = "HomePage.tsx",
+                FilePath = "dashboard/HomePage.tsx",
                 Roles = [superAdminRole]
             };
             dbContext.Menus.Add(dashboardMenu);
@@ -88,7 +85,7 @@ public static class SeedMenus
         {
             bool needsUpdate = false;
             UpdateMenuIfNeeded(dashboardMenu, "Dashboard", "/gestionale/dashboard", "Dashboard", true,
-                "HomePage", "HomePage.tsx", superAdminRole, null, ref needsUpdate);
+                "HomePage", "dashboard/HomePage.tsx", superAdminRole, null, ref needsUpdate);
 
             if (needsUpdate)
             {
@@ -396,33 +393,71 @@ public static class SeedMenus
             }
         }
 
-        // Menu Cassa (Dashboard)
+        // Menu padre Cassa (senza path e FilePath - collapsible menu group)
         var cassaMenu = await dbContext.Menus
             .Include(m => m.Roles)
-            .FirstOrDefaultAsync(m => m.Path == "/gestionale/cassa");
+            .FirstOrDefaultAsync(m => m.Title == "Cassa" && m.Path == string.Empty);
 
         if (cassaMenu == null)
         {
+            // Try to find old Cassa menu by path and remove it if it exists
+            var oldCassaMenu = await dbContext.Menus
+                .FirstOrDefaultAsync(m => m.Path == "/gestionale/cassa");
+            if (oldCassaMenu != null)
+            {
+                dbContext.Menus.Remove(oldCassaMenu);
+                await dbContext.SaveChangesAsync();
+            }
+
             cassaMenu = new Menu
             {
                 Title = "Cassa",
-                Path = "/gestionale/cassa",
+                Path = string.Empty,
                 Icon = "PointOfSale",
                 IsVisible = true,
-                ViewName = "CashRegisterDashboard",
-                FilePath = "cashRegister/CashRegisterDashboard.tsx",
                 Roles = [superAdminRole]
             };
             dbContext.Menus.Add(cassaMenu);
+            await dbContext.SaveChangesAsync(); // Save per ottenere MenuId
         }
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(cassaMenu, "Cassa", "/gestionale/cassa", "PointOfSale", true,
-                "CashRegisterDashboard", "cashRegister/CashRegisterDashboard.tsx", superAdminRole, null, ref needsUpdate);
+            UpdateMenuIfNeeded(cassaMenu, "Cassa", null, "PointOfSale", true, null, null, superAdminRole, null, ref needsUpdate);
             if (needsUpdate)
             {
                 dbContext.Menus.Update(cassaMenu);
+            }
+        }
+
+        // Child: Dashboard Cassa (primo child - la dashboard principale del modulo cassa)
+        var cassaDashboardChild = await dbContext.Menus
+            .Include(m => m.Roles)
+            .FirstOrDefaultAsync(m => m.Path == "/gestionale/cassa/dashboard");
+
+        if (cassaDashboardChild == null)
+        {
+            cassaDashboardChild = new Menu
+            {
+                Title = "Dashboard Cassa",
+                Path = "/gestionale/cassa/dashboard",
+                Icon = "Dashboard",
+                IsVisible = true,
+                ViewName = "CashRegisterDashboard",
+                FilePath = "cashRegister/CashRegisterDashboard.tsx",
+                ParentMenu = cassaMenu,
+                Roles = [superAdminRole]
+            };
+            dbContext.Menus.Add(cassaDashboardChild);
+        }
+        else
+        {
+            bool needsUpdate = false;
+            UpdateMenuIfNeeded(cassaDashboardChild, "Dashboard Cassa", "/gestionale/cassa/dashboard", "Dashboard", true,
+                "CashRegisterDashboard", "cashRegister/CashRegisterDashboard.tsx", superAdminRole, cassaMenu, ref needsUpdate);
+            if (needsUpdate)
+            {
+                dbContext.Menus.Update(cassaDashboardChild);
             }
         }
 

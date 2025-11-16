@@ -6,7 +6,7 @@ import { Fallback } from "./RoutesFallback";
 import useStore from "../store/useStore";
 import { loadDynamicComponent } from "./dynamicComponentLoader";
 
-const HomePage = React.lazy(() => import("../components/pages/HomePage.tsx"));
+const HomePage = React.lazy(() => import("../components/pages/dashboard/HomePage.tsx"));
 
 function ProtectedRoutes() {
   const user = useStore((store) => store.user);
