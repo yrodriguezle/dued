@@ -2,6 +2,7 @@ import { ApolloClient, ApolloLink, from, HttpLink, InMemoryCache, NormalizedCach
 import { onError } from "@apollo/client/link/error";
 import { fromPromise } from "@apollo/client/link/utils";
 import { getAuthHeaders } from "../common/authentication/auth";
+import { getCsrfTokenFromCookie } from "../common/authentication/csrfToken";
 import refreshToken from "../api/refreshToken";
 import onRefreshFails from "../common/authentication/onRefreshFails";
 
@@ -33,11 +34,23 @@ function configureClient() {
   const authLink = new ApolloLink((operation, forward) => {
     operation.setContext(({ headers }: ApolloClienContext) => {
       const authHeaders = getAuthHeaders();
+
+      // Check if this is a mutation (state-changing operation)
+      const isMutation = operation.query.definitions.some(
+        (def) =>
+          def.kind === "OperationDefinition" &&
+          def.operation === "mutation"
+      );
+
+      // Add CSRF token to mutations for CSRF protection
+      const csrfToken = isMutation ? getCsrfTokenFromCookie() : null;
+
       return {
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json;charset=UTF-8",
           ...authHeaders,
+          ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
           ...headers,
         },
       };

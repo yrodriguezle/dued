@@ -8,6 +8,7 @@ using duedgusto.Models;
 using duedgusto.DataAccess;
 using duedgusto.GraphQL.Authentication;
 using duedgusto.Services.Jwt;
+using duedgusto.Services.Csrf;
 using duedgusto.Services.HashPassword;
 
 namespace duedgusto.Controllers;
@@ -15,7 +16,7 @@ namespace duedgusto.Controllers;
 [Authorize]
 [Route("api/[controller]")]
 [ApiController]
-public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper) : ControllerBase
+public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper, CsrfTokenGenerator csrfTokenGenerator) : ControllerBase
 {
     [HttpPost]
     public async Task<IActionResult> GetAuthenticatedUser()
@@ -91,6 +92,23 @@ public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper) : Contr
 
         await dbContext.SaveChangesAsync();
 
+        // Generate CSRF token for subsequent requests
+        var csrfToken = csrfTokenGenerator.GenerateToken();
+
+        // Set CSRF token as non-httpOnly cookie (must be readable by JavaScript)
+        Response.Cookies.Append(
+            "csrfToken",
+            csrfToken,
+            new CookieOptions
+            {
+                HttpOnly = false, // Must be readable by JavaScript
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Path = "/",
+                MaxAge = TimeSpan.FromDays(7),
+            }
+        );
+
         // Set refresh token as httpOnly cookie for improved security
         Response.Cookies.Append(
             "refreshToken",
@@ -129,6 +147,23 @@ public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper) : Contr
 
         await dbContext.SaveChangesAsync();
 
+        // Generate new CSRF token (token rotation)
+        var csrfToken = csrfTokenGenerator.GenerateToken();
+
+        // Set CSRF token as non-httpOnly cookie (must be readable by JavaScript)
+        Response.Cookies.Append(
+            "csrfToken",
+            csrfToken,
+            new CookieOptions
+            {
+                HttpOnly = false, // Must be readable by JavaScript
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Path = "/",
+                MaxAge = TimeSpan.FromDays(7),
+            }
+        );
+
         // Set refresh token as httpOnly cookie for improved security
         Response.Cookies.Append(
             "refreshToken",
@@ -150,6 +185,15 @@ public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper) : Contr
     [HttpPost("logout"), AllowAnonymous]
     public IActionResult Logout()
     {
+        // Clear the CSRF token cookie
+        Response.Cookies.Delete("csrfToken", new CookieOptions
+        {
+            HttpOnly = false,
+            Secure = true,
+            SameSite = SameSiteMode.Strict,
+            Path = "/",
+        });
+
         // Clear the refresh token cookie
         Response.Cookies.Delete("refreshToken", new CookieOptions
         {

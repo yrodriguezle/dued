@@ -11,7 +11,9 @@ using duedgusto.GraphQL;
 using duedgusto.DataAccess;
 using duedgusto.GraphQL.Authentication;
 using duedgusto.Services.Jwt;
+using duedgusto.Services.Csrf;
 using duedgusto.Services.HashPassword;
+using duedgusto.Middleware;
 using duedgusto.SeedData;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,6 +22,7 @@ builder.Services.AddHttpContextAccessor();
 
 // Add services to the container.
 builder.Services.AddTransient<PasswordService>();
+builder.Services.AddScoped<CsrfTokenGenerator>();
 
 builder.Services.AddSingleton<ISchema, GraphQLSchema>(services => new GraphQLSchema(new SelfActivatingServiceProvider(services)));
 
@@ -102,6 +105,9 @@ app.UseCors("AllowAllDev");
 app.UseAuthentication();
 
 app.UseAuthorization();
+
+// CSRF protection middleware must be after authentication/authorization
+app.UseMiddleware<CsrfProtectionMiddleware>();
 
 app.MapControllers();
 

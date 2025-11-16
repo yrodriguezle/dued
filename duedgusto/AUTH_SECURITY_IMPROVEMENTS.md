@@ -3,7 +3,7 @@
 ## Overview
 This document describes the security improvements implemented in Phases 1 & 2 to mitigate authentication vulnerabilities.
 
-**Current Status:** Phase 2 (httpOnly Cookie Migration) - In Progress
+**Current Status:** Phase 3 (CSRF Protection) - Completed
 
 ## Changes Implemented
 
@@ -294,15 +294,151 @@ Server clears refresh token cookie
 Frontend removes access token from localStorage
 ```
 
-## Next Steps (Phase 3+)
+## Phase 3: CSRF Protection with Double-Submit Cookies
 
-After Phase 2 validation, proceed with:
+### Implementation Completed ✅
 
-1. **CSRF Protection** - Add CSRF token validation to sensitive endpoints
-2. **Refresh Token Server TTL** - Add server-side expiration for refresh tokens
-3. **Session Timeout** - Add server-side session timeout with sliding window
-4. **Comprehensive Logging** - Enhanced debugging for auth flow issues
-5. **Rate Limiting** - Add rate limiting to auth endpoints to prevent brute force
+Implemented CSRF protection using the double-submit cookie pattern to prevent cross-site request forgery attacks.
+
+#### Backend Changes
+
+**Created CsrfTokenGenerator Service (`Services/Csrf/CsrfTokenGenerator.cs`):**
+- Generates cryptographically secure CSRF tokens using `RandomNumberGenerator`
+- Validates tokens by comparing header token with cookie token
+- Implements stateless double-submit cookie pattern (no server-side storage needed)
+
+**Created CsrfProtectionMiddleware (`Middleware/CsrfProtectionMiddleware.cs`):**
+- Validates CSRF tokens for all state-changing requests (POST, PUT, DELETE, PATCH)
+- Exempt paths: `/api/auth/signin` (public), `/graphql` (has own validation)
+- Returns 403 Forbidden if CSRF validation fails
+- Logs all CSRF failures for security monitoring
+
+**Updated AuthController.cs:**
+- Generates new CSRF token on `/api/auth/signin`
+- Generates new CSRF token on `/api/auth/refresh` (token rotation)
+- Clears CSRF token on `/api/auth/logout`
+- Sets CSRF token as non-httpOnly cookie with:
+  - `HttpOnly = false` (must be readable by JavaScript)
+  - `Secure = true` (HTTPS only)
+  - `SameSite = Strict` (CSRF protection)
+  - `Path = "/"` (sent to all paths)
+  - `MaxAge = 7 days` (matches refresh token lifetime)
+
+**Updated Program.cs:**
+- Registered `CsrfTokenGenerator` as scoped service
+- Registered `CsrfProtectionMiddleware` after authentication/authorization
+
+#### Frontend Changes
+
+**Created csrfToken.tsx utility:**
+- `getCsrfTokenFromCookie()` - Reads CSRF token from cookie
+- `getCsrfToken()` - Throws if token not found
+- `hasCsrfToken()` - Checks if user is authenticated
+
+**Updated refreshToken.tsx:**
+- Extracts CSRF token from cookie
+- Adds `X-CSRF-Token` header to refresh request
+- Treats 403 (CSRF failure) as authentication failure
+
+**Updated makeRequest.tsx (REST API):**
+- Detects state-changing requests (POST, PUT, DELETE, PATCH)
+- Adds CSRF token header for those requests
+- Handles 403 responses as forbidden errors
+
+**Updated configureClient.tsx (GraphQL):**
+- Detects mutations (state-changing operations)
+- Adds CSRF token header only to mutations (not queries)
+- Queries remain unprotected (read-only operations)
+
+#### Security Improvements
+
+| Attack Vector | Before | After |
+|---|---|---|
+| **CSRF on refresh endpoint** | ❌ Vulnerable - attacker can force token refresh | ✅ Protected - requires valid CSRF token |
+| **Cross-site form submission** | ❌ Cookies auto-sent | ✅ Blocked - requires X-CSRF-Token header |
+| **Cross-site AJAX** | ❌ Can send if credentials: include | ✅ Blocked - JavaScript can't read httpOnly token + CSRF validation |
+| **XSS to steal CSRF token** | ⚠️ CSRF token readable but in non-httpOnly cookie | ⚠️ XSS still a problem but limited damage (can't steal httpOnly refresh token) |
+
+#### Attack Prevention Diagram
+
+```
+Attack Scenario 1: Form-based CSRF from attacker.com
+┌─────────────────────────────────────┐
+│ Attacker Website (attacker.com)      │
+├─────────────────────────────────────┤
+│ <form action="yoursite.com/api/..."> │
+│   <input ...>                        │
+│ </form>                              │
+│ <script>form.submit()</script>       │
+└─────────────────────────────────────┘
+              ↓
+Browser sends request with:
+  ✓ csrfToken cookie (httpOnly refresh also sent)
+  ✗ NO X-CSRF-Token header (JavaScript can't add it)
+  ✗ SameSite=Strict blocks it anyway
+              ↓
+Server checks:
+  ✗ X-CSRF-Token header missing
+  → 403 Forbidden
+
+Result: ATTACK BLOCKED ✅
+
+Attack Scenario 2: AJAX-based CSRF from attacker.com
+┌─────────────────────────────────────┐
+│ Attacker Website JavaScript          │
+├─────────────────────────────────────┤
+│ fetch('yoursite.com/api/refresh', {  │
+│   method: 'POST',                    │
+│   credentials: 'include'             │
+│ })                                   │
+└─────────────────────────────────────┘
+              ↓
+Browser blocks due to CORS (no credentials)
+Or if CORS allows:
+  ✓ Cookies sent by browser
+  ✗ JavaScript cannot read csrfToken
+  ✗ Cannot set X-CSRF-Token header
+              ↓
+Server checks:
+  ✗ X-CSRF-Token header missing
+  → 403 Forbidden
+
+Result: ATTACK BLOCKED ✅
+```
+
+#### Double-Submit Cookie Pattern Explanation
+
+Token is stored in TWO places:
+1. **Cookie**: `csrfToken=abc123` (sent automatically by browser)
+2. **Header**: `X-CSRF-Token: abc123` (must be set by JavaScript)
+
+For request to succeed, both must match:
+- **Same-origin requests**: JavaScript can read cookie and set header → Succeeds ✓
+- **Cross-site requests**: Can't read cookie due to same-origin policy → Fails ✗
+- **CSRF attacks**: JavaScript on attacker site can't read cookie → Can't set header → Fails ✗
+
+#### Token Rotation
+
+CSRF token is rotated on every successful operation:
+- Login (`/api/auth/signin`) → New CSRF token in response
+- Token refresh (`/api/auth/refresh`) → New CSRF token in response
+- Logout (`/api/auth/logout`) → CSRF token cleared
+
+This limits damage if token is compromised.
+
+#### Backward Compatibility
+
+✅ **Fully compatible** - Endpoints that don't send CSRF token will get 403, which triggers a clear security error.
+
+## Next Steps (Phase 4+)
+
+After Phase 3 validation, proceed with:
+
+1. **Refresh Token Server TTL** - Add server-side expiration for refresh tokens
+2. **Session Timeout** - Add server-side session timeout with sliding window
+3. **Comprehensive Logging** - Enhanced debugging for auth flow issues
+4. **Rate Limiting** - Add rate limiting to auth endpoints to prevent brute force
+5. **Fetch Metadata Headers** - Add Sec-Fetch-* header validation for defense-in-depth
 
 ## Configuration
 

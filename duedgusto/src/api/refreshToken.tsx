@@ -1,8 +1,10 @@
 import { getAuthToken, setAuthToken } from "../common/authentication/auth";
+import { getCsrfTokenFromCookie } from "../common/authentication/csrfToken";
 
 const defaultServices = {
   fetch: window.fetch.bind(window),
   getAuthToken,
+  getCsrfTokenFromCookie,
 };
 
 const MAX_RETRIES = 3;
@@ -44,6 +46,9 @@ async function refreshToken(services = defaultServices, retryCount = 0): Promise
   const authToken = services.getAuthToken();
 
   try {
+    // Get CSRF token from cookie for request validation
+    const csrfToken = services.getCsrfTokenFromCookie();
+
     const response = await services.fetch(`${(window as Global).API_ENDPOINT}/api/auth/refresh`, {
       method: "POST",
       credentials: "include", // Include httpOnly cookies in request
@@ -56,6 +61,8 @@ async function refreshToken(services = defaultServices, retryCount = 0): Promise
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json;charset=UTF-8",
+        // CSRF token for double-submit cookie pattern validation
+        ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
       },
     });
 
@@ -67,6 +74,11 @@ async function refreshToken(services = defaultServices, retryCount = 0): Promise
 
     // 401 means session is invalid - don't retry, just return false
     if (response.status === 401) {
+      return false;
+    }
+
+    // 403 means CSRF validation failed or request is forbidden - treat as auth failure
+    if (response.status === 403) {
       return false;
     }
 

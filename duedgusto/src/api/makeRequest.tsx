@@ -1,4 +1,5 @@
 import { getAuthHeaders, setLastActivity } from "../common/authentication/auth";
+import { getCsrfTokenFromCookie } from "../common/authentication/csrfToken";
 import onRefreshFails from "../common/authentication/onRefreshFails";
 import debounce from "../common/bones/debounce";
 import logger from "../common/logger/logger";
@@ -15,11 +16,17 @@ const defaultServices = {
 
 async function makeRequest<T, InputData>({ path, method, data, headers = {}, failOnForbidden = false }: MakeRequest<InputData>, services = defaultServices): Promise<T | null> {
   const authHeaders = services.getAuthHeaders();
+
+  // Add CSRF token for state-changing requests (POST, PUT, DELETE, PATCH)
+  const isStatefulRequest = ["POST", "PUT", "DELETE", "PATCH"].includes(method.toUpperCase());
+  const csrfToken = isStatefulRequest ? getCsrfTokenFromCookie() : null;
+
   const mergedHeaders = {
     Accept: "application/json",
     "Content-Type": "application/json;charset=UTF-8",
     ...headers,
     ...(authHeaders || {}),
+    ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
   };
 
   const response = await services.fetch(`${(window as Global).API_ENDPOINT}/api/${path}`, {
@@ -62,6 +69,13 @@ async function makeRequest<T, InputData>({ path, method, data, headers = {}, fai
     await onRefreshFails();
     return null;
   }
+
+  // 403 Forbidden - CSRF validation failed or request is forbidden
+  if (response.status === 403) {
+    logger.error("Request forbidden (403) - CSRF validation may have failed");
+    throw new Error("Errore di sicurezza nella richiesta (CSRF validation failed)");
+  }
+
   const err = await response.json();
   throw new Error(err.message || "Errore nella risposta del server");
 }
