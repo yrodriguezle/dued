@@ -16,6 +16,10 @@ public class AppDbContext : DbContext
     public DbSet<Role> Roles { get; set; }
     public DbSet<Menu> Menus { get; set; }
 
+    // Products and Sales
+    public DbSet<Product> Products { get; set; }
+    public DbSet<Sale> Sales { get; set; }
+
     // Cash Management
     public DbSet<CashDenomination> CashDenominations { get; set; }
     public DbSet<CashRegister> CashRegisters { get; set; }
@@ -221,6 +225,117 @@ public class AppDbContext : DbContext
                 .WithMany(x => x.CashCounts)
                 .HasForeignKey(x => x.DenominationId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Product Configuration
+        modelBuilder.Entity<Product>(entity =>
+        {
+            entity
+                .ToTable("Products")
+                .HasCharSet("utf8mb4")
+                .UseCollation("utf8mb4_unicode_ci")
+                .HasKey(x => x.ProductId);
+
+            entity.Property(x => x.ProductId)
+                .ValueGeneratedOnAdd();
+
+            entity.Property(x => x.Code)
+                .HasMaxLength(50)
+                .IsRequired();
+
+            entity.Property(x => x.Name)
+                .HasMaxLength(255)
+                .IsRequired();
+
+            entity.Property(x => x.Description)
+                .HasColumnType("text");
+
+            entity.Property(x => x.Price)
+                .HasColumnType("decimal(10,2)")
+                .IsRequired();
+
+            entity.Property(x => x.Category)
+                .HasMaxLength(100);
+
+            entity.Property(x => x.UnitOfMeasure)
+                .HasMaxLength(20)
+                .HasDefaultValue("pz");
+
+            entity.Property(x => x.IsActive)
+                .HasDefaultValue(true);
+
+            entity.Property(x => x.CreatedAt)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.Property(x => x.UpdatedAt)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+
+            entity.HasMany(x => x.Sales)
+                .WithOne(x => x.Product)
+                .HasForeignKey(x => x.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Index on Code for faster lookups
+            entity.HasIndex(x => x.Code)
+                .IsUnique();
+        });
+
+        // Sale Configuration
+        modelBuilder.Entity<Sale>(entity =>
+        {
+            entity
+                .ToTable("Sales")
+                .HasCharSet("utf8mb4")
+                .UseCollation("utf8mb4_unicode_ci")
+                .HasKey(x => x.SaleId);
+
+            entity.Property(x => x.SaleId)
+                .ValueGeneratedOnAdd();
+
+            entity.Property(x => x.Quantity)
+                .HasColumnType("decimal(10,2)")
+                .IsRequired();
+
+            entity.Property(x => x.UnitPrice)
+                .HasColumnType("decimal(10,2)")
+                .IsRequired();
+
+            entity.Property(x => x.TotalPrice)
+                .HasColumnType("decimal(10,2)")
+                .IsRequired();
+
+            entity.Property(x => x.Notes)
+                .HasColumnType("text");
+
+            entity.Property(x => x.Timestamp)
+                .HasColumnType("datetime")
+                .IsRequired();
+
+            entity.Property(x => x.CreatedAt)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.Property(x => x.UpdatedAt)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+
+            entity.HasOne(x => x.CashRegister)
+                .WithMany()
+                .HasForeignKey(x => x.RegisterId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.Product)
+                .WithMany(x => x.Sales)
+                .HasForeignKey(x => x.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Index on RegisterId for faster queries by register
+            entity.HasIndex(x => x.RegisterId);
+
+            // Index on Timestamp for time-based filtering
+            entity.HasIndex(x => x.Timestamp);
         });
     }
 }

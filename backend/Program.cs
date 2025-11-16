@@ -122,6 +122,7 @@ using (var scope = app.Services.CreateScope())
     await SeedSuperadmin.Initialize(services);
     await SeedMenus.Initialize(services);
     await SeedCashDenominations.Initialize(services);
+    await SeedProducts.Initialize(services);
 }
 
 app.Run();
