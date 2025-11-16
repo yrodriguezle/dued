@@ -24,6 +24,7 @@ async function makeRequest<T, InputData>({ path, method, data, headers = {}, fai
 
   const response = await services.fetch(`${(window as Global).API_ENDPOINT}/api/${path}`, {
     method,
+    credentials: "include", // Include httpOnly cookies in requests
     body: data ? JSON.stringify(data) : undefined,
     headers: mergedHeaders,
   });

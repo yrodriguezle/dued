@@ -64,6 +64,8 @@ export const setAuthToken = (accessTokenAndrefreshToken: AuthToken) => {
     ...authToken,
     ...accessTokenAndrefreshToken,
   };
+  // Note: refreshToken is now stored in httpOnly cookie, only store access token
+  // Keep old refresh token in storage for backward compatibility during transition
   localStorage.setItem("jwtToken", JSON.stringify(newAuthToken));
 };
 

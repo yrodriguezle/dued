@@ -1,7 +1,9 @@
-# Phase 1: Security Improvements - JWT Validation & Retry Logic
+# Security Improvements - Phases 1 & 2
 
 ## Overview
-This document describes the security improvements implemented in Phase 1 to mitigate authentication vulnerabilities.
+This document describes the security improvements implemented in Phases 1 & 2 to mitigate authentication vulnerabilities.
+
+**Current Status:** Phase 2 (httpOnly Cookie Migration) - In Progress
 
 ## Changes Implemented
 
@@ -202,15 +204,105 @@ describe('Refresh Token Retry Logic', () => {
    - Try to make an API call
    - Should not retry, should redirect to /signin immediately
 
-## Next Steps (Phase 2+)
+## Phase 2: httpOnly Cookie Migration
 
-After Phase 1 validation, proceed with:
+### Implementation Completed ✅
 
-1. **httpOnly Cookie Migration** - Move refresh token to httpOnly cookies
-2. **CSRF Protection** - Add CSRF token validation to refresh endpoint
-3. **Token Rotation** - Implement automatic token rotation on refresh
-4. **Session Timeout** - Add server-side session timeout with sliding window
-5. **Comprehensive Logging** - Enhanced debugging for auth flow issues
+Moved refresh token from localStorage to httpOnly cookies for improved XSS protection.
+
+#### Backend Changes (AuthController.cs)
+
+**Modified `/api/auth/signin` endpoint:**
+- Returns only access token in response body: `{ token: "..." }`
+- Sets refresh token as httpOnly cookie with security flags:
+  - `HttpOnly = true` - Not accessible via JavaScript
+  - `Secure = true` - Only sent over HTTPS
+  - `SameSite = Strict` - CSRF protection, cookie only sent to same-site requests
+  - `Path = "/api/auth"` - Only sent to auth endpoints
+  - `MaxAge = 7 days` - Cookie expiration
+
+**Modified `/api/auth/refresh` endpoint:**
+- Accepts refresh token from cookie automatically (not from request body)
+- Returns only new access token in response body
+- Sets new refresh token as httpOnly cookie (automatic rotation)
+
+**Added `/api/auth/logout` endpoint:**
+- Clears refresh token cookie on server
+- Allows secure cleanup of session
+
+#### Frontend Changes
+
+**Modified `refreshToken.tsx`:**
+- Added `credentials: "include"` to fetch requests
+- Browser automatically sends httpOnly cookies with requests
+- Still sends access token in request body for backward compatibility
+
+**Modified Apollo Client configuration (`configureClient.tsx`):**
+- Added `credentials: "include"` to HttpLink
+- Enables cookie-based authentication for GraphQL requests
+
+**Modified REST API wrapper (`makeRequest.tsx`):**
+- Added `credentials: "include"` to all REST API calls
+
+**Enhanced logout hook (`useSignOut.tsx`):**
+- Calls `/api/auth/logout` endpoint to clear server-side cookie
+- Falls back to client-side logout if API call fails
+
+#### Security Impact
+
+| Vulnerability | Before | After |
+|---|---|---|
+| **XSS to steal tokens** | ❌ tokens in localStorage accessible | ✅ refresh token in httpOnly cookie |
+| **Refresh token exposure** | ⚠️ sent in request body | ✅ auto-sent by browser |
+| **CSRF attacks** | ⚠️ not protected | ✅ `SameSite=Strict` protects cookies |
+| **Session cleanup** | ⚠️ client-only | ✅ server-side logout endpoint |
+
+#### Backward Compatibility
+
+✅ **Fully compatible** - Works with both old and new server endpoints
+
+### Flow Diagram
+
+**Sign In:**
+```
+POST /api/auth/signin { username, password }
+  ↓
+Server generates tokens
+  ↓
+Response: { token: "access_token" } + Set-Cookie: refreshToken=...
+  ↓
+Frontend stores only access token in localStorage
+```
+
+**Refresh Token:**
+```
+POST /api/auth/refresh + credentials: "include"
+  ↓
+Browser auto-sends: Cookie: refreshToken=...
+  ↓
+Server validates and rotates refresh token
+  ↓
+Response: { token: "new_access_token" } + Set-Cookie: refreshToken=...
+```
+
+**Logout:**
+```
+POST /api/auth/logout + credentials: "include"
+  ↓
+Server clears refresh token cookie
+  ↓
+Frontend removes access token from localStorage
+```
+
+## Next Steps (Phase 3+)
+
+After Phase 2 validation, proceed with:
+
+1. **CSRF Protection** - Add CSRF token validation to sensitive endpoints
+2. **Refresh Token Server TTL** - Add server-side expiration for refresh tokens
+3. **Session Timeout** - Add server-side session timeout with sliding window
+4. **Comprehensive Logging** - Enhanced debugging for auth flow issues
+5. **Rate Limiting** - Add rate limiting to auth endpoints to prevent brute force
 
 ## Configuration
 

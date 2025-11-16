@@ -27,6 +27,7 @@ function configureClient() {
 
   const httpLink = new HttpLink({
     uri: (window as Global).GRAPHQL_ENDPOINT,
+    credentials: "include", // Include httpOnly cookies in GraphQL requests
   });
 
   const authLink = new ApolloLink((operation, forward) => {

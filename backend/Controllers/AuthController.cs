@@ -91,8 +91,22 @@ public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper) : Contr
 
         await dbContext.SaveChangesAsync();
 
-        TokenResponse response = new(Token, RefreshToken);
-        return Ok(response);
+        // Set refresh token as httpOnly cookie for improved security
+        Response.Cookies.Append(
+            "refreshToken",
+            RefreshToken,
+            new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true, // Only send over HTTPS in production
+                SameSite = SameSiteMode.Strict, // CSRF protection
+                Path = "/api/auth", // Only send to auth endpoints
+                MaxAge = TimeSpan.FromDays(7), // 7-day expiration
+            }
+        );
+
+        // Return only access token in response body (not refresh token)
+        return Ok(new { token = Token });
     }
 
     [HttpPost("refresh"), AllowAnonymous]
@@ -114,8 +128,38 @@ public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper) : Contr
         user.RefreshToken = RefreshToken;
 
         await dbContext.SaveChangesAsync();
-        TokenResponse response = new(Token, RefreshToken);
-        return new ObjectResult(response);
+
+        // Set refresh token as httpOnly cookie for improved security
+        Response.Cookies.Append(
+            "refreshToken",
+            RefreshToken,
+            new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true, // Only send over HTTPS in production
+                SameSite = SameSiteMode.Strict, // CSRF protection
+                Path = "/api/auth", // Only send to auth endpoints
+                MaxAge = TimeSpan.FromDays(7), // 7-day expiration
+            }
+        );
+
+        // Return only access token in response body (not refresh token)
+        return new ObjectResult(new { token = Token });
+    }
+
+    [HttpPost("logout"), AllowAnonymous]
+    public IActionResult Logout()
+    {
+        // Clear the refresh token cookie
+        Response.Cookies.Delete("refreshToken", new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.Strict,
+            Path = "/api/auth",
+        });
+
+        return Ok(new { message = "Logged out successfully" });
     }
 }
 

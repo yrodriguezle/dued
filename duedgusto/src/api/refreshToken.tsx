@@ -32,6 +32,9 @@ const isRetryable = (status: number): boolean => {
 /**
  * Refreshes the authentication token with exponential backoff retry logic.
  *
+ * Refresh token is now stored in httpOnly cookie and sent automatically by the browser.
+ * We only send the access token for the server to validate/refresh from.
+ *
  * @param services - Dependency injection for testing
  * @param retryCount - Internal parameter for tracking retries
  * @returns true if token was successfully refreshed, false if session expired (401)
@@ -43,8 +46,11 @@ async function refreshToken(services = defaultServices, retryCount = 0): Promise
   try {
     const response = await services.fetch(`${(window as Global).API_ENDPOINT}/api/auth/refresh`, {
       method: "POST",
+      credentials: "include", // Include httpOnly cookies in request
       body: JSON.stringify({
         token: authToken?.token || "",
+        // refreshToken is now in httpOnly cookie, sent automatically
+        // Keeping this field for backward compatibility with old server
         refreshToken: authToken?.refreshToken || "",
       }),
       headers: {
