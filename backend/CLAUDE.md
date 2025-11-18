@@ -25,14 +25,20 @@ dotnet build --configuration Release
 ```
 
 ### Database Setup
-```bash
-# Apply migrations to create/update database schema
-dotnet ef database update
 
+**Automatic Migration on Startup** ✅
+The application automatically applies all pending migrations when the project starts. No manual migration commands are needed - simply run:
+```bash
+dotnet run
+```
+The `Program.cs` includes `await dbContext.Database.MigrateAsync()` which executes all pending migrations before seeding data. This ensures the database schema is always in sync, even on first deployment to a new machine.
+
+**Manual Migration Commands** (if needed):
+```bash
 # Create a new migration after model changes
 dotnet ef migrations add <MigrationName>
 
-# Revert to previous migration
+# Revert to previous migration (manual only)
 dotnet ef database update <PreviousMigrationName>
 ```
 
