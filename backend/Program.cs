@@ -119,6 +119,12 @@ app.UseGraphQL<GraphQLSchema>("/graphql", opt =>
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
+
+    // Apply pending migrations automatically
+    var dbContext = services.GetRequiredService<AppDbContext>();
+    await dbContext.Database.MigrateAsync();
+
+    // Seed initial data
     await SeedSuperadmin.Initialize(services);
     await SeedMenus.Initialize(services);
     await SeedCashDenominations.Initialize(services);
