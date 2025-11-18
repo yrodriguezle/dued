@@ -70,6 +70,7 @@ public class SeedProducts
     /// - Columns A-B: First category (name in A, price in B)
     /// - Columns D-E: Second category (name in D, price in E)
     /// - Columns H-I: Third category (name in H, price in I)
+    /// Categories are intelligently determined based on product names
     /// </summary>
     private static List<Product> ReadProductsFromXlsx(string filePath)
     {
@@ -100,13 +101,14 @@ public class SeedProducts
                 {
                     if (decimal.TryParse(price_A_Str.Replace(",", "."), out var price_A))
                     {
-                        var code = $"PROD_{products.Count + 1}";
+                        var code = $"PROD_{products.Count + 1:D3}";
+                        var category = DetermineCategoryByName(name_A);
                         var product = new Product
                         {
                             Code = code,
                             Name = name_A,
                             Price = price_A,
-                            Category = "Bevande",
+                            Category = category,
                             UnitOfMeasure = "pz",
                             IsActive = true,
                             CreatedAt = DateTime.UtcNow,
@@ -124,13 +126,14 @@ public class SeedProducts
                 {
                     if (decimal.TryParse(price_D_Str.Replace(",", "."), out var price_D))
                     {
-                        var code = $"PROD_{products.Count + 1}";
+                        var code = $"PROD_{products.Count + 1:D3}";
+                        var category = DetermineCategoryByName(name_D);
                         var product = new Product
                         {
                             Code = code,
                             Name = name_D,
                             Price = price_D,
-                            Category = "Bevande",
+                            Category = category,
                             UnitOfMeasure = "pz",
                             IsActive = true,
                             CreatedAt = DateTime.UtcNow,
@@ -148,13 +151,14 @@ public class SeedProducts
                 {
                     if (decimal.TryParse(price_H_Str.Replace(",", "."), out var price_H))
                     {
-                        var code = $"PROD_{products.Count + 1}";
+                        var code = $"PROD_{products.Count + 1:D3}";
+                        var category = DetermineCategoryByName(name_H);
                         var product = new Product
                         {
                             Code = code,
                             Name = name_H,
                             Price = price_H,
-                            Category = "Bevande",
+                            Category = category,
                             UnitOfMeasure = "pz",
                             IsActive = true,
                             CreatedAt = DateTime.UtcNow,
@@ -172,6 +176,85 @@ public class SeedProducts
         }
 
         return products;
+    }
+
+    /// <summary>
+    /// Intelligently determines product category based on product name
+    /// Uses keyword matching to classify products into predefined categories
+    /// </summary>
+    private static string DetermineCategoryByName(string name)
+    {
+        var nameLower = name.ToLower();
+
+        // DOLCI/BRIOCHES
+        if (nameLower.Contains("brioches") || nameLower.Contains("vuota") ||
+            nameLower.Contains("crema") || nameLower.Contains("albicocca") ||
+            nameLower.Contains("krapfen") || nameLower.Contains("strudel") ||
+            nameLower.Contains("nutella") || nameLower.Contains("pistacchio") ||
+            nameLower.Contains("frutti") || nameLower.Contains("fagottino") ||
+            nameLower.Contains("conchiglia") || nameLower.Contains("treccia") ||
+            nameLower.Contains("mini") || nameLower.Contains("vegana"))
+            return "Dolci";
+
+        // CAFFÈ
+        if (nameLower.Contains("espresso") || nameLower.Contains("caffè") ||
+            nameLower.Contains("caffe") || nameLower.Contains("americano") ||
+            nameLower.Contains("cappuccino") || nameLower.Contains("macchiato") ||
+            nameLower.Contains("moccacino") || nameLower.Contains("orzo") ||
+            nameLower.Contains("corretto") || nameLower.Contains("shakerato") ||
+            nameLower.Contains("deca") || nameLower.Contains("decafeinato") ||
+            nameLower.Contains("ginseng") || nameLower.Contains("crema caffe") ||
+            nameLower.Contains("latte") || nameLower.Contains("cioccolata"))
+            return "Caffè";
+
+        // BIRRA
+        if (nameLower.Contains("ganter") || nameLower.Contains("engel") ||
+            nameLower.Contains("corona") || nameLower.Contains("beck") ||
+            nameLower.Contains("radler") || nameLower.Contains("birra") ||
+            nameLower.Contains("edit"))
+            return "Birra";
+
+        // VINO
+        if (nameLower.Contains("custoza") || nameLower.Contains("lugana") ||
+            nameLower.Contains("soraghe") || nameLower.Contains("maculan") ||
+            nameLower.Contains("vino") || nameLower.Contains("prosecco") ||
+            nameLower.Contains("brut") || nameLower.Contains("docg") ||
+            nameLower.Contains("doc") || nameLower.Contains("rosè") ||
+            nameLower.Contains("spina"))
+            return "Vino";
+
+        // APERITIVO E COCKTAIL
+        if (nameLower.Contains("spritz") || nameLower.Contains("aperol") ||
+            nameLower.Contains("campari") || nameLower.Contains("campari soda") ||
+            nameLower.Contains("gin tonic") || nameLower.Contains("jägerbomb") ||
+            nameLower.Contains("mojito") || nameLower.Contains("amaro") ||
+            nameLower.Contains("grappa") || nameLower.Contains("alcolico") ||
+            nameLower.Contains("analcolico"))
+            return "Aperitivo";
+
+        // BIBITE
+        if (nameLower.Contains("redbull") || nameLower.Contains("coca") ||
+            nameLower.Contains("fanta") || nameLower.Contains("acqua") ||
+            nameLower.Contains("chinotto") || nameLower.Contains("succo") ||
+            nameLower.Contains("acqua tonica") || nameLower.Contains("infusi") ||
+            nameLower.Contains("te") || nameLower.Contains("bibite") ||
+            nameLower.Contains("lattina") || nameLower.Contains("sciroppo") ||
+            nameLower.Contains("spremu") || nameLower.Contains("menta"))
+            return "Bibite";
+
+        // CUCINA
+        if (nameLower.Contains("insalata") || nameLower.Contains("panini") ||
+            nameLower.Contains("pane") || nameLower.Contains("panino") ||
+            nameLower.Contains("schiaciata") || nameLower.Contains("capresse") ||
+            nameLower.Contains("paninetti") || nameLower.Contains("riso") ||
+            nameLower.Contains("proteine") || nameLower.Contains("verdure") ||
+            nameLower.Contains("tramezzini") || nameLower.Contains("tost") ||
+            nameLower.Contains("tostone") || nameLower.Contains("pizzette") ||
+            nameLower.Contains("piadine") || nameLower.Contains("bresaola") ||
+            nameLower.Contains("finger") || nameLower.Contains("cubano"))
+            return "Cucina";
+
+        return "Altro";
     }
 
     /// <summary>
