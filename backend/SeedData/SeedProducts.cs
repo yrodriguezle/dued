@@ -66,11 +66,15 @@ public class SeedProducts
 
     /// <summary>
     /// Reads products from the "Listino" sheet in the XLSX file
-    /// Expected columns: Code, Name, Price, Category, UnitOfMeasure, Description (optional)
+    /// The Listino sheet has multiple columns with products and prices:
+    /// - Columns A-B: First category (name in A, price in B)
+    /// - Columns D-E: Second category (name in D, price in E)
+    /// - Columns H-I: Third category (name in H, price in I)
     /// </summary>
     private static List<Product> ReadProductsFromXlsx(string filePath)
     {
         var products = new List<Product>();
+        var addedCodes = new HashSet<string>(); // Track added products to avoid duplicates
 
         using var workbook = new XLWorkbook(filePath);
 
@@ -82,47 +86,83 @@ public class SeedProducts
             return products;
         }
 
-        var rows = worksheet.RangeUsed().RowsUsed().Skip(1); // Skip header row
+        var rows = worksheet.RangeUsed().RowsUsed();
 
         foreach (var row in rows)
         {
             try
             {
-                // Read cells with error handling for missing/empty cells
-                var code = GetCellValue(row, 1)?.Trim();
-                var name = GetCellValue(row, 2)?.Trim();
-                var priceStr = GetCellValue(row, 3)?.Trim();
-                var category = GetCellValue(row, 4)?.Trim();
-                var unitOfMeasure = GetCellValue(row, 5)?.Trim() ?? "pz";
-                var description = GetCellValue(row, 6)?.Trim();
+                // Read from column A (name) and B (price)
+                var name_A = GetCellValue(row, 1)?.Trim();
+                var price_A_Str = GetCellValue(row, 2)?.Trim();
 
-                // Skip empty rows
-                if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(name))
+                if (!string.IsNullOrWhiteSpace(name_A) && !string.IsNullOrWhiteSpace(price_A_Str))
                 {
-                    continue;
+                    if (decimal.TryParse(price_A_Str.Replace(",", "."), out var price_A))
+                    {
+                        var code = $"PROD_{products.Count + 1}";
+                        var product = new Product
+                        {
+                            Code = code,
+                            Name = name_A,
+                            Price = price_A,
+                            Category = "Bevande",
+                            UnitOfMeasure = "pz",
+                            IsActive = true,
+                            CreatedAt = DateTime.UtcNow,
+                            UpdatedAt = DateTime.UtcNow
+                        };
+                        products.Add(product);
+                    }
                 }
 
-                // Parse price
-                if (!decimal.TryParse(priceStr, out var price))
+                // Read from column D (name) and E (price)
+                var name_D = GetCellValue(row, 4)?.Trim();
+                var price_D_Str = GetCellValue(row, 5)?.Trim();
+
+                if (!string.IsNullOrWhiteSpace(name_D) && !string.IsNullOrWhiteSpace(price_D_Str))
                 {
-                    Console.WriteLine($"WARNING: Invalid price '{priceStr}' for product {code}");
-                    price = 0m;
+                    if (decimal.TryParse(price_D_Str.Replace(",", "."), out var price_D))
+                    {
+                        var code = $"PROD_{products.Count + 1}";
+                        var product = new Product
+                        {
+                            Code = code,
+                            Name = name_D,
+                            Price = price_D,
+                            Category = "Bevande",
+                            UnitOfMeasure = "pz",
+                            IsActive = true,
+                            CreatedAt = DateTime.UtcNow,
+                            UpdatedAt = DateTime.UtcNow
+                        };
+                        products.Add(product);
+                    }
                 }
 
-                var product = new Product
-                {
-                    Code = code,
-                    Name = name,
-                    Price = price,
-                    Category = category,
-                    UnitOfMeasure = unitOfMeasure,
-                    Description = description,
-                    IsActive = true,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
+                // Read from column H (name) and I (price)
+                var name_H = GetCellValue(row, 8)?.Trim();
+                var price_H_Str = GetCellValue(row, 9)?.Trim();
 
-                products.Add(product);
+                if (!string.IsNullOrWhiteSpace(name_H) && !string.IsNullOrWhiteSpace(price_H_Str))
+                {
+                    if (decimal.TryParse(price_H_Str.Replace(",", "."), out var price_H))
+                    {
+                        var code = $"PROD_{products.Count + 1}";
+                        var product = new Product
+                        {
+                            Code = code,
+                            Name = name_H,
+                            Price = price_H,
+                            Category = "Bevande",
+                            UnitOfMeasure = "pz",
+                            IsActive = true,
+                            CreatedAt = DateTime.UtcNow,
+                            UpdatedAt = DateTime.UtcNow
+                        };
+                        products.Add(product);
+                    }
+                }
             }
             catch (Exception ex)
             {
