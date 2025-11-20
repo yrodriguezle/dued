@@ -3,9 +3,12 @@ import { Form, Formik, FormikProps } from "formik";
 import { z } from "zod";
 import { Box, Typography, Button, IconButton, Stack } from "@mui/material";
 import { ArrowBack, ArrowForward } from "@mui/icons-material";
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { useParams, useNavigate } from "react-router";
+import dayjs from "dayjs";
 
 import CashRegisterForm from "./CashRegisterForm";
+import CashRegisterMonthlyCalendar from "./CashRegisterMonthlyCalendar";
 import logger from "../../../common/logger/logger";
 import { formStatuses } from "../../../common/globals/constants";
 import useInitializeValues from "./useInitializeValues";
@@ -16,6 +19,7 @@ import useQueryCashRegister from "../../../graphql/cashRegister/useQueryCashRegi
 import useQueryCashRegisterByDate from "../../../graphql/cashRegister/useQueryCashRegisterByDate";
 import useSubmitCashRegister from "../../../graphql/cashRegister/useSubmitCashRegister";
 import useCloseCashRegister from "../../../graphql/cashRegister/useCloseCashRegister";
+import useQueryCashRegistersByMonth from "../../../graphql/cashRegister/useQueryCashRegistersByMonth";
 import useStore from "../../../store/useStore";
 import { toast } from "react-toastify";
 import { getCurrentDate, getFormattedDate } from "../../../common/date/date";
@@ -46,6 +50,18 @@ function CashRegisterDetails() {
   const { title, setTitle } = useContext(PageTitleContext);
   const user = useStore((state) => state.user);
   const [currentDate, setCurrentDate] = useState<string>(getCurrentDate("YYYY-MM-DD"));
+  const [calendarOpen, setCalendarOpen] = useState(false);
+
+  // Get year and month for calendar
+  const currentYear = dayjs(currentDate).year();
+  const currentMonth = dayjs(currentDate).month() + 1; // dayjs returns 0-11
+
+  const { cashRegisters: monthCashRegisters, loading: loadingMonthRegisters } =
+    useQueryCashRegistersByMonth({
+      year: currentYear,
+      month: currentMonth,
+      skip: !calendarOpen, // Only load when calendar is open
+    });
 
   const { initialValues, handleInitializeValues } = useInitializeValues({
     skipInitialize: false,
@@ -88,6 +104,18 @@ function CashRegisterDetails() {
     const newDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
     setCurrentDate(newDate);
   }, [currentDate]);
+
+  const handleOpenCalendar = useCallback(() => {
+    setCalendarOpen(true);
+  }, []);
+
+  const handleCloseCalendar = useCallback(() => {
+    setCalendarOpen(false);
+  }, []);
+
+  const handleSelectDateFromCalendar = useCallback((date: string) => {
+    setCurrentDate(date);
+  }, []);
 
   const { submitCashRegister } = useSubmitCashRegister();
   const { closeCashRegister, loading: closing } = useCloseCashRegister();
@@ -241,6 +269,15 @@ function CashRegisterDetails() {
                   <IconButton size="small" onClick={handleNextDay} title="Giorno successivo">
                     <ArrowForward fontSize="small" />
                   </IconButton>
+                  <IconButton
+                    size="small"
+                    onClick={handleOpenCalendar}
+                    title="Vista mensile"
+                    color="primary"
+                    sx={{ ml: 1 }}
+                  >
+                    <CalendarMonthIcon fontSize="small" />
+                  </IconButton>
                 </Stack>
               </Box>
               <Stack direction="row" spacing={2} alignItems="center">
@@ -266,6 +303,16 @@ function CashRegisterDetails() {
             </Box>
             <CashRegisterForm denominations={denominations} cashRegister={cashRegister} />
           </Box>
+
+          {/* Monthly Calendar Modal */}
+          <CashRegisterMonthlyCalendar
+            open={calendarOpen}
+            onClose={handleCloseCalendar}
+            onSelectDate={handleSelectDateFromCalendar}
+            currentDate={currentDate}
+            cashRegisters={monthCashRegisters}
+            loading={loadingMonthRegisters}
+          />
         </Form>
       )}
     </Formik>
