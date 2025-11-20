@@ -30,7 +30,14 @@ public static class SeedSuperadmin
 
         if (!dbContext.User.Any(u => u.UserName == "superadmin"))
         {
-            PasswordService.HashPassword("Du3*gust0-2025", out byte[] hash, out byte[] salt);
+            // SECURITY FIX: Read password from environment variable
+            string superadminPassword = Environment.GetEnvironmentVariable("SUPERADMIN_PASSWORD")
+                ?? throw new InvalidOperationException(
+                    "SUPERADMIN_PASSWORD environment variable must be set. " +
+                    "Set it with: export SUPERADMIN_PASSWORD='YourSecurePassword'"
+                );
+
+            PasswordService.HashPassword(superadminPassword, out byte[] hash, out byte[] salt);
             var superAdmin = new User
             {
                 UserName = "superadmin",

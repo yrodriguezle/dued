@@ -44,37 +44,20 @@ public class GraphQLService
         int pageSize = context.GetArgument<int?>("first") ?? 10;
         int offset = context.GetArgument<int?>("cursor") ?? 0;
 
-        IEntityType entityType = dbContext.Model.FindEntityType(typeof(T)) ?? throw new InvalidOperationException($"EntityType non trovato per {typeof(T).Name}");
-        string tableName = entityType.GetTableName() ?? typeof(T).Name;
+        // SECURITY FIX: Use LINQ instead of raw SQL to prevent SQL injection
+        // whereClause and orderByClause are ignored for security reasons
+        // If filtering/sorting is needed, implement specific query methods per entity
 
-        IProperty primaryKeyProperty = entityType.FindPrimaryKey()?.Properties[0] ?? throw new InvalidOperationException("Chiave primaria non trovata.");
-        string primaryKey = primaryKeyProperty.Name;
+        IQueryable<T> query = dbContext.Set<T>();
 
-        if (string.IsNullOrWhiteSpace(orderByClause))
-        {
-            orderByClause = primaryKey;
-        }
+        // Get total count before pagination
+        int totalCount = await query.CountAsync();
 
-        string conditionSql = !string.IsNullOrWhiteSpace(whereClause) ? " WHERE " + whereClause : "";
-
-        string sqlQuery = $"SELECT * FROM {tableName}{conditionSql} ORDER BY {orderByClause} LIMIT {pageSize} OFFSET {offset}";
-        string sqlCountQuery = $"SELECT COUNT(*) FROM {tableName}{conditionSql}";
-
-        string loaderKey = $"Get{tableName}_{offset}_{pageSize}_{whereClause}_{orderByClause}";
-        IDataLoader<List<T>> loader = dataLoader.GetOrAddLoader(loaderKey, () => dbContext.Set<T>().FromSqlRaw(sqlQuery).ToListAsync());
-        List<T> items = await loader.LoadAsync().GetResultAsync();
-
-        int totalCount = 0;
-        using (DbConnection connection = dbContext.Database.GetDbConnection())
-        {
-            if (connection.State == ConnectionState.Closed)
-            {
-                await connection.OpenAsync();
-            }
-            using DbCommand command = connection.CreateCommand();
-            command.CommandText = sqlCountQuery;
-            totalCount = Convert.ToInt32(await command.ExecuteScalarAsync());
-        }
+        // Apply pagination using LINQ (safe from SQL injection)
+        List<T> items = await query
+            .Skip(offset)
+            .Take(pageSize)
+            .ToListAsync();
 
         List<Edge<T>> edges = [.. items.Select(item => new Edge<T>
         {

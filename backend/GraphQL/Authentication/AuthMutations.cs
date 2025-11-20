@@ -59,7 +59,7 @@ public class AuthMutations : ObjectGraphType
                 Role? role = await dbContext.Roles
                     .Include(r => r.Menus)
                     .FirstOrDefaultAsync(r => r.RoleId == input.RoleId);
-                
+
                 if (role == null)
                 {
                     role = new Role();
@@ -72,7 +72,7 @@ public class AuthMutations : ObjectGraphType
                 List<Menu> selectedMenus = await dbContext.Menus
                     .Where(m => menuIds.Contains(m.MenuId))
                     .ToListAsync();
-                
+
                 // Rimuovi i vecchi
                 role.Menus
                     .Where(m => !menuIds.Contains(m.MenuId))
@@ -84,8 +84,8 @@ public class AuthMutations : ObjectGraphType
                     .Where(m => !role.Menus.Any(rm => rm.MenuId == m.MenuId))
                     .ToList()
                     .ForEach(m => role.Menus.Add(m));
-                
-                
+
+
                 await dbContext.SaveChangesAsync();
                 return role;
             });

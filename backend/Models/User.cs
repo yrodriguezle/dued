@@ -9,6 +9,7 @@ public class User
     public string? Description { get; set; }
     public bool? Disabled { get; set; }
     public string? RefreshToken { get; set; } = string.Empty;
+    public DateTime? RefreshTokenExpiresAt { get; set; }
     public required byte[] Hash { get; set; }
     public required byte[] Salt { get; set; }
     public int RoleId { get; set; }

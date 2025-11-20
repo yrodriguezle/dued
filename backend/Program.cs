@@ -42,18 +42,47 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAllDev", policy =>
+    options.AddPolicy("AllowSpecificOrigins", policy =>
     {
-        policy.AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials()
-              .SetIsOriginAllowed(origin => true);
+        policy.SetIsOriginAllowed(origin =>
+        {
+            // Production: Only allow specific domains
+            if (!builder.Environment.IsDevelopment())
+            {
+                return origin == "https://app.duedgusto.com"; // Update with actual production domain
+            }
+
+            // Development: Allow localhost and local network IPs
+            if (origin.StartsWith("http://localhost:") || origin.StartsWith("https://localhost:"))
+            {
+                return true;
+            }
+
+            // Allow local network IPs (192.168.x.x and 10.x.x.x) on any port
+            if (origin.StartsWith("https://192.168.") || origin.StartsWith("http://192.168.") ||
+                origin.StartsWith("https://10.") || origin.StartsWith("http://10."))
+            {
+                return true;
+            }
+
+            return false;
+        })
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+        .AllowCredentials();
     });
 });
 
-string keyString = builder.Configuration.GetSection("Jwt")["Key"] ?? string.Empty;
-string validIssuer = builder.Configuration["Jwt:Issuer"] ?? string.Empty;
-string validAudience = builder.Configuration["Jwt:Audience"] ?? string.Empty;
+// SECURITY FIX: Read JWT key from environment variable with fallback to appsettings
+string keyString = Environment.GetEnvironmentVariable("JWT_SECRET_KEY")
+    ?? builder.Configuration.GetSection("Jwt")["Key"]
+    ?? throw new InvalidOperationException(
+        "JWT_SECRET_KEY environment variable or Jwt:Key configuration must be set. " +
+        "Set it with: export JWT_SECRET_KEY='YourSecureRandomKey'"
+    );
+
+string validIssuer = builder.Configuration["Jwt:Issuer"] ?? "duedgusto-api";
+string validAudience = builder.Configuration["Jwt:Audience"] ?? "duedgusto-clients";
 
 var jwtHelper = new JwtHelper(keyString, SecurityKeyType.SymmetricSecurityKey);
 builder.Services.AddSingleton(jwtHelper);
@@ -100,7 +129,10 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseCors("AllowAllDev");
+app.UseCors("AllowSpecificOrigins");
+
+// Rate limiting for authentication endpoints (must be before authentication)
+app.UseMiddleware<AuthRateLimitMiddleware>();
 
 app.UseAuthentication();
 

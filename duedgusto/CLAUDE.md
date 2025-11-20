@@ -22,9 +22,13 @@ permessi utente e un'architettura modulare per la gestione di utenti, ruoli e me
 
 ### Configurazione Ambiente
 
-- `npm run env:development` - Configura l'ambiente di sviluppo
+- `npm run env:development` - Configura l'ambiente di sviluppo (rileva automaticamente l'IP locale)
 - `npm run env:staging` - Configura l'ambiente di staging
 - `npm run clear` - Pulisce cache/artefatti di build
+
+**Nota**: Lo script `env:development` rileva automaticamente il tuo IP locale (es. 192.168.1.185) e aggiorna `public/config.json`.
+Questo permette di testare l'app su altri dispositivi nella stessa rete (es. telefono, tablet).
+Vedi [ENV_SETUP.md](./ENV_SETUP.md) per dettagli.
 
 ### Post-Installazione
 
