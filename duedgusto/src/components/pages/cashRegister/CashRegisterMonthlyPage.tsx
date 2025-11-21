@@ -1,7 +1,7 @@
 import { useCallback, useContext, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Calendar, Views, dateFnsLocalizer, Event } from "react-big-calendar";
-import { format, parse, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
+import { format, parse, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, getDay } from "date-fns";
 import { it } from "date-fns/locale";
 import dayjs from "dayjs";
 import { Box, CircularProgress, Paper } from "@mui/material";
@@ -20,6 +20,8 @@ const localizer = dateFnsLocalizer({
   startOfMonth,
   endOfMonth,
   eachDayOfInterval,
+  startOfWeek,
+  getDay,
   formats: {
     dateFormat: "d",
     dayFormat: "EEEE d",
@@ -31,6 +33,12 @@ const localizer = dateFnsLocalizer({
   },
   locales,
 });
+
+// Set default locale to Italian
+localizer.formats.monthHeaderFormat = (date: Date) => format(date, "MMMM yyyy", { locale: it });
+localizer.formats.dayFormat = (date: Date) => format(date, "EEEE d", { locale: it });
+localizer.formats.weekdayFormat = (date: Date) => format(date, "EEEE", { locale: it });
+localizer.formats.dayHeaderFormat = (date: Date) => format(date, "EEEE d MMM", { locale: it });
 
 interface CashEvent extends Event {
   registerId: number;
@@ -193,6 +201,7 @@ function CashRegisterMonthlyPage() {
           onSelectSlot={handleSelectSlot}
           selectable
           popup
+          culture="it"
           eventPropGetter={() => ({
             style: {
               backgroundColor: "#1976d2",

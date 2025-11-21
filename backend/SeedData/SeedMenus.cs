@@ -505,8 +505,8 @@ public static class SeedMenus
                 Path = "/gestionale/cassa/monthly",
                 Icon = "CalendarMonth",
                 IsVisible = true,
-                ViewName = "MonthlyView",
-                FilePath = "cashRegister/MonthlyView.tsx",
+                ViewName = "CashRegisterMonthlyPage",
+                FilePath = "cashRegister/CashRegisterMonthlyPage.tsx",
                 ParentMenu = cassaMenu,
                 Roles = [superAdminRole]
             };
@@ -516,7 +516,7 @@ public static class SeedMenus
         {
             bool needsUpdate = false;
             UpdateMenuIfNeeded(cassaChild2, "Vista Mensile", "/gestionale/cassa/monthly", "CalendarMonth", true,
-                "MonthlyView", "cashRegister/MonthlyView.tsx", superAdminRole, cassaMenu, ref needsUpdate);
+                "CashRegisterMonthlyPage", "cashRegister/CashRegisterMonthlyPage.tsx", superAdminRole, cassaMenu, ref needsUpdate);
             if (needsUpdate)
             {
                 dbContext.Menus.Update(cassaChild2);
