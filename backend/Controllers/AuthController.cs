@@ -17,7 +17,7 @@ namespace duedgusto.Controllers;
 [Authorize]
 [Route("api/[controller]")]
 [ApiController]
-public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper, CsrfTokenGenerator csrfTokenGenerator) : ControllerBase
+public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper, CsrfTokenGenerator csrfTokenGenerator, IWebHostEnvironment env) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetAuthenticatedUser()
@@ -131,8 +131,8 @@ public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper, CsrfTok
             new CookieOptions
             {
                 HttpOnly = false, // Must be readable by JavaScript
-                Secure = true,
-                SameSite = SameSiteMode.Strict,
+                Secure = !env.IsDevelopment(), // Only HTTPS in production, allow HTTP in development
+                SameSite = env.IsDevelopment() ? SameSiteMode.Lax : SameSiteMode.Strict,
                 Path = "/",
                 MaxAge = TimeSpan.FromDays(7),
             }
@@ -145,8 +145,8 @@ public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper, CsrfTok
             new CookieOptions
             {
                 HttpOnly = true,
-                Secure = true, // Only send over HTTPS in production
-                SameSite = SameSiteMode.Strict, // CSRF protection
+                Secure = !env.IsDevelopment(), // Only HTTPS in production, allow HTTP in development
+                SameSite = env.IsDevelopment() ? SameSiteMode.Lax : SameSiteMode.Strict, // CSRF protection
                 Path = "/api/auth", // Only send to auth endpoints
                 MaxAge = TimeSpan.FromDays(7), // 7-day expiration
             }
@@ -196,8 +196,8 @@ public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper, CsrfTok
             new CookieOptions
             {
                 HttpOnly = false, // Must be readable by JavaScript
-                Secure = true,
-                SameSite = SameSiteMode.Strict,
+                Secure = !env.IsDevelopment(), // Only HTTPS in production, allow HTTP in development
+                SameSite = env.IsDevelopment() ? SameSiteMode.Lax : SameSiteMode.Strict,
                 Path = "/",
                 MaxAge = TimeSpan.FromDays(7),
             }
@@ -210,8 +210,8 @@ public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper, CsrfTok
             new CookieOptions
             {
                 HttpOnly = true,
-                Secure = true, // Only send over HTTPS in production
-                SameSite = SameSiteMode.Strict, // CSRF protection
+                Secure = !env.IsDevelopment(), // Only HTTPS in production, allow HTTP in development
+                SameSite = env.IsDevelopment() ? SameSiteMode.Lax : SameSiteMode.Strict, // CSRF protection
                 Path = "/api/auth", // Only send to auth endpoints
                 MaxAge = TimeSpan.FromDays(7), // 7-day expiration
             }
@@ -241,8 +241,8 @@ public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper, CsrfTok
         Response.Cookies.Delete("csrfToken", new CookieOptions
         {
             HttpOnly = false,
-            Secure = true,
-            SameSite = SameSiteMode.Strict,
+            Secure = !env.IsDevelopment(),
+            SameSite = env.IsDevelopment() ? SameSiteMode.Lax : SameSiteMode.Strict,
             Path = "/",
         });
 
@@ -250,8 +250,8 @@ public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper, CsrfTok
         Response.Cookies.Delete("refreshToken", new CookieOptions
         {
             HttpOnly = true,
-            Secure = true,
-            SameSite = SameSiteMode.Strict,
+            Secure = !env.IsDevelopment(),
+            SameSite = env.IsDevelopment() ? SameSiteMode.Lax : SameSiteMode.Strict,
             Path = "/api/auth",
         });
 

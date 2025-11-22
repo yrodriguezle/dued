@@ -37,6 +37,12 @@ const timeEnd = (...labels: string[]) => {
   }
 };
 
+const debug = (...messages: any[]) => {
+  if (loggingEnabled) {
+    console.debug(...messages); // eslint-disable-line no-console
+  }
+};
+
 const logger = {
   log,
   warn,
@@ -44,6 +50,7 @@ const logger = {
   time,
   timeLog,
   timeEnd,
+  debug,
 };
 
 export default logger;

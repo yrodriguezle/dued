@@ -44,7 +44,6 @@ function configureClient() {
 
       // Add CSRF token to mutations for CSRF protection
       const csrfToken = isMutation ? getCsrfTokenFromCookie() : null;
-
       return {
         headers: {
           Accept: "application/json",

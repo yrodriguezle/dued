@@ -1,29 +1,43 @@
-import { useMutation } from "@apollo/client";
-import { mutationSignIn, SigninValues } from "./mutations";
+import { useState } from "react";
 import { setAuthToken } from "../../common/authentication/auth";
+import makeRequest from "../../api/makeRequest";
+
+export type SigninValues = {
+  username: string;
+  password: string;
+};
 
 function useSignIn() {
-  const [mutate, { data, error, loading }] = useMutation(mutationSignIn);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
   const signIn = async (variables: SigninValues) => {
-    const result = await mutate({
-      variables,
-    });
-    if (result.data?.authentication?.signIn) {
-      const {
-        data: {
-          authentication: { signIn },
-        },
-      } = result;
-      setAuthToken(signIn);
-      return true;
+    setLoading(true);
+    setError(null);
+
+    try {
+      const result = await makeRequest<{ token: string }, SigninValues>({
+        path: "auth/signin",
+        method: "POST",
+        data: variables,
+      });
+
+      if (result?.token) {
+        setAuthToken({ token: result.token, refreshToken: "" });
+        setLoading(false);
+        return true;
+      }
+      setLoading(false);
+      return false;
+    } catch (err) {
+      setError(err as Error);
+      setLoading(false);
+      return false;
     }
-    return false;
   };
 
   return {
     signIn,
-    data,
     error,
     loading,
   };

@@ -1,0 +1,15 @@
+{
+  "name": "dued-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "DuedGusto workspace - Frontend + Backend",
+  "scripts": {
+    "setup": "node setup-dev-environment.js",
+    "dev:frontend": "cd duedgusto && npm run dev",
+    "dev:backend": "cd backend && dotnet run"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

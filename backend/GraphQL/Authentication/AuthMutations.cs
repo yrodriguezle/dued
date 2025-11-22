@@ -18,36 +18,6 @@ public class AuthMutations : ObjectGraphType
 {
     public AuthMutations()
     {
-        Field<TokenResponseType, TokenResponse>("signIn")
-            .Argument<NonNullGraphType<StringGraphType>>("username")
-            .Argument<NonNullGraphType<StringGraphType>>("password")
-            .ResolveAsync(async context =>
-            {
-                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
-                JwtHelper jwtHelper = GraphQLService.GetService<JwtHelper>(context);
-
-                string username = context.GetArgument<string>("username");
-                string password = context.GetArgument<string>("password");
-                User? user = await dbContext.User.FirstOrDefaultAsync((x) => x.UserName == username);
-                if (user == null || !PasswordService.VerifyPassword(password, user.Hash, user.Salt))
-                {
-                    return null;
-                }
-
-                Claim[] usersClaims = [
-                    new Claim(ClaimTypes.Name, user.UserName),
-                    new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-                    new Claim("UserId", user.UserId.ToString()),
-                ];
-
-                var (RefreshToken, Token) = jwtHelper.CreateSignedToken(usersClaims);
-
-                user.RefreshToken = RefreshToken;
-
-                await dbContext.SaveChangesAsync();
-                return new TokenResponse(Token, RefreshToken);
-            });
-
         Field<RoleType, Role>("mutateRole")
             .Argument<NonNullGraphType<RoleInputType>>("role", "Dati del ruolo da creare o aggiornare")
             .Argument<NonNullGraphType<ListGraphType<IntGraphType>>>("menuIds", "ID dei menu associati al ruolo")

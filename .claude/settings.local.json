@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run clear:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
