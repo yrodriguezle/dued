@@ -2,25 +2,15 @@ import { useContext, useEffect } from "react";
 import { Box, CircularProgress, Container, Alert } from "@mui/material";
 import PageTitleContext from "../../layout/headerBar/PageTitleContext";
 import useGetBusinessSettings from "../../../graphql/settings/useGetBusinessSettings";
-import useStore from "../../../store/useStore";
 import BusinessSettingsForm from "./BusinessSettingsForm";
 
 function SettingsDetails() {
   const { setTitle } = useContext(PageTitleContext);
   const { settings, loading, error } = useGetBusinessSettings();
-  const { setSettings } = useStore((store) => ({
-    setSettings: store.setSettings,
-  }));
 
   useEffect(() => {
     setTitle("Impostazioni");
   }, [setTitle]);
-
-  useEffect(() => {
-    if (settings) {
-      setSettings(settings);
-    }
-  }, [settings, setSettings]);
 
   if (loading) {
     return (

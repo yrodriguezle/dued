@@ -17,27 +17,37 @@ const validationSchema = z.object({
   businessName: z.string().min(2, "Nome attività troppo corto"),
   openingTime: z.string().regex(/^\d{2}:\d{2}$/, "Formato orario non valido (HH:mm)"),
   closingTime: z.string().regex(/^\d{2}:\d{2}$/, "Formato orario non valido (HH:mm)"),
-  operatingDays: z.array(z.boolean()).refine((days) => days.some((day) => day === true), {
+  operatingDays: z.union([
+    z.array(z.boolean()),
+    z.string(),
+  ]).refine((days) => {
+    const arr = typeof days === "string" ? JSON.parse(days) : days;
+    return arr.some((day: boolean) => day === true);
+  }, {
     message: "Seleziona almeno un giorno di apertura",
   }),
   timezone: z.string(),
   currency: z.string(),
   vatRate: z.number().min(0, "IVA non può essere negativa").max(100, "IVA non può essere maggiore di 100"),
-  settingsId: z.number(),
-  updatedAt: z.string(),
-  createdAt: z.string(),
+  settingsId: z.number().optional(),
+  updatedAt: z.string().optional(),
+  createdAt: z.string().optional(),
 });
 
 function BusinessSettingsForm({ initialSettings }: BusinessSettingsFormProps) {
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const { setSettings } = useStore((store) => ({
-    setSettings: store.setSettings,
-  }));
+  const setSettings = useStore((store) => store.setSettings);
 
   const [updateMutation, { loading: isMutating }] = useMutation(UPDATE_BUSINESS_SETTINGS, {
     onCompleted: (data) => {
-      const updated = data.updateBusinessSettings;
-      setSettings(updated);
+      const updated = data.settings.updateBusinessSettings;
+      const parsed = {
+        ...updated,
+        operatingDays: typeof updated.operatingDays === "string"
+          ? JSON.parse(updated.operatingDays)
+          : updated.operatingDays,
+      };
+      setSettings(parsed);
       setSubmitError(null);
       toast.success("Impostazioni aggiornate con successo");
     },
@@ -58,7 +68,7 @@ function BusinessSettingsForm({ initialSettings }: BusinessSettingsFormProps) {
               businessName: values.businessName,
               openingTime: values.openingTime,
               closingTime: values.closingTime,
-              operatingDays: values.operatingDays,
+              operatingDays: JSON.stringify(values.operatingDays),
               timezone: values.timezone,
               currency: values.currency,
               vatRate: values.vatRate,

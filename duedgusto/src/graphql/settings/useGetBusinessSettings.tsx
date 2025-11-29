@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useQuery } from "@apollo/client";
 import { GET_BUSINESS_SETTINGS } from "./queries";
 
@@ -14,8 +15,20 @@ export function useGetBusinessSettings(skip = false): UseGetBusinessSettingsResu
     pollInterval: 0,
   });
 
+  const settings = useMemo(() => {
+    const rawSettings = data?.settings?.businessSettings;
+    if (!rawSettings) return undefined;
+
+    return {
+      ...rawSettings,
+      operatingDays: typeof rawSettings.operatingDays === "string"
+        ? JSON.parse(rawSettings.operatingDays)
+        : rawSettings.operatingDays,
+    } as BusinessSettings;
+  }, [data?.settings?.businessSettings]);
+
   return {
-    settings: data?.getBusinessSettings as BusinessSettings | undefined,
+    settings,
     loading,
     error,
     refetch,
