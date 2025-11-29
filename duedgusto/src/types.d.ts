@@ -75,6 +75,13 @@ interface Store {
   // serverStatus
   serverStatus: ServerStatus;
   receiveServerStatus: (serverStatus: ServerStatus) => void;
+  // businessSettings
+  settings: BusinessSettings | null;
+  setSettings: (settings: BusinessSettings) => void;
+  isOpen: (date: Date) => boolean;
+  isOpenNow: () => boolean;
+  getOpeningTime: () => string | null;
+  getClosingTime: () => string | null;
 }
 
 type ThemeMode = "light" | "dark" | "default";

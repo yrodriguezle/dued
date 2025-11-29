@@ -161,6 +161,7 @@ using (var scope = app.Services.CreateScope())
     await SeedMenus.Initialize(services);
     await SeedCashDenominations.Initialize(services);
     await SeedProducts.Initialize(services);
+    await SeedBusinessSettings.Initialize(services);
 }
 
 app.Run();

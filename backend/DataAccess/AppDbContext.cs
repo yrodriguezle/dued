@@ -25,6 +25,9 @@ public class AppDbContext : DbContext
     public DbSet<CashRegister> CashRegisters { get; set; }
     public DbSet<CashCount> CashCounts { get; set; }
 
+    // Business Settings
+    public DbSet<BusinessSettings> BusinessSettings { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (!optionsBuilder.IsConfigured)
@@ -280,6 +283,61 @@ public class AppDbContext : DbContext
             // Index on Code for faster lookups
             entity.HasIndex(x => x.Code)
                 .IsUnique();
+        });
+
+        // Business Settings Configuration
+        modelBuilder.Entity<BusinessSettings>(entity =>
+        {
+            entity
+                .ToTable("BusinessSettings")
+                .HasCharSet("utf8mb4")
+                .UseCollation("utf8mb4_unicode_ci")
+                .HasKey(x => x.SettingsId);
+
+            entity.Property(x => x.SettingsId)
+                .ValueGeneratedOnAdd();
+
+            entity.Property(x => x.BusinessName)
+                .HasMaxLength(255)
+                .IsRequired();
+
+            entity.Property(x => x.OpeningTime)
+                .HasMaxLength(5)
+                .IsRequired()
+                .HasDefaultValue("09:00");
+
+            entity.Property(x => x.ClosingTime)
+                .HasMaxLength(5)
+                .IsRequired()
+                .HasDefaultValue("18:00");
+
+            entity.Property(x => x.OperatingDays)
+                .HasColumnType("json")
+                .IsRequired()
+                .HasDefaultValue("[true,true,true,true,true,false,false]");
+
+            entity.Property(x => x.Timezone)
+                .HasMaxLength(50)
+                .IsRequired()
+                .HasDefaultValue("Europe/Rome");
+
+            entity.Property(x => x.Currency)
+                .HasMaxLength(3)
+                .IsRequired()
+                .HasDefaultValue("EUR");
+
+            entity.Property(x => x.VatRate)
+                .HasColumnType("decimal(5,4)")
+                .IsRequired()
+                .HasDefaultValue(0.22m);
+
+            entity.Property(x => x.CreatedAt)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.Property(x => x.UpdatedAt)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
         });
 
         // Sale Configuration

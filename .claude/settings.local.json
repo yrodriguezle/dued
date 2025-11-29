@@ -1,7 +1,19 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run clear:*)"
+      "Bash(npm run clear:*)",
+      "Bash(tree:*)",
+      "Bash(npm run ts:check:*)",
+      "Bash(npm run lint:*)",
+      "Bash(npm run build:*)",
+      "Bash(find:*)",
+      "Bash(cat:*)",
+      "Bash(dotnet ef migrations:*)",
+      "Bash(dotnet tool list:*)",
+      "Bash(dotnet tool install:*)",
+      "Bash(dotnet tool update:*)",
+      "Bash(dotnet-ef migrations add:*)",
+      "Bash(dotnet build:*)"
     ],
     "deny": [],
     "ask": []

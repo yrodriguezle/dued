@@ -1,6 +1,9 @@
 import React, { ReactNode, ErrorInfo } from "react";
 import { Box, Button, Container, Typography, Paper } from "@mui/material";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import logger from "../../common/logger/logger";
+
+const isDevelopment = () => import.meta.env.MODE === "development";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -22,7 +25,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     };
   }
 
-  static getDerivedStateFromError(error: Error) {
+  static getDerivedStateFromError() {
     return { hasError: true };
   }
 
@@ -33,9 +36,9 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     });
 
     // Log error details (in development)
-    if (process.env.NODE_ENV === "development") {
-      console.error("ErrorBoundary caught an error:", error);
-      console.error("Error info:", errorInfo);
+    if (isDevelopment()) {
+      logger.error("ErrorBoundary caught an error:", error);
+      logger.error("Error info:", errorInfo);
     }
   }
 
@@ -92,7 +95,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
                 Ci scusiamo per l'inconveniente. Un errore inatteso ha interrotto l'applicazione.
               </Typography>
 
-              {process.env.NODE_ENV === "development" && this.state.error && (
+              {isDevelopment() && this.state.error && (
                 <Paper
                   variant="outlined"
                   sx={{
