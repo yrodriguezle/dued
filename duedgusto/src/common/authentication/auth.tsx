@@ -1,54 +1,5 @@
 import { getCurrentDate } from "../date/date";
 
-/**
- * Decodes a JWT token without verifying the signature.
- * Only use for reading claims on the client side.
- */
-const decodeJWT = (token: string): Record<string, unknown> | null => {
-  try {
-    const payload = token.split('.')[1];
-    if (!payload) return null;
-    return JSON.parse(atob(payload));
-  } catch {
-    return null;
-  }
-};
-
-/**
- * Checks if a JWT token is expired based on its exp claim.
- */
-export const isTokenExpired = (token: string): boolean => {
-  const payload = decodeJWT(token);
-  if (!payload || typeof payload.exp !== 'number') {
-    return true;
-  }
-  return payload.exp * 1000 < Date.now();
-};
-
-/**
- * Returns the number of seconds until a JWT token expires.
- * Returns null if token is invalid or malformed.
- */
-export const getTokenExpiresIn = (token: string): number | null => {
-  const payload = decodeJWT(token);
-  if (!payload || typeof payload.exp !== 'number') {
-    return null;
-  }
-  return (payload.exp * 1000 - Date.now()) / 1000;
-};
-
-/**
- * Checks if token should be refreshed (expires within 5 minutes).
- */
-export const shouldRefreshToken = (): boolean => {
-  const token = getAuthToken()?.token;
-  if (!token) return false;
-
-  const expiresIn = getTokenExpiresIn(token);
-  // Refresh if expires in less than 5 minutes (300 seconds)
-  return expiresIn !== null && expiresIn < 300;
-};
-
 export const getAuthToken = (): AuthToken => (localStorage.getItem("jwtToken") && JSON.parse(localStorage.getItem("jwtToken") || "")) || null;
 
 export const getAuthHeaders = () => {
@@ -64,8 +15,6 @@ export const setAuthToken = (accessTokenAndrefreshToken: AuthToken) => {
     ...authToken,
     ...accessTokenAndrefreshToken,
   };
-  // Note: refreshToken is now stored in httpOnly cookie, only store access token
-  // Keep old refresh token in storage for backward compatibility during transition
   localStorage.setItem("jwtToken", JSON.stringify(newAuthToken));
 };
 

@@ -138,9 +138,6 @@ app.UseAuthentication();
 
 app.UseAuthorization();
 
-// CSRF protection middleware must be after authentication/authorization
-app.UseMiddleware<CsrfProtectionMiddleware>();
-
 app.MapControllers();
 
 app.UseGraphQL<GraphQLSchema>("/graphql", opt =>

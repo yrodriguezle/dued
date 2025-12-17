@@ -39,3 +39,7 @@ appsettings.Production.json
 appsettings.*.json
 !appsettings.json
 !appsettings.Development.json
+
+# SSL Certificates
+*.pem
+cert.conf

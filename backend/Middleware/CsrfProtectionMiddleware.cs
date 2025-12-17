@@ -7,10 +7,12 @@ namespace duedgusto.Middleware;
 /// Validates that state-changing requests (POST, PUT, DELETE, PATCH) include
 /// a CSRF token that matches the token in the request cookies.
 /// </summary>
-public class CsrfProtectionMiddleware
+public class CsrfProtectionMiddleware(
+    RequestDelegate next,
+    ILogger<CsrfProtectionMiddleware> logger)
 {
-    private readonly RequestDelegate _next;
-    private readonly ILogger<CsrfProtectionMiddleware> _logger;
+    private readonly RequestDelegate _next = next;
+    private readonly ILogger<CsrfProtectionMiddleware> _logger = logger;
 
     // Endpoints that don't require CSRF validation
     // These are public endpoints or endpoints with their own security
@@ -22,14 +24,6 @@ public class CsrfProtectionMiddleware
 
     // HTTP methods that require CSRF validation (state-changing)
     private static readonly string[] StatefulMethods = ["POST", "PUT", "DELETE", "PATCH"];
-
-    public CsrfProtectionMiddleware(
-        RequestDelegate next,
-        ILogger<CsrfProtectionMiddleware> logger)
-    {
-        _next = next;
-        _logger = logger;
-    }
 
     public async Task InvokeAsync(
         HttpContext context,

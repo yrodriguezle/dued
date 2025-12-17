@@ -15,7 +15,7 @@ public class JwtHelper
     private readonly SigningCredentials _signingCredentials;
     private readonly string _issuer = "duedgusto-api";
     private readonly string _audience = "duedgusto-clients";
-    private readonly TimeSpan _expiresIn = TimeSpan.FromMinutes(5);
+    private readonly TimeSpan _expiresIn = TimeSpan.FromMinutes(1);
 
     /// <summary>
     /// Initializes a new instance with the specified key and security key type.

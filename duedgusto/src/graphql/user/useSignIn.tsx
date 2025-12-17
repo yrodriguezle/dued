@@ -16,15 +16,16 @@ function useSignIn() {
     setError(null);
 
     try {
-      const result = await makeRequest<{ token: string }, SigninValues>({
+      const result = await makeRequest<{ token: string, refreshToken: string }, SigninValues>({
         path: "auth/signin",
         method: "POST",
         data: variables,
       });
 
-      if (result?.token) {
-        setAuthToken({ token: result.token, refreshToken: "" });
+      if (result?.token && result?.token) {
+        setAuthToken({ token: result.token, refreshToken: result.refreshToken });
         setLoading(false);
+
         return true;
       }
       setLoading(false);

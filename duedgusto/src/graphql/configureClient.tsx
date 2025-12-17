@@ -2,9 +2,9 @@ import { ApolloClient, ApolloLink, from, HttpLink, InMemoryCache, NormalizedCach
 import { onError } from "@apollo/client/link/error";
 import { fromPromise } from "@apollo/client/link/utils";
 import { getAuthHeaders } from "../common/authentication/auth";
-import { getCsrfTokenFromCookie } from "../common/authentication/csrfToken";
-import refreshToken from "../api/refreshToken";
+import { executeTokenRefresh } from "../common/authentication/tokenRefreshManager";
 import onRefreshFails from "../common/authentication/onRefreshFails";
+import logger from "../common/logger/logger";
 
 interface ApolloClienContext {
   headers?: HeadersInit;
@@ -12,12 +12,11 @@ interface ApolloClienContext {
 
 let apolloClient: ApolloClient<NormalizedCacheObject> | undefined;
 
-// Flag per evitare chiamate multiple simultanee al refresh token
-let isRefreshing = false;
-let pendingRequests: Array<() => void> = [];
+// Callback in attesa del completamento del refresh token
+let pendingRequests: Array<(success: boolean) => void> = [];
 
-const resolvePendingRequests = () => {
-  pendingRequests.forEach((callback) => callback());
+const resolvePendingRequests = (success: boolean) => {
+  pendingRequests.forEach((callback) => callback(success));
   pendingRequests = [];
 };
 
@@ -35,21 +34,11 @@ function configureClient() {
     operation.setContext(({ headers }: ApolloClienContext) => {
       const authHeaders = getAuthHeaders();
 
-      // Check if this is a mutation (state-changing operation)
-      const isMutation = operation.query.definitions.some(
-        (def) =>
-          def.kind === "OperationDefinition" &&
-          def.operation === "mutation"
-      );
-
-      // Add CSRF token to mutations for CSRF protection
-      const csrfToken = isMutation ? getCsrfTokenFromCookie() : null;
       return {
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json;charset=UTF-8",
           ...authHeaders,
-          ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
           ...headers,
         },
       };
@@ -59,38 +48,44 @@ function configureClient() {
 
   const errorLink = onError(({ graphQLErrors, operation, forward }) => {
     if (graphQLErrors && graphQLErrors.some((err) => err.extensions?.code === "ACCESS_DENIED")) {
-      if (!isRefreshing) {
-        isRefreshing = true;
-        refreshToken()
+      logger.log('Received ACCESS_DENIED, attempting token refresh from Apollo Client');
+
+      // Usa il manager centralizzato per il refresh del token
+      const forward$ = fromPromise(
+        executeTokenRefresh()
           .then((success) => {
             if (success) {
-              resolvePendingRequests();
+              resolvePendingRequests(success);
+              return success;
             }
-          })
-          .catch(() => {
+            resolvePendingRequests(false);
             onRefreshFails();
+            return false;
           })
-          .finally(() => {
-            isRefreshing = false;
-          });
-      }
+          .catch((error) => {
+            logger.error('Token refresh failed in Apollo error link:', error);
+            resolvePendingRequests(false);
+            onRefreshFails();
+            return false;
+          })
+      );
 
-      // Restituisci una promise che attende il completamento del refresh prima di ripetere la richiesta
-      return fromPromise(
-        new Promise((resolve) => {
-          pendingRequests.push(() => {
-            // Aggiorna le intestazioni con il nuovo token
-            const authHeaders = getAuthHeaders();
-            operation.setContext(({ headers = {} }) => ({
-              headers: {
-                ...headers,
-                ...authHeaders,
-              },
-            }));
-            resolve(null);
-          });
-        })
-      ).flatMap(() => forward(operation));
+      // Dopo il completamento del refresh, aggiorna gli headers e riprova la richiesta
+      return forward$.flatMap((success) => {
+        if (!success) {
+          // Se il refresh è fallito, non riprovare la richiesta
+          return fromPromise(Promise.reject(new Error('Token refresh failed')));
+        }
+
+        const authHeaders = getAuthHeaders();
+        operation.setContext(({ headers = {} }) => ({
+          headers: {
+            ...headers,
+            ...authHeaders,
+          },
+        }));
+        return forward(operation);
+      });
     }
   });
 

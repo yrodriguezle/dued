@@ -36,9 +36,7 @@ export function CustomCalendar<T extends CalendarEvent = CalendarEvent>({
 }: CustomCalendarProps<T>) {
   const muiTheme = useTheme();
   const isDark = muiTheme.palette.mode === "dark";
-  const { isOpen } = useStore((store) => ({
-    isOpen: store.isOpen,
-  }));
+  const isOpen = useStore((store) => store.isOpen);
 
   // Colori dinamici basati sul tema
   const colors = {
@@ -190,7 +188,7 @@ export function CustomCalendar<T extends CalendarEvent = CalendarEvent>({
               const isToday = dateKey === today;
               const isCurrentMonth = format(date, "M") === format(monthStart, "M");
               const isDayOpen = isOpen(date);
-              const isDisabled = !isDayOpen && isCurrentMonth;
+              const isDisabled = !isCurrentMonth || !isDayOpen;
 
               return (
                 <Grid item xs={12 / 7} key={dateKey}>

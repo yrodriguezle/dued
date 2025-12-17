@@ -120,40 +120,7 @@ public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper, CsrfTok
         user.RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(7);
 
         await dbContext.SaveChangesAsync();
-
-        // Generate CSRF token for subsequent requests
-        var csrfToken = csrfTokenGenerator.GenerateToken();
-
-        // Set CSRF token as non-httpOnly cookie (must be readable by JavaScript)
-        Response.Cookies.Append(
-            "csrfToken",
-            csrfToken,
-            new CookieOptions
-            {
-                HttpOnly = false, // Must be readable by JavaScript
-                Secure = !env.IsDevelopment(), // Only HTTPS in production, allow HTTP in development
-                SameSite = env.IsDevelopment() ? SameSiteMode.Lax : SameSiteMode.Strict,
-                Path = "/",
-                MaxAge = TimeSpan.FromDays(7),
-            }
-        );
-
-        // Set refresh token as httpOnly cookie for improved security
-        Response.Cookies.Append(
-            "refreshToken",
-            RefreshToken,
-            new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = !env.IsDevelopment(), // Only HTTPS in production, allow HTTP in development
-                SameSite = env.IsDevelopment() ? SameSiteMode.Lax : SameSiteMode.Strict, // CSRF protection
-                Path = "/api/auth", // Only send to auth endpoints
-                MaxAge = TimeSpan.FromDays(7), // 7-day expiration
-            }
-        );
-
-        // Return only access token in response body (not refresh token)
-        return Ok(new { token = Token });
+        return Ok(new { Token, RefreshToken  });
     }
 
     [HttpPost("refresh"), AllowAnonymous]
@@ -161,8 +128,7 @@ public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper, CsrfTok
     {
         User? user = await dbContext.User.FirstOrDefaultAsync(u => u.RefreshToken == request.RefreshToken);
 
-        // SECURITY FIX: Validate refresh token and its expiration
-        if (user == null || user.RefreshTokenExpiresAt == null || user.RefreshTokenExpiresAt < DateTime.UtcNow)
+        if (user == null)
         {
             return Unauthorized(new { message = "Invalid or expired refresh token" });
         }
@@ -185,40 +151,7 @@ public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper, CsrfTok
         user.RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(7);
 
         await dbContext.SaveChangesAsync();
-
-        // Generate new CSRF token (token rotation)
-        var csrfToken = csrfTokenGenerator.GenerateToken();
-
-        // Set CSRF token as non-httpOnly cookie (must be readable by JavaScript)
-        Response.Cookies.Append(
-            "csrfToken",
-            csrfToken,
-            new CookieOptions
-            {
-                HttpOnly = false, // Must be readable by JavaScript
-                Secure = !env.IsDevelopment(), // Only HTTPS in production, allow HTTP in development
-                SameSite = env.IsDevelopment() ? SameSiteMode.Lax : SameSiteMode.Strict,
-                Path = "/",
-                MaxAge = TimeSpan.FromDays(7),
-            }
-        );
-
-        // Set refresh token as httpOnly cookie for improved security
-        Response.Cookies.Append(
-            "refreshToken",
-            RefreshToken,
-            new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = !env.IsDevelopment(), // Only HTTPS in production, allow HTTP in development
-                SameSite = env.IsDevelopment() ? SameSiteMode.Lax : SameSiteMode.Strict, // CSRF protection
-                Path = "/api/auth", // Only send to auth endpoints
-                MaxAge = TimeSpan.FromDays(7), // 7-day expiration
-            }
-        );
-
-        // Return only access token in response body (not refresh token)
-        return new ObjectResult(new { token = Token });
+        return new ObjectResult(new { Token, RefreshToken });
     }
 
     [HttpPost("logout")]
@@ -236,15 +169,6 @@ public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper, CsrfTok
                 await dbContext.SaveChangesAsync();
             }
         }
-
-        // Clear the CSRF token cookie
-        Response.Cookies.Delete("csrfToken", new CookieOptions
-        {
-            HttpOnly = false,
-            Secure = !env.IsDevelopment(),
-            SameSite = env.IsDevelopment() ? SameSiteMode.Lax : SameSiteMode.Strict,
-            Path = "/",
-        });
 
         // Clear the refresh token cookie
         Response.Cookies.Delete("refreshToken", new CookieOptions
