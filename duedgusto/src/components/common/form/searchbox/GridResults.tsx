@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef } from "react";
-import type { ColDef, RowDoubleClickedEvent, CellKeyDownEvent, GridReadyEvent, RowSelectionOptions, RowSelectedEvent } from "ag-grid-community";
+import type { ColDef, RowDoubleClickedEvent, CellKeyDownEvent, GridReadyEvent, RowSelectionOptions, RowSelectedEvent, CellFocusedEvent } from "ag-grid-community";
 import { DatagridColDef } from "../../../../@types/searchbox";
 import AgGrid from "../../datagrid/AgGrid";
 export interface GridResultsProps<T> {
@@ -57,6 +57,15 @@ function GridResults<T>({ loading, items, columnDefs, onSelectedItem, onGridRead
     [onSelectedItem]
   );
 
+  const handleCellFocused = useCallback((params: CellFocusedEvent<T>) => {
+    if (params.rowIndex !== null && params.rowIndex !== undefined) {
+      const node = params.api.getDisplayedRowAtIndex(params.rowIndex);
+      if (node) {
+        node.setSelected(true);
+      }
+    }
+  }, []);
+
   const rowSelection = useMemo<RowSelectionOptions | "single" | "multiple">(() => {
     return {
       mode: "singleRow",
@@ -72,6 +81,7 @@ function GridResults<T>({ loading, items, columnDefs, onSelectedItem, onGridRead
       onRowSelected={handleRowSelected}
       onRowDoubleClicked={handleRowDoubleClicked}
       onCellKeyDown={handleCellKeyDown}
+      onCellFocused={handleCellFocused}
       onGridReady={handleGridReady}
       rowSelection={rowSelection}
       loading={loading}

@@ -30,6 +30,7 @@ const MenuForm: React.FC<MenuFormProps> = ({ menus }) => {
     path: "",
     icon: "",
     isVisible: true,
+    position: 0,
     filePath: "",
     viewName: "",
     status: DatagridStatus.Added,
@@ -62,6 +63,14 @@ const MenuForm: React.FC<MenuFormProps> = ({ menus }) => {
         width: 50,
         editable: false,
         hide: readOnly,
+      },
+      {
+        headerName: "Posizione",
+        field: "position",
+        sortable: true,
+        width: 100,
+        editable: !readOnly,
+        type: "numericColumn",
       },
       {
         headerName: "Icona",

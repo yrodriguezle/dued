@@ -16,11 +16,14 @@ function useInitializeValues({
     const initialValues: FormikUserValues = {
       userId: 0,
       roleId: 0,
+      roleName: "",
       userName: "",
       firstName: "",
       lastName: "",
       description: "",
       disabled: false,
+      password: "",
+      confirmPassword: "",
     };
     return initialValues;
   }, []);
@@ -28,7 +31,7 @@ function useInitializeValues({
   const [initialValues, setInitialValues] = useState<FormikUserValues>(getDefaultInitialValues());
 
   const handleInitializeValues = useCallback(
-    async (values?: FormikUserValues) => {
+    async (values?: Partial<FormikUserValues>) => {
       setInitialValues((prev) => mergeWithDefaults(values, prev));
       if (!values) {
         setInitialFocus();

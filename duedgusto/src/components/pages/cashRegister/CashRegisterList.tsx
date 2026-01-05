@@ -24,13 +24,18 @@ function CashRegisterList() {
     setTitle("Lista Chiusure Cassa");
   }, [setTitle]);
 
-  const { items: cashRegisters, loading } = useFetchData<CashRegister>({
-    query: getCashRegisters,
-    variables: {
+  const variables = useMemo(
+    () => ({
       pageSize: 50,
       where: "",
       orderBy: "date desc",
-    },
+    }),
+    []
+  );
+
+  const { items: cashRegisters, loading } = useFetchData<CashRegister>({
+    query: getCashRegisters,
+    variables,
     fetchPolicy: "network-only",
   });
 

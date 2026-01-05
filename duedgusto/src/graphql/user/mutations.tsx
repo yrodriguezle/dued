@@ -6,14 +6,27 @@ export type SigninValues = {
   password: string;
 };
 
+export interface UserInput {
+  userId?: number;
+  userName: string;
+  firstName: string;
+  lastName: string;
+  description: string;
+  disabled: boolean;
+  roleId: number;
+  password?: string;
+}
+
 interface SubmitUserData {
   authentication: {
     mutateUser: User;
   };
 }
-interface SubmitUserValues {
-  user: User;
+
+export interface SubmitUserValues {
+  user: UserInput;
 }
+
 export const mutationSubmitUser: TypedDocumentNode<SubmitUserData, SubmitUserValues> = gql`
   ${userFragment}
   mutation SubmitUser($user: UserInput!) {

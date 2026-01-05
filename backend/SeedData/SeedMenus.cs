@@ -8,12 +8,13 @@ namespace duedgusto.SeedData;
 public static class SeedMenus
 {
     private static void UpdateMenuIfNeeded(Menu menu, string title, string? path, string icon, bool isVisible,
-        string? viewName, string? filePath, Role superAdminRole, Menu? parentMenu, ref bool needsUpdate)
+        int position, string? viewName, string? filePath, Role superAdminRole, Menu? parentMenu, ref bool needsUpdate)
     {
         if (menu.Title != title) { menu.Title = title; needsUpdate = true; }
         if (menu.Path != (path ?? string.Empty)) { menu.Path = path ?? string.Empty; needsUpdate = true; }
         if (menu.Icon != icon) { menu.Icon = icon; needsUpdate = true; }
         if (menu.IsVisible != isVisible) { menu.IsVisible = isVisible; needsUpdate = true; }
+        if (menu.Position != position) { menu.Position = position; needsUpdate = true; }
         if (menu.ViewName != (viewName ?? string.Empty)) { menu.ViewName = viewName ?? string.Empty; needsUpdate = true; }
         if (menu.FilePath != (filePath ?? string.Empty)) { menu.FilePath = filePath ?? string.Empty; needsUpdate = true; }
         if (menu.ParentMenuId != parentMenu?.MenuId) { menu.ParentMenu = parentMenu; needsUpdate = true; }
@@ -75,6 +76,7 @@ public static class SeedMenus
                 Path = "/gestionale/dashboard",
                 Icon = "Dashboard",
                 IsVisible = true,
+                Position = 1,
                 ViewName = "HomePage",
                 FilePath = "dashboard/HomePage.tsx",
                 Roles = [superAdminRole]
@@ -84,7 +86,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(dashboardMenu, "Dashboard", "/gestionale/dashboard", "Dashboard", true,
+            UpdateMenuIfNeeded(dashboardMenu, "Dashboard", "/gestionale/dashboard", "Dashboard", true, 1,
                 "HomePage", "dashboard/HomePage.tsx", superAdminRole, null, ref needsUpdate);
 
             if (needsUpdate)
@@ -106,6 +108,7 @@ public static class SeedMenus
                 Path = string.Empty,
                 Icon = "Group",
                 IsVisible = true,
+                Position = 3,
                 Roles = [superAdminRole]
             };
             dbContext.Menus.Add(utentiMenu);
@@ -114,7 +117,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(utentiMenu, "Utenti", null, "Group", true, null, null, superAdminRole, null, ref needsUpdate);
+            UpdateMenuIfNeeded(utentiMenu, "Utenti", null, "Group", true, 3, null, null, superAdminRole, null, ref needsUpdate);
             if (needsUpdate)
             {
                 dbContext.Menus.Update(utentiMenu);
@@ -134,6 +137,7 @@ public static class SeedMenus
                 Path = "/gestionale/users-list",
                 Icon = string.Empty,
                 IsVisible = true,
+                Position = 1,
                 ViewName = "UserList",
                 FilePath = "users/UserList.tsx",
                 ParentMenu = utentiMenu,
@@ -144,7 +148,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(utentiChild1, "Lista utenti", "/gestionale/users-list", string.Empty, true,
+            UpdateMenuIfNeeded(utentiChild1, "Lista utenti", "/gestionale/users-list", string.Empty, true, 1,
                 "UserList", "users/UserList.tsx", superAdminRole, utentiMenu, ref needsUpdate);
             if (needsUpdate)
             {
@@ -165,6 +169,7 @@ public static class SeedMenus
                 Path = "/gestionale/users-details",
                 Icon = string.Empty,
                 IsVisible = true,
+                Position = 2,
                 ViewName = "UserDetails",
                 FilePath = "users/UserDetails.tsx",
                 ParentMenu = utentiMenu,
@@ -175,7 +180,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(utentiChild2, "Gestione utenti", "/gestionale/users-details", string.Empty, true,
+            UpdateMenuIfNeeded(utentiChild2, "Gestione utenti", "/gestionale/users-details", string.Empty, true, 2,
                 "UserDetails", "users/UserDetails.tsx", superAdminRole, utentiMenu, ref needsUpdate);
             if (needsUpdate)
             {
@@ -196,6 +201,7 @@ public static class SeedMenus
                 Path = string.Empty,
                 Icon = "Engineering",
                 IsVisible = true,
+                Position = 4,
                 Roles = [superAdminRole]
             };
             dbContext.Menus.Add(ruoliMenu);
@@ -204,7 +210,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(ruoliMenu, "Ruoli", null, "Engineering", true, null, null, superAdminRole, null, ref needsUpdate);
+            UpdateMenuIfNeeded(ruoliMenu, "Ruoli", null, "Engineering", true, 4, null, null, superAdminRole, null, ref needsUpdate);
             if (needsUpdate)
             {
                 dbContext.Menus.Update(ruoliMenu);
@@ -224,6 +230,7 @@ public static class SeedMenus
                 Path = "/gestionale/roles-list",
                 Icon = string.Empty,
                 IsVisible = true,
+                Position = 1,
                 ViewName = "RoleList",
                 FilePath = "roles/RoleList.tsx",
                 ParentMenu = ruoliMenu,
@@ -234,7 +241,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(ruoliChild1, "Lista ruoli", "/gestionale/roles-list", string.Empty, true,
+            UpdateMenuIfNeeded(ruoliChild1, "Lista ruoli", "/gestionale/roles-list", string.Empty, true, 1,
                 "RoleList", "roles/RoleList.tsx", superAdminRole, ruoliMenu, ref needsUpdate);
             if (needsUpdate)
             {
@@ -255,6 +262,7 @@ public static class SeedMenus
                 Path = "/gestionale/roles-details",
                 Icon = string.Empty,
                 IsVisible = true,
+                Position = 2,
                 ViewName = "RoleDetails",
                 FilePath = "roles/RoleDetails.tsx",
                 ParentMenu = ruoliMenu,
@@ -265,7 +273,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(ruoliChild2, "Gestione ruoli", "/gestionale/roles-details", string.Empty, true,
+            UpdateMenuIfNeeded(ruoliChild2, "Gestione ruoli", "/gestionale/roles-details", string.Empty, true, 2,
                 "RoleDetails", "roles/RoleDetails.tsx", superAdminRole, ruoliMenu, ref needsUpdate);
             if (needsUpdate)
             {
@@ -286,6 +294,7 @@ public static class SeedMenus
                 Path = string.Empty,
                 Icon = "List",
                 IsVisible = true,
+                Position = 5,
                 Roles = [superAdminRole]
             };
             dbContext.Menus.Add(menusMenu);
@@ -294,7 +303,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(menusMenu, "Menù", null, "List", true, null, null, superAdminRole, null, ref needsUpdate);
+            UpdateMenuIfNeeded(menusMenu, "Menù", null, "List", true, 5, null, null, superAdminRole, null, ref needsUpdate);
             if (needsUpdate)
             {
                 dbContext.Menus.Update(menusMenu);
@@ -314,6 +323,7 @@ public static class SeedMenus
                 Path = "/gestionale/menus-list",
                 Icon = string.Empty,
                 IsVisible = true,
+                Position = 1,
                 ViewName = "MenuList",
                 FilePath = "menu/MenuList.tsx",
                 ParentMenu = menusMenu,
@@ -324,7 +334,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(menusChild1, "List menù", "/gestionale/menus-list", string.Empty, true,
+            UpdateMenuIfNeeded(menusChild1, "List menù", "/gestionale/menus-list", string.Empty, true, 1,
                 "MenuList", "menu/MenuList.tsx", superAdminRole, menusMenu, ref needsUpdate);
             if (needsUpdate)
             {
@@ -345,6 +355,7 @@ public static class SeedMenus
                 Path = "/gestionale/menus-details",
                 Icon = string.Empty,
                 IsVisible = true,
+                Position = 2,
                 ViewName = "MenuDetails",
                 FilePath = "menu/MenuDetails.tsx",
                 ParentMenu = menusMenu,
@@ -355,7 +366,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(menusChild2, "Gestione menù", "/gestionale/menus-details", string.Empty, true,
+            UpdateMenuIfNeeded(menusChild2, "Gestione menù", "/gestionale/menus-details", string.Empty, true, 2,
                 "MenuDetails", "menu/MenuDetails.tsx", superAdminRole, menusMenu, ref needsUpdate);
             if (needsUpdate)
             {
@@ -376,6 +387,7 @@ public static class SeedMenus
                 Path = "/gestionale/settings",
                 Icon = "Settings",
                 IsVisible = true,
+                Position = 6,
                 ViewName = "SettingsDetails",
                 FilePath = "settings/SettingsDetails.tsx",
                 Roles = [superAdminRole]
@@ -385,7 +397,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(settingsMenu, "Impostazioni", "/gestionale/settings", "Settings", true,
+            UpdateMenuIfNeeded(settingsMenu, "Impostazioni", "/gestionale/settings", "Settings", true, 6,
                 "SettingsDetails", "settings/SettingsDetails.tsx", superAdminRole, null, ref needsUpdate);
             if (needsUpdate)
             {
@@ -415,6 +427,7 @@ public static class SeedMenus
                 Path = string.Empty,
                 Icon = "PointOfSale",
                 IsVisible = true,
+                Position = 2,
                 Roles = [superAdminRole]
             };
             dbContext.Menus.Add(cassaMenu);
@@ -423,41 +436,10 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(cassaMenu, "Cassa", null, "PointOfSale", true, null, null, superAdminRole, null, ref needsUpdate);
+            UpdateMenuIfNeeded(cassaMenu, "Cassa", null, "PointOfSale", true, 2, null, null, superAdminRole, null, ref needsUpdate);
             if (needsUpdate)
             {
                 dbContext.Menus.Update(cassaMenu);
-            }
-        }
-
-        // Child: Dashboard Cassa (primo child - la dashboard principale del modulo cassa)
-        var cassaDashboardChild = await dbContext.Menus
-            .Include(m => m.Roles)
-            .FirstOrDefaultAsync(m => m.Path == "/gestionale/cassa/dashboard");
-
-        if (cassaDashboardChild == null)
-        {
-            cassaDashboardChild = new Menu
-            {
-                Title = "Dashboard Cassa",
-                Path = "/gestionale/cassa/dashboard",
-                Icon = "Dashboard",
-                IsVisible = true,
-                ViewName = "CashRegisterDashboard",
-                FilePath = "cashRegister/CashRegisterDashboard.tsx",
-                ParentMenu = cassaMenu,
-                Roles = [superAdminRole]
-            };
-            dbContext.Menus.Add(cassaDashboardChild);
-        }
-        else
-        {
-            bool needsUpdate = false;
-            UpdateMenuIfNeeded(cassaDashboardChild, "Dashboard Cassa", "/gestionale/cassa/dashboard", "Dashboard", true,
-                "CashRegisterDashboard", "cashRegister/CashRegisterDashboard.tsx", superAdminRole, cassaMenu, ref needsUpdate);
-            if (needsUpdate)
-            {
-                dbContext.Menus.Update(cassaDashboardChild);
             }
         }
 
@@ -474,6 +456,7 @@ public static class SeedMenus
                 Path = "/gestionale/cassa/list",
                 Icon = "List",
                 IsVisible = true,
+                Position = 2,
                 ViewName = "CashRegisterList",
                 FilePath = "cashRegister/CashRegisterList.tsx",
                 ParentMenu = cassaMenu,
@@ -484,7 +467,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(cassaChild1, "Lista Cassa", "/gestionale/cassa/list", "List", true,
+            UpdateMenuIfNeeded(cassaChild1, "Lista Cassa", "/gestionale/cassa/list", "List", true, 2,
                 "CashRegisterList", "cashRegister/CashRegisterList.tsx", superAdminRole, cassaMenu, ref needsUpdate);
             if (needsUpdate)
             {
@@ -505,6 +488,7 @@ public static class SeedMenus
                 Path = "/gestionale/cassa/monthly",
                 Icon = "CalendarMonth",
                 IsVisible = true,
+                Position = 3,
                 ViewName = "CashRegisterMonthlyPage",
                 FilePath = "cashRegister/CashRegisterMonthlyPage.tsx",
                 ParentMenu = cassaMenu,
@@ -515,7 +499,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(cassaChild2, "Vista Mensile", "/gestionale/cassa/monthly", "CalendarMonth", true,
+            UpdateMenuIfNeeded(cassaChild2, "Vista Mensile", "/gestionale/cassa/monthly", "CalendarMonth", true, 3,
                 "CashRegisterMonthlyPage", "cashRegister/CashRegisterMonthlyPage.tsx", superAdminRole, cassaMenu, ref needsUpdate);
             if (needsUpdate)
             {
@@ -545,6 +529,7 @@ public static class SeedMenus
                 Path = "/gestionale/cassa/details",
                 Icon = "Edit",
                 IsVisible = true,
+                Position = 4,
                 ViewName = "CashRegisterDetails",
                 FilePath = "cashRegister/CashRegisterDetails.tsx",
                 ParentMenu = cassaMenu,
@@ -555,7 +540,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(cassaChild4, "Gestione Cassa", "/gestionale/cassa/details", "Edit", true,
+            UpdateMenuIfNeeded(cassaChild4, "Gestione Cassa", "/gestionale/cassa/details", "Edit", true, 4,
                 "CashRegisterDetails", "cashRegister/CashRegisterDetails.tsx", superAdminRole, cassaMenu, ref needsUpdate);
             if (needsUpdate)
             {

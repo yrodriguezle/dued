@@ -6,6 +6,7 @@ type Menu = {
   path: string;
   icon: string;
   isVisible: boolean;
+  position: number;
   filePath?: string;
   viewName?: string;
 } | null;

@@ -229,40 +229,56 @@ function CashRegisterDetails() {
         <Form noValidate>
           <Box
             className="scrollable-box"
-            sx={{ marginTop: 1, paddingX: 2, overflow: "auto", height: "calc(100vh - 64px - 41px)" }}
+            sx={{
+              marginTop: 1,
+              paddingX: { xs: 1, sm: 2 },
+              overflow: "auto",
+              height: "calc(100vh - 64px - 41px)"
+            }}
           >
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                <Typography id="view-title" variant="h5">
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: { xs: "column", sm: "row" },
+                justifyContent: "space-between",
+                alignItems: { xs: "stretch", sm: "center" },
+                mb: 2,
+                gap: { xs: 2, sm: 0 }
+              }}
+            >
+              <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, alignItems: { xs: "flex-start", sm: "center" }, gap: { xs: 1, sm: 2 } }}>
+                <Typography id="view-title" variant="h5" sx={{ fontSize: { xs: "1.5rem", sm: "1.5rem" } }}>
                   {title}
                 </Typography>
-                <Stack direction="row" alignItems="center" spacing={1}>
-                  <IconButton size="small" onClick={handlePreviousDay} title="Giorno precedente">
-                    <ArrowBack fontSize="small" />
+                <Stack direction="row" alignItems="center" spacing={{ xs: 0.5, sm: 1 }}>
+                  <IconButton size="medium" onClick={handlePreviousDay} title="Giorno precedente">
+                    <ArrowBack />
                   </IconButton>
-                  <Typography variant="body2" sx={{ minWidth: "120px", textAlign: "center" }}>
+                  <Typography variant="body1" sx={{ minWidth: { xs: "100px", sm: "120px" }, textAlign: "center", fontSize: { xs: "0.9rem", sm: "0.875rem" } }}>
                     {getFormattedDate(currentDate, "DD/MM/YYYY")}
                   </Typography>
-                  <IconButton size="small" onClick={handleNextDay} title="Giorno successivo">
-                    <ArrowForward fontSize="small" />
+                  <IconButton size="medium" onClick={handleNextDay} title="Giorno successivo">
+                    <ArrowForward />
                   </IconButton>
                   <IconButton
-                    size="small"
+                    size="medium"
                     onClick={handleOpenMonthlyCalendar}
                     title="Vista mensile"
                     color="primary"
-                    sx={{ ml: 1 }}
+                    sx={{ ml: { xs: 0.5, sm: 1 } }}
                   >
-                    <CalendarMonthIcon fontSize="small" />
+                    <CalendarMonthIcon />
                   </IconButton>
                 </Stack>
               </Box>
-              <Stack direction="row" spacing={2} alignItems="center">
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={{ xs: 1, sm: 2 }} alignItems="stretch" sx={{ width: { xs: "100%", sm: "auto" } }}>
                 <Button
                   variant="contained"
                   color="primary"
                   type="submit"
                   disabled={isSubmitting || !isValid || status?.isFormLocked}
+                  size="large"
+                  sx={{ minHeight: { xs: "48px", sm: "36px" } }}
                 >
                   Salva
                 </Button>
@@ -272,6 +288,8 @@ function CashRegisterDetails() {
                     color="warning"
                     onClick={handleCloseCashRegister}
                     disabled={closing}
+                    size="large"
+                    sx={{ minHeight: { xs: "48px", sm: "36px" } }}
                   >
                     Chiudi Cassa
                   </Button>

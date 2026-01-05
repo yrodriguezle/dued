@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 
 import useStore from "../../store/useStore";
-import fetchLoggedUser from "../../api/fetchLoggedUser";
+import fetchLoggedUser from "../../graphql/user/fetchLoggedUser";
 import { isAuthenticated } from "../../common/authentication/auth";
 import useConfirm from "../common/confirm/useConfirm";
 import { OFFLINE } from "../../store/serverStatusStore";
@@ -18,8 +18,15 @@ function useBootstrap() {
       promiseLock.current = (async () => {
         try {
           onInProgress("global");
-          const currentUser = await fetchLoggedUser();
-          receiveUser(currentUser || null);
+          const { data } = await fetchLoggedUser();
+          if (!data?.authentication?.currentUser) {
+            receiveUser(null);
+            return;
+          }
+          const {
+            authentication: { currentUser },
+          } = data;
+          receiveUser(currentUser);
         } catch (error: unknown) {
           logger.log(error);
           await confirm({

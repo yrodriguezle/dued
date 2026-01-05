@@ -4,6 +4,7 @@ export const menuFragment = `fragment MenuFragment on Menu {
   path
   icon
   isVisible
+  position
   filePath
   viewName
   parentMenuId

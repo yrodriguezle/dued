@@ -11,6 +11,7 @@ export const userFragment = `
     lastName
     description
     disabled
+    roleId
     role { ...RoleFragment }
     menus { ...MenuFragment }
   }`;

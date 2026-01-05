@@ -14,7 +14,9 @@
       "Bash(findstr:*)",
       "Bash(npx eslint:*)",
       "Bash(openssl req:*)",
-      "Bash(.gitignore)"
+      "Bash(.gitignore)",
+      "Bash(dotnet ef database update:*)",
+      "Bash(dotnet build:*)"
     ],
     "deny": [],
     "ask": []

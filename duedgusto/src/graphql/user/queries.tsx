@@ -15,3 +15,23 @@ export const getCurrentUser: TypedDocumentNode<GetUserData> = gql(`
       }
     }
   }`);
+
+interface GetUserByIdData {
+    authentication: {
+      user: User;
+    };
+}
+
+interface GetUserByIdVariables {
+    userId: number;
+}
+
+export const getUserById: TypedDocumentNode<GetUserByIdData, GetUserByIdVariables> = gql(`
+  ${userFragment}
+  query GetUserById($userId: Int!) {
+    authentication {
+      user(userId: $userId) {
+        ...UserFragment
+      }
+    }
+  }`);

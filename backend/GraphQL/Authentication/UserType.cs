@@ -19,6 +19,7 @@ public class UserType : ObjectGraphType<User>
         Field(x => x.LastName, typeof(StringGraphType));
         Field(x => x.Description, typeof(StringGraphType));
         Field(x => x.Disabled, typeof(BooleanGraphType));
+        Field(x => x.RoleId, typeof(IntGraphType));
         Field<RoleType>("role")
             .ResolveAsync(async (context) =>
             {
@@ -33,6 +34,7 @@ public class UserType : ObjectGraphType<User>
                 int roleId = context.Source.RoleId;
                 return await dbContext.Menus
                     .Where(m => m.Roles.Any(r => r.RoleId == roleId))
+                    .OrderBy(m => m.Position)
                     .ToListAsync();
             });
     }

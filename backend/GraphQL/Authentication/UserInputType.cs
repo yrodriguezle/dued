@@ -1,20 +1,21 @@
 using GraphQL.Types;
-using duedgusto.Models;
 
 namespace duedgusto.GraphQL.Authentication;
 
-public class UserInputType : InputObjectGraphType<User>
+public class UserInputType : InputObjectGraphType
 {
     public UserInputType()
     {
         Name = "UserInput";
         Description = "Campi necessari per creare o aggiornare un utente";
 
-        Field<NonNullGraphType<StringGraphType>>(nameof(User.UserName));
-        Field<NonNullGraphType<StringGraphType>>(nameof(User.FirstName));
-        Field<NonNullGraphType<StringGraphType>>(nameof(User.LastName));
-        Field<StringGraphType>(nameof(User.Description));
-        Field<BooleanGraphType>(nameof(User.Disabled));
-        Field<NonNullGraphType<IntGraphType>>(nameof(User.RoleId));
+        Field<IntGraphType>("userId");
+        Field<NonNullGraphType<StringGraphType>>("userName");
+        Field<NonNullGraphType<StringGraphType>>("firstName");
+        Field<NonNullGraphType<StringGraphType>>("lastName");
+        Field<StringGraphType>("description");
+        Field<BooleanGraphType>("disabled");
+        Field<NonNullGraphType<IntGraphType>>("roleId");
+        Field<StringGraphType>("password");
     }
 }

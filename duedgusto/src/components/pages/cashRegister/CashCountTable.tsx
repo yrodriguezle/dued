@@ -57,23 +57,34 @@ function CashCountTable({ denominations, fieldName, title }: CashCountTableProps
 
     return (
       <TableRow key={denomination.denominationId}>
-        <TableCell>
-          <Typography variant="body2" fontWeight="medium">
+        <TableCell sx={{ py: { xs: 1.5, sm: 1 } }}>
+          <Typography variant="body1" fontWeight="medium" sx={{ fontSize: { xs: "1rem", sm: "0.875rem" } }}>
             {denomination.value.toFixed(2)}€
           </Typography>
         </TableCell>
-        <TableCell align="center">
+        <TableCell align="center" sx={{ py: { xs: 1.5, sm: 1 } }}>
           <TextField
             type="number"
-            size="small"
+            size="medium"
             value={quantity}
             onChange={(e) => handleQuantityChange(denomination.denominationId, e.target.value)}
-            inputProps={{ min: 0, style: { textAlign: "center" } }}
-            sx={{ width: "80px" }}
+            inputProps={{
+              min: 0,
+              style: { textAlign: "center", fontSize: "1.1rem" },
+              inputMode: "numeric"
+            }}
+            sx={{
+              width: { xs: "100px", sm: "80px" },
+              "& .MuiInputBase-input": {
+                padding: { xs: "12px", sm: "8px" }
+              }
+            }}
           />
         </TableCell>
-        <TableCell align="right">
-          <Typography variant="body2">{total.toFixed(2)}€</Typography>
+        <TableCell align="right" sx={{ py: { xs: 1.5, sm: 1 } }}>
+          <Typography variant="body1" sx={{ fontSize: { xs: "1rem", sm: "0.875rem" } }}>
+            {total.toFixed(2)}€
+          </Typography>
         </TableCell>
       </TableRow>
     );
@@ -88,18 +99,30 @@ function CashCountTable({ denominations, fieldName, title }: CashCountTableProps
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell>
-                <Typography variant="subtitle2" fontWeight="bold">
+              <TableCell sx={{ py: { xs: 1.5, sm: 1 } }}>
+                <Typography
+                  variant="subtitle1"
+                  fontWeight="bold"
+                  sx={{ fontSize: { xs: "1rem", sm: "0.875rem" } }}
+                >
                   Taglio
                 </Typography>
               </TableCell>
-              <TableCell align="center">
-                <Typography variant="subtitle2" fontWeight="bold">
+              <TableCell align="center" sx={{ py: { xs: 1.5, sm: 1 } }}>
+                <Typography
+                  variant="subtitle1"
+                  fontWeight="bold"
+                  sx={{ fontSize: { xs: "1rem", sm: "0.875rem" } }}
+                >
                   Quantità
                 </Typography>
               </TableCell>
-              <TableCell align="right">
-                <Typography variant="subtitle2" fontWeight="bold">
+              <TableCell align="right" sx={{ py: { xs: 1.5, sm: 1 } }}>
+                <Typography
+                  variant="subtitle1"
+                  fontWeight="bold"
+                  sx={{ fontSize: { xs: "1rem", sm: "0.875rem" } }}
+                >
                   Totale
                 </Typography>
               </TableCell>
@@ -108,8 +131,18 @@ function CashCountTable({ denominations, fieldName, title }: CashCountTableProps
           <TableBody>
             {/* Monete */}
             <TableRow>
-              <TableCell colSpan={3} sx={{ bgcolor: "action.hover" }}>
-                <Typography variant="subtitle2" fontWeight="bold">
+              <TableCell
+                colSpan={3}
+                sx={{
+                  bgcolor: "action.hover",
+                  py: { xs: 1.5, sm: 1.25 }
+                }}
+              >
+                <Typography
+                  variant="subtitle1"
+                  fontWeight="bold"
+                  sx={{ fontSize: { xs: "1.1rem", sm: "0.875rem" } }}
+                >
                   MONETE
                 </Typography>
               </TableCell>
@@ -118,8 +151,19 @@ function CashCountTable({ denominations, fieldName, title }: CashCountTableProps
 
             {/* Banconote */}
             <TableRow>
-              <TableCell colSpan={3} sx={{ bgcolor: "action.hover", pt: 2 }}>
-                <Typography variant="subtitle2" fontWeight="bold">
+              <TableCell
+                colSpan={3}
+                sx={{
+                  bgcolor: "action.hover",
+                  py: { xs: 1.5, sm: 1.25 },
+                  mt: { xs: 2, sm: 1 }
+                }}
+              >
+                <Typography
+                  variant="subtitle1"
+                  fontWeight="bold"
+                  sx={{ fontSize: { xs: "1.1rem", sm: "0.875rem" } }}
+                >
                   BANCONOTE
                 </Typography>
               </TableCell>
@@ -128,13 +172,22 @@ function CashCountTable({ denominations, fieldName, title }: CashCountTableProps
 
             {/* Totale */}
             <TableRow>
-              <TableCell colSpan={2}>
-                <Typography variant="subtitle1" fontWeight="bold">
+              <TableCell colSpan={2} sx={{ py: { xs: 2, sm: 1.5 } }}>
+                <Typography
+                  variant="h6"
+                  fontWeight="bold"
+                  sx={{ fontSize: { xs: "1.2rem", sm: "1rem" } }}
+                >
                   TOTALE
                 </Typography>
               </TableCell>
-              <TableCell align="right">
-                <Typography variant="h6" fontWeight="bold" color="primary">
+              <TableCell align="right" sx={{ py: { xs: 2, sm: 1.5 } }}>
+                <Typography
+                  variant="h5"
+                  fontWeight="bold"
+                  color="primary"
+                  sx={{ fontSize: { xs: "1.5rem", sm: "1.25rem" } }}
+                >
                   {calculateTotal().toFixed(2)}€
                 </Typography>
               </TableCell>

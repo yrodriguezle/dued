@@ -1,7 +1,9 @@
-import React, { FocusEventHandler, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import TextField, { TextFieldProps } from "@mui/material/TextField";
 import InputAdornment from "@mui/material/InputAdornment";
 import IconButton from "@mui/material/IconButton";
+import Paper from "@mui/material/Paper";
+import Typography from "@mui/material/Typography";
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CircularProgress from '@mui/material/CircularProgress';
 import { GridReadyEvent } from "ag-grid-community";
@@ -10,7 +12,7 @@ import { SearchboxOptions } from "../../../../@types/searchbox";
 import useSearchboxQueryParams from "./useSearchboxQueryParams";
 import useFetchData from "../../../../graphql/common/useFetchData";
 import ContainerGridResults from "./ContainerGridResults";
-import logger from "../../../../common/logger/logger";
+import SearchboxModal from "./SearchboxModal";
 
 export interface SearchboxProps<T> extends Omit<TextFieldProps<"standard">, "onChange"> {
   id?: string;
@@ -23,10 +25,10 @@ export interface SearchboxProps<T> extends Omit<TextFieldProps<"standard">, "onC
   onSelectItem: (item: T) => void;
 }
 
-function Searchbox<T>({ id, name, value, orderBy, fieldName, options, onChange, onSelectItem, ...props }: SearchboxProps<T>) {
+function Searchbox<T extends Record<string, unknown>>({ id, name, value, orderBy, fieldName, options, onChange, onSelectItem, ...props }: SearchboxProps<T>) {
   const [innerValue, setInnerValue] = useState(value);
   const [resultsVisible, setResultsVisible] = useState(false);
-  const [focused, setFocus] = useState<boolean>(!!props.autoFocus);
+  const [modalOpen, setModalOpen] = useState(false);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const resultListRef = useRef<GridReadyEvent<T>>(null);
@@ -51,6 +53,25 @@ function Searchbox<T>({ id, name, value, orderBy, fieldName, options, onChange, 
     query,
     variables,
     skip: innerValue.trim().length === 0,
+  });
+
+  // Modal query - loads all items
+  const { query: modalQuery, variables: modalVariables } = useSearchboxQueryParams({
+    options,
+    value: "",
+    fieldName: lookupFieldName,
+    orderBy,
+    modal: true,
+    pageSize: 100,
+  });
+
+  const {
+    items: modalItems,
+    loading: modalLoading,
+  } = useFetchData({
+    query: modalQuery,
+    variables: modalVariables,
+    skip: !modalOpen,
   });
 
   const handleResultGridReady = useCallback(
@@ -126,23 +147,20 @@ function Searchbox<T>({ id, name, value, orderBy, fieldName, options, onChange, 
   }, [value]);
 
   const handleOpenModal = useCallback(() => {
-    logger.log('handleOpenModal');
+    setModalOpen(true);
+    setResultsVisible(false);
   }, []);
 
-  const handleFocus: FocusEventHandler<HTMLInputElement> = useCallback(
-    (event) => {
-      setFocus(true);
-      props.onFocus?.(event);
-    },
-    [props]
-  );
+  const handleCloseModal = useCallback(() => {
+    setModalOpen(false);
+  }, []);
 
-  const handleBlur: FocusEventHandler<HTMLInputElement> = useCallback(
-    (event) => {
-      setFocus(false);
-      props.onBlur?.(event);
+  const handleModalSelectItem = useCallback(
+    (item: T) => {
+      handleSelectedItem(item);
+      setModalOpen(false);
     },
-    [props]
+    [handleSelectedItem]
   );
 
   return (
@@ -156,11 +174,10 @@ function Searchbox<T>({ id, name, value, orderBy, fieldName, options, onChange, 
         name={name}
         variant="outlined"
         fullWidth
+        autoComplete="off"
         {...props}
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
         slotProps={{
           input: {
             endAdornment: (
@@ -182,20 +199,51 @@ function Searchbox<T>({ id, name, value, orderBy, fieldName, options, onChange, 
             ),
           },
           inputLabel: {
-            shrink: !!innerValue || focused,
+            shrink: !!innerValue,
           },
         }}
       />
       {resultsVisible && (
-        <ContainerGridResults<T>
-          searchBoxId={searchBoxId}
-          loading={loading}
-          items={items}
-          columnDefs={options.items}
-          onGridReady={handleResultGridReady}
-          onSelectedItem={handleSelectedItem}
-        />
+        <>
+          {!loading && innerValue.trim().length > 2 && (!items || items.length === 0) ? (
+            <Paper
+              elevation={8}
+              sx={{
+                position: "absolute",
+                top: "100%",
+                left: 0,
+                right: 0,
+                marginTop: "-6px",
+                zIndex: 10,
+                p: 2,
+                textAlign: "center",
+              }}
+            >
+              <Typography variant="body2" color="text.secondary">
+                Nessun risultato trovato
+              </Typography>
+            </Paper>
+          ) : (
+            <ContainerGridResults<T>
+              searchBoxId={searchBoxId}
+              loading={loading}
+              items={items}
+              columnDefs={options.items}
+              onGridReady={handleResultGridReady}
+              onSelectedItem={handleSelectedItem}
+            />
+          )}
+        </>
       )}
+      <SearchboxModal<T>
+        open={modalOpen}
+        title={options.modal.title}
+        items={modalItems || []}
+        columnDefs={options.modal.items}
+        loading={modalLoading}
+        onClose={handleCloseModal}
+        onSelectItem={handleModalSelectItem}
+      />
     </div>
   );
 }

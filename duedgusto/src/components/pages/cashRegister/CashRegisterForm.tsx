@@ -13,8 +13,8 @@ function CashRegisterForm({ denominations, cashRegister }: CashRegisterFormProps
   const formik = useFormikContext<FormikCashRegisterValues>();
 
   return (
-    <Box sx={{ marginTop: 1, paddingX: 3 }}>
-      <Grid container spacing={3}>
+    <Box sx={{ marginTop: 1, paddingX: { xs: 1, sm: 2, md: 3 } }}>
+      <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }}>
         {/* Apertura Cassa */}
         <Grid item xs={12} md={6}>
           <CashCountTable denominations={denominations} fieldName="openingCounts" title="APERTURA CASSA" />

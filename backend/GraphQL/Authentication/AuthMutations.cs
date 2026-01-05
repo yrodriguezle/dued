@@ -65,12 +65,60 @@ public class AuthMutations : ObjectGraphType
             .ResolveAsync(async context =>
             {
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
-                User input = context.GetArgument<User>("user");
+                var userArg = context.GetArgument<Dictionary<string, object>>("user");
 
-                User? existingUser = await dbContext.User.FindAsync(input.UserId);
-                User updatedUser = await dbContext.AddOrUpdateAsync(input);
-                await dbContext.SaveChangesAsync();
-                return updatedUser;
+                int userId = userArg.ContainsKey("userId") ? Convert.ToInt32(userArg["userId"]) : 0;
+                string? password = userArg.ContainsKey("password") ? userArg["password"]?.ToString() : null;
+
+                User? existingUser = await dbContext.User.FindAsync(userId);
+
+                if (existingUser != null)
+                {
+                    // Update existing user
+                    existingUser.UserName = userArg["userName"].ToString()!;
+                    existingUser.FirstName = userArg["firstName"].ToString()!;
+                    existingUser.LastName = userArg["lastName"].ToString()!;
+                    existingUser.Description = userArg.ContainsKey("description") ? userArg["description"]?.ToString() : null;
+                    existingUser.Disabled = userArg.ContainsKey("disabled") ? Convert.ToBoolean(userArg["disabled"]) : false;
+                    existingUser.RoleId = Convert.ToInt32(userArg["roleId"]);
+
+                    // Se è fornita una nuova password, aggiorna hash e salt
+                    if (!string.IsNullOrEmpty(password))
+                    {
+                        PasswordService.HashPassword(password, out byte[] hash, out byte[] salt);
+                        existingUser.Hash = hash;
+                        existingUser.Salt = salt;
+                    }
+
+                    await dbContext.SaveChangesAsync();
+                    return existingUser;
+                }
+                else
+                {
+                    // Create new user - la password è obbligatoria
+                    if (string.IsNullOrEmpty(password))
+                    {
+                        throw new ExecutionError("La password è obbligatoria per creare un nuovo utente");
+                    }
+
+                    PasswordService.HashPassword(password, out byte[] hash, out byte[] salt);
+
+                    User newUser = new User
+                    {
+                        UserName = userArg["userName"].ToString()!,
+                        FirstName = userArg["firstName"].ToString()!,
+                        LastName = userArg["lastName"].ToString()!,
+                        Description = userArg.ContainsKey("description") ? userArg["description"]?.ToString() : null,
+                        Disabled = userArg.ContainsKey("disabled") ? Convert.ToBoolean(userArg["disabled"]) : false,
+                        RoleId = Convert.ToInt32(userArg["roleId"]),
+                        Hash = hash,
+                        Salt = salt
+                    };
+
+                    dbContext.User.Add(newUser);
+                    await dbContext.SaveChangesAsync();
+                    return newUser;
+                }
             });
     }
 }
