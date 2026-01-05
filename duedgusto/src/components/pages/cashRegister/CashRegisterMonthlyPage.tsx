@@ -67,7 +67,7 @@ function CashRegisterMonthlyPage() {
   const handleSelectSlot = useCallback(
     (slotInfo: { start: Date }) => {
       const selectedDate = dayjs(slotInfo.start).format("YYYY-MM-DD");
-      navigate(`/gestionale/cassa?date=${selectedDate}`);
+      navigate(`/gestionale/cassa/details?date=${selectedDate}`);
     },
     [navigate]
   );

@@ -4,7 +4,7 @@ import { z } from "zod";
 import { Box, Typography, Button, IconButton, Stack } from "@mui/material";
 import { ArrowBack, ArrowForward } from "@mui/icons-material";
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import { useParams, useNavigate } from "react-router";
+import { useParams, useNavigate, useLocation } from "react-router";
 
 import CashRegisterForm from "./CashRegisterForm";
 import logger from "../../../common/logger/logger";
@@ -14,12 +14,11 @@ import useConfirm from "../../common/confirm/useConfirm";
 import PageTitleContext from "../../layout/headerBar/PageTitleContext";
 import useQueryDenominations from "../../../graphql/cashRegister/useQueryDenominations";
 import useQueryCashRegister from "../../../graphql/cashRegister/useQueryCashRegister";
-import useQueryCashRegisterByDate from "../../../graphql/cashRegister/useQueryCashRegisterByDate";
 import useSubmitCashRegister from "../../../graphql/cashRegister/useSubmitCashRegister";
 import useCloseCashRegister from "../../../graphql/cashRegister/useCloseCashRegister";
 import useStore from "../../../store/useStore";
 import { toast } from "react-toastify";
-import { getCurrentDate, getFormattedDate } from "../../../common/date/date";
+import { getCurrentDate, getFormattedDate, getWeekdayName, parseDateForGraphQL } from "../../../common/date/date";
 
 const CashCountSchema = z.object({
   denominationId: z.number(),
@@ -43,10 +42,25 @@ export type FormikCashRegisterValues = z.infer<typeof Schema>;
 function CashRegisterDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const formRef = useRef<FormikProps<FormikCashRegisterValues>>(null);
   const { title, setTitle } = useContext(PageTitleContext);
   const user = useStore((state) => state.user);
-  const [currentDate, setCurrentDate] = useState<string>(getCurrentDate("YYYY-MM-DD"));
+
+  // Leggi il parametro date dall'URL, altrimenti usa la data corrente
+  const getInitialDate = useCallback(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const dateParam = searchParams.get("date");
+    return dateParam || getCurrentDate("YYYY-MM-DD");
+  }, [location.search]);
+
+  const [currentDate, setCurrentDate] = useState<string>(getInitialDate());
+
+  // Aggiorna currentDate quando cambia l'URL
+  useEffect(() => {
+    const newDate = getInitialDate();
+    setCurrentDate(newDate);
+  }, [getInitialDate]);
 
   const { initialValues, handleInitializeValues } = useInitializeValues({
     skipInitialize: false,
@@ -55,21 +69,14 @@ function CashRegisterDetails() {
 
   const { denominations, loading: loadingDenominations } = useQueryDenominations();
 
-  // Load by ID if provided (edit mode)
-  const { cashRegister: cashRegisterById, loading: loadingCashRegisterById } = useQueryCashRegister({
+  const { cashRegister, loading: loadingCashRegisterById } = useQueryCashRegister({
     registerId: Number(id) || 0,
-    skip: !id,
-  });
-
-  // Load by date if no ID (new/create mode)
-  const { cashRegister: cashRegisterByDate, loading: loadingCashRegisterByDate } = useQueryCashRegisterByDate({
-    date: currentDate,
-    skip: !!id, // Only load by date when not editing an existing record
+    date: parseDateForGraphQL(currentDate),
+    skip: !id || !currentDate,
   });
 
   // Use appropriate cash register based on context
-  const cashRegister = id ? cashRegisterById : cashRegisterByDate;
-  const loadingCashRegister = id ? loadingCashRegisterById : loadingCashRegisterByDate;
+  const loadingCashRegister = loadingCashRegisterById;
 
   // Navigate between days for cash register entry
   const handlePreviousDay = useCallback(() => {
@@ -207,7 +214,11 @@ function CashRegisterDetails() {
   };
 
   if (loadingDenominations || loadingCashRegister) {
-    return <Typography>Caricamento...</Typography>;
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "50vh" }}>
+        <Typography variant="h6">Caricamento...</Typography>
+      </Box>
+    );
   }
 
   return (
@@ -254,7 +265,9 @@ function CashRegisterDetails() {
                   <IconButton size="medium" onClick={handlePreviousDay} title="Giorno precedente">
                     <ArrowBack />
                   </IconButton>
-                  <Typography variant="body1" sx={{ minWidth: { xs: "100px", sm: "120px" }, textAlign: "center", fontSize: { xs: "0.9rem", sm: "0.875rem" } }}>
+                  <Typography variant="h5" sx={{ minWidth: { xs: "100px", sm: "120px" }, textAlign: "center", fontSize: { xs: "1.5rem", sm: "1.5rem" } }}>
+                    <span style={{ display: "inline-block", width: 120, textAlign: "center" }}>{getWeekdayName(currentDate)}</span>
+                    {" - "}
                     {getFormattedDate(currentDate, "DD/MM/YYYY")}
                   </Typography>
                   <IconButton size="medium" onClick={handleNextDay} title="Giorno successivo">

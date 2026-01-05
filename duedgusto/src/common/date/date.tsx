@@ -5,6 +5,7 @@ import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import weekOfYear from "dayjs/plugin/weekOfYear";
 import isoWeek from "dayjs/plugin/isoWeek";
+import utc from "dayjs/plugin/utc";
 
 dayjs.extend(customParseFormat);
 dayjs.extend(quarterOfYear);
@@ -12,6 +13,7 @@ dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
 dayjs.extend(weekOfYear);
 dayjs.extend(isoWeek);
+dayjs.extend(utc);
 
 const defaultServices = {
   dayjs,
@@ -303,6 +305,29 @@ export const getMonthName = (monthNumber: number) => {
 
 export const getDayName = (date = new Date(), locale = "it-IT") => date.toLocaleDateString(locale, { weekday: "short" });
 
+export const getWeekdayName = (
+  dateInput: string | Date = new Date(),
+  locale = "it-IT",
+  short = false,
+  services = defaultServices
+): string => {
+  try {
+    let day: Date;
+    if (typeof dateInput === "string") {
+      if (!isValidDate(dateInput)) {
+        return "";
+      }
+      const fmt = determineDateFormat(dateInput);
+      day = fmt ? services.dayjs(dateInput, fmt).toDate() : services.dayjs(dateInput).toDate();
+    } else {
+      day = dateInput;
+    }
+    return day.toLocaleDateString(locale, { weekday: short ? "short" : "long" });
+  } catch {
+    return "";
+  }
+};
+
 export const getAddedDate = ({ fromDate = "", period = 6, format = "YYYY-MM-DD" }, services = defaultServices) => {
   if (!fromDate || !isValidDate(fromDate)) {
     throw new Error("`fromDate` must be required or date is not valid");
@@ -366,4 +391,25 @@ export const getDatesInRange = (
     },
     services
   );
+};
+
+export const parseDateForGraphQL = (date: string): string | undefined => {
+  if (!date) {
+    return;
+  }
+
+  const format = determineDateFormat(date);
+
+  if (!format) {
+    return;
+  }
+
+  const parsed = dayjs(date, format, true);
+
+  if (!parsed.isValid()) {
+    return;
+  }
+
+  // normalizzazione a mezzanotte UTC
+  return parsed.startOf("day").utc().toISOString();
 };

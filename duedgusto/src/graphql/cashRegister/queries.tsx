@@ -26,14 +26,15 @@ interface GetCashRegisterData {
 }
 
 interface GetCashRegisterVariables {
-  registerId: number;
+  registerId?: number;
+  date?: string;
 }
 
 export const getCashRegister: TypedDocumentNode<GetCashRegisterData, GetCashRegisterVariables> = gql(`
   ${cashRegisterFragment}
-  query GetCashRegister($registerId: Int!) {
+  query GetCashRegister($registerId: Int, $date: DateTime) {
     cashManagement {
-      cashRegister(registerId: $registerId) {
+      cashRegister(registerId: $registerId, date: $date) {
         ...CashRegisterFragment
       }
     }
