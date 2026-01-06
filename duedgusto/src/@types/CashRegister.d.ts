@@ -33,7 +33,9 @@ type CashRegister = {
   openingTotal: number;
   closingTotal: number;
   cashSales: number;
+  cashInWhite: number;
   electronicPayments: number;
+  invoicePayments: number;
   totalSales: number;
   supplierExpenses: number;
   dailyExpenses: number;

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using duedgusto.DataAccess;
 
@@ -11,9 +12,11 @@ using duedgusto.DataAccess;
 namespace duedgusto.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260105164126_AddCashPaymentFields")]
+    partial class AddCashPaymentFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -206,17 +209,20 @@ namespace duedgusto.Migrations
                     b.Property<decimal>("ExpectedCash")
                         .HasColumnType("decimal(10,2)");
 
-                    b.Property<decimal>("InvoicePayments")
-                        .HasColumnType("decimal(65,30)");
-
                     b.Property<decimal>("NetCash")
                         .HasColumnType("decimal(10,2)");
+
+                    b.Property<decimal>("NexiPayments")
+                        .HasColumnType("decimal(65,30)");
 
                     b.Property<string>("Notes")
                         .HasColumnType("text");
 
                     b.Property<decimal>("OpeningTotal")
                         .HasColumnType("decimal(10,2)");
+
+                    b.Property<decimal>("SatispayPayments")
+                        .HasColumnType("decimal(65,30)");
 
                     b.Property<string>("Status")
                         .IsRequired()

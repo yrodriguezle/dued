@@ -23,7 +23,14 @@ function CashCountTable({ denominations, fieldName, title }: CashCountTableProps
   const formik = useFormikContext<FormikCashRegisterValues>();
 
   const getCoinDenominations = () => denominations.filter((d) => d.type === "COIN");
-  const getBanknoteDenominations = () => denominations.filter((d) => d.type === "BANKNOTE");
+  const getBanknoteDenominations = () => {
+    const banknotes = denominations.filter((d) => d.type === "BANKNOTE");
+    // Per l'apertura cassa, escludi banconote da 10, 20, 50 e 100 euro
+    if (fieldName === "openingCounts") {
+      return banknotes.filter((d) => d.value !== 10 && d.value !== 20 && d.value !== 50 && d.value !== 100);
+    }
+    return banknotes;
+  };
 
   const getQuantity = (denominationId: number): number => {
     const count = formik.values[fieldName]?.find((c) => c.denominationId === denominationId);

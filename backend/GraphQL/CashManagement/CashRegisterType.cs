@@ -14,7 +14,9 @@ public class CashRegisterType : ObjectGraphType<CashRegister>
         Field(x => x.OpeningTotal);
         Field(x => x.ClosingTotal);
         Field(x => x.CashSales);
+        Field(x => x.CashInWhite);
         Field(x => x.ElectronicPayments);
+        Field(x => x.InvoicePayments);
         Field(x => x.TotalSales);
         Field(x => x.SupplierExpenses);
         Field(x => x.DailyExpenses);

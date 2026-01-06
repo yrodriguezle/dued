@@ -16,7 +16,8 @@
       "Bash(openssl req:*)",
       "Bash(.gitignore)",
       "Bash(dotnet ef database update:*)",
-      "Bash(dotnet build:*)"
+      "Bash(dotnet build:*)",
+      "Bash(ls:*)"
     ],
     "deny": [],
     "ask": []

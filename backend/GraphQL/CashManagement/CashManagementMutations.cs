@@ -49,6 +49,9 @@ public class CashManagementMutations : ObjectGraphType
                 // Update basic fields
                 cashRegister.Date = input.Date;
                 cashRegister.UserId = input.UserId;
+                cashRegister.CashInWhite = input.CashInWhite;
+                cashRegister.ElectronicPayments = input.ElectronicPayments;
+                cashRegister.InvoicePayments = input.InvoicePayments;
                 cashRegister.SupplierExpenses = input.SupplierExpenses;
                 cashRegister.DailyExpenses = input.DailyExpenses;
                 cashRegister.Notes = input.Notes;
@@ -104,8 +107,7 @@ public class CashManagementMutations : ObjectGraphType
                 // TODO: Get actual sales data from sales table when implemented
                 // For now, use placeholder values
                 cashRegister.CashSales = 0;
-                cashRegister.ElectronicPayments = 0;
-                cashRegister.TotalSales = cashRegister.CashSales + cashRegister.ElectronicPayments;
+                cashRegister.TotalSales = cashRegister.CashSales + cashRegister.ElectronicPayments + cashRegister.CashInWhite + cashRegister.InvoicePayments;
 
                 // Calculate expected cash and difference
                 cashRegister.ExpectedCash = cashRegister.CashSales - cashRegister.SupplierExpenses - cashRegister.DailyExpenses;

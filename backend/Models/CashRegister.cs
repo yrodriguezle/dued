@@ -12,7 +12,9 @@ public class CashRegister
 
     // Vendite e incassi (calcolati o inseriti)
     public decimal CashSales { get; set; }
+    public decimal CashInWhite { get; set; }
     public decimal ElectronicPayments { get; set; }
+    public decimal InvoicePayments { get; set; }
     public decimal TotalSales { get; set; }
 
     // Spese

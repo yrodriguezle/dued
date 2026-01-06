@@ -19,6 +19,9 @@ export interface CashRegisterInput {
   userId: number;
   openingCounts: CashCountInput[];
   closingCounts: CashCountInput[];
+  cashInWhite: number;
+  electronicPayments: number;
+  invoicePayments: number;
   supplierExpenses: number;
   dailyExpenses: number;
   notes?: string;

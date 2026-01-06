@@ -32,7 +32,9 @@ export const cashRegisterFragment = `
     openingTotal
     closingTotal
     cashSales
+    cashInWhite
     electronicPayments
+    invoicePayments
     totalSales
     supplierExpenses
     dailyExpenses
