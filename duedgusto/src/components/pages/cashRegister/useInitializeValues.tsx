@@ -2,19 +2,19 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { FormikCashRegisterValues } from "./CashRegisterDetails";
 import setInitialFocus from "./setInitialFocus";
 import mergeWithDefaults from "../../../common/form/mergeWithDefaults";
-import dayjs from "dayjs";
 
 interface UseInitializeValuesProps {
   skipInitialize?: boolean;
   userId: number;
+  currentDate: string;
 }
 
-function useInitializeValues({ skipInitialize, userId }: UseInitializeValuesProps) {
+function useInitializeValues({ skipInitialize, userId, currentDate }: UseInitializeValuesProps) {
   const initialized = useRef(false);
 
   const getDefaultInitialValues = useCallback(() => {
     const initialValues: FormikCashRegisterValues = {
-      date: dayjs().format("YYYY-MM-DD"),
+      date: currentDate,
       userId,
       openingCounts: [],
       closingCounts: [],
@@ -28,7 +28,7 @@ function useInitializeValues({ skipInitialize, userId }: UseInitializeValuesProp
       status: "DRAFT",
     };
     return initialValues;
-  }, [userId]);
+  }, [currentDate, userId]);
 
   const [initialValues, setInitialValues] = useState<FormikCashRegisterValues>(getDefaultInitialValues());
 

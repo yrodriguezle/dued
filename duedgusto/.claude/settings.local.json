@@ -17,7 +17,10 @@
       "Bash(.gitignore)",
       "Bash(dotnet ef database update:*)",
       "Bash(dotnet build:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []

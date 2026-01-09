@@ -9,6 +9,7 @@ export const enum DatagridStatus {
   Modified = 3,
   Invalid = 4,
   Valid = 5,
+  Editing = 6,
 }
 
 export const datagridAuxiliaryColumns = Object.freeze(["status"]);

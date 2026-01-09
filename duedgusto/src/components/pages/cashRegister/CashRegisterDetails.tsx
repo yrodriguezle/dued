@@ -65,6 +65,7 @@ function CashRegisterDetails() {
   }, [location.search]);
 
   const [currentDate, setCurrentDate] = useState<string>(getInitialDate());
+  const [registerId, setRegisterId] = useState<number | null>(null);
 
   // Aggiorna currentDate quando cambia l'URL
   useEffect(() => {
@@ -72,17 +73,25 @@ function CashRegisterDetails() {
     setCurrentDate(newDate);
   }, [getInitialDate]);
 
+  useEffect(() => {
+    if (Number.isInteger(Number(id))) {
+      setRegisterId(Number(id));
+    }
+  }, [id])
+
+
   const { initialValues, handleInitializeValues } = useInitializeValues({
-    skipInitialize: false,
-    userId: user?.userId || 0
+    skipInitialize: !currentDate,
+    userId: user?.userId || 0,
+    currentDate,
   });
 
   const { denominations, loading: loadingDenominations } = useQueryDenominations();
 
   const { cashRegister, loading: loadingCashRegisterById } = useQueryCashRegister({
-    registerId: Number(id) || 0,
+    registerId: registerId || 0,
     date: parseDateForGraphQL(currentDate),
-    skip: !id || !currentDate,
+    skip: !registerId || !currentDate,
   });
 
   // Use appropriate cash register based on context
@@ -137,10 +146,10 @@ function CashRegisterDetails() {
         incomes: cashRegister.incomes && cashRegister.incomes.length > 0
           ? cashRegister.incomes.map(i => ({ type: i.type, amount: i.amount }))
           : [
-              { type: "Pago in Bianco (Contante)", amount: cashRegister.cashInWhite || 0 },
-              { type: "Pagamenti Elettronici", amount: cashRegister.electronicPayments || 0 },
-              { type: "Pagamento con Fattura", amount: cashRegister.invoicePayments || 0 },
-            ],
+            { type: "Pago in Bianco (Contante)", amount: cashRegister.cashInWhite || 0 },
+            { type: "Pagamenti Elettronici", amount: cashRegister.electronicPayments || 0 },
+            { type: "Pagamento con Fattura", amount: cashRegister.invoicePayments || 0 },
+          ],
         expenses: cashRegister.expenses && cashRegister.expenses.length > 0
           ? cashRegister.expenses.map(e => ({ description: e.description, amount: e.amount }))
           : [],
@@ -154,7 +163,7 @@ function CashRegisterDetails() {
           isFormLocked: cashRegister.status !== "DRAFT",
         });
       }, 0);
-    } else if (!id) {
+    } else if (!registerId) {
       // Initialize with today's date for new entry
       const newFormikValues: FormikCashRegisterValues = {
         date: currentDate,
@@ -178,7 +187,7 @@ function CashRegisterDetails() {
         });
       }, 0);
     }
-  }, [cashRegister, id, handleInitializeValues, currentDate, user?.userId]);
+  }, [cashRegister, registerId, handleInitializeValues, currentDate, user?.userId]);
 
   const onSubmit = async (values: FormikCashRegisterValues) => {
     try {
@@ -206,7 +215,7 @@ function CashRegisterDetails() {
 
       if (result) {
         toast.success("Cassa salvata con successo!");
-        if (!id) {
+        if (!registerId) {
           navigate(`/gestionale/cassa/${result.registerId}`);
         }
       }

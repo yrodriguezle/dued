@@ -152,6 +152,7 @@ function CashCountDataGrid({ denominations, fieldName, title }: CashCountDataGri
   const handleCellValueChanged = (event: DatagridCellValueChangedEvent<RowData>) => {
     const newQuantity = parseInt(event.newValue) || 0;
     if (newQuantity >= 0 && event.data) {
+      // Usa startTransition per evitare di interrompere l'editing
       handleQuantityChange(event.data.denominationId, newQuantity);
     }
   };
@@ -194,9 +195,18 @@ function CashCountDataGrid({ denominations, fieldName, title }: CashCountDataGri
           items={rowData}
           columnDefs={columnDefs}
           readOnly={isLocked}
-          presentation
+          getNewRow={() => ({
+            denominationId: 0,
+            type: "COIN" as const,
+            value: 0,
+            quantity: 0,
+            total: 0,
+          })}
+          showRowNumbers={true}
+          hideToolbar={true}
           onCellValueChanged={handleCellValueChanged}
           suppressRowHoverHighlight={false}
+          getRowId={(params) => params.data.denominationId.toString()}
           pinnedBottomRowData={pinnedBottomRowData}
           getRowStyle={(params) => {
             if (params.node.rowPinned) {

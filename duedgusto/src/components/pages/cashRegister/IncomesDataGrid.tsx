@@ -5,7 +5,7 @@ import { FormikCashRegisterValues } from "./CashRegisterDetails";
 import Datagrid from "../../common/datagrid/Datagrid";
 import { DatagridColDef } from "../../common/datagrid/@types/Datagrid";
 
-interface Income {
+interface Income extends Record<string, unknown> {
   type: string;
   amount: number;
 }
@@ -65,11 +65,14 @@ function IncomesDataGrid() {
           },
         }}
       >
-        <Datagrid
+        <Datagrid<Income>
           height="200px"
           items={formik.values.incomes}
           columnDefs={columnDefs}
-          presentation
+          readOnly={isLocked}
+          getNewRow={() => ({ type: "", amount: 0 })}
+          showRowNumbers={false}
+          hideToolbar={true}
           onCellValueChanged={handleCellValueChanged}
           suppressRowHoverHighlight={false}
         />
