@@ -19,9 +19,25 @@ export const cashCountFragment = `
     isOpening
   }`;
 
+export const cashIncomeFragment = `fragment CashIncomeFragment on CashIncome {
+  incomeId
+  registerId
+  type
+  amount
+}`;
+
+export const cashExpenseFragment = `fragment CashExpenseFragment on CashExpense {
+  expenseId
+  registerId
+  description
+  amount
+}`;
+
 export const cashRegisterFragment = `
   ${userFragment}
   ${cashCountFragment}
+  ${cashIncomeFragment}
+  ${cashExpenseFragment}
   fragment CashRegisterFragment on CashRegister {
     registerId
     date
@@ -29,6 +45,8 @@ export const cashRegisterFragment = `
     user { ...UserFragment }
     openingCounts { ...CashCountFragment }
     closingCounts { ...CashCountFragment }
+    incomes { ...CashIncomeFragment }
+    expenses { ...CashExpenseFragment }
     openingTotal
     closingTotal
     cashSales

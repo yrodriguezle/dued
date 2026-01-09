@@ -38,4 +38,6 @@ public class CashRegister
     // Navigation properties
     public User User { get; set; } = null!;
     public ICollection<CashCount> CashCounts { get; set; } = new List<CashCount>();
+    public ICollection<CashIncome> CashIncomes { get; set; } = new List<CashIncome>();
+    public ICollection<CashExpense> CashExpenses { get; set; } = new List<CashExpense>();
 }

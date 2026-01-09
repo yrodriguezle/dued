@@ -9,6 +9,8 @@ public class CashRegisterInput
     public int UserId { get; set; }
     public List<CashCountInput> OpeningCounts { get; set; } = new();
     public List<CashCountInput> ClosingCounts { get; set; } = new();
+    public List<CashIncomeInput> Incomes { get; set; } = new();
+    public List<CashExpenseInput> Expenses { get; set; } = new();
     public decimal CashInWhite { get; set; }
     public decimal ElectronicPayments { get; set; }
     public decimal InvoicePayments { get; set; }
@@ -27,6 +29,8 @@ public class CashRegisterInputType : InputObjectGraphType<CashRegisterInput>
         Field(x => x.UserId);
         Field<ListGraphType<CashCountInputType>>("openingCounts");
         Field<ListGraphType<CashCountInputType>>("closingCounts");
+        Field<ListGraphType<CashIncomeInputType>>("incomes");
+        Field<ListGraphType<CashExpenseInputType>>("expenses");
         Field(x => x.CashInWhite);
         Field(x => x.ElectronicPayments);
         Field(x => x.InvoicePayments);

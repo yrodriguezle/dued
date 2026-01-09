@@ -18,8 +18,12 @@ function useInitializeValues({ skipInitialize, userId }: UseInitializeValuesProp
       userId,
       openingCounts: [],
       closingCounts: [],
-      supplierExpenses: 0,
-      dailyExpenses: 0,
+      incomes: [
+        { type: "Pago in Bianco (Contante)", amount: 0 },
+        { type: "Pagamenti Elettronici", amount: 0 },
+        { type: "Pagamento con Fattura", amount: 0 },
+      ],
+      expenses: [],
       notes: "",
       status: "DRAFT",
     };

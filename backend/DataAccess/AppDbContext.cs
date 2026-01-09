@@ -24,6 +24,8 @@ public class AppDbContext : DbContext
     public DbSet<CashDenomination> CashDenominations { get; set; }
     public DbSet<CashRegister> CashRegisters { get; set; }
     public DbSet<CashCount> CashCounts { get; set; }
+    public DbSet<CashIncome> CashIncomes { get; set; }
+    public DbSet<CashExpense> CashExpenses { get; set; }
 
     // Business Settings
     public DbSet<BusinessSettings> BusinessSettings { get; set; }
@@ -196,6 +198,16 @@ public class AppDbContext : DbContext
                 .WithOne(x => x.CashRegister)
                 .HasForeignKey(x => x.RegisterId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(x => x.CashIncomes)
+                .WithOne(x => x.CashRegister)
+                .HasForeignKey(x => x.RegisterId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(x => x.CashExpenses)
+                .WithOne(x => x.CashRegister)
+                .HasForeignKey(x => x.RegisterId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<CashCount>(entity =>
@@ -228,6 +240,56 @@ public class AppDbContext : DbContext
                 .WithMany(x => x.CashCounts)
                 .HasForeignKey(x => x.DenominationId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<CashIncome>(entity =>
+        {
+            entity
+                .ToTable("CashIncomes")
+                .HasCharSet("utf8mb4")
+                .UseCollation("utf8mb4_unicode_ci")
+                .HasKey(x => x.IncomeId);
+
+            entity.Property(x => x.IncomeId)
+                .ValueGeneratedOnAdd();
+
+            entity.Property(x => x.Type)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.Property(x => x.Amount)
+                .HasColumnType("decimal(10,2)")
+                .IsRequired();
+
+            entity.HasOne(x => x.CashRegister)
+                .WithMany(x => x.CashIncomes)
+                .HasForeignKey(x => x.RegisterId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<CashExpense>(entity =>
+        {
+            entity
+                .ToTable("CashExpenses")
+                .HasCharSet("utf8mb4")
+                .UseCollation("utf8mb4_unicode_ci")
+                .HasKey(x => x.ExpenseId);
+
+            entity.Property(x => x.ExpenseId)
+                .ValueGeneratedOnAdd();
+
+            entity.Property(x => x.Description)
+                .HasMaxLength(255)
+                .IsRequired();
+
+            entity.Property(x => x.Amount)
+                .HasColumnType("decimal(10,2)")
+                .IsRequired();
+
+            entity.HasOne(x => x.CashRegister)
+                .WithMany(x => x.CashExpenses)
+                .HasForeignKey(x => x.RegisterId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         // Product Configuration

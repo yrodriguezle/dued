@@ -22,6 +22,22 @@ type CashCount = {
   isOpening: boolean;
 };
 
+type CashIncome = {
+  __typename: "CashIncome";
+  incomeId: number;
+  registerId: number;
+  type: string;
+  amount: number;
+};
+
+type CashExpense = {
+  __typename: "CashExpense";
+  expenseId: number;
+  registerId: number;
+  description: string;
+  amount: number;
+};
+
 type CashRegister = {
   __typename: "CashRegister";
   registerId: number;
@@ -30,6 +46,8 @@ type CashRegister = {
   user: User;
   openingCounts: CashCount[];
   closingCounts: CashCount[];
+  incomes: CashIncome[];
+  expenses: CashExpense[];
   openingTotal: number;
   closingTotal: number;
   cashSales: number;

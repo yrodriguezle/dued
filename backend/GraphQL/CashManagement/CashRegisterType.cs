@@ -37,5 +37,11 @@ public class CashRegisterType : ObjectGraphType<CashRegister>
 
         Field<ListGraphType<CashCountType>, IEnumerable<CashCount>>("closingCounts")
             .Resolve(context => context.Source.CashCounts.Where(c => !c.IsOpening));
+
+        Field<ListGraphType<CashIncomeType>, IEnumerable<CashIncome>>("incomes")
+            .Resolve(context => context.Source.CashIncomes);
+
+        Field<ListGraphType<CashExpenseType>, IEnumerable<CashExpense>>("expenses")
+            .Resolve(context => context.Source.CashExpenses);
     }
 }

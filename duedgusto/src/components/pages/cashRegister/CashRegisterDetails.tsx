@@ -6,7 +6,7 @@ import { ArrowBack, ArrowForward } from "@mui/icons-material";
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { useParams, useNavigate, useLocation } from "react-router";
 
-import CashRegisterForm from "./CashRegisterForm";
+import CashRegisterFormDataGrid from "./CashRegisterFormDataGrid";
 import logger from "../../../common/logger/logger";
 import { formStatuses } from "../../../common/globals/constants";
 import useInitializeValues from "./useInitializeValues";
@@ -25,17 +25,24 @@ const CashCountSchema = z.object({
   quantity: z.number().min(0, "La quantità non può essere negativa"),
 });
 
+const IncomeSchema = z.object({
+  type: z.string(),
+  amount: z.number().min(0, "L'importo non può essere negativo"),
+});
+
+const ExpenseSchema = z.object({
+  description: z.string().min(1, "La causale è obbligatoria"),
+  amount: z.number().min(0, "L'importo non può essere negativo"),
+});
+
 const Schema = z.object({
   registerId: z.number().optional(),
   date: z.string().nonempty("La data è obbligatoria"),
   userId: z.number(),
   openingCounts: z.array(CashCountSchema),
   closingCounts: z.array(CashCountSchema),
-  cashInWhite: z.number().min(0, "Il pago in bianco non può essere negativo"),
-  electronicPayments: z.number().min(0, "I pagamenti elettronici non possono essere negativi"),
-  invoicePayments: z.number().min(0, "I pagamenti con fattura non possono essere negativi"),
-  supplierExpenses: z.number().min(0, "Le spese non possono essere negative"),
-  dailyExpenses: z.number().min(0, "Le spese non possono essere negative"),
+  incomes: z.array(IncomeSchema),
+  expenses: z.array(ExpenseSchema),
   notes: z.string(),
   status: z.enum(["DRAFT", "CLOSED", "RECONCILED"]),
 });
@@ -127,11 +134,16 @@ function CashRegisterDetails() {
           denominationId: c.denominationId,
           quantity: c.quantity,
         })),
-        cashInWhite: cashRegister.cashInWhite || 0,
-        electronicPayments: cashRegister.electronicPayments || 0,
-        invoicePayments: cashRegister.invoicePayments || 0,
-        supplierExpenses: cashRegister.supplierExpenses,
-        dailyExpenses: cashRegister.dailyExpenses,
+        incomes: cashRegister.incomes && cashRegister.incomes.length > 0
+          ? cashRegister.incomes.map(i => ({ type: i.type, amount: i.amount }))
+          : [
+              { type: "Pago in Bianco (Contante)", amount: cashRegister.cashInWhite || 0 },
+              { type: "Pagamenti Elettronici", amount: cashRegister.electronicPayments || 0 },
+              { type: "Pagamento con Fattura", amount: cashRegister.invoicePayments || 0 },
+            ],
+        expenses: cashRegister.expenses && cashRegister.expenses.length > 0
+          ? cashRegister.expenses.map(e => ({ description: e.description, amount: e.amount }))
+          : [],
         notes: cashRegister.notes || "",
         status: cashRegister.status,
       };
@@ -149,11 +161,12 @@ function CashRegisterDetails() {
         userId: user?.userId || 0,
         openingCounts: [],
         closingCounts: [],
-        cashInWhite: 0,
-        electronicPayments: 0,
-        invoicePayments: 0,
-        supplierExpenses: 0,
-        dailyExpenses: 0,
+        incomes: [
+          { type: "Pago in Bianco (Contante)", amount: 0 },
+          { type: "Pagamenti Elettronici", amount: 0 },
+          { type: "Pagamento con Fattura", amount: 0 },
+        ],
+        expenses: [],
         notes: "",
         status: "DRAFT",
       };
@@ -171,17 +184,20 @@ function CashRegisterDetails() {
     try {
       logger.log("onSubmit", values);
 
+      // Converti gli array in campi singoli per il backend
       const input = {
         registerId: values.registerId,
         date: values.date,
         userId: values.userId,
         openingCounts: values.openingCounts,
         closingCounts: values.closingCounts,
-        cashInWhite: values.cashInWhite,
-        electronicPayments: values.electronicPayments,
-        invoicePayments: values.invoicePayments,
-        supplierExpenses: values.supplierExpenses,
-        dailyExpenses: values.dailyExpenses,
+        incomes: values.incomes,
+        expenses: values.expenses,
+        cashInWhite: values.incomes.find(i => i.type === "Pago in Bianco (Contante)")?.amount || 0,
+        electronicPayments: values.incomes.find(i => i.type === "Pagamenti Elettronici")?.amount || 0,
+        invoicePayments: values.incomes.find(i => i.type === "Pagamento con Fattura")?.amount || 0,
+        supplierExpenses: 0, // Non più usato, calcolato dal backend
+        dailyExpenses: 0, // Non più usato, calcolato dal backend
         notes: values.notes,
         status: values.status,
       };
@@ -251,12 +267,10 @@ function CashRegisterDetails() {
       {({ status, isSubmitting, isValid }) => (
         <Form noValidate>
           <Box
-            className="scrollable-box"
             sx={{
               marginTop: 1,
               paddingX: { xs: 1, sm: 2 },
-              overflow: "auto",
-              height: "calc(100vh - 64px - 41px)"
+              paddingBottom: 3
             }}
           >
             <Box
@@ -321,7 +335,7 @@ function CashRegisterDetails() {
                 )}
               </Stack>
             </Box>
-            <CashRegisterForm denominations={denominations} cashRegister={cashRegister} />
+            <CashRegisterFormDataGrid denominations={denominations} cashRegister={cashRegister} />
           </Box>
         </Form>
       )}

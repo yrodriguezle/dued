@@ -30,6 +30,8 @@ public class CashManagementMutations : ObjectGraphType
                 {
                     cashRegister = await dbContext.CashRegisters
                         .Include(r => r.CashCounts)
+                        .Include(r => r.CashIncomes)
+                        .Include(r => r.CashExpenses)
                         .FirstOrDefaultAsync(r => r.RegisterId == input.RegisterId.Value);
 
                     if (cashRegister == null)
@@ -37,8 +39,10 @@ public class CashManagementMutations : ObjectGraphType
                         throw new Exception($"Cash register with ID {input.RegisterId} not found");
                     }
 
-                    // Remove existing counts
+                    // Remove existing counts, incomes, and expenses
                     dbContext.CashCounts.RemoveRange(cashRegister.CashCounts);
+                    dbContext.CashIncomes.RemoveRange(cashRegister.CashIncomes);
+                    dbContext.CashExpenses.RemoveRange(cashRegister.CashExpenses);
                 }
                 else
                 {
@@ -104,6 +108,64 @@ public class CashManagementMutations : ObjectGraphType
                 cashRegister.OpeningTotal = openingTotal;
                 cashRegister.ClosingTotal = closingTotal;
 
+                // Add incomes
+                decimal cashInWhiteFromIncomes = 0;
+                decimal electronicPaymentsFromIncomes = 0;
+                decimal invoicePaymentsFromIncomes = 0;
+                foreach (var incomeInput in input.Incomes)
+                {
+                    cashRegister.CashIncomes.Add(new CashIncome
+                    {
+                        Type = incomeInput.Type,
+                        Amount = incomeInput.Amount
+                    });
+
+                    // Map to legacy fields based on type
+                    if (incomeInput.Type == "Pago in Bianco (Contante)")
+                    {
+                        cashInWhiteFromIncomes = incomeInput.Amount;
+                    }
+                    else if (incomeInput.Type == "Pagamenti Elettronici")
+                    {
+                        electronicPaymentsFromIncomes = incomeInput.Amount;
+                    }
+                    else if (incomeInput.Type == "Pagamento con Fattura")
+                    {
+                        invoicePaymentsFromIncomes = incomeInput.Amount;
+                    }
+                }
+
+                // Override input values with ones from incomes if provided
+                if (input.Incomes.Count > 0)
+                {
+                    cashRegister.CashInWhite = cashInWhiteFromIncomes;
+                    cashRegister.ElectronicPayments = electronicPaymentsFromIncomes;
+                    cashRegister.InvoicePayments = invoicePaymentsFromIncomes;
+                }
+                else
+                {
+                    // Fallback to legacy input fields if incomes not provided
+                    cashRegister.CashInWhite = input.CashInWhite;
+                    cashRegister.ElectronicPayments = input.ElectronicPayments;
+                    cashRegister.InvoicePayments = input.InvoicePayments;
+                }
+
+                // Add expenses
+                decimal totalExpenses = 0;
+                foreach (var expenseInput in input.Expenses)
+                {
+                    cashRegister.CashExpenses.Add(new CashExpense
+                    {
+                        Description = expenseInput.Description,
+                        Amount = expenseInput.Amount
+                    });
+                    totalExpenses += expenseInput.Amount;
+                }
+
+                // Update legacy expense fields
+                cashRegister.SupplierExpenses = input.SupplierExpenses;
+                cashRegister.DailyExpenses = totalExpenses;
+
                 // TODO: Get actual sales data from sales table when implemented
                 // For now, use placeholder values
                 cashRegister.CashSales = 0;
@@ -126,6 +188,8 @@ public class CashManagementMutations : ObjectGraphType
                         .ThenInclude(u => u.Role)
                     .Include(r => r.CashCounts)
                         .ThenInclude(c => c.Denomination)
+                    .Include(r => r.CashIncomes)
+                    .Include(r => r.CashExpenses)
                     .FirstOrDefaultAsync(r => r.RegisterId == cashRegister.RegisterId);
             });
 
@@ -142,6 +206,8 @@ public class CashManagementMutations : ObjectGraphType
                         .ThenInclude(u => u.Role)
                     .Include(r => r.CashCounts)
                         .ThenInclude(c => c.Denomination)
+                    .Include(r => r.CashIncomes)
+                    .Include(r => r.CashExpenses)
                     .FirstOrDefaultAsync(r => r.RegisterId == registerId);
 
                 if (cashRegister == null)
@@ -172,6 +238,8 @@ public class CashManagementMutations : ObjectGraphType
 
                 var cashRegister = await dbContext.CashRegisters
                     .Include(r => r.CashCounts)
+                    .Include(r => r.CashIncomes)
+                    .Include(r => r.CashExpenses)
                     .FirstOrDefaultAsync(r => r.RegisterId == registerId);
 
                 if (cashRegister == null)

@@ -40,6 +40,8 @@ public class CashManagementQueries : ObjectGraphType
                         .ThenInclude(u => u.Role)
                     .Include(r => r.CashCounts)
                         .ThenInclude(c => c.Denomination)
+                    .Include(r => r.CashIncomes)
+                    .Include(r => r.CashExpenses)
                     .AsQueryable();
 
                 if (date.HasValue)
@@ -75,6 +77,8 @@ public class CashManagementQueries : ObjectGraphType
                         .ThenInclude(u => u.Role)
                     .Include(r => r.CashCounts)
                         .ThenInclude(c => c.Denomination)
+                    .Include(r => r.CashIncomes)
+                    .Include(r => r.CashExpenses)
                     .AsQueryable();
 
                 // Apply cursor pagination

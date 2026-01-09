@@ -115,9 +115,9 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
     gridRef.current.api.applyTransaction({ remove: selected });
   }, [isPresentation]);
 
-  const rowSelection = useMemo<"single" | "multiple" | RowSelectionOptions<DatagridData<T>> | undefined>(() => {
+  const rowSelection = useMemo<RowSelectionOptions<DatagridData<T>> | undefined>(() => {
     if (!isPresentation && !readOnly) {
-      return "single";
+      return { mode: "singleRow" };
     }
     return undefined;
   }, [isPresentation, readOnly]);
@@ -153,7 +153,7 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
       {!isPresentation && <DatagridToolbar canAddNewRow={canAddNewRow} readOnly={readOnly} gridRef={gridRef} onAdd={handleAddNewRow} onDelete={handleDeleteSelected} />}
       <Box sx={{ flex: 1 }} className="datagrid-root">
         {/* AgGrid è parametrizzato con DatagridData<T> */}
-        <AgGrid<DatagridData<T>> rowSelection={rowSelection} {...gridProps} rowData={rowData} onGridReady={handleGridReady} context={context.current} />
+        <AgGrid<DatagridData<T>> rowSelection={rowSelection} singleClickEdit={true} {...gridProps} rowData={rowData} onGridReady={handleGridReady} context={context.current} />
       </Box>
     </Box>
   );

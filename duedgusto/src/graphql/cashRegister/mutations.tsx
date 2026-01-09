@@ -13,12 +13,24 @@ export interface CashCountInput {
   quantity: number;
 }
 
+export interface CashIncomeInput {
+  type: string;
+  amount: number;
+}
+
+export interface CashExpenseInput {
+  description: string;
+  amount: number;
+}
+
 export interface CashRegisterInput {
   registerId?: number;
   date: string;
   userId: number;
   openingCounts: CashCountInput[];
   closingCounts: CashCountInput[];
+  incomes: CashIncomeInput[];
+  expenses: CashExpenseInput[];
   cashInWhite: number;
   electronicPayments: number;
   invoicePayments: number;

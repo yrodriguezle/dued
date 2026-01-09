@@ -10,23 +10,27 @@ const HomePage = React.lazy(() => import("../components/pages/dashboard/HomePage
 
 function ProtectedRoutes() {
   const user = useStore((store) => store.user);
+  const inProgress = useStore((store) => store.inProgress);
   const menuRoutes = useMemo(() => user?.menus || [], [user?.menus]);
 
   if (!isAuthenticated()) {
     return <Navigate to={"/signin"} replace />;
   }
 
+  // Wait for user data to load before rendering routes
+  if (inProgress.global || !user) {
+    return <Fallback />;
+  }
+
   return (
     <Routes>
       <Route element={<Layout />}>
-        <Route
-          index
-          element={
-            <Suspense fallback={<Fallback />}>
-              <HomePage />
-            </Suspense>
-          }
-        />
+        <Route path="dashboard" element={
+          <Suspense fallback={<Fallback />}>
+            <HomePage />
+          </Suspense>
+        } />
+        <Route index element={<Navigate to="dashboard" replace />} />
         {menuRoutes
           .filter((menu) => menu?.path && menu?.filePath)
           .map((menu) => {
@@ -48,7 +52,7 @@ function ProtectedRoutes() {
               />
             );
           })}
-        <Route index element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/gestionale/dashboard" replace />} />
       </Route>
     </Routes>
   );
