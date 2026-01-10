@@ -77,16 +77,6 @@ const MenuIconEditor = (props: CustomCellEditorProps) => {
           };
           return <TextField {...inputProps} inputRef={inputRef} variant="standard" placeholder="Icona" />;
         }}
-        // slots={{
-        //   popper: (popperProps) => {
-        //     console.log(paperProps.children === "function");
-        //     return (
-        //       <FloatingPopper target="#poloppppp" open>
-        //         {paperProps.children}
-        //       </FloatingPopper>
-        //     );
-        //   },
-        // }}
       />
       <FloatingPopper anchorEl="#menu-editor-id" open>
         FloatingPopper

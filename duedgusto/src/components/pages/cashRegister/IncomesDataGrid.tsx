@@ -1,18 +1,24 @@
-import { useMemo } from "react";
+import { useMemo, forwardRef, useCallback } from "react";
 import { Box, Typography } from "@mui/material";
 import { useFormikContext } from "formik";
 import { FormikCashRegisterValues } from "./CashRegisterDetails";
 import Datagrid from "../../common/datagrid/Datagrid";
-import { DatagridColDef } from "../../common/datagrid/@types/Datagrid";
+import { DatagridColDef, DatagridCellValueChangedEvent, DatagridData } from "../../common/datagrid/@types/Datagrid";
+import { GridReadyEvent } from "ag-grid-community";
 
 interface Income extends Record<string, unknown> {
   type: string;
   amount: number;
 }
 
-function IncomesDataGrid() {
+const IncomesDataGrid = forwardRef<GridReadyEvent<DatagridData<Income>>, object>((props, ref) => {
   const formik = useFormikContext<FormikCashRegisterValues>();
   const isLocked = formik.status?.isFormLocked || false;
+
+  // Calculate items from initial Formik values only
+  const items = useMemo(() => {
+    return formik.values.incomes || [];
+  }, [formik.values.incomes]);
 
   const columnDefs = useMemo<DatagridColDef<Income>[]>(
     () => [
@@ -43,14 +49,18 @@ function IncomesDataGrid() {
     [isLocked]
   );
 
-  const handleCellValueChanged = (event: any) => {
-    const updatedIncomes = formik.values.incomes.map((income, index) =>
-      index === event.node.rowIndex
-        ? { ...income, amount: event.newValue || 0 }
-        : income
-    );
-    formik.setFieldValue("incomes", updatedIncomes);
-  };
+  const handleCellValueChanged = useCallback((event: DatagridCellValueChangedEvent<Income>) => {
+    const newAmount = parseFloat(event.newValue) || 0;
+    if (newAmount >= 0 && event.data) {
+      event.data.amount = newAmount;
+    }
+  }, []);
+
+  const handleGridReady = useCallback((event: GridReadyEvent<DatagridData<Income>>) => {
+    if (ref && typeof ref !== 'function') {
+      (ref as React.MutableRefObject<GridReadyEvent<DatagridData<Income>> | null>).current = event;
+    }
+  }, [ref]);
 
   return (
     <Box>
@@ -67,18 +77,21 @@ function IncomesDataGrid() {
       >
         <Datagrid<Income>
           height="200px"
-          items={formik.values.incomes}
+          items={items}
           columnDefs={columnDefs}
           readOnly={isLocked}
           getNewRow={() => ({ type: "", amount: 0 })}
           showRowNumbers={false}
           hideToolbar={true}
           onCellValueChanged={handleCellValueChanged}
+          onGridReady={handleGridReady}
           suppressRowHoverHighlight={false}
         />
       </Box>
     </Box>
   );
-}
+});
+
+IncomesDataGrid.displayName = "IncomesDataGrid";
 
 export default IncomesDataGrid;

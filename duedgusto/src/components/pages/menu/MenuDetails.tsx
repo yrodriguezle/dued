@@ -25,7 +25,8 @@ export type FormikMenuValues = z.infer<typeof Schema>;
 function MenuDetails() {
   const formRef = useRef<FormikProps<FormikMenuValues>>(null);
   const { initialValues, handleInitializeValues } = useInitializeValues();
-  const { onInProgress, offInProgress } = useStore((store) => store);
+  const onInProgress = useStore((store) => store.onInProgress);
+  const offInProgress = useStore((store) => store.offInProgress);
 
   const { title, setTitle } = useContext(PageTitleContext);
   useEffect(() => {
@@ -117,9 +118,11 @@ function MenuDetails() {
                 {title}
               </Typography>
             </Box>
-            <Box sx={{ marginTop: 1, paddingX: 1 }}>
-              <MenuForm menus={data} />
-            </Box>
+            {!loading && (
+              <Box sx={{ marginTop: 1, paddingX: 1 }}>
+                <MenuForm menus={data || []} />
+              </Box>
+            )}
           </Form>
         )}
       </Formik>

@@ -20,7 +20,9 @@
       "Bash(ls:*)",
       "Bash(npm run build:*)",
       "Bash(npm uninstall:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(npm run dev:*)",
+      "Bash(timeout /t 5)"
     ],
     "deny": [],
     "ask": []

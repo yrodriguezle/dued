@@ -1,12 +1,13 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, forwardRef, useCallback } from "react";
 import { Box, Typography } from "@mui/material";
 import { useFormikContext } from "formik";
 import { z } from "zod";
 import { FormikCashRegisterValues } from "./CashRegisterDetails";
 import Datagrid from "../../common/datagrid/Datagrid";
-import { DatagridColDef, ValidationError } from "../../common/datagrid/@types/Datagrid";
+import { DatagridColDef, ValidationError, DatagridCellValueChangedEvent, DatagridData } from "../../common/datagrid/@types/Datagrid";
+import { GridReadyEvent } from "ag-grid-community";
 
-interface Expense {
+interface Expense extends Record<string, unknown> {
   description: string;
   amount: number;
 }
@@ -17,10 +18,15 @@ const expenseSchema = z.object({
   amount: z.number().min(0, "L'importo deve essere maggiore o uguale a 0"),
 });
 
-function ExpensesDataGrid() {
+const ExpensesDataGrid = forwardRef<GridReadyEvent<DatagridData<Expense>>, object>((props, ref) => {
   const formik = useFormikContext<FormikCashRegisterValues>();
   const isLocked = formik.status?.isFormLocked || false;
   const [validationErrors, setValidationErrors] = useState<Map<number, ValidationError[]>>(new Map());
+
+  // Calculate items from initial Formik values only
+  const items = useMemo(() => {
+    return formik.values.expenses || [];
+  }, [formik.values.expenses]);
 
   const columnDefs = useMemo<DatagridColDef<Expense>[]>(
     () => [
@@ -51,16 +57,27 @@ function ExpensesDataGrid() {
     [isLocked]
   );
 
-  const handleCellValueChanged = (event: any) => {
-    const updatedExpenses = [...formik.values.expenses];
-    updatedExpenses[event.node.rowIndex] = event.data;
-    formik.setFieldValue("expenses", updatedExpenses);
-  };
+  const handleCellValueChanged = useCallback((event: DatagridCellValueChangedEvent<Expense>) => {
+    if (event.data) {
+      // Data is already updated by AG Grid, no need to manually update
+      // Just ensure values are valid
+      if (event.colDef.field === "amount") {
+        const newAmount = parseFloat(event.newValue) || 0;
+        event.data.amount = Math.max(0, newAmount);
+      }
+    }
+  }, []);
 
-  const getNewExpense = (): Expense => ({
+  const handleGridReady = useCallback((event: GridReadyEvent<DatagridData<Expense>>) => {
+    if (ref && typeof ref !== 'function') {
+      (ref as React.MutableRefObject<GridReadyEvent<DatagridData<Expense>> | null>).current = event;
+    }
+  }, [ref]);
+
+  const getNewExpense = useCallback((): Expense => ({
     description: "",
     amount: 0,
-  });
+  }), []);
 
   return (
     <Box>
@@ -77,7 +94,7 @@ function ExpensesDataGrid() {
       >
         <Datagrid
           height="300px"
-          items={formik.values.expenses}
+          items={items}
           columnDefs={columnDefs}
           readOnly={isLocked}
           getNewRow={getNewExpense}
@@ -85,6 +102,7 @@ function ExpensesDataGrid() {
           onValidationErrors={setValidationErrors}
           showRowNumbers={true}
           onCellValueChanged={handleCellValueChanged}
+          onGridReady={handleGridReady}
           suppressRowHoverHighlight={false}
         />
       </Box>
@@ -99,6 +117,8 @@ function ExpensesDataGrid() {
       )}
     </Box>
   );
-}
+});
+
+ExpensesDataGrid.displayName = "ExpensesDataGrid";
 
 export default ExpensesDataGrid;

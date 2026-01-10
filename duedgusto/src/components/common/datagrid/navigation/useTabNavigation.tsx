@@ -65,6 +65,7 @@ function useTabNavigation<T extends Record<string, unknown>>(props: UseTabNaviga
 
         // Solo se autoAddRowOnTab è true, aggiungi una nuova riga
         if (autoAddRowOnTab && onAddRow && gotoEditCell && getNewRow) {
+          // Previeni il comportamento di default per aggiungere la nuova riga
           keyboardEvent.preventDefault();
           keyboardEvent.stopPropagation();
 
@@ -80,6 +81,10 @@ function useTabNavigation<T extends Record<string, unknown>>(props: UseTabNaviga
               }, 50);
             }
           }
+        } else {
+          // Se non si può aggiungere una nuova riga, ferma l'editing e lascia che il Tab naturale sposti il focus
+          api.stopEditing();
+          // NON preveniamo l'evento - permettiamo al browser di gestire il Tab normalmente
         }
       }
     },

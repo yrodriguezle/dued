@@ -13,7 +13,6 @@ function RowNumberCellRenderer<T extends Record<string, unknown>>(props: ICellRe
   }
 
   const rowNumber = (node.rowIndex ?? 0) + 1;
-
   if (data?.status === DatagridStatus.Editing) {
     return (
       <Box

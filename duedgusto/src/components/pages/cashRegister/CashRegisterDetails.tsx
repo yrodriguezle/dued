@@ -5,8 +5,10 @@ import { Box, Typography, Button, IconButton, Stack } from "@mui/material";
 import { ArrowBack, ArrowForward } from "@mui/icons-material";
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { useParams, useNavigate, useLocation } from "react-router";
+import { GridReadyEvent } from "ag-grid-community";
 
 import CashRegisterFormDataGrid from "./CashRegisterFormDataGrid";
+import { DatagridData } from "../../common/datagrid/@types/Datagrid";
 import logger from "../../../common/logger/logger";
 import { formStatuses } from "../../../common/globals/constants";
 import useInitializeValues from "./useInitializeValues";
@@ -49,11 +51,33 @@ const Schema = z.object({
 
 export type FormikCashRegisterValues = z.infer<typeof Schema>;
 
+interface CashCountRow extends Record<string, unknown> {
+  denominationId: number;
+  type: "COIN" | "BANKNOTE";
+  value: number;
+  quantity: number;
+  total: number;
+}
+
+interface IncomeRow extends Record<string, unknown> {
+  type: string;
+  amount: number;
+}
+
+interface ExpenseRow extends Record<string, unknown> {
+  description: string;
+  amount: number;
+}
+
 function CashRegisterDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const formRef = useRef<FormikProps<FormikCashRegisterValues>>(null);
+  const openingGridRef = useRef<GridReadyEvent<DatagridData<CashCountRow>> | null>(null);
+  const closingGridRef = useRef<GridReadyEvent<DatagridData<CashCountRow>> | null>(null);
+  const incomesGridRef = useRef<GridReadyEvent<DatagridData<IncomeRow>> | null>(null);
+  const expensesGridRef = useRef<GridReadyEvent<DatagridData<ExpenseRow>> | null>(null);
   const { title, setTitle } = useContext(PageTitleContext);
   const user = useStore((state) => state.user);
 
@@ -131,9 +155,14 @@ function CashRegisterDetails() {
   // Initialize form with cash register data when available
   useEffect(() => {
     if (cashRegister) {
+      logger.log("Loading cashRegister from server", cashRegister);
+
+      // Convert date from ISO 8601 to YYYY-MM-DD
+      const dateStr = cashRegister.date.split('T')[0]; // Extract YYYY-MM-DD from ISO string
+
       const formikValues: FormikCashRegisterValues = {
         registerId: cashRegister.registerId,
-        date: cashRegister.date,
+        date: dateStr,
         userId: cashRegister.userId,
         openingCounts: cashRegister.openingCounts.map((c: CashCount) => ({
           denominationId: c.denominationId,
@@ -191,25 +220,72 @@ function CashRegisterDetails() {
 
   const onSubmit = async (values: FormikCashRegisterValues) => {
     try {
-      logger.log("onSubmit", values);
+      // Raccogli i dati dalle griglie usando getGridData
+      const openingCounts = openingGridRef.current?.context.getGridData()
+        .map((row: DatagridData<CashCountRow>) => ({
+          denominationId: row.denominationId,
+          quantity: row.quantity,
+        }))
+        .filter((count: { denominationId: number; quantity: number }) => count.quantity > 0) || [];
+
+      const closingCounts = closingGridRef.current?.context.getGridData()
+        .map((row: DatagridData<CashCountRow>) => ({
+          denominationId: row.denominationId,
+          quantity: row.quantity,
+        }))
+        .filter((count: { denominationId: number; quantity: number }) => count.quantity > 0) || [];
+
+      const incomes = incomesGridRef.current?.context.getGridData()
+        .map((row: DatagridData<IncomeRow>) => ({
+          type: row.type,
+          amount: row.amount,
+        })) || [];
+
+      const expenses = expensesGridRef.current?.context.getGridData()
+        .map((row: DatagridData<ExpenseRow>) => ({
+          description: row.description,
+          amount: row.amount,
+        })) || [];
+
+      // Unisci i dati delle griglie con i valori del form
+      const currentValues = {
+        ...values,
+        openingCounts,
+        closingCounts,
+        incomes,
+        expenses,
+      };
+
+      logger.log("onSubmit - values from form", values);
+      logger.log("onSubmit - values from grids", { openingCounts, closingCounts, incomes, expenses });
+      logger.log("onSubmit - merged values", currentValues);
+
+      // Converti la data in formato GraphQL (ISO 8601 UTC)
+      const parsedDate = parseDateForGraphQL(currentValues.date);
+      if (!parsedDate) {
+        toast.error("Data non valida");
+        return;
+      }
 
       // Converti gli array in campi singoli per il backend
       const input = {
-        registerId: values.registerId,
-        date: values.date,
-        userId: values.userId,
-        openingCounts: values.openingCounts,
-        closingCounts: values.closingCounts,
-        incomes: values.incomes,
-        expenses: values.expenses,
-        cashInWhite: values.incomes.find(i => i.type === "Pago in Bianco (Contante)")?.amount || 0,
-        electronicPayments: values.incomes.find(i => i.type === "Pagamenti Elettronici")?.amount || 0,
-        invoicePayments: values.incomes.find(i => i.type === "Pagamento con Fattura")?.amount || 0,
+        registerId: currentValues.registerId,
+        date: parsedDate,
+        userId: currentValues.userId,
+        openingCounts: currentValues.openingCounts,
+        closingCounts: currentValues.closingCounts,
+        incomes: currentValues.incomes,
+        expenses: currentValues.expenses,
+        cashInWhite: currentValues.incomes.find((i: { type: string; amount: number }) => i.type === "Pago in Bianco (Contante)")?.amount || 0,
+        electronicPayments: currentValues.incomes.find((i: { type: string; amount: number }) => i.type === "Pagamenti Elettronici")?.amount || 0,
+        invoicePayments: currentValues.incomes.find((i: { type: string; amount: number }) => i.type === "Pagamento con Fattura")?.amount || 0,
         supplierExpenses: 0, // Non più usato, calcolato dal backend
         dailyExpenses: 0, // Non più usato, calcolato dal backend
-        notes: values.notes,
-        status: values.status,
+        notes: currentValues.notes,
+        status: currentValues.status,
       };
+
+      logger.log("onSubmit - input to be sent", input);
 
       const result = await submitCashRegister({ cashRegister: input });
 
@@ -344,7 +420,14 @@ function CashRegisterDetails() {
                 )}
               </Stack>
             </Box>
-            <CashRegisterFormDataGrid denominations={denominations} cashRegister={cashRegister} />
+            <CashRegisterFormDataGrid
+              denominations={denominations}
+              cashRegister={cashRegister}
+              openingGridRef={openingGridRef}
+              closingGridRef={closingGridRef}
+              incomesGridRef={incomesGridRef}
+              expensesGridRef={expensesGridRef}
+            />
           </Box>
         </Form>
       )}

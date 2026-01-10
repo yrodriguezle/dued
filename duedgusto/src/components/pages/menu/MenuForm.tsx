@@ -146,7 +146,7 @@ const MenuForm: React.FC<MenuFormProps> = ({ menus }) => {
         treeData={readOnly}
         treeDataParentIdField="parentMenuId"
         readOnly={readOnly}
-        getNewRow={getNewRow}
+        getNewRow={readOnly ? undefined : getNewRow}
         groupDefaultExpanded={-1}
         autoGroupColumnDef={{
           headerName: "Voce di menù",

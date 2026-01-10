@@ -1,9 +1,10 @@
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, forwardRef } from "react";
 import { Box, Typography, useTheme } from "@mui/material";
 import { useFormikContext } from "formik";
 import { FormikCashRegisterValues } from "./CashRegisterDetails";
 import Datagrid from "../../common/datagrid/Datagrid";
-import { DatagridCellValueChangedEvent, DatagridColDef } from "../../common/datagrid/@types/Datagrid";
+import { DatagridCellValueChangedEvent, DatagridColDef, DatagridData } from "../../common/datagrid/@types/Datagrid";
+import { GridReadyEvent } from "ag-grid-community";
 
 interface CashCountDataGridProps {
   denominations: CashDenomination[];
@@ -19,34 +20,20 @@ interface RowData extends Record<string, unknown> {
   total: number;
 }
 
-function CashCountDataGrid({ denominations, fieldName, title }: CashCountDataGridProps) {
+const CashCountDataGrid = forwardRef<GridReadyEvent<DatagridData<RowData>>, CashCountDataGridProps>(
+  ({ denominations, fieldName, title }, ref) => {
   const formik = useFormikContext<FormikCashRegisterValues>();
   const theme = useTheme();
 
   const isLocked = formik.status?.isFormLocked || false;
 
-  const getQuantity = useCallback(
+  // Leggi i valori iniziali da Formik solo una volta
+  const getInitialQuantity = useCallback(
     (denominationId: number): number => {
       const count = formik.values[fieldName]?.find((c) => c.denominationId === denominationId);
       return count?.quantity || 0;
     },
     [formik.values, fieldName]
-  );
-
-  const handleQuantityChange = useCallback(
-    (denominationId: number, quantity: number) => {
-      const counts = formik.values[fieldName] || [];
-      const existingIndex = counts.findIndex((c) => c.denominationId === denominationId);
-
-      if (existingIndex >= 0) {
-        const newCounts = [...counts];
-        newCounts[existingIndex] = { denominationId, quantity };
-        formik.setFieldValue(fieldName, newCounts);
-      } else {
-        formik.setFieldValue(fieldName, [...counts, { denominationId, quantity }]);
-      }
-    },
-    [formik, fieldName]
   );
 
   // Prepara i dati per la griglia
@@ -63,7 +50,7 @@ function CashCountDataGrid({ denominations, fieldName, title }: CashCountDataGri
 
     // Monete
     coins.forEach((d) => {
-      const quantity = getQuantity(d.denominationId);
+      const quantity = getInitialQuantity(d.denominationId);
       rows.push({
         denominationId: d.denominationId,
         type: d.type,
@@ -75,7 +62,7 @@ function CashCountDataGrid({ denominations, fieldName, title }: CashCountDataGri
 
     // Banconote
     filteredBanknotes.forEach((d) => {
-      const quantity = getQuantity(d.denominationId);
+      const quantity = getInitialQuantity(d.denominationId);
       rows.push({
         denominationId: d.denominationId,
         type: d.type,
@@ -86,14 +73,19 @@ function CashCountDataGrid({ denominations, fieldName, title }: CashCountDataGri
     });
 
     return rows;
-  }, [denominations, fieldName, getQuantity]);
+  }, [denominations, fieldName, getInitialQuantity]);
 
   const calculateTotal = useCallback((): number => {
-    return (formik.values[fieldName] || []).reduce((sum, count) => {
-      const denomination = denominations.find((d) => d.denominationId === count.denominationId);
-      return sum + (denomination ? denomination.value * count.quantity : 0);
-    }, 0);
-  }, [formik.values, fieldName, denominations]);
+    if (!ref || typeof ref === 'function' || !ref.current) return 0;
+
+    let total = 0;
+    ref.current.api.forEachNode((node) => {
+      if (node.data && !node.rowPinned) {
+        total += node.data.total;
+      }
+    });
+    return total;
+  }, [ref]);
 
   const columnDefs = useMemo<DatagridColDef<RowData>[]>(
     () => [
@@ -149,13 +141,29 @@ function CashCountDataGrid({ denominations, fieldName, title }: CashCountDataGri
     [isLocked, theme]
   );
 
-  const handleCellValueChanged = (event: DatagridCellValueChangedEvent<RowData>) => {
+  const handleCellValueChanged = useCallback((event: DatagridCellValueChangedEvent<RowData>) => {
     const newQuantity = parseInt(event.newValue) || 0;
     if (newQuantity >= 0 && event.data) {
-      // Usa startTransition per evitare di interrompere l'editing
-      handleQuantityChange(event.data.denominationId, newQuantity);
+      // Aggiorna il totale della riga
+      event.data.quantity = newQuantity;
+      event.data.total = event.data.value * newQuantity;
+
+      // Aggiorna la riga pinnata del totale
+      if (ref && typeof ref !== 'function' && ref.current) {
+        const pinnedNode = ref.current.api.getPinnedBottomRow(0);
+        if (pinnedNode?.data) {
+          pinnedNode.data.total = calculateTotal();
+          ref.current.api.refreshCells({ rowNodes: [pinnedNode], force: true });
+        }
+      }
     }
-  };
+  }, [ref, calculateTotal]);
+
+  const handleGridReady = useCallback((event: GridReadyEvent<DatagridData<RowData>>) => {
+    if (ref && typeof ref !== 'function') {
+      (ref as React.MutableRefObject<GridReadyEvent<DatagridData<RowData>> | null>).current = event;
+    }
+  }, [ref]);
 
   // Riga pinnata per il totale
   const pinnedBottomRowData = useMemo<RowData[]>(
@@ -195,15 +203,9 @@ function CashCountDataGrid({ denominations, fieldName, title }: CashCountDataGri
           items={rowData}
           columnDefs={columnDefs}
           readOnly={isLocked}
-          getNewRow={() => ({
-            denominationId: 0,
-            type: "COIN" as const,
-            value: 0,
-            quantity: 0,
-            total: 0,
-          })}
           showRowNumbers={true}
           hideToolbar={true}
+          onGridReady={handleGridReady}
           onCellValueChanged={handleCellValueChanged}
           suppressRowHoverHighlight={false}
           getRowId={(params) => params.data.denominationId.toString()}
@@ -223,6 +225,8 @@ function CashCountDataGrid({ denominations, fieldName, title }: CashCountDataGri
       </Box>
     </Box>
   );
-}
+});
+
+CashCountDataGrid.displayName = "CashCountDataGrid";
 
 export default CashCountDataGrid;

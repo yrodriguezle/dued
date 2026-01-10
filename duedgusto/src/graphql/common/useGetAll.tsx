@@ -45,6 +45,7 @@ function useGetAll<T>(props: GetAllProps<T>) {
           });
 
           const connection = queryData?.connection?.[props.queryName];
+
           if (connection) {
             allData = [...allData, ...connection.items];
             hasNextPage = connection.pageInfo.hasNextPage;

@@ -17,7 +17,7 @@ function useEditingState<T extends Record<string, unknown>>(
 
   const handleCellEditingStarted = useCallback(
     (event: CellEditingStartedEvent<DatagridData<T>>) => {
-      const { node, data, api } = event;
+      const { node, api } = event;
 
       // Cancella qualsiasi timeout pendente - stiamo iniziando un nuovo editing
       if (stopTimeoutRef.current) {
@@ -28,25 +28,26 @@ function useEditingState<T extends Record<string, unknown>>(
       // Controlla se stiamo passando a una riga diversa
       const isNewRow = !currentEditingRow.current || currentEditingRow.current.id !== node.id;
 
-      // Se si sta editando una riga diversa, rimuovere lo stato editing dalla riga precedente
-      if (isNewRow && currentEditingRow.current) {
-        // Salva il riferimento al nodo precedente prima di cambiarlo
-        const prevNode = currentEditingRow.current;
-        const prevData = prevNode.data;
-        if (prevData) {
-          // Rimuovi sempre lo stato Editing dalla riga precedente quando si passa a una nuova riga
-          if (prevData.status === DatagridStatus.Editing) {
-            prevData.status = DatagridStatus.Modified;
+      // Se si sta editando una riga diversa, rimuovere lo stato editing da TUTTE le righe con status Editing
+      if (isNewRow) {
+        // Cerca tutte le righe con status Editing e rimuovi lo stato
+        const nodesToUpdate: typeof node[] = [];
+        api.forEachNode((n) => {
+          if (n.data?.status === DatagridStatus.Editing && n.id !== node.id) {
+            n.data.status = DatagridStatus.Modified;
+            nodesToUpdate.push(n);
           }
-          // Aggiorna la visualizzazione della riga precedente
-          api.refreshCells({ rowNodes: [prevNode], force: true });
+        });
+        // Aggiorna la visualizzazione di tutte le righe modificate
+        if (nodesToUpdate.length > 0) {
+          api.refreshCells({ rowNodes: nodesToUpdate, force: true });
         }
       }
 
       // Imposta la riga corrente come in editing
       currentEditingRow.current = node;
-      if (data && data.status !== DatagridStatus.Invalid) {
-        data.status = DatagridStatus.Editing;
+      if (node.data && node.data.status !== DatagridStatus.Invalid) {
+        node.data.status = DatagridStatus.Editing;
         api.refreshCells({ rowNodes: [node], force: true });
       }
 

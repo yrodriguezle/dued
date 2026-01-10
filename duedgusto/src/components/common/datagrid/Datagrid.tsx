@@ -20,14 +20,13 @@ interface BaseDatagridProps<T extends Record<string, unknown>> extends Omit<Data
   addNewRowAt?: "top" | "bottom";
   showRowNumbers?: boolean;
   hideToolbar?: boolean;
-  autoAddRowOnTab?: boolean;
   validationSchema?: z.ZodSchema<T>;
   onValidationErrors?: (errors: Map<number, ValidationError[]>) => void;
 }
 
 interface NormalModeProps<T extends Record<string, unknown>> extends BaseDatagridProps<T> {
   presentation?: undefined;
-  getNewRow: () => T;
+  getNewRow?: () => T;
   readOnly: boolean;
 }
 
@@ -46,6 +45,8 @@ const initialStatus: DatagridAuxData = {
 function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
   const [canAddNewRow, setCanAddNewRow] = useState(true);
   const gridRef = useRef<GridReadyEvent<DatagridData<T>> | null>(null);
+  const isEditingRef = useRef(false);
+  const previousRowDataRef = useRef<DatagridData<T>[]>([]);
 
   // Extract all custom props that are NOT part of AG Grid's API
   const {
@@ -57,11 +58,11 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
     height,
     showRowNumbers = true,
     hideToolbar = false,
-    autoAddRowOnTab,
     validationSchema,
     onValidationErrors,
     columnDefs,
     onGridReady: onGridReadyProp,
+    getRowId,
     ...gridProps
   } = props;
 
@@ -71,12 +72,12 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
   const readOnly = !isPresentation ? readOnlyProp : false;
   const getNewRow = !isPresentation ? getNewRowProp : undefined;
 
-  // autoAddRowOnTab è true solo se getNewRow è definito e autoAddRowOnTab non è esplicitamente false
-  const enableAutoAddRowOnTab = autoAddRowOnTab !== false && !!getNewRow;
+  const enableAutoAddRowOnTab = !!getNewRow;
 
   // Hooks per gestione editing e validazione
   const { handleCellEditingStarted, handleCellEditingStopped } = useEditingState<T>((isEditing) => {
     setCanAddNewRow(!isEditing);
+    isEditingRef.current = isEditing;
   });
 
   const { validateRow } = useZodValidation<T>({ schema: validationSchema });
@@ -176,6 +177,7 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
 
       // Marca la riga come modificata
       data.status = DatagridStatus.Modified;
+      event.api.refreshCells({ rowNodes: [node], force: true });
 
       // Esegui validazione se schema presente
       if (validationSchema) {
@@ -201,14 +203,38 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
     return undefined;
   }, [isPresentation, readOnly]);
 
-  const rowData = useMemo<DatagridData<T>[]>(
-    () =>
-      items.map((item) => ({
+  const rowData = useMemo<DatagridData<T>[]>(() => {
+    // Se siamo in editing, non ricalcolare rowData - restituisci i dati precedenti
+    if (isEditingRef.current && previousRowDataRef.current.length > 0) {
+      return previousRowDataRef.current;
+    }
+
+    // Crea una mappa degli status correnti dalla griglia (se esiste)
+    const currentStatuses = new Map<string, DatagridStatus>();
+    if (gridRef.current) {
+      gridRef.current.api.forEachNode((node) => {
+        if (node.data && node.id) {
+          currentStatuses.set(node.id, node.data.status);
+        }
+      });
+    }
+
+    const newRowData = items.map((item) => {
+      // Usa getRowId per ottenere l'ID della riga (se definito nelle props)
+      const rowId = getRowId?.({ data: item as DatagridData<T> } as Parameters<NonNullable<typeof getRowId>>[0]);
+      const currentStatus = rowId ? currentStatuses.get(rowId) : undefined;
+
+      return {
         ...item,
-        ...initialStatus,
-      })),
-    [items]
-  );
+        // Preserva lo status esistente, altrimenti usa Unchanged
+        status: currentStatus ?? initialStatus.status,
+      };
+    });
+
+    // Salva i dati per il prossimo render
+    previousRowDataRef.current = newRowData;
+    return newRowData;
+  }, [items, getRowId]);
 
   const getGridData = useCallback(() => {
     if (!gridRef.current) return [] as DatagridData<T>[];
@@ -240,6 +266,7 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
       {!isPresentation && !hideToolbar && <DatagridToolbar canAddNewRow={canAddNewRow} readOnly={readOnly} gridRef={gridRef} onAdd={handleAddNewRow} onDelete={handleDeleteSelected} />}
       <Box sx={{ flex: 1 }} className="datagrid-root">
         <AgGrid<DatagridData<T>>
+          {...gridProps}
           rowSelection={rowSelection}
           singleClickEdit={!isPresentation}
           suppressClickEdit={isPresentation}
@@ -251,8 +278,8 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
           columnDefs={enhancedColumnDefs}
           rowData={rowData}
           onGridReady={handleGridReady}
+          getRowId={getRowId}
           context={context.current}
-          {...gridProps}
         />
       </Box>
     </Box>
