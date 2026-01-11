@@ -8,13 +8,18 @@ import { OFFLINE } from "../../store/serverStatusStore";
 import logger from "../../common/logger/logger";
 
 function useBootstrap() {
-  const { serverStatus, user, inProgress, receiveUser, onInProgress, offInProgress } = useStore((store) => store);
+  const serverStatus = useStore((store) => store.serverStatus);
+  const user = useStore((store) => store.user);
+  const inProgressGlobal = useStore((store) => store.inProgress.global);
+  const receiveUser = useStore((store) => store.receiveUser);
+  const onInProgress = useStore((store) => store.onInProgress);
+  const offInProgress = useStore((store) => store.offInProgress);
   const promiseLock = useRef<Promise<void> | null>(null);
   const confirm = useConfirm();
 
   useEffect(() => {
     async function bootstrap() {
-      if (serverStatus === OFFLINE || promiseLock.current || inProgress.global || user || !isAuthenticated()) return;
+      if (serverStatus === OFFLINE || promiseLock.current || inProgressGlobal || user || !isAuthenticated()) return;
       promiseLock.current = (async () => {
         try {
           onInProgress("global");
@@ -42,7 +47,8 @@ function useBootstrap() {
       await promiseLock.current;
     }
     bootstrap();
-  }, [confirm, inProgress.global, offInProgress, onInProgress, receiveUser, serverStatus, user]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [confirm, offInProgress, onInProgress, receiveUser, serverStatus, user]);
 }
 
 export default useBootstrap;

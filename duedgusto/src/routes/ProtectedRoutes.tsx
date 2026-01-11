@@ -10,7 +10,7 @@ const HomePage = React.lazy(() => import("../components/pages/dashboard/HomePage
 
 function ProtectedRoutes() {
   const user = useStore((store) => store.user);
-  const inProgress = useStore((store) => store.inProgress);
+  const inProgressGlobal = useStore((store) => store.inProgress.global);
   const menuRoutes = useMemo(() => user?.menus || [], [user?.menus]);
 
   if (!isAuthenticated()) {
@@ -18,7 +18,7 @@ function ProtectedRoutes() {
   }
 
   // Wait for user data to load before rendering routes
-  if (inProgress.global || !user) {
+  if (inProgressGlobal || !user) {
     return <Fallback />;
   }
 

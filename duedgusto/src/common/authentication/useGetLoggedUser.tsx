@@ -3,11 +3,14 @@ import useStore from "../../store/useStore";
 import fetchLoggedUser from "../../graphql/user/fetchLoggedUser";
 
 function useGetLoggedUser() {
-  const { receiveUser, inProgress, onInProgress, offInProgress } = useStore((store) => store);
+  const receiveUser = useStore((store) => store.receiveUser);
+  const inProgressFetchUser = useStore((store) => store.inProgress.fetchUser);
+  const onInProgress = useStore((store) => store.onInProgress);
+  const offInProgress = useStore((store) => store.offInProgress);
 
   return useCallback(async () => {
     try {
-      if (inProgress.fetchUser) {
+      if (inProgressFetchUser) {
         return null;
       }
       onInProgress("fetchUser");
@@ -23,7 +26,7 @@ function useGetLoggedUser() {
     } finally {
       offInProgress("fetchUser");
     }
-  }, [inProgress.fetchUser, offInProgress, onInProgress, receiveUser]);
+  }, [inProgressFetchUser, offInProgress, onInProgress, receiveUser]);
 }
 
 export default useGetLoggedUser;

@@ -42,9 +42,9 @@ function MenuDetails() {
 
   useEffect(() => {
     if (loading) {
-      onInProgress("global");
+      onInProgress("menuDetails");
     } else {
-      offInProgress("global");
+      offInProgress("menuDetails");
     }
   }, [loading, onInProgress, offInProgress]);
 

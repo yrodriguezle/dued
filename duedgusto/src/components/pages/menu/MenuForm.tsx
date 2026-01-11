@@ -22,19 +22,24 @@ const MenuForm: React.FC<MenuFormProps> = ({ menus }) => {
   const { status, setFieldValue } = useFormikContext<FormikMenuValues>();
   const readOnly = useMemo(() => status.isFormLocked as boolean, [status.isFormLocked]);
 
-  const getNewRow = (): MenuWithStatus => ({
-    __typename: "Menu",
-    menuId: 0,
-    parentMenuId: null,
-    title: "",
-    path: "",
-    icon: "",
-    isVisible: true,
-    position: 0,
-    filePath: "",
-    viewName: "",
-    status: DatagridStatus.Added,
-  });
+  const getNewRow = useCallback(
+    (): MenuWithStatus => ({
+      __typename: "Menu",
+      menuId: 0,
+      parentMenuId: null,
+      title: "",
+      path: "",
+      icon: "",
+      isVisible: true,
+      position: 0,
+      filePath: "",
+      viewName: "",
+      status: DatagridStatus.Added,
+    }),
+    []
+  );
+
+  const getNewRowOrUndefined = useMemo(() => (readOnly ? undefined : getNewRow), [readOnly, getNewRow]);
 
   const handleRowDataUpdated = useCallback(
     (event: DatagridRowDataUpdatedEvent<MenuWithStatus>) => {
@@ -53,6 +58,20 @@ const MenuForm: React.FC<MenuFormProps> = ({ menus }) => {
     },
     [],
     1
+  );
+
+  const getRowId = useCallback(({ data }: { data: MenuNonNull }) => data.menuId.toString(), []);
+
+  const autoGroupColumnDef = useMemo(
+    () => ({
+      headerName: "Voce di menù",
+      field: "title",
+      cellRenderer: "agGroupCellRenderer",
+      filter: false,
+      sortable: false,
+      width: 200,
+    }),
+    []
   );
 
   const columnDefs = useMemo<DatagridColDef<MenuWithStatus>[]>(
@@ -141,21 +160,14 @@ const MenuForm: React.FC<MenuFormProps> = ({ menus }) => {
       <Datagrid<MenuNonNull>
         height="100%"
         items={menus}
-        getRowId={({ data }) => data.menuId.toString()}
+        getRowId={getRowId}
         singleClickEdit
         treeData={readOnly}
         treeDataParentIdField="parentMenuId"
         readOnly={readOnly}
-        getNewRow={readOnly ? undefined : getNewRow}
+        getNewRow={getNewRowOrUndefined}
         groupDefaultExpanded={-1}
-        autoGroupColumnDef={{
-          headerName: "Voce di menù",
-          field: "title",
-          cellRenderer: "agGroupCellRenderer",
-          filter: false,
-          sortable: false,
-          width: 200,
-        }}
+        autoGroupColumnDef={autoGroupColumnDef}
         onRowDataUpdated={handleRowDataUpdated}
         onCellValueChanged={handleCellValueChanged}
         columnDefs={columnDefs}
