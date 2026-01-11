@@ -27,34 +27,23 @@ public class CashManagementQueries : ObjectGraphType
 
         // Get single cash register by ID
         Field<CashRegisterType, CashRegister>("cashRegister")
-            .Argument<IntGraphType>("registerId")
-            .Argument<DateTimeGraphType>("date")
+            .Argument<NonNullGraphType<DateTimeGraphType>>("date")
             .ResolveAsync(async context =>
             {
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
                 int? registerId = context.GetArgument<int?>("registerId");
                 DateTime? date = context.GetArgument<DateTime?>("date");
 
-                var query = dbContext.CashRegisters
+                var result = await dbContext.CashRegisters
                     .Include(r => r.User)
                         .ThenInclude(u => u.Role)
                     .Include(r => r.CashCounts)
                         .ThenInclude(c => c.Denomination)
                     .Include(r => r.CashIncomes)
                     .Include(r => r.CashExpenses)
-                    .AsQueryable();
-
-                if (date.HasValue)
-                {
-                    query = query.Where(r => r.RegisterId == registerId);
-                }
-
-                if (date.HasValue)
-                {
-                    query = query.Where(r => r.Date == date.Value);
-                }
-
-                return await query.FirstOrDefaultAsync();
+                    .Where(r => r.Date == date)
+                    .FirstOrDefaultAsync();
+                return result;
             });
 
         // Get cash registers with relay-style pagination

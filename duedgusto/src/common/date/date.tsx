@@ -411,5 +411,6 @@ export const parseDateForGraphQL = (date: string): string | undefined => {
   }
 
   // normalizzazione a mezzanotte UTC
-  return parsed.startOf("day").utc().toISOString();
+  const result = parsed.startOf("day").format("YYYY-MM-DDTHH:mm:ss");
+  return result;
 };
