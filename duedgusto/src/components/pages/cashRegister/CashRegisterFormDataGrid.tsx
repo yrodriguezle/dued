@@ -1,20 +1,13 @@
 import { Grid, TextField, Box } from "@mui/material";
 import { useFormikContext } from "formik";
-import { FormikCashRegisterValues } from "./CashRegisterDetails";
+import { FormikCashRegisterValues, Income, Expense } from "./CashRegisterDetails";
 import CashCountDataGrid from "./CashCountDataGrid";
 import SummaryDataGrid from "./SummaryDataGrid";
 import IncomesDataGrid from "./IncomesDataGrid";
 import ExpensesDataGrid from "./ExpensesDataGrid";
 import { GridReadyEvent } from "ag-grid-community";
 import { DatagridData } from "../../common/datagrid/@types/Datagrid";
-
-interface CashCountRow extends Record<string, unknown> {
-  denominationId: number;
-  type: "COIN" | "BANKNOTE";
-  value: number;
-  quantity: number;
-  total: number;
-}
+import { CashCountRowData } from "./useCashCountData";
 
 interface IncomeRow extends Record<string, unknown> {
   type: string;
@@ -27,21 +20,25 @@ interface ExpenseRow extends Record<string, unknown> {
 }
 
 interface CashRegisterFormDataGridProps {
-  denominations: CashDenomination[];
-  cashRegister?: CashRegister | null;
-  openingGridRef: React.RefObject<GridReadyEvent<DatagridData<CashCountRow>> | null>;
-  closingGridRef: React.RefObject<GridReadyEvent<DatagridData<CashCountRow>> | null>;
+  openingGridRef: React.RefObject<GridReadyEvent<DatagridData<CashCountRowData>> | null>;
+  closingGridRef: React.RefObject<GridReadyEvent<DatagridData<CashCountRowData>> | null>;
   incomesGridRef: React.RefObject<GridReadyEvent<DatagridData<IncomeRow>> | null>;
   expensesGridRef: React.RefObject<GridReadyEvent<DatagridData<ExpenseRow>> | null>;
+  openingRowData: CashCountRowData[];
+  closingRowData: CashCountRowData[];
+  initialIncomes: Income[];
+  initialExpenses: Expense[];
 }
 
 const CashRegisterFormDataGrid: React.FC<CashRegisterFormDataGridProps> = ({
-  denominations,
-  cashRegister,
   openingGridRef,
   closingGridRef,
   incomesGridRef,
-  expensesGridRef
+  expensesGridRef,
+  openingRowData,
+  closingRowData,
+  initialIncomes,
+  initialExpenses
 }) => {
   const formik = useFormikContext<FormikCashRegisterValues>();
 
@@ -50,22 +47,30 @@ const CashRegisterFormDataGrid: React.FC<CashRegisterFormDataGridProps> = ({
       <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }}>
         {/* Apertura Cassa */}
         <Grid item xs={12} lg={6}>
-          <CashCountDataGrid ref={openingGridRef} denominations={denominations} fieldName="openingCounts" title="APERTURA CASSA" />
+          <CashCountDataGrid
+            ref={openingGridRef}
+            rowData={openingRowData}
+            title="APERTURA CASSA"
+          />
         </Grid>
 
         {/* Chiusura Cassa */}
         <Grid item xs={12} lg={6}>
-          <CashCountDataGrid ref={closingGridRef} denominations={denominations} fieldName="closingCounts" title="CHIUSURA CASSA" />
+          <CashCountDataGrid
+            ref={closingGridRef}
+            rowData={closingRowData}
+            title="CHIUSURA CASSA"
+          />
         </Grid>
 
         {/* Incassi */}
         <Grid item xs={12} md={6}>
-          <IncomesDataGrid ref={incomesGridRef} />
+          <IncomesDataGrid ref={incomesGridRef} initialIncomes={initialIncomes} />
         </Grid>
 
         {/* Spese */}
         <Grid item xs={12} md={6}>
-          <ExpensesDataGrid ref={expensesGridRef} />
+          <ExpensesDataGrid ref={expensesGridRef} initialExpenses={initialExpenses} />
         </Grid>
 
         {/* Note */}
@@ -88,7 +93,10 @@ const CashRegisterFormDataGrid: React.FC<CashRegisterFormDataGridProps> = ({
 
         {/* Riepilogo */}
         <Grid item xs={12} md={6}>
-          <SummaryDataGrid denominations={denominations} cashRegister={cashRegister} />
+          <SummaryDataGrid
+            openingGridRef={openingGridRef}
+            closingGridRef={closingGridRef}
+          />
         </Grid>
       </Grid>
     </Box>

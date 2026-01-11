@@ -1,13 +1,23 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Box, Typography, Alert } from "@mui/material";
-import { useFormikContext } from "formik";
-import { FormikCashRegisterValues } from "./CashRegisterDetails";
 import Datagrid from "../../common/datagrid/Datagrid";
-import { DatagridColDef } from "../../common/datagrid/@types/Datagrid";
+import { DatagridColDef, DatagridData } from "../../common/datagrid/@types/Datagrid";
+import { GridReadyEvent } from "ag-grid-community";
+import { CashCountRowData } from "./useCashCountData";
+
+interface IncomeRow extends Record<string, unknown> {
+  type: string;
+  amount: number;
+}
+
+interface ExpenseRow extends Record<string, unknown> {
+  description: string;
+  amount: number;
+}
 
 interface SummaryDataGridProps {
-  denominations: CashDenomination[];
-  cashRegister?: CashRegister | null;
+  openingGridRef: React.RefObject<GridReadyEvent<DatagridData<CashCountRowData>> | null>;
+  closingGridRef: React.RefObject<GridReadyEvent<DatagridData<CashCountRowData>> | null>;
 }
 
 interface SummaryRowData extends Record<string, unknown> {
@@ -16,30 +26,40 @@ interface SummaryRowData extends Record<string, unknown> {
   value: number;
 }
 
-function SummaryDataGrid({ denominations, cashRegister }: SummaryDataGridProps) {
-  const formik = useFormikContext<FormikCashRegisterValues>();
+function SummaryDataGrid({ openingGridRef, closingGridRef }: SummaryDataGridProps) {
+  const [openingTotal, setOpeningTotal] = useState(0);
+  const [closingTotal, setClosingTotal] = useState(0);
 
-  const calculateCountTotal = (counts: FormikCashCountValues[]): number => {
-    return counts.reduce((sum, count) => {
-      const denomination = denominations.find((d) => d.denominationId === count.denominationId);
-      return sum + (denomination ? denomination.value * count.quantity : 0);
-    }, 0);
-  };
+  // Ricalcola i totali quando le griglie cambiano
+  useEffect(() => {
+    const calculateTotal = (gridRef: React.RefObject<GridReadyEvent<DatagridData<CashCountRowData>> | null>): number => {
+      if (!gridRef.current) return 0;
 
-  const openingTotal = calculateCountTotal(formik.values.openingCounts || []);
-  const closingTotal = calculateCountTotal(formik.values.closingCounts || []);
+      let total = 0;
+      gridRef.current.api.forEachNode((node) => {
+        if (node.data && !node.rowPinned) {
+          total += node.data.total;
+        }
+      });
+      return total;
+    };
+
+    const interval = setInterval(() => {
+      setOpeningTotal(calculateTotal(openingGridRef));
+      setClosingTotal(calculateTotal(closingGridRef));
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [openingGridRef, closingGridRef]);
+
   const dailyIncome = closingTotal - openingTotal;
 
-  // Valori da backend (se disponibili)
-  const cashSales = cashRegister?.cashSales || 0;
-  const electronicPayments = cashRegister?.electronicPayments || 0;
-  const totalSales = cashRegister?.totalSales || cashSales + electronicPayments;
-
-  // Calcola totale incassi dal form
-  const totalIncomes = formik.values.incomes?.reduce((sum, income) => sum + income.amount, 0) || 0;
-
-  // Calcola totale spese dal form
-  const totalExpenses = formik.values.expenses?.reduce((sum, expense) => sum + expense.amount, 0) || 0;
+  // TODO: Questi valori dovrebbero venire dalle griglie incomes/expenses
+  const cashSales = 0;
+  const electronicPayments = 0;
+  const totalSales = cashSales + electronicPayments;
+  const totalIncomes = 0;
+  const totalExpenses = 0;
 
   // Calcoli
   const expectedCash = cashSales - totalExpenses;

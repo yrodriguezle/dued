@@ -16,14 +16,6 @@ function useInitializeValues({ skipInitialize, userId, currentDate }: UseInitial
     const initialValues: FormikCashRegisterValues = {
       date: currentDate,
       userId,
-      openingCounts: [],
-      closingCounts: [],
-      incomes: [
-        { type: "Pago in Bianco (Contante)", amount: 0 },
-        { type: "Pagamenti Elettronici", amount: 0 },
-        { type: "Pagamento con Fattura", amount: 0 },
-      ],
-      expenses: [],
       notes: "",
       status: "DRAFT",
     };

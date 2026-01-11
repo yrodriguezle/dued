@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState, useEffect } from "react";
 import { CellValueChangedEvent, Column, GridReadyEvent, IRowNode, RowPinnedType, RowSelectionOptions } from "ag-grid-community";
 import Box from "@mui/material/Box";
 import { z } from "zod";
@@ -203,13 +203,28 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
     return undefined;
   }, [isPresentation, readOnly]);
 
-  const rowData = useMemo<DatagridData<T>[]>(() => {
-    // Se siamo in editing, non ricalcolare rowData - restituisci i dati precedenti
-    if (isEditingRef.current && previousRowDataRef.current.length > 0) {
-      return previousRowDataRef.current;
+  const [rowData, setRowData] = useState<DatagridData<T>[]>([]);
+  const itemsStringRef = useRef<string>("");
+
+  // Aggiorna rowData solo quando items cambia effettivamente (non solo riferimento)
+  useEffect(() => {
+    // Crea una stringa per confronto profondo
+    const itemsString = JSON.stringify(items);
+
+    // Se i dati non sono cambiati, non fare nulla
+    if (itemsString === itemsStringRef.current) {
+      return;
     }
 
-    // Crea una mappa degli status correnti dalla griglia (se esiste)
+    // Se siamo in editing, non ricalcolare rowData
+    if (isEditingRef.current) {
+      return;
+    }
+
+    // Aggiorna il riferimento
+    itemsStringRef.current = itemsString;
+
+    // Crea nuovi dati dagli items, preservando solo lo status dalla griglia esistente
     const currentStatuses = new Map<string, DatagridStatus>();
     if (gridRef.current) {
       gridRef.current.api.forEachNode((node) => {
@@ -231,9 +246,8 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
       };
     });
 
-    // Salva i dati per il prossimo render
     previousRowDataRef.current = newRowData;
-    return newRowData;
+    setRowData(newRowData);
   }, [items, getRowId]);
 
   const getGridData = useCallback(() => {

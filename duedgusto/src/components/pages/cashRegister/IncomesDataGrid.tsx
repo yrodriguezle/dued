@@ -1,24 +1,23 @@
 import { useMemo, forwardRef, useCallback } from "react";
 import { Box, Typography } from "@mui/material";
 import { useFormikContext } from "formik";
-import { FormikCashRegisterValues } from "./CashRegisterDetails";
+import { FormikCashRegisterValues, Income } from "./CashRegisterDetails";
 import Datagrid from "../../common/datagrid/Datagrid";
 import { DatagridColDef, DatagridCellValueChangedEvent, DatagridData } from "../../common/datagrid/@types/Datagrid";
 import { GridReadyEvent } from "ag-grid-community";
 
-interface Income extends Record<string, unknown> {
-  type: string;
-  amount: number;
+interface IncomesDataGridProps {
+  initialIncomes: Income[];
 }
 
-const IncomesDataGrid = forwardRef<GridReadyEvent<DatagridData<Income>>, object>((props, ref) => {
+const IncomesDataGrid = forwardRef<GridReadyEvent<DatagridData<Income>>, IncomesDataGridProps>(({ initialIncomes }, ref) => {
   const formik = useFormikContext<FormikCashRegisterValues>();
   const isLocked = formik.status?.isFormLocked || false;
 
-  // Calculate items from initial Formik values only
+  // Usa i dati iniziali passati come prop
   const items = useMemo(() => {
-    return formik.values.incomes || [];
-  }, [formik.values.incomes]);
+    return initialIncomes || [];
+  }, [initialIncomes]);
 
   const columnDefs = useMemo<DatagridColDef<Income>[]>(
     () => [

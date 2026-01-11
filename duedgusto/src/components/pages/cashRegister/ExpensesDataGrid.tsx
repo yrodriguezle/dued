@@ -2,14 +2,13 @@ import { useMemo, useState, forwardRef, useCallback } from "react";
 import { Box, Typography } from "@mui/material";
 import { useFormikContext } from "formik";
 import { z } from "zod";
-import { FormikCashRegisterValues } from "./CashRegisterDetails";
+import { FormikCashRegisterValues, Expense } from "./CashRegisterDetails";
 import Datagrid from "../../common/datagrid/Datagrid";
 import { DatagridColDef, ValidationError, DatagridCellValueChangedEvent, DatagridData } from "../../common/datagrid/@types/Datagrid";
 import { GridReadyEvent } from "ag-grid-community";
 
-interface Expense extends Record<string, unknown> {
-  description: string;
-  amount: number;
+interface ExpensesDataGridProps {
+  initialExpenses: Expense[];
 }
 
 // Schema Zod per validazione inline non bloccante
@@ -18,15 +17,15 @@ const expenseSchema = z.object({
   amount: z.number().min(0, "L'importo deve essere maggiore o uguale a 0"),
 });
 
-const ExpensesDataGrid = forwardRef<GridReadyEvent<DatagridData<Expense>>, object>((props, ref) => {
+const ExpensesDataGrid = forwardRef<GridReadyEvent<DatagridData<Expense>>, ExpensesDataGridProps>(({ initialExpenses }, ref) => {
   const formik = useFormikContext<FormikCashRegisterValues>();
   const isLocked = formik.status?.isFormLocked || false;
   const [validationErrors, setValidationErrors] = useState<Map<number, ValidationError[]>>(new Map());
 
-  // Calculate items from initial Formik values only
+  // Usa i dati iniziali passati come prop
   const items = useMemo(() => {
-    return formik.values.expenses || [];
-  }, [formik.values.expenses]);
+    return initialExpenses || [];
+  }, [initialExpenses]);
 
   const columnDefs = useMemo<DatagridColDef<Expense>[]>(
     () => [

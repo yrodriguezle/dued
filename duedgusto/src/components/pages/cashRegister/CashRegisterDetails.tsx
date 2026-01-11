@@ -1,3 +1,4 @@
+
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Form, Formik, FormikProps } from "formik";
 import { z } from "zod";
@@ -21,35 +22,34 @@ import useCloseCashRegister from "../../../graphql/cashRegister/useCloseCashRegi
 import useStore from "../../../store/useStore";
 import { toast } from "react-toastify";
 import { getCurrentDate, getFormattedDate, getWeekdayName, parseDateForGraphQL } from "../../../common/date/date";
+import useCashCountData from "./useCashCountData";
 
-const CashCountSchema = z.object({
-  denominationId: z.number(),
-  quantity: z.number().min(0, "La quantità non può essere negativa"),
-});
-
-const IncomeSchema = z.object({
-  type: z.string(),
-  amount: z.number().min(0, "L'importo non può essere negativo"),
-});
-
-const ExpenseSchema = z.object({
-  description: z.string().min(1, "La causale è obbligatoria"),
-  amount: z.number().min(0, "L'importo non può essere negativo"),
-});
-
+// Schema per Formik - solo campi del form, NON include dati delle griglie
 const Schema = z.object({
   registerId: z.number().optional(),
   date: z.string().nonempty("La data è obbligatoria"),
   userId: z.number(),
-  openingCounts: z.array(CashCountSchema),
-  closingCounts: z.array(CashCountSchema),
-  incomes: z.array(IncomeSchema),
-  expenses: z.array(ExpenseSchema),
   notes: z.string(),
   status: z.enum(["DRAFT", "CLOSED", "RECONCILED"]),
 });
 
 export type FormikCashRegisterValues = z.infer<typeof Schema>;
+
+// Types per i dati delle griglie (gestiti separatamente da Formik)
+export interface CashCount {
+  denominationId: number;
+  quantity: number;
+}
+
+export interface Income {
+  type: string;
+  amount: number;
+}
+
+export interface Expense {
+  description: string;
+  amount: number;
+}
 
 interface CashCountRow extends Record<string, unknown> {
   denominationId: number;
@@ -80,6 +80,12 @@ function CashRegisterDetails() {
   const { title, setTitle } = useContext(PageTitleContext);
   const user = useStore((state) => state.user);
 
+  // Stati per i dati iniziali delle griglie - mantengono referenza stabile
+  const [initialOpeningCounts, setInitialOpeningCounts] = useState<CashCount[]>([]);
+  const [initialClosingCounts, setInitialClosingCounts] = useState<CashCount[]>([]);
+  const [initialIncomes, setInitialIncomes] = useState<Income[]>([]);
+  const [initialExpenses, setInitialExpenses] = useState<Expense[]>([]);
+
   // Usa il parametro date dall'URL, altrimenti usa la data corrente
   const getInitialDate = useCallback(() => {
     return dateParam || getCurrentDate("YYYY-MM-DD");
@@ -104,6 +110,13 @@ function CashRegisterDetails() {
   const { cashRegister, loading: loadingCashRegister } = useQueryCashRegister({
     date: parseDateForGraphQL(currentDate) ?? "",
     skip: !currentDate,
+  });
+
+  // Prepara i dati per le griglie di apertura e chiusura
+  const { openingRowData, closingRowData } = useCashCountData({
+    denominations,
+    openingCounts: initialOpeningCounts,
+    closingCounts: initialClosingCounts,
   });
 
   // Navigate between days for cash register entry
@@ -145,32 +158,47 @@ function CashRegisterDetails() {
       // Convert date from ISO 8601 to YYYY-MM-DD
       const dateStr = cashRegister.date.split('T')[0]; // Extract YYYY-MM-DD from ISO string
 
+      // Popola i valori del form (solo campi non-griglia)
       const formikValues: FormikCashRegisterValues = {
         registerId: cashRegister.registerId,
         date: dateStr,
         userId: cashRegister.userId,
-        openingCounts: cashRegister.openingCounts.map((c: CashCount) => ({
+        notes: cashRegister.notes || "",
+        status: cashRegister.status,
+      };
+      handleInitializeValues(formikValues);
+
+      // Popola i dati iniziali delle griglie
+      setInitialOpeningCounts(
+        cashRegister.openingCounts.map((c: CashCount) => ({
           denominationId: c.denominationId,
           quantity: c.quantity,
-        })),
-        closingCounts: cashRegister.closingCounts.map((c: CashCount) => ({
+        }))
+      );
+
+      setInitialClosingCounts(
+        cashRegister.closingCounts.map((c: CashCount) => ({
           denominationId: c.denominationId,
           quantity: c.quantity,
-        })),
-        incomes: cashRegister.incomes && cashRegister.incomes.length > 0
+        }))
+      );
+
+      setInitialIncomes(
+        cashRegister.incomes && cashRegister.incomes.length > 0
           ? cashRegister.incomes.map(i => ({ type: i.type, amount: i.amount }))
           : [
             { type: "Pago in Bianco (Contante)", amount: cashRegister.cashInWhite || 0 },
             { type: "Pagamenti Elettronici", amount: cashRegister.electronicPayments || 0 },
             { type: "Pagamento con Fattura", amount: cashRegister.invoicePayments || 0 },
-          ],
-        expenses: cashRegister.expenses && cashRegister.expenses.length > 0
+          ]
+      );
+
+      setInitialExpenses(
+        cashRegister.expenses && cashRegister.expenses.length > 0
           ? cashRegister.expenses.map(e => ({ description: e.description, amount: e.amount }))
-          : [],
-        notes: cashRegister.notes || "",
-        status: cashRegister.status,
-      };
-      handleInitializeValues(formikValues);
+          : []
+      );
+
       setTimeout(() => {
         formRef.current?.setStatus({
           formStatus: formStatuses.UPDATE,
@@ -182,18 +210,21 @@ function CashRegisterDetails() {
       const newFormikValues: FormikCashRegisterValues = {
         date: currentDate,
         userId: user?.userId || 0,
-        openingCounts: [],
-        closingCounts: [],
-        incomes: [
-          { type: "Pago in Bianco (Contante)", amount: 0 },
-          { type: "Pagamenti Elettronici", amount: 0 },
-          { type: "Pagamento con Fattura", amount: 0 },
-        ],
-        expenses: [],
         notes: "",
         status: "DRAFT",
       };
       handleInitializeValues(newFormikValues);
+
+      // Popola i dati iniziali delle griglie per nuova registrazione
+      setInitialOpeningCounts([]);
+      setInitialClosingCounts([]);
+      setInitialIncomes([
+        { type: "Pago in Bianco (Contante)", amount: 0 },
+        { type: "Pagamenti Elettronici", amount: 0 },
+        { type: "Pagamento con Fattura", amount: 0 },
+      ]);
+      setInitialExpenses([]);
+
       setTimeout(() => {
         formRef.current?.setStatus({
           formStatus: formStatuses.INSERT,
@@ -388,12 +419,14 @@ function CashRegisterDetails() {
               </Stack>
             </Box>
             <CashRegisterFormDataGrid
-              denominations={denominations}
-              cashRegister={cashRegister}
               openingGridRef={openingGridRef}
               closingGridRef={closingGridRef}
               incomesGridRef={incomesGridRef}
               expensesGridRef={expensesGridRef}
+              openingRowData={openingRowData}
+              closingRowData={closingRowData}
+              initialIncomes={initialIncomes}
+              initialExpenses={initialExpenses}
             />
           </Box>
         </Form>
