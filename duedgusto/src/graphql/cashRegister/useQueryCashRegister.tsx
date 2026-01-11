@@ -2,14 +2,13 @@ import { useQuery } from "@apollo/client";
 import { getCashRegister } from "./queries";
 
 interface UseQueryCashRegisterParams {
-  registerId?: number;
-  date?: string;
+  date: string;
   skip?: boolean;
 }
 
-function useQueryCashRegister({ registerId, date, skip = false }: UseQueryCashRegisterParams) {
+function useQueryCashRegister({ date, skip = false }: UseQueryCashRegisterParams) {
   const { data, error, loading, refetch } = useQuery(getCashRegister, {
-    variables: { registerId, date },
+    variables: { date },
     skip,
   });
 

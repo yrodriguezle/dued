@@ -59,7 +59,9 @@ function CashRegisterMonthlyPage() {
 
   const handleSelectEvent = useCallback(
     (event: CashEvent) => {
-      navigate(`/gestionale/cassa/${event.registerId}`);
+      // Extract date from event and navigate to that date
+      const eventDate = dayjs(event.start).format("YYYY-MM-DD");
+      navigate(`/gestionale/cassa/${eventDate}`);
     },
     [navigate]
   );
@@ -67,7 +69,7 @@ function CashRegisterMonthlyPage() {
   const handleSelectSlot = useCallback(
     (slotInfo: { start: Date }) => {
       const selectedDate = dayjs(slotInfo.start).format("YYYY-MM-DD");
-      navigate(`/gestionale/cassa/details?date=${selectedDate}`);
+      navigate(`/gestionale/cassa/${selectedDate}`);
     },
     [navigate]
   );

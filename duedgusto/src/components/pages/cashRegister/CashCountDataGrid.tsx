@@ -148,6 +148,11 @@ const CashCountDataGrid = forwardRef<GridReadyEvent<DatagridData<RowData>>, Cash
       event.data.quantity = newQuantity;
       event.data.total = event.data.value * newQuantity;
 
+      // Forza il refresh della riga modificata per aggiornare la colonna "Totale"
+      if (event.node) {
+        event.api.refreshCells({ rowNodes: [event.node], columns: ['total'], force: true });
+      }
+
       // Aggiorna la riga pinnata del totale
       if (ref && typeof ref !== 'function' && ref.current) {
         const pinnedNode = ref.current.api.getPinnedBottomRow(0);

@@ -49,7 +49,9 @@ function CashRegisterList() {
   }, []);
 
   const handleNew = useCallback(() => {
-    navigate("/gestionale/cassa/details");
+    // Navigate to today's date
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    navigate(`/gestionale/cassa/${today}`);
   }, [navigate]);
 
   const handleDelete = useCallback(async () => {
@@ -98,8 +100,10 @@ function CashRegisterList() {
   const handleRowDoubleClicked = useCallback(
     (event: DatagridRowDoubleClickedEvent<CashRegister>) => {
       const data = event.data as CashRegister | undefined;
-      if (data?.registerId) {
-        navigate(`/gestionale/cassa/details/${data.registerId}`);
+      if (data?.date) {
+        // Extract date in YYYY-MM-DD format
+        const dateStr = data.date.split('T')[0];
+        navigate(`/gestionale/cassa/${dateStr}`);
       }
     },
     [navigate]

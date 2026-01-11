@@ -36,8 +36,8 @@ function ProtectedRoutes() {
           .map((menu) => {
             // Convert /gestionale/cassa/details to cassa/details and support dynamic routes
             const routePath = menu?.path.replace("/gestionale/", "") || "/";
-            // Support routes with parameters: /gestionale/cassa/details -> cassa/:id
-            const finalPath = routePath === "cassa/details" ? "cassa/:id" : routePath;
+            // Support routes with parameters: /gestionale/cassa/details -> cassa/:date
+            const finalPath = routePath === "cassa/details" ? "cassa/:date" : routePath;
             const DynamicComponent = loadDynamicComponent(menu?.filePath || "");
 
             return (

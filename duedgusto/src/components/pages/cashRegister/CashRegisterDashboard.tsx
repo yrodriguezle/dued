@@ -94,7 +94,10 @@ function CashRegisterDashboard() {
             variant="contained"
             color="primary"
             startIcon={<AddIcon />}
-            onClick={() => navigate("/gestionale/cassa/new")}
+            onClick={() => {
+              const today = new Date().toISOString().split('T')[0];
+              navigate(`/gestionale/cassa/${today}`);
+            }}
             sx={{ mr: 1 }}
           >
             Nuova Cassa

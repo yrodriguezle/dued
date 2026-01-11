@@ -82,6 +82,16 @@ export function CustomCalendar<T extends CalendarEvent = CalendarEvent>({
     onMonthChange?.(nextMonth);
   }, [currentDate, onMonthChange]);
 
+  const handlePrevYear = useCallback(() => {
+    const prevYear = new Date(currentDate.getFullYear() - 1, currentDate.getMonth(), 1);
+    onMonthChange?.(prevYear);
+  }, [currentDate, onMonthChange]);
+
+  const handleNextYear = useCallback(() => {
+    const nextYear = new Date(currentDate.getFullYear() + 1, currentDate.getMonth(), 1);
+    onMonthChange?.(nextYear);
+  }, [currentDate, onMonthChange]);
+
   const handleDayClick = useCallback(
     (date: Date) => {
       onSelectSlot({ start: date });
@@ -106,26 +116,49 @@ export function CustomCalendar<T extends CalendarEvent = CalendarEvent>({
           flexWrap: "wrap",
         }}
       >
-        <Button
-          onClick={handlePrevMonth}
-          startIcon={<ChevronLeft />}
-          sx={{
-            padding: "6px 12px",
-            fontSize: "0.875rem",
-            borderRadius: "4px",
-            border: `1px solid ${colors.border}`,
-            backgroundColor: colors.buttonBg,
-            cursor: "pointer",
-            transition: "all 0.2s",
-            "&:hover": {
-              backgroundColor: colors.buttonBgHover,
-              borderColor: colors.buttonBorderHover,
-            },
-          }}
-        >
-          Precedente
-        </Button>
+        {/* Left side - Month navigation */}
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <Button
+            onClick={handlePrevMonth}
+            startIcon={<ChevronLeft />}
+            sx={{
+              padding: "6px 12px",
+              fontSize: "0.875rem",
+              borderRadius: "4px",
+              border: `1px solid ${colors.border}`,
+              backgroundColor: colors.buttonBg,
+              cursor: "pointer",
+              transition: "all 0.2s",
+              "&:hover": {
+                backgroundColor: colors.buttonBgHover,
+                borderColor: colors.buttonBorderHover,
+              },
+            }}
+          >
+            Mese Prec.
+          </Button>
+          <Button
+            onClick={handleNextMonth}
+            endIcon={<ChevronRight />}
+            sx={{
+              padding: "6px 12px",
+              fontSize: "0.875rem",
+              borderRadius: "4px",
+              border: `1px solid ${colors.border}`,
+              backgroundColor: colors.buttonBg,
+              cursor: "pointer",
+              transition: "all 0.2s",
+              "&:hover": {
+                backgroundColor: colors.buttonBgHover,
+                borderColor: colors.buttonBorderHover,
+              },
+            }}
+          >
+            Mese Succ.
+          </Button>
+        </Box>
 
+        {/* Center - Month/Year label */}
         <Typography
           sx={{
             fontSize: "1.125rem",
@@ -137,25 +170,47 @@ export function CustomCalendar<T extends CalendarEvent = CalendarEvent>({
           {monthLabel}
         </Typography>
 
-        <Button
-          onClick={handleNextMonth}
-          endIcon={<ChevronRight />}
-          sx={{
-            padding: "6px 12px",
-            fontSize: "0.875rem",
-            borderRadius: "4px",
-            border: `1px solid ${colors.border}`,
-            backgroundColor: colors.buttonBg,
-            cursor: "pointer",
-            transition: "all 0.2s",
-            "&:hover": {
-              backgroundColor: colors.buttonBgHover,
-              borderColor: colors.buttonBorderHover,
-            },
-          }}
-        >
-          Successivo
-        </Button>
+        {/* Right side - Year navigation */}
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <Button
+            onClick={handlePrevYear}
+            startIcon={<ChevronLeft />}
+            sx={{
+              padding: "6px 12px",
+              fontSize: "0.875rem",
+              borderRadius: "4px",
+              border: `1px solid ${colors.border}`,
+              backgroundColor: colors.buttonBg,
+              cursor: "pointer",
+              transition: "all 0.2s",
+              "&:hover": {
+                backgroundColor: colors.buttonBgHover,
+                borderColor: colors.buttonBorderHover,
+              },
+            }}
+          >
+            Anno Prec.
+          </Button>
+          <Button
+            onClick={handleNextYear}
+            endIcon={<ChevronRight />}
+            sx={{
+              padding: "6px 12px",
+              fontSize: "0.875rem",
+              borderRadius: "4px",
+              border: `1px solid ${colors.border}`,
+              backgroundColor: colors.buttonBg,
+              cursor: "pointer",
+              transition: "all 0.2s",
+              "&:hover": {
+                backgroundColor: colors.buttonBgHover,
+                borderColor: colors.buttonBorderHover,
+              },
+            }}
+          >
+            Anno Succ.
+          </Button>
+        </Box>
       </Box>
 
       {/* Calendar Grid */}

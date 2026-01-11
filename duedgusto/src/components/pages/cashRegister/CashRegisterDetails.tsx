@@ -4,7 +4,7 @@ import { z } from "zod";
 import { Box, Typography, Button, IconButton, Stack } from "@mui/material";
 import { ArrowBack, ArrowForward } from "@mui/icons-material";
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import { useParams, useNavigate, useLocation } from "react-router";
+import { useParams, useNavigate } from "react-router";
 import { GridReadyEvent } from "ag-grid-community";
 
 import CashRegisterFormDataGrid from "./CashRegisterFormDataGrid";
@@ -70,9 +70,8 @@ interface ExpenseRow extends Record<string, unknown> {
 }
 
 function CashRegisterDetails() {
-  const { id } = useParams();
+  const { date: dateParam } = useParams<{ date?: string }>();
   const navigate = useNavigate();
-  const location = useLocation();
   const formRef = useRef<FormikProps<FormikCashRegisterValues>>(null);
   const openingGridRef = useRef<GridReadyEvent<DatagridData<CashCountRow>> | null>(null);
   const closingGridRef = useRef<GridReadyEvent<DatagridData<CashCountRow>> | null>(null);
@@ -81,28 +80,18 @@ function CashRegisterDetails() {
   const { title, setTitle } = useContext(PageTitleContext);
   const user = useStore((state) => state.user);
 
-  // Leggi il parametro date dall'URL, altrimenti usa la data corrente
+  // Usa il parametro date dall'URL, altrimenti usa la data corrente
   const getInitialDate = useCallback(() => {
-    const searchParams = new URLSearchParams(location.search);
-    const dateParam = searchParams.get("date");
     return dateParam || getCurrentDate("YYYY-MM-DD");
-  }, [location.search]);
+  }, [dateParam]);
 
   const [currentDate, setCurrentDate] = useState<string>(getInitialDate());
-  const [registerId, setRegisterId] = useState<number | null>(null);
 
   // Aggiorna currentDate quando cambia l'URL
   useEffect(() => {
     const newDate = getInitialDate();
     setCurrentDate(newDate);
   }, [getInitialDate]);
-
-  useEffect(() => {
-    if (Number.isInteger(Number(id))) {
-      setRegisterId(Number(id));
-    }
-  }, [id])
-
 
   const { initialValues, handleInitializeValues } = useInitializeValues({
     skipInitialize: !currentDate,
@@ -112,14 +101,10 @@ function CashRegisterDetails() {
 
   const { denominations, loading: loadingDenominations } = useQueryDenominations();
 
-  const { cashRegister, loading: loadingCashRegisterById } = useQueryCashRegister({
-    registerId: registerId || 0,
-    date: parseDateForGraphQL(currentDate),
-    skip: !registerId || !currentDate,
+  const { cashRegister, loading: loadingCashRegister } = useQueryCashRegister({
+    date: parseDateForGraphQL(currentDate) ?? "",
+    skip: !currentDate,
   });
-
-  // Use appropriate cash register based on context
-  const loadingCashRegister = loadingCashRegisterById;
 
   // Navigate between days for cash register entry
   const handlePreviousDay = useCallback(() => {
@@ -128,8 +113,8 @@ function CashRegisterDetails() {
     const date = new Date(year, month - 1, day);
     date.setDate(date.getDate() - 1);
     const newDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-    setCurrentDate(newDate);
-  }, [currentDate]);
+    navigate(`/gestionale/cassa/${newDate}`);
+  }, [currentDate, navigate]);
 
   const handleNextDay = useCallback(() => {
     // Parse date and add 1 day
@@ -137,8 +122,8 @@ function CashRegisterDetails() {
     const date = new Date(year, month - 1, day);
     date.setDate(date.getDate() + 1);
     const newDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-    setCurrentDate(newDate);
-  }, [currentDate]);
+    navigate(`/gestionale/cassa/${newDate}`);
+  }, [currentDate, navigate]);
 
   const handleOpenMonthlyCalendar = useCallback(() => {
     navigate("/gestionale/cassa/monthly");
@@ -192,8 +177,8 @@ function CashRegisterDetails() {
           isFormLocked: cashRegister.status !== "DRAFT",
         });
       }, 0);
-    } else if (!registerId) {
-      // Initialize with today's date for new entry
+    } else {
+      // Initialize with current date for new entry
       const newFormikValues: FormikCashRegisterValues = {
         date: currentDate,
         userId: user?.userId || 0,
@@ -216,52 +201,20 @@ function CashRegisterDetails() {
         });
       }, 0);
     }
-  }, [cashRegister, registerId, handleInitializeValues, currentDate, user?.userId]);
+  }, [cashRegister, handleInitializeValues, currentDate, user?.userId]);
 
   const onSubmit = async (values: FormikCashRegisterValues) => {
     try {
-      // Raccogli i dati dalle griglie usando getGridData
-      const openingCounts = openingGridRef.current?.context.getGridData()
-        .map((row: DatagridData<CashCountRow>) => ({
-          denominationId: row.denominationId,
-          quantity: row.quantity,
-        }))
-        .filter((count: { denominationId: number; quantity: number }) => count.quantity > 0) || [];
-
-      const closingCounts = closingGridRef.current?.context.getGridData()
-        .map((row: DatagridData<CashCountRow>) => ({
-          denominationId: row.denominationId,
-          quantity: row.quantity,
-        }))
-        .filter((count: { denominationId: number; quantity: number }) => count.quantity > 0) || [];
-
-      const incomes = incomesGridRef.current?.context.getGridData()
-        .map((row: DatagridData<IncomeRow>) => ({
-          type: row.type,
-          amount: row.amount,
-        })) || [];
-
-      const expenses = expensesGridRef.current?.context.getGridData()
-        .map((row: DatagridData<ExpenseRow>) => ({
-          description: row.description,
-          amount: row.amount,
-        })) || [];
-
-      // Unisci i dati delle griglie con i valori del form
-      const currentValues = {
-        ...values,
-        openingCounts,
-        closingCounts,
-        incomes,
-        expenses,
-      };
-
       logger.log("onSubmit - values from form", values);
-      logger.log("onSubmit - values from grids", { openingCounts, closingCounts, incomes, expenses });
-      logger.log("onSubmit - merged values", currentValues);
+
+      // Leggi i dati dalle griglie
+      const openingCounts = openingGridRef.current?.context.getGridData() || [];
+      const closingCounts = closingGridRef.current?.context.getGridData() || [];
+      const incomes = incomesGridRef.current?.context.getGridData() || [];
+      const expenses = expensesGridRef.current?.context.getGridData() || [];
 
       // Converti la data in formato GraphQL (ISO 8601 UTC)
-      const parsedDate = parseDateForGraphQL(currentValues.date);
+      const parsedDate = parseDateForGraphQL(values.date);
       if (!parsedDate) {
         toast.error("Data non valida");
         return;
@@ -269,20 +222,32 @@ function CashRegisterDetails() {
 
       // Converti gli array in campi singoli per il backend
       const input = {
-        registerId: currentValues.registerId,
+        registerId: values.registerId,
         date: parsedDate,
-        userId: currentValues.userId,
-        openingCounts: currentValues.openingCounts,
-        closingCounts: currentValues.closingCounts,
-        incomes: currentValues.incomes,
-        expenses: currentValues.expenses,
-        cashInWhite: currentValues.incomes.find((i: { type: string; amount: number }) => i.type === "Pago in Bianco (Contante)")?.amount || 0,
-        electronicPayments: currentValues.incomes.find((i: { type: string; amount: number }) => i.type === "Pagamenti Elettronici")?.amount || 0,
-        invoicePayments: currentValues.incomes.find((i: { type: string; amount: number }) => i.type === "Pagamento con Fattura")?.amount || 0,
+        userId: values.userId,
+        openingCounts: openingCounts.map((row: CashCountRow) => ({
+          denominationId: row.denominationId,
+          quantity: row.quantity,
+        })),
+        closingCounts: closingCounts.map((row: CashCountRow) => ({
+          denominationId: row.denominationId,
+          quantity: row.quantity,
+        })),
+        incomes: incomes.map((row: IncomeRow) => ({
+          type: row.type,
+          amount: row.amount,
+        })),
+        expenses: expenses.map((row: ExpenseRow) => ({
+          description: row.description,
+          amount: row.amount,
+        })),
+        cashInWhite: incomes.find((i: IncomeRow) => i.type === "Pago in Bianco (Contante)")?.amount || 0,
+        electronicPayments: incomes.find((i: IncomeRow) => i.type === "Pagamenti Elettronici")?.amount || 0,
+        invoicePayments: incomes.find((i: IncomeRow) => i.type === "Pagamento con Fattura")?.amount || 0,
         supplierExpenses: 0, // Non più usato, calcolato dal backend
         dailyExpenses: 0, // Non più usato, calcolato dal backend
-        notes: currentValues.notes,
-        status: currentValues.status,
+        notes: values.notes,
+        status: values.status,
       };
 
       logger.log("onSubmit - input to be sent", input);
@@ -291,9 +256,11 @@ function CashRegisterDetails() {
 
       if (result) {
         toast.success("Cassa salvata con successo!");
-        if (!registerId) {
-          navigate(`/gestionale/cassa/${result.registerId}`);
-        }
+        // Dopo il salvataggio, aggiorna lo stato del form
+        formRef.current?.setStatus({
+          formStatus: formStatuses.UPDATE,
+          isFormLocked: false,
+        });
       }
     } catch (error) {
       logger.error("Errore durante il salvataggio:", error);
