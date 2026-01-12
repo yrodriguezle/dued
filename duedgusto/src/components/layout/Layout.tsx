@@ -20,7 +20,7 @@ function Layout() {
           display: "flex",
           marginTop: `${headerHeight}px`,
           transition: "margin 0.3s",
-          height: `calc(100vh - ${headerHeight}px)`,
+          minHeight: `calc(100vh - ${headerHeight}px)`,
         }}
       >
         <Sidebar

@@ -151,12 +151,58 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
   }, [addNewRowAt, handleAddNewRowAt]);
 
   // Hook per navigazione Tab (dipende da handleAddNewRowAt e gotoEditCell)
-  const { handleCellKeyDown } = useTabNavigation<T>({
+  const { handleCellKeyDown: handleTabNavigation } = useTabNavigation<T>({
     getNewRow,
     onAddRow: handleAddNewRowAt,
     gotoEditCell,
     autoAddRowOnTab: enableAutoAddRowOnTab,
   });
+
+  // Verifica se una riga è uguale a newRow (non modificata)
+  const isRowPristine = useCallback(
+    (rowData: DatagridData<T> | undefined): boolean => {
+      if (!rowData || !getNewRow) return false;
+
+      const newRowTemplate = getNewRow();
+
+      // Confronta tutti i campi (escludendo status che è un campo ausiliario)
+      for (const key in newRowTemplate) {
+        if (key === "status") continue;
+        if (rowData[key] !== newRowTemplate[key]) {
+          return false;
+        }
+      }
+      return true;
+    },
+    [getNewRow]
+  );
+
+  // Handler per keydown esteso: gestisce Tab navigation + ESC per cancellare righe pristine
+  const handleCellKeyDown = useCallback(
+    (event: Parameters<NonNullable<DatagridAgGridProps<DatagridData<T>>["onCellKeyDown"]>>[0]) => {
+      // Prima gestisce la navigazione Tab (solo per CellKeyDownEvent)
+      if (event.type === "cellKeyDown" && "column" in event) {
+        handleTabNavigation(event as Parameters<typeof handleTabNavigation>[0]);
+      }
+
+      // Se è ESC e NON si è in editing, verifica se cancellare la riga
+      const keyboardEvent = event.event as KeyboardEvent | undefined;
+      if (keyboardEvent?.key === "Escape" && !isEditingRef.current && !readOnly && getNewRow) {
+        const focusedCell = event.api.getFocusedCell();
+        if (!focusedCell) return;
+
+        const rowNode = event.api.getDisplayedRowAtIndex(focusedCell.rowIndex);
+        if (!rowNode?.data) return;
+
+        // Se la riga è pristine (non modificata rispetto a newRow), la rimuove
+        if (isRowPristine(rowNode.data)) {
+          event.api.applyTransaction({ remove: [rowNode.data] });
+          setCanAddNewRow(true);
+        }
+      }
+    },
+    [handleTabNavigation, isEditingRef, readOnly, getNewRow, isRowPristine]
+  );
 
   const handleDeleteSelected = useCallback(() => {
     if (!gridRef.current || isPresentation) return;
