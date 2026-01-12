@@ -1,5 +1,5 @@
 import { useCallback, useContext, useMemo, useEffect, useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { Box, CircularProgress } from "@mui/material";
 import dayjs from "dayjs";
 import PageTitleContext from "../../layout/headerBar/PageTitleContext";
@@ -22,7 +22,29 @@ interface CashEvent {
 function CashRegisterMonthlyPage() {
   const navigate = useNavigate();
   const { setTitle } = useContext(PageTitleContext);
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [searchParams] = useSearchParams();
+
+  // Leggi anno e mese dai parametri URL, altrimenti usa la data corrente
+  const yearParam = searchParams.get("year");
+  const monthParam = searchParams.get("month");
+
+  const initialDate = useMemo(() => {
+    if (yearParam && monthParam) {
+      const year = parseInt(yearParam, 10);
+      const month = parseInt(monthParam, 10);
+      if (!isNaN(year) && !isNaN(month) && month >= 1 && month <= 12) {
+        return new Date(year, month - 1, 1);
+      }
+    }
+    return new Date();
+  }, [yearParam, monthParam]);
+
+  const [currentDate, setCurrentDate] = useState(initialDate);
+
+  // Aggiorna currentDate quando cambiano i parametri URL
+  useEffect(() => {
+    setCurrentDate(initialDate);
+  }, [initialDate]);
 
   const currentYear = dayjs(currentDate).year();
   const currentMonth = dayjs(currentDate).month() + 1;

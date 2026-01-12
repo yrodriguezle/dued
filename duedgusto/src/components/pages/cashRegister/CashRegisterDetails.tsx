@@ -1,12 +1,14 @@
-
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Form, Formik, FormikProps } from "formik";
 import { z } from "zod";
-import { Box, Typography, Button, IconButton, Stack } from "@mui/material";
+import { Box, Typography, Toolbar, IconButton } from "@mui/material";
 import { ArrowBack, ArrowForward } from "@mui/icons-material";
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import SaveIcon from "@mui/icons-material/Save";
+import LockIcon from "@mui/icons-material/Lock";
 import { useParams, useNavigate } from "react-router";
 import { GridReadyEvent } from "ag-grid-community";
+import FormikToolbarButton from "../../common/form/toolbar/FormikToolbarButton";
 
 import CashRegisterFormDataGrid from "./CashRegisterFormDataGrid";
 import { DatagridData } from "../../common/datagrid/@types/Datagrid";
@@ -77,7 +79,7 @@ function CashRegisterDetails() {
   const closingGridRef = useRef<GridReadyEvent<DatagridData<CashCountRow>> | null>(null);
   const incomesGridRef = useRef<GridReadyEvent<DatagridData<IncomeRow>> | null>(null);
   const expensesGridRef = useRef<GridReadyEvent<DatagridData<ExpenseRow>> | null>(null);
-  const { title, setTitle } = useContext(PageTitleContext);
+  const { setTitle } = useContext(PageTitleContext);
   const user = useStore((state) => state.user);
 
   // Stati per i dati iniziali delle griglie - mantengono referenza stabile
@@ -139,8 +141,10 @@ function CashRegisterDetails() {
   }, [currentDate, navigate]);
 
   const handleOpenMonthlyCalendar = useCallback(() => {
-    navigate("/gestionale/cassa/monthly");
-  }, [navigate]);
+    // Estrai anno e mese dalla data corrente nell'URL
+    const [year, month] = currentDate.split("-").map(Number);
+    navigate(`/gestionale/cassa/monthly?year=${year}&month=${month}`);
+  }, [currentDate, navigate]);
 
   const { submitCashRegister } = useSubmitCashRegister();
   const { closeCashRegister, loading: closing } = useCloseCashRegister();
@@ -156,7 +160,7 @@ function CashRegisterDetails() {
       logger.log("Loading cashRegister from server", cashRegister);
 
       // Convert date from ISO 8601 to YYYY-MM-DD
-      const dateStr = cashRegister.date.split('T')[0]; // Extract YYYY-MM-DD from ISO string
+      const dateStr = cashRegister.date.split("T")[0]; // Extract YYYY-MM-DD from ISO string
 
       // Popola i valori del form (solo campi non-griglia)
       const formikValues: FormikCashRegisterValues = {
@@ -185,19 +189,15 @@ function CashRegisterDetails() {
 
       setInitialIncomes(
         cashRegister.incomes && cashRegister.incomes.length > 0
-          ? cashRegister.incomes.map(i => ({ type: i.type, amount: i.amount }))
+          ? cashRegister.incomes.map((i) => ({ type: i.type, amount: i.amount }))
           : [
-            { type: "Pago in Bianco (Contante)", amount: cashRegister.cashInWhite || 0 },
-            { type: "Pagamenti Elettronici", amount: cashRegister.electronicPayments || 0 },
-            { type: "Pagamento con Fattura", amount: cashRegister.invoicePayments || 0 },
-          ]
+              { type: "Pago in Bianco (Contante)", amount: cashRegister.cashInWhite || 0 },
+              { type: "Pagamenti Elettronici", amount: cashRegister.electronicPayments || 0 },
+              { type: "Pagamento con Fattura", amount: cashRegister.invoicePayments || 0 },
+            ]
       );
 
-      setInitialExpenses(
-        cashRegister.expenses && cashRegister.expenses.length > 0
-          ? cashRegister.expenses.map(e => ({ description: e.description, amount: e.amount }))
-          : []
-      );
+      setInitialExpenses(cashRegister.expenses && cashRegister.expenses.length > 0 ? cashRegister.expenses.map((e) => ({ description: e.description, amount: e.amount })) : []);
 
       setTimeout(() => {
         formRef.current?.setStatus({
@@ -236,7 +236,10 @@ function CashRegisterDetails() {
 
   const onSubmit = async (values: FormikCashRegisterValues) => {
     try {
-      logger.log("onSubmit - values from form", values);
+      openingGridRef.current?.api.stopEditing();
+      closingGridRef.current?.api.stopEditing();
+      incomesGridRef.current?.api.stopEditing();
+      expensesGridRef.current?.api.stopEditing();
 
       // Leggi i dati dalle griglie
       const openingCounts = openingGridRef.current?.context.getGridData() || [];
@@ -287,6 +290,13 @@ function CashRegisterDetails() {
 
       if (result) {
         toast.success("Cassa salvata con successo!");
+
+        // Aggiorna il form con l'ID ritornato dal server
+        // Questo assicura che i successivi salvataggi siano update
+        if (result.registerId && !formRef.current?.values.registerId) {
+          formRef.current?.setFieldValue("registerId", result.registerId);
+        }
+
         // Dopo il salvataggio, aggiorna lo stato del form
         formRef.current?.setStatus({
           formStatus: formStatuses.UPDATE,
@@ -347,90 +357,79 @@ function CashRegisterDetails() {
       }}
       onSubmit={onSubmit}
     >
-      {({ status, isSubmitting, isValid }) => (
-        <Form noValidate>
-          <Box
-            sx={{
-              marginTop: 1,
-              paddingX: { xs: 1, sm: 2 },
-              paddingBottom: 3
-            }}
-          >
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: { xs: "column", sm: "row" },
-                justifyContent: "space-between",
-                alignItems: { xs: "stretch", sm: "center" },
-                mb: 2,
-                gap: { xs: 2, sm: 0 }
-              }}
-            >
-              <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, alignItems: { xs: "flex-start", sm: "center" }, gap: { xs: 1, sm: 2 } }}>
-                <Typography id="view-title" variant="h5" sx={{ fontSize: { xs: "1.5rem", sm: "1.5rem" } }}>
-                  {title}
-                </Typography>
-                <Stack direction="row" alignItems="center" spacing={{ xs: 0.5, sm: 1 }}>
-                  <IconButton size="medium" onClick={handlePreviousDay} title="Giorno precedente">
-                    <ArrowBack />
+      {({ status, isSubmitting, isValid, dirty }) => {
+        const disableSave = status?.isFormLocked || isSubmitting || !isValid || !dirty;
+
+        return (
+          <Form noValidate>
+            {/* Toolbar in stile FormikToolbar */}
+            <Box sx={{ borderBottom: 1, borderColor: "divider", bgcolor: "background.paper" }}>
+              <Toolbar
+                variant="dense"
+                disableGutters
+                sx={{
+                  minHeight: 48,
+                  height: 48,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  px: 2,
+                }}
+              >
+                {/* Bottoni azione a sinistra */}
+                <Box sx={{ height: 48, display: "flex", alignItems: "stretch" }}>
+                  <FormikToolbarButton
+                    startIcon={<SaveIcon />}
+                    disabled={disableSave}
+                    type="submit"
+                  >
+                    Salva
+                  </FormikToolbarButton>
+                  {status?.formStatus === formStatuses.UPDATE && status?.isFormLocked === false && (
+                    <FormikToolbarButton
+                      startIcon={<LockIcon />}
+                      onClick={handleCloseCashRegister}
+                      disabled={closing}
+                      color="warning"
+                    >
+                      Chiudi Cassa
+                    </FormikToolbarButton>
+                  )}
+                </Box>
+
+                {/* Navigazione date al centro/destra */}
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <IconButton size="small" onClick={handlePreviousDay} title="Giorno precedente">
+                    <ArrowBack fontSize="small" />
                   </IconButton>
-                  <Typography variant="h5" sx={{ minWidth: { xs: "100px", sm: "120px" }, textAlign: "center", fontSize: { xs: "1.5rem", sm: "1.5rem" } }}>
-                    <span style={{ display: "inline-block", width: 120, textAlign: "center" }}>{getWeekdayName(currentDate)}</span>
-                    {" - "}
-                    {getFormattedDate(currentDate, "DD/MM/YYYY")}
+                  <Typography variant="body2" sx={{ minWidth: 200, textAlign: "center" }}>
+                    {getWeekdayName(currentDate)} - {getFormattedDate(currentDate, "DD/MM/YYYY")}
                   </Typography>
-                  <IconButton size="medium" onClick={handleNextDay} title="Giorno successivo">
-                    <ArrowForward />
+                  <IconButton size="small" onClick={handleNextDay} title="Giorno successivo">
+                    <ArrowForward fontSize="small" />
                   </IconButton>
-                  <IconButton
-                    size="medium"
-                    onClick={handleOpenMonthlyCalendar}
-                    title="Vista mensile"
-                    color="primary"
-                    sx={{ ml: { xs: 0.5, sm: 1 } }}
-                  >
-                    <CalendarMonthIcon />
+                  <IconButton size="small" onClick={handleOpenMonthlyCalendar} title="Vista mensile" color="primary">
+                    <CalendarMonthIcon fontSize="small" />
                   </IconButton>
-                </Stack>
-              </Box>
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={{ xs: 1, sm: 2 }} alignItems="stretch" sx={{ width: { xs: "100%", sm: "auto" } }}>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  type="submit"
-                  disabled={isSubmitting || !isValid || status?.isFormLocked}
-                  size="large"
-                  sx={{ minHeight: { xs: "48px", sm: "36px" } }}
-                >
-                  Salva
-                </Button>
-                {status?.formStatus === formStatuses.UPDATE && status?.isFormLocked === false && (
-                  <Button
-                    variant="contained"
-                    color="warning"
-                    onClick={handleCloseCashRegister}
-                    disabled={closing}
-                    size="large"
-                    sx={{ minHeight: { xs: "48px", sm: "36px" } }}
-                  >
-                    Chiudi Cassa
-                  </Button>
-                )}
-              </Stack>
+                </Box>
+              </Toolbar>
             </Box>
-            <CashRegisterFormDataGrid
-              openingGridRef={openingGridRef}
-              closingGridRef={closingGridRef}
-              incomesGridRef={incomesGridRef}
-              expensesGridRef={expensesGridRef}
-              openingRowData={openingRowData}
-              closingRowData={closingRowData}
-              initialIncomes={initialIncomes}
-              initialExpenses={initialExpenses}
-            />
-          </Box>
-        </Form>
-      )}
+
+            {/* Contenuto principale */}
+            <Box sx={{ paddingX: { xs: 1, sm: 2 }, paddingTop: 2, paddingBottom: 3 }}>
+              <CashRegisterFormDataGrid
+                openingGridRef={openingGridRef}
+                closingGridRef={closingGridRef}
+                incomesGridRef={incomesGridRef}
+                expensesGridRef={expensesGridRef}
+                openingRowData={openingRowData}
+                closingRowData={closingRowData}
+                initialIncomes={initialIncomes}
+                initialExpenses={initialExpenses}
+              />
+            </Box>
+          </Form>
+        );
+      }}
     </Formik>
   );
 }

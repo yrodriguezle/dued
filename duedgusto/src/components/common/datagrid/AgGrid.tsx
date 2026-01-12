@@ -15,7 +15,9 @@ function AgGridInner<T extends Record<string, unknown>>(agGridProps: AgGridReact
   return (
     <AgGridReact<DatagridData<T>>
       localeText={AG_GRID_LOCALE_IT}
-      theme={userTheme.mode === "light" ? themeLight : themeDark} ref={ref}
+      theme={userTheme.mode === "light" ? themeLight : themeDark}
+      stopEditingWhenCellsLoseFocus={true}
+      ref={ref}
       {...agGridProps}
     />
   );

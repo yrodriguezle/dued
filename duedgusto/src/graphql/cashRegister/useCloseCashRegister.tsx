@@ -7,6 +7,9 @@ function useCloseCashRegister() {
   const closeCashRegister = async (registerId: number) => {
     const result = await mutate({
       variables: { registerId },
+      // Aggiorna la cache per riflettere lo stato CLOSED nella vista mensile
+      refetchQueries: ["GetCashRegisters", "GetCashRegister"],
+      awaitRefetchQueries: false,
     });
     if (result.data?.cashManagement?.closeCashRegister) {
       return result.data.cashManagement.closeCashRegister;
