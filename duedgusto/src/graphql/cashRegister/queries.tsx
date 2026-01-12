@@ -39,12 +39,12 @@ export const getCashRegister: TypedDocumentNode<GetCashRegisterData, GetCashRegi
     }
   }`);
 
-// Get cash registers with relay pagination
+// Get cash registers with relay pagination (using standard connection pattern)
 export const getCashRegisters = gql(`
   ${cashRegisterFragment}
   query GetCashRegisters($pageSize: Int!, $where: String, $orderBy: String, $cursor: Int) {
-    cashManagement {
-      cashRegistersConnection(first: $pageSize, where: $where, order: $orderBy, after: $cursor) {
+    connection {
+      cashRegisters(first: $pageSize, where: $where, orderBy: $orderBy, cursor: $cursor) {
         totalCount
         pageInfo {
           hasNextPage
@@ -52,8 +52,11 @@ export const getCashRegisters = gql(`
           hasPreviousPage
           startCursor
         }
-        items {
-          ...CashRegisterFragment
+        edges {
+          node {
+            ...CashRegisterFragment
+          }
+          cursor
         }
       }
     }

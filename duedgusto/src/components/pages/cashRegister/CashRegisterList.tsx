@@ -142,26 +142,56 @@ function CashRegisterList() {
         },
       },
       {
-        field: "totalSales",
-        headerName: "Vendite Totali",
+        field: "revenue",
+        headerName: "Ricavo",
         width: 140,
-        valueFormatter: (params: ValueFormatterParams<CashRegister>) => {
+        valueGetter: (params: { data: CashRegister }) => {
+          const cr = params.data;
+          if (!cr) return 0;
+          // Formula: (chiusura + fatture) - (apertura + spese)
+          return (
+            (cr.closingTotal || 0) + (cr.invoicePayments || 0) -
+            (cr.openingTotal || 0) - (cr.supplierExpenses || 0) - (cr.dailyExpenses || 0)
+          );
+        },
+        valueFormatter: (params: ValueFormatterParams) => {
           return `€ ${params.value?.toFixed(2) || "0.00"}`;
         },
       },
       {
-        field: "cashSales",
-        headerName: "Contanti",
-        width: 120,
+        field: "cashInWhite",
+        headerName: "Contanti in Bianco",
+        width: 150,
         valueFormatter: (params: ValueFormatterParams<CashRegister>) => {
           return `€ ${params.value?.toFixed(2) || "0.00"}`;
         },
       },
       {
         field: "electronicPayments",
-        headerName: "Elettronici",
-        width: 120,
+        headerName: "Pagamenti Elettronici",
+        width: 160,
         valueFormatter: (params: ValueFormatterParams<CashRegister>) => {
+          return `€ ${params.value?.toFixed(2) || "0.00"}`;
+        },
+      },
+      {
+        field: "invoicePayments",
+        headerName: "Pagamenti Fattura",
+        width: 150,
+        valueFormatter: (params: ValueFormatterParams<CashRegister>) => {
+          return `€ ${params.value?.toFixed(2) || "0.00"}`;
+        },
+      },
+      {
+        field: "totalExpenses",
+        headerName: "Spese Totali",
+        width: 130,
+        valueGetter: (params: { data: CashRegister }) => {
+          const cr = params.data;
+          if (!cr) return 0;
+          return (cr.supplierExpenses || 0) + (cr.dailyExpenses || 0);
+        },
+        valueFormatter: (params: ValueFormatterParams) => {
           return `€ ${params.value?.toFixed(2) || "0.00"}`;
         },
       },
@@ -203,10 +233,6 @@ function CashRegisterList() {
     ],
     []
   );
-
-  useEffect(() => {
-    console.log("cashRegisters", cashRegisters);
-  }, [cashRegisters]);
 
   return (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>

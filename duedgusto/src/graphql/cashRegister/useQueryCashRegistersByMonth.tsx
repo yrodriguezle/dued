@@ -34,7 +34,7 @@ export function useQueryCashRegistersByMonth({
   });
 
   const cashRegisters = useMemo(() => {
-    return data?.cashManagement?.cashRegistersConnection?.items || [];
+    return data?.connection?.cashRegisters?.edges?.map(edge => edge.node) || [];
   }, [data]);
 
   const refresh = useCallback(() => {

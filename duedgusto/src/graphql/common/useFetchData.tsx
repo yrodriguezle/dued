@@ -74,9 +74,30 @@ function useFetchData<T>({
           if (thisRequest !== requestId.current) return;
           const nextPage = reverseGrid ? "hasPreviousPage" : "hasNextPage";
           const queryName = getQueryName(query);
-          const totalCount = firstPage && firstPage.connection[queryName]?.totalCount;
-          const hasMore = firstPage?.connection[queryName]?.pageInfo[nextPage];
-          const { items = [] } = (firstPage && firstPage.connection[queryName]) || {};
+
+          // Support both old and new patterns
+          let connectionData;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const firstPageAny = firstPage as any;
+          if (firstPageAny?.connection?.[queryName]) {
+            // Old pattern: data.connection[queryName]
+            connectionData = firstPageAny.connection[queryName];
+          } else if (firstPageAny?.[queryName]) {
+            // New pattern: data[queryName]
+            connectionData = firstPageAny[queryName];
+          }
+
+          const totalCount = connectionData?.totalCount || 0;
+          const hasMore = connectionData?.pageInfo?.[nextPage] || false;
+
+          // Support both 'items' (old) and 'edges' (new Relay standard)
+          let items = [];
+          if (connectionData?.items) {
+            items = connectionData.items;
+          } else if (connectionData?.edges) {
+            items = connectionData.edges.map((edge: { node: T }) => edge.node);
+          }
+
           const newItems = reverseGrid ? items.slice().reverse() : items;
           setTotalCount(totalCount);
           setHasMore(hasMore);
@@ -122,9 +143,30 @@ function useFetchData<T>({
           next: ({ data: nextPage }) => {
             const nextPageInfo = reverseGrid ? "hasPreviousPage" : "hasNextPage";
             const queryName = getQueryName(query);
-            const totalCount = nextPage && nextPage.connection[queryName]?.totalCount;
-            const hasMore = nextPage?.connection[queryName]?.pageInfo[nextPageInfo];
-            const { items = [] } = (nextPage && nextPage.connection[queryName]) || {};
+
+            // Support both old and new patterns
+            let connectionData;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const nextPageAny = nextPage as any;
+            if (nextPageAny?.connection?.[queryName]) {
+              // Old pattern: data.connection[queryName]
+              connectionData = nextPageAny.connection[queryName];
+            } else if (nextPageAny?.[queryName]) {
+              // New pattern: data[queryName]
+              connectionData = nextPageAny[queryName];
+            }
+
+            const totalCount = connectionData?.totalCount || 0;
+            const hasMore = connectionData?.pageInfo?.[nextPageInfo] || false;
+
+            // Support both 'items' (old) and 'edges' (new Relay standard)
+            let items = [];
+            if (connectionData?.items) {
+              items = connectionData.items;
+            } else if (connectionData?.edges) {
+              items = connectionData.edges.map((edge: { node: T }) => edge.node);
+            }
+
             const newItems = reverseGrid ? items.slice().reverse() : items;
             setItems((prevItems) => [...prevItems, ...newItems]);
             setTotalCount(totalCount);

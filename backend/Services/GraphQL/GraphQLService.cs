@@ -42,13 +42,93 @@ public class GraphQLService
         DataLoaderContext dataLoader = dataLoaderAccessor.Context;
 
         int pageSize = context.GetArgument<int?>("first") ?? 10;
-        int offset = context.GetArgument<int?>("cursor") ?? 0;
+
+        // Support both 'after' (Relay standard string cursor) and 'cursor' (legacy int offset)
+        int offset = 0;
+        string? afterCursor = context.GetArgument<string?>("after");
+        if (!string.IsNullOrEmpty(afterCursor) && int.TryParse(afterCursor, out int parsedAfter))
+        {
+            offset = parsedAfter;
+        }
+        else
+        {
+            offset = context.GetArgument<int?>("cursor") ?? 0;
+        }
 
         // SECURITY FIX: Use LINQ instead of raw SQL to prevent SQL injection
         // whereClause and orderByClause are ignored for security reasons
         // If filtering/sorting is needed, implement specific query methods per entity
 
         IQueryable<T> query = dbContext.Set<T>();
+
+        // Get total count before pagination
+        int totalCount = await query.CountAsync();
+
+        // Apply pagination using LINQ (safe from SQL injection)
+        List<T> items = await query
+            .Skip(offset)
+            .Take(pageSize)
+            .ToListAsync();
+
+        List<Edge<T>> edges = [.. items.Select(item => new Edge<T>
+        {
+            Node = item,
+            Cursor = cursorSelector(item)
+        })];
+
+        string? startCursor = edges.FirstOrDefault()?.Cursor;
+        string? endCursor = edges.LastOrDefault()?.Cursor;
+
+        PageInfo pageInfo = new()
+        {
+            StartCursor = startCursor,
+            EndCursor = endCursor,
+            HasNextPage = (offset + pageSize) < totalCount,
+            HasPreviousPage = offset > 0
+        };
+
+        Connection<T> connectionResult = new()
+        {
+            Edges = edges,
+            PageInfo = pageInfo,
+            TotalCount = totalCount
+        };
+
+        return connectionResult;
+    }
+
+    // Overload that accepts a query configurator for complex queries with includes
+    public static async Task<Connection<T>> GetConnectionAsync<T>(
+        IResolveFieldContext<object?> context,
+        string? whereClause,
+        string? orderByClause,
+        Func<T, string> cursorSelector,
+        Func<IQueryable<T>, IQueryable<T>> queryConfigurator
+    ) where T : class
+    {
+        AppDbContext dbContext = GetService<AppDbContext>(context);
+        IDataLoaderContextAccessor dataLoaderAccessor = GetService<IDataLoaderContextAccessor>(context);
+        DataLoaderContext dataLoader = dataLoaderAccessor.Context;
+
+        int pageSize = context.GetArgument<int?>("first") ?? 10;
+
+        // Support both 'after' (Relay standard string cursor) and 'cursor' (legacy int offset)
+        int offset = 0;
+        string? afterCursor = context.GetArgument<string?>("after");
+        if (!string.IsNullOrEmpty(afterCursor) && int.TryParse(afterCursor, out int parsedAfter))
+        {
+            offset = parsedAfter;
+        }
+        else
+        {
+            offset = context.GetArgument<int?>("cursor") ?? 0;
+        }
+
+        // Start with base query
+        IQueryable<T> query = dbContext.Set<T>();
+
+        // Apply query configurator (includes, filtering, etc.)
+        query = queryConfigurator(query);
 
         // Get total count before pagination
         int totalCount = await query.CountAsync();

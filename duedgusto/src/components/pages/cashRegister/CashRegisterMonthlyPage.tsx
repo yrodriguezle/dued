@@ -64,9 +64,14 @@ function CashRegisterMonthlyPage() {
   const events = useMemo<CashEvent[]>(() => {
     return cashRegisters.map((cr: CashRegister, index: number) => {
       const date = new Date(cr.date);
+      // Calcola ricavo: (chiusura + fatture) - (apertura + spese)
+      const revenue =
+        (cr.closingTotal || 0) + (cr.invoicePayments || 0) -
+        (cr.openingTotal || 0) - (cr.supplierExpenses || 0) - (cr.dailyExpenses || 0);
+
       return {
         id: cr.registerId || index,
-        title: `Cassa: €${(cr.closingTotal || 0).toFixed(2)}`,
+        title: `Ricavo: €${revenue.toFixed(2)}`,
         start: date,
         end: date,
         registerId: cr.registerId,

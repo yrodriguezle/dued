@@ -6,6 +6,7 @@ using GraphQL.Types;
 using duedgusto.Models;
 using duedgusto.Services.GraphQL;
 using duedgusto.DataAccess;
+using duedgusto.GraphQL.CashManagement.Types;
 
 namespace duedgusto.GraphQL.CashManagement;
 
@@ -16,7 +17,7 @@ public class CashManagementMutations : ObjectGraphType
         this.Authorize();
 
         // Create or Update CashRegister
-        Field<CashRegisterType, CashRegister>("mutateCashRegister")
+        Field<CashRegisterType>("mutateCashRegister")
             .Argument<NonNullGraphType<CashRegisterInputType>>("cashRegister", "Cash register data")
             .ResolveAsync(async context =>
             {
@@ -194,7 +195,7 @@ public class CashManagementMutations : ObjectGraphType
             });
 
         // Close cash register (set status to CLOSED)
-        Field<CashRegisterType, CashRegister>("closeCashRegister")
+        Field<CashRegisterType>("closeCashRegister")
             .Argument<NonNullGraphType<IntGraphType>>("registerId")
             .ResolveAsync(async context =>
             {

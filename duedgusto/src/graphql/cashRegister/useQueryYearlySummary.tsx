@@ -43,7 +43,7 @@ export function useQueryYearlySummary({ year, skip = false }: UseQueryYearlySumm
   });
 
   const yearlyData: YearlySummaryData = useMemo(() => {
-    const cashRegisters = data?.cashManagement?.cashRegistersConnection?.items || [];
+    const cashRegisters = data?.connection?.cashRegisters?.edges?.map(edge => edge.node) || [];
 
     // Aggrega dati per mese
     const monthlyMap = new Map<number, {

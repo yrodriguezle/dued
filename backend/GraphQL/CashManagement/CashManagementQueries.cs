@@ -187,7 +187,7 @@ public class CashRegisterConnectionType : ObjectGraphType<CashRegisterConnection
 {
     public CashRegisterConnectionType()
     {
-        Name = "CashRegisterConnection";
+        Name = "CashRegisterPagedConnection";
         Field(x => x.TotalCount);
         Field<CashPageInfoType, CashPageInfo>("pageInfo").Resolve(context => context.Source.PageInfo);
         Field<ListGraphType<CashRegisterType>, List<CashRegister>>("items").Resolve(context => context.Source.Items);

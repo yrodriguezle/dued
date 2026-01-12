@@ -22,7 +22,8 @@
       "Bash(npm uninstall:*)",
       "Bash(npx tsc:*)",
       "Bash(npm run dev:*)",
-      "Bash(timeout /t 5)"
+      "Bash(timeout /t 5)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []
