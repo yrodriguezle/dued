@@ -6,6 +6,7 @@ using GraphQL.Types;
 using duedgusto.Models;
 using duedgusto.Services.GraphQL;
 using duedgusto.DataAccess;
+using duedgusto.GraphQL.CashManagement.Types;
 
 namespace duedgusto.GraphQL.CashManagement;
 
@@ -108,17 +109,20 @@ public class CashManagementQueries : ObjectGraphType
                 var today = DateTime.Today;
                 var startOfMonth = new DateTime(today.Year, today.Month, 1);
                 var startOfWeek = today.AddDays(-(int)today.DayOfWeek);
+                var startOfLastWeek = startOfWeek.AddDays(-7);
 
                 var todayRegister = await dbContext.CashRegisters
                     .Where(r => r.Date == today)
                     .FirstOrDefaultAsync();
 
+                // Carica dati per il mese corrente
                 var monthRegisters = await dbContext.CashRegisters
                     .Where(r => r.Date >= startOfMonth && r.Date <= today)
                     .ToListAsync();
 
+                // Carica dati per settimana corrente e precedente per il trend
                 var weekRegisters = await dbContext.CashRegisters
-                    .Where(r => r.Date >= startOfWeek && r.Date <= today)
+                    .Where(r => r.Date >= startOfLastWeek && r.Date <= today)
                     .OrderBy(r => r.Date)
                     .ToListAsync();
 

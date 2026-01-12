@@ -15,13 +15,13 @@ import showToast from "../../../common/toast/showToast";
 
 function CashRegisterList() {
   const navigate = useNavigate();
-  const { setTitle } = useContext(PageTitleContext);
+  const { title, setTitle } = useContext(PageTitleContext);
   const gridRef = useRef<GridReadyEvent<DatagridData<CashRegister>> | null>(null);
   const [selectedRows, setSelectedRows] = useState<DatagridData<CashRegister>[]>([]);
   const onConfirm = useConfirm();
 
   useEffect(() => {
-    setTitle("Lista Chiusure Cassa");
+    setTitle("Chiusure cassa");
   }, [setTitle]);
 
   const variables = useMemo(
@@ -50,7 +50,7 @@ function CashRegisterList() {
 
   const handleNew = useCallback(() => {
     // Navigate to today's date
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
     navigate(`/gestionale/cassa/${today}`);
   }, [navigate]);
 
@@ -102,7 +102,7 @@ function CashRegisterList() {
       const data = event.data as CashRegister | undefined;
       if (data?.date) {
         // Extract date in YYYY-MM-DD format
-        const dateStr = data.date.split('T')[0];
+        const dateStr = data.date.split("T")[0];
         navigate(`/gestionale/cassa/${dateStr}`);
       }
     },
@@ -197,37 +197,27 @@ function CashRegisterList() {
             RECONCILED: "Riconciliata",
           };
           const status = params.value as string;
-          return (
-            <Chip
-              label={statusLabels[status] || status}
-              color={statusColors[status] || "default"}
-              size="small"
-            />
-          );
+          return <Chip label={statusLabels[status] || status} color={statusColors[status] || "default"} size="small" />;
         },
       },
     ],
     []
   );
 
+  useEffect(() => {
+    console.log("cashRegisters", cashRegisters);
+  }, [cashRegisters]);
+
   return (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
       <ListToolbar onNew={handleNew} onDelete={handleDelete} />
       <Box sx={{ marginTop: 1, paddingX: 2 }}>
         <Typography id="view-title" variant="h5" gutterBottom>
-          Lista Chiusure Cassa
+          {title}
         </Typography>
       </Box>
       <Box sx={{ flex: 1, paddingX: 2, paddingBottom: 2 }}>
-        <Datagrid
-          items={cashRegisters || []}
-          columnDefs={columnDefs}
-          height="100%"
-          loading={loading}
-          onGridReady={handleGridReady}
-          onRowDoubleClicked={handleRowDoubleClicked}
-          presentation
-        />
+        <Datagrid items={cashRegisters || []} columnDefs={columnDefs} height="100%" loading={loading} onGridReady={handleGridReady} onRowDoubleClicked={handleRowDoubleClicked} presentation />
       </Box>
     </Box>
   );

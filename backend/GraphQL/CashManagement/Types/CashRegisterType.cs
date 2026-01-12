@@ -2,7 +2,7 @@ using GraphQL.Types;
 using duedgusto.Models;
 using duedgusto.GraphQL.Authentication;
 
-namespace duedgusto.GraphQL.CashManagement;
+namespace duedgusto.GraphQL.CashManagement.Types;
 
 public class CashRegisterType : ObjectGraphType<CashRegister>
 {

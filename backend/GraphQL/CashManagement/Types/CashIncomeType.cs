@@ -1,7 +1,7 @@
 using GraphQL.Types;
 using duedgusto.Models;
 
-namespace duedgusto.GraphQL.CashManagement;
+namespace duedgusto.GraphQL.CashManagement.Types;
 
 public class CashIncomeType : ObjectGraphType<CashIncome>
 {

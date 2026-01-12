@@ -1,6 +1,7 @@
+using duedgusto.GraphQL.CashManagement.Types;
 using GraphQL.Types;
 
-namespace duedgusto.GraphQL.CashManagement;
+namespace duedgusto.GraphQL.CashManagement.Types;
 
 public class CashRegisterInput
 {
