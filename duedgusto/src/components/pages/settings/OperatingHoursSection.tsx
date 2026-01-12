@@ -25,7 +25,7 @@ const currencies = [
 
 function OperatingHoursSection({ errors, touched }: OperatingHoursSectionProps) {
   return (
-    <Paper variant="outlined" sx={{ padding: 2, backgroundColor: "action.hover" }}>
+    <Paper sx={{ padding: 1 }}>
       <Typography variant="h6" sx={{ marginBottom: 2, fontWeight: "bold" }}>
         Orari di Apertura
       </Typography>

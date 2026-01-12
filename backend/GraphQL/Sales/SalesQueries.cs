@@ -6,6 +6,8 @@ using duedgusto.Models;
 
 namespace duedgusto.GraphQL.Sales;
 
+using duedgusto.GraphQL.Sales.Types;
+
 public class SalesQueries : ObjectGraphType
 {
     public SalesQueries(AppDbContext dbContext)

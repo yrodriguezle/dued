@@ -16,17 +16,23 @@ interface OperatingDaysSectionProps {
   touched: Record<string, boolean>;
 }
 
+// Assuming BusinessSettings is defined elsewhere, e.g.,
+// interface BusinessSettings {
+//   operatingDays: boolean[];
+//   // other properties
+// }
+
 function OperatingDaysSection({ errors, touched }: OperatingDaysSectionProps) {
-  const { values, setFieldValue } = useFormikContext<BusinessSettings>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { values, setFieldValue, setFieldTouched, status } = useFormikContext<BusinessSettings>() as any;
 
   const handleDayChange = (index: number, checked: boolean) => {
-    const newDays = [...values.operatingDays];
-    newDays[index] = checked;
-    setFieldValue("operatingDays", newDays);
+    setFieldValue(`operatingDays.${index}`, checked);
+    setFieldTouched("operatingDays", true);
   };
 
   return (
-    <Paper variant="outlined" sx={{ padding: 2, backgroundColor: "action.hover" }}>
+    <Paper sx={{ padding: 1 }}>
       <Typography variant="h6" sx={{ marginBottom: 2, fontWeight: "bold" }}>
         Giorni di Apertura
       </Typography>
@@ -45,6 +51,7 @@ function OperatingDaysSection({ errors, touched }: OperatingDaysSectionProps) {
                     checked={values.operatingDays[index] || false}
                     onChange={(e) => handleDayChange(index, e.target.checked)}
                     name={`operatingDays.${index}`}
+                    disabled={status?.isFormLocked}
                   />
                 }
                 label={name}

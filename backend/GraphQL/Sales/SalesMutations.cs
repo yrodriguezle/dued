@@ -6,6 +6,8 @@ using duedgusto.Models;
 
 namespace duedgusto.GraphQL.Sales;
 
+using duedgusto.GraphQL.Sales.Types;
+
 public class SalesMutations : ObjectGraphType
 {
     public SalesMutations(AppDbContext dbContext)
@@ -170,16 +172,4 @@ public class SalesMutations : ObjectGraphType
     }
 }
 
-public record CreateSaleInput(
-    int RegisterId,
-    int ProductId,
-    decimal Quantity,
-    string? Notes = null,
-    DateTime? Timestamp = null
-);
 
-public record UpdateSaleInput(
-    int? ProductId = null,
-    decimal? Quantity = null,
-    string? Notes = null
-);

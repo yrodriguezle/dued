@@ -5,6 +5,8 @@ using duedgusto.Models;
 using duedgusto.Services.GraphQL;
 using duedgusto.DataAccess;
 
+using duedgusto.GraphQL.Settings.Types;
+
 namespace duedgusto.GraphQL.Settings;
 
 public class SettingsMutations : ObjectGraphType
@@ -19,7 +21,7 @@ public class SettingsMutations : ObjectGraphType
             .ResolveAsync(async context =>
             {
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
-                var input = context.GetArgument<dynamic>("settings");
+                var input = context.GetArgument<BusinessSettingsInput>("settings");
 
                 BusinessSettings? settings = null;
 
@@ -36,39 +38,39 @@ public class SettingsMutations : ObjectGraphType
                 // Update fields if provided
                 if (input != null)
                 {
-                    if (input.businessName is string businessName && !string.IsNullOrEmpty(businessName))
+                    if (!string.IsNullOrEmpty(input.BusinessName))
                     {
-                        settings.BusinessName = businessName;
+                        settings.BusinessName = input.BusinessName;
                     }
 
-                    if (input.openingTime is string openingTime && !string.IsNullOrEmpty(openingTime))
+                    if (!string.IsNullOrEmpty(input.OpeningTime))
                     {
-                        settings.OpeningTime = openingTime;
+                        settings.OpeningTime = input.OpeningTime;
                     }
 
-                    if (input.closingTime is string closingTime && !string.IsNullOrEmpty(closingTime))
+                    if (!string.IsNullOrEmpty(input.ClosingTime))
                     {
-                        settings.ClosingTime = closingTime;
+                        settings.ClosingTime = input.ClosingTime;
                     }
 
-                    if (input.operatingDays is string operatingDays && !string.IsNullOrEmpty(operatingDays))
+                    if (!string.IsNullOrEmpty(input.OperatingDays))
                     {
-                        settings.OperatingDays = operatingDays;
+                        settings.OperatingDays = input.OperatingDays;
                     }
 
-                    if (input.timezone is string timezone && !string.IsNullOrEmpty(timezone))
+                    if (!string.IsNullOrEmpty(input.Timezone))
                     {
-                        settings.Timezone = timezone;
+                        settings.Timezone = input.Timezone;
                     }
 
-                    if (input.currency is string currency && !string.IsNullOrEmpty(currency))
+                    if (!string.IsNullOrEmpty(input.Currency))
                     {
-                        settings.Currency = currency;
+                        settings.Currency = input.Currency;
                     }
 
-                    if (input.vatRate is decimal vatRate && vatRate > 0)
+                    if (input.VatRate.HasValue && input.VatRate.Value > 0)
                     {
-                        settings.VatRate = vatRate;
+                        settings.VatRate = input.VatRate.Value;
                     }
                 }
 

@@ -1,7 +1,7 @@
 using GraphQL.Types;
 using duedgusto.Models;
 
-namespace duedgusto.GraphQL.Sales;
+namespace duedgusto.GraphQL.Sales.Types;
 
 public class SaleType : ObjectGraphType<Sale>
 {

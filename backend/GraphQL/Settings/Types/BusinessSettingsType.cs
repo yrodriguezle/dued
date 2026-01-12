@@ -1,7 +1,7 @@
 using GraphQL.Types;
 using duedgusto.Models;
 
-namespace duedgusto.GraphQL.Settings;
+namespace duedgusto.GraphQL.Settings.Types;
 
 public class BusinessSettingsType : ObjectGraphType<BusinessSettings>
 {

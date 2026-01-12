@@ -7,6 +7,8 @@ using duedgusto.DataAccess;
 
 namespace duedgusto.GraphQL.Settings;
 
+using duedgusto.GraphQL.Settings.Types;
+
 public class SettingsQueries : ObjectGraphType
 {
     public SettingsQueries()

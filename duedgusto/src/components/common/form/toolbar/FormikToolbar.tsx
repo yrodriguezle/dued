@@ -71,18 +71,23 @@ export default function FormikToolbar({
     [deleteDenied, disabledDelete, insertDenied, status.formStatus, updateDenied]
   );
 
+  const isLocked = Boolean(formikProps.status?.isFormLocked);
+  
   const formLocked = useMemo(
-    () => Boolean(formikProps.status?.isFormLocked),
-    [formikProps.status?.isFormLocked]
+    () => isLocked,
+    [isLocked]
   );
   const handleUnlockForm = useCallback(
     () => {
+      if (!isLocked) {
+        formikProps.resetForm();
+      }
       formikProps.setStatus({
         formStatus: formStatuses.UPDATE,
         isFormLocked: !formLocked,
       });
     },
-    [formLocked, formikProps]
+    [formLocked, formikProps, isLocked]
   );
 
   return (
