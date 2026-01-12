@@ -21,6 +21,8 @@ export function useGetBusinessSettings(skip = false): UseGetBusinessSettingsResu
 
     return {
       ...rawSettings,
+      openingTime: rawSettings.openingTime?.substring(0, 5) || "",
+      closingTime: rawSettings.closingTime?.substring(0, 5) || "",
       operatingDays: typeof rawSettings.operatingDays === "string"
         ? JSON.parse(rawSettings.operatingDays)
         : rawSettings.operatingDays,

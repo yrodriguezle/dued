@@ -26,27 +26,23 @@ public class CashManagementMutations : ObjectGraphType
 
                 CashRegister? cashRegister = null;
 
-                // Update existing or create new
-                if (input.RegisterId.HasValue && input.RegisterId.Value > 0)
+                // Check if a cash register already exists for this date
+                cashRegister = await dbContext.CashRegisters
+                    .Include(r => r.CashCounts)
+                    .Include(r => r.CashIncomes)
+                    .Include(r => r.CashExpenses)
+                    .FirstOrDefaultAsync(r => r.Date.Date == input.Date.Date);
+
+                if (cashRegister != null)
                 {
-                    cashRegister = await dbContext.CashRegisters
-                        .Include(r => r.CashCounts)
-                        .Include(r => r.CashIncomes)
-                        .Include(r => r.CashExpenses)
-                        .FirstOrDefaultAsync(r => r.RegisterId == input.RegisterId.Value);
-
-                    if (cashRegister == null)
-                    {
-                        throw new Exception($"Cash register with ID {input.RegisterId} not found");
-                    }
-
-                    // Remove existing counts, incomes, and expenses
+                    // Update existing record - remove existing counts, incomes, and expenses
                     dbContext.CashCounts.RemoveRange(cashRegister.CashCounts);
                     dbContext.CashIncomes.RemoveRange(cashRegister.CashIncomes);
                     dbContext.CashExpenses.RemoveRange(cashRegister.CashExpenses);
                 }
                 else
                 {
+                    // Create new record
                     cashRegister = new CashRegister();
                     dbContext.CashRegisters.Add(cashRegister);
                 }

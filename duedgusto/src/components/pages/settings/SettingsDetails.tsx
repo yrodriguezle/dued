@@ -31,8 +31,6 @@ const validationSchema = z.object({
   currency: z.string(),
   vatRate: z.number().min(0, "IVA non può essere negativa").max(100, "IVA non può essere maggiore di 100"),
   settingsId: z.number().optional(),
-  updatedAt: z.string().optional(),
-  createdAt: z.string().optional(),
 });
 
 function SettingsDetails() {
@@ -47,11 +45,11 @@ function SettingsDetails() {
       const updated = data.settings.updateBusinessSettings;
       const parsed = {
         ...updated,
-         operatingDays: typeof updated.operatingDays === "string" 
-           ? JSON.parse(updated.operatingDays) 
-           : updated.operatingDays,
+        operatingDays: typeof updated.operatingDays === "string"
+          ? JSON.parse(updated.operatingDays)
+          : updated.operatingDays,
       };
-      
+
       handleInitializeValues(parsed).then(() => {
         formRef.current?.setStatus({
           formStatus: formStatuses.UPDATE,
@@ -74,7 +72,7 @@ function SettingsDetails() {
       handleInitializeValues(settings).then(() => {
         // Set form to locked/view mode initially after loading data
         setTimeout(() => {
-             formRef.current?.setStatus({
+          formRef.current?.setStatus({
             formStatus: formStatuses.UPDATE,
             isFormLocked: true,
           });
@@ -94,16 +92,16 @@ function SettingsDetails() {
       if (!confirmed) {
         return;
       }
-       // If we have settings loaded, revert to them
-       if (settings) {
-         await handleInitializeValues(settings);
-          formRef.current?.setStatus({
-             formStatus: formStatuses.UPDATE,
-             isFormLocked: true,
-          });
-       } else {
-         formRef.current?.resetForm();
-       }
+      // If we have settings loaded, revert to them
+      if (settings) {
+        await handleInitializeValues(settings);
+        formRef.current?.setStatus({
+          formStatus: formStatuses.UPDATE,
+          isFormLocked: true,
+        });
+      } else {
+        formRef.current?.resetForm();
+      }
     },
     [onConfirm, settings, handleInitializeValues]
   );
@@ -115,8 +113,8 @@ function SettingsDetails() {
           variables: {
             input: {
               businessName: values.businessName,
-              openingTime: values.openingTime.length === 5 ? `${values.openingTime}:00` : values.openingTime,
-              closingTime: values.closingTime.length === 5 ? `${values.closingTime}:00` : values.closingTime,
+              openingTime: values.openingTime.substring(0, 5),
+              closingTime: values.closingTime.substring(0, 5),
               operatingDays: JSON.stringify(values.operatingDays),
               timezone: values.timezone,
               currency: values.currency,
@@ -125,7 +123,7 @@ function SettingsDetails() {
             },
           },
         });
-      } catch (err) {
+      } catch {
         // Error handling is done in mutation onError
       }
     },
@@ -149,17 +147,17 @@ function SettingsDetails() {
       </Container>
     );
   }
-  
+
   // Validation function wrapper for Zod
-   const validate = (values: BusinessSettings) => {
-      const result = validationSchema.safeParse(values);
-      if (result.success) return;
-      
-      const errors: Record<string, string> = {};
-      result.error.issues.forEach((issue) => {
-          errors[issue.path[0] as string] = issue.message;
-      });
-      return errors;
+  const validate = (values: BusinessSettings) => {
+    const result = validationSchema.safeParse(values);
+    if (result.success) return;
+
+    const errors: Record<string, string> = {};
+    result.error.issues.forEach((issue) => {
+      errors[issue.path[0] as string] = issue.message;
+    });
+    return errors;
   };
 
   return (
@@ -169,26 +167,26 @@ function SettingsDetails() {
       enableReinitialize
       validate={validate}
       onSubmit={handleSubmit}
-       initialStatus={{ formStatus: formStatuses.UPDATE, isFormLocked: true }}
+      initialStatus={{ formStatus: formStatuses.UPDATE, isFormLocked: true }}
     >
       {() => (
         <Form>
-          <FormikToolbar 
-            onFormReset={handleResetForm} 
-            hideNewButton={true} 
+          <FormikToolbar
+            onFormReset={handleResetForm}
+            hideNewButton={true}
             hideDeleteButton={true}
             permissions={{
-                insertDenied: false,
-                updateDenied: false,
-                deleteDenied: true,
+              insertDenied: false,
+              updateDenied: false,
+              deleteDenied: true,
             }}
           />
           <Box className="scrollable-box" sx={{ marginTop: 1, paddingX: 2, overflow: 'auto', height: 'calc(100vh - 64px - 41px)' }}>
-              <Typography id="view-title" variant="h5" gutterBottom>
-                  {title}
-              </Typography>
-             <Box sx={{ paddingX: 1 }}>
-                <BusinessSettingsForm />
+            <Typography id="view-title" variant="h5" gutterBottom>
+              {title}
+            </Typography>
+            <Box sx={{ paddingX: 1 }}>
+              <BusinessSettingsForm />
             </Box>
           </Box>
         </Form>

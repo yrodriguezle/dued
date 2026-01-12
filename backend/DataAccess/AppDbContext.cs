@@ -141,6 +141,10 @@ public class AppDbContext : DbContext
                 .HasColumnType("date")
                 .IsRequired();
 
+            // Unique index on Date to prevent duplicate cash registers for the same date
+            entity.HasIndex(x => x.Date)
+                .IsUnique();
+
             entity.Property(x => x.OpeningTotal)
                 .HasColumnType("decimal(10,2)");
 

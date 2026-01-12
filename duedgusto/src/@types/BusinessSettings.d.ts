@@ -7,8 +7,8 @@ type BusinessSettings = {
   timezone: string;         // "Europe/Rome"
   currency: string;         // "EUR"
   vatRate: number;          // 0.22 (22%)
-  updatedAt: string;
-  createdAt: string;
+  updatedAt?: string;
+  createdAt?: string;
 };
 
 type BusinessSettingsInput = {

@@ -20,8 +20,6 @@ function useInitializeValues({
       currency: "",
       vatRate: 0,
       settingsId: 0,
-      updatedAt: "",
-      createdAt: "",
     };
     return initialValues;
   }, []);

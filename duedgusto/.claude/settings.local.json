@@ -23,7 +23,8 @@
       "Bash(npx tsc:*)",
       "Bash(npm run dev:*)",
       "Bash(timeout /t 5)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []
