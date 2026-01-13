@@ -7,7 +7,7 @@ interface YearlySummaryData {
     month: number;
     year: number;
     totalRevenue: number; // Ricavo effettivo: (chiusura + fatture) - (apertura + spese)
-    totalCash: number; // Contanti in bianco
+    totalCash: number; // Pago in contanti (battuto sulla cassa fiscale)
     totalElectronic: number; // Pagamenti elettronici
     count: number;
   }>;

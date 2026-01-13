@@ -1,5 +1,5 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { Box, Chip, Typography } from "@mui/material";
+import { Box, Chip, Typography, useTheme } from "@mui/material";
 import { useNavigate } from "react-router";
 import { GridReadyEvent, ValueFormatterParams } from "ag-grid-community";
 import { getFormattedDate } from "../../../common/date/date";
@@ -15,6 +15,7 @@ import showToast from "../../../common/toast/showToast";
 
 function CashRegisterList() {
   const navigate = useNavigate();
+  const theme = useTheme();
   const { title, setTitle } = useContext(PageTitleContext);
   const gridRef = useRef<GridReadyEvent<DatagridData<CashRegister>> | null>(null);
   const [selectedRows, setSelectedRows] = useState<DatagridData<CashRegister>[]>([]);
@@ -135,24 +136,20 @@ function CashRegisterList() {
       },
       {
         field: "closingTotal",
-        headerName: "Chiusura",
+        headerName: "Totale Cassa",
         width: 120,
         valueFormatter: (params: ValueFormatterParams<CashRegister>) => {
           return `€ ${params.value?.toFixed(2) || "0.00"}`;
         },
       },
       {
-        field: "revenue",
-        headerName: "Ricavo",
-        width: 140,
+        field: "dailyIncome",
+        headerName: "Totale (-) Apertura",
+        width: 150,
         valueGetter: (params: { data: CashRegister }) => {
           const cr = params.data;
           if (!cr) return 0;
-          // Formula: (chiusura + fatture) - (apertura + spese)
-          return (
-            (cr.closingTotal || 0) + (cr.invoicePayments || 0) -
-            (cr.openingTotal || 0) - (cr.supplierExpenses || 0) - (cr.dailyExpenses || 0)
-          );
+          return (cr.closingTotal || 0) - (cr.openingTotal || 0);
         },
         valueFormatter: (params: ValueFormatterParams) => {
           return `€ ${params.value?.toFixed(2) || "0.00"}`;
@@ -161,16 +158,33 @@ function CashRegisterList() {
       {
         field: "cashInWhite",
         headerName: "Pago in contanti",
-        width: 150,
+        width: 140,
+        cellStyle: { backgroundColor: theme.palette.success.light, color: theme.palette.success.contrastText },
         valueFormatter: (params: ValueFormatterParams<CashRegister>) => {
           return `€ ${params.value?.toFixed(2) || "0.00"}`;
         },
       },
       {
         field: "electronicPayments",
-        headerName: "Pagamenti Elettronici",
-        width: 160,
+        headerName: "Elettronico",
+        width: 120,
+        cellStyle: { backgroundColor: theme.palette.success.light, color: theme.palette.success.contrastText },
         valueFormatter: (params: ValueFormatterParams<CashRegister>) => {
+          return `€ ${params.value?.toFixed(2) || "0.00"}`;
+        },
+      },
+      {
+        field: "totalSales",
+        headerName: "Totale Vendite",
+        width: 140,
+        cellStyle: { backgroundColor: theme.palette.warning.light, color: theme.palette.warning.contrastText },
+        valueGetter: (params: { data: CashRegister }) => {
+          const cr = params.data;
+          if (!cr) return 0;
+          // Totale Vendite = (Totale Cassa - Apertura) + Elettronico
+          return (cr.closingTotal || 0) - (cr.openingTotal || 0) + (cr.electronicPayments || 0);
+        },
+        valueFormatter: (params: ValueFormatterParams) => {
           return `€ ${params.value?.toFixed(2) || "0.00"}`;
         },
       },
@@ -186,6 +200,7 @@ function CashRegisterList() {
         field: "totalExpenses",
         headerName: "Spese Totali",
         width: 130,
+        cellStyle: { backgroundColor: theme.palette.error.light, color: theme.palette.error.contrastText },
         valueGetter: (params: { data: CashRegister }) => {
           const cr = params.data;
           if (!cr) return 0;
@@ -196,25 +211,38 @@ function CashRegisterList() {
         },
       },
       {
-        field: "difference",
-        headerName: "Differenza",
+        field: "ecc",
+        headerName: "ECC",
         width: 120,
-        cellStyle: () => {
-          return null;
+        valueGetter: (params: { data: CashRegister }) => {
+          const cr = params.data;
+          if (!cr) return 0;
+          // ECC = Totale Vendite - Pago in contanti - Elettronico
+          const totalSales = (cr.closingTotal || 0) - (cr.openingTotal || 0) + (cr.electronicPayments || 0);
+          return totalSales - (cr.cashInWhite || 0) - (cr.electronicPayments || 0);
         },
-        valueFormatter: (params: ValueFormatterParams<CashRegister>) => {
-          const value = (params.value as number) || 0;
-          const color = Math.abs(value) > 5 ? (value > 0 ? "#ff9800" : "#f44336") : undefined;
-          if (color) {
-            // Apply color through CSS if needed
-          }
-          return `€ ${value >= 0 ? "+" : ""}${value.toFixed(2)}`;
+        valueFormatter: (params: ValueFormatterParams) => {
+          return `€ ${params.value?.toFixed(2) || "0.00"}`;
         },
       },
       {
         field: "status",
         headerName: "Stato",
         width: 120,
+        valueGetter: (params: { data: CashRegister }) => {
+          const cr = params.data;
+          if (!cr || !cr.status) return "DRAFT";
+          // Se status è un numero, converti a stringa corrispondente
+          if (typeof cr.status === "number") {
+            const statusMap: Record<number, string> = {
+              0: "DRAFT",
+              1: "CLOSED",
+              2: "RECONCILED",
+            };
+            return statusMap[cr.status] || "DRAFT";
+          }
+          return cr.status;
+        },
         cellRenderer: (params: { value: string }) => {
           const statusColors: Record<string, "default" | "success" | "primary"> = {
             DRAFT: "default",
@@ -231,7 +259,7 @@ function CashRegisterList() {
         },
       },
     ],
-    []
+    [theme.palette.success.light, theme.palette.success.contrastText, theme.palette.warning.light, theme.palette.warning.contrastText, theme.palette.error.light, theme.palette.error.contrastText]
   );
 
   return (

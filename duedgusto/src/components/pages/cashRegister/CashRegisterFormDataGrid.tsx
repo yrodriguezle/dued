@@ -96,6 +96,8 @@ const CashRegisterFormDataGrid: React.FC<CashRegisterFormDataGridProps> = ({
           <SummaryDataGrid
             openingGridRef={openingGridRef}
             closingGridRef={closingGridRef}
+            incomesGridRef={incomesGridRef}
+            expensesGridRef={expensesGridRef}
           />
         </Grid>
       </Grid>
