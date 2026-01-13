@@ -239,7 +239,7 @@ function CashRegisterDashboard() {
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <KPICard
-            title="Contanti in Bianco Mese"
+            title="Pago in contanti Mese"
             value={`€ ${displayMonthData.totalCash?.toFixed(2) || "0.00"}`}
             icon={<AccountBalanceWalletIcon sx={{ fontSize: 48 }} />}
             color="success"
@@ -280,7 +280,7 @@ function CashRegisterDashboard() {
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <KPICard
-            title="Contanti in Bianco Anno"
+            title="Pago in contanti Anno"
             value={`€ ${yearlyData.yearlyTotals.totalCash?.toFixed(2) || "0.00"}`}
             icon={<AccountBalanceWalletIcon sx={{ fontSize: 48 }} />}
             color="success"
@@ -319,7 +319,7 @@ function CashRegisterDashboard() {
                   <Tooltip formatter={(value) => `€ ${Number(value).toFixed(2)}`} />
                   <Legend />
                   <Bar dataKey="ricavo" name="Ricavo Totale" fill={CHART_COLORS.primary} />
-                  <Bar dataKey="contanti" name="Contanti in Bianco" fill={CHART_COLORS.cash} />
+                  <Bar dataKey="contanti" name="Pago in contanti" fill={CHART_COLORS.cash} />
                   <Bar dataKey="elettronici" name="Pagamenti Elettronici" fill={CHART_COLORS.electronic} />
                 </BarChart>
               </ResponsiveContainer>
@@ -383,7 +383,7 @@ function CashRegisterDashboard() {
                   <Tooltip formatter={(value) => `€ ${Number(value).toFixed(2)}`} />
                   <Legend />
                   <Line type="monotone" dataKey="ricavo" name="Ricavo Totale" stroke={CHART_COLORS.primary} strokeWidth={2} fill="none" />
-                  <Line type="monotone" dataKey="contanti" name="Contanti in Bianco" stroke={CHART_COLORS.cash} strokeWidth={2} fill="none" />
+                  <Line type="monotone" dataKey="contanti" name="Pago in contanti" stroke={CHART_COLORS.cash} strokeWidth={2} fill="none" />
                   <Line type="monotone" dataKey="elettronici" name="Pagamenti Elettronici" stroke={CHART_COLORS.electronic} strokeWidth={2} fill="none" />
                 </LineChart>
               </ResponsiveContainer>

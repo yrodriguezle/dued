@@ -160,7 +160,7 @@ function CashRegisterList() {
       },
       {
         field: "cashInWhite",
-        headerName: "Contanti in Bianco",
+        headerName: "Pago in contanti",
         width: 150,
         valueFormatter: (params: ValueFormatterParams<CashRegister>) => {
           return `€ ${params.value?.toFixed(2) || "0.00"}`;

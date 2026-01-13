@@ -1,36 +1,66 @@
 import { Box, Paper, Typography, Divider, Alert } from "@mui/material";
-import { useFormikContext } from "formik";
-import { FormikCashRegisterValues } from "./CashRegisterDetails";
+import { GridReadyEvent } from "ag-grid-community";
+import { DatagridData } from "../../common/datagrid/@types/Datagrid";
 
 interface CashSummaryProps {
-  denominations: CashDenomination[];
-  cashRegister?: CashRegister | null;
+  openingGridRef: React.RefObject<GridReadyEvent<DatagridData<CashCountRow>> | null>;
+  closingGridRef: React.RefObject<GridReadyEvent<DatagridData<CashCountRow>> | null>;
+  incomesGridRef: React.RefObject<GridReadyEvent<DatagridData<IncomeRow>> | null>;
+  expensesGridRef: React.RefObject<GridReadyEvent<DatagridData<ExpenseRow>> | null>;
 }
 
-function CashSummary({ denominations, cashRegister }: CashSummaryProps) {
-  const formik = useFormikContext<FormikCashRegisterValues>();
+interface CashCountRow extends Record<string, unknown> {
+  denominationId: number;
+  type: "COIN" | "BANKNOTE";
+  value: number;
+  quantity: number;
+  total: number;
+}
 
-  const calculateCountTotal = (counts: FormikCashCountValues[]): number => {
+interface IncomeRow extends Record<string, unknown> {
+  type: string;
+  amount: number;
+}
+
+interface ExpenseRow extends Record<string, unknown> {
+  description: string;
+  amount: number;
+}
+
+function CashSummary({
+  openingGridRef,
+  closingGridRef,
+  incomesGridRef,
+  expensesGridRef
+}: CashSummaryProps) {
+
+  const calculateCountTotal = (counts: CashCountRow[]): number => {
     return counts.reduce((sum, count) => {
-      const denomination = denominations.find((d) => d.denominationId === count.denominationId);
-      return sum + (denomination ? denomination.value * count.quantity : 0);
+      return sum + (count.total || 0);
     }, 0);
   };
 
-  const openingTotal = calculateCountTotal(formik.values.openingCounts || []);
-  const closingTotal = calculateCountTotal(formik.values.closingCounts || []);
+  // Leggi i dati dalle griglie
+  const openingCounts = openingGridRef.current?.context.getGridData() || [];
+  const closingCounts = closingGridRef.current?.context.getGridData() || [];
+  const incomes = incomesGridRef.current?.context.getGridData() || [];
+  const expenses = expensesGridRef.current?.context.getGridData() || [];
+
+  const openingTotal = calculateCountTotal(openingCounts as CashCountRow[]);
+  const closingTotal = calculateCountTotal(closingCounts as CashCountRow[]);
   const dailyIncome = closingTotal - openingTotal;
 
-  // Valori da backend (se disponibili)
-  const cashSales = cashRegister?.cashSales || 0;
-  const electronicPayments = cashRegister?.electronicPayments || 0;
-  const totalSales = cashRegister?.totalSales || cashSales + electronicPayments;
+  // Calcola i valori dalle entrate
+  const cashInWhite = (incomes as IncomeRow[]).find((i) => i.type === "Pago in contanti")?.amount || 0;
+  const electronicPayments = (incomes as IncomeRow[]).find((i) => i.type === "Pagamenti Elettronici")?.amount || 0;
+  const invoicePayments = (incomes as IncomeRow[]).find((i) => i.type === "Pagamento con Fattura")?.amount || 0;
+  const totalSales = cashInWhite + electronicPayments + invoicePayments;
 
-  const supplierExpenses = parseFloat(String(formik.values.supplierExpenses)) || 0;
-  const dailyExpenses = parseFloat(String(formik.values.dailyExpenses)) || 0;
+  // Calcola le spese
+  const totalExpenses = (expenses as ExpenseRow[]).reduce((sum, expense) => sum + (expense.amount || 0), 0);
 
   // Calcoli
-  const expectedCash = cashSales - supplierExpenses - dailyExpenses;
+  const expectedCash = cashInWhite - totalExpenses;
   const difference = dailyIncome - expectedCash;
   const vatAmount = totalSales * 0.1; // 10% IVA (configurabile)
 
@@ -74,15 +104,15 @@ function CashSummary({ denominations, cashRegister }: CashSummaryProps) {
         <SummaryRow label="Incasso Giornaliero" value={dailyIncome} bold />
 
         <Box sx={{ mt: 2 }}>
-          <SummaryRow label="Vendite Contanti" value={cashSales} />
+          <SummaryRow label="Pago in contanti" value={cashInWhite} />
           <SummaryRow label="Pagamenti Elettronici" value={electronicPayments} />
+          <SummaryRow label="Pagamento con Fattura" value={invoicePayments} />
           <Divider sx={{ my: 1 }} />
           <SummaryRow label="Totale Vendite" value={totalSales} bold />
         </Box>
 
         <Box sx={{ mt: 2 }}>
-          <SummaryRow label="Spese Fornitori" value={-supplierExpenses} />
-          <SummaryRow label="Spese Giornaliere" value={-dailyExpenses} />
+          <SummaryRow label="Spese Totali" value={-totalExpenses} />
           <Divider sx={{ my: 1 }} />
           <SummaryRow label="Contante Atteso" value={expectedCash} />
         </Box>

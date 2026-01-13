@@ -191,7 +191,7 @@ function CashRegisterDetails() {
         cashRegister.incomes && cashRegister.incomes.length > 0
           ? cashRegister.incomes.map((i) => ({ type: i.type, amount: i.amount }))
           : [
-              { type: "Pago in Bianco (Contante)", amount: cashRegister.cashInWhite || 0 },
+              { type: "Pago in contanti", amount: cashRegister.cashInWhite || 0 },
               { type: "Pagamenti Elettronici", amount: cashRegister.electronicPayments || 0 },
               { type: "Pagamento con Fattura", amount: cashRegister.invoicePayments || 0 },
             ]
@@ -219,7 +219,7 @@ function CashRegisterDetails() {
       setInitialOpeningCounts([]);
       setInitialClosingCounts([]);
       setInitialIncomes([
-        { type: "Pago in Bianco (Contante)", amount: 0 },
+        { type: "Pago in contanti", amount: 0 },
         { type: "Pagamenti Elettronici", amount: 0 },
         { type: "Pagamento con Fattura", amount: 0 },
       ]);
@@ -275,7 +275,7 @@ function CashRegisterDetails() {
           description: row.description,
           amount: row.amount,
         })),
-        cashInWhite: incomes.find((i: IncomeRow) => i.type === "Pago in Bianco (Contante)")?.amount || 0,
+        cashInWhite: incomes.find((i: IncomeRow) => i.type === "Pago in contanti")?.amount || 0,
         electronicPayments: incomes.find((i: IncomeRow) => i.type === "Pagamenti Elettronici")?.amount || 0,
         invoicePayments: incomes.find((i: IncomeRow) => i.type === "Pagamento con Fattura")?.amount || 0,
         supplierExpenses: 0, // Non più usato, calcolato dal backend
