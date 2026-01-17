@@ -30,6 +30,16 @@ public class AppDbContext : DbContext
     // Business Settings
     public DbSet<BusinessSettings> BusinessSettings { get; set; }
 
+    // Supplier Management
+    public DbSet<Fornitore> Fornitori { get; set; }
+    public DbSet<FatturaAcquisto> FattureAcquisto { get; set; }
+    public DbSet<DocumentoTrasporto> DocumentiTrasporto { get; set; }
+    public DbSet<PagamentoFornitore> PagamentiFornitori { get; set; }
+
+    // Monthly Closure
+    public DbSet<ChiusuraMensile> ChiusureMensili { get; set; }
+    public DbSet<SpesaMensile> SpeseMensili { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (!optionsBuilder.IsConfigured)
@@ -460,6 +470,362 @@ public class AppDbContext : DbContext
 
             // Index on Timestamp for time-based filtering
             entity.HasIndex(x => x.Timestamp);
+        });
+
+        // Supplier Management Configuration
+        modelBuilder.Entity<Fornitore>(entity =>
+        {
+            entity
+                .ToTable("Fornitori")
+                .HasCharSet("utf8mb4")
+                .UseCollation("utf8mb4_unicode_ci")
+                .HasKey(x => x.FornitoreId);
+
+            entity.Property(x => x.FornitoreId)
+                .ValueGeneratedOnAdd();
+
+            entity.Property(x => x.RagioneSociale)
+                .HasMaxLength(255)
+                .IsRequired();
+
+            entity.Property(x => x.PartitaIva)
+                .HasMaxLength(20);
+
+            entity.Property(x => x.CodiceFiscale)
+                .HasMaxLength(16);
+
+            entity.Property(x => x.Indirizzo)
+                .HasColumnType("text");
+
+            entity.Property(x => x.Citta)
+                .HasMaxLength(100);
+
+            entity.Property(x => x.Cap)
+                .HasMaxLength(10);
+
+            entity.Property(x => x.Paese)
+                .HasMaxLength(2)
+                .HasDefaultValue("IT");
+
+            entity.Property(x => x.Email)
+                .HasMaxLength(255);
+
+            entity.Property(x => x.Telefono)
+                .HasMaxLength(50);
+
+            entity.Property(x => x.Note)
+                .HasColumnType("text");
+
+            entity.Property(x => x.Attivo)
+                .HasDefaultValue(true);
+
+            entity.Property(x => x.CreatoIl)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.Property(x => x.AggiornatoIl)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+
+            // Indice univoco su PartitaIva (solo se presente)
+            entity.HasIndex(x => x.PartitaIva)
+                .IsUnique()
+                .HasFilter("[PartitaIva] IS NOT NULL");
+
+            // Indice su RagioneSociale per ricerca
+            entity.HasIndex(x => x.RagioneSociale);
+
+            // Indice su Attivo per filtrare fornitori attivi
+            entity.HasIndex(x => x.Attivo);
+        });
+
+        modelBuilder.Entity<FatturaAcquisto>(entity =>
+        {
+            entity
+                .ToTable("FattureAcquisto")
+                .HasCharSet("utf8mb4")
+                .UseCollation("utf8mb4_unicode_ci")
+                .HasKey(x => x.FatturaId);
+
+            entity.Property(x => x.FatturaId)
+                .ValueGeneratedOnAdd();
+
+            entity.Property(x => x.NumeroFattura)
+                .HasMaxLength(50)
+                .IsRequired();
+
+            entity.Property(x => x.DataFattura)
+                .HasColumnType("date")
+                .IsRequired();
+
+            entity.Property(x => x.DataScadenza)
+                .HasColumnType("date");
+
+            entity.Property(x => x.Imponibile)
+                .HasColumnType("decimal(10,2)")
+                .IsRequired();
+
+            entity.Property(x => x.ImportoIva)
+                .HasColumnType("decimal(10,2)");
+
+            entity.Property(x => x.TotaleConIva)
+                .HasColumnType("decimal(10,2)");
+
+            entity.Property(x => x.Stato)
+                .HasMaxLength(20)
+                .HasDefaultValue("DA_PAGARE");
+
+            entity.Property(x => x.Note)
+                .HasColumnType("text");
+
+            entity.Property(x => x.CreatoIl)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.Property(x => x.AggiornatoIl)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+
+            entity.HasOne(x => x.Fornitore)
+                .WithMany(f => f.FattureAcquisto)
+                .HasForeignKey(x => x.FornitoreId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Indice univoco su FornitoreId + NumeroFattura
+            entity.HasIndex(x => new { x.FornitoreId, x.NumeroFattura })
+                .IsUnique();
+
+            // Indice su DataFattura per ordinamento/filtri
+            entity.HasIndex(x => x.DataFattura);
+
+            // Indice su Stato per filtri
+            entity.HasIndex(x => x.Stato);
+        });
+
+        modelBuilder.Entity<DocumentoTrasporto>(entity =>
+        {
+            entity
+                .ToTable("DocumentiTrasporto")
+                .HasCharSet("utf8mb4")
+                .UseCollation("utf8mb4_unicode_ci")
+                .HasKey(x => x.DdtId);
+
+            entity.Property(x => x.DdtId)
+                .ValueGeneratedOnAdd();
+
+            entity.Property(x => x.NumeroDdt)
+                .HasMaxLength(50)
+                .IsRequired();
+
+            entity.Property(x => x.DataDdt)
+                .HasColumnType("date")
+                .IsRequired();
+
+            entity.Property(x => x.Importo)
+                .HasColumnType("decimal(10,2)");
+
+            entity.Property(x => x.Note)
+                .HasColumnType("text");
+
+            entity.Property(x => x.CreatoIl)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.Property(x => x.AggiornatoIl)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+
+            entity.HasOne(x => x.Fornitore)
+                .WithMany(f => f.DocumentiTrasporto)
+                .HasForeignKey(x => x.FornitoreId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.Fattura)
+                .WithMany(f => f.DocumentiTrasporto)
+                .HasForeignKey(x => x.FatturaId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Indice univoco su FornitoreId + NumeroDdt
+            entity.HasIndex(x => new { x.FornitoreId, x.NumeroDdt })
+                .IsUnique();
+
+            // Indice su DataDdt per ordinamento/filtri
+            entity.HasIndex(x => x.DataDdt);
+
+            // Indice su FatturaId per join
+            entity.HasIndex(x => x.FatturaId);
+        });
+
+        modelBuilder.Entity<PagamentoFornitore>(entity =>
+        {
+            entity
+                .ToTable("PagamentiFornitori")
+                .HasCharSet("utf8mb4")
+                .UseCollation("utf8mb4_unicode_ci")
+                .HasKey(x => x.PagamentoId);
+
+            entity.Property(x => x.PagamentoId)
+                .ValueGeneratedOnAdd();
+
+            entity.Property(x => x.DataPagamento)
+                .HasColumnType("date")
+                .IsRequired();
+
+            entity.Property(x => x.Importo)
+                .HasColumnType("decimal(10,2)")
+                .IsRequired();
+
+            entity.Property(x => x.MetodoPagamento)
+                .HasMaxLength(50);
+
+            entity.Property(x => x.Note)
+                .HasColumnType("text");
+
+            entity.Property(x => x.CreatoIl)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.Property(x => x.AggiornatoIl)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+
+            entity.HasOne(x => x.Fattura)
+                .WithMany(f => f.Pagamenti)
+                .HasForeignKey(x => x.FatturaId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.Ddt)
+                .WithMany(d => d.Pagamenti)
+                .HasForeignKey(x => x.DdtId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Indice su DataPagamento per ordinamento/filtri
+            entity.HasIndex(x => x.DataPagamento);
+
+            // Indice su FatturaId per join
+            entity.HasIndex(x => x.FatturaId);
+
+            // Indice su DdtId per join
+            entity.HasIndex(x => x.DdtId);
+        });
+
+        modelBuilder.Entity<ChiusuraMensile>(entity =>
+        {
+            entity
+                .ToTable("ChiusureMensili")
+                .HasCharSet("utf8mb4")
+                .UseCollation("utf8mb4_unicode_ci")
+                .HasKey(x => x.ChiusuraId);
+
+            entity.Property(x => x.ChiusuraId)
+                .ValueGeneratedOnAdd();
+
+            entity.Property(x => x.Anno)
+                .IsRequired();
+
+            entity.Property(x => x.Mese)
+                .IsRequired();
+
+            entity.Property(x => x.UltimoGiornoLavorativo)
+                .HasColumnType("date")
+                .IsRequired();
+
+            entity.Property(x => x.RicavoTotale)
+                .HasColumnType("decimal(10,2)");
+
+            entity.Property(x => x.TotaleContanti)
+                .HasColumnType("decimal(10,2)");
+
+            entity.Property(x => x.TotaleElettronici)
+                .HasColumnType("decimal(10,2)");
+
+            entity.Property(x => x.TotaleFatture)
+                .HasColumnType("decimal(10,2)");
+
+            entity.Property(x => x.SpeseAggiuntive)
+                .HasColumnType("decimal(10,2)");
+
+            entity.Property(x => x.RicavoNetto)
+                .HasColumnType("decimal(10,2)");
+
+            entity.Property(x => x.Stato)
+                .HasMaxLength(20)
+                .HasDefaultValue("BOZZA");
+
+            entity.Property(x => x.Note)
+                .HasColumnType("text");
+
+            entity.Property(x => x.ChiusaIl)
+                .HasColumnType("datetime");
+
+            entity.Property(x => x.CreatoIl)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.Property(x => x.AggiornatoIl)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+
+            entity.HasOne(x => x.ChiusaDaUtente)
+                .WithMany()
+                .HasForeignKey(x => x.ChiusaDa)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Indice univoco su Anno + Mese
+            entity.HasIndex(x => new { x.Anno, x.Mese })
+                .IsUnique();
+
+            // Indice su Stato per filtri
+            entity.HasIndex(x => x.Stato);
+        });
+
+        modelBuilder.Entity<SpesaMensile>(entity =>
+        {
+            entity
+                .ToTable("SpeseMensili")
+                .HasCharSet("utf8mb4")
+                .UseCollation("utf8mb4_unicode_ci")
+                .HasKey(x => x.SpesaId);
+
+            entity.Property(x => x.SpesaId)
+                .ValueGeneratedOnAdd();
+
+            entity.Property(x => x.Descrizione)
+                .IsRequired();
+
+            entity.Property(x => x.Importo)
+                .HasColumnType("decimal(10,2)")
+                .IsRequired();
+
+            entity.Property(x => x.Categoria)
+                .HasMaxLength(50);
+
+            entity.Property(x => x.CreatoIl)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.Property(x => x.AggiornatoIl)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+
+            entity.HasOne(x => x.Chiusura)
+                .WithMany(c => c.Spese)
+                .HasForeignKey(x => x.ChiusuraId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.Pagamento)
+                .WithMany(p => p.SpeseMensili)
+                .HasForeignKey(x => x.PagamentoId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Indice su ChiusuraId per join
+            entity.HasIndex(x => x.ChiusuraId);
+
+            // Indice su PagamentoId per join
+            entity.HasIndex(x => x.PagamentoId);
+
+            // Indice su Categoria per filtri
+            entity.HasIndex(x => x.Categoria);
         });
     }
 }
