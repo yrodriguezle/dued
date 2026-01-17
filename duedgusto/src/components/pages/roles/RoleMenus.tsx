@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useFormikContext } from "formik";
 import { Box } from "@mui/material";
-import { GridReadyEvent, RowGroupOpenedEvent } from "ag-grid-community";
+import { GridApi, GridReadyEvent } from "ag-grid-community";
 import Datagrid from "../../common/datagrid/Datagrid";
 import { MenuNonNull } from "../../common/form/searchbox/searchboxOptions/menuSearchboxOptions";
 import { DatagridColDef, DatagridData } from "../../common/datagrid/@types/Datagrid";
@@ -9,10 +9,11 @@ import { DatagridColDef, DatagridData } from "../../common/datagrid/@types/Datag
 interface RoleMenusProps {
   menus: MenuNonNull[];
   onGridReady: (event: GridReadyEvent<DatagridData<MenuNonNull>>) => void;
+  selectedIds?: number[];
 }
 
-function RoleMenus({ menus, onGridReady }: RoleMenusProps) {
-  const [opened, setOpened] = useState("");
+function RoleMenus({ menus, onGridReady, selectedIds }: RoleMenusProps) {
+  const gridApiRef = useRef<GridApi<DatagridData<MenuNonNull>> | null>(null);
   const { status } = useFormikContext();
   const { isFormLocked } = useMemo(
     () => ({
@@ -23,6 +24,7 @@ function RoleMenus({ menus, onGridReady }: RoleMenusProps) {
   );
 
   useEffect(() => {
+    // Logic to disable checkboxes visually when form is locked (from previous restore)
     setTimeout(() => {
       if (isFormLocked) {
         const containers = document.querySelectorAll(
@@ -54,13 +56,36 @@ function RoleMenus({ menus, onGridReady }: RoleMenusProps) {
         });
       }
     }, 0);
-  }, [isFormLocked, opened]);
+  }, [isFormLocked, menus]); // Added menus dependency to re-apply if data refreshes
 
-  const onRowGroupOpened = useCallback((event: RowGroupOpenedEvent) => {
-    const node = event.node;
-    const nodeString = `${node.id} - ${node.group} - ${node.expanded}`;
-    setOpened(nodeString);
-  }, []);
+  const syncSelection = useCallback(() => {
+    if (!gridApiRef.current || gridApiRef.current.isDestroyed()) return;
+
+    // Defer to ensure rows are rendered and grid is stable
+    setTimeout(() => {
+      if (!gridApiRef.current || gridApiRef.current.isDestroyed()) return;
+
+      gridApiRef.current.forEachNode((node) => {
+        if (!node.data) return;
+        const shouldSelect = selectedIds?.includes(node.data.menuId) ?? false;
+
+        if (node.isSelected() !== shouldSelect) {
+          node.setSelected(shouldSelect);
+        }
+      });
+    }, 100);
+  }, [selectedIds]);
+
+  const handleGridReady = useCallback((event: GridReadyEvent<DatagridData<MenuNonNull>>) => {
+    gridApiRef.current = event.api;
+    onGridReady(event);
+    syncSelection();
+  }, [onGridReady, syncSelection]);
+
+  // Sync selection when selectedIds, menus, or lock state changes
+  useEffect(() => {
+    syncSelection();
+  }, [syncSelection, isFormLocked, menus]);
 
   const columnDefs = useMemo<DatagridColDef<MenuNonNull>[]>(
     () => [
@@ -71,6 +96,12 @@ function RoleMenus({ menus, onGridReady }: RoleMenusProps) {
     ],
     []
   );
+
+  const rowSelection = useMemo(() => ({
+    mode: "multiRow" as const,
+    groupSelects: "descendants" as const,
+    headerCheckbox: !isFormLocked,
+  }), [isFormLocked]);
 
   return (
     <Box sx={{ marginTop: 1, paddingX: 1 }}>
@@ -91,14 +122,10 @@ function RoleMenus({ menus, onGridReady }: RoleMenusProps) {
           sortable: true,
           width: 200,
         }}
-        onRowGroupOpened={onRowGroupOpened}
         columnDefs={columnDefs}
-        rowSelection={{
-          mode: "multiRow",
-          groupSelects: "descendants",
-          headerCheckbox: !isFormLocked,
-        }}
-        onGridReady={onGridReady}
+        rowSelection={rowSelection}
+        onGridReady={handleGridReady}
+        onRowDataUpdated={syncSelection}
       />
     </Box>
   );

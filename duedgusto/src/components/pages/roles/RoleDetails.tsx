@@ -1,5 +1,5 @@
 import { Form, Formik, FormikProps } from "formik";
-import { useCallback, useContext, useEffect, useRef } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import useInitializeValues from "./useInitializeValues";
 import useConfirm from "../../common/confirm/useConfirm";
@@ -29,7 +29,15 @@ const Schema = z.object({
 
 export type FormikRoleValues = z.infer<typeof Schema>;
 
+import { useSearchParams } from "react-router";
+import { roleFragment } from "../../../graphql/roles/fragments";
+
 function RoleDetails() {
+  const [selectedRole, setSelectedRole] = useState<RoleNonNull | null>(null);
+  const [searchParams] = useSearchParams();
+  const roleIdParam = searchParams.get("roleId");
+  const roleId = roleIdParam ? parseInt(roleIdParam, 10) : null;
+
   const gridRef = useRef<GridReadyEvent<DatagridData<MenuNonNull>> | null>(null);
   const { title, setTitle } = useContext(PageTitleContext);
   const formRef = useRef<FormikProps<FormikRoleValues>>(null);
@@ -41,12 +49,21 @@ function RoleDetails() {
     setTitle("Gestione ruoli");
   }, [setTitle]);
 
+  const { data: roles } = useGetAll<RoleNonNull>({
+    fragment: roleFragment,
+    queryName: "roles",
+    fragmentBody: "...RoleFragment",
+    fetchPolicy: "network-only",
+    skip: !roleId,
+  });
+
   const { data } = useGetAll<MenuNonNull>({
     fragment: menuFragment,
     queryName: "menus",
     fragmentBody: "...MenuFragment",
     fetchPolicy: "network-only",
   });
+
 
   const handleResetForm = useCallback(
     async (hasChanges: boolean) => {
@@ -65,6 +82,7 @@ function RoleDetails() {
       }
       await handleInitializeValues();
       formRef.current?.resetForm();
+      setSelectedRole(null);
       await sleep(200);
       setInitialFocus();
     },
@@ -77,24 +95,22 @@ function RoleDetails() {
 
   const handleSelectedItem = useCallback((item: RoleNonNull) => {
     handleInitializeValues(item).then(() => {
-      setTimeout(() => {
-        if (!gridRef.current?.api.isDestroyed() && (gridRef.current?.api.getDisplayedRowCount() ?? 0) > 0) {
-          gridRef.current?.api.forEachNode((node) => {
-            if (!node.data) return;
-            if (item.menuIds.includes(node.data.menuId)) {
-              node.setSelected(true);
-            } else {
-              node.setSelected(false);
-            }
-          });
-        }
-        formRef.current?.setStatus({
-          formStatus: formStatuses.UPDATE,
-          isFormLocked: true,
-        });
-      }, 0);
+      setSelectedRole(item);
+      formRef.current?.setStatus({
+        formStatus: formStatuses.UPDATE,
+        isFormLocked: true,
+      });
     });
   }, [handleInitializeValues]);
+
+  useEffect(() => {
+    if (roleId && roles.length > 0) {
+      const role = roles.find((r) => r.roleId === roleId);
+      if (role) {
+        handleSelectedItem(role);
+      }
+    }
+  }, [roleId, roles, handleSelectedItem]);
 
   const onSubmit = async (values: FormikRoleValues) => {
     try {
@@ -173,6 +189,7 @@ function RoleDetails() {
               <RoleMenus
                 menus={data}
                 onGridReady={handleGridReady}
+                selectedIds={selectedRole?.menuIds}
               />
             </Paper>
           </Box>

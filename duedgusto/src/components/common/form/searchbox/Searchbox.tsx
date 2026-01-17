@@ -52,7 +52,7 @@ function Searchbox<T extends Record<string, unknown>>({ id, name, value, orderBy
   } = useFetchData({
     query,
     variables,
-    skip: innerValue.trim().length === 0,
+    skip: (innerValue || '').toString().trim().length === 0,
   });
 
   // Modal query - loads all items
@@ -205,7 +205,7 @@ function Searchbox<T extends Record<string, unknown>>({ id, name, value, orderBy
       />
       {resultsVisible && (
         <>
-          {!loading && innerValue.trim().length > 2 && (!items || items.length === 0) ? (
+          {!loading && (innerValue || '').toString().trim().length > 2 && (!items || items.length === 0) ? (
             <Paper
               elevation={8}
               sx={{

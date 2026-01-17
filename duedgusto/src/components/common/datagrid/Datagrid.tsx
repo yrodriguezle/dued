@@ -243,11 +243,14 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
   );
 
   const rowSelection = useMemo<RowSelectionOptions<DatagridData<T>> | undefined>(() => {
+    if (props.rowSelection) {
+      return props.rowSelection as RowSelectionOptions<DatagridData<T>>;
+    }
     if (!isPresentation && !readOnly) {
       return { mode: "singleRow" };
     }
     return undefined;
-  }, [isPresentation, readOnly]);
+  }, [isPresentation, readOnly, props.rowSelection]);
 
   const [rowData, setRowData] = useState<DatagridData<T>[]>([]);
   const itemsStringRef = useRef<string>("");
