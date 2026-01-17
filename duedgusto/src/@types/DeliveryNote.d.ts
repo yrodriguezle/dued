@@ -1,25 +1,25 @@
-export interface DeliveryNote {
+type DeliveryNote = {
+  __typename: "DeliveryNote";
   ddtId: number;
-  invoiceId?: number;
+  invoiceId?: number | null;
   supplierId: number;
-  ddtNumber: string;
-  ddtDate: Date;
-  amount?: number;
-  notes?: string;
-  createdAt: Date;
-  updatedAt: Date;
-  // Navigation properties
   supplier?: Supplier;
-  invoice?: PurchaseInvoice;
+  invoice?: PurchaseInvoice | null;
+  ddtNumber: string;
+  ddtDate: string;
+  amount?: number | null;
+  notes?: string | null;
   payments?: SupplierPayment[];
-}
+  createdAt: string;
+  updatedAt: string;
+};
 
-export interface DeliveryNoteInput {
+type DeliveryNoteInput = {
   ddtId?: number;
   invoiceId?: number;
   supplierId: number;
   ddtNumber: string;
-  ddtDate: Date | string;
+  ddtDate: string;
   amount?: number;
   notes?: string;
-}
+};

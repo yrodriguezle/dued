@@ -14,7 +14,7 @@ import useFetchData from "../../../../graphql/common/useFetchData";
 import ContainerGridResults from "./ContainerGridResults";
 import SearchboxModal from "./SearchboxModal";
 
-export interface SearchboxProps<T> extends Omit<TextFieldProps<"standard">, "onChange"> {
+export interface SearchboxProps<T extends Record<string, unknown>> extends Omit<TextFieldProps<"standard">, "onChange"> {
   id?: string;
   options: SearchboxOptions<T>;
   fieldName?: Extract<keyof T, string>;
@@ -239,7 +239,8 @@ function Searchbox<T extends Record<string, unknown>>({ id, name, value, orderBy
         open={modalOpen}
         title={options.modal.title}
         items={modalItems || []}
-        columnDefs={options.modal.items}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        columnDefs={options.modal.items as any}
         loading={modalLoading}
         onClose={handleCloseModal}
         onSelectItem={handleModalSelectItem}

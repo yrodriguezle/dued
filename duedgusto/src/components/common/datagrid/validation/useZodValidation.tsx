@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { z } from "zod";
-import { IRowNode } from "ag-grid-community";
+import { GridApi, IRowNode } from "ag-grid-community";
 import { DatagridData } from "../@types/Datagrid";
 import { DatagridStatus } from "../../../../common/globals/constants";
 
@@ -9,13 +9,13 @@ export interface ValidationError {
   message: string;
 }
 
-interface UseZodValidationProps<T> {
+interface UseZodValidationProps<T extends Record<string, unknown>> {
   schema?: z.ZodSchema<T>;
 }
 
-interface UseZodValidationReturn<T> {
+interface UseZodValidationReturn<T extends Record<string, unknown>> {
   validateRow: (node: IRowNode<DatagridData<T>>) => ValidationError[] | null;
-  validateAllRows: (api: any) => Map<number, ValidationError[]>;
+  validateAllRows: (api: GridApi<DatagridData<T>>) => Map<number, ValidationError[]>;
 }
 
 function useZodValidation<T extends Record<string, unknown>>(
@@ -30,6 +30,7 @@ function useZodValidation<T extends Record<string, unknown>>(
       }
 
       // Escludi i campi ausiliari (status, etc.)
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { status, ...rowData } = node.data;
 
       try {
@@ -61,7 +62,7 @@ function useZodValidation<T extends Record<string, unknown>>(
   );
 
   const validateAllRows = useCallback(
-    (api: any): Map<number, ValidationError[]> => {
+    (api: GridApi<DatagridData<T>>): Map<number, ValidationError[]> => {
       const errorMap = new Map<number, ValidationError[]>();
 
       if (!schema) {

@@ -43,12 +43,12 @@ export interface CashCount {
   quantity: number;
 }
 
-export interface Income {
+export interface Income extends Record<string, unknown> {
   type: string;
   amount: number;
 }
 
-export interface Expense {
+export interface Expense extends Record<string, unknown> {
   description: string;
   amount: number;
 }

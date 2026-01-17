@@ -1,11 +1,14 @@
 import { useCallback, useState } from "react";
 import { Modal, Box, Typography, IconButton } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import { GridReadyEvent, CellFocusedEvent } from "ag-grid-community";
 
 import Datagrid from "../../datagrid/Datagrid";
-import { DatagridColDef } from "../../datagrid/@types/Datagrid";
-import { DatagridRowDoubleClickedEvent } from "../../datagrid/@types/Datagrid";
+import {
+  DatagridColDef,
+  DatagridGridReadyEvent,
+  DatagridCellFocusedEvent,
+  DatagridRowDoubleClickedEvent,
+} from "../../datagrid/@types/Datagrid";
 
 interface SearchboxModalProps<T> {
   open: boolean;
@@ -42,17 +45,20 @@ function SearchboxModal<T extends Record<string, unknown>>({
   onClose,
   onSelectItem,
 }: SearchboxModalProps<T>) {
-  const [gridReady, setGridReady] = useState<GridReadyEvent<T> | null>(null);
+  const [gridReady, setGridReady] = useState<DatagridGridReadyEvent<T> | null>(null);
 
-  const handleGridReady = useCallback((event: GridReadyEvent<T>) => {
+  const handleGridReady = useCallback((event: DatagridGridReadyEvent<T>) => {
     setGridReady(event);
   }, []);
 
   const handleRowDoubleClicked = useCallback(
     (event: DatagridRowDoubleClickedEvent<T>) => {
-      const data = event.data as T | undefined;
+      const data = event.data;
       if (data) {
-        onSelectItem(data);
+        // Estrai i dati originali rimuovendo i campi ausiliari
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { status, ...originalData } = data;
+        onSelectItem(originalData as T);
         onClose();
       }
     },
@@ -64,7 +70,10 @@ function SearchboxModal<T extends Record<string, unknown>>({
       if (event.key === "Enter" && gridReady) {
         const selectedRows = gridReady.api.getSelectedRows();
         if (selectedRows.length > 0) {
-          onSelectItem(selectedRows[0]);
+          // Estrai i dati originali rimuovendo i campi ausiliari
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { status, ...originalData } = selectedRows[0];
+          onSelectItem(originalData as T);
           onClose();
         }
       } else if (event.key === "Escape") {
@@ -74,7 +83,7 @@ function SearchboxModal<T extends Record<string, unknown>>({
     [gridReady, onSelectItem, onClose]
   );
 
-  const handleCellFocused = useCallback((params: CellFocusedEvent<T>) => {
+  const handleCellFocused = useCallback((params: DatagridCellFocusedEvent<T>) => {
     if (params.rowIndex !== null && params.rowIndex !== undefined) {
       const node = params.api.getDisplayedRowAtIndex(params.rowIndex);
       if (node) {

@@ -1,25 +1,25 @@
-export interface SupplierPayment {
+type SupplierPayment = {
+  __typename: "SupplierPayment";
   paymentId: number;
-  invoiceId?: number;
-  ddtId?: number;
-  paymentDate: Date;
+  invoiceId?: number | null;
+  ddtId?: number | null;
+  invoice?: PurchaseInvoice | null;
+  ddt?: DeliveryNote | null;
+  paymentDate: string;
   amount: number;
-  paymentMethod?: string; // CONTANTI, BONIFICO, ASSEGNO, CARTA
-  notes?: string;
-  createdAt: Date;
-  updatedAt: Date;
-  // Navigation properties
-  invoice?: PurchaseInvoice;
-  ddt?: DeliveryNote;
+  paymentMethod?: string | null;
+  notes?: string | null;
   monthlyExpenses?: MonthlyExpense[];
-}
+  createdAt: string;
+  updatedAt: string;
+};
 
-export interface SupplierPaymentInput {
+type SupplierPaymentInput = {
   paymentId?: number;
   invoiceId?: number;
   ddtId?: number;
-  paymentDate: Date | string;
+  paymentDate: string;
   amount: number;
   paymentMethod?: string;
   notes?: string;
-}
+};

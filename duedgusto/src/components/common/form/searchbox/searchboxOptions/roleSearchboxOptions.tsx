@@ -30,7 +30,7 @@ const items: DatagridColDef<RoleNonNull>[] = [
     filter: true,
     sortable: true,
     ...hiddenColumnProperties,
-    valueFormatter: ({ value }) => value?.join(","),
+    valueFormatter: ({ value }: { value?: string[] }) => value?.join(",") || "",
   },
 ];
 

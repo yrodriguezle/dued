@@ -548,6 +548,170 @@ public static class SeedMenus
             }
         }
 
+        // ========================================
+        // Menu Fornitori
+        // ========================================
+        var fornitoriMenu = await dbContext.Menus
+            .Include(m => m.Roles)
+            .FirstOrDefaultAsync(m => m.Title == "Fornitori" && m.Path == string.Empty);
+
+        if (fornitoriMenu == null)
+        {
+            fornitoriMenu = new Menu
+            {
+                Title = "Fornitori",
+                Path = string.Empty,
+                Icon = "Store",
+                IsVisible = true,
+                Position = 7,
+                ViewName = string.Empty,
+                FilePath = string.Empty,
+                ParentMenuId = null
+            };
+            fornitoriMenu.Roles.Add(superAdminRole);
+            dbContext.Menus.Add(fornitoriMenu);
+            await dbContext.SaveChangesAsync();
+        }
+        else
+        {
+            bool needsUpdate = false;
+            UpdateMenuIfNeeded(fornitoriMenu, "Fornitori", string.Empty, "Store", true, 7,
+                string.Empty, string.Empty, superAdminRole, null, ref needsUpdate);
+            if (needsUpdate)
+            {
+                dbContext.Menus.Update(fornitoriMenu);
+                await dbContext.SaveChangesAsync();
+            }
+        }
+
+        // Menu figlio: Lista Fornitori
+        var fornitoriChild1 = await dbContext.Menus
+            .Include(m => m.Roles)
+            .FirstOrDefaultAsync(m => m.Title == "Lista Fornitori" && m.ParentMenuId == fornitoriMenu.MenuId);
+
+        if (fornitoriChild1 == null)
+        {
+            fornitoriChild1 = new Menu
+            {
+                Title = "Lista Fornitori",
+                Path = "/gestionale/suppliers-list",
+                Icon = "List",
+                IsVisible = true,
+                Position = 1,
+                ViewName = "SupplierList",
+                FilePath = "suppliers/SupplierList.tsx",
+                ParentMenuId = fornitoriMenu.MenuId
+            };
+            fornitoriChild1.Roles.Add(superAdminRole);
+            dbContext.Menus.Add(fornitoriChild1);
+        }
+        else
+        {
+            bool needsUpdate = false;
+            UpdateMenuIfNeeded(fornitoriChild1, "Lista Fornitori", "/gestionale/suppliers-list", "List", true, 1,
+                "SupplierList", "suppliers/SupplierList.tsx", superAdminRole, fornitoriMenu, ref needsUpdate);
+            if (needsUpdate)
+            {
+                dbContext.Menus.Update(fornitoriChild1);
+            }
+        }
+
+        // Menu figlio: Gestione Fornitori
+        var fornitoriChild2 = await dbContext.Menus
+            .Include(m => m.Roles)
+            .FirstOrDefaultAsync(m => m.Title == "Gestione Fornitori" && m.ParentMenuId == fornitoriMenu.MenuId);
+
+        if (fornitoriChild2 == null)
+        {
+            fornitoriChild2 = new Menu
+            {
+                Title = "Gestione Fornitori",
+                Path = "/gestionale/suppliers-details",
+                Icon = "Edit",
+                IsVisible = true,
+                Position = 2,
+                ViewName = "SupplierDetails",
+                FilePath = "suppliers/SupplierDetails.tsx",
+                ParentMenuId = fornitoriMenu.MenuId
+            };
+            fornitoriChild2.Roles.Add(superAdminRole);
+            dbContext.Menus.Add(fornitoriChild2);
+        }
+        else
+        {
+            bool needsUpdate = false;
+            UpdateMenuIfNeeded(fornitoriChild2, "Gestione Fornitori", "/gestionale/suppliers-details", "Edit", true, 2,
+                "SupplierDetails", "suppliers/SupplierDetails.tsx", superAdminRole, fornitoriMenu, ref needsUpdate);
+            if (needsUpdate)
+            {
+                dbContext.Menus.Update(fornitoriChild2);
+            }
+        }
+
+        // Menu figlio: Fatture Acquisto
+        var fornitoriChild3 = await dbContext.Menus
+            .Include(m => m.Roles)
+            .FirstOrDefaultAsync(m => m.Title == "Fatture Acquisto" && m.ParentMenuId == fornitoriMenu.MenuId);
+
+        if (fornitoriChild3 == null)
+        {
+            fornitoriChild3 = new Menu
+            {
+                Title = "Fatture Acquisto",
+                Path = "/gestionale/purchase-invoices-list",
+                Icon = "Receipt",
+                IsVisible = true,
+                Position = 3,
+                ViewName = "PurchaseInvoiceList",
+                FilePath = "purchases/PurchaseInvoiceList.tsx",
+                ParentMenuId = fornitoriMenu.MenuId
+            };
+            fornitoriChild3.Roles.Add(superAdminRole);
+            dbContext.Menus.Add(fornitoriChild3);
+        }
+        else
+        {
+            bool needsUpdate = false;
+            UpdateMenuIfNeeded(fornitoriChild3, "Fatture Acquisto", "/gestionale/purchase-invoices-list", "Receipt", true, 3,
+                "PurchaseInvoiceList", "purchases/PurchaseInvoiceList.tsx", superAdminRole, fornitoriMenu, ref needsUpdate);
+            if (needsUpdate)
+            {
+                dbContext.Menus.Update(fornitoriChild3);
+            }
+        }
+
+        // Menu figlio: Gestione Fatture Acquisto
+        var fornitoriChild4 = await dbContext.Menus
+            .Include(m => m.Roles)
+            .FirstOrDefaultAsync(m => m.Title == "Gestione Fatture Acquisto" && m.ParentMenuId == fornitoriMenu.MenuId);
+
+        if (fornitoriChild4 == null)
+        {
+            fornitoriChild4 = new Menu
+            {
+                Title = "Gestione Fatture Acquisto",
+                Path = "/gestionale/purchase-invoices-details",
+                Icon = "Edit",
+                IsVisible = true,
+                Position = 4,
+                ViewName = "PurchaseInvoiceDetails",
+                FilePath = "purchases/PurchaseInvoiceDetails.tsx",
+                ParentMenuId = fornitoriMenu.MenuId
+            };
+            fornitoriChild4.Roles.Add(superAdminRole);
+            dbContext.Menus.Add(fornitoriChild4);
+        }
+        else
+        {
+            bool needsUpdate = false;
+            UpdateMenuIfNeeded(fornitoriChild4, "Gestione Fatture Acquisto", "/gestionale/purchase-invoices-details", "Edit", true, 4,
+                "PurchaseInvoiceDetails", "purchases/PurchaseInvoiceDetails.tsx", superAdminRole, fornitoriMenu, ref needsUpdate);
+            if (needsUpdate)
+            {
+                dbContext.Menus.Update(fornitoriChild4);
+            }
+        }
+
         await dbContext.SaveChangesAsync();
     }
 }

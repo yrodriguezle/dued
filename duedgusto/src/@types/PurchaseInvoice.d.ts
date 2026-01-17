@@ -1,31 +1,30 @@
-export interface PurchaseInvoice {
+type PurchaseInvoice = {
+  __typename: "PurchaseInvoice";
   invoiceId: number;
   supplierId: number;
-  invoiceNumber: string;
-  invoiceDate: Date;
-  taxableAmount: number;
-  vatRate: number;
-  vatAmount: number;
-  totalAmount: number;
-  status: string; // PAGATA, PARZIALMENTE_PAGATA, DA_PAGARE
-  dueDate?: Date;
-  notes?: string;
-  createdAt: Date;
-  updatedAt: Date;
-  // Navigation properties
   supplier?: Supplier;
+  invoiceNumber: string;
+  invoiceDate: string;
+  dueDate?: string | null;
+  taxableAmount: number;
+  vatAmount?: number | null;
+  totalAmount?: number | null;
+  invoiceStatus: "DA_PAGARE" | "PARZIALMENTE_PAGATA" | "PAGATA";
+  notes?: string | null;
   deliveryNotes?: DeliveryNote[];
   payments?: SupplierPayment[];
-}
+  createdAt: string;
+  updatedAt: string;
+};
 
-export interface PurchaseInvoiceInput {
+type PurchaseInvoiceInput = {
   invoiceId?: number;
   supplierId: number;
   invoiceNumber: string;
-  invoiceDate: Date | string;
+  invoiceDate: string;
+  dueDate?: string;
   taxableAmount: number;
   vatRate: number;
-  dueDate?: Date | string;
+  invoiceStatus?: string;
   notes?: string;
-  status?: string;
-}
+};

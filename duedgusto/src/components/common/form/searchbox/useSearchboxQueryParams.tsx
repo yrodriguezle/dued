@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { SearchboxOptions } from "../../../../@types/searchbox";
 import useQueryParams from "../../../../graphql/common/useQueryParams";
 
-interface UseSearchboxQueryParamsProps<T, K extends keyof T> {
+interface UseSearchboxQueryParamsProps<T extends Record<string, unknown>, K extends keyof T> {
   options: SearchboxOptions<T>;
   orderBy?: string;
   value: string;
@@ -11,13 +11,17 @@ interface UseSearchboxQueryParamsProps<T, K extends keyof T> {
   pageSize?: number;
 }
 
-function useSearchboxQueryParams<T, K extends keyof T>(props: UseSearchboxQueryParamsProps<T, K>) {
-  const body = useMemo<(keyof T)[]>(() => {
+function useSearchboxQueryParams<T extends Record<string, unknown>, K extends keyof T>(props: UseSearchboxQueryParamsProps<T, K>) {
+  const body = useMemo(() => {
     if (props.modal) {
-      const modalFields = props.options.modal.items.map((item) => item.field);
+      const modalFields = props.options.modal.items
+        .map((item) => item.field)
+        .filter((f) => typeof f === 'string') as unknown as Extract<keyof T, string>[];
       return modalFields;
     }
-    const fields = props.options.items.map((item) => item.field);
+    const fields = props.options.items
+      .map((item) => item.field)
+      .filter((f) => typeof f === 'string') as unknown as Extract<keyof T, string>[];
     return fields;
   }, [props.modal, props.options.items, props.options.modal.items]);
 

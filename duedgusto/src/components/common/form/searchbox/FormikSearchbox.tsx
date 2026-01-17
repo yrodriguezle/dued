@@ -42,7 +42,7 @@ const getDisabled = <Values,>(disabled: boolean | ((form?: FormikProps<Values>) 
   return !!(form.isSubmitting || form.status?.isFormLocked);
 };
 
-interface FormikSearchboxProps<Values, T> extends Omit<SearchboxProps<T>, "value" | "disabled" | "onChange" | "onBlur"> {
+interface FormikSearchboxProps<Values, T extends Record<string, unknown>> extends Omit<SearchboxProps<T>, "value" | "disabled" | "onChange" | "onBlur"> {
   disabled?: boolean | ((form?: FormikProps<Values>) => boolean);
   onChange?: (name: string, value: string, field: FieldInputProps<string>, form: FormikProps<Values>) => void;
   onBlur?: (event: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement, Element>, field: FieldInputProps<string>, form: FormikProps<Values>) => void;
@@ -51,7 +51,7 @@ interface FormikSearchboxProps<Values, T> extends Omit<SearchboxProps<T>, "value
   };
 }
 
-function FormikSearchbox<Values, T>({ name, onChange, onBlur, params, ...props }: FormikSearchboxProps<Values, T>) {
+function FormikSearchbox<Values, T extends Record<string, unknown>>({ name, onChange, onBlur, params, ...props }: FormikSearchboxProps<Values, T>) {
   return (
     <FastField name={name} params={params}>
       {({ field, form, meta }: FastFieldProps) => (

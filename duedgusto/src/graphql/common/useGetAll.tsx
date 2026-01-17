@@ -1,6 +1,6 @@
 import { FetchPolicy } from "@apollo/client";
 import useQueryParams, { UseQueryParamsProps } from "./useQueryParams";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useApolloClient } from "@apollo/client";
 
 interface GetAllProps<T> extends Omit<UseQueryParamsProps<T>, "body" | "pageSize"> {
@@ -24,6 +24,7 @@ function useGetAll<T>(props: GetAllProps<T>) {
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
 
   useEffect(() => {
     if (props.skip) return;
@@ -74,9 +75,13 @@ function useGetAll<T>(props: GetAllProps<T>) {
     return () => {
       isMounted = false;
     };
-  }, [client, query, variables, props.skip, props.fetchPolicy, props.queryName]);
+  }, [client, query, variables, props.skip, props.fetchPolicy, props.queryName, refetchTrigger]);
 
-  return { data, loading, error };
+  const refetch = useCallback(() => {
+    setRefetchTrigger((prev) => prev + 1);
+  }, []);
+
+  return { data, loading, error, refetch };
 }
 
 export default useGetAll;

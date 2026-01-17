@@ -24,7 +24,8 @@
       "Bash(npm run dev:*)",
       "Bash(timeout /t 5)",
       "Bash(find:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(cut:*)"
     ],
     "deny": [],
     "ask": []

@@ -25,10 +25,9 @@ export const purchaseInvoiceFragment = `
     invoiceNumber
     invoiceDate
     taxableAmount
-    vatRate
     vatAmount
     totalAmount
-    status
+    invoiceStatus: status
     dueDate
     notes
     createdAt
@@ -94,7 +93,7 @@ export const monthlyClosureFragment = `
     totalInvoices
     additionalExpenses
     netRevenue
-    status
+    closureStatus: status
     notes
     closedBy
     closedAt

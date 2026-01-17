@@ -6,11 +6,11 @@ import useResizeObserver from "../../../../common/resizer/useResizeObserver";
 import { getSearchboxResultContainerWidth, setSearchboxResultContainerWidth } from "../../../../common/ui/searchboxResultContainer";
 import GridResults, { GridResultsProps } from "./GridResults";
 
-interface ContainerGridResultsProps<T> extends GridResultsProps<T> {
+interface ContainerGridResultsProps<T extends Record<string, unknown>> extends GridResultsProps<T> {
   searchBoxId: string;
 }
 
-function ContainerGridResults<T>({ searchBoxId, loading, items, columnDefs, onSelectedItem, onGridReady }: ContainerGridResultsProps<T>) {
+function ContainerGridResults<T extends Record<string, unknown>>({ searchBoxId, loading, items, columnDefs, onSelectedItem, onGridReady }: ContainerGridResultsProps<T>) {
   const mounted = useRef(false);
   useEffect(() => {
     mounted.current = true;

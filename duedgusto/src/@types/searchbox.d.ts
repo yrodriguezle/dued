@@ -2,15 +2,15 @@ import { ColDef } from "ag-grid-community";
 
 type ColumnAction = "update" | "remove";
 
-interface DatagridColDef<T> extends ColDef<T> {
+// Export for use in searchboxOptions files
+export interface DatagridColDef<T extends Record<string, unknown>> extends ColDef<T> {
   graphField?: string;
   action?: ColumnAction;
-  field: Extract<keyof T, string>;
 }
 
-interface SearchboxOptions<T> {
+interface SearchboxOptions<T extends Record<string, unknown>> {
   query: string;
-  id: keyof T;
+  id: Extract<keyof T, string>;
   tableName: string;
   additionalWhere?: string;
   view?: string;
