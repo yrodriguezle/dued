@@ -16,27 +16,8 @@ public class MonthlyClosuresQueries : ObjectGraphType
     {
         this.Authorize();
 
-        // Get monthly closure by year and month
-        Field<MonthlyClosureType, ChiusuraMensile>("monthlyClosure")
-            .Argument<NonNullGraphType<IntGraphType>>("year")
-            .Argument<NonNullGraphType<IntGraphType>>("month")
-            .ResolveAsync(async context =>
-            {
-                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
-                int year = context.GetArgument<int>("year");
-                int month = context.GetArgument<int>("month");
-
-                var result = await dbContext.ChiusureMensili
-                    .Include(c => c.ChiusaDaUtente)
-                    .Include(c => c.Spese)
-                        .ThenInclude(s => s.Pagamento)
-                    .FirstOrDefaultAsync(c => c.Anno == year && c.Mese == month);
-
-                return result;
-            });
-
         // Get monthly closure by ID
-        Field<MonthlyClosureType, ChiusuraMensile>("monthlyClosureById")
+        Field<MonthlyClosureType, ChiusuraMensile>("monthlyClosure")
             .Argument<NonNullGraphType<IntGraphType>>("closureId")
             .ResolveAsync(async context =>
             {
@@ -50,6 +31,28 @@ public class MonthlyClosuresQueries : ObjectGraphType
                     .FirstOrDefaultAsync(c => c.ChiusuraId == closureId);
 
                 return result;
+            });
+
+        // Get all monthly closures, optionally filtered by year
+        Field<ListGraphType<MonthlyClosureType>, IEnumerable<ChiusuraMensile>>("monthlyClosures")
+            .Argument<IntGraphType>("year")
+            .ResolveAsync(async context =>
+            {
+                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                int? year = context.GetArgument<int?>("year");
+
+                IQueryable<ChiusuraMensile> query = dbContext.ChiusureMensili;
+
+                if (year.HasValue)
+                {
+                    query = query.Where(c => c.Anno == year.Value);
+                }
+
+                return await query
+                    .Include(c => c.ChiusaDaUtente)
+                    .Include(c => c.Spese)
+                        .ThenInclude(s => s.Pagamento)
+                    .ToListAsync();
             });
     }
 }

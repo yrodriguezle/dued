@@ -1,53 +1,67 @@
+// src/@types/MonthlyClosure.d.ts
+
 type MonthlyExpense = {
-  __typename: "MonthlyExpense";
-  expenseId: number;
-  closureId: number;
-  paymentId?: number | null;
-  closure?: MonthlyClosure;
-  payment?: SupplierPayment | null;
-  description: string;
-  amount: number;
-  category?: string | null;
-  createdAt: string;
-  updatedAt: string;
+    __typename: "MonthlyExpense";
+    id: number;
+    closureId: number;
+    paymentId: number | null;
+    payment: SupplierPayment | null;
+    description: string;
+    amount: number;
+    category: string | null;
+    createdAt: string;
+    updatedAt: string;
 };
-
-type MonthlyExpenseInput = {
-  expenseId?: number;
-  closureId: number;
-  paymentId?: number;
-  description: string;
-  amount: number;
-  category?: string;
-};
-
+  
 type MonthlyClosure = {
-  __typename: "MonthlyClosure";
-  closureId: number;
-  year: number;
-  month: number;
-  lastWorkingDay: string;
-  totalRevenue?: number | null;
-  totalCash?: number | null;
-  totalElectronic?: number | null;
-  totalInvoices?: number | null;
-  additionalExpenses?: number | null;
-  netRevenue?: number | null;
-  closureStatus: string;
-  notes?: string | null;
-  closedBy?: number | null;
-  closedAt?: string | null;
-  createdAt: string;
-  updatedAt: string;
-  closedByUser?: User;
-  expenses?: MonthlyExpense[];
-};
+    __typename: "MonthlyClosure";
+    id: number;
+    year: number;
+    month: number;
+    lastBusinessDay: string;
 
+    // Riepilogo incassi
+    totalRevenue: number | null;
+    totalCash: number | null;
+    totalElectronic: number | null;
+    invoicePayments: number | null;
+
+    // Spese mensili
+    additionalExpenses: number | null;
+    expenses: MonthlyExpense[];
+
+    // Totali finali
+    netRevenue: number | null;
+
+    status: "BOZZA" | "CHIUSA" | "RICONCILIATA";
+    notes: string | null;
+    closedBy: number | null;
+    closedByUser: User | null;
+    closedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+};
+  
 type MonthlyClosureInput = {
-  closureId?: number;
-  year: number;
-  month: number;
-  lastWorkingDay: string;
-  notes?: string;
-  closureStatus?: string;
+    id?: number;
+    year: number;
+    month: number;
+    lastBusinessDay: string;
+    totalRevenue?: number;
+    totalCash?: number;
+    totalElectronic?: number;
+    invoicePayments?: number;
+    additionalExpenses?: number;
+    netRevenue?: number;
+    status?: string;
+    notes?: string;
+    expenses?: MonthlyExpenseInput[];
+};
+  
+type MonthlyExpenseInput = {
+    id?: number;
+    paymentId?: number;
+    description: string;
+    amount: number;
+    category?: string;
 };

@@ -475,22 +475,37 @@ public static class SeedMenus
             }
         }
 
-        // Child: Vista Mensile
+        // Child: Chiusura Mensile
         var cassaChild2 = await dbContext.Menus
             .Include(m => m.Roles)
-            .FirstOrDefaultAsync(m => m.Path == "/gestionale/cassa/monthly");
+            .FirstOrDefaultAsync(m => m.Path == "/gestionale/cassa/monthly-closure");
+
+        if (cassaChild2 == null)
+        {
+            // Backwards compatibility: find and update old "Vista Mensile" menu
+            cassaChild2 = await dbContext.Menus
+                .Include(m => m.Roles)
+                .FirstOrDefaultAsync(m => m.Path == "/gestionale/cassa/monthly");
+
+            if (cassaChild2 != null)
+            {
+                // Path is changing, so we update it
+                cassaChild2.Path = "/gestionale/cassa/monthly-closure";
+            }
+        }
+
 
         if (cassaChild2 == null)
         {
             cassaChild2 = new Menu
             {
-                Title = "Vista Mensile",
-                Path = "/gestionale/cassa/monthly",
+                Title = "Chiusura Mensile",
+                Path = "/gestionale/cassa/monthly-closure",
                 Icon = "CalendarMonth",
                 IsVisible = true,
                 Position = 3,
-                ViewName = "CashRegisterMonthlyPage",
-                FilePath = "cashRegister/CashRegisterMonthlyPage.tsx",
+                ViewName = "MonthlyClosureList",
+                FilePath = "cashRegister/MonthlyClosureList.tsx",
                 ParentMenu = cassaMenu,
                 Roles = [superAdminRole]
             };
@@ -499,8 +514,8 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(cassaChild2, "Vista Mensile", "/gestionale/cassa/monthly", "CalendarMonth", true, 3,
-                "CashRegisterMonthlyPage", "cashRegister/CashRegisterMonthlyPage.tsx", superAdminRole, cassaMenu, ref needsUpdate);
+            UpdateMenuIfNeeded(cassaChild2, "Chiusura Mensile", "/gestionale/cassa/monthly-closure", "CalendarMonth", true, 3,
+                "MonthlyClosureList", "cashRegister/MonthlyClosureList.tsx", superAdminRole, cassaMenu, ref needsUpdate);
             if (needsUpdate)
             {
                 dbContext.Menus.Update(cassaChild2);
