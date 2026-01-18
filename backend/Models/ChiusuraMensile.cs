@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -60,6 +58,6 @@ namespace duedgusto.Models
         [ForeignKey("ChiusaDa")]
         public virtual User? ChiusaDaUtente { get; set; }
 
-        public virtual ICollection<SpesaMensile> Spese { get; set; } = new List<SpesaMensile>();
+        public virtual ICollection<SpesaMensile> Spese { get; set; } = [];
     }
 }

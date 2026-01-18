@@ -6,7 +6,7 @@ using GraphQL.Types;
 using duedgusto.Models;
 using duedgusto.Services.GraphQL;
 using duedgusto.DataAccess;
-using duedgusto.GraphQL.MonthlyClosures.Types;
+using duedgusto.GraphQL.ChiusureMensili.Types;
 
 namespace duedgusto.GraphQL.MonthlyClosures;
 
@@ -17,7 +17,7 @@ public class MonthlyClosuresQueries : ObjectGraphType
         this.Authorize();
 
         // Get monthly closure by ID
-        Field<MonthlyClosureType, ChiusuraMensile>("chiusuraMensile")
+        Field<ChiusuraMensileType, ChiusuraMensile>("chiusuraMensile")
             .Argument<NonNullGraphType<IntGraphType>>("chiusuraId")
             .ResolveAsync(async context =>
             {
@@ -34,7 +34,7 @@ public class MonthlyClosuresQueries : ObjectGraphType
             });
 
         // Get all monthly closures, optionally filtered by year
-        Field<ListGraphType<MonthlyClosureType>, IEnumerable<ChiusuraMensile>>("chiusureMensili")
+        Field<ListGraphType<ChiusuraMensileType>, IEnumerable<ChiusuraMensile>>("chiusureMensili")
             .Argument<IntGraphType>("anno")
             .ResolveAsync(async context =>
             {

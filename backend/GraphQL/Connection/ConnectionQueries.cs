@@ -11,6 +11,7 @@ using duedgusto.GraphQL.Authentication;
 using duedgusto.GraphQL.CashManagement.Types;
 using duedgusto.GraphQL.Suppliers.Types;
 using duedgusto.GraphQL.MonthlyClosures.Types;
+using duedgusto.GraphQL.ChiusureMensili.Types;
 
 namespace duedgusto.GraphQL.Connection;
 
@@ -224,7 +225,7 @@ public class ConnectionQueries : ObjectGraphType
                 return connection;
             });
 
-        Field<ConnectionType<MonthlyClosureType>>("monthlyClosures")
+        Field<ConnectionType<ChiusuraMensileType>>("monthlyClosures")
             .Argument<IntGraphType>("first", "Number of items to return")
             .Argument<IntGraphType>("cursor", "Offset for pagination (deprecated, use after)")
             .Argument<StringGraphType>("after", "Cursor after which to return items")

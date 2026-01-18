@@ -6,9 +6,9 @@ using GraphQL.Types;
 using duedgusto.Models;
 using duedgusto.Services.GraphQL;
 using duedgusto.DataAccess;
-using duedgusto.GraphQL.MonthlyClosures.Types;
 using duedgusto.GraphQL.Authentication;
 using duedgusto.Services.Jwt;
+using duedgusto.GraphQL.ChiusureMensili.Types;
 
 namespace duedgusto.GraphQL.MonthlyClosures;
 
@@ -19,7 +19,7 @@ public class MonthlyClosuresMutations : ObjectGraphType
         this.Authorize();
 
         // Create or Update Monthly Closure
-        Field<MonthlyClosureType>("mutazioneChiusuraMensile")
+        Field<ChiusuraMensileType>("mutazioneChiusuraMensile")
             .Argument<NonNullGraphType<ChiusuraMensileInputType>>("chiusura", "Dati della chiusura mensile")
             .ResolveAsync(async context =>
             {
@@ -118,7 +118,7 @@ public class MonthlyClosuresMutations : ObjectGraphType
             });
 
         // Close Monthly Closure (change status to CHIUSA)
-        Field<MonthlyClosureType>("chiudiChiusuraMensile")
+        Field<ChiusuraMensileType>("chiudiChiusuraMensile")
             .Argument<NonNullGraphType<IntGraphType>>("chiusuraId")
             .ResolveAsync(async context =>
             {

@@ -95,7 +95,7 @@ const MonthlyClosureDetails: React.FC = () => {
 
                     {/* Spese Mensili Aggiuntive */}
                     <Grid item xs={12}>
-                        <MonthlyExpensesDataGrid 
+                        <MonthlyExpensesDataGrid
                             expenses={chiusuraMensile.spese}
                             onExpensesChange={handleExpensesChange}
                         />
@@ -108,10 +108,10 @@ const MonthlyClosureDetails: React.FC = () => {
                             <Grid container spacing={1}>
                                 <Grid item xs={6}><Typography>Ricavo Totale Mese:</Typography></Grid>
                                 <Grid item xs={6}><Typography align="right">€ {chiusuraMensile.ricavoTotale?.toFixed(2) ?? 'N/A'}</Typography></Grid>
-                                
+
                                 <Grid item xs={6}><Typography>(-) Spese Aggiuntive:</Typography></Grid>
                                 <Grid item xs={6}><Typography align="right" color="error">€ {chiusuraMensile.speseAggiuntive?.toFixed(2) ?? 'N/A'}</Typography></Grid>
-                                
+
                                 <Grid item xs={12}><hr /></Grid>
 
                                 <Grid item xs={6}><Typography variant="h6">RICAVO NETTO MENSILE:</Typography></Grid>

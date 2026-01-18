@@ -1,6 +1,7 @@
 using GraphQL.Types;
 using duedgusto.Models;
 using duedgusto.GraphQL.Suppliers.Types;
+using duedgusto.GraphQL.ChiusureMensili.Types;
 
 namespace duedgusto.GraphQL.MonthlyClosures.Types;
 
@@ -19,7 +20,7 @@ public class MonthlyExpenseType : ObjectGraphType<SpesaMensile>
         Field("creatoIl", x => x.CreatoIl, type: typeof(DateTimeGraphType));
         Field("aggiornatoIl", x => x.AggiornatoIl, type: typeof(DateTimeGraphType));
 
-        Field<MonthlyClosureType, ChiusuraMensile>("chiusura")
+        Field<ChiusuraMensileType, ChiusuraMensile>("chiusura")
             .Resolve(context => context.Source.Chiusura);
 
         Field<SupplierPaymentType, PagamentoFornitore>("pagamento")

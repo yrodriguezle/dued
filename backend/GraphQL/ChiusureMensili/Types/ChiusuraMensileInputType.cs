@@ -1,6 +1,7 @@
+using duedgusto.GraphQL.MonthlyClosures.Types;
 using GraphQL.Types;
 
-namespace duedgusto.GraphQL.MonthlyClosures.Types;
+namespace duedgusto.GraphQL.ChiusureMensili.Types;
 
 public class ChiusuraMensileInput
 {
@@ -22,10 +23,10 @@ public class ChiusuraMensileInputType : InputObjectGraphType<ChiusuraMensileInpu
         Field(x => x.ChiusuraId, nullable: true);
         Field(x => x.Anno);
         Field(x => x.Mese);
-        Field(x => x.UltimoGiornoLavorativo, type: typeof(DateTimeGraphType));
+        Field<DateTimeGraphType>(nameof(ChiusuraMensileInput.UltimoGiornoLavorativo));
         Field(x => x.Note, nullable: true);
         Field(x => x.Stato);
-        Field(x => x.Spese, type: typeof(ListGraphType<SpesaMensileInputType>), nullable: true);
+        Field<ListGraphType<SpesaMensileInputType>, List<SpesaMensileInput>?>(nameof(ChiusuraMensileInput.Spese));
     }
 }
 
