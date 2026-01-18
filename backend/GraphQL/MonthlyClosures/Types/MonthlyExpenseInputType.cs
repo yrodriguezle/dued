@@ -2,27 +2,28 @@ using GraphQL.Types;
 
 namespace duedgusto.GraphQL.MonthlyClosures.Types;
 
-public class MonthlyExpenseInput
+public class SpesaMensileInput
 {
-    public int? ExpenseId { get; set; }
-    public int ClosureId { get; set; }
-    public int? PaymentId { get; set; }
-    public string Description { get; set; } = string.Empty;
-    public decimal Amount { get; set; }
-    public string? Category { get; set; }
+    public int? SpesaId { get; set; }
+    public int? ChiusuraId { get; set; }
+    public int? PagamentoId { get; set; }
+    public string Descrizione { get; set; } = string.Empty;
+    public decimal Importo { get; set; }
+    public string? Categoria { get; set; }
 }
 
-public class MonthlyExpenseInputType : InputObjectGraphType<MonthlyExpenseInput>
+public class SpesaMensileInputType : InputObjectGraphType<SpesaMensileInput>
 {
-    public MonthlyExpenseInputType()
+    public SpesaMensileInputType()
     {
-        Name = "MonthlyExpenseInput";
+        Name = "SpesaMensileInput";
 
-        Field(x => x.ExpenseId, nullable: true);
-        Field(x => x.ClosureId);
-        Field(x => x.PaymentId, nullable: true);
-        Field(x => x.Description);
-        Field(x => x.Amount);
-        Field(x => x.Category, nullable: true);
+        Field(x => x.SpesaId, nullable: true);
+        Field(x => x.ChiusuraId, nullable: true);
+        Field(x => x.PagamentoId, nullable: true);
+        Field(x => x.Descrizione);
+        Field(x => x.Importo);
+        Field(x => x.Categoria, nullable: true);
     }
 }
+

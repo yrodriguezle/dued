@@ -2,27 +2,30 @@ using GraphQL.Types;
 
 namespace duedgusto.GraphQL.MonthlyClosures.Types;
 
-public class MonthlyClosureInput
+public class ChiusuraMensileInput
 {
-    public int? ClosureId { get; set; }
-    public int Year { get; set; }
-    public int Month { get; set; }
-    public DateTime LastWorkingDay { get; set; }
-    public string? Notes { get; set; }
-    public string Status { get; set; } = "BOZZA";
+    public int? ChiusuraId { get; set; }
+    public int Anno { get; set; }
+    public int Mese { get; set; }
+    public DateTime UltimoGiornoLavorativo { get; set; }
+    public string? Note { get; set; }
+    public string Stato { get; set; } = "BOZZA";
+    public List<SpesaMensileInput>? Spese { get; set; }
 }
 
-public class MonthlyClosureInputType : InputObjectGraphType<MonthlyClosureInput>
+public class ChiusuraMensileInputType : InputObjectGraphType<ChiusuraMensileInput>
 {
-    public MonthlyClosureInputType()
+    public ChiusuraMensileInputType()
     {
-        Name = "MonthlyClosureInput";
+        Name = "ChiusuraMensileInput";
 
-        Field(x => x.ClosureId, nullable: true);
-        Field(x => x.Year);
-        Field(x => x.Month);
-        Field(x => x.LastWorkingDay, type: typeof(DateTimeGraphType));
-        Field(x => x.Notes, nullable: true);
-        Field(x => x.Status);
+        Field(x => x.ChiusuraId, nullable: true);
+        Field(x => x.Anno);
+        Field(x => x.Mese);
+        Field(x => x.UltimoGiornoLavorativo, type: typeof(DateTimeGraphType));
+        Field(x => x.Note, nullable: true);
+        Field(x => x.Stato);
+        Field(x => x.Spese, type: typeof(ListGraphType<SpesaMensileInputType>), nullable: true);
     }
 }
+

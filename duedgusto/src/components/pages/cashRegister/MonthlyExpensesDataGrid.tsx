@@ -21,37 +21,37 @@ const MonthlyExpensesDataGrid: React.FC<MonthlyExpensesDataGridProps> = ({ expen
         // The event.data contains the whole row data after the change
         const updatedRow = event.data;
         const updatedExpenses = expenses.map(expense => 
-            expense.id === updatedRow.id ? updatedRow : expense
+            expense.spesaId === updatedRow.spesaId ? updatedRow : expense
         );
         onExpensesChange(updatedExpenses);
     }, [expenses, onExpensesChange]);
 
     const handleAddExpense = useCallback(() => {
-        const newId = Math.min(0, ...expenses.map(e => e.id)) - 1; // Temporary negative ID
+        const newId = Math.min(0, ...expenses.map(e => e.spesaId)) - 1; // Temporary negative ID
         const newExpense: MonthlyExpense = {
-            id: newId,
-            closureId: expenses.length > 0 ? expenses[0].closureId : 0, // Assume same closure
-            description: 'Nuova spesa',
-            amount: 0,
-            category: 'ALTRO',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            paymentId: null,
-            payment: null,
-            __typename: "MonthlyExpense",
+            spesaId: newId,
+            chiusuraId: expenses.length > 0 ? expenses[0].chiusuraId : 0, // Assume same closure
+            descrizione: 'Nuova spesa',
+            importo: 0,
+            categoria: 'ALTRO',
+            creatoIl: new Date().toISOString(),
+            aggiornatoIl: new Date().toISOString(),
+            pagamentoId: null,
+            pagamento: null,
+            __typename: "SpesaMensile",
         };
         onExpensesChange([...expenses, newExpense]);
     }, [expenses, onExpensesChange]);
 
     const columnDefs = useMemo<ColDef[]>(() => [
-        { field: 'category', headerName: 'Categoria', editable: true, width: 150,
+        { field: 'categoria', headerName: 'Categoria', editable: true, width: 150,
           cellEditor: 'agSelectCellEditor', cellEditorParams: {
             values: ['FORNITORE', 'AFFITTO', 'UTENZE', 'ALTRO']
           }
         },
-        { field: 'description', headerName: 'Descrizione', editable: true, flex: 1 },
+        { field: 'descrizione', headerName: 'Descrizione', editable: true, flex: 1 },
         {
-            field: 'amount',
+            field: 'importo',
             headerName: 'Importo',
             editable: true,
             valueParser: params => Number(params.newValue),
@@ -60,7 +60,7 @@ const MonthlyExpensesDataGrid: React.FC<MonthlyExpensesDataGridProps> = ({ expen
             width: 120
         },
         {
-            field: 'paymentId',
+            field: 'pagamentoId',
             headerName: 'Pagamento',
             width: 120,
             valueFormatter: (params) => params.value ? `Pag. #${params.value}` : '-'
@@ -89,7 +89,7 @@ const MonthlyExpensesDataGrid: React.FC<MonthlyExpensesDataGridProps> = ({ expen
                     defaultColDef={defaultColDef}
                     onGridReady={onGridReady}
                     onCellValueChanged={onCellValueChanged}
-                    getRowId={(params) => params.data.id}
+                    getRowId={(params) => params.data.spesaId}
                 />
             </div>
         </Paper>

@@ -2,52 +2,52 @@
 import { gql, useQuery } from "@apollo/client";
 import { MONTHLY_CLOSURE_FRAGMENT } from "./fragments";
 
-export const GET_MONTHLY_CLOSURES = gql`
-  query GetMonthlyClosures($year: Int!) {
-    monthlyClosures(year: $year) {
-      ...MonthlyClosureFragment
+export const GET_CHIUSURE_MENSILI = gql`
+  query GetChiusureMensili($anno: Int!) {
+    chiusureMensili(anno: $anno) {
+      ...ChiusuraMensileFragment
     }
   }
   ${MONTHLY_CLOSURE_FRAGMENT}
 `;
 
-export const GET_MONTHLY_CLOSURE_BY_ID = gql`
-    query GetMonthlyClosure($closureId: Int!) {
-        monthlyClosure(closureId: $closureId) {
-            ...MonthlyClosureFragment
+export const GET_CHIUSURA_MENSILE_BY_ID = gql`
+    query GetChiusuraMensile($chiusuraId: Int!) {
+        chiusuraMensile(chiusuraId: $chiusuraId) {
+            ...ChiusuraMensileFragment
         }
     }
     ${MONTHLY_CLOSURE_FRAGMENT}
 `;
 
-export const useQueryMonthlyClosures = ({ year }: { year: number }) => {
-    const { data, loading, error, refetch } = useQuery<{ monthlyClosures: MonthlyClosure[] }>(
-        GET_MONTHLY_CLOSURES,
+export const useQueryChiusureMensili = ({ anno }: { anno: number }) => {
+    const { data, loading, error, refetch } = useQuery<{ chiusureMensili: MonthlyClosure[] }>(
+        GET_CHIUSURE_MENSILI,
         {
-            variables: { year },
-            skip: !year,
+            variables: { anno },
+            skip: !anno,
         }
     );
 
     return {
-        monthlyClosures: data?.monthlyClosures || [],
+        chiusureMensili: data?.chiusureMensili || [],
         loading,
         error,
         refetch,
     };
 };
 
-export const useQueryMonthlyClosure = ({ closureId }: { closureId: number }) => {
-    const { data, loading, error, refetch } = useQuery<{ monthlyClosure: MonthlyClosure }>(
-        GET_MONTHLY_CLOSURE_BY_ID,
+export const useQueryChiusuraMensile = ({ chiusuraId }: { chiusuraId: number }) => {
+    const { data, loading, error, refetch } = useQuery<{ chiusuraMensile: MonthlyClosure }>(
+        GET_CHIUSURA_MENSILE_BY_ID,
         {
-            variables: { closureId },
-            skip: !closureId,
+            variables: { chiusuraId },
+            skip: !chiusuraId,
         }
     );
 
     return {
-        monthlyClosure: data?.monthlyClosure,
+        chiusuraMensile: data?.chiusuraMensile,
         loading,
         error,
         refetch,

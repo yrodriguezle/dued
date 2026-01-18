@@ -5,7 +5,6 @@ import {
   deliveryNoteFragment,
   supplierPaymentFragment,
   monthlyClosureFragment,
-  monthlyExpenseFragment,
 } from "./fragments";
 
 // ============ SUPPLIER MUTATIONS ============
@@ -174,103 +173,63 @@ export const mutationDeleteSupplierPayment: TypedDocumentNode<DeleteSupplierPaym
 
 // ============ MONTHLY CLOSURE MUTATIONS ============
 
-interface MutateMonthlyClosureData {
+interface MutazioneChiusuraMensileData {
   monthlyClosures: {
-    mutateMonthlyClosure: MonthlyClosure;
+    mutazioneChiusuraMensile: MonthlyClosure;
   };
 }
 
-interface MutateMonthlyClosureVariables {
-  closure: MonthlyClosureInput;
+interface MutazioneChiusuraMensileVariables {
+  chiusura: ChiusuraMensileInput;
 }
 
-export const mutationMutateMonthlyClosure: TypedDocumentNode<MutateMonthlyClosureData, MutateMonthlyClosureVariables> = gql`
+export const mutationMutazioneChiusuraMensile: TypedDocumentNode<MutazioneChiusuraMensileData, MutazioneChiusuraMensileVariables> = gql`
   ${monthlyClosureFragment}
-  mutation MutateMonthlyClosure($closure: MonthlyClosureInput!) {
+  mutation MutazioneChiusuraMensile($chiusura: ChiusuraMensileInput!) {
     monthlyClosures {
-      mutateMonthlyClosure(closure: $closure) {
-        ...MonthlyClosureFragment
+      mutazioneChiusuraMensile(chiusura: $chiusura) {
+        ...ChiusuraMensileFragment
       }
     }
   }
 `;
 
-interface CloseMonthlyClosureData {
+interface ChiudiChiusuraMensileData {
   monthlyClosures: {
-    closeMonthlyClosure: MonthlyClosure;
+    chiudiChiusuraMensile: MonthlyClosure;
   };
 }
 
-interface CloseMonthlyClosureVariables {
-  closureId: number;
+interface ChiudiChiusuraMensileVariables {
+  chiusuraId: number;
 }
 
-export const mutationCloseMonthlyClosure: TypedDocumentNode<CloseMonthlyClosureData, CloseMonthlyClosureVariables> = gql`
+export const mutationChiudiChiusuraMensile: TypedDocumentNode<ChiudiChiusuraMensileData, ChiudiChiusuraMensileVariables> = gql`
   ${monthlyClosureFragment}
-  mutation CloseMonthlyClosure($closureId: Int!) {
+  mutation ChiudiChiusuraMensile($chiusuraId: Int!) {
     monthlyClosures {
-      closeMonthlyClosure(closureId: $closureId) {
-        ...MonthlyClosureFragment
+      chiudiChiusuraMensile(chiusuraId: $chiusuraId) {
+        ...ChiusuraMensileFragment
       }
     }
   }
 `;
 
-interface DeleteMonthlyClosureData {
+interface EliminaChiusuraMensileData {
   monthlyClosures: {
-    deleteMonthlyClosure: boolean;
+    eliminaChiusuraMensile: boolean;
   };
 }
 
-interface DeleteMonthlyClosureVariables {
-  closureId: number;
+interface EliminaChiusuraMensileVariables {
+  chiusuraId: number;
 }
 
-export const mutationDeleteMonthlyClosure: TypedDocumentNode<DeleteMonthlyClosureData, DeleteMonthlyClosureVariables> = gql`
-  mutation DeleteMonthlyClosure($closureId: Int!) {
+export const mutationEliminaChiusuraMensile: TypedDocumentNode<EliminaChiusuraMensileData, EliminaChiusuraMensileVariables> = gql`
+  mutation EliminaChiusuraMensile($chiusuraId: Int!) {
     monthlyClosures {
-      deleteMonthlyClosure(closureId: $closureId)
+      eliminaChiusuraMensile(chiusuraId: $chiusuraId)
     }
   }
 `;
 
-// ============ MONTHLY EXPENSE MUTATIONS ============
-
-interface MutateMonthlyExpenseData {
-  monthlyClosures: {
-    mutateMonthlyExpense: MonthlyExpense;
-  };
-}
-
-interface MutateMonthlyExpenseVariables {
-  expense: MonthlyExpenseInput;
-}
-
-export const mutationMutateMonthlyExpense: TypedDocumentNode<MutateMonthlyExpenseData, MutateMonthlyExpenseVariables> = gql`
-  ${monthlyExpenseFragment}
-  mutation MutateMonthlyExpense($expense: MonthlyExpenseInput!) {
-    monthlyClosures {
-      mutateMonthlyExpense(expense: $expense) {
-        ...MonthlyExpenseFragment
-      }
-    }
-  }
-`;
-
-interface DeleteMonthlyExpenseData {
-  monthlyClosures: {
-    deleteMonthlyExpense: boolean;
-  };
-}
-
-interface DeleteMonthlyExpenseVariables {
-  expenseId: number;
-}
-
-export const mutationDeleteMonthlyExpense: TypedDocumentNode<DeleteMonthlyExpenseData, DeleteMonthlyExpenseVariables> = gql`
-  mutation DeleteMonthlyExpense($expenseId: Int!) {
-    monthlyClosures {
-      deleteMonthlyExpense(expenseId: $expenseId)
-    }
-  }
-`;

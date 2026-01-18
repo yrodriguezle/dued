@@ -8,21 +8,21 @@ public class MonthlyExpenseType : ObjectGraphType<SpesaMensile>
 {
     public MonthlyExpenseType()
     {
-        Name = "MonthlyExpense";
+        Name = "SpesaMensile";
 
-        Field("expenseId", x => x.SpesaId);
-        Field("closureId", x => x.ChiusuraId);
-        Field("paymentId", x => x.PagamentoId, nullable: true);
-        Field("description", x => x.Descrizione);
-        Field("amount", x => x.Importo);
-        Field("category", x => x.Categoria, nullable: true);
-        Field("createdAt", x => x.CreatoIl, type: typeof(DateTimeGraphType));
-        Field("updatedAt", x => x.AggiornatoIl, type: typeof(DateTimeGraphType));
+        Field("spesaId", x => x.SpesaId);
+        Field("chiusuraId", x => x.ChiusuraId);
+        Field("pagamentoId", x => x.PagamentoId, nullable: true);
+        Field("descrizione", x => x.Descrizione);
+        Field("importo", x => x.Importo);
+        Field("categoria", x => x.Categoria, nullable: true);
+        Field("creatoIl", x => x.CreatoIl, type: typeof(DateTimeGraphType));
+        Field("aggiornatoIl", x => x.AggiornatoIl, type: typeof(DateTimeGraphType));
 
-        Field<MonthlyClosureType, ChiusuraMensile>("closure")
+        Field<MonthlyClosureType, ChiusuraMensile>("chiusura")
             .Resolve(context => context.Source.Chiusura);
 
-        Field<SupplierPaymentType, PagamentoFornitore>("payment")
+        Field<SupplierPaymentType, PagamentoFornitore>("pagamento")
             .Resolve(context => context.Source.Pagamento);
     }
 }

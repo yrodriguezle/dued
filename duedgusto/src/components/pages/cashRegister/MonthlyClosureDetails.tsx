@@ -1,72 +1,72 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { useParams } from 'react-router';
 import { Box, Typography, CircularProgress, Alert, Paper, Grid, Button } from '@mui/material';
-import { useQueryMonthlyClosure } from '../../../graphql/monthlyClosure/queries';
+import { useQueryChiusuraMensile } from '../../../graphql/monthlyClosure/queries';
 import PageTitleContext from '../../layout/headerBar/PageTitleContext';
 import MonthlySummaryView from './MonthlySummaryView';
 import MonthlyExpensesDataGrid from './MonthlyExpensesDataGrid';
 import dayjs from 'dayjs';
-import { useMutationMonthlyClosure } from '../../../graphql/monthlyClosure/mutations';
+import { useMutation } from '@apollo/client';
+import { mutationMutazioneChiusuraMensile } from '../../../graphql/suppliers/mutations';
 
 const MonthlyClosureDetails: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const { setTitle } = useContext(PageTitleContext);
-    const closureId = parseInt(id || '0', 10);
+    const chiusuraId = parseInt(id || '0', 10);
 
-    const { monthlyClosure: initialClosure, loading, error } = useQueryMonthlyClosure({ id: closureId });
-    const [monthlyClosure, setMonthlyClosure] = useState<MonthlyClosure | undefined>(undefined);
+    const { chiusuraMensile: initialChiusura, loading, error } = useQueryChiusuraMensile({ chiusuraId });
+    const [chiusuraMensile, setChiusuraMensile] = useState<MonthlyClosure | undefined>(undefined);
 
-    const { mutateMonthlyClosure, loading: mutationLoading } = useMutationMonthlyClosure();
+    const [mutazioneChiusuraMensile, { loading: mutationLoading }] = useMutation(mutationMutazioneChiusuraMensile);
 
     useEffect(() => {
-        if (initialClosure) {
-            setMonthlyClosure(initialClosure);
+        if (initialChiusura) {
+            setChiusuraMensile(initialChiusura);
         }
-    }, [initialClosure]);
+    }, [initialChiusura]);
 
     useEffect(() => {
-        if (monthlyClosure) {
-            setTitle(`Chiusura Mensile - ${dayjs().month(monthlyClosure.month - 1).format('MMMM')} ${monthlyClosure.year}`);
+        if (chiusuraMensile) {
+            setTitle(`Chiusura Mensile - ${dayjs().month(chiusuraMensile.mese - 1).format('MMMM')} ${chiusuraMensile.anno}`);
         } else {
             setTitle('Dettagli Chiusura Mensile');
         }
-    }, [monthlyClosure, setTitle]);
+    }, [chiusuraMensile, setTitle]);
 
     const handleExpensesChange = (updatedExpenses: MonthlyExpense[]) => {
-        if (monthlyClosure) {
-            const additionalExpenses = updatedExpenses.reduce((acc, expense) => acc + expense.amount, 0);
-            const netRevenue = (monthlyClosure.totalRevenue || 0) - additionalExpenses;
+        if (chiusuraMensile) {
+            const speseAggiuntive = updatedExpenses.reduce((acc, expense) => acc + expense.importo, 0);
+            const ricavoNetto = (chiusuraMensile.ricavoTotale || 0) - speseAggiuntive;
 
-            setMonthlyClosure({
-                ...monthlyClosure,
-                expenses: updatedExpenses,
-                additionalExpenses,
-                netRevenue,
+            setChiusuraMensile({
+                ...chiusuraMensile,
+                spese: updatedExpenses,
+                speseAggiuntive,
+                ricavoNetto,
             });
         }
     };
 
-    const handleSaveChanges = (status: "BOZZA" | "CHIUSA") => {
-        if (monthlyClosure) {
-            const input: MonthlyClosureInput = {
-                id: monthlyClosure.id,
-                year: monthlyClosure.year,
-                month: monthlyClosure.month,
-                lastBusinessDay: monthlyClosure.lastBusinessDay,
-                notes: monthlyClosure.notes || "",
-                status,
-                expenses: monthlyClosure.expenses.map(e => ({
-                    id: e.id > 0 ? e.id : undefined,
-                    description: e.description,
-                    amount: e.amount,
-                    category: e.category || undefined,
-                    paymentId: e.paymentId || undefined,
+    const handleSaveChanges = (stato: "BOZZA" | "CHIUSA") => {
+        if (chiusuraMensile) {
+            const input: ChiusuraMensileInput = {
+                chiusuraId: chiusuraMensile.chiusuraId,
+                anno: chiusuraMensile.anno,
+                mese: chiusuraMensile.mese,
+                ultimoGiornoLavorativo: chiusuraMensile.ultimoGiornoLavorativo,
+                note: chiusuraMensile.note || "",
+                stato,
+                spese: chiusuraMensile.spese.map(e => ({
+                    spesaId: e.spesaId > 0 ? e.spesaId : undefined,
+                    descrizione: e.descrizione,
+                    importo: e.importo,
+                    categoria: e.categoria || undefined,
+                    pagamentoId: e.pagamentoId || undefined,
                 }))
             };
-            mutateMonthlyClosure({ variables: { input } });
+            mutazioneChiusuraMensile({ variables: { chiusura: input } });
         }
     };
-
 
     if (loading) {
         return <CircularProgress />;
@@ -76,7 +76,7 @@ const MonthlyClosureDetails: React.FC = () => {
         return <Alert severity="error">Errore nel caricamento dei dettagli della chiusura: {error.message}</Alert>;
     }
 
-    if (!monthlyClosure) {
+    if (!chiusuraMensile) {
         return <Alert severity="warning">Chiusura non trovata.</Alert>;
     }
 
@@ -84,19 +84,19 @@ const MonthlyClosureDetails: React.FC = () => {
         <Box sx={{ padding: 3 }}>
             <Paper sx={{ padding: 3 }}>
                 <Typography variant="h4" gutterBottom>
-                    CHIUSURA MENSILE - {dayjs().month(monthlyClosure.month - 1).format('MMMM')} {monthlyClosure.year}
+                    CHIUSURA MENSILE - {dayjs().month(chiusuraMensile.mese - 1).format('MMMM')} {chiusuraMensile.anno}
                 </Typography>
 
                 <Grid container spacing={3}>
                     {/* Riepilogo Incassi */}
                     <Grid item xs={12}>
-                        <MonthlySummaryView closure={monthlyClosure} />
+                        <MonthlySummaryView closure={chiusuraMensile} />
                     </Grid>
 
                     {/* Spese Mensili Aggiuntive */}
                     <Grid item xs={12}>
                         <MonthlyExpensesDataGrid 
-                            expenses={monthlyClosure.expenses}
+                            expenses={chiusuraMensile.spese}
                             onExpensesChange={handleExpensesChange}
                         />
                     </Grid>
@@ -107,22 +107,22 @@ const MonthlyClosureDetails: React.FC = () => {
                             <Typography variant="h6">Riepilogo Finale</Typography>
                             <Grid container spacing={1}>
                                 <Grid item xs={6}><Typography>Ricavo Totale Mese:</Typography></Grid>
-                                <Grid item xs={6}><Typography align="right">€ {monthlyClosure.totalRevenue?.toFixed(2) ?? 'N/A'}</Typography></Grid>
+                                <Grid item xs={6}><Typography align="right">€ {chiusuraMensile.ricavoTotale?.toFixed(2) ?? 'N/A'}</Typography></Grid>
                                 
                                 <Grid item xs={6}><Typography>(-) Spese Aggiuntive:</Typography></Grid>
-                                <Grid item xs={6}><Typography align="right" color="error">€ {monthlyClosure.additionalExpenses?.toFixed(2) ?? 'N/A'}</Typography></Grid>
+                                <Grid item xs={6}><Typography align="right" color="error">€ {chiusuraMensile.speseAggiuntive?.toFixed(2) ?? 'N/A'}</Typography></Grid>
                                 
                                 <Grid item xs={12}><hr /></Grid>
 
                                 <Grid item xs={6}><Typography variant="h6">RICAVO NETTO MENSILE:</Typography></Grid>
-                                <Grid item xs={6}><Typography variant="h6" align="right">€ {monthlyClosure.netRevenue?.toFixed(2) ?? 'N/A'}</Typography></Grid>
+                                <Grid item xs={6}><Typography variant="h6" align="right">€ {chiusuraMensile.ricavoNetto?.toFixed(2) ?? 'N/A'}</Typography></Grid>
                             </Grid>
                         </Paper>
                     </Grid>
 
                     {/* Note e Azioni */}
                     <Grid item xs={12}>
-                        <Typography>Note: {monthlyClosure.notes}</Typography>
+                        <Typography>Note: {chiusuraMensile.note}</Typography>
                     </Grid>
 
                     <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>

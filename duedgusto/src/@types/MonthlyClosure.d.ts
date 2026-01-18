@@ -1,67 +1,61 @@
 // src/@types/MonthlyClosure.d.ts
 
 type MonthlyExpense = {
-    __typename: "MonthlyExpense";
-    id: number;
-    closureId: number;
-    paymentId: number | null;
-    payment: SupplierPayment | null;
-    description: string;
-    amount: number;
-    category: string | null;
-    createdAt: string;
-    updatedAt: string;
-};
+    __typename: "SpesaMensile";
+    spesaId: number;
+    chiusuraId: number;
+    pagamentoId: number | null;
+    pagamento: SupplierPayment | null;
+    descrizione: string;
+    importo: number;
+    categoria: string | null;
+    creatoIl: string;
+    aggiornatoIl: string;
+  };
   
-type MonthlyClosure = {
-    __typename: "MonthlyClosure";
-    id: number;
-    year: number;
-    month: number;
-    lastBusinessDay: string;
-
+  type MonthlyClosure = {
+    __typename: "ChiusuraMensile";
+    chiusuraId: number;
+    anno: number;
+    mese: number;
+    ultimoGiornoLavorativo: string;
+  
     // Riepilogo incassi
-    totalRevenue: number | null;
-    totalCash: number | null;
-    totalElectronic: number | null;
-    invoicePayments: number | null;
-
+    ricavoTotale: number | null;
+    totaleContanti: number | null;
+    totaleElettronici: number | null;
+    totaleFatture: number | null;
+  
     // Spese mensili
-    additionalExpenses: number | null;
-    expenses: MonthlyExpense[];
-
+    speseAggiuntive: number | null;
+    spese: MonthlyExpense[];
+  
     // Totali finali
-    netRevenue: number | null;
-
-    status: "BOZZA" | "CHIUSA" | "RICONCILIATA";
-    notes: string | null;
-    closedBy: number | null;
-    closedByUser: User | null;
-    closedAt: string | null;
-    createdAt: string;
-    updatedAt: string;
-};
+    ricavoNetto: number | null;
   
-type MonthlyClosureInput = {
-    id?: number;
-    year: number;
-    month: number;
-    lastBusinessDay: string;
-    totalRevenue?: number;
-    totalCash?: number;
-    totalElectronic?: number;
-    invoicePayments?: number;
-    additionalExpenses?: number;
-    netRevenue?: number;
-    status?: string;
-    notes?: string;
-    expenses?: MonthlyExpenseInput[];
-};
+    stato: "BOZZA" | "CHIUSA" | "RICONCILIATA";
+    note: string | null;
+    chiusaDa: number | null;
+    chiusaDaUtente: User | null;
+    chiusaIl: string | null;
+    creatoIl: string;
+    aggiornatoIl: string;
+  };
   
-type MonthlyExpenseInput = {
-    id?: number;
-    paymentId?: number;
-    description: string;
-    amount: number;
-    category?: string;
-};
+  type ChiusuraMensileInput = {
+    chiusuraId?: number;
+    anno: number;
+    mese: number;
+    ultimoGiornoLavorativo: string;
+    note?: string;
+    stato?: string;
+    spese?: SpesaMensileInput[];
+  };
+  
+  type SpesaMensileInput = {
+    spesaId?: number;
+    pagamentoId?: number;
+    descrizione: string;
+    importo: number;
+    categoria?: string;
+  };

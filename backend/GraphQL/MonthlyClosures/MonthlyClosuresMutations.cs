@@ -19,33 +19,32 @@ public class MonthlyClosuresMutations : ObjectGraphType
         this.Authorize();
 
         // Create or Update Monthly Closure
-        Field<MonthlyClosureType>("mutateMonthlyClosure")
-            .Argument<NonNullGraphType<MonthlyClosureInputType>>("closure", "Monthly closure data")
+        Field<MonthlyClosureType>("mutazioneChiusuraMensile")
+            .Argument<NonNullGraphType<ChiusuraMensileInputType>>("chiusura", "Dati della chiusura mensile")
             .ResolveAsync(async context =>
             {
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
-                MonthlyClosureInput input = context.GetArgument<MonthlyClosureInput>("closure");
+                ChiusuraMensileInput input = context.GetArgument<ChiusuraMensileInput>("chiusura");
 
                 ChiusuraMensile? closure = null;
 
-                if (input.ClosureId.HasValue)
+                if (input.ChiusuraId.HasValue)
                 {
                     // Update existing closure
                     closure = await dbContext.ChiusureMensili
                         .Include(c => c.Spese)
-                        .FirstOrDefaultAsync(c => c.ChiusuraId == input.ClosureId.Value);
+                        .FirstOrDefaultAsync(c => c.ChiusuraId == input.ChiusuraId.Value);
 
                     if (closure == null)
                     {
-                        throw new ExecutionError($"Monthly closure with ID {input.ClosureId} not found");
+                        throw new ExecutionError($"Chiusura mensile con ID {input.ChiusuraId} non trovata.");
                     }
                 }
                 else
                 {
                     // Check if closure already exists for this year/month
                     closure = await dbContext.ChiusureMensili
-                        .Include(c => c.Spese)
-                        .FirstOrDefaultAsync(c => c.Anno == input.Year && c.Mese == input.Month);
+                        .FirstOrDefaultAsync(c => c.Anno == input.Anno && c.Mese == input.Mese);
 
                     if (closure == null)
                     {
@@ -56,15 +55,46 @@ public class MonthlyClosuresMutations : ObjectGraphType
                 }
 
                 // Update basic fields
-                closure.Anno = input.Year;
-                closure.Mese = input.Month;
-                closure.UltimoGiornoLavorativo = input.LastWorkingDay;
-                closure.Note = input.Notes;
-                closure.Stato = input.Status;
+                closure.Anno = input.Anno;
+                closure.Mese = input.Mese;
+                closure.UltimoGiornoLavorativo = input.UltimoGiornoLavorativo;
+                closure.Note = input.Note;
+                closure.Stato = input.Stato;
                 closure.AggiornatoIl = DateTime.UtcNow;
 
+                // Handle expenses
+                if (input.Spese != null)
+                {
+                    var existingExpenseIds = closure.Spese.Select(e => e.SpesaId).ToList();
+                    var inputExpenseIds = input.Spese.Where(e => e.SpesaId.HasValue).Select(e => e.SpesaId!.Value).ToList();
+                    var expensesToDelete = closure.Spese.Where(e => !inputExpenseIds.Contains(e.SpesaId)).ToList();
+                    
+                    dbContext.SpeseMensili.RemoveRange(expensesToDelete);
+
+                    foreach (var expenseInput in input.Spese)
+                    {
+                        SpesaMensile? expense = null;
+                        if (expenseInput.SpesaId.HasValue)
+                        {
+                            expense = closure.Spese.FirstOrDefault(e => e.SpesaId == expenseInput.SpesaId.Value);
+                        }
+
+                        if (expense == null)
+                        {
+                            expense = new SpesaMensile { ChiusuraId = closure.ChiusuraId };
+                            closure.Spese.Add(expense);
+                        }
+
+                        expense.Descrizione = expenseInput.Descrizione;
+                        expense.Importo = expenseInput.Importo;
+                        expense.Categoria = expenseInput.Categoria;
+                        expense.PagamentoId = expenseInput.PagamentoId;
+                        expense.AggiornatoIl = DateTime.UtcNow;
+                    }
+                }
+
                 // Calculate totals from cash registers for the month
-                var startDate = new DateTime(input.Year, input.Month, 1);
+                var startDate = new DateTime(input.Anno, input.Mese, 1);
                 var endDate = startDate.AddMonths(1).AddDays(-1);
 
                 var cashRegisters = await dbContext.CashRegisters
@@ -76,10 +106,10 @@ public class MonthlyClosuresMutations : ObjectGraphType
                 closure.TotaleElettronici = cashRegisters.Sum(cr => cr.ElectronicPayments);
                 closure.TotaleFatture = cashRegisters.Sum(cr => cr.InvoicePayments);
 
-                // Calculate additional expenses from SpeseMensili
+                // Recalculate additional expenses AFTER updating the collection
                 closure.SpeseAggiuntive = closure.Spese.Sum(s => s.Importo);
 
-                // Calculate net revenue
+                // Recalculate net revenue
                 closure.RicavoNetto = closure.RicavoTotale - closure.SpeseAggiuntive;
 
                 await dbContext.SaveChangesAsync();
@@ -88,27 +118,27 @@ public class MonthlyClosuresMutations : ObjectGraphType
             });
 
         // Close Monthly Closure (change status to CHIUSA)
-        Field<MonthlyClosureType>("closeMonthlyClosure")
-            .Argument<NonNullGraphType<IntGraphType>>("closureId")
+        Field<MonthlyClosureType>("chiudiChiusuraMensile")
+            .Argument<NonNullGraphType<IntGraphType>>("chiusuraId")
             .ResolveAsync(async context =>
             {
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
                 var userContext = context.UserContext as GraphQLUserContext;
                 JwtHelper jwtHelper = GraphQLService.GetService<JwtHelper>(context);
-                int closureId = context.GetArgument<int>("closureId");
+                int chiusuraId = context.GetArgument<int>("chiusuraId");
 
                 var closure = await dbContext.ChiusureMensili
                     .Include(c => c.Spese)
-                    .FirstOrDefaultAsync(c => c.ChiusuraId == closureId);
+                    .FirstOrDefaultAsync(c => c.ChiusuraId == chiusuraId);
 
                 if (closure == null)
                 {
-                    throw new ExecutionError($"Monthly closure with ID {closureId} not found");
+                    throw new ExecutionError($"Chiusura mensile con ID {chiusuraId} non trovata");
                 }
 
                 if (closure.Stato == "CHIUSA" || closure.Stato == "RICONCILIATA")
                 {
-                    throw new ExecutionError("Monthly closure is already closed");
+                    throw new ExecutionError("La chiusura mensile è già chiusa.");
                 }
 
                 closure.Stato = "CHIUSA";
@@ -125,120 +155,29 @@ public class MonthlyClosuresMutations : ObjectGraphType
             });
 
         // Delete Monthly Closure
-        Field<BooleanGraphType>("deleteMonthlyClosure")
-            .Argument<NonNullGraphType<IntGraphType>>("closureId")
+        Field<BooleanGraphType>("eliminaChiusuraMensile")
+            .Argument<NonNullGraphType<IntGraphType>>("chiusuraId")
             .ResolveAsync(async context =>
             {
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
-                int closureId = context.GetArgument<int>("closureId");
+                int chiusuraId = context.GetArgument<int>("chiusuraId");
 
                 var closure = await dbContext.ChiusureMensili
                     .Include(c => c.Spese)
-                    .FirstOrDefaultAsync(c => c.ChiusuraId == closureId);
+                    .FirstOrDefaultAsync(c => c.ChiusuraId == chiusuraId);
 
                 if (closure == null)
                 {
-                    throw new ExecutionError($"Monthly closure with ID {closureId} not found");
+                    throw new ExecutionError($"Chiusura mensile con ID {chiusuraId} non trovata");
                 }
 
                 if (closure.Stato == "CHIUSA" || closure.Stato == "RICONCILIATA")
                 {
-                    throw new ExecutionError("Cannot delete a closed or reconciled monthly closure");
+                    throw new ExecutionError("Impossibile eliminare una chiusura chiusa o riconciliata.");
                 }
 
                 dbContext.ChiusureMensili.Remove(closure);
                 await dbContext.SaveChangesAsync();
-
-                return true;
-            });
-
-        // Create or Update Monthly Expense
-        Field<MonthlyExpenseType>("mutateMonthlyExpense")
-            .Argument<NonNullGraphType<MonthlyExpenseInputType>>("expense", "Monthly expense data")
-            .ResolveAsync(async context =>
-            {
-                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
-                MonthlyExpenseInput input = context.GetArgument<MonthlyExpenseInput>("expense");
-
-                SpesaMensile? expense = null;
-
-                if (input.ExpenseId.HasValue)
-                {
-                    // Update existing expense
-                    expense = await dbContext.SpeseMensili
-                        .FirstOrDefaultAsync(e => e.SpesaId == input.ExpenseId.Value);
-
-                    if (expense == null)
-                    {
-                        throw new ExecutionError($"Monthly expense with ID {input.ExpenseId} not found");
-                    }
-                }
-                else
-                {
-                    // Create new expense
-                    expense = new SpesaMensile();
-                    dbContext.SpeseMensili.Add(expense);
-                }
-
-                // Update fields
-                expense.ChiusuraId = input.ClosureId;
-                expense.PagamentoId = input.PaymentId;
-                expense.Descrizione = input.Description;
-                expense.Importo = input.Amount;
-                expense.Categoria = input.Category;
-                expense.AggiornatoIl = DateTime.UtcNow;
-
-                await dbContext.SaveChangesAsync();
-
-                // Recalculate closure totals
-                var closure = await dbContext.ChiusureMensili
-                    .Include(c => c.Spese)
-                    .FirstOrDefaultAsync(c => c.ChiusuraId == input.ClosureId);
-
-                if (closure != null)
-                {
-                    closure.SpeseAggiuntive = closure.Spese.Sum(s => s.Importo);
-                    closure.RicavoNetto = (closure.RicavoTotale ?? 0) - (closure.SpeseAggiuntive ?? 0);
-                    closure.AggiornatoIl = DateTime.UtcNow;
-                    await dbContext.SaveChangesAsync();
-                }
-
-                return expense;
-            });
-
-        // Delete Monthly Expense
-        Field<BooleanGraphType>("deleteMonthlyExpense")
-            .Argument<NonNullGraphType<IntGraphType>>("expenseId")
-            .ResolveAsync(async context =>
-            {
-                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
-                int expenseId = context.GetArgument<int>("expenseId");
-
-                var expense = await dbContext.SpeseMensili
-                    .FirstOrDefaultAsync(e => e.SpesaId == expenseId);
-
-                if (expense == null)
-                {
-                    throw new ExecutionError($"Monthly expense with ID {expenseId} not found");
-                }
-
-                var closureId = expense.ChiusuraId;
-
-                dbContext.SpeseMensili.Remove(expense);
-                await dbContext.SaveChangesAsync();
-
-                // Recalculate closure totals
-                var closure = await dbContext.ChiusureMensili
-                    .Include(c => c.Spese)
-                    .FirstOrDefaultAsync(c => c.ChiusuraId == closureId);
-
-                if (closure != null)
-                {
-                    closure.SpeseAggiuntive = closure.Spese.Sum(s => s.Importo);
-                    closure.RicavoNetto = (closure.RicavoTotale ?? 0) - (closure.SpeseAggiuntive ?? 0);
-                    closure.AggiornatoIl = DateTime.UtcNow;
-                    await dbContext.SaveChangesAsync();
-                }
 
                 return true;
             });

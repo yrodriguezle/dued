@@ -17,12 +17,12 @@ public class MonthlyClosuresQueries : ObjectGraphType
         this.Authorize();
 
         // Get monthly closure by ID
-        Field<MonthlyClosureType, ChiusuraMensile>("monthlyClosure")
-            .Argument<NonNullGraphType<IntGraphType>>("closureId")
+        Field<MonthlyClosureType, ChiusuraMensile>("chiusuraMensile")
+            .Argument<NonNullGraphType<IntGraphType>>("chiusuraId")
             .ResolveAsync(async context =>
             {
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
-                int closureId = context.GetArgument<int>("closureId");
+                int closureId = context.GetArgument<int>("chiusuraId");
 
                 var result = await dbContext.ChiusureMensili
                     .Include(c => c.ChiusaDaUtente)
@@ -34,12 +34,12 @@ public class MonthlyClosuresQueries : ObjectGraphType
             });
 
         // Get all monthly closures, optionally filtered by year
-        Field<ListGraphType<MonthlyClosureType>, IEnumerable<ChiusuraMensile>>("monthlyClosures")
-            .Argument<IntGraphType>("year")
+        Field<ListGraphType<MonthlyClosureType>, IEnumerable<ChiusuraMensile>>("chiusureMensili")
+            .Argument<IntGraphType>("anno")
             .ResolveAsync(async context =>
             {
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
-                int? year = context.GetArgument<int?>("year");
+                int? year = context.GetArgument<int?>("anno");
 
                 IQueryable<ChiusuraMensile> query = dbContext.ChiusureMensili;
 
@@ -56,3 +56,4 @@ public class MonthlyClosuresQueries : ObjectGraphType
             });
     }
 }
+
