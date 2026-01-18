@@ -8,7 +8,7 @@ using duedgusto.Services.GraphQL;
 using duedgusto.DataAccess;
 using duedgusto.GraphQL.ChiusureMensili.Types;
 
-namespace duedgusto.GraphQL.MonthlyClosures;
+namespace duedgusto.GraphQL.ChiusureMensili;
 
 public class MonthlyClosuresQueries : ObjectGraphType
 {
