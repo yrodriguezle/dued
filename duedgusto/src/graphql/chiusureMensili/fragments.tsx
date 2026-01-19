@@ -1,7 +1,6 @@
-// src/graphql/monthlyClosure/fragments.tsx
 import { gql } from "@apollo/client";
 
-export const MONTHLY_EXPENSE_FRAGMENT = gql`
+export const spesaMensileFragment = gql`
   fragment SpesaMensileFragment on SpesaMensile {
     spesaId
     chiusuraId
@@ -13,7 +12,7 @@ export const MONTHLY_EXPENSE_FRAGMENT = gql`
   }
 `;
 
-export const MONTHLY_CLOSURE_FRAGMENT = gql`
+export const chiusuraMensileFragment = gql`
   fragment ChiusuraMensileFragment on ChiusuraMensile {
     chiusuraId
     anno
@@ -31,11 +30,11 @@ export const MONTHLY_CLOSURE_FRAGMENT = gql`
     creatoIl
     chiusaDaUtente {
       userId
-      username
+      userName
     }
     spese {
       ...SpesaMensileFragment
     }
   }
-  ${MONTHLY_EXPENSE_FRAGMENT}
+  ${spesaMensileFragment}
 `;

@@ -1,7 +1,7 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { Box, Typography, List, ListItem, ListItemButton, ListItemText, CircularProgress, Alert, Select, MenuItem, FormControl, InputLabel, SelectChangeEvent } from '@mui/material';
 import { useNavigate } from 'react-router';
-import { useQueryChiusureMensili } from '../../../graphql/monthlyClosure/queries';
+import { useQueryChiusureMensili } from '../../../graphql/chiusureMensili/queries';
 import PageTitleContext from '../../layout/headerBar/PageTitleContext';
 import dayjs from 'dayjs';
 

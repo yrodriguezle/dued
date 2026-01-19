@@ -5,7 +5,7 @@ using duedgusto.GraphQL.Connection;
 using duedgusto.GraphQL.CashManagement;
 using duedgusto.GraphQL.Settings;
 using duedgusto.GraphQL.Suppliers;
-using duedgusto.GraphQL.MonthlyClosures;
+using duedgusto.GraphQL.ChiusureMensili;
 
 namespace duedgusto.GraphQL;
 
@@ -18,6 +18,6 @@ public class GraphQLQueries : ObjectGraphType
         Field<CashManagementQueries>("cashManagement").Resolve(context => new { });
         Field<SettingsQueries>("settings").Resolve(context => new { });
         Field<SuppliersQueries>("suppliers").Resolve(context => new { });
-        Field<MonthlyClosuresQueries>("monthlyClosures").Resolve(context => new { });
+        Field<MonthlyClosuresQueries>("chiusureMensili").Resolve(context => new { });
     }
 }
