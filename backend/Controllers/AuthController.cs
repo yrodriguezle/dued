@@ -31,7 +31,7 @@ public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper, CsrfTok
         RandomNumberGenerator.Fill(dummyHash);
         RandomNumberGenerator.Fill(dummySalt);
 
-        User? user = await dbContext.User.FirstOrDefaultAsync(x => x.UserName == request.Username);
+        Utente? user = await dbContext.Utenti.FirstOrDefaultAsync(x => x.NomeUtente == request.Username);
 
         bool isValid;
         if (user == null)
@@ -55,21 +55,21 @@ public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper, CsrfTok
         }
 
         // SECURITY FIX: Check if account is disabled
-        if (user!.Disabled == true)
+        if (user!.Disabilitato == true)
         {
             return Unauthorized(new { message = "Account disabilitato. Contatta l'amministratore." });
         }
 
         Claim[] claims = [
-            new Claim(ClaimTypes.Name, user.UserName),
-            new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-            new Claim("UserId", user.UserId.ToString()),
+            new Claim(ClaimTypes.Name, user.NomeUtente),
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim("UserId", user.Id.ToString()),
         ];
 
         (string RefreshToken, string Token) = jwtHelper.CreateSignedToken(claims);
-        user.RefreshToken = RefreshToken;
+        user.TokenAggiornamento = RefreshToken;
         // SECURITY FIX: Add server-side expiration for refresh token
-        user.RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(7);
+        user.ScadenzaTokenAggiornamento = DateTime.UtcNow.AddDays(7);
 
         await dbContext.SaveChangesAsync();
         return Ok(new { Token, RefreshToken  });
@@ -78,7 +78,7 @@ public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper, CsrfTok
     [HttpPost("refresh"), AllowAnonymous]
     public async Task<IActionResult> RefreshToken([FromBody] TokenResponse request)
     {
-        User? user = await dbContext.User.FirstOrDefaultAsync(u => u.RefreshToken == request.RefreshToken);
+        Utente? user = await dbContext.Utenti.FirstOrDefaultAsync(u => u.TokenAggiornamento == request.RefreshToken);
 
         if (user == null)
         {
@@ -86,21 +86,21 @@ public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper, CsrfTok
         }
 
         // SECURITY FIX: Check if account is disabled (could be disabled after login)
-        if (user.Disabled == true)
+        if (user.Disabilitato == true)
         {
             return Unauthorized(new { message = "Account disabilitato" });
         }
 
         Claim[] userClaims = [
-            new Claim(ClaimTypes.Name, user.UserName),
-            new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-            new Claim("UserId", user.UserId.ToString()),
+            new Claim(ClaimTypes.Name, user.NomeUtente),
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim("UserId", user.Id.ToString()),
         ];
 
         var (RefreshToken, Token) = jwtHelper.CreateSignedToken(userClaims);
-        user.RefreshToken = RefreshToken;
+        user.TokenAggiornamento = RefreshToken;
         // SECURITY FIX: Update refresh token expiration on rotation
-        user.RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(7);
+        user.ScadenzaTokenAggiornamento = DateTime.UtcNow.AddDays(7);
 
         await dbContext.SaveChangesAsync();
         return new ObjectResult(new { Token, RefreshToken });
@@ -113,11 +113,11 @@ public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper, CsrfTok
         int userId = Convert.ToInt32(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         if (userId > 0)
         {
-            var user = await dbContext.User.FindAsync(userId);
+            var user = await dbContext.Utenti.FindAsync(userId);
             if (user != null)
             {
-                user.RefreshToken = null;
-                user.RefreshTokenExpiresAt = null;
+                user.TokenAggiornamento = null;
+                user.ScadenzaTokenAggiornamento = null;
                 await dbContext.SaveChangesAsync();
             }
         }

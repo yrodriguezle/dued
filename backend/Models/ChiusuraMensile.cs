@@ -56,7 +56,7 @@ namespace duedgusto.Models
 
         // Navigation properties
         [ForeignKey("ChiusaDa")]
-        public virtual User? ChiusaDaUtente { get; set; }
+        public virtual Utente? ChiusaDaUtente { get; set; }
 
         public virtual ICollection<SpesaMensile> Spese { get; set; } = [];
     }

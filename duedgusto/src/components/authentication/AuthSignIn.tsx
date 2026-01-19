@@ -3,8 +3,8 @@ import { useNavigate } from "react-router";
 import { Alert, Box, useMediaQuery, useTheme } from "@mui/material";
 
 import useProgress from "../common/progress/useProgress";
-import useSignIn from "../../graphql/user/useSignIn";
-import useGetLoggedUser from "../../common/authentication/useGetLoggedUser";
+import useSignIn from "../../graphql/utente/useSignIn";
+import useGetLoggedUtente from "../../common/authentication/useGetLoggedUser";
 import { setRememberPassword } from "../../common/authentication/auth";
 import LogoSection from "../common/logo/LogoSection";
 import AuthSignInForm, { AuthSignInValues } from "./AuthSignInForm";
@@ -16,7 +16,7 @@ function AuthSignIn() {
   const [message, setMessage] = useState("");
   const { setOnInProgress, setOffInProgress } = useProgress();
   const { signIn } = useSignIn();
-  const fetchUser = useGetLoggedUser();
+  const fetchUtente = useGetLoggedUtente();
   const navigate = useNavigate();
 
   const handleSubmit = useCallback(
@@ -43,7 +43,7 @@ function AuthSignIn() {
         setOffInProgress();
       }
     },
-    [fetchUser, navigate, setOffInProgress, setOnInProgress, signIn]
+    [fetchUtente, navigate, setOffInProgress, setOnInProgress, signIn]
   );
 
   return (

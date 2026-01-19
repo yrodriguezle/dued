@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 
 import useStore from "../../store/useStore";
-import fetchLoggedUser from "../../graphql/user/fetchLoggedUser";
+import fetchLoggedUtente from "../../graphql/utente/fetchLoggedUser";
 import { isAuthenticated } from "../../common/authentication/auth";
 import useConfirm from "../common/confirm/useConfirm";
 import { OFFLINE } from "../../store/serverStatusStore";
@@ -9,9 +9,9 @@ import logger from "../../common/logger/logger";
 
 function useBootstrap() {
   const serverStatus = useStore((store) => store.serverStatus);
-  const user = useStore((store) => store.user);
+  const utente = useStore((store) => store.utente);
   const inProgressGlobal = useStore((store) => store.inProgress.global);
-  const receiveUser = useStore((store) => store.receiveUser);
+  const receiveUtente = useStore((store) => store.receiveUtente);
   const onInProgress = useStore((store) => store.onInProgress);
   const offInProgress = useStore((store) => store.offInProgress);
   const promiseLock = useRef<Promise<void> | null>(null);
@@ -19,19 +19,19 @@ function useBootstrap() {
 
   useEffect(() => {
     async function bootstrap() {
-      if (serverStatus === OFFLINE || promiseLock.current || inProgressGlobal || user || !isAuthenticated()) return;
+      if (serverStatus === OFFLINE || promiseLock.current || inProgressGlobal || utente || !isAuthenticated()) return;
       promiseLock.current = (async () => {
         try {
           onInProgress("global");
-          const { data } = await fetchLoggedUser();
-          if (!data?.authentication?.currentUser) {
-            receiveUser(null);
+          const { data } = await fetchLoggedUtente();
+          if (!data?.authentication?.utenteCorrente) {
+            receiveUtente(null);
             return;
           }
           const {
-            authentication: { currentUser },
+            authentication: { utenteCorrente },
           } = data;
-          receiveUser(currentUser);
+          receiveUtente(utenteCorrente);
         } catch (error: unknown) {
           logger.log(error);
           await confirm({
@@ -48,7 +48,7 @@ function useBootstrap() {
     }
     bootstrap();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [confirm, offInProgress, onInProgress, receiveUser, serverStatus, user]);
+  }, [confirm, offInProgress, onInProgress, receiveUtente, serverStatus, utente]);
 }
 
 export default useBootstrap;

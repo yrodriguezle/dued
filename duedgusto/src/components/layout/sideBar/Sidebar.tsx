@@ -20,13 +20,13 @@ interface SidebarProps {
 const iOS = typeof navigator !== "undefined" && /iPad|iPhone|iPod/.test(navigator.userAgent);
 
 function Sidebar({ drawerOpen, drawerSwipeable, mobileDrawerOpen, setMobileDrawerOpen, onListItemClick, onCloseSwipeable }: SidebarProps) {
-  const user = useStore((store) => store.user);
+  const utente = useStore((store) => store.utente);
 
   const menuItems: MenuItem[] = useMemo(() => {
-    if (!user || !user?.menus) return [];
-    const { menus } = user;
+    if (!utente || !utente?.menus) return [];
+    const { menus } = utente;
     return createDataTree(menus);
-  }, [user]);
+  }, [utente]);
 
   const renderDrawer = useCallback(
     (open: boolean) => (

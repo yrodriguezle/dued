@@ -26,7 +26,7 @@ public class ChiusuraMensileType : ObjectGraphType<ChiusuraMensile>
         Field("chiusaIl", x => x.ChiusaIl, typeof(DateTimeGraphType));
         Field("creatoIl", x => x.CreatoIl, type: typeof(DateTimeGraphType));
         Field("aggiornatoIl", x => x.AggiornatoIl, type: typeof(DateTimeGraphType));
-        Field<UserType, User>("chiusaDaUtente")
+        Field<UtenteType, Utente>("chiusaDaUtente")
             .Resolve(context => context.Source.ChiusaDaUtente);
         Field<ListGraphType<MonthlyExpenseType>, IEnumerable<SpesaMensile>>("spese")
             .Resolve(context => context.Source.Spese);

@@ -49,7 +49,7 @@ public class CashManagementMutations : ObjectGraphType
 
                 // Update basic fields
                 cashRegister.Date = input.Date;
-                cashRegister.UserId = input.UserId;
+                cashRegister.UtenteId = input.UtenteId;
                 cashRegister.CashInWhite = input.CashInWhite;
                 cashRegister.ElectronicPayments = input.ElectronicPayments;
                 cashRegister.InvoicePayments = input.InvoicePayments;
@@ -181,8 +181,8 @@ public class CashManagementMutations : ObjectGraphType
 
                 // Reload with navigation properties
                 return await dbContext.CashRegisters
-                    .Include(r => r.User)
-                        .ThenInclude(u => u.Role)
+                    .Include(r => r.Utente)
+                        .ThenInclude(u => u.Ruolo)
                     .Include(r => r.CashCounts)
                         .ThenInclude(c => c.Denomination)
                     .Include(r => r.CashIncomes)
@@ -199,8 +199,8 @@ public class CashManagementMutations : ObjectGraphType
                 int registerId = context.GetArgument<int>("registerId");
 
                 var cashRegister = await dbContext.CashRegisters
-                    .Include(r => r.User)
-                        .ThenInclude(u => u.Role)
+                    .Include(r => r.Utente)
+                        .ThenInclude(u => u.Ruolo)
                     .Include(r => r.CashCounts)
                         .ThenInclude(c => c.Denomination)
                     .Include(r => r.CashIncomes)

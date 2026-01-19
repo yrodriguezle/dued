@@ -1,8 +1,8 @@
 import { useQuery } from "@apollo/client";
-import { getCurrentUser } from "./queries";
+import { getUtenteCorrente } from "./queries";
 
 function useQueryLoggedUser() {
-  return useQuery(getCurrentUser);
+  return useQuery(getUtenteCorrente);
 }
 
 export default useQueryLoggedUser;

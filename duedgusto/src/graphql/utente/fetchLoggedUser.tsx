@@ -1,10 +1,10 @@
 import configureClient from "../configureClient";
-import { getCurrentUser } from "./queries";
+import { getUtenteCorrente } from "./queries";
 
 async function fetchLoggedUser() {
   const client = configureClient();
   return await client.query({
-    query: getCurrentUser,
+    query: getUtenteCorrente,
   });
 }
 

@@ -1,7 +1,7 @@
 function userStore(set: StoreSet) {
   return {
-    user: null,
-    receiveUser: (payload: User) => set(() => ({ user: payload })),
+    utente: null,
+    receiveUtente: (payload: Utente) => set(() => ({ utente: payload })),
   };
 }
 

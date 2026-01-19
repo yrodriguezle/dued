@@ -15,20 +15,20 @@ public static class SeedSuperadmin
 
         await dbContext.Database.MigrateAsync();
 
-        if (!dbContext.Roles.Any(r => r.RoleName == "SuperAdmin"))
+        if (!dbContext.Ruoli.Any(r => r.Nome == "SuperAdmin"))
         {
-            var superAdminRole = new Role
+            var superAdminRole = new Ruolo
             {
-                RoleName = "SuperAdmin",
-                RoleDescription = "Administrator with full access"
+                Nome = "SuperAdmin",
+                Descrizione = "Administrator with full access"
             };
-            dbContext.Roles.Add(superAdminRole);
+            dbContext.Ruoli.Add(superAdminRole);
             await dbContext.SaveChangesAsync();
         }
 
-        var role = dbContext.Roles.FirstOrDefault(r => r.RoleName == "SuperAdmin");
+        var role = dbContext.Ruoli.FirstOrDefault(r => r.Nome == "SuperAdmin");
 
-        if (!dbContext.User.Any(u => u.UserName == "superadmin"))
+        if (!dbContext.Utenti.Any(u => u.NomeUtente == "superadmin"))
         {
             // SECURITY FIX: Read password from environment variable
             string superadminPassword = Environment.GetEnvironmentVariable("SUPERADMIN_PASSWORD")
@@ -38,17 +38,17 @@ public static class SeedSuperadmin
                 );
 
             PasswordService.HashPassword(superadminPassword, out byte[] hash, out byte[] salt);
-            var superAdmin = new User
+            var superAdmin = new Utente
             {
-                UserName = "superadmin",
-                FirstName = "Super Admin",
+                NomeUtente = "superadmin",
+                Nome = "Super Admin",
                 Hash = hash,
                 Salt = salt,
-                RoleId = role!.RoleId,
-                Role = role
+                RuoloId = role!.Id,
+                Ruolo = role
             };
 
-            dbContext.User.Add(superAdmin);
+            dbContext.Utenti.Add(superAdmin);
             await dbContext.SaveChangesAsync();
         }
     }

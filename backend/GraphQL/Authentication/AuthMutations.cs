@@ -18,69 +18,69 @@ public class AuthMutations : ObjectGraphType
 {
     public AuthMutations()
     {
-        Field<RoleType, Role>("mutateRole")
-            .Argument<NonNullGraphType<RoleInputType>>("role", "Dati del ruolo da creare o aggiornare")
+        Field<RuoloType, Ruolo>("mutateRuolo")
+            .Argument<NonNullGraphType<RuoloInputType>>("ruolo", "Dati del ruolo da creare o aggiornare")
             .Argument<NonNullGraphType<ListGraphType<IntGraphType>>>("menuIds", "ID dei menu associati al ruolo")
             .ResolveAsync(async context =>
             {
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
-                Role input = context.GetArgument<Role>("role");
+                Ruolo input = context.GetArgument<Ruolo>("ruolo");
                 List<int> menuIds = context.GetArgument<List<int>>("menuIds");
-                Role? role = await dbContext.Roles
+                Ruolo? ruolo = await dbContext.Ruoli
                     .Include(r => r.Menus)
-                    .FirstOrDefaultAsync(r => r.RoleId == input.RoleId);
+                    .FirstOrDefaultAsync(r => r.Id == input.Id);
 
-                if (role == null)
+                if (ruolo == null)
                 {
-                    role = new Role();
-                    dbContext.Roles.Add(role);
+                    ruolo = new Ruolo();
+                    dbContext.Ruoli.Add(ruolo);
                 }
 
-                role.RoleName = input.RoleName;
-                role.RoleDescription = input.RoleDescription;
+                ruolo.Nome = input.Nome;
+                ruolo.Descrizione = input.Descrizione;
 
                 List<Menu> selectedMenus = await dbContext.Menus
                     .Where(m => menuIds.Contains(m.MenuId))
                     .ToListAsync();
 
                 // Rimuovi i vecchi
-                role.Menus
+                ruolo.Menus
                     .Where(m => !menuIds.Contains(m.MenuId))
                     .ToList()
-                    .ForEach(m => role.Menus.Remove(m));
+                    .ForEach(m => ruolo.Menus.Remove(m));
 
                 // Aggiungi i nuovi
                 selectedMenus
-                    .Where(m => !role.Menus.Any(rm => rm.MenuId == m.MenuId))
+                    .Where(m => !ruolo.Menus.Any(rm => rm.MenuId == m.MenuId))
                     .ToList()
-                    .ForEach(m => role.Menus.Add(m));
+                    .ForEach(m => ruolo.Menus.Add(m));
 
 
                 await dbContext.SaveChangesAsync();
-                return role;
+                return ruolo;
             });
 
-        Field<UserType, User>("mutateUser")
-            .Argument<NonNullGraphType<UserInputType>>("user", "Dati dell'utente da creare o aggiornare")
+        Field<UtenteType, Utente>("mutateUtente")
+            .Argument<NonNullGraphType<UtenteInputType>>("utente", "Dati dell'utente da creare o aggiornare")
             .ResolveAsync(async context =>
             {
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
-                var userArg = context.GetArgument<Dictionary<string, object>>("user");
+                var userArg = context.GetArgument<Dictionary<string, object>>("utente");
 
-                int userId = userArg.ContainsKey("userId") ? Convert.ToInt32(userArg["userId"]) : 0;
+                int userId = userArg.ContainsKey("id") ? Convert.ToInt32(userArg["id"]) : 0;
                 string? password = userArg.ContainsKey("password") ? userArg["password"]?.ToString() : null;
 
-                User? existingUser = await dbContext.User.FindAsync(userId);
+                Utente? existingUser = await dbContext.Utenti.FindAsync(userId);
 
                 if (existingUser != null)
                 {
                     // Update existing user
-                    existingUser.UserName = userArg["userName"].ToString()!;
-                    existingUser.FirstName = userArg["firstName"].ToString()!;
-                    existingUser.LastName = userArg["lastName"].ToString()!;
-                    existingUser.Description = userArg.ContainsKey("description") ? userArg["description"]?.ToString() : null;
-                    existingUser.Disabled = userArg.ContainsKey("disabled") ? Convert.ToBoolean(userArg["disabled"]) : false;
-                    existingUser.RoleId = Convert.ToInt32(userArg["roleId"]);
+                    existingUser.NomeUtente = userArg["nomeUtente"].ToString()!;
+                    existingUser.Nome = userArg["nome"].ToString()!;
+                    existingUser.Cognome = userArg["cognome"].ToString()!;
+                    existingUser.Descrizione = userArg.ContainsKey("descrizione") ? userArg["descrizione"]?.ToString() : null;
+                    existingUser.Disabilitato = userArg.ContainsKey("disabilitato") ? Convert.ToBoolean(userArg["disabilitato"]) : false;
+                    existingUser.RuoloId = Convert.ToInt32(userArg["ruoloId"]);
 
                     // Se è fornita una nuova password, aggiorna hash e salt
                     if (!string.IsNullOrEmpty(password))
@@ -103,22 +103,25 @@ public class AuthMutations : ObjectGraphType
 
                     PasswordService.HashPassword(password, out byte[] hash, out byte[] salt);
 
-                    User newUser = new User
+                    Utente newUser = new Utente
                     {
-                        UserName = userArg["userName"].ToString()!,
-                        FirstName = userArg["firstName"].ToString()!,
-                        LastName = userArg["lastName"].ToString()!,
-                        Description = userArg.ContainsKey("description") ? userArg["description"]?.ToString() : null,
-                        Disabled = userArg.ContainsKey("disabled") ? Convert.ToBoolean(userArg["disabled"]) : false,
-                        RoleId = Convert.ToInt32(userArg["roleId"]),
+                        NomeUtente = userArg["nomeUtente"].ToString()!,
+                        Nome = userArg["nome"].ToString()!,
+                        Cognome = userArg["cognome"].ToString()!,
+                        Descrizione = userArg.ContainsKey("descrizione") ? userArg["descrizione"]?.ToString() : null,
+                        Disabilitato = userArg.ContainsKey("disabilitato") ? Convert.ToBoolean(userArg["disabilitato"]) : false,
+                        RuoloId = Convert.ToInt32(userArg["ruoloId"]),
                         Hash = hash,
                         Salt = salt
                     };
 
-                    dbContext.User.Add(newUser);
+                    dbContext.Utenti.Add(newUser);
                     await dbContext.SaveChangesAsync();
                     return newUser;
                 }
             });
+
+
+
     }
 }

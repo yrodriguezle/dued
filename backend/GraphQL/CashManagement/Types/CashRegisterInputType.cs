@@ -7,7 +7,7 @@ public class CashRegisterInput
 {
     public int? RegisterId { get; set; }
     public DateTime Date { get; set; }
-    public int UserId { get; set; }
+    public int UtenteId { get; set; }
     public List<CashCountInput> OpeningCounts { get; set; } = new();
     public List<CashCountInput> ClosingCounts { get; set; } = new();
     public List<CashIncomeInput> Incomes { get; set; } = new();
@@ -27,7 +27,7 @@ public class CashRegisterInputType : InputObjectGraphType<CashRegisterInput>
     {
         Field(x => x.RegisterId, nullable: true);
         Field(x => x.Date, type: typeof(DateTimeGraphType));
-        Field(x => x.UserId);
+        Field(x => x.UtenteId);
         Field<ListGraphType<CashCountInputType>>("openingCounts");
         Field<ListGraphType<CashCountInputType>>("closingCounts");
         Field<ListGraphType<CashIncomeInputType>>("incomes");

@@ -36,8 +36,8 @@ public class CashManagementQueries : ObjectGraphType
                 DateTime? date = context.GetArgument<DateTime?>("date");
 
                 var result = await dbContext.CashRegisters
-                    .Include(r => r.User)
-                        .ThenInclude(u => u.Role)
+                    .Include(r => r.Utente)
+                        .ThenInclude(u => u.Ruolo)
                     .Include(r => r.CashCounts)
                         .ThenInclude(c => c.Denomination)
                     .Include(r => r.CashIncomes)
@@ -63,8 +63,8 @@ public class CashManagementQueries : ObjectGraphType
                 int? after = context.GetArgument<int?>("after");
 
                 var query = dbContext.CashRegisters
-                    .Include(r => r.User)
-                        .ThenInclude(u => u.Role)
+                    .Include(r => r.Utente)
+                        .ThenInclude(u => u.Ruolo)
                     .Include(r => r.CashCounts)
                         .ThenInclude(c => c.Denomination)
                     .Include(r => r.CashIncomes)

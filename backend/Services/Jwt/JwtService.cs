@@ -11,7 +11,7 @@ namespace duedgusto.Services.Jwt;
 public interface IJwtService
 {
     ClaimsPrincipal GetPrincipalFromExpiredToken(string token);
-    int GetClaimUserIdFromToken(string token);
+    int GetClaimUserIdFromToken(ClaimsPrincipal principal);
     int GetUserID();
     int GetUserID(ClaimsPrincipal principal);
     string GetUserName();
@@ -71,25 +71,25 @@ public class JwtService : IJwtService
 
         return principal;
     }
-    public int GetClaimUserIdFromToken(string token)
+    public int GetClaimUserIdFromToken(ClaimsPrincipal principal)
     {
-        ClaimsPrincipal principal = GetPrincipalFromExpiredToken(token);
-        bool existsUserId = principal.Claims.ToList().Exists((claim) => claim.Type == "UserId");
-        return existsUserId ? Convert.ToInt32(principal.Claims.ToList().Find((claim) => claim.Type == "UserId")?.Value) : 0;
+        bool existsUserId = principal.Claims.ToList().Exists((claim) => claim.Type == "UtenteId");
+        return existsUserId ? Convert.ToInt32(principal.Claims.ToList().Find((claim) => claim.Type == "UtenteId")?.Value) : 0;
     }
     public int GetUserID()
     {
         string token = GetTokenFromAccessor(_contextAccessor);
         if (!string.IsNullOrEmpty(token))
         {
-            return GetClaimUserIdFromToken(token);
+            ClaimsPrincipal principal = GetPrincipalFromExpiredToken(token);
+            return GetClaimUserIdFromToken(principal);
         }
         return 0;
     }
     public int GetUserID(ClaimsPrincipal principal)
     {
-        bool existsUserId = principal.Claims.ToList().Exists((claim) => claim.Type == "UserId");
-        return existsUserId ? Convert.ToInt32(principal.Claims.ToList().Find((claim) => claim.Type == "UserId")?.Value) : 0;
+        bool existsUserId = principal.Claims.ToList().Exists((claim) => claim.Type == "UtenteId");
+        return existsUserId ? Convert.ToInt32(principal.Claims.ToList().Find((claim) => claim.Type == "UtenteId")?.Value) : 0;
     }
     public string GetUserName()
     {

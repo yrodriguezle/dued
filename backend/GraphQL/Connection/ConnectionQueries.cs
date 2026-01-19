@@ -19,7 +19,7 @@ public class ConnectionQueries : ObjectGraphType
 {
     public ConnectionQueries()
     {
-        Field<ConnectionType<UserType>>("users")
+        Field<ConnectionType<UtenteType>>("utenti")
             .Argument<IntGraphType>("first", "Number of items to return")
             .Argument<IntGraphType>("cursor", "Offset for pagination (deprecated, use after)")
             .Argument<StringGraphType>("after", "Cursor after which to return items")
@@ -27,13 +27,13 @@ public class ConnectionQueries : ObjectGraphType
             .Argument<StringGraphType>("orderBy", "Order by clause")
             .ResolveAsync(async (context) =>
             {
-                Connection<User> connection = await GraphQLService.GetConnectionAsync<User>(
+                Connection<Utente> connection = await GraphQLService.GetConnectionAsync<Utente>(
                     context,
                     context.GetArgument<string>("where"),
                     context.GetArgument<string>("orderBy"),
-                    user =>
+                    utente =>
                     {
-                        return user.UserId.ToString();
+                        return utente.Id.ToString();
                     });
                 return connection;
             });
@@ -55,7 +55,7 @@ public class ConnectionQueries : ObjectGraphType
                     });
                 return connection;
             });
-        Field<ConnectionType<RoleType>>("roles")
+        Field<ConnectionType<RuoloType>>("ruoli")
             .Argument<IntGraphType>("first", "Number of items to return")
             .Argument<IntGraphType>("cursor", "Offset for pagination (deprecated, use after)")
             .Argument<StringGraphType>("after", "Cursor after which to return items")
@@ -63,13 +63,13 @@ public class ConnectionQueries : ObjectGraphType
             .Argument<StringGraphType>("orderBy", "Order by clause")
             .ResolveAsync(async (context) =>
             {
-                Connection<Role> connection = await GraphQLService.GetConnectionAsync<Role>(
+                Connection<Ruolo> connection = await GraphQLService.GetConnectionAsync<Ruolo>(
                     context,
                     context.GetArgument<string>("where"),
                     context.GetArgument<string>("orderBy"),
-                    role =>
+                    ruolo =>
                     {
-                        return role.RoleId.ToString();
+                        return ruolo.Id.ToString();
                     });
                 return connection;
             });
@@ -97,8 +97,8 @@ public class ConnectionQueries : ObjectGraphType
                     {
                         // Include related entities
                         query = query
-                            .Include(r => r.User)
-                                .ThenInclude(u => u.Role)
+                            .Include(r => r.Utente)
+                                .ThenInclude(u => u.Ruolo)
                             .Include(r => r.CashCounts)
                                 .ThenInclude(c => c.Denomination)
                             .Include(r => r.CashIncomes)

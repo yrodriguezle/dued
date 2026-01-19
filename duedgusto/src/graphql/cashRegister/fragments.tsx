@@ -1,52 +1,12 @@
-import { userFragment } from "../user/fragment";
-
-export const cashDenominationFragment = `fragment CashDenominationFragment on CashDenomination {
-  denominationId
-  value
-  type
-  displayOrder
-}`;
-
-export const cashCountFragment = `
-  ${cashDenominationFragment}
-  fragment CashCountFragment on CashCount {
-    countId
-    registerId
-    denominationId
-    denomination { ...CashDenominationFragment }
-    quantity
-    total
-    isOpening
-  }`;
-
-export const cashIncomeFragment = `fragment CashIncomeFragment on CashIncome {
-  incomeId
-  registerId
-  type
-  amount
-}`;
-
-export const cashExpenseFragment = `fragment CashExpenseFragment on CashExpense {
-  expenseId
-  registerId
-  description
-  amount
-}`;
+import { utenteFragment } from "../utente/fragment";
 
 export const cashRegisterFragment = `
-  ${userFragment}
-  ${cashCountFragment}
-  ${cashIncomeFragment}
-  ${cashExpenseFragment}
+  ${utenteFragment}
   fragment CashRegisterFragment on CashRegister {
     registerId
     date
-    userId
-    user { ...UserFragment }
-    openingCounts { ...CashCountFragment }
-    closingCounts { ...CashCountFragment }
-    incomes { ...CashIncomeFragment }
-    expenses { ...CashExpenseFragment }
+    utenteId
+    utente { ...UtenteFragment }
     openingTotal
     closingTotal
     cashSales
@@ -64,4 +24,34 @@ export const cashRegisterFragment = `
     status
     createdAt
     updatedAt
-  }`;
+  }
+`;
+
+export const cashCountFragment = `
+  fragment CashCountFragment on CashCount {
+    countId
+    registerId
+    denominationId
+    quantity
+    total
+    isOpening
+  }
+`;
+
+export const cashIncomeFragment = `
+  fragment CashIncomeFragment on CashIncome {
+    incomeId
+    registerId
+    type
+    amount
+  }
+`;
+
+export const cashExpenseFragment = `
+  fragment CashExpenseFragment on CashExpense {
+    expenseId
+    registerId
+    description
+    amount
+  }
+`;

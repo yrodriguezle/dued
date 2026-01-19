@@ -10,7 +10,7 @@ public class CashRegisterType : ObjectGraphType<CashRegister>
     {
         Field(x => x.RegisterId);
         Field(x => x.Date, type: typeof(DateTimeGraphType));
-        Field(x => x.UserId);
+        Field(x => x.UtenteId);
         Field(x => x.OpeningTotal);
         Field(x => x.ClosingTotal);
         Field(x => x.CashSales);
@@ -29,8 +29,8 @@ public class CashRegisterType : ObjectGraphType<CashRegister>
         Field(x => x.CreatedAt, type: typeof(DateTimeGraphType));
         Field(x => x.UpdatedAt, type: typeof(DateTimeGraphType));
 
-        Field<UserType, User>("user")
-            .Resolve(context => context.Source.User);
+        Field<UtenteType, Utente>("utente")
+            .Resolve(context => context.Source.Utente);
 
         Field<ListGraphType<CashCountType>, IEnumerable<CashCount>>("openingCounts")
             .Resolve(context => context.Source.CashCounts.Where(c => c.IsOpening));

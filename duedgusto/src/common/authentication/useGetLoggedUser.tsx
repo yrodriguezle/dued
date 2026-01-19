@@ -1,9 +1,9 @@
 import { useCallback } from "react";
 import useStore from "../../store/useStore";
-import fetchLoggedUser from "../../graphql/user/fetchLoggedUser";
+import fetchLoggedUtente from "../../graphql/utente/fetchLoggedUser";
 
-function useGetLoggedUser() {
-  const receiveUser = useStore((store) => store.receiveUser);
+function useGetLoggedUtente() {
+  const receiveUtente = useStore((store) => store.receiveUtente);
   const inProgressFetchUser = useStore((store) => store.inProgress.fetchUser);
   const onInProgress = useStore((store) => store.onInProgress);
   const offInProgress = useStore((store) => store.offInProgress);
@@ -14,19 +14,19 @@ function useGetLoggedUser() {
         return null;
       }
       onInProgress("fetchUser");
-      const { data } = await fetchLoggedUser();
-      if (!data?.authentication?.currentUser) {
+      const { data } = await fetchLoggedUtente();
+      if (!data?.authentication?.utenteCorrente) {
         return null;
       }
       const {
-        authentication: { currentUser },
+        authentication: { utenteCorrente },
       } = data;
-      receiveUser(currentUser);
-      return currentUser;
+      receiveUtente(utenteCorrente);
+      return utenteCorrente;
     } finally {
       offInProgress("fetchUser");
     }
-  }, [inProgressFetchUser, offInProgress, onInProgress, receiveUser]);
+  }, [inProgressFetchUser, offInProgress, onInProgress, receiveUtente]);
 }
 
-export default useGetLoggedUser;
+export default useGetLoggedUtente;

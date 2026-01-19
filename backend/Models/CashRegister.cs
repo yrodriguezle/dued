@@ -4,7 +4,7 @@ public class CashRegister
 {
     public int RegisterId { get; set; }
     public DateTime Date { get; set; }
-    public int UserId { get; set; }
+    public int UtenteId { get; set; }
 
     // Totali contante
     public decimal OpeningTotal { get; set; }
@@ -36,7 +36,7 @@ public class CashRegister
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation properties
-    public User User { get; set; } = null!;
+    public Utente Utente { get; set; } = null!;
     public ICollection<CashCount> CashCounts { get; set; } = new List<CashCount>();
     public ICollection<CashIncome> CashIncomes { get; set; } = new List<CashIncome>();
     public ICollection<CashExpense> CashExpenses { get; set; } = new List<CashExpense>();

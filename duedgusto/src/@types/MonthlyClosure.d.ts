@@ -36,7 +36,7 @@ type MonthlyExpense = {
     stato: "BOZZA" | "CHIUSA" | "RICONCILIATA";
     note: string | null;
     chiusaDa: number | null;
-    chiusaDaUtente: User | null;
+    chiusaDaUtente: Utente | null;
     chiusaIl: string | null;
     creatoIl: string;
     aggiornatoIl: string;

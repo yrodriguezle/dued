@@ -142,9 +142,9 @@ public class MonthlyClosuresMutations : ObjectGraphType
                 }
 
                 closure.Stato = "CHIUSA";
-                if (userContext?.User != null)
+                if (userContext?.Principal != null)
                 {
-                    closure.ChiusaDa = jwtHelper.GetUserID(userContext.User);
+                    closure.ChiusaDa = jwtHelper.GetUserID(userContext.Principal);
                 }
                 closure.ChiusaIl = DateTime.UtcNow;
                 closure.AggiornatoIl = DateTime.UtcNow;

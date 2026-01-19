@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using duedgusto.Models;
 
 namespace duedgusto.DataAccess;
@@ -12,8 +12,8 @@ public class AppDbContext : DbContext
         _configuration = configuration;
     }
 
-    public DbSet<User> User { get; set; }
-    public DbSet<Role> Roles { get; set; }
+    public DbSet<Utente> Utenti { get; set; }
+    public DbSet<Ruolo> Ruoli { get; set; }
     public DbSet<Menu> Menus { get; set; }
 
     // Products and Sales
@@ -51,45 +51,45 @@ public class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<User>(entity =>
+        modelBuilder.Entity<Utente>(entity =>
         {
             entity
-                .ToTable("Users")
+                .ToTable("Utenti")
                 .HasCharSet("utf8mb4")
                 .UseCollation("utf8mb4_unicode_ci")
-                .HasKey(x => x.UserId);
+                .HasKey(x => x.Id);
 
-            entity.Property(x => x.UserId)
+            entity.Property(x => x.Id)
                 .ValueGeneratedOnAdd();
 
-            entity.HasOne(x => x.Role)
-                .WithMany(r => r.Users)
-                .HasForeignKey(x => x.RoleId)
+            entity.HasOne(x => x.Ruolo)
+                .WithMany(r => r.Utenti)
+                .HasForeignKey(x => x.RuoloId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
-        modelBuilder.Entity<Role>(entity =>
+        modelBuilder.Entity<Ruolo>(entity =>
         {
             entity
-                .ToTable("Roles")
+                .ToTable("Ruoli")
                 .HasCharSet("utf8mb4")
                 .UseCollation("utf8mb4_unicode_ci")
-                .HasKey(x => x.RoleId);
+                .HasKey(x => x.Id);
 
-            entity.Property(x => x.RoleId)
+            entity.Property(x => x.Id)
                 .ValueGeneratedOnAdd();
         });
 
-        modelBuilder.Entity<Role>()
+        modelBuilder.Entity<Ruolo>()
             .HasMany(r => r.Menus)
-            .WithMany(m => m.Roles)
+            .WithMany(m => m.Ruoli)
             .UsingEntity<Dictionary<string, object>>(
                 "RoleMenu",
                 j => j.HasOne<Menu>()
                       .WithMany()
                       .HasForeignKey("MenuId")
                       .OnDelete(DeleteBehavior.Cascade),
-                j => j.HasOne<Role>()
+                j => j.HasOne<Ruolo>()
                       .WithMany()
                       .HasForeignKey("RoleId")
                       .OnDelete(DeleteBehavior.Cascade)
@@ -203,9 +203,9 @@ public class AppDbContext : DbContext
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
 
-            entity.HasOne(x => x.User)
+            entity.HasOne(x => x.Utente)
                 .WithMany()
-                .HasForeignKey(x => x.UserId)
+                .HasForeignKey(x => x.UtenteId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasMany(x => x.CashCounts)

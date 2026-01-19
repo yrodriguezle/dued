@@ -1,8 +1,8 @@
 import { useLazyQuery } from "@apollo/client";
-import { getCurrentUser } from "./queries";
+import { getUtenteCorrente } from "./queries";
 
 function useLazyQueryLoggedUser() {
-  const [fetchLoggedUser] = useLazyQuery(getCurrentUser);
+  const [fetchLoggedUser] = useLazyQuery(getUtenteCorrente);
   return fetchLoggedUser;
 }
 

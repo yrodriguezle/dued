@@ -9,16 +9,16 @@ import { loadDynamicComponent } from "./dynamicComponentLoader";
 const HomePage = React.lazy(() => import("../components/pages/dashboard/HomePage.tsx"));
 
 function ProtectedRoutes() {
-  const user = useStore((store) => store.user);
+  const utente = useStore((store) => store.utente);
   const inProgressGlobal = useStore((store) => store.inProgress.global);
-  const menuRoutes = useMemo(() => user?.menus || [], [user?.menus]);
+  const menuRoutes = useMemo(() => utente?.menus || [], [utente?.menus]);
 
   if (!isAuthenticated()) {
     return <Navigate to={"/signin"} replace />;
   }
 
-  // Wait for user data to load before rendering routes
-  if (inProgressGlobal || !user) {
+  // Wait for utente data to load before rendering routes
+  if (inProgressGlobal || !utente) {
     return <Fallback />;
   }
 

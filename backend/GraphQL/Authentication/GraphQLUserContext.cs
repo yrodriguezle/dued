@@ -4,9 +4,9 @@ namespace duedgusto.GraphQL.Authentication;
 
 public class GraphQLUserContext : Dictionary<string, object?>
 {
-    public ClaimsPrincipal? User { get; set; }
-    public GraphQLUserContext(ClaimsPrincipal? user)
+    public ClaimsPrincipal? Principal { get; set; }
+    public GraphQLUserContext(ClaimsPrincipal? principal)
     {
-        User = user;
+        Principal = principal;
     }
 }

@@ -42,8 +42,8 @@ type CashRegister = {
   __typename: "CashRegister";
   registerId: number;
   date: string;
-  userId: number;
-  user: User;
+  utenteId: number;
+  utente: Utente;
   openingCounts: CashCount[];
   closingCounts: CashCount[];
   incomes: CashIncome[];
@@ -76,7 +76,7 @@ type FormikCashCountValues = {
 type FormikCashRegisterValues = {
   registerId?: number;
   date: string;
-  userId: number;
+  utenteId: number;
   openingCounts: FormikCashCountValues[];
   closingCounts: FormikCashCountValues[];
   supplierExpenses: number;

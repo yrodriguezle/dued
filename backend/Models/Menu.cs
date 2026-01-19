@@ -10,7 +10,7 @@ public class Menu
     public int Position { get; set; } = 0;
     public string FilePath { get; set; } = string.Empty;
     public string ViewName { get; set; } = string.Empty;
-    public ICollection<Role> Roles { get; set; } = [];
+    public ICollection<Ruolo> Ruoli { get; set; } = [];
 
     // Relazione ricorsiva
     public int? ParentMenuId { get; set; }
