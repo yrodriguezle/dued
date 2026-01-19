@@ -17,7 +17,7 @@ public class AuthQueries : ObjectGraphType
     public AuthQueries()
     {
         this.Authorize();
-        Field<UtenteType, Utente>(Name = "currentUser")
+        Field<UtenteType, Utente>(Name = "utenteCorrente")
             .ResolveAsync(async (context) =>
             {
                 GraphQLUserContext? userContext = context.UserContext as GraphQLUserContext;
@@ -63,9 +63,5 @@ public class AuthQueries : ObjectGraphType
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
                 return await dbContext.Ruoli.ToListAsync();
             });
-
-
-
-
     }
 }

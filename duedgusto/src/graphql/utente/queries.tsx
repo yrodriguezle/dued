@@ -2,9 +2,9 @@ import { gql, TypedDocumentNode } from "@apollo/client";
 import { utenteFragment } from "./fragment";
 
 interface GetUtenteData {
-    authentication: {
-      utenteCorrente: Utente;
-    };
+  authentication: {
+    utenteCorrente: Utente;
+  };
 }
 export const getUtenteCorrente: TypedDocumentNode<GetUtenteData> = gql(`
   ${utenteFragment}
@@ -17,13 +17,13 @@ export const getUtenteCorrente: TypedDocumentNode<GetUtenteData> = gql(`
   }`);
 
 interface GetUtentePerIdData {
-    authentication: {
-      utente: Utente;
-    };
+  authentication: {
+    utente: Utente;
+  };
 }
 
 interface GetUtentePerIdVariables {
-    id: number;
+  id: number;
 }
 
 export const getUtentePerId: TypedDocumentNode<GetUtentePerIdData, GetUtentePerIdVariables> = gql(`
