@@ -67,7 +67,7 @@ function RoleMenus({ menus, onGridReady, selectedIds }: RoleMenusProps) {
 
       gridApiRef.current.forEachNode((node) => {
         if (!node.data) return;
-        const shouldSelect = selectedIds?.includes(node.data.menuId) ?? false;
+        const shouldSelect = selectedIds?.includes(node.data.id) ?? false;
 
         if (node.isSelected() !== shouldSelect) {
           node.setSelected(shouldSelect);
@@ -89,10 +89,10 @@ function RoleMenus({ menus, onGridReady, selectedIds }: RoleMenusProps) {
 
   const columnDefs = useMemo<DatagridColDef<MenuNonNull>[]>(
     () => [
-      { headerName: "Icona", field: "icon", filter: true, sortable: true, width: 150 },
-      { headerName: "View", field: "viewName", filter: true, sortable: true, width: 150 },
-      { headerName: "Path", field: "path", filter: true, sortable: true, width: 200 },
-      { headerName: "Visibile", field: "isVisible", filter: true, sortable: true, width: 120 },
+      { headerName: "Icona", field: "icona", filter: true, sortable: true, width: 150 },
+      { headerName: "View", field: "nomeVista", filter: true, sortable: true, width: 150 },
+      { headerName: "Percorso", field: "percorso", filter: true, sortable: true, width: 200 },
+      { headerName: "Visibile", field: "visibile", filter: true, sortable: true, width: 120 },
     ],
     []
   );
@@ -109,14 +109,14 @@ function RoleMenus({ menus, onGridReady, selectedIds }: RoleMenusProps) {
         presentation
         height="60vh"
         items={menus}
-        getRowId={({ data }) => data.menuId.toString()}
+        getRowId={({ data }) => data.id.toString()}
         treeData
-        treeDataParentIdField="parentMenuId"
+        treeDataParentIdField="menuPadreId"
         groupDefaultExpanded={-1}
         groupLockGroupColumns={-1}
         autoGroupColumnDef={{
           headerName: "Titolo",
-          field: "title",
+          field: "titolo",
           cellRenderer: "agGroupCellRenderer",
           filter: true,
           sortable: true,

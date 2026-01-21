@@ -25,15 +25,15 @@ const MenuForm: React.FC<MenuFormProps> = ({ menus }) => {
   const getNewRow = useCallback(
     (): MenuWithStatus => ({
       __typename: "Menu",
-      menuId: 0,
-      parentMenuId: null,
-      title: "",
-      path: "",
-      icon: "",
-      isVisible: true,
-      position: 0,
-      filePath: "",
-      viewName: "",
+      id: 0,
+      menuPadreId: null,
+      titolo: "",
+      percorso: "",
+      icona: "",
+      visibile: true,
+      posizione: 0,
+      percorsoFile: "",
+      nomeVista: "",
       status: DatagridStatus.Added,
     }),
     []
@@ -60,12 +60,12 @@ const MenuForm: React.FC<MenuFormProps> = ({ menus }) => {
     1
   );
 
-  const getRowId = useCallback(({ data }: { data: MenuNonNull }) => data.menuId.toString(), []);
+  const getRowId = useCallback(({ data }: { data: MenuNonNull }) => data.id.toString(), []);
 
   const autoGroupColumnDef = useMemo(
     () => ({
       headerName: "Voce di menù",
-      field: "title",
+      field: "titolo",
       cellRenderer: "agGroupCellRenderer",
       filter: false,
       sortable: false,
@@ -78,14 +78,14 @@ const MenuForm: React.FC<MenuFormProps> = ({ menus }) => {
     () => [
       {
         headerName: "Id",
-        field: "menuId",
+        field: "id",
         width: 50,
         editable: false,
         hide: readOnly,
       },
       {
         headerName: "Posizione",
-        field: "position",
+        field: "posizione",
         sortable: true,
         width: 100,
         editable: !readOnly,
@@ -93,7 +93,7 @@ const MenuForm: React.FC<MenuFormProps> = ({ menus }) => {
       },
       {
         headerName: "Icona",
-        field: "icon",
+        field: "icona",
         sortable: true,
         width: 180,
         editable: !readOnly,
@@ -113,7 +113,7 @@ const MenuForm: React.FC<MenuFormProps> = ({ menus }) => {
         },
         valueSetter: (params) => {
           if (params.newValue !== params.oldValue) {
-            params.data.icon = params.newValue;
+            params.data.icona = params.newValue;
             params.context.gotoEditCell(params.node?.rowIndex, params.column);
             return true;
           }
@@ -122,31 +122,31 @@ const MenuForm: React.FC<MenuFormProps> = ({ menus }) => {
       },
       {
         headerName: "Voce di menù",
-        field: "title",
+        field: "titolo",
         width: 150,
         editable: !readOnly,
       },
       {
         headerName: "Nome view",
-        field: "viewName",
+        field: "nomeVista",
         width: 150,
         editable: !readOnly,
       },
       {
-        headerName: "Path",
-        field: "path",
+        headerName: "Percorso",
+        field: "percorso",
         sortable: true,
         width: 200,
         editable: !readOnly,
       },
       {
         headerName: "Visibile",
-        field: "isVisible",
+        field: "visibile",
         width: 90,
       },
       {
         headerName: "Padre",
-        field: "parentMenuId",
+        field: "menuPadreId",
         width: 120,
         editable: !readOnly,
         hide: readOnly,
@@ -163,7 +163,7 @@ const MenuForm: React.FC<MenuFormProps> = ({ menus }) => {
         getRowId={getRowId}
         singleClickEdit
         treeData={readOnly}
-        treeDataParentIdField="parentMenuId"
+        treeDataParentIdField="menuPadreId"
         readOnly={readOnly}
         getNewRow={getNewRowOrUndefined}
         groupDefaultExpanded={-1}

@@ -10,7 +10,7 @@ export type MenuWithStatus = MenuNonNull & {
 const items: DatagridColDef<MenuNonNull>[] = [
   {
     headerName: "ID",
-    field: "menuId",
+    field: "id",
     filter: true,
     sortable: true,
     width: 100,
@@ -18,51 +18,51 @@ const items: DatagridColDef<MenuNonNull>[] = [
   },
   {
     headerName: "Icona",
-    field: "icon",
+    field: "icona",
     filter: true,
     sortable: true,
     width: 200,
   },
   {
     headerName: "Titolo",
-    field: "title",
+    field: "titolo",
     filter: true,
     sortable: true,
     width: 200,
   },
   {
     headerName: "View",
-    field: "viewName",
+    field: "nomeVista",
     filter: true,
     sortable: true,
     width: 200,
   },
   {
-    headerName: "Path",
-    field: "path",
+    headerName: "Percorso",
+    field: "percorso",
     filter: true,
     sortable: true,
     width: 200,
   },
   {
     headerName: "Menu padre",
-    field: "parentMenuId",
+    field: "menuPadreId",
     filter: true,
     sortable: true,
     width: 200,
   },
   {
     headerName: "Visibile",
-    field: "isVisible",
+    field: "visibile",
     filter: true,
     sortable: true,
     width: 200,
   },
 ];
 
-const roleSearchboxOptions: SearchboxOptions<MenuNonNull> = {
+const menuSearchboxOptions: SearchboxOptions<MenuNonNull> = {
   query: "menus",
-  id: "menuId",
+  id: "id",
   tableName: "menus",
   view: "MenuDetails",
   items,
@@ -72,4 +72,4 @@ const roleSearchboxOptions: SearchboxOptions<MenuNonNull> = {
   },
 };
 
-export default roleSearchboxOptions;
+export default menuSearchboxOptions;

@@ -6,11 +6,11 @@ import useConfirm from "../../common/confirm/useConfirm";
 import { formStatuses } from "../../../common/globals/constants";
 import sleep from "../../../common/bones/sleep";
 import setInitialFocus from "./setInitialFocus";
-import { RoleNonNull } from "../../common/form/searchbox/searchboxOptions/roleSearchboxOptions";
+import { RuoloNonNull } from "../../common/form/searchbox/searchboxOptions/ruoloSearchboxOptions";
 import FormikToolbar from "../../common/form/toolbar/FormikToolbar";
 import RoleForm from "./RoleForm";
 import { Box, Paper, Typography } from "@mui/material";
-import useSubmitRole from "../../../graphql/roles/useSubmitRole";
+import useSubmitRuolo from "../../../graphql/ruolo/useSubmitRole";
 import showToast from "../../../common/toast/showToast";
 import useGetAll from "../../../graphql/common/useGetAll";
 import { menuFragment } from "../../../graphql/menus/fragments";
@@ -21,40 +21,40 @@ import { GridReadyEvent } from "ag-grid-community";
 import { DatagridData } from "../../common/datagrid/@types/Datagrid";
 
 const Schema = z.object({
-  roleId: z.number(),
-  roleName: z.string().nonempty("Nome role è obbligatorio"),
-  roleDescription: z.string().optional(),
+  id: z.number(),
+  nome: z.string().nonempty("Nome ruolo è obbligatorio"),
+  descrizione: z.string().optional(),
   menuIds: z.array(z.number()),
 });
 
-export type FormikRoleValues = z.infer<typeof Schema>;
+export type FormikRuoloValues = z.infer<typeof Schema>;
 
 import { useSearchParams } from "react-router";
-import { roleFragment } from "../../../graphql/roles/fragments";
+import { ruoloFragment } from "../../../graphql/ruolo/fragments";
 
 function RoleDetails() {
-  const [selectedRole, setSelectedRole] = useState<RoleNonNull | null>(null);
+  const [selectedRuolo, setSelectedRuolo] = useState<RuoloNonNull | null>(null);
   const [searchParams] = useSearchParams();
-  const roleIdParam = searchParams.get("roleId");
-  const roleId = roleIdParam ? parseInt(roleIdParam, 10) : null;
+  const ruoloIdParam = searchParams.get("ruoloId");
+  const ruoloId = ruoloIdParam ? parseInt(ruoloIdParam, 10) : null;
 
   const gridRef = useRef<GridReadyEvent<DatagridData<MenuNonNull>> | null>(null);
   const { title, setTitle } = useContext(PageTitleContext);
-  const formRef = useRef<FormikProps<FormikRoleValues>>(null);
+  const formRef = useRef<FormikProps<FormikRuoloValues>>(null);
   const { initialValues, handleInitializeValues } = useInitializeValues({ skipInitialize: false });
-  const { submitRole } = useSubmitRole();
+  const { submitRuolo } = useSubmitRuolo();
   const onConfirm = useConfirm();
 
   useEffect(() => {
     setTitle("Gestione ruoli");
   }, [setTitle]);
 
-  const { data: roles } = useGetAll<RoleNonNull>({
-    fragment: roleFragment,
-    queryName: "roles",
-    fragmentBody: "...RoleFragment",
+  const { data: ruoli } = useGetAll<RuoloNonNull>({
+    fragment: ruoloFragment,
+    queryName: "ruoli",
+    fragmentBody: "...RuoloFragment",
     fetchPolicy: "network-only",
-    skip: !roleId,
+    skip: !ruoloId,
   });
 
   const { data } = useGetAll<MenuNonNull>({
@@ -68,7 +68,7 @@ function RoleDetails() {
   const handleResetForm = useCallback(
     async (hasChanges: boolean) => {
       const confirmed = !hasChanges || await onConfirm({
-        title: "Gestione role",
+        title: "Gestione ruolo",
         content: "Sei sicuro di voler annullare le modifiche?",
         acceptLabel: "Si",
         cancelLabel: "No",
@@ -82,7 +82,7 @@ function RoleDetails() {
       }
       await handleInitializeValues();
       formRef.current?.resetForm();
-      setSelectedRole(null);
+      setSelectedRuolo(null);
       await sleep(200);
       setInitialFocus();
     },
@@ -93,9 +93,9 @@ function RoleDetails() {
     gridRef.current = event;
   }, []);
 
-  const handleSelectedItem = useCallback((item: RoleNonNull) => {
+  const handleSelectedItem = useCallback((item: RuoloNonNull) => {
     handleInitializeValues(item).then(() => {
-      setSelectedRole(item);
+      setSelectedRuolo(item);
       formRef.current?.setStatus({
         formStatus: formStatuses.UPDATE,
         isFormLocked: true,
@@ -104,17 +104,17 @@ function RoleDetails() {
   }, [handleInitializeValues]);
 
   useEffect(() => {
-    if (roleId && roles.length > 0) {
-      const role = roles.find((r) => r.roleId === roleId);
-      if (role) {
-        handleSelectedItem(role);
+    if (ruoloId && ruoli.length > 0) {
+      const ruolo = ruoli.find((r) => r.id === ruoloId);
+      if (ruolo) {
+        handleSelectedItem(ruolo);
       }
     }
-  }, [roleId, roles, handleSelectedItem]);
+  }, [ruoloId, ruoli, handleSelectedItem]);
 
-  const onSubmit = async (values: FormikRoleValues) => {
+  const onSubmit = async (values: FormikRuoloValues) => {
     try {
-      const menuIds = gridRef.current?.api.getSelectedNodes().map((node) => node.data?.menuId as number) || [];
+      const menuIds = gridRef.current?.api.getSelectedNodes().map((node) => node.data?.id as number) || [];
       if (menuIds.length === 0) {
         showToast({
           type: "warning",
@@ -125,18 +125,18 @@ function RoleDetails() {
         });
         return;
       }
-      const role = await submitRole({
-        role: {
-          roleId: values.roleId,
-          roleName: values.roleName,
-          roleDescription: values.roleDescription ?? "",
+      const ruolo = await submitRuolo({
+        ruolo: {
+          id: values.id,
+          nome: values.nome,
+          descrizione: values.descrizione ?? "",
         },
         menuIds,
       });
-      if (!role) {
+      if (!ruolo) {
         throw new Error("Errore nella risposta del server");
       }
-      handleSelectedItem(role);
+      handleSelectedItem(ruolo);
       showToast({
         type: "success",
         position: "bottom-right",
@@ -161,7 +161,7 @@ function RoleDetails() {
       enableReinitialize
       initialValues={initialValues}
       initialStatus={{ formStatus: formStatuses.INSERT, isFormLocked: false }}
-      validate={(values: FormikRoleValues) => {
+      validate={(values: FormikRuoloValues) => {
         const result = Schema.safeParse(values);
         if (result.success) {
           return;
@@ -189,7 +189,7 @@ function RoleDetails() {
               <RoleMenus
                 menus={data}
                 onGridReady={handleGridReady}
-                selectedIds={selectedRole?.menuIds}
+                selectedIds={selectedRuolo?.menuIds}
               />
             </Paper>
           </Box>

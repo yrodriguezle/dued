@@ -1,26 +1,26 @@
 import { DatagridColDef, SearchboxOptions } from "../../../../../@types/searchbox";
 import { hiddenColumnProperties } from "../../../datagrid/datagridUtils";
 
-export type RoleNonNull = Exclude<Role, null>;
+export type RuoloNonNull = Exclude<Ruolo, null>;
 
-const items: DatagridColDef<RoleNonNull>[] = [
+const items: DatagridColDef<RuoloNonNull>[] = [
   {
     headerName: "ID",
-    field: "roleId",
+    field: "id",
     filter: true,
     sortable: true,
     width: 100,
   },
   {
-    headerName: "Role",
-    field: "roleName",
+    headerName: "Ruolo",
+    field: "nome",
     filter: true,
     sortable: true,
     width: 200,
   },
   {
     headerName: "Descrizione",
-    field: "roleDescription",
+    field: "descrizione",
     filter: true,
     sortable: true,
     width: 200,
@@ -34,10 +34,10 @@ const items: DatagridColDef<RoleNonNull>[] = [
   },
 ];
 
-const roleSearchboxOptions: SearchboxOptions<RoleNonNull> = {
-  query: "roles",
-  id: "roleId",
-  tableName: "roles",
+const ruoloSearchboxOptions: SearchboxOptions<RuoloNonNull> = {
+  query: "ruoli",
+  id: "id",
+  tableName: "ruoli",
   view: "RoleDetails",
   items,
   modal: {
@@ -46,4 +46,4 @@ const roleSearchboxOptions: SearchboxOptions<RoleNonNull> = {
   },
 };
 
-export default roleSearchboxOptions;
+export default ruoloSearchboxOptions;

@@ -27,6 +27,15 @@ export const cashRegisterFragment = `
   }
 `;
 
+export const cashDenominationFragment = `
+  fragment CashDenominationFragment on CashDenomination {
+    denominationId
+    value
+    type
+    displayOrder
+  }
+`;
+
 export const cashCountFragment = `
   fragment CashCountFragment on CashCount {
     countId

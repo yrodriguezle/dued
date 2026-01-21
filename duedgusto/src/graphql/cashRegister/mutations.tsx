@@ -26,7 +26,7 @@ export interface CashExpenseInput {
 export interface CashRegisterInput {
   registerId?: number;
   date: string;
-  userId: number;
+  utenteId: number;
   openingCounts: CashCountInput[];
   closingCounts: CashCountInput[];
   incomes: CashIncomeInput[];

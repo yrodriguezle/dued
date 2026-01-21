@@ -91,7 +91,7 @@ function MenuList() {
 
   const handleRowDoubleClick = useCallback((event: DatagridRowDoubleClickedEvent<MenuNonNull>) => {
     if (event.data) {
-      navigate(`/gestionale/menus-details?menuId=${event.data.menuId}`);
+      navigate(`/gestionale/menus-details?menuId=${event.data.id}`);
     }
   }, [navigate]);
 
@@ -99,14 +99,14 @@ function MenuList() {
     () => [
       {
         headerName: "ID",
-        field: "menuId",
+        field: "id",
         width: 80,
         filter: true,
         sortable: true,
       },
       {
         headerName: "Icona",
-        field: "icon",
+        field: "icona",
         width: 100,
         filter: true,
         sortable: true,
@@ -117,21 +117,21 @@ function MenuList() {
       },
       {
         headerName: "View",
-        field: "viewName",
+        field: "nomeVista",
         width: 180,
         filter: true,
         sortable: true,
       },
       {
-        headerName: "Path",
-        field: "path",
+        headerName: "Percorso",
+        field: "percorso",
         width: 250,
         filter: true,
         sortable: true,
       },
       {
         headerName: "Visibile",
-        field: "isVisible",
+        field: "visibile",
         width: 100,
         filter: true,
         sortable: true,
@@ -165,13 +165,13 @@ function MenuList() {
               height="100%"
               items={menus}
               columnDefs={columnDefs}
-              getRowId={({ data }) => data.menuId.toString()}
+              getRowId={({ data }) => data.id.toString()}
               treeData
-              treeDataParentIdField="parentMenuId"
+              treeDataParentIdField="menuPadreId"
               groupDefaultExpanded={-1}
               autoGroupColumnDef={{
                 headerName: "Titolo",
-                field: "title",
+                field: "titolo",
                 cellRenderer: "agGroupCellRenderer",
                 filter: true,
                 sortable: true,

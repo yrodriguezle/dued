@@ -187,9 +187,9 @@ export const getSupplierPaymentsConnection = gql(`
   }`);
 
 // Get monthly closures with pagination
-export const getMonthlyClosuresConnection = gql(`
+export const getChiusuraMensilesConnection = gql(`
   ${monthlyClosureFragment}
-  query GetMonthlyClosuresConnection($pageSize: Int!, $where: String, $orderBy: String, $cursor: Int) {
+  query GetChiusuraMensilesConnection($pageSize: Int!, $where: String, $orderBy: String, $cursor: Int) {
     connection {
       monthlyClosures(first: $pageSize, where: $where, orderBy: $orderBy, cursor: $cursor) {
         totalCount
@@ -201,7 +201,7 @@ export const getMonthlyClosuresConnection = gql(`
         }
         edges {
           node {
-            ...MonthlyClosureFragment
+            ...ChiusuraMensileFragment
           }
           cursor
         }
@@ -210,44 +210,44 @@ export const getMonthlyClosuresConnection = gql(`
   }`);
 
 // Get single monthly closure
-interface GetMonthlyClosureData {
+interface GetChiusuraMensileData {
   monthlyClosures: {
-    monthlyClosure: MonthlyClosure;
+    monthlyClosure: ChiusuraMensile;
   };
 }
 
-interface GetMonthlyClosureVariables {
+interface GetChiusuraMensileVariables {
   year: number;
   month: number;
 }
 
-export const getMonthlyClosure: TypedDocumentNode<GetMonthlyClosureData, GetMonthlyClosureVariables> = gql(`
+export const getChiusuraMensile: TypedDocumentNode<GetChiusuraMensileData, GetChiusuraMensileVariables> = gql(`
   ${monthlyClosureFragment}
-  query GetMonthlyClosure($year: Int!, $month: Int!) {
+  query GetChiusuraMensile($year: Int!, $month: Int!) {
     monthlyClosures {
       monthlyClosure(year: $year, month: $month) {
-        ...MonthlyClosureFragment
+        ...ChiusuraMensileFragment
       }
     }
   }`);
 
 // Get monthly closure by ID
-interface GetMonthlyClosureByIdData {
+interface GetChiusuraMensileByIdData {
   monthlyClosures: {
-    monthlyClosureById: MonthlyClosure;
+    monthlyClosureById: ChiusuraMensile;
   };
 }
 
-interface GetMonthlyClosureByIdVariables {
+interface GetChiusuraMensileByIdVariables {
   closureId: number;
 }
 
-export const getMonthlyClosureById: TypedDocumentNode<GetMonthlyClosureByIdData, GetMonthlyClosureByIdVariables> = gql(`
+export const getChiusuraMensileById: TypedDocumentNode<GetChiusuraMensileByIdData, GetChiusuraMensileByIdVariables> = gql(`
   ${monthlyClosureFragment}
-  query GetMonthlyClosureById($closureId: Int!) {
+  query GetChiusuraMensileById($closureId: Int!) {
     monthlyClosures {
       monthlyClosureById(closureId: $closureId) {
-        ...MonthlyClosureFragment
+        ...ChiusuraMensileFragment
       }
     }
   }`);

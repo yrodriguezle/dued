@@ -2,7 +2,7 @@ import React from 'react';
 import { Typography, Paper, Grid } from '@mui/material';
 
 interface MonthlySummaryViewProps {
-    closure: MonthlyClosure;
+    closure: ChiusuraMensile;
 }
 
 const MonthlySummaryView: React.FC<MonthlySummaryViewProps> = ({ closure }) => {

@@ -20,7 +20,7 @@ const MonthlyClosureList: React.FC = () => {
         setYear(event.target.value as number);
     };
 
-    const handleNavigateToDetails = (closure: MonthlyClosure) => {
+    const handleNavigateToDetails = (closure: ChiusuraMensile) => {
         navigate(`/gestionale/cassa/monthly-closure/${closure.chiusuraId}`);
     };
 

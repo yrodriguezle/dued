@@ -7,32 +7,32 @@ import Datagrid from "../../common/datagrid/Datagrid";
 import ListToolbar from "../../common/form/toolbar/ListToolbar";
 import PageTitleContext from "../../layout/headerBar/PageTitleContext";
 import useGetAll from "../../../graphql/common/useGetAll";
-import { roleFragment } from "../../../graphql/roles/fragments";
+import { ruoloFragment } from "../../../graphql/ruolo/fragments";
 import { DatagridColDef, DatagridData, DatagridRowDoubleClickedEvent } from "../../common/datagrid/@types/Datagrid";
 import useConfirm from "../../common/confirm/useConfirm";
 import showToast from "../../../common/toast/showToast";
 
-type RoleNonNull = Exclude<Role, null>;
+type RuoloNonNull = Exclude<Ruolo, null>;
 
 function RoleList() {
   const navigate = useNavigate();
   const { setTitle } = useContext(PageTitleContext);
-  const gridRef = useRef<GridReadyEvent<DatagridData<RoleNonNull>> | null>(null);
-  const [selectedRows, setSelectedRows] = useState<DatagridData<RoleNonNull>[]>([]);
+  const gridRef = useRef<GridReadyEvent<DatagridData<RuoloNonNull>> | null>(null);
+  const [selectedRows, setSelectedRows] = useState<DatagridData<RuoloNonNull>[]>([]);
   const onConfirm = useConfirm();
 
   useEffect(() => {
     setTitle("Lista ruoli");
   }, [setTitle]);
 
-  const { data: roles, loading } = useGetAll<RoleNonNull>({
-    fragment: roleFragment,
-    queryName: "roles",
-    fragmentBody: "...RoleFragment",
+  const { data: ruoli, loading } = useGetAll<RuoloNonNull>({
+    fragment: ruoloFragment,
+    queryName: "ruoli",
+    fragmentBody: "...RuoloFragment",
     fetchPolicy: "network-only",
   });
 
-  const handleGridReady = useCallback((event: GridReadyEvent<DatagridData<RoleNonNull>>) => {
+  const handleGridReady = useCallback((event: GridReadyEvent<DatagridData<RuoloNonNull>>) => {
     gridRef.current = event;
 
     event.api.addEventListener("selectionChanged", () => {
@@ -88,31 +88,31 @@ function RoleList() {
     }
   }, [selectedRows, onConfirm]);
 
-  const handleRowDoubleClick = useCallback((event: DatagridRowDoubleClickedEvent<RoleNonNull>) => {
+  const handleRowDoubleClick = useCallback((event: DatagridRowDoubleClickedEvent<RuoloNonNull>) => {
     if (event.data) {
-      navigate(`/gestionale/roles-details?roleId=${event.data.roleId}`);
+      navigate(`/gestionale/roles-details?ruoloId=${event.data.id}`);
     }
   }, [navigate]);
 
-  const columnDefs = useMemo<DatagridColDef<RoleNonNull>[]>(
+  const columnDefs = useMemo<DatagridColDef<RuoloNonNull>[]>(
     () => [
       {
         headerName: "ID",
-        field: "roleId",
+        field: "id",
         width: 80,
         filter: true,
         sortable: true,
       },
       {
         headerName: "Nome ruolo",
-        field: "roleName",
+        field: "nome",
         width: 200,
         filter: true,
         sortable: true,
       },
       {
         headerName: "Descrizione",
-        field: "roleDescription",
+        field: "descrizione",
         width: 400,
         filter: true,
         sortable: true,
@@ -140,12 +140,12 @@ function RoleList() {
               Caricamento...
             </Box>
           ) : (
-            <Datagrid<RoleNonNull>
+            <Datagrid<RuoloNonNull>
               presentation
               height="100%"
-              items={roles}
+              items={ruoli}
               columnDefs={columnDefs}
-              getRowId={({ data }) => data.roleId.toString()}
+              getRowId={({ data }) => data.id.toString()}
               rowSelection={{
                 mode: "multiRow",
                 headerCheckbox: true,

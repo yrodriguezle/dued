@@ -1,12 +1,12 @@
 type Menu = {
   __typename: "Menu";
-  menuId: number;
-  parentMenuId: number | null;
-  title: string;
-  path: string;
-  icon: string;
-  isVisible: boolean;
-  position: number;
-  filePath?: string;
-  viewName?: string;
+  id: number;
+  menuPadreId: number | null;
+  titolo: string;
+  percorso: string;
+  icona: string;
+  visibile: boolean;
+  posizione: number;
+  percorsoFile?: string;
+  nomeVista?: string;
 } | null;

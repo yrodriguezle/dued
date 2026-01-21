@@ -84,14 +84,14 @@ public class AppDbContext : DbContext
             .HasMany(r => r.Menus)
             .WithMany(m => m.Ruoli)
             .UsingEntity<Dictionary<string, object>>(
-                "RoleMenu",
+                "RuoloMenu",
                 j => j.HasOne<Menu>()
                       .WithMany()
                       .HasForeignKey("MenuId")
                       .OnDelete(DeleteBehavior.Cascade),
                 j => j.HasOne<Ruolo>()
                       .WithMany()
-                      .HasForeignKey("RoleId")
+                      .HasForeignKey("RuoloId")
                       .OnDelete(DeleteBehavior.Cascade)
             );
 
@@ -101,14 +101,14 @@ public class AppDbContext : DbContext
                 .ToTable("Menus")
                 .HasCharSet("utf8mb4")
                 .UseCollation("utf8mb4_unicode_ci")
-                .HasKey(x => x.MenuId);
+                .HasKey(x => x.Id);
 
-            entity.Property(x => x.MenuId)
+            entity.Property(x => x.Id)
                 .ValueGeneratedOnAdd();
 
-            entity.HasOne(m => m.ParentMenu)
-                .WithMany(m => m.Children)
-                .HasForeignKey(m => m.ParentMenuId)
+            entity.HasOne(m => m.MenuPadre)
+                .WithMany(m => m.Figli)
+                .HasForeignKey(m => m.MenuPadreId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

@@ -175,7 +175,7 @@ export const mutationDeleteSupplierPayment: TypedDocumentNode<DeleteSupplierPaym
 
 interface MutazioneChiusuraMensileData {
   monthlyClosures: {
-    mutazioneChiusuraMensile: MonthlyClosure;
+    mutazioneChiusuraMensile: ChiusuraMensile;
   };
 }
 
@@ -196,7 +196,7 @@ export const mutationMutazioneChiusuraMensile: TypedDocumentNode<MutazioneChiusu
 
 interface ChiudiChiusuraMensileData {
   monthlyClosures: {
-    chiudiChiusuraMensile: MonthlyClosure;
+    chiudiChiusuraMensile: ChiusuraMensile;
   };
 }
 

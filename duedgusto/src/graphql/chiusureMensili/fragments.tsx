@@ -29,8 +29,8 @@ export const chiusuraMensileFragment = gql`
     chiusaIl
     creatoIl
     chiusaDaUtente {
-      userId
-      userName
+      id
+      nomeUtente
     }
     spese {
       ...SpesaMensileFragment

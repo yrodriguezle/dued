@@ -8,7 +8,7 @@ import logger from "../logger/logger";
 function useSignOut() {
   const navigate = useNavigate();
   const client = useApolloClient();
-  const { receiveUser } = useStore((store: Store) => store);
+  const { receiveUtente } = useStore((store: Store) => store);
 
   return useCallback(async () => {
     // Call logout API to clear refresh token cookie on server
@@ -28,7 +28,7 @@ function useSignOut() {
     // Clear client-side authentication
     removeAuthToken();
     removeLastActivity();
-    receiveUser(null);
+    receiveUtente(null);
     if (client) {
       client.resetStore();
     }
@@ -37,7 +37,7 @@ function useSignOut() {
     } else {
       window.location.reload();
     }
-  }, [client, navigate, receiveUser]);
+  }, [client, navigate, receiveUtente]);
 }
 
 export default useSignOut;

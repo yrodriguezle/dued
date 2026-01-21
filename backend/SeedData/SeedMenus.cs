@@ -7,17 +7,17 @@ namespace duedgusto.SeedData;
 
 public static class SeedMenus
 {
-    private static void UpdateMenuIfNeeded(Menu menu, string title, string? path, string icon, bool isVisible,
-        int position, string? viewName, string? filePath, Ruolo superAdminRuolo, Menu? parentMenu, ref bool needsUpdate)
+    private static void UpdateMenuIfNeeded(Menu menu, string titolo, string? percorso, string icona, bool visibile,
+        int posizione, string? nomeVista, string? percorsoFile, Ruolo superAdminRuolo, Menu? menuPadre, ref bool needsUpdate)
     {
-        if (menu.Title != title) { menu.Title = title; needsUpdate = true; }
-        if (menu.Path != (path ?? string.Empty)) { menu.Path = path ?? string.Empty; needsUpdate = true; }
-        if (menu.Icon != icon) { menu.Icon = icon; needsUpdate = true; }
-        if (menu.IsVisible != isVisible) { menu.IsVisible = isVisible; needsUpdate = true; }
-        if (menu.Position != position) { menu.Position = position; needsUpdate = true; }
-        if (menu.ViewName != (viewName ?? string.Empty)) { menu.ViewName = viewName ?? string.Empty; needsUpdate = true; }
-        if (menu.FilePath != (filePath ?? string.Empty)) { menu.FilePath = filePath ?? string.Empty; needsUpdate = true; }
-        if (menu.ParentMenuId != parentMenu?.MenuId) { menu.ParentMenu = parentMenu; needsUpdate = true; }
+        if (menu.Titolo != titolo) { menu.Titolo = titolo; needsUpdate = true; }
+        if (menu.Percorso != (percorso ?? string.Empty)) { menu.Percorso = percorso ?? string.Empty; needsUpdate = true; }
+        if (menu.Icona != icona) { menu.Icona = icona; needsUpdate = true; }
+        if (menu.Visibile != visibile) { menu.Visibile = visibile; needsUpdate = true; }
+        if (menu.Posizione != posizione) { menu.Posizione = posizione; needsUpdate = true; }
+        if (menu.NomeVista != (nomeVista ?? string.Empty)) { menu.NomeVista = nomeVista ?? string.Empty; needsUpdate = true; }
+        if (menu.PercorsoFile != (percorsoFile ?? string.Empty)) { menu.PercorsoFile = percorsoFile ?? string.Empty; needsUpdate = true; }
+        if (menu.MenuPadreId != menuPadre?.Id) { menu.MenuPadre = menuPadre; needsUpdate = true; }
 
         if (!menu.Ruoli.Any(r => r.Id == superAdminRuolo.Id))
         {
@@ -41,13 +41,13 @@ public static class SeedMenus
 
         // Clean up duplicate Dashboard menus (keep only one with correct path and filePath)
         var dashboardMenus = await dbContext.Menus
-            .Where(m => m.Title == "Dashboard" && m.ParentMenuId == null)
+            .Where(m => m.Titolo == "Dashboard" && m.MenuPadreId == null)
             .ToListAsync();
 
         if (dashboardMenus.Count > 1)
         {
             // Keep the one with the correct path, remove others
-            var correctDashboard = dashboardMenus.FirstOrDefault(m => m.Path == "/gestionale/dashboard");
+            var correctDashboard = dashboardMenus.FirstOrDefault(m => m.Percorso == "/gestionale/dashboard");
             var toRemove = dashboardMenus.Where(m => m != correctDashboard).ToList();
 
             foreach (var menu in toRemove)
@@ -61,24 +61,24 @@ public static class SeedMenus
         // First, try to find existing dashboard menu by path
         var dashboardMenu = await dbContext.Menus
             .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Path == "/gestionale/dashboard");
+            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/dashboard");
 
         // If not found, try to find by title (for backwards compatibility with old seed data)
         dashboardMenu ??= await dbContext.Menus
             .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Title == "Dashboard" && m.ParentMenuId == null);
+            .FirstOrDefaultAsync(m => m.Titolo == "Dashboard" && m.MenuPadreId == null);
 
         if (dashboardMenu == null)
         {
             dashboardMenu = new Menu
             {
-                Title = "Dashboard",
-                Path = "/gestionale/dashboard",
-                Icon = "Dashboard",
-                IsVisible = true,
-                Position = 1,
-                ViewName = "HomePage",
-                FilePath = "dashboard/HomePage.tsx",
+                Titolo = "Dashboard",
+                Percorso = "/gestionale/dashboard",
+                Icona = "Dashboard",
+                Visibile = true,
+                Posizione = 1,
+                NomeVista = "HomePage",
+                PercorsoFile = "dashboard/HomePage.tsx",
                 Ruoli = [superAdminRuolo]
             };
             dbContext.Menus.Add(dashboardMenu);
@@ -98,21 +98,21 @@ public static class SeedMenus
         // Menu padre Utenti (senza path)
         var utentiMenu = await dbContext.Menus
             .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Title == "Utenti" && m.Path == string.Empty);
+            .FirstOrDefaultAsync(m => m.Titolo == "Utenti" && m.Percorso == string.Empty);
 
         if (utentiMenu == null)
         {
             utentiMenu = new Menu
             {
-                Title = "Utenti",
-                Path = string.Empty,
-                Icon = "Group",
-                IsVisible = true,
-                Position = 3,
+                Titolo = "Utenti",
+                Percorso = string.Empty,
+                Icona = "Group",
+                Visibile = true,
+                Posizione = 3,
                 Ruoli = [superAdminRuolo]
             };
             dbContext.Menus.Add(utentiMenu);
-            await dbContext.SaveChangesAsync(); // Save per ottenere MenuId
+            await dbContext.SaveChangesAsync(); // Save per ottenere Id
         }
         else
         {
@@ -127,20 +127,20 @@ public static class SeedMenus
         // Child: Lista utenti
         var utentiChild1 = await dbContext.Menus
             .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Path == "/gestionale/users-list");
+            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/users-list");
 
         if (utentiChild1 == null)
         {
             utentiChild1 = new Menu
             {
-                Title = "Lista utenti",
-                Path = "/gestionale/users-list",
-                Icon = string.Empty,
-                IsVisible = true,
-                Position = 1,
-                ViewName = "UserList",
-                FilePath = "users/UserList.tsx",
-                ParentMenu = utentiMenu,
+                Titolo = "Lista utenti",
+                Percorso = "/gestionale/users-list",
+                Icona = string.Empty,
+                Visibile = true,
+                Posizione = 1,
+                NomeVista = "UserList",
+                PercorsoFile = "users/UserList.tsx",
+                MenuPadre = utentiMenu,
                 Ruoli = [superAdminRuolo]
             };
             dbContext.Menus.Add(utentiChild1);
@@ -159,20 +159,20 @@ public static class SeedMenus
         // Child: Gestione utenti
         var utentiChild2 = await dbContext.Menus
             .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Path == "/gestionale/users-details");
+            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/users-details");
 
         if (utentiChild2 == null)
         {
             utentiChild2 = new Menu
             {
-                Title = "Gestione utenti",
-                Path = "/gestionale/users-details",
-                Icon = string.Empty,
-                IsVisible = true,
-                Position = 2,
-                ViewName = "UserDetails",
-                FilePath = "users/UserDetails.tsx",
-                ParentMenu = utentiMenu,
+                Titolo = "Gestione utenti",
+                Percorso = "/gestionale/users-details",
+                Icona = string.Empty,
+                Visibile = true,
+                Posizione = 2,
+                NomeVista = "UserDetails",
+                PercorsoFile = "users/UserDetails.tsx",
+                MenuPadre = utentiMenu,
                 Ruoli = [superAdminRuolo]
             };
             dbContext.Menus.Add(utentiChild2);
@@ -191,21 +191,21 @@ public static class SeedMenus
         // Menu padre Ruoli (senza path)
         var ruoliMenu = await dbContext.Menus
             .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Title == "Ruoli" && m.Path == string.Empty);
+            .FirstOrDefaultAsync(m => m.Titolo == "Ruoli" && m.Percorso == string.Empty);
 
         if (ruoliMenu == null)
         {
             ruoliMenu = new Menu
             {
-                Title = "Ruoli",
-                Path = string.Empty,
-                Icon = "Engineering",
-                IsVisible = true,
-                Position = 4,
+                Titolo = "Ruoli",
+                Percorso = string.Empty,
+                Icona = "Engineering",
+                Visibile = true,
+                Posizione = 4,
                 Ruoli = [superAdminRuolo]
             };
             dbContext.Menus.Add(ruoliMenu);
-            await dbContext.SaveChangesAsync(); // Save per ottenere MenuId
+            await dbContext.SaveChangesAsync(); // Save per ottenere Id
         }
         else
         {
@@ -220,20 +220,20 @@ public static class SeedMenus
         // Child: Lista ruoli
         var ruoliChild1 = await dbContext.Menus
             .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Path == "/gestionale/roles-list");
+            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/roles-list");
 
         if (ruoliChild1 == null)
         {
             ruoliChild1 = new Menu
             {
-                Title = "Lista ruoli",
-                Path = "/gestionale/roles-list",
-                Icon = string.Empty,
-                IsVisible = true,
-                Position = 1,
-                ViewName = "RoleList",
-                FilePath = "roles/RoleList.tsx",
-                ParentMenu = ruoliMenu,
+                Titolo = "Lista ruoli",
+                Percorso = "/gestionale/roles-list",
+                Icona = string.Empty,
+                Visibile = true,
+                Posizione = 1,
+                NomeVista = "RoleList",
+                PercorsoFile = "roles/RoleList.tsx",
+                MenuPadre = ruoliMenu,
                 Ruoli = [superAdminRuolo]
             };
             dbContext.Menus.Add(ruoliChild1);
@@ -252,20 +252,20 @@ public static class SeedMenus
         // Child: Gestione ruoli
         var ruoliChild2 = await dbContext.Menus
             .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Path == "/gestionale/roles-details");
+            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/roles-details");
 
         if (ruoliChild2 == null)
         {
             ruoliChild2 = new Menu
             {
-                Title = "Gestione ruoli",
-                Path = "/gestionale/roles-details",
-                Icon = string.Empty,
-                IsVisible = true,
-                Position = 2,
-                ViewName = "RoleDetails",
-                FilePath = "roles/RoleDetails.tsx",
-                ParentMenu = ruoliMenu,
+                Titolo = "Gestione ruoli",
+                Percorso = "/gestionale/roles-details",
+                Icona = string.Empty,
+                Visibile = true,
+                Posizione = 2,
+                NomeVista = "RoleDetails",
+                PercorsoFile = "roles/RoleDetails.tsx",
+                MenuPadre = ruoliMenu,
                 Ruoli = [superAdminRuolo]
             };
             dbContext.Menus.Add(ruoliChild2);
@@ -284,21 +284,21 @@ public static class SeedMenus
         // Menu padre Menù (senza path)
         var menusMenu = await dbContext.Menus
             .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Title == "Menù" && m.Path == string.Empty);
+            .FirstOrDefaultAsync(m => m.Titolo == "Menù" && m.Percorso == string.Empty);
 
         if (menusMenu == null)
         {
             menusMenu = new Menu
             {
-                Title = "Menù",
-                Path = string.Empty,
-                Icon = "List",
-                IsVisible = true,
-                Position = 5,
+                Titolo = "Menù",
+                Percorso = string.Empty,
+                Icona = "List",
+                Visibile = true,
+                Posizione = 5,
                 Ruoli = [superAdminRuolo]
             };
             dbContext.Menus.Add(menusMenu);
-            await dbContext.SaveChangesAsync(); // Save per ottenere MenuId
+            await dbContext.SaveChangesAsync(); // Save per ottenere Id
         }
         else
         {
@@ -313,20 +313,20 @@ public static class SeedMenus
         // Child: Lista menù
         var menusChild1 = await dbContext.Menus
             .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Path == "/gestionale/menus-list");
+            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/menus-list");
 
         if (menusChild1 == null)
         {
             menusChild1 = new Menu
             {
-                Title = "List menù",
-                Path = "/gestionale/menus-list",
-                Icon = string.Empty,
-                IsVisible = true,
-                Position = 1,
-                ViewName = "MenuList",
-                FilePath = "menu/MenuList.tsx",
-                ParentMenu = menusMenu,
+                Titolo = "List menù",
+                Percorso = "/gestionale/menus-list",
+                Icona = string.Empty,
+                Visibile = true,
+                Posizione = 1,
+                NomeVista = "MenuList",
+                PercorsoFile = "menu/MenuList.tsx",
+                MenuPadre = menusMenu,
                 Ruoli = [superAdminRuolo]
             };
             dbContext.Menus.Add(menusChild1);
@@ -345,20 +345,20 @@ public static class SeedMenus
         // Child: Gestione menù
         var menusChild2 = await dbContext.Menus
             .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Path == "/gestionale/menus-details");
+            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/menus-details");
 
         if (menusChild2 == null)
         {
             menusChild2 = new Menu
             {
-                Title = "Gestione menù",
-                Path = "/gestionale/menus-details",
-                Icon = string.Empty,
-                IsVisible = true,
-                Position = 2,
-                ViewName = "MenuDetails",
-                FilePath = "menu/MenuDetails.tsx",
-                ParentMenu = menusMenu,
+                Titolo = "Gestione menù",
+                Percorso = "/gestionale/menus-details",
+                Icona = string.Empty,
+                Visibile = true,
+                Posizione = 2,
+                NomeVista = "MenuDetails",
+                PercorsoFile = "menu/MenuDetails.tsx",
+                MenuPadre = menusMenu,
                 Ruoli = [superAdminRuolo]
             };
             dbContext.Menus.Add(menusChild2);
@@ -377,19 +377,19 @@ public static class SeedMenus
         // Menu Impostazioni
         var settingsMenu = await dbContext.Menus
             .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Path == "/gestionale/settings");
+            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/settings");
 
         if (settingsMenu == null)
         {
             settingsMenu = new Menu
             {
-                Title = "Impostazioni",
-                Path = "/gestionale/settings",
-                Icon = "Settings",
-                IsVisible = true,
-                Position = 6,
-                ViewName = "SettingsDetails",
-                FilePath = "settings/SettingsDetails.tsx",
+                Titolo = "Impostazioni",
+                Percorso = "/gestionale/settings",
+                Icona = "Settings",
+                Visibile = true,
+                Posizione = 6,
+                NomeVista = "SettingsDetails",
+                PercorsoFile = "settings/SettingsDetails.tsx",
                 Ruoli = [superAdminRuolo]
             };
             dbContext.Menus.Add(settingsMenu);
@@ -408,13 +408,13 @@ public static class SeedMenus
         // Menu padre Cassa (senza path e FilePath - collapsible menu group)
         var cassaMenu = await dbContext.Menus
             .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Title == "Cassa" && m.Path == string.Empty);
+            .FirstOrDefaultAsync(m => m.Titolo == "Cassa" && m.Percorso == string.Empty);
 
         if (cassaMenu == null)
         {
             // Try to find old Cassa menu by path and remove it if it exists
             var oldCassaMenu = await dbContext.Menus
-                .FirstOrDefaultAsync(m => m.Path == "/gestionale/cassa");
+                .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/cassa");
             if (oldCassaMenu != null)
             {
                 dbContext.Menus.Remove(oldCassaMenu);
@@ -423,15 +423,15 @@ public static class SeedMenus
 
             cassaMenu = new Menu
             {
-                Title = "Cassa",
-                Path = string.Empty,
-                Icon = "PointOfSale",
-                IsVisible = true,
-                Position = 2,
+                Titolo = "Cassa",
+                Percorso = string.Empty,
+                Icona = "PointOfSale",
+                Visibile = true,
+                Posizione = 2,
                 Ruoli = [superAdminRuolo]
             };
             dbContext.Menus.Add(cassaMenu);
-            await dbContext.SaveChangesAsync(); // Save per ottenere MenuId
+            await dbContext.SaveChangesAsync(); // Save per ottenere Id
         }
         else
         {
@@ -446,20 +446,20 @@ public static class SeedMenus
         // Child: Lista Cassa
         var cassaChild1 = await dbContext.Menus
             .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Path == "/gestionale/cassa/list");
+            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/cassa/list");
 
         if (cassaChild1 == null)
         {
             cassaChild1 = new Menu
             {
-                Title = "Lista Cassa",
-                Path = "/gestionale/cassa/list",
-                Icon = "List",
-                IsVisible = true,
-                Position = 2,
-                ViewName = "CashRegisterList",
-                FilePath = "cashRegister/CashRegisterList.tsx",
-                ParentMenu = cassaMenu,
+                Titolo = "Lista Cassa",
+                Percorso = "/gestionale/cassa/list",
+                Icona = "List",
+                Visibile = true,
+                Posizione = 2,
+                NomeVista = "CashRegisterList",
+                PercorsoFile = "cashRegister/CashRegisterList.tsx",
+                MenuPadre = cassaMenu,
                 Ruoli = [superAdminRuolo]
             };
             dbContext.Menus.Add(cassaChild1);
@@ -478,19 +478,19 @@ public static class SeedMenus
         // Child: Chiusura Mensile
         var cassaChild2 = await dbContext.Menus
             .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Path == "/gestionale/cassa/monthly-closure");
+            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/cassa/monthly-closure");
 
         if (cassaChild2 == null)
         {
             // Backwards compatibility: find and update old "Vista Mensile" menu
             cassaChild2 = await dbContext.Menus
                 .Include(m => m.Ruoli)
-                .FirstOrDefaultAsync(m => m.Path == "/gestionale/cassa/monthly");
+                .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/cassa/monthly");
 
             if (cassaChild2 != null)
             {
                 // Path is changing, so we update it
-                cassaChild2.Path = "/gestionale/cassa/monthly-closure";
+                cassaChild2.Percorso = "/gestionale/cassa/monthly-closure";
             }
         }
 
@@ -499,14 +499,14 @@ public static class SeedMenus
         {
             cassaChild2 = new Menu
             {
-                Title = "Chiusura Mensile",
-                Path = "/gestionale/cassa/monthly-closure",
-                Icon = "CalendarMonth",
-                IsVisible = true,
-                Position = 3,
-                ViewName = "MonthlyClosureList",
-                FilePath = "cashRegister/MonthlyClosureList.tsx",
-                ParentMenu = cassaMenu,
+                Titolo = "Chiusura Mensile",
+                Percorso = "/gestionale/cassa/monthly-closure",
+                Icona = "CalendarMonth",
+                Visibile = true,
+                Posizione = 3,
+                NomeVista = "MonthlyClosureList",
+                PercorsoFile = "cashRegister/MonthlyClosureList.tsx",
+                MenuPadre = cassaMenu,
                 Ruoli = [superAdminRuolo]
             };
             dbContext.Menus.Add(cassaChild2);
@@ -524,7 +524,7 @@ public static class SeedMenus
 
         // Remove old "Nuova Cassa" route if it exists (consolidated to /cassa/details)
         var oldNewCassaMenu = await dbContext.Menus
-            .FirstOrDefaultAsync(m => m.Path == "/gestionale/cassa/new");
+            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/cassa/new");
         if (oldNewCassaMenu != null)
         {
             dbContext.Menus.Remove(oldNewCassaMenu);
@@ -534,20 +534,20 @@ public static class SeedMenus
         // Child: Gestione Cassa (visible, for creating and editing cash registers with day navigation)
         var cassaChild4 = await dbContext.Menus
             .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Path == "/gestionale/cassa/details");
+            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/cassa/details");
 
         if (cassaChild4 == null)
         {
             cassaChild4 = new Menu
             {
-                Title = "Gestione Cassa",
-                Path = "/gestionale/cassa/details",
-                Icon = "Edit",
-                IsVisible = true,
-                Position = 4,
-                ViewName = "CashRegisterDetails",
-                FilePath = "cashRegister/CashRegisterDetails.tsx",
-                ParentMenu = cassaMenu,
+                Titolo = "Gestione Cassa",
+                Percorso = "/gestionale/cassa/details",
+                Icona = "Edit",
+                Visibile = true,
+                Posizione = 4,
+                NomeVista = "CashRegisterDetails",
+                PercorsoFile = "cashRegister/CashRegisterDetails.tsx",
+                MenuPadre = cassaMenu,
                 Ruoli = [superAdminRuolo]
             };
             dbContext.Menus.Add(cassaChild4);
@@ -568,20 +568,20 @@ public static class SeedMenus
         // ========================================
         var fornitoriMenu = await dbContext.Menus
             .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Title == "Fornitori" && m.Path == string.Empty);
+            .FirstOrDefaultAsync(m => m.Titolo == "Fornitori" && m.Percorso == string.Empty);
 
         if (fornitoriMenu == null)
         {
             fornitoriMenu = new Menu
             {
-                Title = "Fornitori",
-                Path = string.Empty,
-                Icon = "Store",
-                IsVisible = true,
-                Position = 7,
-                ViewName = string.Empty,
-                FilePath = string.Empty,
-                ParentMenuId = null
+                Titolo = "Fornitori",
+                Percorso = string.Empty,
+                Icona = "Store",
+                Visibile = true,
+                Posizione = 7,
+                NomeVista = string.Empty,
+                PercorsoFile = string.Empty,
+                MenuPadreId = null
             };
             fornitoriMenu.Ruoli.Add(superAdminRuolo);
             dbContext.Menus.Add(fornitoriMenu);
@@ -602,20 +602,20 @@ public static class SeedMenus
         // Menu figlio: Lista Fornitori
         var fornitoriChild1 = await dbContext.Menus
             .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Title == "Lista Fornitori" && m.ParentMenuId == fornitoriMenu.MenuId);
+            .FirstOrDefaultAsync(m => m.Titolo == "Lista Fornitori" && m.MenuPadreId == fornitoriMenu.Id);
 
         if (fornitoriChild1 == null)
         {
             fornitoriChild1 = new Menu
             {
-                Title = "Lista Fornitori",
-                Path = "/gestionale/suppliers-list",
-                Icon = "List",
-                IsVisible = true,
-                Position = 1,
-                ViewName = "SupplierList",
-                FilePath = "suppliers/SupplierList.tsx",
-                ParentMenuId = fornitoriMenu.MenuId
+                Titolo = "Lista Fornitori",
+                Percorso = "/gestionale/suppliers-list",
+                Icona = "List",
+                Visibile = true,
+                Posizione = 1,
+                NomeVista = "SupplierList",
+                PercorsoFile = "suppliers/SupplierList.tsx",
+                MenuPadreId = fornitoriMenu.Id
             };
             fornitoriChild1.Ruoli.Add(superAdminRuolo);
             dbContext.Menus.Add(fornitoriChild1);
@@ -634,20 +634,20 @@ public static class SeedMenus
         // Menu figlio: Gestione Fornitori
         var fornitoriChild2 = await dbContext.Menus
             .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Title == "Gestione Fornitori" && m.ParentMenuId == fornitoriMenu.MenuId);
+            .FirstOrDefaultAsync(m => m.Titolo == "Gestione Fornitori" && m.MenuPadreId == fornitoriMenu.Id);
 
         if (fornitoriChild2 == null)
         {
             fornitoriChild2 = new Menu
             {
-                Title = "Gestione Fornitori",
-                Path = "/gestionale/suppliers-details",
-                Icon = "Edit",
-                IsVisible = true,
-                Position = 2,
-                ViewName = "SupplierDetails",
-                FilePath = "suppliers/SupplierDetails.tsx",
-                ParentMenuId = fornitoriMenu.MenuId
+                Titolo = "Gestione Fornitori",
+                Percorso = "/gestionale/suppliers-details",
+                Icona = "Edit",
+                Visibile = true,
+                Posizione = 2,
+                NomeVista = "SupplierDetails",
+                PercorsoFile = "suppliers/SupplierDetails.tsx",
+                MenuPadreId = fornitoriMenu.Id
             };
             fornitoriChild2.Ruoli.Add(superAdminRuolo);
             dbContext.Menus.Add(fornitoriChild2);
@@ -666,20 +666,20 @@ public static class SeedMenus
         // Menu figlio: Fatture Acquisto
         var fornitoriChild3 = await dbContext.Menus
             .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Title == "Fatture Acquisto" && m.ParentMenuId == fornitoriMenu.MenuId);
+            .FirstOrDefaultAsync(m => m.Titolo == "Fatture Acquisto" && m.MenuPadreId == fornitoriMenu.Id);
 
         if (fornitoriChild3 == null)
         {
             fornitoriChild3 = new Menu
             {
-                Title = "Fatture Acquisto",
-                Path = "/gestionale/purchase-invoices-list",
-                Icon = "Receipt",
-                IsVisible = true,
-                Position = 3,
-                ViewName = "PurchaseInvoiceList",
-                FilePath = "purchases/PurchaseInvoiceList.tsx",
-                ParentMenuId = fornitoriMenu.MenuId
+                Titolo = "Fatture Acquisto",
+                Percorso = "/gestionale/purchase-invoices-list",
+                Icona = "Receipt",
+                Visibile = true,
+                Posizione = 3,
+                NomeVista = "PurchaseInvoiceList",
+                PercorsoFile = "purchases/PurchaseInvoiceList.tsx",
+                MenuPadreId = fornitoriMenu.Id
             };
             fornitoriChild3.Ruoli.Add(superAdminRuolo);
             dbContext.Menus.Add(fornitoriChild3);
@@ -698,20 +698,20 @@ public static class SeedMenus
         // Menu figlio: Gestione Fatture Acquisto
         var fornitoriChild4 = await dbContext.Menus
             .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Title == "Gestione Fatture Acquisto" && m.ParentMenuId == fornitoriMenu.MenuId);
+            .FirstOrDefaultAsync(m => m.Titolo == "Gestione Fatture Acquisto" && m.MenuPadreId == fornitoriMenu.Id);
 
         if (fornitoriChild4 == null)
         {
             fornitoriChild4 = new Menu
             {
-                Title = "Gestione Fatture Acquisto",
-                Path = "/gestionale/purchase-invoices-details",
-                Icon = "Edit",
-                IsVisible = true,
-                Position = 4,
-                ViewName = "PurchaseInvoiceDetails",
-                FilePath = "purchases/PurchaseInvoiceDetails.tsx",
-                ParentMenuId = fornitoriMenu.MenuId
+                Titolo = "Gestione Fatture Acquisto",
+                Percorso = "/gestionale/purchase-invoices-details",
+                Icona = "Edit",
+                Visibile = true,
+                Posizione = 4,
+                NomeVista = "PurchaseInvoiceDetails",
+                PercorsoFile = "purchases/PurchaseInvoiceDetails.tsx",
+                MenuPadreId = fornitoriMenu.Id
             };
             fornitoriChild4.Ruoli.Add(superAdminRuolo);
             dbContext.Menus.Add(fornitoriChild4);

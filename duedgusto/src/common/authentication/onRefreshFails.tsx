@@ -15,12 +15,12 @@ async function onRefreshFails() {
       toastId: "refresh-token-error",
     });
 
-    const { receiveUser } = useStore.getState();
+    const { receiveUtente } = useStore.getState();
     const client = configureClient();
     removeAuthToken();
     removeLastActivity();
     removeRememberPassword();
-    receiveUser(null);
+    receiveUtente(null);
     if (location.pathname !== "/signin") {
       if (client) {
         client.resetStore();

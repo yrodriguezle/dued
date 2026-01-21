@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FormikRoleValues } from "./RoleDetails";
+import { FormikRuoloValues } from "./RoleDetails";
 import setInitialFocus from "./setInitialFocus";
 import mergeWithDefaults from "../../../common/form/mergeWithDefaults";
 
@@ -13,19 +13,19 @@ function useInitializeValues({
   const initialized = useRef(false);
 
   const getDefaultInitialValues = useCallback(() => {
-    const initialValues: FormikRoleValues = {
-      roleId: 0,
-      roleName: "",
-      roleDescription: "",
+    const initialValues: FormikRuoloValues = {
+      id: 0,
+      nome: "",
+      descrizione: "",
       menuIds: [],
     };
     return initialValues;
   }, []);
 
-  const [initialValues, setInitialValues] = useState<FormikRoleValues>(getDefaultInitialValues());
+  const [initialValues, setInitialValues] = useState<FormikRuoloValues>(getDefaultInitialValues());
 
   const handleInitializeValues = useCallback(
-    async (values?: FormikRoleValues) => {
+    async (values?: FormikRuoloValues) => {
       setInitialValues((prev) => mergeWithDefaults(values || getDefaultInitialValues(), prev));
       if (!values) {
         setInitialFocus();

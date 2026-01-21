@@ -30,7 +30,7 @@ import useCashCountData from "./useCashCountData";
 const Schema = z.object({
   registerId: z.number().optional(),
   date: z.string().nonempty("La data è obbligatoria"),
-  userId: z.number(),
+  utenteId: z.number(),
   notes: z.string(),
   status: z.enum(["DRAFT", "CLOSED", "RECONCILED"]),
 });
@@ -80,7 +80,7 @@ function CashRegisterDetails() {
   const incomesGridRef = useRef<GridReadyEvent<DatagridData<IncomeRow>> | null>(null);
   const expensesGridRef = useRef<GridReadyEvent<DatagridData<ExpenseRow>> | null>(null);
   const { setTitle } = useContext(PageTitleContext);
-  const user = useStore((state) => state.user);
+  const utente = useStore((state) => state.utente);
 
   // Stati per i dati iniziali delle griglie - mantengono referenza stabile
   const [initialOpeningCounts, setInitialOpeningCounts] = useState<CashCount[]>([]);
@@ -103,7 +103,7 @@ function CashRegisterDetails() {
 
   const { initialValues, handleInitializeValues } = useInitializeValues({
     skipInitialize: !currentDate,
-    userId: user?.userId || 0,
+    utenteId: utente?.id || 0,
     currentDate,
   });
 
@@ -166,7 +166,7 @@ function CashRegisterDetails() {
       const formikValues: FormikCashRegisterValues = {
         registerId: cashRegister.registerId,
         date: dateStr,
-        userId: cashRegister.userId,
+        utenteId: cashRegister.utenteId,
         notes: cashRegister.notes || "",
         status: cashRegister.status,
       };
@@ -209,7 +209,7 @@ function CashRegisterDetails() {
       // Initialize with current date for new entry
       const newFormikValues: FormikCashRegisterValues = {
         date: currentDate,
-        userId: user?.userId || 0,
+        utenteId: utente?.id || 0,
         notes: "",
         status: "DRAFT",
       };
@@ -232,7 +232,7 @@ function CashRegisterDetails() {
         });
       }, 0);
     }
-  }, [cashRegister, handleInitializeValues, currentDate, user?.userId]);
+  }, [cashRegister, handleInitializeValues, currentDate, utente?.id]);
 
   const onSubmit = async (values: FormikCashRegisterValues) => {
     try {
@@ -258,7 +258,7 @@ function CashRegisterDetails() {
       const input = {
         registerId: values.registerId,
         date: parsedDate,
-        userId: values.userId,
+        utenteId: values.utenteId,
         openingCounts: openingCounts.map((row: CashCountRow) => ({
           denominationId: row.denominationId,
           quantity: row.quantity,

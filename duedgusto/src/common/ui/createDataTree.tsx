@@ -4,16 +4,16 @@ import { navigateTo } from "../navigator/navigator";
 
 const createMenuItem = (menu: Menu, menus: Menu[]): MenuItem => {
   const children = menus
-    .filter((m) => m?.parentMenuId === menu?.menuId)
-    .sort((a, b) => (a?.position ?? 0) - (b?.position ?? 0));
-  const path = menu?.path || "";
+    .filter((m) => m?.menuPadreId === menu?.id)
+    .sort((a, b) => (a?.posizione ?? 0) - (b?.posizione ?? 0));
+  const path = menu?.percorso || "";
   return {
-    label: menu?.title || "",
-    icon: getLazyIcon(menu?.icon),
+    label: menu?.titolo || "",
+    icon: getLazyIcon(menu?.icona),
     path,
     onClick: path
       ? () => {
-          navigateTo(menu?.path || "");
+          navigateTo(menu?.percorso || "");
         }
       : undefined,
     children: children.length ? children.map((m) => createMenuItem(m, menus)) : undefined,
@@ -22,8 +22,8 @@ const createMenuItem = (menu: Menu, menus: Menu[]): MenuItem => {
 
 function createDataTree(dataset: Menu[]): MenuItem[] {
   const paretns: Menu[] = dataset
-    .filter((menu) => !menu?.parentMenuId)
-    .sort((a, b) => (a?.position ?? 0) - (b?.position ?? 0));
+    .filter((menu) => !menu?.menuPadreId)
+    .sort((a, b) => (a?.posizione ?? 0) - (b?.posizione ?? 0));
   return paretns.map((menu) => createMenuItem(menu, dataset));
 }
 

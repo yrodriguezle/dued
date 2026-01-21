@@ -7,7 +7,7 @@ import Persona from "./Persona";
 import useStore from "../../../store/useStore";
 
 function ProfileMenuButton() {
-  const user = useStore((store) => store.user);
+  const utente = useStore((store) => store.utente);
   const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
   const signOut = useSignOut();
 
@@ -23,7 +23,7 @@ function ProfileMenuButton() {
     <>
       <Tooltip title="Impostazioni">
         <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-          <Persona alt={`${user?.firstName} ${user?.lastName}`} text={`${user?.firstName} ${user?.lastName}`} />
+          <Persona alt={`${utente?.nome} ${utente?.cognome}`} text={`${utente?.nome} ${utente?.cognome}`} />
         </IconButton>
       </Tooltip>
       <Menu

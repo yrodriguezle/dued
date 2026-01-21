@@ -1,39 +1,39 @@
 import { DatagridColDef, SearchboxOptions } from "../../../../../@types/searchbox";
 
-export type UserSearchbox = Exclude<User, null>;
+export type UtenteSearchbox = Exclude<Utente, null>;
 
-const items: DatagridColDef<UserSearchbox>[] = [
+const items: DatagridColDef<UtenteSearchbox>[] = [
   {
     headerName: "ID",
-    field: "userId",
+    field: "id",
     hide: true,
     filter: true,
     width: 100,
   },
   {
     headerName: "Nome utente",
-    field: "userName",
+    field: "nomeUtente",
     filter: true,
     width: 200,
   },
   {
     headerName: "Nome",
-    field: "firstName",
+    field: "nome",
     filter: true,
     width: 200,
   },
   {
     headerName: "Cognome",
-    field: "lastName",
+    field: "cognome",
     filter: true,
     width: 200,
   },
 ];
 
-const userSearchboxOption: SearchboxOptions<UserSearchbox> = {
-  query: "users",
-  id: "userId",
-  tableName: "users",
+const utenteSearchboxOption: SearchboxOptions<UtenteSearchbox> = {
+  query: "utenti",
+  id: "id",
+  tableName: "utenti",
   view: "UserDetails",
   items,
   modal: {
@@ -42,4 +42,4 @@ const userSearchboxOption: SearchboxOptions<UserSearchbox> = {
   },
 };
 
-export default userSearchboxOption;
+export default utenteSearchboxOption;

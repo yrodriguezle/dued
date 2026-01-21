@@ -2,78 +2,78 @@ import { Switch, FormControlLabel, Box } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import { useFormikContext } from "formik";
 import FormikTextField from "../../common/form/FormikTextField";
-import userSearchboxOption, { UserSearchbox } from "../../common/form/searchbox/searchboxOptions/userSearchboxOptions";
-import roleSearchboxOptions, { RoleNonNull } from "../../common/form/searchbox/searchboxOptions/roleSearchboxOptions";
+import utenteSearchboxOption, { UtenteSearchbox } from "../../common/form/searchbox/searchboxOptions/utenteSearchboxOptions";
+import ruoloSearchboxOptions, { RuoloNonNull } from "../../common/form/searchbox/searchboxOptions/ruoloSearchboxOptions";
 import FormikSearchbox from "../../common/form/searchbox/FormikSearchbox";
-import { FormikUserValues } from "./UserDetails";
+import { FormikUtenteValues } from "./UserDetails";
 
 interface UserFormProps {
-  onSelectItem: (item: UserSearchbox) => void;
+  onSelectItem: (item: UtenteSearchbox) => void;
 }
 
 function UserForm({ onSelectItem }: UserFormProps) {
-  const formik = useFormikContext<FormikUserValues>();
+  const formik = useFormikContext<FormikUtenteValues>();
 
   return (
     <Grid container spacing={2} sx={{ marginTop: 1, paddingX: 3 }}>
       <Grid xs={12} sm={8}>
         <Box>
-          <FormikSearchbox<FormikUserValues, UserSearchbox>
+          <FormikSearchbox<FormikUtenteValues, UtenteSearchbox>
             label="Nome utente:"
             placeholder="Nome utente"
-            name="userName"
+            name="nomeUtente"
             margin="normal"
             autoComplete="off"
             autoFocus
             required
             fullWidth
-            fieldName="userName"
-            options={userSearchboxOption}
+            fieldName="nomeUtente"
+            options={utenteSearchboxOption}
             onSelectItem={onSelectItem}
           />
-          <FormikSearchbox<FormikUserValues, RoleNonNull>
+          <FormikSearchbox<FormikUtenteValues, RuoloNonNull>
             label="Ruolo:"
             placeholder="Seleziona ruolo"
-            name="roleName"
+            name="ruoloNome"
             margin="normal"
             required
             fullWidth
-            fieldName="roleName"
-            options={roleSearchboxOptions}
-            onSelectItem={(role) => {
-              formik.setFieldValue('roleId', role.roleId);
-              formik.setFieldValue('roleName', role.roleName);
+            fieldName="nome"
+            options={ruoloSearchboxOptions}
+            onSelectItem={(ruolo) => {
+              formik.setFieldValue('ruoloId', ruolo.id);
+              formik.setFieldValue('ruoloNome', ruolo.nome);
             }}
           />
-          <FormikTextField label="Nome:" placeholder="Nome" name="firstName" margin="normal" autoComplete="off" required fullWidth />
-          <FormikTextField label="Cognome:" placeholder="Cognome" name="lastName" margin="normal" autoComplete="off" required fullWidth />
-          <FormikTextField label="Descrizione:" placeholder="Descrizione" name="description" margin="normal" autoComplete="off" required fullWidth />
+          <FormikTextField label="Nome:" placeholder="Nome" name="nome" margin="normal" autoComplete="off" required fullWidth />
+          <FormikTextField label="Cognome:" placeholder="Cognome" name="cognome" margin="normal" autoComplete="off" required fullWidth />
+          <FormikTextField label="Descrizione:" placeholder="Descrizione" name="descrizione" margin="normal" autoComplete="off" required fullWidth />
           <FormikTextField
             label="Password:"
-            placeholder={formik.values.userId === 0 ? "Password (obbligatoria)" : "Lascia vuoto per non modificare"}
+            placeholder={formik.values.id === 0 ? "Password (obbligatoria)" : "Lascia vuoto per non modificare"}
             name="password"
             type="password"
             margin="normal"
             autoComplete="new-password"
-            required={formik.values.userId === 0}
+            required={formik.values.id === 0}
             fullWidth
           />
           <FormikTextField
             label="Conferma Password:"
-            placeholder={formik.values.userId === 0 ? "Conferma password" : "Lascia vuoto per non modificare"}
+            placeholder={formik.values.id === 0 ? "Conferma password" : "Lascia vuoto per non modificare"}
             name="confirmPassword"
             type="password"
             margin="normal"
             autoComplete="new-password"
-            required={formik.values.userId === 0}
+            required={formik.values.id === 0}
             fullWidth
           />
           <FormControlLabel
             control={(
               <Switch
-                id="disabled"
-                name="disabled"
-                checked={formik.values.disabled}
+                id="disabilitato"
+                name="disabilitato"
+                checked={formik.values.disabilitato}
                 onChange={formik.handleChange}
                 color="primary"
               />

@@ -59,9 +59,9 @@ type ServerStatus = "ONLINE" | "OFFLINE";
 type CallbackStoreSet = (state: Store) => Partial<Store>;
 type StoreSet = (callback: CallbackStoreSet) => void;
 interface Store {
-  // user
-  user: User;
-  receiveUser: (payload: User) => void;
+  // utente
+  utente: Utente;
+  receiveUtente: (payload: Utente) => void;
   // inProgress
   inProgress: InProgress;
   onInProgress: (payload: string) => void;

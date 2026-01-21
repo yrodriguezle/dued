@@ -31,7 +31,7 @@ function AuthSignIn() {
           return;
         }
         setRememberPassword(values.alwaysConnected);
-        await fetchUser();
+        await fetchUtente();
         navigate("/gestionale", { replace: true });
       } catch (error) {
         if (error && typeof error === "object" && "message" in error) {

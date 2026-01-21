@@ -7,32 +7,32 @@ import Datagrid from "../../common/datagrid/Datagrid";
 import ListToolbar from "../../common/form/toolbar/ListToolbar";
 import PageTitleContext from "../../layout/headerBar/PageTitleContext";
 import useGetAll from "../../../graphql/common/useGetAll";
-import { userFragment } from "../../../graphql/user/fragment";
+import { utenteFragment } from "../../../graphql/utente/fragment";
 import { DatagridColDef, DatagridData, DatagridRowDoubleClickedEvent } from "../../common/datagrid/@types/Datagrid";
 import useConfirm from "../../common/confirm/useConfirm";
 import showToast from "../../../common/toast/showToast";
 
-type UserNonNull = Exclude<User, null>;
+type UtenteNonNull = Exclude<Utente, null>;
 
 function UserList() {
   const navigate = useNavigate();
   const { setTitle } = useContext(PageTitleContext);
-  const gridRef = useRef<GridReadyEvent<DatagridData<UserNonNull>> | null>(null);
-  const [selectedRows, setSelectedRows] = useState<DatagridData<UserNonNull>[]>([]);
+  const gridRef = useRef<GridReadyEvent<DatagridData<UtenteNonNull>> | null>(null);
+  const [selectedRows, setSelectedRows] = useState<DatagridData<UtenteNonNull>[]>([]);
   const onConfirm = useConfirm();
 
   useEffect(() => {
     setTitle("Lista utenti");
   }, [setTitle]);
 
-  const { data: users, loading } = useGetAll<UserNonNull>({
-    fragment: userFragment,
-    queryName: "users",
-    fragmentBody: "...UserFragment",
+  const { data: utenti, loading } = useGetAll<UtenteNonNull>({
+    fragment: utenteFragment,
+    queryName: "utenti",
+    fragmentBody: "...UtenteFragment",
     fetchPolicy: "network-only",
   });
 
-  const handleGridReady = useCallback((event: GridReadyEvent<DatagridData<UserNonNull>>) => {
+  const handleGridReady = useCallback((event: GridReadyEvent<DatagridData<UtenteNonNull>>) => {
     gridRef.current = event;
 
     event.api.addEventListener("selectionChanged", () => {
@@ -88,60 +88,60 @@ function UserList() {
     }
   }, [selectedRows, onConfirm]);
 
-  const handleRowDoubleClick = useCallback((event: DatagridRowDoubleClickedEvent<UserNonNull>) => {
+  const handleRowDoubleClick = useCallback((event: DatagridRowDoubleClickedEvent<UtenteNonNull>) => {
     if (event.data) {
-      navigate(`/gestionale/users-details?userId=${event.data.userId}`);
+      navigate(`/gestionale/users-details?utenteId=${event.data.id}`);
     }
   }, [navigate]);
 
-  const columnDefs = useMemo<DatagridColDef<UserNonNull>[]>(
+  const columnDefs = useMemo<DatagridColDef<UtenteNonNull>[]>(
     () => [
       {
         headerName: "ID",
-        field: "userId",
+        field: "id",
         width: 80,
         filter: true,
         sortable: true,
       },
       {
         headerName: "Nome utente",
-        field: "userName",
+        field: "nomeUtente",
         width: 180,
         filter: true,
         sortable: true,
       },
       {
         headerName: "Nome",
-        field: "firstName",
+        field: "nome",
         width: 150,
         filter: true,
         sortable: true,
       },
       {
         headerName: "Cognome",
-        field: "lastName",
+        field: "cognome",
         width: 150,
         filter: true,
         sortable: true,
       },
       {
         headerName: "Ruolo",
-        field: "role.roleName",
+        field: "ruolo.nome",
         width: 150,
         filter: true,
         sortable: true,
-        valueGetter: (params) => params.data?.role?.roleName || "",
+        valueGetter: (params) => params.data?.ruolo?.nome || "",
       },
       {
         headerName: "Descrizione",
-        field: "description",
+        field: "descrizione",
         width: 250,
         filter: true,
         sortable: true,
       },
       {
         headerName: "Disabilitato",
-        field: "disabled",
+        field: "disabilitato",
         width: 120,
         filter: true,
         sortable: true,
@@ -170,12 +170,12 @@ function UserList() {
               Caricamento...
             </Box>
           ) : (
-            <Datagrid<UserNonNull>
+            <Datagrid<UtenteNonNull>
               presentation
               height="100%"
-              items={users}
+              items={utenti}
               columnDefs={columnDefs}
-              getRowId={({ data }) => data.userId.toString()}
+              getRowId={({ data }) => data.id.toString()}
               rowSelection={{
                 mode: "multiRow",
                 headerCheckbox: true,

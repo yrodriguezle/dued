@@ -5,22 +5,22 @@ import mergeWithDefaults from "../../../common/form/mergeWithDefaults";
 
 interface UseInitializeValuesProps {
   skipInitialize?: boolean;
-  userId: number;
+  utenteId: number;
   currentDate: string;
 }
 
-function useInitializeValues({ skipInitialize, userId, currentDate }: UseInitializeValuesProps) {
+function useInitializeValues({ skipInitialize, utenteId, currentDate }: UseInitializeValuesProps) {
   const initialized = useRef(false);
 
   const getDefaultInitialValues = useCallback(() => {
     const initialValues: FormikCashRegisterValues = {
       date: currentDate,
-      userId,
+      utenteId,
       notes: "",
       status: "DRAFT",
     };
     return initialValues;
-  }, [currentDate, userId]);
+  }, [currentDate, utenteId]);
 
   const [initialValues, setInitialValues] = useState<FormikCashRegisterValues>(getDefaultInitialValues());
 

@@ -32,17 +32,17 @@ function ProtectedRoutes() {
         } />
         <Route index element={<Navigate to="dashboard" replace />} />
         {menuRoutes
-          .filter((menu) => menu?.path && menu?.filePath)
+          .filter((menu) => menu?.percorso && menu?.percorsoFile)
           .map((menu) => {
             // Convert /gestionale/cassa/details to cassa/details and support dynamic routes
-            const routePath = menu?.path.replace("/gestionale/", "") || "/";
+            const routePath = menu?.percorso.replace("/gestionale/", "") || "/";
             // Support routes with parameters: /gestionale/cassa/details -> cassa/:date
             const finalPath = routePath === "cassa/details" ? "cassa/:date" : routePath;
-            const DynamicComponent = loadDynamicComponent(menu?.filePath || "");
+            const DynamicComponent = loadDynamicComponent(menu?.percorsoFile || "");
 
             return (
               <Route
-                key={menu?.path}
+                key={menu?.percorso}
                 path={finalPath}
                 element={
                   <Suspense fallback={<Fallback />}>

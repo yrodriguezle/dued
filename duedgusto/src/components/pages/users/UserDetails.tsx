@@ -9,7 +9,7 @@ import { useLazyQuery } from "@apollo/client";
 import UserForm from "./UserForm";
 import FormikToolbar from "../../common/form/toolbar/FormikToolbar";
 import logger from "../../../common/logger/logger";
-import { UserSearchbox } from "../../common/form/searchbox/searchboxOptions/userSearchboxOptions";
+import { UtenteSearchbox } from "../../common/form/searchbox/searchboxOptions/utenteSearchboxOptions";
 import { formStatuses } from "../../../common/globals/constants";
 import useConfirm from "../../common/confirm/useConfirm";
 import useInitializeValues from "./useInitializeValues";
@@ -17,23 +17,23 @@ import setInitialFocus from "./setInitialFocus";
 import sleep from "../../../common/bones/sleep";
 import { Box, Typography } from "@mui/material";
 import PageTitleContext from "../../layout/headerBar/PageTitleContext";
-import useSubmitUser from "../../../graphql/user/useSubmitUser";
-import { getUserById } from "../../../graphql/user/queries";
+import useSubmitUtente from "../../../graphql/utente/useSubmitUser";
+import { getUtentePerId } from "../../../graphql/utente/queries";
 
 const Schema = z.object({
-  userId: z.number(),
-  roleId: z.number().min(1, "L'utente deve avere un Ruolo"),
-  roleName: z.string(),
-  userName: z.string().nonempty("Nome utente è obbligatorio"),
-  firstName: z.string().nonempty("Nome è obbligatorio"),
-  lastName: z.string().nonempty("Cognome è obbligatorio"),
-  description: z.string().optional(),
-  disabled: z.boolean(),
+  id: z.number(),
+  ruoloId: z.number().min(1, "L'utente deve avere un Ruolo"),
+  ruoloNome: z.string(),
+  nomeUtente: z.string().nonempty("Nome utente è obbligatorio"),
+  nome: z.string().nonempty("Nome è obbligatorio"),
+  cognome: z.string().nonempty("Cognome è obbligatorio"),
+  descrizione: z.string().optional(),
+  disabilitato: z.boolean(),
   password: z.string().optional(),
   confirmPassword: z.string().optional(),
 }).refine((data) => {
-  // Se è un nuovo utente (userId === 0), la password è obbligatoria
-  if (data.userId === 0 && !data.password) {
+  // Se è un nuovo utente (id === 0), la password è obbligatoria
+  if (data.id === 0 && !data.password) {
     return false;
   }
   // Se la password è fornita, deve essere almeno 6 caratteri
@@ -50,15 +50,15 @@ const Schema = z.object({
   path: ["confirmPassword"],
 });
 
-export type FormikUserValues = z.infer<typeof Schema>;
+export type FormikUtenteValues = z.infer<typeof Schema>;
 
 function UserDetails() {
-  const formRef = useRef<FormikProps<FormikUserValues>>(null);
+  const formRef = useRef<FormikProps<FormikUtenteValues>>(null);
   const { title, setTitle } = useContext(PageTitleContext);
   const location = useLocation();
   const { initialValues, handleInitializeValues } = useInitializeValues({ skipInitialize: false });
-  const { submitUser } = useSubmitUser();
-  const [loadUser] = useLazyQuery(getUserById);
+  const { submitUtente } = useSubmitUtente();
+  const [loadUtente] = useLazyQuery(getUtentePerId);
 
   const onConfirm = useConfirm();
 
@@ -69,28 +69,28 @@ function UserDetails() {
   // Carica i dati dell'utente dall'URL
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
-    const userIdParam = searchParams.get("userId");
+    const utenteIdParam = searchParams.get("utenteId");
 
-    if (userIdParam) {
-      const userId = parseInt(userIdParam, 10);
-      if (!isNaN(userId)) {
-        loadUser({ variables: { userId } }).then((result) => {
-          if (result.data?.authentication?.user) {
-            const user = result.data.authentication.user;
-            const userValues: Partial<FormikUserValues> = {
-              userId: user.userId,
-              roleId: user.roleId,
-              roleName: user.role?.roleName || "",
-              userName: user.userName,
-              firstName: user.firstName || "",
-              lastName: user.lastName || "",
-              description: user.description || "",
-              disabled: user.disabled || false,
+    if (utenteIdParam) {
+      const id = parseInt(utenteIdParam, 10);
+      if (!isNaN(id)) {
+        loadUtente({ variables: { id } }).then((result) => {
+          if (result.data?.authentication?.utente) {
+            const utente = result.data.authentication.utente;
+            const utenteValues: Partial<FormikUtenteValues> = {
+              id: utente.id,
+              ruoloId: utente.ruoloId,
+              ruoloNome: utente.ruolo?.nome || "",
+              nomeUtente: utente.nomeUtente,
+              nome: utente.nome || "",
+              cognome: utente.cognome || "",
+              descrizione: utente.descrizione || "",
+              disabilitato: utente.disabilitato || false,
               password: "",
               confirmPassword: "",
             };
 
-            handleInitializeValues(userValues).then(() => {
+            handleInitializeValues(utenteValues).then(() => {
               setTimeout(() => {
                 formRef.current?.setStatus({
                   formStatus: formStatuses.UPDATE,
@@ -102,7 +102,7 @@ function UserDetails() {
         });
       }
     }
-  }, [location.search, loadUser, handleInitializeValues]);
+  }, [location.search, loadUtente, handleInitializeValues]);
 
   const handleResetForm = useCallback(
     async (hasChanges: boolean) => {
@@ -126,15 +126,15 @@ function UserDetails() {
     [handleInitializeValues, onConfirm],
   );
 
-  const handleSelectedItem = useCallback((item: UserSearchbox) => {
-    const itemsValues: Partial<FormikUserValues> = {
-      userId: item.userId,
-      roleId: item.roleId,
-      userName: item.userName,
-      firstName: item.firstName,
-      lastName: item.lastName,
-      description: item.description || "",
-      disabled: item.disabled,
+  const handleSelectedItem = useCallback((item: UtenteSearchbox) => {
+    const itemsValues: Partial<FormikUtenteValues> = {
+      id: item.id,
+      ruoloId: item.ruoloId,
+      nomeUtente: item.nomeUtente,
+      nome: item.nome,
+      cognome: item.cognome,
+      descrizione: item.descrizione || "",
+      disabilitato: item.disabilitato,
       password: "",
       confirmPassword: "",
     };
@@ -149,36 +149,36 @@ function UserDetails() {
     });
   }, [handleInitializeValues]);
 
-  const onSubmit = async (values: FormikUserValues) => {
+  const onSubmit = async (values: FormikUtenteValues) => {
     try {
       logger.log("onSubmit", values);
 
       const input = {
-        userId: values.userId || undefined,
-        userName: values.userName,
-        firstName: values.firstName,
-        lastName: values.lastName,
-        description: values.description || "",
-        disabled: values.disabled,
-        roleId: values.roleId,
+        id: values.id || undefined,
+        nomeUtente: values.nomeUtente,
+        nome: values.nome,
+        cognome: values.cognome,
+        descrizione: values.descrizione || "",
+        disabilitato: values.disabilitato,
+        ruoloId: values.ruoloId,
         password: values.password || undefined,
       };
 
-      const result = await submitUser({ user: input });
+      const result = await submitUtente({ utente: input });
 
       if (result) {
         toast.success("Utente salvato con successo!");
 
         // Aggiorna il form con i dati salvati
-        const updatedValues: FormikUserValues = {
-          userId: result.userId,
-          roleId: result.roleId,
-          roleName: result.role?.roleName || "",
-          userName: result.userName,
-          firstName: result.firstName,
-          lastName: result.lastName,
-          description: result.description,
-          disabled: result.disabled,
+        const updatedValues: FormikUtenteValues = {
+          id: result.id,
+          ruoloId: result.ruoloId,
+          ruoloNome: result.ruolo?.nome || "",
+          nomeUtente: result.nomeUtente,
+          nome: result.nome,
+          cognome: result.cognome,
+          descrizione: result.descrizione,
+          disabilitato: result.disabilitato,
           password: "",
           confirmPassword: "",
         };
@@ -204,7 +204,7 @@ function UserDetails() {
       enableReinitialize
       initialValues={initialValues}
       initialStatus={{ formStatus: formStatuses.INSERT, isFormLocked: false }}
-      validate={(values: FormikUserValues) => {
+      validate={(values: FormikUtenteValues) => {
         const result = Schema.safeParse(values);
         if (result.success) {
           return;
