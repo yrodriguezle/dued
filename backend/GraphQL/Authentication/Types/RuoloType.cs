@@ -23,7 +23,7 @@ public class RuoloType : ObjectGraphType<Ruolo>
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
                 return await dbContext.Ruoli
                     .Where(r => r.Id == context.Source.Id)
-                    .SelectMany(r => r.Menus.Select(m => m.MenuId))
+                    .SelectMany(r => r.Menus.Select(m => m.Id))
                     .ToListAsync();
             });
     }

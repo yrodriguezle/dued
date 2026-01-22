@@ -57,8 +57,8 @@ public class SalesMutations : ObjectGraphType
         }
 
         // Verify register exists
-        var register = await dbContext.CashRegisters
-            .FirstOrDefaultAsync(r => r.RegisterId == input.RegisterId);
+        var register = await dbContext.RegistriCassa
+            .FirstOrDefaultAsync(r => r.Id == input.RegisterId);
 
         if (register == null)
         {
@@ -68,7 +68,7 @@ public class SalesMutations : ObjectGraphType
         // Create sale
         var sale = new Sale
         {
-            RegisterId = input.RegisterId,
+            RegistroCassaId = input.RegisterId,
             ProductId = input.ProductId,
             Quantity = input.Quantity,
             UnitPrice = product.Price,
@@ -81,10 +81,10 @@ public class SalesMutations : ObjectGraphType
 
         dbContext.Sales.Add(sale);
 
-        // Update register CashSales total
-        register.CashSales += sale.TotalPrice;
-        register.TotalSales = register.CashSales + register.ElectronicPayments;
-        register.UpdatedAt = DateTime.UtcNow;
+        // Update register VenditeContanti total
+        register.VenditeContanti += sale.TotalPrice;
+        register.TotaleVendite = register.VenditeContanti + register.IncassiElettronici;
+        register.AggiornatoIl = DateTime.UtcNow;
 
         await dbContext.SaveChangesAsync();
 
@@ -154,15 +154,15 @@ public class SalesMutations : ObjectGraphType
             throw new InvalidOperationException("Vendita non trovata");
         }
 
-        // Update register CashSales total
-        var register = await dbContext.CashRegisters
-            .FirstOrDefaultAsync(r => r.RegisterId == sale.RegisterId);
+        // Update register VenditeContanti total
+        var register = await dbContext.RegistriCassa
+            .FirstOrDefaultAsync(r => r.Id == sale.RegistroCassaId);
 
         if (register != null)
         {
-            register.CashSales -= sale.TotalPrice;
-            register.TotalSales = register.CashSales + register.ElectronicPayments;
-            register.UpdatedAt = DateTime.UtcNow;
+            register.VenditeContanti -= sale.TotalPrice;
+            register.TotaleVendite = register.VenditeContanti + register.IncassiElettronici;
+            register.AggiornatoIl = DateTime.UtcNow;
         }
 
         dbContext.Sales.Remove(sale);

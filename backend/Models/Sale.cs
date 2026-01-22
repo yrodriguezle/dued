@@ -3,7 +3,7 @@ namespace duedgusto.Models;
 public class Sale
 {
     public int SaleId { get; set; }
-    public int RegisterId { get; set; } // Foreign key a CashRegister
+    public int RegistroCassaId { get; set; } // Foreign key a RegistroCassa
     public int ProductId { get; set; } // Foreign key a Product
     public decimal Quantity { get; set; } // Quantità venduta
     public decimal UnitPrice { get; set; } // Prezzo unitario al momento della vendita
@@ -16,6 +16,6 @@ public class Sale
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation properties
-    public CashRegister CashRegister { get; set; } = null!;
+    public RegistroCassa RegistroCassa { get; set; } = null!;
     public Product Product { get; set; } = null!;
 }

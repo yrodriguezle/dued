@@ -51,7 +51,7 @@ public class ConnectionQueries : ObjectGraphType
                     context.GetArgument<string>("orderBy"),
                     menu =>
                     {
-                        return menu.MenuId.ToString();
+                        return menu.Id.ToString();
                     });
                 return connection;
             });
@@ -74,7 +74,7 @@ public class ConnectionQueries : ObjectGraphType
                 return connection;
             });
 
-        Field<ConnectionType<CashRegisterType>>("cashRegisters")
+        Field<ConnectionType<RegistroCassaType>>("registriCassa")
             .Argument<IntGraphType>("first", "Number of items to return")
             .Argument<IntGraphType>("cursor", "Offset for pagination (deprecated, use after)")
             .Argument<StringGraphType>("after", "Cursor after which to return items")
@@ -85,13 +85,13 @@ public class ConnectionQueries : ObjectGraphType
                 string? whereClause = context.GetArgument<string?>("where");
                 string? orderByClause = context.GetArgument<string?>("orderBy");
 
-                Connection<CashRegister> connection = await GraphQLService.GetConnectionAsync<CashRegister>(
+                Connection<RegistroCassa> connection = await GraphQLService.GetConnectionAsync<RegistroCassa>(
                     context,
                     whereClause,
                     orderByClause,
-                    cashRegister =>
+                    registroCassa =>
                     {
-                        return cashRegister.RegisterId.ToString();
+                        return registroCassa.Id.ToString();
                     },
                     query =>
                     {
@@ -99,26 +99,26 @@ public class ConnectionQueries : ObjectGraphType
                         query = query
                             .Include(r => r.Utente)
                                 .ThenInclude(u => u.Ruolo)
-                            .Include(r => r.CashCounts)
-                                .ThenInclude(c => c.Denomination)
-                            .Include(r => r.CashIncomes)
-                            .Include(r => r.CashExpenses);
+                            .Include(r => r.ConteggiMoneta)
+                                .ThenInclude(c => c.Denominazione)
+                            .Include(r => r.IncassiCassa)
+                            .Include(r => r.SpeseCassa);
 
                         // Parse and apply WHERE clause safely using LINQ
                         if (!string.IsNullOrEmpty(whereClause))
                         {
-                            query = ApplyCashRegisterWhereClause(query, whereClause);
+                            query = ApplyRegistroCassaWhereClause(query, whereClause);
                         }
 
                         // Apply ORDER BY clause
                         if (!string.IsNullOrEmpty(orderByClause))
                         {
-                            query = ApplyCashRegisterOrderBy(query, orderByClause);
+                            query = ApplyRegistroCassaOrderBy(query, orderByClause);
                         }
                         else
                         {
                             // Default ordering
-                            query = query.OrderByDescending(r => r.Date);
+                            query = query.OrderByDescending(r => r.Data);
                         }
 
                         return query;
@@ -282,14 +282,14 @@ public class ConnectionQueries : ObjectGraphType
             });
     }
 
-    // Safe WHERE clause parser for CashRegister queries
-    private static IQueryable<CashRegister> ApplyCashRegisterWhereClause(IQueryable<CashRegister> query, string whereClause)
+    // Safe WHERE clause parser for RegistroCassa queries
+    private static IQueryable<RegistroCassa> ApplyRegistroCassaWhereClause(IQueryable<RegistroCassa> query, string whereClause)
     {
         // Parse WHERE clause safely - only support specific patterns to prevent SQL injection
         // Supported patterns:
-        // - date >= 'YYYY-MM-DD'
-        // - date <= 'YYYY-MM-DD'
-        // - date >= 'YYYY-MM-DD' AND date <= 'YYYY-MM-DD'
+        // - data >= 'YYYY-MM-DD'
+        // - data <= 'YYYY-MM-DD'
+        // - data >= 'YYYY-MM-DD' AND data <= 'YYYY-MM-DD'
 
         var parts = whereClause.Split(new[] { " AND ", " and " }, StringSplitOptions.RemoveEmptyEntries);
 
@@ -297,45 +297,45 @@ public class ConnectionQueries : ObjectGraphType
         {
             var trimmedPart = part.Trim();
 
-            // Parse date comparisons
-            if (trimmedPart.StartsWith("date >="))
+            // Parse date comparisons (supporta sia "date" che "data")
+            if (trimmedPart.StartsWith("data >=") || trimmedPart.StartsWith("date >="))
             {
                 var dateStr = ExtractDateValue(trimmedPart);
                 if (DateTime.TryParse(dateStr, out DateTime date))
                 {
-                    query = query.Where(r => r.Date >= date);
+                    query = query.Where(r => r.Data >= date);
                 }
             }
-            else if (trimmedPart.StartsWith("date <="))
+            else if (trimmedPart.StartsWith("data <=") || trimmedPart.StartsWith("date <="))
             {
                 var dateStr = ExtractDateValue(trimmedPart);
                 if (DateTime.TryParse(dateStr, out DateTime date))
                 {
-                    query = query.Where(r => r.Date <= date);
+                    query = query.Where(r => r.Data <= date);
                 }
             }
-            else if (trimmedPart.StartsWith("date >"))
+            else if (trimmedPart.StartsWith("data >") || trimmedPart.StartsWith("date >"))
             {
                 var dateStr = ExtractDateValue(trimmedPart);
                 if (DateTime.TryParse(dateStr, out DateTime date))
                 {
-                    query = query.Where(r => r.Date > date);
+                    query = query.Where(r => r.Data > date);
                 }
             }
-            else if (trimmedPart.StartsWith("date <"))
+            else if (trimmedPart.StartsWith("data <") || trimmedPart.StartsWith("date <"))
             {
                 var dateStr = ExtractDateValue(trimmedPart);
                 if (DateTime.TryParse(dateStr, out DateTime date))
                 {
-                    query = query.Where(r => r.Date < date);
+                    query = query.Where(r => r.Data < date);
                 }
             }
-            else if (trimmedPart.StartsWith("date ="))
+            else if (trimmedPart.StartsWith("data =") || trimmedPart.StartsWith("date ="))
             {
                 var dateStr = ExtractDateValue(trimmedPart);
                 if (DateTime.TryParse(dateStr, out DateTime date))
                 {
-                    query = query.Where(r => r.Date == date);
+                    query = query.Where(r => r.Data == date);
                 }
             }
         }
@@ -345,7 +345,7 @@ public class ConnectionQueries : ObjectGraphType
 
     private static string ExtractDateValue(string condition)
     {
-        // Extract date value from conditions like "date >= '2024-01-01'"
+        // Extract date value from conditions like "data >= '2024-01-01'"
         var startIndex = condition.IndexOf('\'');
         if (startIndex >= 0)
         {
@@ -358,31 +358,31 @@ public class ConnectionQueries : ObjectGraphType
         return string.Empty;
     }
 
-    private static IQueryable<CashRegister> ApplyCashRegisterOrderBy(IQueryable<CashRegister> query, string orderByClause)
+    private static IQueryable<RegistroCassa> ApplyRegistroCassaOrderBy(IQueryable<RegistroCassa> query, string orderByClause)
     {
         // Safe ORDER BY parser - only support specific columns
         var orderBy = orderByClause.Trim().ToLower();
 
-        if (orderBy.Contains("date desc"))
+        if (orderBy.Contains("data desc") || orderBy.Contains("date desc"))
         {
-            return query.OrderByDescending(r => r.Date);
+            return query.OrderByDescending(r => r.Data);
         }
-        else if (orderBy.Contains("date asc") || orderBy == "date")
+        else if (orderBy.Contains("data asc") || orderBy == "data" || orderBy.Contains("date asc") || orderBy == "date")
         {
-            return query.OrderBy(r => r.Date);
+            return query.OrderBy(r => r.Data);
         }
-        else if (orderBy.Contains("registerid desc"))
+        else if (orderBy.Contains("id desc") || orderBy.Contains("registerid desc"))
         {
-            return query.OrderByDescending(r => r.RegisterId);
+            return query.OrderByDescending(r => r.Id);
         }
-        else if (orderBy.Contains("registerid asc") || orderBy == "registerid")
+        else if (orderBy.Contains("id asc") || orderBy == "id" || orderBy.Contains("registerid asc") || orderBy == "registerid")
         {
-            return query.OrderBy(r => r.RegisterId);
+            return query.OrderBy(r => r.Id);
         }
         else
         {
-            // Default: order by date descending
-            return query.OrderByDescending(r => r.Date);
+            // Default: order by data descending
+            return query.OrderByDescending(r => r.Data);
         }
     }
 }

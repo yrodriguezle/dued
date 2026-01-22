@@ -16,241 +16,241 @@ public class CashManagementMutations : ObjectGraphType
     {
         this.Authorize();
 
-        // Create or Update CashRegister
-        Field<CashRegisterType>("mutateCashRegister")
-            .Argument<NonNullGraphType<CashRegisterInputType>>("cashRegister", "Cash register data")
+        // Create or Update RegistroCassa
+        Field<RegistroCassaType>("mutateRegistroCassa")
+            .Argument<NonNullGraphType<RegistroCassaInputType>>("registroCassa", "Dati registro cassa")
             .ResolveAsync(async context =>
             {
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
-                CashRegisterInput input = context.GetArgument<CashRegisterInput>("cashRegister");
+                RegistroCassaInput input = context.GetArgument<RegistroCassaInput>("registroCassa");
 
-                CashRegister? cashRegister = null;
+                RegistroCassa? registroCassa = null;
 
                 // Check if a cash register already exists for this date
-                cashRegister = await dbContext.CashRegisters
-                    .Include(r => r.CashCounts)
-                    .Include(r => r.CashIncomes)
-                    .Include(r => r.CashExpenses)
-                    .FirstOrDefaultAsync(r => r.Date.Date == input.Date.Date);
+                registroCassa = await dbContext.RegistriCassa
+                    .Include(r => r.ConteggiMoneta)
+                    .Include(r => r.IncassiCassa)
+                    .Include(r => r.SpeseCassa)
+                    .FirstOrDefaultAsync(r => r.Data.Date == input.Data.Date);
 
-                if (cashRegister != null)
+                if (registroCassa != null)
                 {
                     // Update existing record - remove existing counts, incomes, and expenses
-                    dbContext.CashCounts.RemoveRange(cashRegister.CashCounts);
-                    dbContext.CashIncomes.RemoveRange(cashRegister.CashIncomes);
-                    dbContext.CashExpenses.RemoveRange(cashRegister.CashExpenses);
+                    dbContext.ConteggiMoneta.RemoveRange(registroCassa.ConteggiMoneta);
+                    dbContext.IncassiCassa.RemoveRange(registroCassa.IncassiCassa);
+                    dbContext.SpeseCassa.RemoveRange(registroCassa.SpeseCassa);
                 }
                 else
                 {
                     // Create new record
-                    cashRegister = new CashRegister();
-                    dbContext.CashRegisters.Add(cashRegister);
+                    registroCassa = new RegistroCassa();
+                    dbContext.RegistriCassa.Add(registroCassa);
                 }
 
                 // Update basic fields
-                cashRegister.Date = input.Date;
-                cashRegister.UtenteId = input.UtenteId;
-                cashRegister.CashInWhite = input.CashInWhite;
-                cashRegister.ElectronicPayments = input.ElectronicPayments;
-                cashRegister.InvoicePayments = input.InvoicePayments;
-                cashRegister.SupplierExpenses = input.SupplierExpenses;
-                cashRegister.DailyExpenses = input.DailyExpenses;
-                cashRegister.Notes = input.Notes;
-                cashRegister.Status = input.Status;
-                cashRegister.UpdatedAt = DateTime.UtcNow;
+                registroCassa.Data = input.Data;
+                registroCassa.UtenteId = input.UtenteId;
+                registroCassa.IncassoContanteTracciato = input.IncassoContanteTracciato;
+                registroCassa.IncassiElettronici = input.IncassiElettronici;
+                registroCassa.IncassiFattura = input.IncassiFattura;
+                registroCassa.SpeseFornitori = input.SpeseFornitori;
+                registroCassa.SpeseGiornaliere = input.SpeseGiornaliere;
+                registroCassa.Note = input.Note;
+                registroCassa.Stato = input.Stato;
+                registroCassa.AggiornatoIl = DateTime.UtcNow;
 
                 // Get denominations for calculations
-                var denominations = await dbContext.CashDenominations.ToListAsync();
+                var denominazioni = await dbContext.DenominazioniMoneta.ToListAsync();
 
                 // Calculate opening total
-                decimal openingTotal = 0;
-                foreach (var countInput in input.OpeningCounts)
+                decimal totaleApertura = 0;
+                foreach (var conteggioInput in input.ConteggiApertura)
                 {
-                    var denomination = denominations.FirstOrDefault(d => d.DenominationId == countInput.DenominationId);
-                    if (denomination != null)
+                    var denominazione = denominazioni.FirstOrDefault(d => d.Id == conteggioInput.DenominazioneMonetaId);
+                    if (denominazione != null)
                     {
-                        decimal total = countInput.Quantity * denomination.Value;
-                        openingTotal += total;
+                        decimal totale = conteggioInput.Quantita * denominazione.Valore;
+                        totaleApertura += totale;
 
-                        cashRegister.CashCounts.Add(new CashCount
+                        registroCassa.ConteggiMoneta.Add(new ConteggioMoneta
                         {
-                            DenominationId = countInput.DenominationId,
-                            Quantity = countInput.Quantity,
-                            Total = total,
-                            IsOpening = true
+                            DenominazioneMonetaId = conteggioInput.DenominazioneMonetaId,
+                            Quantita = conteggioInput.Quantita,
+                            Totale = totale,
+                            IsApertura = true
                         });
                     }
                 }
 
                 // Calculate closing total
-                decimal closingTotal = 0;
-                foreach (var countInput in input.ClosingCounts)
+                decimal totaleChiusura = 0;
+                foreach (var conteggioInput in input.ConteggiChiusura)
                 {
-                    var denomination = denominations.FirstOrDefault(d => d.DenominationId == countInput.DenominationId);
-                    if (denomination != null)
+                    var denominazione = denominazioni.FirstOrDefault(d => d.Id == conteggioInput.DenominazioneMonetaId);
+                    if (denominazione != null)
                     {
-                        decimal total = countInput.Quantity * denomination.Value;
-                        closingTotal += total;
+                        decimal totale = conteggioInput.Quantita * denominazione.Valore;
+                        totaleChiusura += totale;
 
-                        cashRegister.CashCounts.Add(new CashCount
+                        registroCassa.ConteggiMoneta.Add(new ConteggioMoneta
                         {
-                            DenominationId = countInput.DenominationId,
-                            Quantity = countInput.Quantity,
-                            Total = total,
-                            IsOpening = false
+                            DenominazioneMonetaId = conteggioInput.DenominazioneMonetaId,
+                            Quantita = conteggioInput.Quantita,
+                            Totale = totale,
+                            IsApertura = false
                         });
                     }
                 }
 
-                cashRegister.OpeningTotal = openingTotal;
-                cashRegister.ClosingTotal = closingTotal;
+                registroCassa.TotaleApertura = totaleApertura;
+                registroCassa.TotaleChiusura = totaleChiusura;
 
                 // Add incomes
-                decimal cashInWhiteFromIncomes = 0;
-                decimal electronicPaymentsFromIncomes = 0;
-                decimal invoicePaymentsFromIncomes = 0;
-                foreach (var incomeInput in input.Incomes)
+                decimal incassoContanteTracciatoDaIncassi = 0;
+                decimal incassiElettroniciDaIncassi = 0;
+                decimal incassiFatturaDaIncassi = 0;
+                foreach (var incassoInput in input.Incassi)
                 {
-                    cashRegister.CashIncomes.Add(new CashIncome
+                    registroCassa.IncassiCassa.Add(new IncassoCassa
                     {
-                        Type = incomeInput.Type,
-                        Amount = incomeInput.Amount
+                        Tipo = incassoInput.Tipo,
+                        Importo = incassoInput.Importo
                     });
 
                     // Map to legacy fields based on type
-                    if (incomeInput.Type == "Pago in Bianco (Contante)")
+                    if (incassoInput.Tipo == "Pago in Bianco (Contante)")
                     {
-                        cashInWhiteFromIncomes = incomeInput.Amount;
+                        incassoContanteTracciatoDaIncassi = incassoInput.Importo;
                     }
-                    else if (incomeInput.Type == "Pagamenti Elettronici")
+                    else if (incassoInput.Tipo == "Pagamenti Elettronici")
                     {
-                        electronicPaymentsFromIncomes = incomeInput.Amount;
+                        incassiElettroniciDaIncassi = incassoInput.Importo;
                     }
-                    else if (incomeInput.Type == "Pagamento con Fattura")
+                    else if (incassoInput.Tipo == "Pagamento con Fattura")
                     {
-                        invoicePaymentsFromIncomes = incomeInput.Amount;
+                        incassiFatturaDaIncassi = incassoInput.Importo;
                     }
                 }
 
                 // Override input values with ones from incomes if provided
-                if (input.Incomes.Count > 0)
+                if (input.Incassi.Count > 0)
                 {
-                    cashRegister.CashInWhite = cashInWhiteFromIncomes;
-                    cashRegister.ElectronicPayments = electronicPaymentsFromIncomes;
-                    cashRegister.InvoicePayments = invoicePaymentsFromIncomes;
+                    registroCassa.IncassoContanteTracciato = incassoContanteTracciatoDaIncassi;
+                    registroCassa.IncassiElettronici = incassiElettroniciDaIncassi;
+                    registroCassa.IncassiFattura = incassiFatturaDaIncassi;
                 }
                 else
                 {
                     // Fallback to legacy input fields if incomes not provided
-                    cashRegister.CashInWhite = input.CashInWhite;
-                    cashRegister.ElectronicPayments = input.ElectronicPayments;
-                    cashRegister.InvoicePayments = input.InvoicePayments;
+                    registroCassa.IncassoContanteTracciato = input.IncassoContanteTracciato;
+                    registroCassa.IncassiElettronici = input.IncassiElettronici;
+                    registroCassa.IncassiFattura = input.IncassiFattura;
                 }
 
                 // Add expenses
-                decimal totalExpenses = 0;
-                foreach (var expenseInput in input.Expenses)
+                decimal totaleSpese = 0;
+                foreach (var spesaInput in input.Spese)
                 {
-                    cashRegister.CashExpenses.Add(new CashExpense
+                    registroCassa.SpeseCassa.Add(new SpesaCassa
                     {
-                        Description = expenseInput.Description,
-                        Amount = expenseInput.Amount
+                        Descrizione = spesaInput.Descrizione,
+                        Importo = spesaInput.Importo
                     });
-                    totalExpenses += expenseInput.Amount;
+                    totaleSpese += spesaInput.Importo;
                 }
 
                 // Update legacy expense fields
-                cashRegister.SupplierExpenses = input.SupplierExpenses;
-                cashRegister.DailyExpenses = totalExpenses;
+                registroCassa.SpeseFornitori = input.SpeseFornitori;
+                registroCassa.SpeseGiornaliere = totaleSpese;
 
                 // TODO: Get actual sales data from sales table when implemented
                 // For now, use placeholder values
-                cashRegister.CashSales = 0;
-                cashRegister.TotalSales = cashRegister.CashSales + cashRegister.ElectronicPayments + cashRegister.CashInWhite + cashRegister.InvoicePayments;
+                registroCassa.VenditeContanti = 0;
+                registroCassa.TotaleVendite = registroCassa.VenditeContanti + registroCassa.IncassiElettronici + registroCassa.IncassoContanteTracciato + registroCassa.IncassiFattura;
 
                 // Calculate expected cash and difference
-                cashRegister.ExpectedCash = cashRegister.CashSales - cashRegister.SupplierExpenses - cashRegister.DailyExpenses;
-                decimal dailyIncome = cashRegister.ClosingTotal - cashRegister.OpeningTotal;
-                cashRegister.Difference = dailyIncome - cashRegister.ExpectedCash;
-                cashRegister.NetCash = dailyIncome;
+                registroCassa.ContanteAtteso = registroCassa.VenditeContanti - registroCassa.SpeseFornitori - registroCassa.SpeseGiornaliere;
+                decimal incassoGiornaliero = registroCassa.TotaleChiusura - registroCassa.TotaleApertura;
+                registroCassa.Differenza = incassoGiornaliero - registroCassa.ContanteAtteso;
+                registroCassa.ContanteNetto = incassoGiornaliero;
 
                 // Calculate VAT (10%)
-                cashRegister.VatAmount = cashRegister.TotalSales * 0.1m;
+                registroCassa.ImportoIva = registroCassa.TotaleVendite * 0.1m;
 
                 await dbContext.SaveChangesAsync();
 
                 // Reload with navigation properties
-                return await dbContext.CashRegisters
+                return await dbContext.RegistriCassa
                     .Include(r => r.Utente)
                         .ThenInclude(u => u.Ruolo)
-                    .Include(r => r.CashCounts)
-                        .ThenInclude(c => c.Denomination)
-                    .Include(r => r.CashIncomes)
-                    .Include(r => r.CashExpenses)
-                    .FirstOrDefaultAsync(r => r.RegisterId == cashRegister.RegisterId);
+                    .Include(r => r.ConteggiMoneta)
+                        .ThenInclude(c => c.Denominazione)
+                    .Include(r => r.IncassiCassa)
+                    .Include(r => r.SpeseCassa)
+                    .FirstOrDefaultAsync(r => r.Id == registroCassa.Id);
             });
 
         // Close cash register (set status to CLOSED)
-        Field<CashRegisterType>("closeCashRegister")
-            .Argument<NonNullGraphType<IntGraphType>>("registerId")
+        Field<RegistroCassaType>("chiudiRegistroCassa")
+            .Argument<NonNullGraphType<IntGraphType>>("registroCassaId")
             .ResolveAsync(async context =>
             {
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
-                int registerId = context.GetArgument<int>("registerId");
+                int registroCassaId = context.GetArgument<int>("registroCassaId");
 
-                var cashRegister = await dbContext.CashRegisters
+                var registroCassa = await dbContext.RegistriCassa
                     .Include(r => r.Utente)
                         .ThenInclude(u => u.Ruolo)
-                    .Include(r => r.CashCounts)
-                        .ThenInclude(c => c.Denomination)
-                    .Include(r => r.CashIncomes)
-                    .Include(r => r.CashExpenses)
-                    .FirstOrDefaultAsync(r => r.RegisterId == registerId);
+                    .Include(r => r.ConteggiMoneta)
+                        .ThenInclude(c => c.Denominazione)
+                    .Include(r => r.IncassiCassa)
+                    .Include(r => r.SpeseCassa)
+                    .FirstOrDefaultAsync(r => r.Id == registroCassaId);
 
-                if (cashRegister == null)
+                if (registroCassa == null)
                 {
-                    throw new Exception($"Cash register with ID {registerId} not found");
+                    throw new Exception($"Registro cassa con ID {registroCassaId} non trovato");
                 }
 
-                if (cashRegister.Status == "CLOSED" || cashRegister.Status == "RECONCILED")
+                if (registroCassa.Stato == "CLOSED" || registroCassa.Stato == "RECONCILED")
                 {
-                    throw new Exception("Cash register is already closed");
+                    throw new Exception("Il registro cassa è già chiuso");
                 }
 
-                cashRegister.Status = "CLOSED";
-                cashRegister.UpdatedAt = DateTime.UtcNow;
+                registroCassa.Stato = "CLOSED";
+                registroCassa.AggiornatoIl = DateTime.UtcNow;
 
                 await dbContext.SaveChangesAsync();
 
-                return cashRegister;
+                return registroCassa;
             });
 
         // Delete cash register
-        Field<BooleanGraphType>("deleteCashRegister")
-            .Argument<NonNullGraphType<IntGraphType>>("registerId")
+        Field<BooleanGraphType>("eliminaRegistroCassa")
+            .Argument<NonNullGraphType<IntGraphType>>("registroCassaId")
             .ResolveAsync(async context =>
             {
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
-                int registerId = context.GetArgument<int>("registerId");
+                int registroCassaId = context.GetArgument<int>("registroCassaId");
 
-                var cashRegister = await dbContext.CashRegisters
-                    .Include(r => r.CashCounts)
-                    .Include(r => r.CashIncomes)
-                    .Include(r => r.CashExpenses)
-                    .FirstOrDefaultAsync(r => r.RegisterId == registerId);
+                var registroCassa = await dbContext.RegistriCassa
+                    .Include(r => r.ConteggiMoneta)
+                    .Include(r => r.IncassiCassa)
+                    .Include(r => r.SpeseCassa)
+                    .FirstOrDefaultAsync(r => r.Id == registroCassaId);
 
-                if (cashRegister == null)
+                if (registroCassa == null)
                 {
-                    throw new Exception($"Cash register with ID {registerId} not found");
+                    throw new Exception($"Registro cassa con ID {registroCassaId} non trovato");
                 }
 
                 // Only allow deletion of DRAFT registers
-                if (cashRegister.Status != "DRAFT")
+                if (registroCassa.Stato != "DRAFT")
                 {
-                    throw new Exception("Only DRAFT cash registers can be deleted");
+                    throw new Exception("Solo i registri cassa in bozza possono essere eliminati");
                 }
 
-                dbContext.CashRegisters.Remove(cashRegister);
+                dbContext.RegistriCassa.Remove(registroCassa);
                 await dbContext.SaveChangesAsync();
 
                 return true;

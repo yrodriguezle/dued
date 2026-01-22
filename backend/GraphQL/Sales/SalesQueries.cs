@@ -87,7 +87,7 @@ public class SalesQueries : ObjectGraphType
                 var offset = context.GetArgument<int>("offset");
 
                 var query = dbContext.Sales
-                    .Where(s => s.RegisterId == registerId)
+                    .Where(s => s.RegistroCassaId == registerId)
                     .Include(s => s.Product)
                     .AsQueryable();
 

@@ -40,18 +40,18 @@ public class AuthMutations : ObjectGraphType
                 ruolo.Descrizione = input.Descrizione;
 
                 List<Menu> selectedMenus = await dbContext.Menus
-                    .Where(m => menuIds.Contains(m.MenuId))
+                    .Where(m => menuIds.Contains(m.Id))
                     .ToListAsync();
 
                 // Rimuovi i vecchi
                 ruolo.Menus
-                    .Where(m => !menuIds.Contains(m.MenuId))
+                    .Where(m => !menuIds.Contains(m.Id))
                     .ToList()
                     .ForEach(m => ruolo.Menus.Remove(m));
 
                 // Aggiungi i nuovi
                 selectedMenus
-                    .Where(m => !ruolo.Menus.Any(rm => rm.MenuId == m.MenuId))
+                    .Where(m => !ruolo.Menus.Any(rm => rm.Id == m.Id))
                     .ToList()
                     .ForEach(m => ruolo.Menus.Add(m));
 

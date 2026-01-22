@@ -17,38 +17,37 @@ public class CashManagementQueries : ObjectGraphType
         this.Authorize();
 
         // Get all denominations
-        Field<ListGraphType<CashDenominationType>, List<CashDenomination>>("denominations")
+        Field<ListGraphType<DenominazioneMonetaType>, List<DenominazioneMoneta>>("denominazioni")
             .ResolveAsync(async context =>
             {
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
-                return await dbContext.CashDenominations
-                    .OrderBy(d => d.DisplayOrder)
+                return await dbContext.DenominazioniMoneta
+                    .OrderBy(d => d.OrdineVisualizzazione)
                     .ToListAsync();
             });
 
         // Get single cash register by ID
-        Field<CashRegisterType, CashRegister>("cashRegister")
-            .Argument<NonNullGraphType<DateTimeGraphType>>("date")
+        Field<RegistroCassaType, RegistroCassa>("registroCassa")
+            .Argument<NonNullGraphType<DateTimeGraphType>>("data")
             .ResolveAsync(async context =>
             {
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
-                int? registerId = context.GetArgument<int?>("registerId");
-                DateTime? date = context.GetArgument<DateTime?>("date");
+                DateTime? data = context.GetArgument<DateTime?>("data");
 
-                var result = await dbContext.CashRegisters
+                var result = await dbContext.RegistriCassa
                     .Include(r => r.Utente)
                         .ThenInclude(u => u.Ruolo)
-                    .Include(r => r.CashCounts)
-                        .ThenInclude(c => c.Denomination)
-                    .Include(r => r.CashIncomes)
-                    .Include(r => r.CashExpenses)
-                    .Where(r => r.Date == date)
+                    .Include(r => r.ConteggiMoneta)
+                        .ThenInclude(c => c.Denominazione)
+                    .Include(r => r.IncassiCassa)
+                    .Include(r => r.SpeseCassa)
+                    .Where(r => r.Data == data)
                     .FirstOrDefaultAsync();
                 return result;
             });
 
         // Get cash registers with relay-style pagination
-        Field<NonNullGraphType<CashRegisterConnectionType>>("cashRegistersConnection")
+        Field<NonNullGraphType<RegistroCassaConnectionType>>("registriCassaConnection")
             .Argument<IntGraphType>("first", "Number of items to return")
             .Argument<StringGraphType>("where", "Filter condition")
             .Argument<StringGraphType>("order", "Order by clause")
@@ -62,47 +61,47 @@ public class CashManagementQueries : ObjectGraphType
                 string? order = context.GetArgument<string?>("order");
                 int? after = context.GetArgument<int?>("after");
 
-                var query = dbContext.CashRegisters
+                var query = dbContext.RegistriCassa
                     .Include(r => r.Utente)
                         .ThenInclude(u => u.Ruolo)
-                    .Include(r => r.CashCounts)
-                        .ThenInclude(c => c.Denomination)
-                    .Include(r => r.CashIncomes)
-                    .Include(r => r.CashExpenses)
+                    .Include(r => r.ConteggiMoneta)
+                        .ThenInclude(c => c.Denominazione)
+                    .Include(r => r.IncassiCassa)
+                    .Include(r => r.SpeseCassa)
                     .AsQueryable();
 
                 // Apply cursor pagination
                 if (after.HasValue)
                 {
-                    query = query.Where(r => r.RegisterId > after.Value);
+                    query = query.Where(r => r.Id > after.Value);
                 }
 
-                // Apply ordering (default by Date DESC)
+                // Apply ordering (default by Data DESC)
                 query = !string.IsNullOrEmpty(order)
-                    ? query.OrderByDescending(r => r.Date)
-                    : query.OrderByDescending(r => r.Date);
+                    ? query.OrderByDescending(r => r.Data)
+                    : query.OrderByDescending(r => r.Data);
 
                 var totalCount = await query.CountAsync();
                 var items = await query.Take(first).ToListAsync();
 
-                var pageInfo = new CashPageInfo
+                var pageInfo = new PaginazioneCassaInfo
                 {
-                    HasNextPage = items.Count == first,
-                    EndCursor = items.LastOrDefault()?.RegisterId.ToString(),
-                    HasPreviousPage = after.HasValue,
-                    StartCursor = items.FirstOrDefault()?.RegisterId.ToString()
+                    HaProssimaPagina = items.Count == first,
+                    CursoreFine = items.LastOrDefault()?.Id.ToString(),
+                    HaPaginaPrecedente = after.HasValue,
+                    CursoreInizio = items.FirstOrDefault()?.Id.ToString()
                 };
 
-                return new CashRegisterConnection
+                return new RegistroCassaConnection
                 {
-                    TotalCount = totalCount,
-                    PageInfo = pageInfo,
-                    Items = items
+                    ConteggioTotale = totalCount,
+                    InfoPaginazione = pageInfo,
+                    Elementi = items
                 };
             });
 
         // Get dashboard KPIs
-        Field<CashRegisterKPIType, CashRegisterKPI>("dashboardKPIs")
+        Field<RegistroCassaKPIType, RegistroCassaKPI>("dashboardKPIs")
             .ResolveAsync(async context =>
             {
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
@@ -111,106 +110,107 @@ public class CashManagementQueries : ObjectGraphType
                 var startOfWeek = today.AddDays(-(int)today.DayOfWeek);
                 var startOfLastWeek = startOfWeek.AddDays(-7);
 
-                var todayRegister = await dbContext.CashRegisters
-                    .Where(r => r.Date == today)
+                var todayRegister = await dbContext.RegistriCassa
+                    .Where(r => r.Data == today)
                     .FirstOrDefaultAsync();
 
                 // Carica dati per il mese corrente
-                var monthRegisters = await dbContext.CashRegisters
-                    .Where(r => r.Date >= startOfMonth && r.Date <= today)
+                var monthRegisters = await dbContext.RegistriCassa
+                    .Where(r => r.Data >= startOfMonth && r.Data <= today)
                     .ToListAsync();
 
                 // Carica dati per settimana corrente e precedente per il trend
-                var weekRegisters = await dbContext.CashRegisters
-                    .Where(r => r.Date >= startOfLastWeek && r.Date <= today)
-                    .OrderBy(r => r.Date)
+                var weekRegisters = await dbContext.RegistriCassa
+                    .Where(r => r.Data >= startOfLastWeek && r.Data <= today)
+                    .OrderBy(r => r.Data)
                     .ToListAsync();
 
-                var todaySales = todayRegister?.TotalSales ?? 0;
-                var todayDifference = todayRegister?.Difference ?? 0;
-                var monthSales = monthRegisters.Sum(r => r.TotalSales);
-                var monthAverage = monthRegisters.Any() ? monthRegisters.Average(r => r.TotalSales) : 0;
+                var todaySales = todayRegister?.TotaleVendite ?? 0;
+                var todayDifference = todayRegister?.Differenza ?? 0;
+                var monthSales = monthRegisters.Sum(r => r.TotaleVendite);
+                var monthAverage = monthRegisters.Any() ? monthRegisters.Average(r => r.TotaleVendite) : 0;
 
                 // Calculate week trend (simple: compare this week to last week)
                 decimal weekTrend = 0;
                 if (weekRegisters.Count > 1)
                 {
-                    var thisWeekTotal = weekRegisters.TakeLast(3).Sum(r => r.TotalSales);
-                    var lastWeekTotal = weekRegisters.Take(weekRegisters.Count - 3).Sum(r => r.TotalSales);
+                    var thisWeekTotal = weekRegisters.TakeLast(3).Sum(r => r.TotaleVendite);
+                    var lastWeekTotal = weekRegisters.Take(weekRegisters.Count - 3).Sum(r => r.TotaleVendite);
                     if (lastWeekTotal > 0)
                     {
                         weekTrend = ((thisWeekTotal - lastWeekTotal) / lastWeekTotal) * 100;
                     }
                 }
 
-                return new CashRegisterKPI
+                return new RegistroCassaKPI
                 {
-                    TodaySales = todaySales,
-                    TodayDifference = todayDifference,
-                    MonthSales = monthSales,
-                    MonthAverage = monthAverage,
-                    WeekTrend = weekTrend
+                    VenditeOggi = todaySales,
+                    DifferenzaOggi = todayDifference,
+                    VenditeMese = monthSales,
+                    MediaMese = monthAverage,
+                    TrendSettimana = weekTrend
                 };
             });
     }
 }
 
 // Helper classes for pagination and KPIs
-public class CashPageInfo
+public class PaginazioneCassaInfo
 {
-    public bool HasNextPage { get; set; }
-    public string? EndCursor { get; set; }
-    public bool HasPreviousPage { get; set; }
-    public string? StartCursor { get; set; }
+    public bool HaProssimaPagina { get; set; }
+    public string? CursoreFine { get; set; }
+    public bool HaPaginaPrecedente { get; set; }
+    public string? CursoreInizio { get; set; }
 }
 
-public class CashPageInfoType : ObjectGraphType<CashPageInfo>
+public class PaginazioneCassaInfoType : ObjectGraphType<PaginazioneCassaInfo>
 {
-    public CashPageInfoType()
+    public PaginazioneCassaInfoType()
     {
-        Name = "CashPageInfo";
-        Field(x => x.HasNextPage);
-        Field(x => x.EndCursor, nullable: true);
-        Field(x => x.HasPreviousPage);
-        Field(x => x.StartCursor, nullable: true);
+        Name = "PaginazioneCassaInfo";
+        Field(x => x.HaProssimaPagina);
+        Field(x => x.CursoreFine, nullable: true);
+        Field(x => x.HaPaginaPrecedente);
+        Field(x => x.CursoreInizio, nullable: true);
     }
 }
 
-public class CashRegisterConnection
+public class RegistroCassaConnection
 {
-    public int TotalCount { get; set; }
-    public CashPageInfo PageInfo { get; set; } = new();
-    public List<CashRegister> Items { get; set; } = new();
+    public int ConteggioTotale { get; set; }
+    public PaginazioneCassaInfo InfoPaginazione { get; set; } = new();
+    public List<RegistroCassa> Elementi { get; set; } = new();
 }
 
-public class CashRegisterConnectionType : ObjectGraphType<CashRegisterConnection>
+public class RegistroCassaConnectionType : ObjectGraphType<RegistroCassaConnection>
 {
-    public CashRegisterConnectionType()
+    public RegistroCassaConnectionType()
     {
-        Name = "CashRegisterPagedConnection";
-        Field(x => x.TotalCount);
-        Field<CashPageInfoType, CashPageInfo>("pageInfo").Resolve(context => context.Source.PageInfo);
-        Field<ListGraphType<CashRegisterType>, List<CashRegister>>("items").Resolve(context => context.Source.Items);
+        Name = "RegistroCassaPagedConnection";
+        Field(x => x.ConteggioTotale);
+        Field<PaginazioneCassaInfoType, PaginazioneCassaInfo>("infoPaginazione").Resolve(context => context.Source.InfoPaginazione);
+        Field<ListGraphType<RegistroCassaType>, List<RegistroCassa>>("elementi").Resolve(context => context.Source.Elementi);
     }
 }
 
-public class CashRegisterKPI
+public class RegistroCassaKPI
 {
-    public decimal TodaySales { get; set; }
-    public decimal TodayDifference { get; set; }
-    public decimal MonthSales { get; set; }
-    public decimal MonthAverage { get; set; }
-    public decimal WeekTrend { get; set; }
+    public decimal VenditeOggi { get; set; }
+    public decimal DifferenzaOggi { get; set; }
+    public decimal VenditeMese { get; set; }
+    public decimal MediaMese { get; set; }
+    public decimal TrendSettimana { get; set; }
 }
 
-public class CashRegisterKPIType : ObjectGraphType<CashRegisterKPI>
+public class RegistroCassaKPIType : ObjectGraphType<RegistroCassaKPI>
 {
-    public CashRegisterKPIType()
+    public RegistroCassaKPIType()
     {
-        Field(x => x.TodaySales);
-        Field(x => x.TodayDifference);
-        Field(x => x.MonthSales);
-        Field(x => x.MonthAverage);
-        Field(x => x.WeekTrend);
+        Name = "RegistroCassaKPI";
+        Field(x => x.VenditeOggi);
+        Field(x => x.DifferenzaOggi);
+        Field(x => x.VenditeMese);
+        Field(x => x.MediaMese);
+        Field(x => x.TrendSettimana);
     }
 }

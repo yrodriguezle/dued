@@ -34,7 +34,7 @@ public class UtenteType : ObjectGraphType<Utente>
                 int ruoloId = context.Source.RuoloId;
                 return await dbContext.Menus
                     .Where(m => m.Ruoli.Any(r => r.Id == ruoloId))
-                    .OrderBy(m => m.Position)
+                    .OrderBy(m => m.Posizione)
                     .ToListAsync();
             });
     }

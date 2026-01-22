@@ -8,7 +8,7 @@ public class SaleType : ObjectGraphType<Sale>
     public SaleType(ProductType productType)
     {
         Field(x => x.SaleId);
-        Field(x => x.RegisterId);
+        Field(x => x.RegistroCassaId);
         Field(x => x.ProductId);
         Field(x => x.Quantity);
         Field(x => x.UnitPrice);

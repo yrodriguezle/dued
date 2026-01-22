@@ -13,7 +13,10 @@
       "Bash(dotnet tool install:*)",
       "Bash(dotnet tool update:*)",
       "Bash(dotnet-ef migrations add:*)",
-      "Bash(dotnet build:*)"
+      "Bash(dotnet build:*)",
+      "Bash(npm run)",
+      "Bash(timeout 30 dotnet run:*)",
+      "Bash(dotnet ef database update:*)"
     ],
     "deny": [],
     "ask": []

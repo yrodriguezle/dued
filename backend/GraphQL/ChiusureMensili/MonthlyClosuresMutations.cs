@@ -97,14 +97,14 @@ public class MonthlyClosuresMutations : ObjectGraphType
                 var startDate = new DateTime(input.Anno, input.Mese, 1);
                 var endDate = startDate.AddMonths(1).AddDays(-1);
 
-                var cashRegisters = await dbContext.CashRegisters
-                    .Where(cr => cr.Date >= startDate && cr.Date <= endDate && cr.Status == "CLOSED")
+                var registriCassa = await dbContext.RegistriCassa
+                    .Where(cr => cr.Data >= startDate && cr.Data <= endDate && cr.Stato == "CLOSED")
                     .ToListAsync();
 
-                closure.RicavoTotale = cashRegisters.Sum(cr => cr.TotalSales);
-                closure.TotaleContanti = cashRegisters.Sum(cr => cr.CashInWhite);
-                closure.TotaleElettronici = cashRegisters.Sum(cr => cr.ElectronicPayments);
-                closure.TotaleFatture = cashRegisters.Sum(cr => cr.InvoicePayments);
+                closure.RicavoTotale = registriCassa.Sum(cr => cr.TotaleVendite);
+                closure.TotaleContanti = registriCassa.Sum(cr => cr.IncassoContanteTracciato);
+                closure.TotaleElettronici = registriCassa.Sum(cr => cr.IncassiElettronici);
+                closure.TotaleFatture = registriCassa.Sum(cr => cr.IncassiFattura);
 
                 // Recalculate additional expenses AFTER updating the collection
                 closure.SpeseAggiuntive = closure.Spese.Sum(s => s.Importo);

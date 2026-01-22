@@ -21,11 +21,11 @@ public class AppDbContext : DbContext
     public DbSet<Sale> Sales { get; set; }
 
     // Cash Management
-    public DbSet<CashDenomination> CashDenominations { get; set; }
-    public DbSet<CashRegister> CashRegisters { get; set; }
-    public DbSet<CashCount> CashCounts { get; set; }
-    public DbSet<CashIncome> CashIncomes { get; set; }
-    public DbSet<CashExpense> CashExpenses { get; set; }
+    public DbSet<DenominazioneMoneta> DenominazioniMoneta { get; set; }
+    public DbSet<RegistroCassa> RegistriCassa { get; set; }
+    public DbSet<ConteggioMoneta> ConteggiMoneta { get; set; }
+    public DbSet<IncassoCassa> IncassiCassa { get; set; }
+    public DbSet<SpesaCassa> SpeseCassa { get; set; }
 
     // Business Settings
     public DbSet<BusinessSettings> BusinessSettings { get; set; }
@@ -113,93 +113,93 @@ public class AppDbContext : DbContext
         });
 
         // Cash Management Configuration
-        modelBuilder.Entity<CashDenomination>(entity =>
+        modelBuilder.Entity<DenominazioneMoneta>(entity =>
         {
             entity
-                .ToTable("CashDenominations")
+                .ToTable("DenominazioniMoneta")
                 .HasCharSet("utf8mb4")
                 .UseCollation("utf8mb4_unicode_ci")
-                .HasKey(x => x.DenominationId);
+                .HasKey(x => x.Id);
 
-            entity.Property(x => x.DenominationId)
+            entity.Property(x => x.Id)
                 .ValueGeneratedOnAdd();
 
-            entity.Property(x => x.Value)
+            entity.Property(x => x.Valore)
                 .HasColumnType("decimal(10,2)")
                 .IsRequired();
 
-            entity.Property(x => x.Type)
+            entity.Property(x => x.Tipo)
                 .HasMaxLength(10)
                 .IsRequired();
 
-            entity.Property(x => x.DisplayOrder)
+            entity.Property(x => x.OrdineVisualizzazione)
                 .IsRequired();
         });
 
-        modelBuilder.Entity<CashRegister>(entity =>
+        modelBuilder.Entity<RegistroCassa>(entity =>
         {
             entity
-                .ToTable("CashRegisters")
+                .ToTable("RegistriCassa")
                 .HasCharSet("utf8mb4")
                 .UseCollation("utf8mb4_unicode_ci")
-                .HasKey(x => x.RegisterId);
+                .HasKey(x => x.Id);
 
-            entity.Property(x => x.RegisterId)
+            entity.Property(x => x.Id)
                 .ValueGeneratedOnAdd();
 
-            entity.Property(x => x.Date)
+            entity.Property(x => x.Data)
                 .HasColumnType("date")
                 .IsRequired();
 
-            // Unique index on Date to prevent duplicate cash registers for the same date
-            entity.HasIndex(x => x.Date)
+            // Unique index on Data to prevent duplicate cash registers for the same date
+            entity.HasIndex(x => x.Data)
                 .IsUnique();
 
-            entity.Property(x => x.OpeningTotal)
+            entity.Property(x => x.TotaleApertura)
                 .HasColumnType("decimal(10,2)");
 
-            entity.Property(x => x.ClosingTotal)
+            entity.Property(x => x.TotaleChiusura)
                 .HasColumnType("decimal(10,2)");
 
-            entity.Property(x => x.CashSales)
+            entity.Property(x => x.VenditeContanti)
                 .HasColumnType("decimal(10,2)");
 
-            entity.Property(x => x.ElectronicPayments)
+            entity.Property(x => x.IncassiElettronici)
                 .HasColumnType("decimal(10,2)");
 
-            entity.Property(x => x.TotalSales)
+            entity.Property(x => x.TotaleVendite)
                 .HasColumnType("decimal(10,2)");
 
-            entity.Property(x => x.SupplierExpenses)
+            entity.Property(x => x.SpeseFornitori)
                 .HasColumnType("decimal(10,2)");
 
-            entity.Property(x => x.DailyExpenses)
+            entity.Property(x => x.SpeseGiornaliere)
                 .HasColumnType("decimal(10,2)");
 
-            entity.Property(x => x.ExpectedCash)
+            entity.Property(x => x.ContanteAtteso)
                 .HasColumnType("decimal(10,2)");
 
-            entity.Property(x => x.Difference)
+            entity.Property(x => x.Differenza)
                 .HasColumnType("decimal(10,2)");
 
-            entity.Property(x => x.NetCash)
+            entity.Property(x => x.ContanteNetto)
                 .HasColumnType("decimal(10,2)");
 
-            entity.Property(x => x.VatAmount)
+            entity.Property(x => x.ImportoIva)
                 .HasColumnType("decimal(10,2)");
 
-            entity.Property(x => x.Notes)
+            entity.Property(x => x.Note)
                 .HasColumnType("text");
 
-            entity.Property(x => x.Status)
+            entity.Property(x => x.Stato)
                 .HasMaxLength(20)
                 .HasDefaultValue("DRAFT");
 
-            entity.Property(x => x.CreatedAt)
+            entity.Property(x => x.CreatoIl)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-            entity.Property(x => x.UpdatedAt)
+            entity.Property(x => x.AggiornatoIl)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
 
@@ -208,101 +208,101 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.UtenteId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasMany(x => x.CashCounts)
-                .WithOne(x => x.CashRegister)
-                .HasForeignKey(x => x.RegisterId)
+            entity.HasMany(x => x.ConteggiMoneta)
+                .WithOne(x => x.RegistroCassa)
+                .HasForeignKey(x => x.RegistroCassaId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasMany(x => x.CashIncomes)
-                .WithOne(x => x.CashRegister)
-                .HasForeignKey(x => x.RegisterId)
+            entity.HasMany(x => x.IncassiCassa)
+                .WithOne(x => x.RegistroCassa)
+                .HasForeignKey(x => x.RegistroCassaId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasMany(x => x.CashExpenses)
-                .WithOne(x => x.CashRegister)
-                .HasForeignKey(x => x.RegisterId)
+            entity.HasMany(x => x.SpeseCassa)
+                .WithOne(x => x.RegistroCassa)
+                .HasForeignKey(x => x.RegistroCassaId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
-        modelBuilder.Entity<CashCount>(entity =>
+        modelBuilder.Entity<ConteggioMoneta>(entity =>
         {
             entity
-                .ToTable("CashCounts")
+                .ToTable("ConteggiMoneta")
                 .HasCharSet("utf8mb4")
                 .UseCollation("utf8mb4_unicode_ci")
-                .HasKey(x => x.CountId);
+                .HasKey(x => x.Id);
 
-            entity.Property(x => x.CountId)
+            entity.Property(x => x.Id)
                 .ValueGeneratedOnAdd();
 
-            entity.Property(x => x.Quantity)
+            entity.Property(x => x.Quantita)
                 .IsRequired();
 
-            entity.Property(x => x.Total)
+            entity.Property(x => x.Totale)
                 .HasColumnType("decimal(10,2)")
                 .IsRequired();
 
-            entity.Property(x => x.IsOpening)
+            entity.Property(x => x.IsApertura)
                 .IsRequired();
 
-            entity.HasOne(x => x.CashRegister)
-                .WithMany(x => x.CashCounts)
-                .HasForeignKey(x => x.RegisterId)
+            entity.HasOne(x => x.RegistroCassa)
+                .WithMany(x => x.ConteggiMoneta)
+                .HasForeignKey(x => x.RegistroCassaId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasOne(x => x.Denomination)
-                .WithMany(x => x.CashCounts)
-                .HasForeignKey(x => x.DenominationId)
+            entity.HasOne(x => x.Denominazione)
+                .WithMany(x => x.ConteggiMoneta)
+                .HasForeignKey(x => x.DenominazioneMonetaId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
-        modelBuilder.Entity<CashIncome>(entity =>
+        modelBuilder.Entity<IncassoCassa>(entity =>
         {
             entity
-                .ToTable("CashIncomes")
+                .ToTable("IncassiCassa")
                 .HasCharSet("utf8mb4")
                 .UseCollation("utf8mb4_unicode_ci")
-                .HasKey(x => x.IncomeId);
+                .HasKey(x => x.Id);
 
-            entity.Property(x => x.IncomeId)
+            entity.Property(x => x.Id)
                 .ValueGeneratedOnAdd();
 
-            entity.Property(x => x.Type)
+            entity.Property(x => x.Tipo)
                 .HasMaxLength(100)
                 .IsRequired();
 
-            entity.Property(x => x.Amount)
+            entity.Property(x => x.Importo)
                 .HasColumnType("decimal(10,2)")
                 .IsRequired();
 
-            entity.HasOne(x => x.CashRegister)
-                .WithMany(x => x.CashIncomes)
-                .HasForeignKey(x => x.RegisterId)
+            entity.HasOne(x => x.RegistroCassa)
+                .WithMany(x => x.IncassiCassa)
+                .HasForeignKey(x => x.RegistroCassaId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
-        modelBuilder.Entity<CashExpense>(entity =>
+        modelBuilder.Entity<SpesaCassa>(entity =>
         {
             entity
-                .ToTable("CashExpenses")
+                .ToTable("SpeseCassa")
                 .HasCharSet("utf8mb4")
                 .UseCollation("utf8mb4_unicode_ci")
-                .HasKey(x => x.ExpenseId);
+                .HasKey(x => x.Id);
 
-            entity.Property(x => x.ExpenseId)
+            entity.Property(x => x.Id)
                 .ValueGeneratedOnAdd();
 
-            entity.Property(x => x.Description)
+            entity.Property(x => x.Descrizione)
                 .HasMaxLength(255)
                 .IsRequired();
 
-            entity.Property(x => x.Amount)
+            entity.Property(x => x.Importo)
                 .HasColumnType("decimal(10,2)")
                 .IsRequired();
 
-            entity.HasOne(x => x.CashRegister)
-                .WithMany(x => x.CashExpenses)
-                .HasForeignKey(x => x.RegisterId)
+            entity.HasOne(x => x.RegistroCassa)
+                .WithMany(x => x.SpeseCassa)
+                .HasForeignKey(x => x.RegistroCassaId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
@@ -455,9 +455,9 @@ public class AppDbContext : DbContext
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
 
-            entity.HasOne(x => x.CashRegister)
+            entity.HasOne(x => x.RegistroCassa)
                 .WithMany()
-                .HasForeignKey(x => x.RegisterId)
+                .HasForeignKey(x => x.RegistroCassaId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(x => x.Product)
@@ -465,8 +465,8 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.ProductId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Index on RegisterId for faster queries by register
-            entity.HasIndex(x => x.RegisterId);
+            // Index on RegistroCassaId for faster queries by register
+            entity.HasIndex(x => x.RegistroCassaId);
 
             // Index on Timestamp for time-based filtering
             entity.HasIndex(x => x.Timestamp);
