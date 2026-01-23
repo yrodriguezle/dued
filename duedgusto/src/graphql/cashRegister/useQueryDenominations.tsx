@@ -1,13 +1,28 @@
 import { useQuery } from "@apollo/client";
-import { getDenominations } from "./queries";
+import { getDenominazioni } from "./queries";
+
+// Funzione per mappare denominazioni italiane in inglesi per retrocompatibilità
+function mapDenominazioniToLegacy(denominazioni: DenominazioneMoneta[]): DenominazioneMoneta[] {
+  return denominazioni.map(d => ({
+    ...d,
+    // Alias inglesi
+    denominationId: d.id,
+    value: d.valore,
+    type: d.tipo,
+    displayOrder: d.ordineVisualizzazione,
+  }));
+}
 
 function useQueryDenominations() {
-  const { data, error, loading } = useQuery(getDenominations);
+  const { data, error, loading } = useQuery(getDenominazioni);
 
-  const denominations = data?.cashManagement?.denominations || [];
+  const rawDenominazioni = data?.cashManagement?.denominazioni || [];
+  const denominazioni = mapDenominazioniToLegacy(rawDenominazioni);
 
   return {
-    denominations,
+    denominazioni,
+    // Legacy alias
+    denominations: denominazioni,
     error,
     loading,
   };

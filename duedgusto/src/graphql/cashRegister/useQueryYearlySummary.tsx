@@ -1,6 +1,6 @@
 import { useQuery } from "@apollo/client";
 import { useMemo } from "react";
-import { getCashRegisters } from "./queries";
+import { getRegistriCassaConnection } from "./queries";
 
 interface YearlySummaryData {
   monthlyData: Array<{
@@ -31,19 +31,20 @@ export function useQueryYearlySummary({ year, skip = false }: UseQueryYearlySumm
   // Recupera tutte le casse dell'anno con una singola query
   const startDate = `${year}-01-01`;
   const endDate = `${year}-12-31`;
-  const whereClause = `date >= '${startDate}' AND date <= '${endDate}'`;
+  // Use 'data' (Italian field name) in the where clause
+  const whereClause = `data >= '${startDate}' AND data <= '${endDate}'`;
 
-  const { data, loading, error, refetch } = useQuery(getCashRegisters, {
+  const { data, loading, error, refetch } = useQuery(getRegistriCassaConnection, {
     variables: {
       pageSize: 1000, // Numero massimo di record per anno
       where: whereClause,
-      orderBy: "date ASC",
+      orderBy: "data ASC",
     },
     skip,
   });
 
   const yearlyData: YearlySummaryData = useMemo(() => {
-    const cashRegisters = data?.connection?.cashRegisters?.edges?.map((edge: { node: CashRegister }) => edge.node) || [];
+    const registriCassa = data?.cashManagement?.registriCassaConnection?.elementi || [];
 
     // Aggrega dati per mese
     const monthlyMap = new Map<number, {
@@ -71,10 +72,11 @@ export function useQueryYearlySummary({ year, skip = false }: UseQueryYearlySumm
     let totalDaysWithDifferences = 0;
     let totalVat = 0;
 
-    cashRegisters.forEach((cr: CashRegister) => {
+    registriCassa.forEach((cr: RegistroCassa) => {
       // Estrai anno e mese dalla data (usa UTC per evitare problemi di timezone)
       // La data arriva come ISO string: "2024-08-21T00:00:00.000Z"
-      const dateParts = cr.date.split('T')[0].split('-'); // ["2024", "08", "21"]
+      const dateValue = cr.data || cr.date || "";
+      const dateParts = dateValue.split('T')[0].split('-'); // ["2024", "08", "21"]
       const recordYear = parseInt(dateParts[0], 10); // 2024
       const month = parseInt(dateParts[1], 10); // 8
 
@@ -87,22 +89,31 @@ export function useQueryYearlySummary({ year, skip = false }: UseQueryYearlySumm
       const monthData = monthlyMap.get(month);
       if (monthData) {
         // Ricavo effettivo: (chiusura + fatture) - (apertura + spese)
-        const dailyRevenue =
-          (cr.closingTotal || 0) + (cr.invoicePayments || 0) -
-          (cr.openingTotal || 0) - (cr.supplierExpenses || 0) - (cr.dailyExpenses || 0);
+        // Usa campi italiani o inglesi per retrocompatibilità
+        const closingTotal = cr.totaleChiusura ?? cr.closingTotal ?? 0;
+        const invoicePayments = cr.incassiFattura ?? cr.invoicePayments ?? 0;
+        const openingTotal = cr.totaleApertura ?? cr.openingTotal ?? 0;
+        const supplierExpenses = cr.speseFornitori ?? cr.supplierExpenses ?? 0;
+        const dailyExpenses = cr.speseGiornaliere ?? cr.dailyExpenses ?? 0;
+        const cashInWhite = cr.incassoContanteTracciato ?? cr.cashInWhite ?? 0;
+        const electronicPayments = cr.incassiElettronici ?? cr.electronicPayments ?? 0;
+        const difference = cr.differenza ?? cr.difference ?? 0;
+        const vatAmount = cr.importoIva ?? cr.vatAmount ?? 0;
+
+        const dailyRevenue = closingTotal + invoicePayments - openingTotal - supplierExpenses - dailyExpenses;
 
         monthData.totalRevenue += dailyRevenue;
-        monthData.totalCash += cr.cashInWhite || 0;
-        monthData.totalElectronic += cr.electronicPayments || 0;
+        monthData.totalCash += cashInWhite;
+        monthData.totalElectronic += electronicPayments;
         monthData.count += 1;
-      }
 
-      // Conta giorni con differenze significative (>5€)
-      if (Math.abs(cr.difference || 0) > 5) {
-        totalDaysWithDifferences += 1;
-      }
+        // Conta giorni con differenze significative (>5€)
+        if (Math.abs(difference) > 5) {
+          totalDaysWithDifferences += 1;
+        }
 
-      totalVat += cr.vatAmount || 0;
+        totalVat += vatAmount;
+      }
     });
 
     const monthlyData = Array.from(monthlyMap.values());

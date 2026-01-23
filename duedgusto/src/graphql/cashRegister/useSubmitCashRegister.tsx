@@ -1,32 +1,36 @@
 import { useMutation } from "@apollo/client";
-import { mutationSubmitCashRegister, SubmitCashRegisterValues } from "./mutations";
-import { getCashRegister } from "./queries";
+import { mutationSubmitRegistroCassa, SubmitRegistroCassaValues } from "./mutations";
+import { getRegistroCassa } from "./queries";
 
 function useSubmitCashRegister() {
-  const [mutate, { data, error, loading }] = useMutation(mutationSubmitCashRegister);
+  const [mutate, { data, error, loading }] = useMutation(mutationSubmitRegistroCassa);
 
-  const submitCashRegister = async (variables: SubmitCashRegisterValues) => {
+  const submitRegistroCassa = async (variables: SubmitRegistroCassaValues) => {
     const result = await mutate({
       variables,
       // Aggiorna la cache:
       // 1. Ricarica la query specifica per la data corrente
-      // 2. Ricarica tutte le query attive "GetCashRegisters" (vista mensile)
+      // 2. Ricarica tutte le query attive "GetRegistriCassaConnection" (vista mensile)
       refetchQueries: [
         {
-          query: getCashRegister,
-          variables: { date: variables.cashRegister.date },
+          query: getRegistroCassa,
+          variables: { data: variables.registroCassa.data },
         },
-        "GetCashRegisters",
+        "GetRegistriCassaConnection",
       ],
       awaitRefetchQueries: false,
     });
-    if (result.data?.cashManagement?.mutateCashRegister) {
-      return result.data.cashManagement.mutateCashRegister;
+    if (result.data?.cashManagement?.mutateRegistroCassa) {
+      return result.data.cashManagement.mutateRegistroCassa;
     }
     return null;
   };
 
+  // Legacy alias
+  const submitCashRegister = submitRegistroCassa;
+
   return {
+    submitRegistroCassa,
     submitCashRegister,
     data,
     error,

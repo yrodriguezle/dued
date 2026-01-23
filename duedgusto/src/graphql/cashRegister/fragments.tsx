@@ -1,66 +1,73 @@
 import { utenteFragment } from "../utente/fragment";
 
-export const cashRegisterFragment = `
+export const registroCassaFragment = `
   ${utenteFragment}
-  fragment CashRegisterFragment on CashRegister {
-    registerId
-    date
+  fragment RegistroCassaFragment on RegistroCassa {
+    id
+    data
     utenteId
     utente { ...UtenteFragment }
-    openingTotal
-    closingTotal
-    cashSales
-    cashInWhite
-    electronicPayments
-    invoicePayments
-    totalSales
-    supplierExpenses
-    dailyExpenses
-    expectedCash
-    difference
-    netCash
-    vatAmount
-    notes
-    status
-    createdAt
-    updatedAt
+    totaleApertura
+    totaleChiusura
+    venditeContanti
+    incassoContanteTracciato
+    incassiElettronici
+    incassiFattura
+    totaleVendite
+    speseFornitori
+    speseGiornaliere
+    contanteAtteso
+    differenza
+    contanteNetto
+    importoIva
+    note
+    stato
+    creatoIl
+    aggiornatoIl
   }
 `;
 
-export const cashDenominationFragment = `
-  fragment CashDenominationFragment on CashDenomination {
-    denominationId
-    value
-    type
-    displayOrder
+export const denominazioneMonetaFragment = `
+  fragment DenominazioneMonetaFragment on DenominazioneMoneta {
+    id
+    valore
+    tipo
+    ordineVisualizzazione
   }
 `;
 
-export const cashCountFragment = `
-  fragment CashCountFragment on CashCount {
-    countId
-    registerId
-    denominationId
-    quantity
-    total
-    isOpening
+export const conteggioMonetaFragment = `
+  fragment ConteggioMonetaFragment on ConteggioMoneta {
+    id
+    registroCassaId
+    denominazioneMonetaId
+    quantita
+    totale
+    isApertura
   }
 `;
 
-export const cashIncomeFragment = `
-  fragment CashIncomeFragment on CashIncome {
-    incomeId
-    registerId
-    type
-    amount
+export const incassoCassaFragment = `
+  fragment IncassoCassaFragment on IncassoCassa {
+    id
+    registroCassaId
+    tipo
+    importo
   }
 `;
 
-export const cashExpenseFragment = `
-  fragment CashExpenseFragment on CashExpense {
-    expenseId
-    registerId
-    description
-    amount
+export const spesaCassaFragment = `
+  fragment SpesaCassaFragment on SpesaCassa {
+    id
+    registroCassaId
+    descrizione
+    importo
   }
 `;
+
+// Legacy aliases for backward compatibility
+export const cashRegisterFragment = registroCassaFragment;
+export const cashDenominationFragment = denominazioneMonetaFragment;
+export const cashCountFragment = conteggioMonetaFragment;
+export const cashIncomeFragment = incassoCassaFragment;
+export const cashExpenseFragment = spesaCassaFragment;

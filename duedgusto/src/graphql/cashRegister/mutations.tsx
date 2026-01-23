@@ -1,97 +1,113 @@
 import { gql, TypedDocumentNode } from "@apollo/client";
-import { cashRegisterFragment } from "./fragments";
+import { registroCassaFragment } from "./fragments";
 
 // Submit (create or update) cash register
-interface SubmitCashRegisterData {
+interface SubmitRegistroCassaData {
   cashManagement: {
-    mutateCashRegister: CashRegister;
+    mutateRegistroCassa: RegistroCassa;
   };
 }
 
-export interface CashCountInput {
-  denominationId: number;
-  quantity: number;
+export interface ConteggioMonetaInput {
+  denominazioneMonetaId: number;
+  quantita: number;
 }
 
-export interface CashIncomeInput {
-  type: string;
-  amount: number;
+export interface IncassoCassaInput {
+  tipo: string;
+  importo: number;
 }
 
-export interface CashExpenseInput {
-  description: string;
-  amount: number;
+export interface SpesaCassaInput {
+  descrizione: string;
+  importo: number;
 }
 
-export interface CashRegisterInput {
-  registerId?: number;
-  date: string;
+export interface RegistroCassaInput {
+  id?: number;
+  data: string;
   utenteId: number;
-  openingCounts: CashCountInput[];
-  closingCounts: CashCountInput[];
-  incomes: CashIncomeInput[];
-  expenses: CashExpenseInput[];
-  cashInWhite: number;
-  electronicPayments: number;
-  invoicePayments: number;
-  supplierExpenses: number;
-  dailyExpenses: number;
-  notes?: string;
-  status: CashRegisterStatus;
+  conteggiApertura: ConteggioMonetaInput[];
+  conteggiChiusura: ConteggioMonetaInput[];
+  incassi: IncassoCassaInput[];
+  spese: SpesaCassaInput[];
+  incassoContanteTracciato: number;
+  incassiElettronici: number;
+  incassiFattura: number;
+  speseFornitori: number;
+  speseGiornaliere: number;
+  note?: string;
+  stato: StatoRegistroCassa;
 }
 
-export interface SubmitCashRegisterValues {
-  cashRegister: CashRegisterInput;
+export interface SubmitRegistroCassaValues {
+  registroCassa: RegistroCassaInput;
 }
 
-export const mutationSubmitCashRegister: TypedDocumentNode<SubmitCashRegisterData, SubmitCashRegisterValues> = gql`
-  ${cashRegisterFragment}
-  mutation SubmitCashRegister($cashRegister: CashRegisterInput!) {
+export const mutationSubmitRegistroCassa: TypedDocumentNode<SubmitRegistroCassaData, SubmitRegistroCassaValues> = gql`
+  ${registroCassaFragment}
+  mutation SubmitRegistroCassa($registroCassa: RegistroCassaInput!) {
     cashManagement {
-      mutateCashRegister(cashRegister: $cashRegister) {
-        ...CashRegisterFragment
+      mutateRegistroCassa(registroCassa: $registroCassa) {
+        ...RegistroCassaFragment
       }
     }
   }
 `;
+
+// Legacy alias
+export const mutationSubmitCashRegister = mutationSubmitRegistroCassa;
+
+// Legacy input types for backward compatibility
+export type CashCountInput = ConteggioMonetaInput;
+export type CashIncomeInput = IncassoCassaInput;
+export type CashExpenseInput = SpesaCassaInput;
+export type CashRegisterInput = RegistroCassaInput;
+export type SubmitCashRegisterValues = SubmitRegistroCassaValues;
 
 // Close cash register (change status to CLOSED)
-interface CloseCashRegisterData {
+interface ChiudiRegistroCassaData {
   cashManagement: {
-    closeCashRegister: CashRegister;
+    chiudiRegistroCassa: RegistroCassa;
   };
 }
 
-interface CloseCashRegisterValues {
-  registerId: number;
+interface ChiudiRegistroCassaValues {
+  registroCassaId: number;
 }
 
-export const mutationCloseCashRegister: TypedDocumentNode<CloseCashRegisterData, CloseCashRegisterValues> = gql`
-  ${cashRegisterFragment}
-  mutation CloseCashRegister($registerId: Int!) {
+export const mutationChiudiRegistroCassa: TypedDocumentNode<ChiudiRegistroCassaData, ChiudiRegistroCassaValues> = gql`
+  ${registroCassaFragment}
+  mutation ChiudiRegistroCassa($registroCassaId: Int!) {
     cashManagement {
-      closeCashRegister(registerId: $registerId) {
-        ...CashRegisterFragment
+      chiudiRegistroCassa(registroCassaId: $registroCassaId) {
+        ...RegistroCassaFragment
       }
     }
   }
 `;
 
+// Legacy alias
+export const mutationCloseCashRegister = mutationChiudiRegistroCassa;
+
 // Delete cash register
-interface DeleteCashRegisterData {
+interface EliminaRegistroCassaData {
   cashManagement: {
-    deleteCashRegister: boolean;
+    eliminaRegistroCassa: boolean;
   };
 }
 
-interface DeleteCashRegisterValues {
-  registerId: number;
+interface EliminaRegistroCassaValues {
+  registroCassaId: number;
 }
 
-export const mutationDeleteCashRegister: TypedDocumentNode<DeleteCashRegisterData, DeleteCashRegisterValues> = gql`
-  mutation DeleteCashRegister($registerId: Int!) {
+export const mutationEliminaRegistroCassa: TypedDocumentNode<EliminaRegistroCassaData, EliminaRegistroCassaValues> = gql`
+  mutation EliminaRegistroCassa($registroCassaId: Int!) {
     cashManagement {
-      deleteCashRegister(registerId: $registerId)
+      eliminaRegistroCassa(registroCassaId: $registroCassaId)
     }
   }
 `;
+
+// Legacy alias
+export const mutationDeleteCashRegister = mutationEliminaRegistroCassa;

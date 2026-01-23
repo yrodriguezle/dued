@@ -1,99 +1,77 @@
 import { gql, TypedDocumentNode } from "@apollo/client";
-import { cashDenominationFragment, cashRegisterFragment } from "./fragments";
+import { denominazioneMonetaFragment, registroCassaFragment } from "./fragments";
 
 // Get all denominations
-interface GetDenominationsData {
+interface GetDenominazioniData {
   cashManagement: {
-    denominations: CashDenomination[];
+    denominazioni: DenominazioneMoneta[];
   };
 }
 
-export const getDenominations: TypedDocumentNode<GetDenominationsData> = gql(`
-  ${cashDenominationFragment}
-  query GetDenominations {
+export const getDenominazioni: TypedDocumentNode<GetDenominazioniData> = gql(`
+  ${denominazioneMonetaFragment}
+  query GetDenominazioni {
     cashManagement {
-      denominations {
-        ...CashDenominationFragment
+      denominazioni {
+        ...DenominazioneMonetaFragment
       }
     }
   }`);
+
+// Legacy alias
+export const getDenominations = getDenominazioni;
 
 // Get single cash register by date
-interface GetCashRegisterData {
+interface GetRegistroCassaData {
   cashManagement: {
-    cashRegister: CashRegister;
+    registroCassa: RegistroCassa;
   };
 }
 
-interface GetCashRegisterVariables {
-  date: string;
+interface GetRegistroCassaVariables {
+  data: string;
 }
 
-export const getCashRegister: TypedDocumentNode<GetCashRegisterData, GetCashRegisterVariables> = gql(`
-  ${cashRegisterFragment}
-  query GetCashRegister($date: DateTime!) {
+export const getRegistroCassa: TypedDocumentNode<GetRegistroCassaData, GetRegistroCassaVariables> = gql(`
+  ${registroCassaFragment}
+  query GetRegistroCassa($data: DateTime!) {
     cashManagement {
-      cashRegister(date: $date) {
-        ...CashRegisterFragment
+      registroCassa(data: $data) {
+        ...RegistroCassaFragment
       }
     }
   }`);
+
+// Legacy alias
+export const getCashRegister = getRegistroCassa;
 
 // Get cash registers with relay pagination (using standard connection pattern)
-export const getCashRegisters = gql(`
-  ${cashRegisterFragment}
-  query GetCashRegisters($pageSize: Int!, $where: String, $orderBy: String, $cursor: Int) {
-    connection {
-      cashRegisters(first: $pageSize, where: $where, orderBy: $orderBy, cursor: $cursor) {
-        totalCount
-        pageInfo {
-          hasNextPage
-          endCursor
-          hasPreviousPage
-          startCursor
-        }
-        edges {
-          node {
-            ...CashRegisterFragment
-          }
-          cursor
-        }
-      }
-    }
-  }`);
-
-// Get monthly summary
-interface GetMonthlySummaryData {
-  cashManagement: {
-    monthlySummary: MonthlyCashSummary;
-  };
-}
-
-interface GetMonthlySummaryVariables {
-  year: number;
-  month: number;
-}
-
-export const getMonthlySummary: TypedDocumentNode<GetMonthlySummaryData, GetMonthlySummaryVariables> = gql(`
-  query GetMonthlySummary($year: Int!, $month: Int!) {
+export const getRegistriCassaConnection = gql(`
+  ${registroCassaFragment}
+  query GetRegistriCassaConnection($pageSize: Int!, $where: String, $orderBy: String, $after: Int) {
     cashManagement {
-      monthlySummary(year: $year, month: $month) {
-        month
-        year
-        totalSales
-        totalCash
-        totalElectronic
-        averageDaily
-        daysWithDifferences
-        totalVat
+      registriCassaConnection(first: $pageSize, where: $where, order: $orderBy, after: $after) {
+        conteggioTotale
+        infoPaginazione {
+          haProssimaPagina
+          cursoreFine
+          haPaginaPrecedente
+          cursoreInizio
+        }
+        elementi {
+          ...RegistroCassaFragment
+        }
       }
     }
   }`);
+
+// Legacy alias
+export const getCashRegisters = getRegistriCassaConnection;
 
 // Get dashboard KPIs
 interface GetDashboardKPIsData {
   cashManagement: {
-    dashboardKPIs: CashRegisterKPI;
+    dashboardKPIs: RegistroCassaKPI;
   };
 }
 
@@ -101,11 +79,47 @@ export const getDashboardKPIs: TypedDocumentNode<GetDashboardKPIsData> = gql(`
   query GetDashboardKPIs {
     cashManagement {
       dashboardKPIs {
-        todaySales
-        todayDifference
-        monthSales
-        monthAverage
-        weekTrend
+        venditeOggi
+        differenzaOggi
+        venditeMese
+        mediaMese
+        trendSettimana
       }
     }
   }`);
+
+// Get monthly summary (if still needed)
+interface GetRiepilogoMensileData {
+  cashManagement: {
+    riepilogoMensile: RiepilogoMensileCassa;
+    // Legacy alias
+    monthlySummary?: RiepilogoMensileCassa;
+  };
+}
+
+interface GetRiepilogoMensileVariables {
+  anno: number;
+  mese: number;
+  // Legacy aliases
+  year?: number;
+  month?: number;
+}
+
+export const getRiepilogoMensile: TypedDocumentNode<GetRiepilogoMensileData, GetRiepilogoMensileVariables> = gql(`
+  query GetRiepilogoMensile($anno: Int!, $mese: Int!) {
+    cashManagement {
+      riepilogoMensile(anno: $anno, mese: $mese) {
+        mese
+        anno
+        totaleVendite
+        totaleContanti
+        totaleElettronici
+        mediaGiornaliera
+        giorniConDifferenze
+        totaleIva
+      }
+    }
+  }`);
+
+// Legacy alias
+export const getMonthlySummary = getRiepilogoMensile;
