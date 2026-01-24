@@ -23,7 +23,7 @@ interface CashRegisterMonthlyCalendarProps {
   onClose: () => void;
   onSelectDate: (date: string) => void;
   currentDate: string;
-  cashRegisters: CashRegister[];
+  cashRegisters: RegistroCassa[];
   loading: boolean;
 }
 
@@ -154,9 +154,9 @@ function CashRegisterMonthlyCalendar({
                         flexDirection: "column",
                         "&:hover": isCurrentMonth
                           ? {
-                              backgroundColor: "#f0f0f0",
-                              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                            }
+                            backgroundColor: "#f0f0f0",
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                          }
                           : {},
                       }}
                     >

@@ -1,6 +1,6 @@
 import { useQuery } from "@apollo/client";
 import { useMemo } from "react";
-import { getRegistriCassaConnection } from "./queries";
+import { getRegistriCassa } from "./queries";
 
 interface YearlySummaryData {
   monthlyData: Array<{
@@ -34,7 +34,7 @@ export function useQueryYearlySummary({ year, skip = false }: UseQueryYearlySumm
   // Use 'data' (Italian field name) in the where clause
   const whereClause = `data >= '${startDate}' AND data <= '${endDate}'`;
 
-  const { data, loading, error, refetch } = useQuery(getRegistriCassaConnection, {
+  const { data, loading, error, refetch } = useQuery(getRegistriCassa, {
     variables: {
       pageSize: 1000, // Numero massimo di record per anno
       where: whereClause,
@@ -44,7 +44,7 @@ export function useQueryYearlySummary({ year, skip = false }: UseQueryYearlySumm
   });
 
   const yearlyData: YearlySummaryData = useMemo(() => {
-    const registriCassa = data?.cashManagement?.registriCassaConnection?.elementi || [];
+    const registriCassa = data?.connection?.registriCassa?.items || [];
 
     // Aggrega dati per mese
     const monthlyMap = new Map<number, {

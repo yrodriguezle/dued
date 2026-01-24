@@ -1,7 +1,7 @@
 import { useQuery } from "@apollo/client";
 import { useCallback, useMemo } from "react";
 import dayjs from "dayjs";
-import { getRegistriCassaConnection } from "./queries";
+import { getRegistriCassa } from "./queries";
 
 interface UseQueryRegistriCassaByMonthProps {
   year: number;
@@ -55,7 +55,7 @@ export function useQueryCashRegistersByMonth({
   // Build where clause for date range - use 'data' (Italian field name)
   const whereClause = `data >= '${startDate}' AND data <= '${endDate}'`;
 
-  const { data, loading, error, refetch } = useQuery(getRegistriCassaConnection, {
+  const { data, loading, error, refetch } = useQuery(getRegistriCassa, {
     variables: {
       pageSize: 100, // Get up to 100 records for the month
       where: whereClause,
@@ -65,7 +65,7 @@ export function useQueryCashRegistersByMonth({
   });
 
   const registriCassa = useMemo(() => {
-    const raw = data?.cashManagement?.registriCassaConnection?.elementi || [];
+    const raw = data?.connection?.registriCassa?.items || [];
     return raw.map(mapRegistroCassaToLegacy);
   }, [data]);
 

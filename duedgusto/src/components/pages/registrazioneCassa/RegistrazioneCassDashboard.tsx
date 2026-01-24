@@ -83,7 +83,7 @@ function KPICard({ title, value, subtitle, trend, color = "primary", icon }: KPI
   );
 }
 
-function CashRegisterDashboard() {
+function RegistrazioneCassDashboard() {
   const navigate = useNavigate();
   const { setTitle } = useContext(PageTitleContext);
 
@@ -127,14 +127,14 @@ function CashRegisterDashboard() {
       // Anno passato: trova il mese con più ricavo
       const monthWithMostRevenue = yearlyData.monthlyData.reduce((max, month) =>
         month.totalRevenue > max.totalRevenue ? month : max
-      , yearlyData.monthlyData[0] || {
-        month: 1,
-        year: selectedYear,
-        totalRevenue: 0,
-        totalCash: 0,
-        totalElectronic: 0,
-        count: 0,
-      });
+        , yearlyData.monthlyData[0] || {
+          month: 1,
+          year: selectedYear,
+          totalRevenue: 0,
+          totalCash: 0,
+          totalElectronic: 0,
+          count: 0,
+        });
       return monthWithMostRevenue;
     }
   }, [yearlyData.monthlyData, currentMonth, selectedYear, currentYear]);
@@ -395,4 +395,4 @@ function CashRegisterDashboard() {
   );
 }
 
-export default CashRegisterDashboard;
+export default RegistrazioneCassDashboard;

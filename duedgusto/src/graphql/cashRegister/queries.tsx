@@ -18,9 +18,6 @@ export const getDenominazioni: TypedDocumentNode<GetDenominazioniData> = gql(`
     }
   }`);
 
-// Legacy alias
-export const getDenominations = getDenominazioni;
-
 // Get single cash register by date
 interface GetRegistroCassaData {
   cashManagement: {
@@ -42,31 +39,25 @@ export const getRegistroCassa: TypedDocumentNode<GetRegistroCassaData, GetRegist
     }
   }`);
 
-// Legacy alias
-export const getCashRegister = getRegistroCassa;
-
 // Get cash registers with relay pagination (using standard connection pattern)
-export const getRegistriCassaConnection = gql(`
+export const getRegistriCassa: TypedDocumentNode<RelayData<RegistroCassa>, RelayVariables> = gql(`
   ${registroCassaFragment}
-  query GetRegistriCassaConnection($pageSize: Int!, $where: String, $orderBy: String, $after: Int) {
-    cashManagement {
-      registriCassaConnection(first: $pageSize, where: $where, order: $orderBy, after: $after) {
-        conteggioTotale
-        infoPaginazione {
-          haProssimaPagina
-          cursoreFine
-          haPaginaPrecedente
-          cursoreInizio
+  query GetRegistriCassa($pageSize: Int!, $where: String, $orderBy: String, $after: String) {
+    connection {
+      registriCassa(first: $pageSize, where: $where, orderBy: $orderBy, after: $after) {
+        totalCount
+        pageInfo {
+          hasNextPage
+          endCursor
+          hasPreviousPage
+          startCursor
         }
-        elementi {
+        items {
           ...RegistroCassaFragment
         }
       }
     }
   }`);
-
-// Legacy alias
-export const getCashRegisters = getRegistriCassaConnection;
 
 // Get dashboard KPIs
 interface GetDashboardKPIsData {

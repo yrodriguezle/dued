@@ -65,9 +65,3 @@ export const spesaCassaFragment = `
   }
 `;
 
-// Legacy aliases for backward compatibility
-export const cashRegisterFragment = registroCassaFragment;
-export const cashDenominationFragment = denominazioneMonetaFragment;
-export const cashCountFragment = conteggioMonetaFragment;
-export const cashIncomeFragment = incassoCassaFragment;
-export const cashExpenseFragment = spesaCassaFragment;

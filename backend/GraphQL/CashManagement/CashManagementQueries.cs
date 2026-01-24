@@ -46,60 +46,6 @@ public class CashManagementQueries : ObjectGraphType
                 return result;
             });
 
-        // Get cash registers with relay-style pagination
-        Field<NonNullGraphType<RegistroCassaConnectionType>>("registriCassaConnection")
-            .Argument<IntGraphType>("first", "Number of items to return")
-            .Argument<StringGraphType>("where", "Filter condition")
-            .Argument<StringGraphType>("order", "Order by clause")
-            .Argument<IntGraphType>("after", "Cursor for pagination")
-            .ResolveAsync(async context =>
-            {
-                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
-
-                int first = context.GetArgument<int>("first", 20);
-                string? where = context.GetArgument<string?>("where");
-                string? order = context.GetArgument<string?>("order");
-                int? after = context.GetArgument<int?>("after");
-
-                var query = dbContext.RegistriCassa
-                    .Include(r => r.Utente)
-                        .ThenInclude(u => u.Ruolo)
-                    .Include(r => r.ConteggiMoneta)
-                        .ThenInclude(c => c.Denominazione)
-                    .Include(r => r.IncassiCassa)
-                    .Include(r => r.SpeseCassa)
-                    .AsQueryable();
-
-                // Apply cursor pagination
-                if (after.HasValue)
-                {
-                    query = query.Where(r => r.Id > after.Value);
-                }
-
-                // Apply ordering (default by Data DESC)
-                query = !string.IsNullOrEmpty(order)
-                    ? query.OrderByDescending(r => r.Data)
-                    : query.OrderByDescending(r => r.Data);
-
-                var totalCount = await query.CountAsync();
-                var items = await query.Take(first).ToListAsync();
-
-                var pageInfo = new PaginazioneCassaInfo
-                {
-                    HaProssimaPagina = items.Count == first,
-                    CursoreFine = items.LastOrDefault()?.Id.ToString(),
-                    HaPaginaPrecedente = after.HasValue,
-                    CursoreInizio = items.FirstOrDefault()?.Id.ToString()
-                };
-
-                return new RegistroCassaConnection
-                {
-                    ConteggioTotale = totalCount,
-                    InfoPaginazione = pageInfo,
-                    Elementi = items
-                };
-            });
-
         // Get dashboard KPIs
         Field<RegistroCassaKPIType, RegistroCassaKPI>("dashboardKPIs")
             .ResolveAsync(async context =>
@@ -155,44 +101,6 @@ public class CashManagementQueries : ObjectGraphType
 }
 
 // Helper classes for pagination and KPIs
-public class PaginazioneCassaInfo
-{
-    public bool HaProssimaPagina { get; set; }
-    public string? CursoreFine { get; set; }
-    public bool HaPaginaPrecedente { get; set; }
-    public string? CursoreInizio { get; set; }
-}
-
-public class PaginazioneCassaInfoType : ObjectGraphType<PaginazioneCassaInfo>
-{
-    public PaginazioneCassaInfoType()
-    {
-        Name = "PaginazioneCassaInfo";
-        Field(x => x.HaProssimaPagina);
-        Field(x => x.CursoreFine, nullable: true);
-        Field(x => x.HaPaginaPrecedente);
-        Field(x => x.CursoreInizio, nullable: true);
-    }
-}
-
-public class RegistroCassaConnection
-{
-    public int ConteggioTotale { get; set; }
-    public PaginazioneCassaInfo InfoPaginazione { get; set; } = new();
-    public List<RegistroCassa> Elementi { get; set; } = new();
-}
-
-public class RegistroCassaConnectionType : ObjectGraphType<RegistroCassaConnection>
-{
-    public RegistroCassaConnectionType()
-    {
-        Name = "RegistroCassaPagedConnection";
-        Field(x => x.ConteggioTotale);
-        Field<PaginazioneCassaInfoType, PaginazioneCassaInfo>("infoPaginazione").Resolve(context => context.Source.InfoPaginazione);
-        Field<ListGraphType<RegistroCassaType>, List<RegistroCassa>>("elementi").Resolve(context => context.Source.Elementi);
-    }
-}
-
 public class RegistroCassaKPI
 {
     public decimal VenditeOggi { get; set; }

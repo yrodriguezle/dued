@@ -1,24 +1,29 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Box, Chip, Typography, useTheme } from "@mui/material";
 import { useNavigate } from "react-router";
-import { GridReadyEvent, ValueFormatterParams } from "ag-grid-community";
+import { GridReadyEvent, ICellRendererParams, ValueFormatterParams, ValueGetterParams } from "ag-grid-community";
 import { getFormattedDate } from "../../../common/date/date";
 
 import Datagrid from "../../common/datagrid/Datagrid";
 import ListToolbar from "../../common/form/toolbar/ListToolbar";
 import PageTitleContext from "../../layout/headerBar/PageTitleContext";
 import useFetchData from "../../../graphql/common/useFetchData";
-import { getCashRegisters } from "../../../graphql/cashRegister/queries";
-import { DatagridData, DatagridRowDoubleClickedEvent } from "../../common/datagrid/@types/Datagrid";
+import { getRegistriCassa } from "../../../graphql/cashRegister/queries";
+import { DatagridColDef, DatagridData, DatagridRowDoubleClickedEvent } from "../../common/datagrid/@types/Datagrid";
 import useConfirm from "../../common/confirm/useConfirm";
 import showToast from "../../../common/toast/showToast";
+import { DatagridStatus } from "../../../common/globals/constants";
 
-function CashRegisterList() {
+export type RegistroCassaWithStatus = RegistroCassa & {
+  status: DatagridStatus;
+};
+
+function ListaRegistrazioneCassa() {
   const navigate = useNavigate();
   const theme = useTheme();
   const { title, setTitle } = useContext(PageTitleContext);
-  const gridRef = useRef<GridReadyEvent<DatagridData<CashRegister>> | null>(null);
-  const [selectedRows, setSelectedRows] = useState<DatagridData<CashRegister>[]>([]);
+  const gridRef = useRef<GridReadyEvent<DatagridData<RegistroCassaWithStatus>> | null>(null);
+  const [selectedRows, setSelectedRows] = useState<DatagridData<RegistroCassaWithStatus>[]>([]);
   const onConfirm = useConfirm();
 
   useEffect(() => {
@@ -34,13 +39,13 @@ function CashRegisterList() {
     []
   );
 
-  const { items: cashRegisters, loading } = useFetchData<CashRegister>({
-    query: getCashRegisters,
+  const { items: cashRegisters, loading } = useFetchData<RegistroCassa>({
+    query: getRegistriCassa,
     variables,
     fetchPolicy: "network-only",
   });
 
-  const handleGridReady = useCallback((event: GridReadyEvent<DatagridData<CashRegister>>) => {
+  const handleGridReady = useCallback((event: GridReadyEvent<DatagridData<RegistroCassaWithStatus>>) => {
     gridRef.current = event;
 
     event.api.addEventListener("selectionChanged", () => {
@@ -99,8 +104,8 @@ function CashRegisterList() {
   }, [selectedRows, onConfirm]);
 
   const handleRowDoubleClicked = useCallback(
-    (event: DatagridRowDoubleClickedEvent<CashRegister>) => {
-      const data = event.data as CashRegister | undefined;
+    (event: DatagridRowDoubleClickedEvent<RegistroCassaWithStatus>) => {
+      const data = event.data;
       if (data?.date) {
         // Extract date in YYYY-MM-DD format
         const dateStr = data.date.split("T")[0];
@@ -110,16 +115,13 @@ function CashRegisterList() {
     [navigate]
   );
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const columnDefs = useMemo<any[]>(
+  const columnDefs = useMemo<DatagridColDef<RegistroCassaWithStatus>[]>(
     () => [
       {
         field: "date",
         headerName: "Data",
         width: 120,
-        valueFormatter: (params: ValueFormatterParams<CashRegister>) => {
-          return getFormattedDate(params.value as string, "DD/MM/YYYY");
-        },
+        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => getFormattedDate(params.value as string, "DD/MM/YYYY"),
       },
       {
         field: "user.userName",
@@ -130,7 +132,7 @@ function CashRegisterList() {
         field: "openingTotal",
         headerName: "Apertura",
         width: 120,
-        valueFormatter: (params: ValueFormatterParams<CashRegister>) => {
+        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => {
           return `€ ${params.value?.toFixed(2) || "0.00"}`;
         },
       },
@@ -138,7 +140,7 @@ function CashRegisterList() {
         field: "closingTotal",
         headerName: "Totale Cassa",
         width: 120,
-        valueFormatter: (params: ValueFormatterParams<CashRegister>) => {
+        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => {
           return `€ ${params.value?.toFixed(2) || "0.00"}`;
         },
       },
@@ -146,12 +148,12 @@ function CashRegisterList() {
         field: "dailyIncome",
         headerName: "Totale (-) Apertura",
         width: 150,
-        valueGetter: (params: { data: CashRegister }) => {
+        valueGetter: (params: ValueGetterParams<RegistroCassaWithStatus>) => {
           const cr = params.data;
           if (!cr) return 0;
           return (cr.closingTotal || 0) - (cr.openingTotal || 0);
         },
-        valueFormatter: (params: ValueFormatterParams) => {
+        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => {
           return `€ ${params.value?.toFixed(2) || "0.00"}`;
         },
       },
@@ -160,7 +162,7 @@ function CashRegisterList() {
         headerName: "Pago in contanti",
         width: 140,
         cellStyle: { backgroundColor: theme.palette.success.light, color: theme.palette.success.contrastText },
-        valueFormatter: (params: ValueFormatterParams<CashRegister>) => {
+        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => {
           return `€ ${params.value?.toFixed(2) || "0.00"}`;
         },
       },
@@ -169,7 +171,7 @@ function CashRegisterList() {
         headerName: "Elettronico",
         width: 120,
         cellStyle: { backgroundColor: theme.palette.success.light, color: theme.palette.success.contrastText },
-        valueFormatter: (params: ValueFormatterParams<CashRegister>) => {
+        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => {
           return `€ ${params.value?.toFixed(2) || "0.00"}`;
         },
       },
@@ -178,13 +180,13 @@ function CashRegisterList() {
         headerName: "Totale Vendite",
         width: 140,
         cellStyle: { backgroundColor: theme.palette.warning.light, color: theme.palette.warning.contrastText },
-        valueGetter: (params: { data: CashRegister }) => {
+        valueGetter: (params: ValueGetterParams<RegistroCassaWithStatus>) => {
           const cr = params.data;
           if (!cr) return 0;
           // Totale Vendite = (Totale Cassa - Apertura) + Elettronico
           return (cr.closingTotal || 0) - (cr.openingTotal || 0) + (cr.electronicPayments || 0);
         },
-        valueFormatter: (params: ValueFormatterParams) => {
+        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => {
           return `€ ${params.value?.toFixed(2) || "0.00"}`;
         },
       },
@@ -192,7 +194,7 @@ function CashRegisterList() {
         field: "invoicePayments",
         headerName: "Pagamenti Fattura",
         width: 150,
-        valueFormatter: (params: ValueFormatterParams<CashRegister>) => {
+        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => {
           return `€ ${params.value?.toFixed(2) || "0.00"}`;
         },
       },
@@ -201,12 +203,12 @@ function CashRegisterList() {
         headerName: "Spese Totali",
         width: 130,
         cellStyle: { backgroundColor: theme.palette.error.light, color: theme.palette.error.contrastText },
-        valueGetter: (params: { data: CashRegister }) => {
+        valueGetter: (params: ValueGetterParams<RegistroCassaWithStatus>) => {
           const cr = params.data;
           if (!cr) return 0;
           return (cr.supplierExpenses || 0) + (cr.dailyExpenses || 0);
         },
-        valueFormatter: (params: ValueFormatterParams) => {
+        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => {
           return `€ ${params.value?.toFixed(2) || "0.00"}`;
         },
       },
@@ -214,14 +216,14 @@ function CashRegisterList() {
         field: "ecc",
         headerName: "ECC",
         width: 120,
-        valueGetter: (params: { data: CashRegister }) => {
+        valueGetter: (params: ValueGetterParams<RegistroCassaWithStatus>) => {
           const cr = params.data;
           if (!cr) return 0;
           // ECC = Totale Vendite - Pago in contanti - Elettronico
           const totalSales = (cr.closingTotal || 0) - (cr.openingTotal || 0) + (cr.electronicPayments || 0);
           return totalSales - (cr.cashInWhite || 0) - (cr.electronicPayments || 0);
         },
-        valueFormatter: (params: ValueFormatterParams) => {
+        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => {
           return `€ ${params.value?.toFixed(2) || "0.00"}`;
         },
       },
@@ -229,7 +231,7 @@ function CashRegisterList() {
         field: "status",
         headerName: "Stato",
         width: 120,
-        valueGetter: (params: { data: CashRegister }) => {
+        valueGetter: (params: ValueGetterParams<RegistroCassaWithStatus>) => {
           const cr = params.data;
           if (!cr || !cr.status) return "DRAFT";
           // Se status è un numero, converti a stringa corrispondente
@@ -243,7 +245,7 @@ function CashRegisterList() {
           }
           return cr.status;
         },
-        cellRenderer: (params: { value: string }) => {
+        cellRenderer: (params: ICellRendererParams<RegistroCassaWithStatus>) => {
           const statusColors: Record<string, "default" | "success" | "primary"> = {
             DRAFT: "default",
             CLOSED: "success",
@@ -271,10 +273,18 @@ function CashRegisterList() {
         </Typography>
       </Box>
       <Box sx={{ flex: 1, paddingX: 2, paddingBottom: 2 }}>
-        <Datagrid items={cashRegisters || []} columnDefs={columnDefs} height="100%" loading={loading} onGridReady={handleGridReady} onRowDoubleClicked={handleRowDoubleClicked} presentation />
+        <Datagrid
+          items={(cashRegisters as unknown as RegistroCassaWithStatus[]) || []}
+          columnDefs={columnDefs}
+          height="100%"
+          loading={loading}
+          onGridReady={handleGridReady}
+          onRowDoubleClicked={handleRowDoubleClicked}
+          presentation
+        />
       </Box>
     </Box>
   );
 }
 
-export default CashRegisterList;
+export default ListaRegistrazioneCassa;

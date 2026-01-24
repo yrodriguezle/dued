@@ -97,30 +97,6 @@ type RegistroCassa = {
   stato: StatoRegistroCassa;
   creatoIl: string;
   aggiornatoIl: string;
-  // Alias inglesi per retrocompatibilità
-  registerId?: number;
-  date?: string;
-  openingCounts?: ConteggioMoneta[];
-  closingCounts?: ConteggioMoneta[];
-  incomes?: IncassoCassa[];
-  expenses?: SpesaCassa[];
-  openingTotal?: number;
-  closingTotal?: number;
-  cashSales?: number;
-  cashInWhite?: number;
-  electronicPayments?: number;
-  invoicePayments?: number;
-  totalSales?: number;
-  supplierExpenses?: number;
-  dailyExpenses?: number;
-  expectedCash?: number;
-  difference?: number;
-  netCash?: number;
-  vatAmount?: number;
-  notes?: string | null;
-  status?: StatoRegistroCassa;
-  createdAt?: string;
-  updatedAt?: string;
 };
 
 // Form values for Formik
@@ -193,7 +169,7 @@ type PaginazioneCassaInfo = {
 };
 
 // Connection type for paginated results
-type RegistroCassaConnection = {
+type RegistroCassa = {
   conteggioTotale: number;
   infoPaginazione: PaginazioneCassaInfo;
   elementi: RegistroCassa[];
@@ -210,7 +186,6 @@ type CashDenomination = DenominazioneMoneta;
 type CashCount = ConteggioMoneta;
 type CashIncome = IncassoCassa;
 type CashExpense = SpesaCassa;
-type CashRegister = RegistroCassa;
 type CashRegisterKPI = RegistroCassaKPI;
 type MonthlyCashSummary = RiepilogoMensileCassa;
 type FormikCashCountValues = FormikConteggioMonetaValues;

@@ -1,7 +1,7 @@
-import CashRegisterDashboard from "../cashRegister/CashRegisterDashboard";
+import RegistrazioneCassDashboard from "../registrazioneCassa/RegistrazioneCassDashboard";
 
 const HomePage: React.FC = () => {
-  return <CashRegisterDashboard />;
+  return <RegistrazioneCassDashboard />;
 };
 
 export default HomePage;
