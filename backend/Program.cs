@@ -7,6 +7,8 @@ using GraphQL.MicrosoftDI;
 using GraphQL.Relay.Types;
 using GraphQL.Types.Relay;
 
+using DotNetEnv;
+
 using duedgusto.GraphQL;
 using duedgusto.DataAccess;
 using duedgusto.GraphQL.Authentication;
@@ -15,6 +17,8 @@ using duedgusto.Services.Csrf;
 using duedgusto.Services.HashPassword;
 using duedgusto.Middleware;
 using duedgusto.SeedData;
+
+Env.Load();
 
 var builder = WebApplication.CreateBuilder(args);
 

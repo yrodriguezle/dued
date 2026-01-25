@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="DotNetEnv" Version="3.1.1" />
     <PackageReference Include="GraphQL" Version="8.4.1" />
     <PackageReference Include="GraphQL.DataLoader" Version="8.4.1" />
     <PackageReference Include="GraphQL.Relay" Version="0.9.1" />

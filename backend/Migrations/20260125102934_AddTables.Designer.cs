@@ -12,8 +12,8 @@ using duedgusto.DataAccess;
 namespace duedgusto.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260122203438_RenameCashManagementToItalian")]
-    partial class RenameCashManagementToItalian
+    [Migration("20260125102934_AddTables")]
+    partial class AddTables
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
