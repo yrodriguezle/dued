@@ -58,7 +58,7 @@ function SearchboxModal<T extends Record<string, unknown>>({
         // Estrai i dati originali rimuovendo i campi ausiliari
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { status, ...originalData } = data;
-        onSelectItem(originalData as T);
+        onSelectItem(originalData as unknown as T);
         onClose();
       }
     },
@@ -73,7 +73,7 @@ function SearchboxModal<T extends Record<string, unknown>>({
           // Estrai i dati originali rimuovendo i campi ausiliari
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { status, ...originalData } = selectedRows[0];
-          onSelectItem(originalData as T);
+          onSelectItem(originalData as unknown as T);
           onClose();
         }
       } else if (event.key === "Escape") {

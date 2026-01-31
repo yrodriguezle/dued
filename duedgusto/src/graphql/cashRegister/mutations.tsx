@@ -55,16 +55,6 @@ export const mutationSubmitRegistroCassa: TypedDocumentNode<SubmitRegistroCassaD
   }
 `;
 
-// Legacy alias
-export const mutationSubmitCashRegister = mutationSubmitRegistroCassa;
-
-// Legacy input types for backward compatibility
-export type CashCountInput = ConteggioMonetaInput;
-export type CashIncomeInput = IncassoCassaInput;
-export type CashExpenseInput = SpesaCassaInput;
-export type CashRegisterInput = RegistroCassaInput;
-export type SubmitCashRegisterValues = SubmitRegistroCassaValues;
-
 // Close cash register (change status to CLOSED)
 interface ChiudiRegistroCassaData {
   cashManagement: {
@@ -87,9 +77,6 @@ export const mutationChiudiRegistroCassa: TypedDocumentNode<ChiudiRegistroCassaD
   }
 `;
 
-// Legacy alias
-export const mutationCloseCashRegister = mutationChiudiRegistroCassa;
-
 // Delete cash register
 interface EliminaRegistroCassaData {
   cashManagement: {
@@ -109,5 +96,3 @@ export const mutationEliminaRegistroCassa: TypedDocumentNode<EliminaRegistroCass
   }
 `;
 
-// Legacy alias
-export const mutationDeleteCashRegister = mutationEliminaRegistroCassa;

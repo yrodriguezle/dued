@@ -38,7 +38,7 @@ function CashRegisterMonthlyCalendar({
   const [displayMonth, setDisplayMonth] = useState<dayjs.Dayjs>(dayjs(currentDate));
 
   // Map of dates that have saved cash registers
-  const savedDates = new Set(cashRegisters.map((cr) => cr.date));
+  const savedDates = new Set(cashRegisters.map((cr) => cr.data));
 
   const handlePreviousMonth = useCallback(() => {
     setDisplayMonth((prev) => prev.subtract(1, "month"));

@@ -28,8 +28,8 @@ function MonthlyView() {
 
   const { data, loading } = useQuery(getMonthlySummary, {
     variables: {
-      year: selectedDate.year(),
-      month: selectedDate.month() + 1,
+      anno: selectedDate.year(),
+      mese: selectedDate.month() + 1,
     },
   });
 
@@ -84,7 +84,7 @@ function MonthlyView() {
                 Vendite Totali
               </Typography>
               <Typography variant="h5" color="primary.main" fontWeight="bold">
-                € {summary?.totalSales?.toFixed(2) || "0.00"}
+                € {summary?.totaleVendite?.toFixed(2) || "0.00"}
               </Typography>
             </CardContent>
           </Card>
@@ -96,7 +96,7 @@ function MonthlyView() {
                 Contanti
               </Typography>
               <Typography variant="h5" color="success.main" fontWeight="bold">
-                € {summary?.totalCash?.toFixed(2) || "0.00"}
+                € {summary?.totaleContanti?.toFixed(2) || "0.00"}
               </Typography>
             </CardContent>
           </Card>
@@ -108,7 +108,7 @@ function MonthlyView() {
                 Pagamenti Elettronici
               </Typography>
               <Typography variant="h5" color="info.main" fontWeight="bold">
-                € {summary?.totalElectronic?.toFixed(2) || "0.00"}
+                € {summary?.totaleElettronici?.toFixed(2) || "0.00"}
               </Typography>
             </CardContent>
           </Card>
@@ -120,7 +120,7 @@ function MonthlyView() {
                 Media Giornaliera
               </Typography>
               <Typography variant="h5" color="secondary.main" fontWeight="bold">
-                € {summary?.averageDaily?.toFixed(2) || "0.00"}
+                € {summary?.mediaGiornaliera?.toFixed(2) || "0.00"}
               </Typography>
             </CardContent>
           </Card>
@@ -152,27 +152,27 @@ function MonthlyView() {
               <TableBody>
                 <TableRow>
                   <TableCell>Totale Vendite Mese</TableCell>
-                  <TableCell align="right">€ {summary?.totalSales?.toFixed(2) || "0.00"}</TableCell>
+                  <TableCell align="right">€ {summary?.totaleVendite?.toFixed(2) || "0.00"}</TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell>Totale Contanti</TableCell>
-                  <TableCell align="right">€ {summary?.totalCash?.toFixed(2) || "0.00"}</TableCell>
+                  <TableCell align="right">€ {summary?.totaleContanti?.toFixed(2) || "0.00"}</TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell>Totale Pagamenti Elettronici</TableCell>
-                  <TableCell align="right">€ {summary?.totalElectronic?.toFixed(2) || "0.00"}</TableCell>
+                  <TableCell align="right">€ {summary?.totaleElettronici?.toFixed(2) || "0.00"}</TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell>Media Giornaliera</TableCell>
-                  <TableCell align="right">€ {summary?.averageDaily?.toFixed(2) || "0.00"}</TableCell>
+                  <TableCell align="right">€ {summary?.mediaGiornaliera?.toFixed(2) || "0.00"}</TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell>Giorni con Differenze</TableCell>
-                  <TableCell align="right">{summary?.daysWithDifferences || 0}</TableCell>
+                  <TableCell align="right">{summary?.giorniConDifferenze || 0}</TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell>IVA Totale (10%)</TableCell>
-                  <TableCell align="right">€ {summary?.totalVat?.toFixed(2) || "0.00"}</TableCell>
+                  <TableCell align="right">€ {summary?.totaleIva?.toFixed(2) || "0.00"}</TableCell>
                 </TableRow>
               </TableBody>
             </Table>

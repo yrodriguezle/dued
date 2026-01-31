@@ -63,22 +63,22 @@ function CashRegisterMonthlyPage() {
   // Conversione casse in eventi per Custom Calendar
   const events = useMemo<CashEvent[]>(() => {
     return cashRegisters.map((cr: RegistroCassa, index: number) => {
-      const date = new Date(cr.date);
+      const date = new Date(cr.data);
       // Calcola ricavo: (chiusura + fatture) - (apertura + spese)
       const revenue =
-        (cr.closingTotal || 0) + (cr.invoicePayments || 0) -
-        (cr.openingTotal || 0) - (cr.supplierExpenses || 0) - (cr.dailyExpenses || 0);
+        (cr.totaleChiusura || 0) + (cr.incassiFattura || 0) -
+        (cr.totaleApertura || 0) - (cr.speseFornitori || 0) - (cr.speseGiornaliere || 0);
 
       return {
-        id: cr.registerId || index,
+        id: cr.id || index,
         title: `Ricavo: €${revenue.toFixed(2)}`,
         start: date,
         end: date,
-        registerId: cr.registerId,
-        date: cr.date,
+        registerId: cr.id,
+        date: cr.data,
         resource: {
-          registerId: cr.registerId,
-          date: cr.date,
+          registerId: cr.id,
+          date: cr.data,
         },
       };
     });

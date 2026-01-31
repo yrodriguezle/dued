@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-// Row data type with English field names for component compatibility
+// Row data per le griglie di conteggio
 interface CashCountRowData extends Record<string, unknown> {
   denominationId: number;
   type: "COIN" | "BANKNOTE";
@@ -9,10 +9,13 @@ interface CashCountRowData extends Record<string, unknown> {
   total: number;
 }
 
+// Tipo per i conteggi (importato da CashRegisterDetails)
+import type { CashCount } from "./CashRegisterDetails";
+
 interface UseCashCountDataProps {
   denominations: DenominazioneMoneta[];
-  openingCounts: ConteggioMoneta[];
-  closingCounts: ConteggioMoneta[];
+  openingCounts: CashCount[];
+  closingCounts: CashCount[];
 }
 
 interface UseCashCountDataResult {
@@ -23,7 +26,6 @@ interface UseCashCountDataResult {
 /**
  * Hook che prepara i dati per le griglie di apertura e chiusura cassa
  * Viene chiamato una sola volta da CashRegisterDetails
- * Usa nomi inglesi per compatibilità con i componenti esistenti
  */
 function useCashCountData({
   denominations,
@@ -33,49 +35,39 @@ function useCashCountData({
 
   // Prepara i dati per la griglia di apertura (escludi banconote grandi)
   const openingRowData = useMemo(() => {
-    // Usa campi italiani o inglesi per compatibilità
-    const coins = denominations.filter((d) => (d.tipo || d.type) === "COIN");
-    const banknotes = denominations.filter((d) => (d.tipo || d.type) === "BANKNOTE");
+    const coins = denominations.filter((d) => d.tipo === "COIN");
+    const banknotes = denominations.filter((d) => d.tipo === "BANKNOTE");
 
     // Escludi banconote da 10, 20, 50, 100 per l'apertura
     const filteredBanknotes = banknotes.filter((d) => {
-      const value = d.valore ?? d.value ?? 0;
-      return value !== 10 && value !== 20 && value !== 50 && value !== 100;
+      return d.valore !== 10 && d.valore !== 20 && d.valore !== 50 && d.valore !== 100;
     });
 
     const rows: CashCountRowData[] = [];
 
     // Monete
     coins.forEach((d) => {
-      const denominationId = d.id ?? d.denominationId ?? 0;
-      const count = openingCounts?.find((c) =>
-        (c.denominazioneMonetaId ?? c.denominationId) === denominationId
-      );
-      const quantity = count?.quantita ?? count?.quantity ?? 0;
-      const value = d.valore ?? d.value ?? 0;
+      const count = openingCounts?.find((c) => c.denominazioneMonetaId === d.id);
+      const quantity = count?.quantita ?? 0;
       rows.push({
-        denominationId,
-        type: (d.tipo ?? d.type) as "COIN" | "BANKNOTE",
-        value,
+        denominationId: d.id,
+        type: d.tipo,
+        value: d.valore,
         quantity,
-        total: value * quantity,
+        total: d.valore * quantity,
       });
     });
 
     // Banconote (filtrate)
     filteredBanknotes.forEach((d) => {
-      const denominationId = d.id ?? d.denominationId ?? 0;
-      const count = openingCounts?.find((c) =>
-        (c.denominazioneMonetaId ?? c.denominationId) === denominationId
-      );
-      const quantity = count?.quantita ?? count?.quantity ?? 0;
-      const value = d.valore ?? d.value ?? 0;
+      const count = openingCounts?.find((c) => c.denominazioneMonetaId === d.id);
+      const quantity = count?.quantita ?? 0;
       rows.push({
-        denominationId,
-        type: (d.tipo ?? d.type) as "COIN" | "BANKNOTE",
-        value,
+        denominationId: d.id,
+        type: d.tipo,
+        value: d.valore,
         quantity,
-        total: value * quantity,
+        total: d.valore * quantity,
       });
     });
 
@@ -84,42 +76,34 @@ function useCashCountData({
 
   // Prepara i dati per la griglia di chiusura (tutte le banconote)
   const closingRowData = useMemo(() => {
-    const coins = denominations.filter((d) => (d.tipo || d.type) === "COIN");
-    const banknotes = denominations.filter((d) => (d.tipo || d.type) === "BANKNOTE");
+    const coins = denominations.filter((d) => d.tipo === "COIN");
+    const banknotes = denominations.filter((d) => d.tipo === "BANKNOTE");
 
     const rows: CashCountRowData[] = [];
 
     // Monete
     coins.forEach((d) => {
-      const denominationId = d.id ?? d.denominationId ?? 0;
-      const count = closingCounts?.find((c) =>
-        (c.denominazioneMonetaId ?? c.denominationId) === denominationId
-      );
-      const quantity = count?.quantita ?? count?.quantity ?? 0;
-      const value = d.valore ?? d.value ?? 0;
+      const count = closingCounts?.find((c) => c.denominazioneMonetaId === d.id);
+      const quantity = count?.quantita ?? 0;
       rows.push({
-        denominationId,
-        type: (d.tipo ?? d.type) as "COIN" | "BANKNOTE",
-        value,
+        denominationId: d.id,
+        type: d.tipo,
+        value: d.valore,
         quantity,
-        total: value * quantity,
+        total: d.valore * quantity,
       });
     });
 
     // Banconote (tutte)
     banknotes.forEach((d) => {
-      const denominationId = d.id ?? d.denominationId ?? 0;
-      const count = closingCounts?.find((c) =>
-        (c.denominazioneMonetaId ?? c.denominationId) === denominationId
-      );
-      const quantity = count?.quantita ?? count?.quantity ?? 0;
-      const value = d.valore ?? d.value ?? 0;
+      const count = closingCounts?.find((c) => c.denominazioneMonetaId === d.id);
+      const quantity = count?.quantita ?? 0;
       rows.push({
-        denominationId,
-        type: (d.tipo ?? d.type) as "COIN" | "BANKNOTE",
-        value,
+        denominationId: d.id,
+        type: d.tipo,
+        value: d.valore,
         quantity,
-        total: value * quantity,
+        total: d.valore * quantity,
       });
     });
 

@@ -1,27 +1,20 @@
-// Cash Register Type Definitions - Versione Italiana con alias retrocompatibili
+// Cash Register Type Definitions - Versione Italiana
 
 type TipoDenominazioneMoneta = "COIN" | "BANKNOTE";
 type StatoRegistroCassa = "DRAFT" | "CLOSED" | "RECONCILED";
 
-// DenominazioneMoneta con alias inglesi per retrocompatibilità
+// DenominazioneMoneta
 type DenominazioneMoneta = {
   __typename: "DenominazioneMoneta";
-  // Campi italiani (da GraphQL)
   id: number;
   valore: number;
   tipo: TipoDenominazioneMoneta;
   ordineVisualizzazione: number;
-  // Alias inglesi per retrocompatibilità
-  denominationId?: number;
-  value?: number;
-  type?: TipoDenominazioneMoneta;
-  displayOrder?: number;
 };
 
-// ConteggioMoneta con alias inglesi per retrocompatibilità
+// ConteggioMoneta
 type ConteggioMoneta = {
   __typename: "ConteggioMoneta";
-  // Campi italiani (da GraphQL)
   id: number;
   registroCassaId: number;
   denominazioneMonetaId: number;
@@ -29,49 +22,29 @@ type ConteggioMoneta = {
   quantita: number;
   totale: number;
   isApertura: boolean;
-  // Alias inglesi per retrocompatibilità
-  countId?: number;
-  registerId?: number;
-  denominationId?: number;
-  quantity?: number;
-  total?: number;
-  isOpening?: boolean;
 };
 
-// IncassoCassa con alias inglesi per retrocompatibilità
+// IncassoCassa
 type IncassoCassa = {
   __typename: "IncassoCassa";
-  // Campi italiani (da GraphQL)
   id: number;
   registroCassaId: number;
   tipo: string;
   importo: number;
-  // Alias inglesi per retrocompatibilità
-  incomeId?: number;
-  registerId?: number;
-  type?: string;
-  amount?: number;
 };
 
-// SpesaCassa con alias inglesi per retrocompatibilità
+// SpesaCassa
 type SpesaCassa = {
   __typename: "SpesaCassa";
-  // Campi italiani (da GraphQL)
   id: number;
   registroCassaId: number;
   descrizione: string;
   importo: number;
-  // Alias inglesi per retrocompatibilità
-  expenseId?: number;
-  registerId?: number;
-  description?: string;
-  amount?: number;
 };
 
-// RegistroCassa con alias inglesi per retrocompatibilità
+// RegistroCassa
 type RegistroCassa = {
   __typename: "RegistroCassa";
-  // Campi italiani (da GraphQL)
   id: number;
   data: string;
   utenteId: number;
@@ -124,12 +97,6 @@ type RegistroCassaKPI = {
   venditeMese: number;
   mediaMese: number;
   trendSettimana: number;
-  // Alias inglesi per retrocompatibilità
-  todaySales?: number;
-  todayDifference?: number;
-  monthSales?: number;
-  monthAverage?: number;
-  weekTrend?: number;
 };
 
 // Monthly summary
@@ -143,16 +110,6 @@ type RiepilogoMensileCassa = {
   giorniConDifferenze: number;
   totaleIva: number;
   registri: RegistroCassa[];
-  // Alias inglesi per retrocompatibilità
-  month?: string;
-  year?: number;
-  totalSales?: number;
-  totalCash?: number;
-  totalElectronic?: number;
-  averageDaily?: number;
-  daysWithDifferences?: number;
-  totalVat?: number;
-  registers?: RegistroCassa[];
 };
 
 // Pagination info
@@ -161,32 +118,11 @@ type PaginazioneCassaInfo = {
   cursoreFine: string | null;
   haPaginaPrecedente: boolean;
   cursoreInizio: string | null;
-  // Alias inglesi per retrocompatibilità
-  hasNextPage?: boolean;
-  endCursor?: string | null;
-  hasPreviousPage?: boolean;
-  startCursor?: string | null;
 };
 
 // Connection type for paginated results
-type RegistroCassa = {
+type RegistroCassaConnection = {
   conteggioTotale: number;
   infoPaginazione: PaginazioneCassaInfo;
   elementi: RegistroCassa[];
-  // Alias inglesi per retrocompatibilità
-  totalCount?: number;
-  pageInfo?: PaginazioneCassaInfo;
-  edges?: Array<{ node: RegistroCassa; cursor: string }>;
 };
-
-// Legacy type aliases for backward compatibility during transition
-type CashDenominationType = TipoDenominazioneMoneta;
-type CashRegisterStatus = StatoRegistroCassa;
-type CashDenomination = DenominazioneMoneta;
-type CashCount = ConteggioMoneta;
-type CashIncome = IncassoCassa;
-type CashExpense = SpesaCassa;
-type CashRegisterKPI = RegistroCassaKPI;
-type MonthlyCashSummary = RiepilogoMensileCassa;
-type FormikCashCountValues = FormikConteggioMonetaValues;
-type FormikCashRegisterValues = FormikRegistroCassaValues;

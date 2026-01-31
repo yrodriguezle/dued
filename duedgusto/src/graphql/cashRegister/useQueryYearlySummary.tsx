@@ -75,7 +75,7 @@ export function useQueryYearlySummary({ year, skip = false }: UseQueryYearlySumm
     registriCassa.forEach((cr: RegistroCassa) => {
       // Estrai anno e mese dalla data (usa UTC per evitare problemi di timezone)
       // La data arriva come ISO string: "2024-08-21T00:00:00.000Z"
-      const dateValue = cr.data || cr.date || "";
+      const dateValue = cr.data || "";
       const dateParts = dateValue.split('T')[0].split('-'); // ["2024", "08", "21"]
       const recordYear = parseInt(dateParts[0], 10); // 2024
       const month = parseInt(dateParts[1], 10); // 8
@@ -89,16 +89,15 @@ export function useQueryYearlySummary({ year, skip = false }: UseQueryYearlySumm
       const monthData = monthlyMap.get(month);
       if (monthData) {
         // Ricavo effettivo: (chiusura + fatture) - (apertura + spese)
-        // Usa campi italiani o inglesi per retrocompatibilità
-        const closingTotal = cr.totaleChiusura ?? cr.closingTotal ?? 0;
-        const invoicePayments = cr.incassiFattura ?? cr.invoicePayments ?? 0;
-        const openingTotal = cr.totaleApertura ?? cr.openingTotal ?? 0;
-        const supplierExpenses = cr.speseFornitori ?? cr.supplierExpenses ?? 0;
-        const dailyExpenses = cr.speseGiornaliere ?? cr.dailyExpenses ?? 0;
-        const cashInWhite = cr.incassoContanteTracciato ?? cr.cashInWhite ?? 0;
-        const electronicPayments = cr.incassiElettronici ?? cr.electronicPayments ?? 0;
-        const difference = cr.differenza ?? cr.difference ?? 0;
-        const vatAmount = cr.importoIva ?? cr.vatAmount ?? 0;
+        const closingTotal = cr.totaleChiusura ?? 0;
+        const invoicePayments = cr.incassiFattura ?? 0;
+        const openingTotal = cr.totaleApertura ?? 0;
+        const supplierExpenses = cr.speseFornitori ?? 0;
+        const dailyExpenses = cr.speseGiornaliere ?? 0;
+        const cashInWhite = cr.incassoContanteTracciato ?? 0;
+        const electronicPayments = cr.incassiElettronici ?? 0;
+        const difference = cr.differenza ?? 0;
+        const vatAmount = cr.importoIva ?? 0;
 
         const dailyRevenue = closingTotal + invoicePayments - openingTotal - supplierExpenses - dailyExpenses;
 

@@ -20,6 +20,7 @@ import PageTitleContext from "../../layout/headerBar/PageTitleContext";
 import useQueryDenominations from "../../../graphql/cashRegister/useQueryDenominations";
 import useQueryCashRegister from "../../../graphql/cashRegister/useQueryCashRegister";
 import useSubmitCashRegister from "../../../graphql/cashRegister/useSubmitCashRegister";
+import { RegistroCassaInput } from "../../../graphql/cashRegister/mutations";
 import useCloseCashRegister from "../../../graphql/cashRegister/useCloseCashRegister";
 import useStore from "../../../store/useStore";
 import { toast } from "react-toastify";
@@ -39,8 +40,8 @@ export type FormikCashRegisterValues = z.infer<typeof Schema>;
 
 // Types per i dati delle griglie (gestiti separatamente da Formik)
 export interface CashCount {
-  denominationId: number;
-  quantity: number;
+  denominazioneMonetaId: number;
+  quantita: number;
 }
 
 export interface Income extends Record<string, unknown> {
@@ -107,16 +108,16 @@ function CashRegisterDetails() {
     currentDate,
   });
 
-  const { denominations, loading: loadingDenominations } = useQueryDenominations();
+  const { denominazioni, loading: loadingDenominations } = useQueryDenominations();
 
   const { cashRegister, loading: loadingCashRegister } = useQueryCashRegister({
-    date: parseDateForGraphQL(currentDate) ?? "",
+    data: parseDateForGraphQL(currentDate) ?? "",
     skip: !currentDate,
   });
 
   // Prepara i dati per le griglie di apertura e chiusura
   const { openingRowData, closingRowData } = useCashCountData({
-    denominations,
+    denominations: denominazioni,
     openingCounts: initialOpeningCounts,
     closingCounts: initialClosingCounts,
   });
@@ -160,49 +161,49 @@ function CashRegisterDetails() {
       logger.log("Loading cashRegister from server", cashRegister);
 
       // Convert date from ISO 8601 to YYYY-MM-DD
-      const dateStr = cashRegister.date.split("T")[0]; // Extract YYYY-MM-DD from ISO string
+      const dateStr = cashRegister.data.split("T")[0]; // Extract YYYY-MM-DD from ISO string
 
       // Popola i valori del form (solo campi non-griglia)
       const formikValues: FormikCashRegisterValues = {
-        registerId: cashRegister.registerId,
+        registerId: cashRegister.id,
         date: dateStr,
         utenteId: cashRegister.utenteId,
-        notes: cashRegister.notes || "",
-        status: cashRegister.status,
+        notes: cashRegister.note || "",
+        status: cashRegister.stato,
       };
       handleInitializeValues(formikValues);
 
       // Popola i dati iniziali delle griglie
       setInitialOpeningCounts(
-        cashRegister.openingCounts.map((c: CashCount) => ({
-          denominationId: c.denominationId,
-          quantity: c.quantity,
-        }))
+        cashRegister.conteggiApertura?.map((c: ConteggioMoneta) => ({
+          denominazioneMonetaId: c.denominazioneMonetaId,
+          quantita: c.quantita,
+        })) || []
       );
 
       setInitialClosingCounts(
-        cashRegister.closingCounts.map((c: CashCount) => ({
-          denominationId: c.denominationId,
-          quantity: c.quantity,
-        }))
+        cashRegister.conteggiChiusura?.map((c: ConteggioMoneta) => ({
+          denominazioneMonetaId: c.denominazioneMonetaId,
+          quantita: c.quantita,
+        })) || []
       );
 
       setInitialIncomes(
-        cashRegister.incomes && cashRegister.incomes.length > 0
-          ? cashRegister.incomes.map((i) => ({ type: i.type, amount: i.amount }))
+        cashRegister.incassi && cashRegister.incassi.length > 0
+          ? cashRegister.incassi.map((i: IncassoCassa) => ({ type: i.tipo, amount: i.importo }))
           : [
-              { type: "Pago in contanti", amount: cashRegister.cashInWhite || 0 },
-              { type: "Pagamenti Elettronici", amount: cashRegister.electronicPayments || 0 },
-              { type: "Pagamento con Fattura", amount: cashRegister.invoicePayments || 0 },
+              { type: "Pago in contanti", amount: cashRegister.incassoContanteTracciato || 0 },
+              { type: "Pagamenti Elettronici", amount: cashRegister.incassiElettronici || 0 },
+              { type: "Pagamento con Fattura", amount: cashRegister.incassiFattura || 0 },
             ]
       );
 
-      setInitialExpenses(cashRegister.expenses && cashRegister.expenses.length > 0 ? cashRegister.expenses.map((e) => ({ description: e.description, amount: e.amount })) : []);
+      setInitialExpenses(cashRegister.spese && cashRegister.spese.length > 0 ? cashRegister.spese.map((e: SpesaCassa) => ({ description: e.descrizione, amount: e.importo })) : []);
 
       setTimeout(() => {
         formRef.current?.setStatus({
           formStatus: formStatuses.UPDATE,
-          isFormLocked: cashRegister.status !== "DRAFT",
+          isFormLocked: cashRegister.stato !== "DRAFT",
         });
       }, 0);
     } else {
@@ -254,47 +255,47 @@ function CashRegisterDetails() {
         return;
       }
 
-      // Converti gli array in campi singoli per il backend
-      const input = {
-        registerId: values.registerId,
-        date: parsedDate,
+      // Converti gli array in campi per il backend (nomi italiani)
+      const input: RegistroCassaInput = {
+        id: values.registerId,
+        data: parsedDate,
         utenteId: values.utenteId,
-        openingCounts: openingCounts.map((row: CashCountRow) => ({
-          denominationId: row.denominationId,
-          quantity: row.quantity,
+        conteggiApertura: openingCounts.map((row: CashCountRow) => ({
+          denominazioneMonetaId: row.denominationId,
+          quantita: row.quantity,
         })),
-        closingCounts: closingCounts.map((row: CashCountRow) => ({
-          denominationId: row.denominationId,
-          quantity: row.quantity,
+        conteggiChiusura: closingCounts.map((row: CashCountRow) => ({
+          denominazioneMonetaId: row.denominationId,
+          quantita: row.quantity,
         })),
-        incomes: incomes.map((row: IncomeRow) => ({
-          type: row.type,
-          amount: row.amount,
+        incassi: incomes.map((row: IncomeRow) => ({
+          tipo: row.type,
+          importo: row.amount,
         })),
-        expenses: expenses.map((row: ExpenseRow) => ({
-          description: row.description,
-          amount: row.amount,
+        spese: expenses.map((row: ExpenseRow) => ({
+          descrizione: row.description,
+          importo: row.amount,
         })),
-        cashInWhite: incomes.find((i: IncomeRow) => i.type === "Pago in contanti")?.amount || 0,
-        electronicPayments: incomes.find((i: IncomeRow) => i.type === "Pagamenti Elettronici")?.amount || 0,
-        invoicePayments: incomes.find((i: IncomeRow) => i.type === "Pagamento con Fattura")?.amount || 0,
-        supplierExpenses: 0, // Non più usato, calcolato dal backend
-        dailyExpenses: 0, // Non più usato, calcolato dal backend
-        notes: values.notes,
-        status: values.status,
+        incassoContanteTracciato: incomes.find((i: IncomeRow) => i.type === "Pago in contanti")?.amount || 0,
+        incassiElettronici: incomes.find((i: IncomeRow) => i.type === "Pagamenti Elettronici")?.amount || 0,
+        incassiFattura: incomes.find((i: IncomeRow) => i.type === "Pagamento con Fattura")?.amount || 0,
+        speseFornitori: 0, // Non più usato, calcolato dal backend
+        speseGiornaliere: 0, // Non più usato, calcolato dal backend
+        note: values.notes,
+        stato: values.status as StatoRegistroCassa,
       };
 
       logger.log("onSubmit - input to be sent", input);
 
-      const result = await submitCashRegister({ cashRegister: input });
+      const result = await submitCashRegister({ registroCassa: input });
 
       if (result) {
         toast.success("Cassa salvata con successo!");
 
         // Aggiorna il form con l'ID ritornato dal server
         // Questo assicura che i successivi salvataggi siano update
-        if (result.registerId && !formRef.current?.values.registerId) {
-          formRef.current?.setFieldValue("registerId", result.registerId);
+        if (result.id && !formRef.current?.values.registerId) {
+          formRef.current?.setFieldValue("registerId", result.id);
         }
 
         // Dopo il salvataggio, aggiorna lo stato del form

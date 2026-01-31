@@ -74,7 +74,7 @@ export interface DatagridAuxData {
   status: DatagridStatus;
 }
 
-export type DatagridData<T extends Record<string, unknown>> = DatagridAuxData & T & Record<string, unknown>;
+export type DatagridData<T extends Record<string, unknown>> = DatagridAuxData & T;
 
 export interface IRowEvent<T extends Record<string, unknown>> {
   data?: DatagridData<T>;

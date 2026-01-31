@@ -62,7 +62,7 @@ const MenuForm: React.FC<MenuFormProps> = ({ menus }) => {
 
   const getRowId = useCallback(({ data }: { data: MenuNonNull }) => data.id.toString(), []);
 
-  const autoGroupColumnDef = useMemo(
+  const autoGroupColumnDef = useMemo<DatagridColDef<MenuNonNull>>(
     () => ({
       headerName: "Voce di menù",
       field: "titolo",
@@ -74,7 +74,7 @@ const MenuForm: React.FC<MenuFormProps> = ({ menus }) => {
     []
   );
 
-  const columnDefs = useMemo<DatagridColDef<MenuWithStatus>[]>(
+  const columnDefs = useMemo<DatagridColDef<MenuNonNull>[]>(
     () => [
       {
         headerName: "Id",

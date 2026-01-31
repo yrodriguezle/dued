@@ -34,7 +34,7 @@ function ListaRegistrazioneCassa() {
     () => ({
       pageSize: 50,
       where: "",
-      orderBy: "date desc",
+      orderBy: "data desc",
     }),
     []
   );
@@ -106,9 +106,9 @@ function ListaRegistrazioneCassa() {
   const handleRowDoubleClicked = useCallback(
     (event: DatagridRowDoubleClickedEvent<RegistroCassaWithStatus>) => {
       const data = event.data;
-      if (data?.date) {
+      if (data?.data) {
         // Extract date in YYYY-MM-DD format
-        const dateStr = data.date.split("T")[0];
+        const dateStr = data.data.split("T")[0];
         navigate(`/gestionale/cassa/${dateStr}`);
       }
     },
@@ -118,18 +118,18 @@ function ListaRegistrazioneCassa() {
   const columnDefs = useMemo<DatagridColDef<RegistroCassaWithStatus>[]>(
     () => [
       {
-        field: "date",
+        field: "data",
         headerName: "Data",
         width: 120,
         valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => getFormattedDate(params.value as string, "DD/MM/YYYY"),
       },
       {
-        field: "user.userName",
+        field: "utente.nomeUtente",
         headerName: "Operatore",
         width: 150,
       },
       {
-        field: "openingTotal",
+        field: "totaleApertura",
         headerName: "Apertura",
         width: 120,
         valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => {
@@ -137,7 +137,7 @@ function ListaRegistrazioneCassa() {
         },
       },
       {
-        field: "closingTotal",
+        field: "totaleChiusura",
         headerName: "Totale Cassa",
         width: 120,
         valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => {
@@ -145,20 +145,20 @@ function ListaRegistrazioneCassa() {
         },
       },
       {
-        field: "dailyIncome",
+        colId: "incassoGiornaliero",
         headerName: "Totale (-) Apertura",
         width: 150,
         valueGetter: (params: ValueGetterParams<RegistroCassaWithStatus>) => {
           const cr = params.data;
           if (!cr) return 0;
-          return (cr.closingTotal || 0) - (cr.openingTotal || 0);
+          return (cr.totaleChiusura || 0) - (cr.totaleApertura || 0);
         },
         valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => {
           return `€ ${params.value?.toFixed(2) || "0.00"}`;
         },
       },
       {
-        field: "cashInWhite",
+        field: "incassoContanteTracciato",
         headerName: "Pago in contanti",
         width: 140,
         cellStyle: { backgroundColor: theme.palette.success.light, color: theme.palette.success.contrastText },
@@ -167,7 +167,7 @@ function ListaRegistrazioneCassa() {
         },
       },
       {
-        field: "electronicPayments",
+        field: "incassiElettronici",
         headerName: "Elettronico",
         width: 120,
         cellStyle: { backgroundColor: theme.palette.success.light, color: theme.palette.success.contrastText },
@@ -176,7 +176,7 @@ function ListaRegistrazioneCassa() {
         },
       },
       {
-        field: "totalSales",
+        field: "totaleVendite",
         headerName: "Totale Vendite",
         width: 140,
         cellStyle: { backgroundColor: theme.palette.warning.light, color: theme.palette.warning.contrastText },
@@ -184,14 +184,14 @@ function ListaRegistrazioneCassa() {
           const cr = params.data;
           if (!cr) return 0;
           // Totale Vendite = (Totale Cassa - Apertura) + Elettronico
-          return (cr.closingTotal || 0) - (cr.openingTotal || 0) + (cr.electronicPayments || 0);
+          return (cr.totaleChiusura || 0) - (cr.totaleApertura || 0) + (cr.incassiElettronici || 0);
         },
         valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => {
           return `€ ${params.value?.toFixed(2) || "0.00"}`;
         },
       },
       {
-        field: "invoicePayments",
+        field: "incassiFattura",
         headerName: "Pagamenti Fattura",
         width: 150,
         valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => {
@@ -199,51 +199,51 @@ function ListaRegistrazioneCassa() {
         },
       },
       {
-        field: "totalExpenses",
+        colId: "speseTotali",
         headerName: "Spese Totali",
         width: 130,
         cellStyle: { backgroundColor: theme.palette.error.light, color: theme.palette.error.contrastText },
         valueGetter: (params: ValueGetterParams<RegistroCassaWithStatus>) => {
           const cr = params.data;
           if (!cr) return 0;
-          return (cr.supplierExpenses || 0) + (cr.dailyExpenses || 0);
+          return (cr.speseFornitori || 0) + (cr.speseGiornaliere || 0);
         },
         valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => {
           return `€ ${params.value?.toFixed(2) || "0.00"}`;
         },
       },
       {
-        field: "ecc",
+        colId: "ecc",
         headerName: "ECC",
         width: 120,
         valueGetter: (params: ValueGetterParams<RegistroCassaWithStatus>) => {
           const cr = params.data;
           if (!cr) return 0;
           // ECC = Totale Vendite - Pago in contanti - Elettronico
-          const totalSales = (cr.closingTotal || 0) - (cr.openingTotal || 0) + (cr.electronicPayments || 0);
-          return totalSales - (cr.cashInWhite || 0) - (cr.electronicPayments || 0);
+          const totalSales = (cr.totaleChiusura || 0) - (cr.totaleApertura || 0) + (cr.incassiElettronici || 0);
+          return totalSales - (cr.incassoContanteTracciato || 0) - (cr.incassiElettronici || 0);
         },
         valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => {
           return `€ ${params.value?.toFixed(2) || "0.00"}`;
         },
       },
       {
-        field: "status",
+        field: "stato",
         headerName: "Stato",
         width: 120,
         valueGetter: (params: ValueGetterParams<RegistroCassaWithStatus>) => {
           const cr = params.data;
-          if (!cr || !cr.status) return "DRAFT";
-          // Se status è un numero, converti a stringa corrispondente
-          if (typeof cr.status === "number") {
+          if (!cr || !cr.stato) return "DRAFT";
+          // Se stato è un numero, converti a stringa corrispondente
+          if (typeof cr.stato === "number") {
             const statusMap: Record<number, string> = {
               0: "DRAFT",
               1: "CLOSED",
               2: "RECONCILED",
             };
-            return statusMap[cr.status] || "DRAFT";
+            return statusMap[cr.stato] || "DRAFT";
           }
-          return cr.status;
+          return cr.stato;
         },
         cellRenderer: (params: ICellRendererParams<RegistroCassaWithStatus>) => {
           const statusColors: Record<string, "default" | "success" | "primary"> = {

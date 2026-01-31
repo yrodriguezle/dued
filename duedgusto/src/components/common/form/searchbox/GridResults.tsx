@@ -62,7 +62,7 @@ function GridResults<T extends Record<string, unknown>>({ loading, items, column
       // Estrai dati originali rimuovendo il campo status
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { status, ...originalData } = params.data;
-      onSelectedItem(originalData as T, params as unknown as RowDoubleClickedEvent<T>);
+      onSelectedItem(originalData as unknown as T, params as unknown as RowDoubleClickedEvent<T>);
     },
     [onSelectedItem]
   );
@@ -77,7 +77,7 @@ function GridResults<T extends Record<string, unknown>>({ loading, items, column
         // Estrai dati originali rimuovendo il campo status
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { status, ...originalData } = params.data;
-        onSelectedItem(originalData as T, params as unknown as CellKeyDownEvent<T>);
+        onSelectedItem(originalData as unknown as T, params as unknown as CellKeyDownEvent<T>);
       }
     },
     [onSelectedItem]

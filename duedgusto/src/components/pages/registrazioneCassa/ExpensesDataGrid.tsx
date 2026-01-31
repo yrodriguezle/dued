@@ -91,7 +91,7 @@ const ExpensesDataGrid = forwardRef<GridReadyEvent<DatagridData<Expense>>, Expen
           },
         }}
       >
-        <Datagrid
+        <Datagrid<Expense>
           height="300px"
           items={items}
           columnDefs={columnDefs}
