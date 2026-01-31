@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { useNavigate } from "react-router";
-import { Alert, Box, useMediaQuery, useTheme } from "@mui/material";
+import { Alert, Box, Card, useMediaQuery, useTheme } from "@mui/material";
 
 import useProgress from "../common/progress/useProgress";
 import useSignIn from "../../graphql/utente/useSignIn";
@@ -47,12 +47,13 @@ function AuthSignIn() {
   );
 
   return (
-    <div
+    <Card
       className="login-card"
-      style={{
-        backgroundColor: theme.palette.mode === "dark" ? theme.palette.grey[800] : theme.palette.grey[50],
+      sx={{
         minWidth: matchDownSm ? "90%" : undefined,
         width: matchDownSm ? "90%" : undefined,
+        p: 3,
+        borderRadius: 2,
       }}
     >
       <Box
@@ -83,7 +84,7 @@ function AuthSignIn() {
         </Box>
         <Copyright />
       </Box>
-    </div>
+    </Card>
   );
 }
 
