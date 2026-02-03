@@ -4,7 +4,6 @@ import {
   purchaseInvoiceFragment,
   deliveryNoteFragment,
   supplierPaymentFragment,
-  monthlyClosureFragment,
 } from "./fragments";
 
 // ============ SUPPLIER MUTATIONS ============
@@ -171,65 +170,4 @@ export const mutationDeleteSupplierPayment: TypedDocumentNode<DeleteSupplierPaym
   }
 `;
 
-// ============ MONTHLY CLOSURE MUTATIONS ============
-
-interface MutazioneChiusuraMensileData {
-  monthlyClosures: {
-    mutazioneChiusuraMensile: ChiusuraMensile;
-  };
-}
-
-interface MutazioneChiusuraMensileVariables {
-  chiusura: ChiusuraMensileInput;
-}
-
-export const mutationMutazioneChiusuraMensile: TypedDocumentNode<MutazioneChiusuraMensileData, MutazioneChiusuraMensileVariables> = gql`
-  ${monthlyClosureFragment}
-  mutation MutazioneChiusuraMensile($chiusura: ChiusuraMensileInput!) {
-    monthlyClosures {
-      mutazioneChiusuraMensile(chiusura: $chiusura) {
-        ...ChiusuraMensileFragment
-      }
-    }
-  }
-`;
-
-interface ChiudiChiusuraMensileData {
-  monthlyClosures: {
-    chiudiChiusuraMensile: ChiusuraMensile;
-  };
-}
-
-interface ChiudiChiusuraMensileVariables {
-  chiusuraId: number;
-}
-
-export const mutationChiudiChiusuraMensile: TypedDocumentNode<ChiudiChiusuraMensileData, ChiudiChiusuraMensileVariables> = gql`
-  ${monthlyClosureFragment}
-  mutation ChiudiChiusuraMensile($chiusuraId: Int!) {
-    monthlyClosures {
-      chiudiChiusuraMensile(chiusuraId: $chiusuraId) {
-        ...ChiusuraMensileFragment
-      }
-    }
-  }
-`;
-
-interface EliminaChiusuraMensileData {
-  monthlyClosures: {
-    eliminaChiusuraMensile: boolean;
-  };
-}
-
-interface EliminaChiusuraMensileVariables {
-  chiusuraId: number;
-}
-
-export const mutationEliminaChiusuraMensile: TypedDocumentNode<EliminaChiusuraMensileData, EliminaChiusuraMensileVariables> = gql`
-  mutation EliminaChiusuraMensile($chiusuraId: Int!) {
-    monthlyClosures {
-      eliminaChiusuraMensile(chiusuraId: $chiusuraId)
-    }
-  }
-`;
 

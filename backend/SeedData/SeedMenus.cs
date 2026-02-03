@@ -505,7 +505,7 @@ public static class SeedMenus
                 Visibile = true,
                 Posizione = 3,
                 NomeVista = "MonthlyClosureList",
-                PercorsoFile = "cashRegister/MonthlyClosureList.tsx",
+                PercorsoFile = "registrazioneCassa/MonthlyClosureList.tsx",
                 MenuPadre = cassaMenu,
                 Ruoli = [superAdminRuolo]
             };
@@ -515,7 +515,7 @@ public static class SeedMenus
         {
             bool needsUpdate = false;
             UpdateMenuIfNeeded(cassaChild2, "Chiusura Mensile", "/gestionale/cassa/monthly-closure", "CalendarMonth", true, 3,
-                "MonthlyClosureList", "cashRegister/MonthlyClosureList.tsx", superAdminRuolo, cassaMenu, ref needsUpdate);
+                "MonthlyClosureList", "registrazioneCassa/MonthlyClosureList.tsx", superAdminRuolo, cassaMenu, ref needsUpdate);
             if (needsUpdate)
             {
                 dbContext.Menus.Update(cassaChild2);
@@ -546,7 +546,7 @@ public static class SeedMenus
                 Visibile = true,
                 Posizione = 4,
                 NomeVista = "CashRegisterDetails",
-                PercorsoFile = "cashRegister/CashRegisterDetails.tsx",
+                PercorsoFile = "registrazioneCassa/CashRegisterDetails.tsx",
                 MenuPadre = cassaMenu,
                 Ruoli = [superAdminRuolo]
             };
@@ -556,7 +556,7 @@ public static class SeedMenus
         {
             bool needsUpdate = false;
             UpdateMenuIfNeeded(cassaChild4, "Gestione Cassa", "/gestionale/cassa/details", "Edit", true, 4,
-                "CashRegisterDetails", "cashRegister/CashRegisterDetails.tsx", superAdminRuolo, cassaMenu, ref needsUpdate);
+                "CashRegisterDetails", "registrazioneCassa/CashRegisterDetails.tsx", superAdminRuolo, cassaMenu, ref needsUpdate);
             if (needsUpdate)
             {
                 dbContext.Menus.Update(cassaChild4);

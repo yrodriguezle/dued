@@ -1,14 +1,46 @@
 import { gql } from "@apollo/client";
 
-export const spesaMensileFragment = gql`
-  fragment SpesaMensileFragment on SpesaMensile {
+export const spesaMensileLiberaFragment = gql`
+  fragment SpesaMensileLiberaFragment on SpesaMensileLibera {
     spesaId
     chiusuraId
-    pagamentoId
     descrizione
     importo
     categoria
     creatoIl
+    aggiornatoIl
+  }
+`;
+
+export const registroCassaMensileFragment = gql`
+  fragment RegistroCassaMensileFragment on RegistroCassaMensile {
+    chiusuraId
+    registroId
+    incluso
+    registro {
+      id
+      data
+      totaleVendite
+      incassoContanteTracciato
+      incassiElettronici
+      incassiFattura
+      stato
+    }
+  }
+`;
+
+export const pagamentoMensileFornitoriFragment = gql`
+  fragment PagamentoMensileFornitoriFragment on PagamentoMensileFornitori {
+    chiusuraId
+    pagamentoId
+    inclusoInChiusura
+    pagamento {
+      pagamentoId
+      dataPagamento
+      importo
+      metodoPagamento
+      note
+    }
   }
 `;
 
@@ -18,23 +50,38 @@ export const chiusuraMensileFragment = gql`
     anno
     mese
     ultimoGiornoLavorativo
-    ricavoTotale
-    totaleContanti
-    totaleElettronici
-    totaleFatture
-    speseAggiuntive
-    ricavoNetto
+
+    ricavoTotaleCalcolato
+    totaleContantiCalcolato
+    totaleElettroniciCalcolato
+    totaleFattureCalcolato
+    speseAggiuntiveCalcolate
+    ricavoNettoCalcolato
+
     stato
     note
+    chiusaDa
     chiusaIl
     creatoIl
+    aggiornatoIl
     chiusaDaUtente {
       id
       nomeUtente
     }
-    spese {
-      ...SpesaMensileFragment
+
+    registriInclusi {
+      ...RegistroCassaMensileFragment
+    }
+
+    speseLibere {
+      ...SpesaMensileLiberaFragment
+    }
+
+    pagamentiInclusi {
+      ...PagamentoMensileFornitoriFragment
     }
   }
-  ${spesaMensileFragment}
+  ${registroCassaMensileFragment}
+  ${spesaMensileLiberaFragment}
+  ${pagamentoMensileFornitoriFragment}
 `;

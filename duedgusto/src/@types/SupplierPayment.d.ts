@@ -9,7 +9,6 @@ type SupplierPayment = {
   amount: number;
   paymentMethod?: string | null;
   notes?: string | null;
-  monthlyExpenses?: MonthlyExpense[];
   createdAt: string;
   updatedAt: string;
 };

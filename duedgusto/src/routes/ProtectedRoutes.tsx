@@ -7,6 +7,8 @@ import useStore from "../store/useStore";
 import { loadDynamicComponent } from "./dynamicComponentLoader";
 
 const HomePage = React.lazy(() => import("../components/pages/dashboard/HomePage.tsx"));
+const MonthlyClosureForm = React.lazy(() => import("../components/pages/registrazioneCassa/MonthlyClosureForm.tsx"));
+const MonthlyClosureDetails = React.lazy(() => import("../components/pages/registrazioneCassa/MonthlyClosureDetails.tsx"));
 
 function ProtectedRoutes() {
   const utente = useStore((store) => store.utente);
@@ -31,6 +33,16 @@ function ProtectedRoutes() {
           </Suspense>
         } />
         <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="cassa/monthly-closure/new" element={
+          <Suspense fallback={<Fallback />}>
+            <MonthlyClosureForm />
+          </Suspense>
+        } />
+        <Route path="cassa/monthly-closure/:id" element={
+          <Suspense fallback={<Fallback />}>
+            <MonthlyClosureDetails />
+          </Suspense>
+        } />
         {menuRoutes
           .filter((menu) => menu?.percorso && menu?.percorsoFile)
           .map((menu) => {

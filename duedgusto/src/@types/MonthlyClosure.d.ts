@@ -1,16 +1,38 @@
 // src/@types/MonthlyClosure.d.ts
 
-type MonthlyExpense = {
-  __typename: "SpesaMensile";
+type CategoriaSpesa = "Affitto" | "Utenze" | "Stipendi" | "Altro";
+
+type SpesaMensileLibera = {
+  __typename: "SpesaMensileLibera";
   spesaId: number;
   chiusuraId: number;
-  pagamentoId: number | null;
-  pagamento: SupplierPayment | null;
   descrizione: string;
   importo: number;
-  categoria: string | null;
+  categoria: CategoriaSpesa;
   creatoIl: string;
   aggiornatoIl: string;
+};
+
+type RegistroCassaMensile = {
+  __typename: "RegistroCassaMensile";
+  chiusuraId: number;
+  registroId: number;
+  incluso: boolean;
+  registro: CashRegister;
+};
+
+type PagamentoMensileFornitori = {
+  __typename: "PagamentoMensileFornitori";
+  chiusuraId: number;
+  pagamentoId: number;
+  inclusoInChiusura: boolean;
+  pagamento: {
+    pagamentoId: number;
+    dataPagamento: string;
+    importo: number;
+    metodoPagamento: string | null;
+    note: string | null;
+  };
 };
 
 type ChiusuraMensile = {
@@ -20,18 +42,18 @@ type ChiusuraMensile = {
   mese: number;
   ultimoGiornoLavorativo: string;
 
-  // Riepilogo incassi
-  ricavoTotale: number | null;
-  totaleContanti: number | null;
-  totaleElettronici: number | null;
-  totaleFatture: number | null;
+  // Proprietà calcolate (compute on-the-fly dal backend)
+  ricavoTotaleCalcolato: number;
+  totaleContantiCalcolato: number;
+  totaleElettroniciCalcolato: number;
+  totaleFattureCalcolato: number;
+  speseAggiuntiveCalcolate: number;
+  ricavoNettoCalcolato: number;
 
-  // Spese mensili
-  speseAggiuntive: number | null;
-  spese: MonthlyExpense[];
-
-  // Totali finali
-  ricavoNetto: number | null;
+  // Relazioni
+  registriInclusi: RegistroCassaMensile[];
+  speseLibere: SpesaMensileLibera[];
+  pagamentiInclusi: PagamentoMensileFornitori[];
 
   stato: "BOZZA" | "CHIUSA" | "RICONCILIATA";
   note: string | null;
@@ -40,22 +62,4 @@ type ChiusuraMensile = {
   chiusaIl: string | null;
   creatoIl: string;
   aggiornatoIl: string;
-};
-
-type ChiusuraMensileInput = {
-  chiusuraId?: number;
-  anno: number;
-  mese: number;
-  ultimoGiornoLavorativo: string;
-  note?: string;
-  stato?: string;
-  spese?: SpesaMensileInput[];
-};
-
-type SpesaMensileInput = {
-  spesaId?: number;
-  pagamentoId?: number;
-  descrizione: string;
-  importo: number;
-  categoria?: string;
 };

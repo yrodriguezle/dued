@@ -13,7 +13,6 @@ using duedgusto.GraphQL;
 using duedgusto.DataAccess;
 using duedgusto.GraphQL.Authentication;
 using duedgusto.Services.Jwt;
-using duedgusto.Services.Csrf;
 using duedgusto.Services.HashPassword;
 using duedgusto.Services.ChiusureMensili;
 using duedgusto.Middleware;
@@ -27,7 +26,6 @@ builder.Services.AddHttpContextAccessor();
 
 // Add services to the container.
 builder.Services.AddTransient<PasswordService>();
-builder.Services.AddScoped<CsrfTokenGenerator>();
 
 // ChiusureMensili Services (modello referenziale puro)
 builder.Services.AddScoped<ChiusuraMensileService>();

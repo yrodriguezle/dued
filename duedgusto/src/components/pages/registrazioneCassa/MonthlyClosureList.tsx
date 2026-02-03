@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { Box, Typography, List, ListItem, ListItemButton, ListItemText, CircularProgress, Alert, Select, MenuItem, FormControl, InputLabel, SelectChangeEvent } from '@mui/material';
+import { Box, Typography, List, ListItem, ListItemButton, ListItemText, CircularProgress, Alert, Select, MenuItem, FormControl, InputLabel, SelectChangeEvent, Button } from '@mui/material';
 import { useNavigate } from 'react-router';
 import { useQueryChiusureMensili } from '../../../graphql/chiusureMensili/queries';
 import PageTitleContext from '../../layout/headerBar/PageTitleContext';
@@ -30,6 +30,10 @@ const MonthlyClosureList: React.FC = () => {
         <Box sx={{ padding: 3 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h4">Chiusure Mensili</Typography>
+                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                    <Button variant="contained" onClick={() => navigate('/gestionale/cassa/monthly-closure/new')}>
+                        Nuova Chiusura
+                    </Button>
                 <FormControl sx={{ minWidth: 120 }}>
                     <InputLabel id="year-select-label">Anno</InputLabel>
                     <Select
@@ -44,6 +48,7 @@ const MonthlyClosureList: React.FC = () => {
                         ))}
                     </Select>
                 </FormControl>
+                </Box>
             </Box>
 
             {loading && <CircularProgress />}
@@ -61,7 +66,7 @@ const MonthlyClosureList: React.FC = () => {
                                 <ListItemButton onClick={() => handleNavigateToDetails(closure)}>
                                     <ListItemText
                                         primary={`Chiusura di ${dayjs().month(closure.mese - 1).format('MMMM')} ${closure.anno}`}
-                                        secondary={`Stato: ${closure.stato} - Ricavo Netto: €${closure.ricavoNetto?.toFixed(2) ?? 'N/A'}`}
+                                        secondary={`Stato: ${closure.stato} - Ricavo Netto: €${closure.ricavoNettoCalcolato.toFixed(2)}`}
                                     />
                                 </ListItemButton>
                             </ListItem>

@@ -9,7 +9,6 @@ using duedgusto.Models;
 using duedgusto.DataAccess;
 using duedgusto.GraphQL.Authentication;
 using duedgusto.Services.Jwt;
-using duedgusto.Services.Csrf;
 using duedgusto.Services.HashPassword;
 
 namespace duedgusto.Controllers;
@@ -17,7 +16,7 @@ namespace duedgusto.Controllers;
 [Authorize]
 [Route("api/[controller]")]
 [ApiController]
-public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper, CsrfTokenGenerator csrfTokenGenerator, IWebHostEnvironment env) : ControllerBase
+public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper, IWebHostEnvironment env) : ControllerBase
 {
     [HttpPost("signin"), AllowAnonymous]
     public async Task<IActionResult> SignIn([FromBody] SignInRequest request)

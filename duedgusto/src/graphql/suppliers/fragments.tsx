@@ -66,38 +66,3 @@ export const supplierPaymentFragment = `
     updatedAt
   }`;
 
-export const monthlyExpenseFragment = `
-  ${supplierPaymentFragment}
-  fragment MonthlyExpenseFragment on MonthlyExpense {
-    expenseId
-    closureId
-    paymentId
-    payment { ...SupplierPaymentFragment }
-    description
-    amount
-    category
-    createdAt
-    updatedAt
-  }`;
-
-export const monthlyClosureFragment = `
-  ${monthlyExpenseFragment}
-  fragment MonthlyClosureFragment on MonthlyClosure {
-    closureId
-    year
-    month
-    lastWorkingDay
-    totalRevenue
-    totalCash
-    totalElectronic
-    totalInvoices
-    additionalExpenses
-    netRevenue
-    closureStatus: status
-    notes
-    closedBy
-    closedAt
-    createdAt
-    updatedAt
-    expenses { ...MonthlyExpenseFragment }
-  }`;

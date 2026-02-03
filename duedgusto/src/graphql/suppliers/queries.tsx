@@ -4,8 +4,6 @@ import {
   purchaseInvoiceFragment,
   deliveryNoteFragment,
   supplierPaymentFragment,
-  monthlyClosureFragment,
-  monthlyExpenseFragment,
 } from "./fragments";
 
 // Get all suppliers
@@ -186,91 +184,3 @@ export const getSupplierPaymentsConnection = gql(`
     }
   }`);
 
-// Get monthly closures with pagination
-export const getChiusuraMensilesConnection = gql(`
-  ${monthlyClosureFragment}
-  query GetChiusuraMensilesConnection($pageSize: Int!, $where: String, $orderBy: String, $cursor: Int) {
-    connection {
-      monthlyClosures(first: $pageSize, where: $where, orderBy: $orderBy, cursor: $cursor) {
-        totalCount
-        pageInfo {
-          hasNextPage
-          endCursor
-          hasPreviousPage
-          startCursor
-        }
-        edges {
-          node {
-            ...ChiusuraMensileFragment
-          }
-          cursor
-        }
-      }
-    }
-  }`);
-
-// Get single monthly closure
-interface GetChiusuraMensileData {
-  monthlyClosures: {
-    monthlyClosure: ChiusuraMensile;
-  };
-}
-
-interface GetChiusuraMensileVariables {
-  year: number;
-  month: number;
-}
-
-export const getChiusuraMensile: TypedDocumentNode<GetChiusuraMensileData, GetChiusuraMensileVariables> = gql(`
-  ${monthlyClosureFragment}
-  query GetChiusuraMensile($year: Int!, $month: Int!) {
-    monthlyClosures {
-      monthlyClosure(year: $year, month: $month) {
-        ...ChiusuraMensileFragment
-      }
-    }
-  }`);
-
-// Get monthly closure by ID
-interface GetChiusuraMensileByIdData {
-  monthlyClosures: {
-    monthlyClosureById: ChiusuraMensile;
-  };
-}
-
-interface GetChiusuraMensileByIdVariables {
-  closureId: number;
-}
-
-export const getChiusuraMensileById: TypedDocumentNode<GetChiusuraMensileByIdData, GetChiusuraMensileByIdVariables> = gql(`
-  ${monthlyClosureFragment}
-  query GetChiusuraMensileById($closureId: Int!) {
-    monthlyClosures {
-      monthlyClosureById(closureId: $closureId) {
-        ...ChiusuraMensileFragment
-      }
-    }
-  }`);
-
-// Get monthly expenses with pagination
-export const getMonthlyExpensesConnection = gql(`
-  ${monthlyExpenseFragment}
-  query GetMonthlyExpensesConnection($pageSize: Int!, $where: String, $orderBy: String, $cursor: Int) {
-    connection {
-      monthlyExpenses(first: $pageSize, where: $where, orderBy: $orderBy, cursor: $cursor) {
-        totalCount
-        pageInfo {
-          hasNextPage
-          endCursor
-          hasPreviousPage
-          startCursor
-        }
-        edges {
-          node {
-            ...MonthlyExpenseFragment
-          }
-          cursor
-        }
-      }
-    }
-  }`);
