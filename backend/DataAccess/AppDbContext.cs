@@ -40,6 +40,11 @@ public class AppDbContext : DbContext
     public DbSet<ChiusuraMensile> ChiusureMensili { get; set; }
     public DbSet<SpesaMensile> SpeseMensili { get; set; }
 
+    // Monthly Closure - New Referential Model
+    public DbSet<RegistroCassaMensile> RegistriCassaMensili { get; set; }
+    public DbSet<SpesaMensileLibera> SpeseMensiliLibere { get; set; }
+    public DbSet<PagamentoMensileFornitori> PagamentiMensiliFornitori { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (!optionsBuilder.IsConfigured)
@@ -777,6 +782,14 @@ public class AppDbContext : DbContext
 
             // Indice su Stato per filtri
             entity.HasIndex(x => x.Stato);
+
+            // Ignorare proprietà calcolate (NotMapped)
+            entity.Ignore(e => e.RicavoTotaleCalcolato);
+            entity.Ignore(e => e.TotaleContantiCalcolato);
+            entity.Ignore(e => e.TotaleElettroniciCalcolato);
+            entity.Ignore(e => e.TotaleFattureCalcolato);
+            entity.Ignore(e => e.SpeseAggiuntiveCalcolate);
+            entity.Ignore(e => e.RicavoNettoCalcolato);
         });
 
         modelBuilder.Entity<SpesaMensile>(entity =>
@@ -826,6 +839,108 @@ public class AppDbContext : DbContext
 
             // Indice su Categoria per filtri
             entity.HasIndex(x => x.Categoria);
+        });
+
+        // ✅ NEW REFERENTIAL MODEL CONFIGURATIONS
+
+        // RegistroCassaMensile (Join Table)
+        modelBuilder.Entity<RegistroCassaMensile>(entity =>
+        {
+            entity.ToTable("RegistriCassaMensili")
+                .HasCharSet("utf8mb4")
+                .UseCollation("utf8mb4_unicode_ci");
+
+            // Chiave composita
+            entity.HasKey(e => new { e.ChiusuraId, e.RegistroId });
+
+            entity.Property(e => e.Incluso)
+                .HasDefaultValue(true);
+
+            entity.HasOne(e => e.Chiusura)
+                .WithMany(c => c.RegistriInclusi)
+                .HasForeignKey(e => e.ChiusuraId)
+                .OnDelete(DeleteBehavior.Restrict); // Impedisce eliminazione chiusura
+
+            entity.HasOne(e => e.Registro)
+                .WithMany()
+                .HasForeignKey(e => e.RegistroId)
+                .OnDelete(DeleteBehavior.Restrict); // Impedisce eliminazione registro incluso
+
+            // Indici per performance
+            entity.HasIndex(e => e.ChiusuraId);
+            entity.HasIndex(e => e.RegistroId);
+        });
+
+        // SpesaMensileLibera
+        modelBuilder.Entity<SpesaMensileLibera>(entity =>
+        {
+            entity.ToTable("SpeseMensiliLibere")
+                .HasCharSet("utf8mb4")
+                .UseCollation("utf8mb4_unicode_ci");
+
+            entity.HasKey(e => e.SpesaId);
+
+            entity.Property(e => e.SpesaId)
+                .ValueGeneratedOnAdd();
+
+            entity.Property(e => e.Descrizione)
+                .HasMaxLength(255)
+                .IsRequired();
+
+            entity.Property(e => e.Importo)
+                .HasColumnType("decimal(10,2)")
+                .IsRequired();
+
+            // Enum to string conversion
+            entity.Property(e => e.Categoria)
+                .HasConversion<string>()
+                .HasMaxLength(20)
+                .IsRequired();
+
+            entity.Property(e => e.CreatoIl)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.Property(e => e.AggiornatoIl)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+
+            entity.HasOne(e => e.Chiusura)
+                .WithMany(c => c.SpeseLibere)
+                .HasForeignKey(e => e.ChiusuraId)
+                .OnDelete(DeleteBehavior.Cascade); // Elimina in cascata
+
+            // Indici per performance
+            entity.HasIndex(e => e.ChiusuraId);
+            entity.HasIndex(e => e.Categoria);
+        });
+
+        // PagamentoMensileFornitori (Join Table)
+        modelBuilder.Entity<PagamentoMensileFornitori>(entity =>
+        {
+            entity.ToTable("PagamentiMensiliFornitori")
+                .HasCharSet("utf8mb4")
+                .UseCollation("utf8mb4_unicode_ci");
+
+            // Chiave composita
+            entity.HasKey(e => new { e.ChiusuraId, e.PagamentoId });
+
+            entity.Property(e => e.InclusoInChiusura)
+                .HasDefaultValue(true);
+
+            entity.HasOne(e => e.Chiusura)
+                .WithMany(c => c.PagamentiInclusi)
+                .HasForeignKey(e => e.ChiusuraId)
+                .OnDelete(DeleteBehavior.Restrict); // Impedisce eliminazione chiusura
+
+            entity.HasOne(e => e.Pagamento)
+                .WithMany()
+                .HasForeignKey(e => e.PagamentoId)
+                .OnDelete(DeleteBehavior.Restrict); // Impedisce eliminazione pagamento
+
+            // Indici per performance
+            entity.HasIndex(e => e.ChiusuraId);
+            entity.HasIndex(e => e.PagamentoId);
         });
     }
 }
