@@ -9,6 +9,7 @@ using duedgusto.DataAccess;
 using duedgusto.GraphQL.Authentication;
 using duedgusto.Services.Jwt;
 using duedgusto.GraphQL.ChiusureMensili.Types;
+using duedgusto.Services.ChiusureMensili;
 
 namespace duedgusto.GraphQL.MonthlyClosures;
 
@@ -18,140 +19,135 @@ public class MonthlyClosuresMutations : ObjectGraphType
     {
         this.Authorize();
 
-        // Create or Update Monthly Closure
-        Field<ChiusuraMensileType>("mutazioneChiusuraMensile")
-            .Argument<NonNullGraphType<ChiusuraMensileInputType>>("chiusura", "Dati della chiusura mensile")
+        // ✅ NUOVE MUTATIONS (modello referenziale puro con ChiusuraMensileService)
+
+        // Crea chiusura mensile con validazione completezza registri
+        Field<ChiusuraMensileType>("creaChiusuraMensile")
+            .Description("Crea una nuova chiusura mensile con validazione automatica completezza registri")
+            .Argument<NonNullGraphType<IntGraphType>>("anno", "Anno della chiusura (es. 2026)")
+            .Argument<NonNullGraphType<IntGraphType>>("mese", "Mese della chiusura (1-12)")
             .ResolveAsync(async context =>
             {
-                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
-                ChiusuraMensileInput input = context.GetArgument<ChiusuraMensileInput>("chiusura");
+                var service = GraphQLService.GetService<ChiusuraMensileService>(context);
+                int anno = context.GetArgument<int>("anno");
+                int mese = context.GetArgument<int>("mese");
 
-                ChiusuraMensile? closure = null;
-
-                if (input.ChiusuraId.HasValue)
+                try
                 {
-                    // Update existing closure
-                    closure = await dbContext.ChiusureMensili
-                        .Include(c => c.Spese)
-                        .FirstOrDefaultAsync(c => c.ChiusuraId == input.ChiusuraId.Value);
-
-                    if (closure == null)
-                    {
-                        throw new ExecutionError($"Chiusura mensile con ID {input.ChiusuraId} non trovata.");
-                    }
+                    var chiusura = await service.CreaChiusuraAsync(anno, mese);
+                    return chiusura;
                 }
-                else
+                catch (InvalidOperationException ex)
                 {
-                    // Check if closure already exists for this year/month
-                    closure = await dbContext.ChiusureMensili
-                        .FirstOrDefaultAsync(c => c.Anno == input.Anno && c.Mese == input.Mese);
-
-                    if (closure == null)
-                    {
-                        // Create new closure
-                        closure = new ChiusuraMensile();
-                        dbContext.ChiusureMensili.Add(closure);
-                    }
+                    throw new ExecutionError(ex.Message);
                 }
-
-                // Update basic fields
-                closure.Anno = input.Anno;
-                closure.Mese = input.Mese;
-                closure.UltimoGiornoLavorativo = input.UltimoGiornoLavorativo;
-                closure.Note = input.Note;
-                closure.Stato = input.Stato;
-                closure.AggiornatoIl = DateTime.UtcNow;
-
-                // Handle expenses
-                if (input.Spese != null)
-                {
-                    var existingExpenseIds = closure.Spese.Select(e => e.SpesaId).ToList();
-                    var inputExpenseIds = input.Spese.Where(e => e.SpesaId.HasValue).Select(e => e.SpesaId!.Value).ToList();
-                    var expensesToDelete = closure.Spese.Where(e => !inputExpenseIds.Contains(e.SpesaId)).ToList();
-                    
-                    dbContext.SpeseMensili.RemoveRange(expensesToDelete);
-
-                    foreach (var expenseInput in input.Spese)
-                    {
-                        SpesaMensile? expense = null;
-                        if (expenseInput.SpesaId.HasValue)
-                        {
-                            expense = closure.Spese.FirstOrDefault(e => e.SpesaId == expenseInput.SpesaId.Value);
-                        }
-
-                        if (expense == null)
-                        {
-                            expense = new SpesaMensile { ChiusuraId = closure.ChiusuraId };
-                            closure.Spese.Add(expense);
-                        }
-
-                        expense.Descrizione = expenseInput.Descrizione;
-                        expense.Importo = expenseInput.Importo;
-                        expense.Categoria = expenseInput.Categoria;
-                        expense.PagamentoId = expenseInput.PagamentoId;
-                        expense.AggiornatoIl = DateTime.UtcNow;
-                    }
-                }
-
-                // Calculate totals from cash registers for the month
-                var startDate = new DateTime(input.Anno, input.Mese, 1);
-                var endDate = startDate.AddMonths(1).AddDays(-1);
-
-                var registriCassa = await dbContext.RegistriCassa
-                    .Where(cr => cr.Data >= startDate && cr.Data <= endDate && cr.Stato == "CLOSED")
-                    .ToListAsync();
-
-                closure.RicavoTotale = registriCassa.Sum(cr => cr.TotaleVendite);
-                closure.TotaleContanti = registriCassa.Sum(cr => cr.IncassoContanteTracciato);
-                closure.TotaleElettronici = registriCassa.Sum(cr => cr.IncassiElettronici);
-                closure.TotaleFatture = registriCassa.Sum(cr => cr.IncassiFattura);
-
-                // Recalculate additional expenses AFTER updating the collection
-                closure.SpeseAggiuntive = closure.Spese.Sum(s => s.Importo);
-
-                // Recalculate net revenue
-                closure.RicavoNetto = closure.RicavoTotale - closure.SpeseAggiuntive;
-
-                await dbContext.SaveChangesAsync();
-
-                return closure;
             });
 
-        // Close Monthly Closure (change status to CHIUSA)
+        // Aggiungi spesa libera a chiusura
+        Field<SpesaMensileTyperaType>("aggiungiSpesaLibera")
+            .Description("Aggiunge una spesa libera (affitto, utenze, stipendi) alla chiusura mensile")
+            .Argument<NonNullGraphType<IntGraphType>>("chiusuraId", "ID della chiusura")
+            .Argument<NonNullGraphType<StringGraphType>>("descrizione", "Descrizione della spesa")
+            .Argument<NonNullGraphType<DecimalGraphType>>("importo", "Importo della spesa")
+            .Argument<NonNullGraphType<StringGraphType>>("categoria", "Categoria: Affitto, Utenze, Stipendi, Altro")
+            .ResolveAsync(async context =>
+            {
+                var service = GraphQLService.GetService<ChiusuraMensileService>(context);
+                int chiusuraId = context.GetArgument<int>("chiusuraId");
+                string descrizione = context.GetArgument<string>("descrizione");
+                decimal importo = context.GetArgument<decimal>("importo");
+                string categoriaStr = context.GetArgument<string>("categoria");
+
+                // Parse categoria enum
+                if (!Enum.TryParse<CategoriaSpesa>(categoriaStr, ignoreCase: true, out var categoria))
+                {
+                    throw new ExecutionError($"Categoria non valida: {categoriaStr}. Valori accettati: Affitto, Utenze, Stipendi, Altro");
+                }
+
+                try
+                {
+                    var spesa = await service.AggiungiSpesaLiberaAsync(chiusuraId, descrizione, importo, categoria);
+                    return spesa;
+                }
+                catch (Exception ex)
+                {
+                    throw new ExecutionError(ex.Message);
+                }
+            });
+
+        // Includi pagamento fornitore in chiusura
+        Field<BooleanGraphType>("includiPagamentoFornitore")
+            .Description("Associa un pagamento fornitore alla chiusura mensile")
+            .Argument<NonNullGraphType<IntGraphType>>("chiusuraId", "ID della chiusura")
+            .Argument<NonNullGraphType<IntGraphType>>("pagamentoId", "ID del pagamento fornitore")
+            .ResolveAsync(async context =>
+            {
+                var service = GraphQLService.GetService<ChiusuraMensileService>(context);
+                int chiusuraId = context.GetArgument<int>("chiusuraId");
+                int pagamentoId = context.GetArgument<int>("pagamentoId");
+
+                try
+                {
+                    return await service.IncludiPagamentoFornitoreAsync(chiusuraId, pagamentoId);
+                }
+                catch (Exception ex)
+                {
+                    throw new ExecutionError(ex.Message);
+                }
+            });
+
+        // 🔄 MIGRAZIONE DATI (eseguire una sola volta)
+        Field<StringGraphType>("migraChiusureMensiliVecchioModello")
+            .Description("Migra tutte le chiusure esistenti dal vecchio modello denormalizzato al nuovo modello referenziale. ATTENZIONE: Eseguire una sola volta!")
+            .ResolveAsync(async context =>
+            {
+                var migrazioneService = GraphQLService.GetService<MigrazioneChiusureMensiliService>(context);
+
+                try
+                {
+                    var result = await migrazioneService.MigraDatiAsync();
+                    var report = migrazioneService.GeneraReportMigrazione(result);
+                    return report;
+                }
+                catch (Exception ex)
+                {
+                    throw new ExecutionError($"Errore durante migrazione: {ex.Message}");
+                }
+            });
+
+
+        // Close Monthly Closure (change status to CHIUSA) - AGGIORNATA per usare service
         Field<ChiusuraMensileType>("chiudiChiusuraMensile")
             .Argument<NonNullGraphType<IntGraphType>>("chiusuraId")
             .ResolveAsync(async context =>
             {
-                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                var service = GraphQLService.GetService<ChiusuraMensileService>(context);
                 var userContext = context.UserContext as GraphQLUserContext;
                 JwtHelper jwtHelper = GraphQLService.GetService<JwtHelper>(context);
                 int chiusuraId = context.GetArgument<int>("chiusuraId");
 
-                var closure = await dbContext.ChiusureMensili
-                    .Include(c => c.Spese)
-                    .FirstOrDefaultAsync(c => c.ChiusuraId == chiusuraId);
-
-                if (closure == null)
-                {
-                    throw new ExecutionError($"Chiusura mensile con ID {chiusuraId} non trovata");
-                }
-
-                if (closure.Stato == "CHIUSA" || closure.Stato == "RICONCILIATA")
-                {
-                    throw new ExecutionError("La chiusura mensile è già chiusa.");
-                }
-
-                closure.Stato = "CHIUSA";
+                int? utenteId = null;
                 if (userContext?.Principal != null)
                 {
-                    closure.ChiusaDa = jwtHelper.GetUserID(userContext.Principal);
+                    utenteId = jwtHelper.GetUserID(userContext.Principal);
                 }
-                closure.ChiusaIl = DateTime.UtcNow;
-                closure.AggiornatoIl = DateTime.UtcNow;
 
-                await dbContext.SaveChangesAsync();
+                try
+                {
+                    bool success = await service.ChiudiMensileAsync(chiusuraId, utenteId);
+                    if (!success)
+                    {
+                        throw new ExecutionError($"Chiusura mensile con ID {chiusuraId} non trovata");
+                    }
 
-                return closure;
+                    // Ricarica con relazioni per ritorno
+                    var chiusura = await service.GetChiusuraConRelazioniAsync(chiusuraId);
+                    return chiusura;
+                }
+                catch (InvalidOperationException ex)
+                {
+                    throw new ExecutionError(ex.Message);
+                }
             });
 
         // Delete Monthly Closure
@@ -163,7 +159,9 @@ public class MonthlyClosuresMutations : ObjectGraphType
                 int chiusuraId = context.GetArgument<int>("chiusuraId");
 
                 var closure = await dbContext.ChiusureMensili
-                    .Include(c => c.Spese)
+                    .Include(c => c.SpeseLibere)
+                    .Include(c => c.PagamentiInclusi)
+                    .Include(c => c.RegistriInclusi)
                     .FirstOrDefaultAsync(c => c.ChiusuraId == chiusuraId);
 
                 if (closure == null)

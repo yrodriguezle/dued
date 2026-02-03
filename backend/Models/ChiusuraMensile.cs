@@ -19,32 +19,6 @@ namespace duedgusto.Models
         [Required]
         public DateTime UltimoGiornoLavorativo { get; set; }
 
-        // ⚠️ CAMPI DENORMALIZZATI - OBSOLETI (mantenuti temporaneamente per migrazione)
-        // TODO: Rimuovere dopo completamento migrazione e validazione
-        [Column(TypeName = "decimal(10,2)")]
-        [Obsolete("Usare RicavoTotaleCalcolato (proprietà calcolata)")]
-        public decimal? RicavoTotale { get; set; }
-
-        [Column(TypeName = "decimal(10,2)")]
-        [Obsolete("Usare TotaleContantiCalcolato (proprietà calcolata)")]
-        public decimal? TotaleContanti { get; set; }
-
-        [Column(TypeName = "decimal(10,2)")]
-        [Obsolete("Usare TotaleElettroniciCalcolato (proprietà calcolata)")]
-        public decimal? TotaleElettronici { get; set; }
-
-        [Column(TypeName = "decimal(10,2)")]
-        [Obsolete("Usare TotaleFattureCalcolato (proprietà calcolata)")]
-        public decimal? TotaleFatture { get; set; }
-
-        [Column(TypeName = "decimal(10,2)")]
-        [Obsolete("Usare SpeseAggiuntiveCalcolate (proprietà calcolata)")]
-        public decimal? SpeseAggiuntive { get; set; }
-
-        [Column(TypeName = "decimal(10,2)")]
-        [Obsolete("Usare RicavoNettoCalcolato (proprietà calcolata)")]
-        public decimal? RicavoNetto { get; set; }
-
         [Required]
         [MaxLength(20)]
         public string Stato { get; set; } = "BOZZA"; // BOZZA, CHIUSA, RICONCILIATA
@@ -59,14 +33,11 @@ namespace duedgusto.Models
 
         public DateTime AggiornatoIl { get; set; } = DateTime.UtcNow;
 
-        // Navigation properties (vecchie - mantenute per compatibilità)
+        // Navigation properties
         [ForeignKey("ChiusaDa")]
         public virtual Utente? ChiusaDaUtente { get; set; }
 
-        [Obsolete("Usare SpeseLibere e PagamentiInclusi separati")]
-        public virtual ICollection<SpesaMensile> Spese { get; set; } = [];
-
-        // ✅ NUOVE NAVIGATION PROPERTIES (Modello Referenziale Puro)
+        // ✅ NAVIGATION PROPERTIES (Modello Referenziale Puro)
         /// <summary>
         /// Registri cassa giornalieri inclusi in questa chiusura mensile
         /// </summary>

@@ -735,24 +735,6 @@ public class AppDbContext : DbContext
                 .HasColumnType("date")
                 .IsRequired();
 
-            entity.Property(x => x.RicavoTotale)
-                .HasColumnType("decimal(10,2)");
-
-            entity.Property(x => x.TotaleContanti)
-                .HasColumnType("decimal(10,2)");
-
-            entity.Property(x => x.TotaleElettronici)
-                .HasColumnType("decimal(10,2)");
-
-            entity.Property(x => x.TotaleFatture)
-                .HasColumnType("decimal(10,2)");
-
-            entity.Property(x => x.SpeseAggiuntive)
-                .HasColumnType("decimal(10,2)");
-
-            entity.Property(x => x.RicavoNetto)
-                .HasColumnType("decimal(10,2)");
-
             entity.Property(x => x.Stato)
                 .HasMaxLength(20)
                 .HasDefaultValue("BOZZA");
@@ -782,14 +764,6 @@ public class AppDbContext : DbContext
 
             // Indice su Stato per filtri
             entity.HasIndex(x => x.Stato);
-
-            // Ignorare proprietà calcolate (NotMapped)
-            entity.Ignore(e => e.RicavoTotaleCalcolato);
-            entity.Ignore(e => e.TotaleContantiCalcolato);
-            entity.Ignore(e => e.TotaleElettroniciCalcolato);
-            entity.Ignore(e => e.TotaleFattureCalcolato);
-            entity.Ignore(e => e.SpeseAggiuntiveCalcolate);
-            entity.Ignore(e => e.RicavoNettoCalcolato);
         });
 
         modelBuilder.Entity<SpesaMensile>(entity =>
@@ -822,7 +796,7 @@ public class AppDbContext : DbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
 
             entity.HasOne(x => x.Chiusura)
-                .WithMany(c => c.Spese)
+                .WithMany()
                 .HasForeignKey(x => x.ChiusuraId)
                 .OnDelete(DeleteBehavior.Cascade);
 

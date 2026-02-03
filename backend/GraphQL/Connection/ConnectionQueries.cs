@@ -245,8 +245,11 @@ public class ConnectionQueries : ObjectGraphType
                     {
                         return query
                             .Include(c => c.ChiusaDaUtente)
-                            .Include(c => c.Spese)
-                                .ThenInclude(s => s.Pagamento);
+                            .Include(c => c.RegistriInclusi)
+                                .ThenInclude(r => r.Registro)
+                            .Include(c => c.SpeseLibere)
+                            .Include(c => c.PagamentiInclusi)
+                                .ThenInclude(p => p.Pagamento);
                     });
                 return connection;
             });
