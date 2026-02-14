@@ -48,40 +48,39 @@ function AuthSignIn() {
 
   return (
     <Card
-      className="login-card"
+      elevation={matchDownSm ? 0 : 8}
       sx={{
-        minWidth: matchDownSm ? "90%" : undefined,
-        width: matchDownSm ? "90%" : undefined,
-        p: 3,
-        borderRadius: 2,
+        width: matchDownSm ? "100%" : 420,
+        maxWidth: "100%",
+        mx: matchDownSm ? 2 : 0,
+        borderRadius: 3,
+        overflow: "visible",
       }}
     >
+      <Box sx={{ px: 4, pt: 5, pb: 3 }}>
+        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", mb: 3 }}>
+          <LogoSection variant="h3" />
+        </Box>
+
+        {message && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {message}
+          </Alert>
+        )}
+
+        <AuthSignInForm onSubmit={handleSubmit} />
+      </Box>
+
       <Box
         sx={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          paddingLeft: 2,
-          paddingRight: 2,
-          background: "transparent",
+          px: 4,
+          py: 1.5,
+          borderTop: 1,
+          borderColor: "divider",
+          bgcolor: theme.palette.mode === "dark" ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)",
+          borderRadius: "0 0 12px 12px",
         }}
       >
-        <Box
-          sx={{
-            marginTop: 1,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-          }}
-        >
-          {message ? (
-            <Alert severity="error" sx={{ mb: 2, width: "100%" }}>
-              {message}
-            </Alert>
-          ) : null}
-          <LogoSection />
-          <AuthSignInForm onSubmit={handleSubmit} />
-        </Box>
         <Copyright />
       </Box>
     </Card>

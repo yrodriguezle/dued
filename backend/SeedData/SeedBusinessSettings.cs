@@ -25,7 +25,7 @@ public static class SeedBusinessSettings
                 OperatingDays = "[true,true,true,true,true,false,false]", // Monday-Friday open, Saturday-Sunday closed
                 Timezone = "Europe/Rome",
                 Currency = "EUR",
-                VatRate = 0.22m,
+                VatRate = 0.10m, // Aliquota ridotta per somministrazione alimenti e bevande
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };

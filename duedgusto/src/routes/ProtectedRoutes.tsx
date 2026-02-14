@@ -5,9 +5,12 @@ import Layout from "../components/layout/Layout";
 import { Fallback } from "./RoutesFallback";
 import useStore from "../store/useStore";
 import { loadDynamicComponent } from "./dynamicComponentLoader";
+import { getCurrentDate } from "../common/date/date";
 
 const HomePage = React.lazy(() => import("../components/pages/dashboard/HomePage.tsx"));
 const MonthlyClosureDetails = React.lazy(() => import("../components/pages/registrazioneCassa/MonthlyClosureDetails.tsx"));
+const CashRegisterMonthlyPage = React.lazy(() => import("../components/pages/registrazioneCassa/CashRegisterMonthlyPage.tsx"));
+const CashRegisterDetails = React.lazy(() => import("../components/pages/registrazioneCassa/CashRegisterDetails.tsx"));
 
 function ProtectedRoutes() {
   const utente = useStore((store) => store.utente);
@@ -32,6 +35,12 @@ function ProtectedRoutes() {
           </Suspense>
         } />
         <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="cassa/details" element={<Navigate to={`/gestionale/cassa/${getCurrentDate("YYYY-MM-DD")}`} replace />} />
+        <Route path="cassa/monthly" element={
+          <Suspense fallback={<Fallback />}>
+            <CashRegisterMonthlyPage />
+          </Suspense>
+        } />
         <Route path="cassa/monthly-closure/new" element={
           <Suspense fallback={<Fallback />}>
             <MonthlyClosureDetails />
@@ -42,13 +51,19 @@ function ProtectedRoutes() {
             <MonthlyClosureDetails />
           </Suspense>
         } />
+        <Route path="cassa/:date" element={
+          <Suspense fallback={<Fallback />}>
+            <CashRegisterDetails />
+          </Suspense>
+        } />
         {menuRoutes
           .filter((menu) => menu?.percorso && menu?.percorsoFile)
           .map((menu) => {
             // Convert /gestionale/cassa/details to cassa/details and support dynamic routes
             const routePath = menu?.percorso.replace("/gestionale/", "") || "/";
-            // Support routes with parameters: /gestionale/cassa/details -> cassa/:date
-            const finalPath = routePath === "cassa/details" ? "cassa/:date" : routePath;
+            // Skip cassa/details - handled by dedicated redirect route above
+            if (routePath === "cassa/details") return null;
+            const finalPath = routePath;
             const DynamicComponent = loadDynamicComponent(menu?.percorsoFile || "");
 
             return (

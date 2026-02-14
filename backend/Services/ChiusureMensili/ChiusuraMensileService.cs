@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using duedgusto.Models;
 using duedgusto.DataAccess;
@@ -344,7 +345,11 @@ public class ChiusuraMensileService
             .Where(r => r.Stato == "CLOSED" || r.Stato == "RECONCILED")
             .ToListAsync();
 
-        return ElencoGiorniMancanti(registriMese, primoGiorno, ultimoGiorno);
+        // Carica i giorni operativi da BusinessSettings per filtrare solo i giorni lavorativi
+        var settings = await _dbContext.BusinessSettings.FirstAsync();
+        var operatingDays = JsonSerializer.Deserialize<bool[]>(settings.OperatingDays)!;
+
+        return ElencoGiorniMancanti(registriMese, primoGiorno, ultimoGiorno, operatingDays);
     }
 
     /// <summary>
@@ -390,18 +395,27 @@ public class ChiusuraMensileService
     }
 
     /// <summary>
-    /// Calcola l'elenco dei giorni mancanti confrontando i registri presenti con tutti i giorni del mese.
+    /// Calcola l'elenco dei giorni mancanti confrontando i registri presenti con i giorni operativi del mese.
+    /// Rispetta le impostazioni di OperatingDays: solo i giorni in cui l'attività è aperta vengono considerati.
     /// </summary>
     private List<DateTime> ElencoGiorniMancanti(
         List<RegistroCassa> registri,
         DateTime primoGiorno,
-        DateTime ultimoGiorno)
+        DateTime ultimoGiorno,
+        bool[] operatingDays)
     {
         var giorniPresenti = registri.Select(r => r.Data.Date).ToHashSet();
         var giorniMancanti = new List<DateTime>();
 
         for (var data = primoGiorno; data <= ultimoGiorno; data = data.AddDays(1))
         {
+            // Mappa DayOfWeek (.NET: 0=Sunday) a indice array operatingDays (0=Monday)
+            int operatingDayIndex = ((int)data.DayOfWeek + 6) % 7;
+
+            // Salta i giorni non operativi (es. sabato/domenica se chiusi)
+            if (!operatingDays[operatingDayIndex])
+                continue;
+
             if (!giorniPresenti.Contains(data.Date))
             {
                 giorniMancanti.Add(data);

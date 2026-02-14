@@ -1,6 +1,8 @@
 import { Form, Formik, FormikHelpers } from "formik";
-import { Box } from "@mui/system";
-import { Button } from "@mui/material";
+import { Box, Button, InputAdornment } from "@mui/material";
+import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import LoginIcon from "@mui/icons-material/Login";
 import { z } from "zod";
 
 import FormikTextField from "../common/form/FormikTextField";
@@ -36,20 +38,69 @@ function AuthSignInForm({ onSubmit }: AuthSignInFormProps) {
       }}
       onSubmit={onSubmit}
     >
-      {({ isSubmitting }) => {
-        return (
-          <Form noValidate>
-            <Box sx={{ mt: 1 }}>
-              <FormikTextField label="Nome utente:" placeholder="Nome utente" name="username" margin="normal" autoComplete="off" autoFocus required fullWidth />
-              <FormikTextField label="Password:" placeholder="Password" name="password" type="password" margin="normal" autoComplete="off" required fullWidth />
-              <FormikCheckbox label="Rimani connesso" name="alwaysConnected" />
-              <Button type="submit" fullWidth variant="contained" sx={{ mt: 2, mb: 2 }} disabled={isSubmitting}>
-                Connetti
-              </Button>
-            </Box>
-          </Form>
-        );
-      }}
+      {({ isSubmitting }) => (
+        <Form noValidate>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <FormikTextField
+              label="Nome utente"
+              placeholder="Inserisci il nome utente"
+              name="username"
+              autoComplete="off"
+              autoFocus
+              required
+              fullWidth
+              size="medium"
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <PersonOutlineIcon color="action" />
+                    </InputAdornment>
+                  ),
+                },
+              }}
+            />
+            <FormikTextField
+              label="Password"
+              placeholder="Inserisci la password"
+              name="password"
+              type="password"
+              autoComplete="off"
+              required
+              fullWidth
+              size="medium"
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <LockOutlinedIcon color="action" />
+                    </InputAdornment>
+                  ),
+                },
+              }}
+            />
+            <FormikCheckbox label="Rimani connesso" name="alwaysConnected" />
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              size="large"
+              disabled={isSubmitting}
+              startIcon={<LoginIcon />}
+              sx={{
+                mt: 1,
+                py: 1.2,
+                fontWeight: 600,
+                fontSize: "0.95rem",
+                textTransform: "none",
+                borderRadius: 2,
+              }}
+            >
+              Accedi
+            </Button>
+          </Box>
+        </Form>
+      )}
     </Formik>
   );
 }

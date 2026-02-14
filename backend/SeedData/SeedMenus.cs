@@ -108,7 +108,7 @@ public static class SeedMenus
                 Percorso = string.Empty,
                 Icona = "Group",
                 Visibile = true,
-                Posizione = 3,
+                Posizione = 4,
                 Ruoli = [superAdminRuolo]
             };
             dbContext.Menus.Add(utentiMenu);
@@ -117,7 +117,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(utentiMenu, "Utenti", null, "Group", true, 3, null, null, superAdminRuolo, null, ref needsUpdate);
+            UpdateMenuIfNeeded(utentiMenu, "Utenti", null, "Group", true, 4, null, null, superAdminRuolo, null, ref needsUpdate);
             if (needsUpdate)
             {
                 dbContext.Menus.Update(utentiMenu);
@@ -201,7 +201,7 @@ public static class SeedMenus
                 Percorso = string.Empty,
                 Icona = "Engineering",
                 Visibile = true,
-                Posizione = 4,
+                Posizione = 5,
                 Ruoli = [superAdminRuolo]
             };
             dbContext.Menus.Add(ruoliMenu);
@@ -210,7 +210,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(ruoliMenu, "Ruoli", null, "Engineering", true, 4, null, null, superAdminRuolo, null, ref needsUpdate);
+            UpdateMenuIfNeeded(ruoliMenu, "Ruoli", null, "Engineering", true, 5, null, null, superAdminRuolo, null, ref needsUpdate);
             if (needsUpdate)
             {
                 dbContext.Menus.Update(ruoliMenu);
@@ -294,7 +294,7 @@ public static class SeedMenus
                 Percorso = string.Empty,
                 Icona = "List",
                 Visibile = true,
-                Posizione = 5,
+                Posizione = 6,
                 Ruoli = [superAdminRuolo]
             };
             dbContext.Menus.Add(menusMenu);
@@ -303,7 +303,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(menusMenu, "Menù", null, "List", true, 5, null, null, superAdminRuolo, null, ref needsUpdate);
+            UpdateMenuIfNeeded(menusMenu, "Menù", null, "List", true, 6, null, null, superAdminRuolo, null, ref needsUpdate);
             if (needsUpdate)
             {
                 dbContext.Menus.Update(menusMenu);
@@ -387,7 +387,7 @@ public static class SeedMenus
                 Percorso = "/gestionale/settings",
                 Icona = "Settings",
                 Visibile = true,
-                Posizione = 6,
+                Posizione = 7,
                 NomeVista = "SettingsDetails",
                 PercorsoFile = "settings/SettingsDetails.tsx",
                 Ruoli = [superAdminRuolo]
@@ -397,7 +397,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(settingsMenu, "Impostazioni", "/gestionale/settings", "Settings", true, 6,
+            UpdateMenuIfNeeded(settingsMenu, "Impostazioni", "/gestionale/settings", "Settings", true, 7,
                 "SettingsDetails", "settings/SettingsDetails.tsx", superAdminRuolo, null, ref needsUpdate);
             if (needsUpdate)
             {
@@ -578,7 +578,7 @@ public static class SeedMenus
                 Percorso = string.Empty,
                 Icona = "Store",
                 Visibile = true,
-                Posizione = 7,
+                Posizione = 3,
                 NomeVista = string.Empty,
                 PercorsoFile = string.Empty,
                 MenuPadreId = null
@@ -590,7 +590,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(fornitoriMenu, "Fornitori", string.Empty, "Store", true, 7,
+            UpdateMenuIfNeeded(fornitoriMenu, "Fornitori", string.Empty, "Store", true, 3,
                 string.Empty, string.Empty, superAdminRuolo, null, ref needsUpdate);
             if (needsUpdate)
             {

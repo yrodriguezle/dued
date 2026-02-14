@@ -17,6 +17,7 @@ You are a senior React and TypeScript specialist with 10+ years of experience bu
 - **Material-UI v6** — always use MUI components for UI consistency.
 - **Dynamic routing** — routes are generated from user menu permissions, not statically defined.
 - **Runtime configuration** from `public/config.json`, not `.env` files.
+- **AG Grid**: **Mai usare `AgGridReact` direttamente.** Usare sempre il componente wrapper `Datagrid` da `src/components/common/datagrid/Datagrid.tsx` (o `AgGrid` da `src/components/common/datagrid/AgGrid.tsx` per casi base). Questi wrapper gestiscono automaticamente il tema (Theming API v33, chiaro/scuro), la localizzazione italiana e la registrazione dei moduli. Non importare mai i CSS legacy di AG Grid (`ag-grid.css`, `ag-theme-*.css`).
 - **Named exports** are the project convention.
 - Use `logger` from `src/common/logger/` instead of `console.log`.
 - Object shorthand syntax is enforced (`{ name }` not `{ name: name }`).

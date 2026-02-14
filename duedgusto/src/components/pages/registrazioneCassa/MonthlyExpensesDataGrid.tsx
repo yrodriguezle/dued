@@ -1,123 +1,103 @@
-import React, { useMemo, useCallback, useRef } from 'react';
-import { Box, Typography, Paper, Button, IconButton } from '@mui/material';
-import DeleteIcon from '@mui/icons-material/Delete';
-import { AgGridReact } from 'ag-grid-react';
-import { ColDef, GridApi, CellValueChangedEvent, ICellRendererParams } from 'ag-grid-community';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
+import { useMemo, useCallback, forwardRef } from "react";
+import { Box, Typography } from "@mui/material";
+import { GridReadyEvent } from "ag-grid-community";
+import Datagrid from "../../common/datagrid/Datagrid";
+import { DatagridColDef, DatagridData } from "../../common/datagrid/@types/Datagrid";
 
-interface MonthlyExpensesDataGridProps {
-    expenses: SpesaMensileLibera[];
-    onExpensesChange: (expenses: SpesaMensileLibera[]) => void;
-    onDeleteExpense: (spesaId: number) => void;
-    readOnly?: boolean;
+interface SpesaRow extends Record<string, unknown> {
+  spesaId: number;
+  chiusuraId: number;
+  descrizione: string;
+  importo: number;
+  categoria: CategoriaSpesa;
 }
 
-const CATEGORIE_SPESA: CategoriaSpesa[] = ['Affitto', 'Utenze', 'Stipendi', 'Altro'];
+interface MonthlyExpensesDataGridProps {
+  expenses: SpesaMensileLibera[];
+  readOnly?: boolean;
+}
 
-const MonthlyExpensesDataGrid: React.FC<MonthlyExpensesDataGridProps> = ({ expenses, onExpensesChange, onDeleteExpense, readOnly = false }) => {
-    const gridApiRef = useRef<GridApi | null>(null);
+const CATEGORIE_SPESA: CategoriaSpesa[] = ["Affitto", "Utenze", "Stipendi", "Altro"];
 
-    const onGridReady = useCallback((params: { api: GridApi }) => {
-        gridApiRef.current = params.api;
-    }, []);
+const toSpesaRow = (e: SpesaMensileLibera): SpesaRow => ({
+  spesaId: e.spesaId,
+  chiusuraId: e.chiusuraId,
+  descrizione: e.descrizione,
+  importo: e.importo,
+  categoria: e.categoria,
+});
 
-    const onCellValueChanged = useCallback((event: CellValueChangedEvent) => {
-        const updatedRow = event.data;
-        const updatedExpenses = expenses.map(expense =>
-            expense.spesaId === updatedRow.spesaId ? updatedRow : expense
-        );
-        onExpensesChange(updatedExpenses);
-    }, [expenses, onExpensesChange]);
+const MonthlyExpensesDataGrid = forwardRef<GridReadyEvent<DatagridData<SpesaRow>>, MonthlyExpensesDataGridProps>(({ expenses, readOnly = false }, ref) => {
+  const items = useMemo(() => expenses.map(toSpesaRow), [expenses]);
 
-    const handleAddExpense = useCallback(() => {
-        const newId = Math.min(0, ...expenses.map(e => e.spesaId)) - 1;
-        const newExpense: SpesaMensileLibera = {
-            __typename: "SpesaMensileLibera",
-            spesaId: newId,
-            chiusuraId: expenses.length > 0 ? expenses[0].chiusuraId : 0,
-            descrizione: 'Nuova spesa',
-            importo: 0,
-            categoria: 'Altro',
-            creatoIl: new Date().toISOString(),
-            aggiornatoIl: new Date().toISOString(),
-        };
-        onExpensesChange([...expenses, newExpense]);
-    }, [expenses, onExpensesChange]);
+  const columnDefs = useMemo<DatagridColDef<SpesaRow>[]>(
+    () => [
+      {
+        headerName: "Categoria",
+        field: "categoria",
+        editable: !readOnly,
+        width: 150,
+        cellEditor: "agSelectCellEditor",
+        cellEditorParams: { values: CATEGORIE_SPESA },
+      },
+      {
+        headerName: "Descrizione",
+        field: "descrizione",
+        editable: !readOnly,
+        flex: 1,
+      },
+      {
+        headerName: "Importo",
+        field: "importo",
+        editable: !readOnly,
+        width: 120,
+        cellEditor: "agNumberCellEditor",
+        cellEditorParams: { min: 0, precision: 2 },
+        cellStyle: { textAlign: "right" },
+        valueFormatter: (params) => (params.value ? `€ ${Number(params.value).toFixed(2)}` : "€ 0.00"),
+      },
+    ],
+    [readOnly]
+  );
 
-    const columnDefs = useMemo<ColDef[]>(() => {
-        const cols: ColDef[] = [
-            {
-                field: 'categoria',
-                headerName: 'Categoria',
-                editable: !readOnly,
-                width: 150,
-                cellEditor: 'agSelectCellEditor',
-                cellEditorParams: {
-                    values: CATEGORIE_SPESA
-                }
-            },
-            { field: 'descrizione', headerName: 'Descrizione', editable: !readOnly, flex: 1 },
-            {
-                field: 'importo',
-                headerName: 'Importo',
-                editable: !readOnly,
-                valueParser: params => Number(params.newValue),
-                valueFormatter: (params) => params.value ? `€ ${Number(params.value).toFixed(2)}` : '€ 0.00',
-                type: 'numericColumn',
-                width: 120
-            },
-        ];
+  const getNewRow = useCallback(
+    (): SpesaRow => ({
+      spesaId: -Date.now(),
+      chiusuraId: expenses.length > 0 ? expenses[0].chiusuraId : 0,
+      descrizione: "",
+      importo: 0,
+      categoria: "Altro",
+    }),
+    [expenses]
+  );
 
-        if (!readOnly) {
-            cols.push({
-                headerName: '',
-                width: 60,
-                sortable: false,
-                filter: false,
-                cellRenderer: (params: ICellRendererParams) => (
-                    <IconButton
-                        size="small"
-                        color="error"
-                        onClick={() => onDeleteExpense(params.data.spesaId)}
-                    >
-                        <DeleteIcon fontSize="small" />
-                    </IconButton>
-                ),
-            });
-        }
+  const handleGridReady = useCallback(
+    (event: GridReadyEvent<DatagridData<SpesaRow>>) => {
+      if (ref && typeof ref !== "function") {
+        (ref as React.MutableRefObject<GridReadyEvent<DatagridData<SpesaRow>> | null>).current = event;
+      }
+    },
+    [ref]
+  );
 
-        return cols;
-    }, [readOnly, onDeleteExpense]);
+  return (
+    <Box>
+      <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold", mb: 2 }}>
+        Spese Mensili Libere
+      </Typography>
+      <Datagrid<SpesaRow>
+        height="300px"
+        items={items}
+        columnDefs={columnDefs}
+        readOnly={readOnly}
+        getNewRow={getNewRow}
+        getRowId={(params) => String(params.data.spesaId)}
+        onGridReady={handleGridReady}
+      />
+    </Box>
+  );
+});
 
-    const defaultColDef = useMemo(() => ({
-        sortable: true,
-        filter: true,
-        resizable: true,
-    }), []);
-
-    return (
-        <Paper elevation={3} sx={{ padding: 2, height: 400 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6">Spese Mensili Libere</Typography>
-                {!readOnly && (
-                    <Box>
-                        <Button sx={{ mr: 1 }} onClick={handleAddExpense}>+ Aggiungi Spesa</Button>
-                    </Box>
-                )}
-            </Box>
-            <div className="ag-theme-alpine" style={{ height: 'calc(100% - 48px)', width: '100%' }}>
-                <AgGridReact
-                    rowData={expenses}
-                    columnDefs={columnDefs}
-                    defaultColDef={defaultColDef}
-                    onGridReady={onGridReady}
-                    onCellValueChanged={onCellValueChanged}
-                    getRowId={(params) => String(params.data.spesaId)}
-                />
-            </div>
-        </Paper>
-    );
-};
+MonthlyExpensesDataGrid.displayName = "MonthlyExpensesDataGrid";
 
 export default MonthlyExpensesDataGrid;

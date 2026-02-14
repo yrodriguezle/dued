@@ -1,19 +1,14 @@
-import React, { useRef } from 'react';
-import { Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Divider } from '@mui/material';
+import React from 'react';
 import PrintIcon from '@mui/icons-material/Print';
 import dayjs from 'dayjs';
+import FormikToolbarButton from '../../common/form/toolbar/FormikToolbarButton';
 
 interface MonthlyClosureReportProps {
     closure: ChiusuraMensile;
 }
 
 const MonthlyClosureReport: React.FC<MonthlyClosureReportProps> = ({ closure }) => {
-    const printRef = useRef<HTMLDivElement>(null);
-
     const handlePrint = () => {
-        const content = printRef.current;
-        if (!content) return;
-
         const printWindow = window.open('', '_blank');
         if (!printWindow) return;
 
@@ -140,13 +135,12 @@ const MonthlyClosureReport: React.FC<MonthlyClosureReportProps> = ({ closure }) 
     };
 
     return (
-        <Button
-            variant="outlined"
+        <FormikToolbarButton
             startIcon={<PrintIcon />}
             onClick={handlePrint}
         >
             Stampa Report
-        </Button>
+        </FormikToolbarButton>
     );
 };
 

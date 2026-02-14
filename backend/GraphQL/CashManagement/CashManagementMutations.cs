@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 
 using GraphQL;
@@ -31,6 +32,18 @@ public class CashManagementMutations : ObjectGraphType
                 {
                     throw new ExecutionError(
                         $"Impossibile modificare il registro: il mese {input.Data:MM/yyyy} è chiuso.");
+                }
+
+                // Guard: verifica che la data sia un giorno operativo
+                var settings = await dbContext.BusinessSettings.FirstAsync();
+                var operatingDays = JsonSerializer.Deserialize<bool[]>(settings.OperatingDays)!;
+                // Mappa DayOfWeek (.NET: 0=Sunday) a indice array (0=Monday)
+                int operatingDayIndex = ((int)input.Data.DayOfWeek + 6) % 7;
+                if (!operatingDays[operatingDayIndex])
+                {
+                    var nomeGiorno = input.Data.ToString("dddd", new System.Globalization.CultureInfo("it-IT"));
+                    throw new ExecutionError(
+                        $"Impossibile creare un registro cassa per un giorno di chiusura ({nomeGiorno} {input.Data:dd/MM/yyyy}).");
                 }
 
                 RegistroCassa? registroCassa = null;
@@ -183,8 +196,10 @@ public class CashManagementMutations : ObjectGraphType
                 registroCassa.Differenza = incassoGiornaliero - registroCassa.ContanteAtteso;
                 registroCassa.ContanteNetto = incassoGiornaliero;
 
-                // Calculate VAT (10%)
-                registroCassa.ImportoIva = registroCassa.TotaleVendite * 0.1m;
+                // Calcolo IVA con scorporo (prezzi IVA inclusa, normativa italiana)
+                decimal aliquotaIva = settings.VatRate; // es. 0.10 per ristorazione
+                registroCassa.ImportoIva = Math.Round(
+                    registroCassa.TotaleVendite * (aliquotaIva / (1 + aliquotaIva)), 2);
 
                 await dbContext.SaveChangesAsync();
 
@@ -232,6 +247,17 @@ public class CashManagementMutations : ObjectGraphType
                 {
                     throw new ExecutionError(
                         $"Impossibile modificare il registro: il mese {registroCassa.Data:MM/yyyy} è chiuso.");
+                }
+
+                // Guard: verifica che la data sia un giorno operativo
+                var settingsClose = await dbContext.BusinessSettings.FirstAsync();
+                var operatingDaysClose = JsonSerializer.Deserialize<bool[]>(settingsClose.OperatingDays)!;
+                int operatingDayIndexClose = ((int)registroCassa.Data.DayOfWeek + 6) % 7;
+                if (!operatingDaysClose[operatingDayIndexClose])
+                {
+                    var nomeGiornoClose = registroCassa.Data.ToString("dddd", new System.Globalization.CultureInfo("it-IT"));
+                    throw new ExecutionError(
+                        $"Impossibile chiudere un registro cassa per un giorno di chiusura ({nomeGiornoClose} {registroCassa.Data:dd/MM/yyyy}).");
                 }
 
                 registroCassa.Stato = "CLOSED";
