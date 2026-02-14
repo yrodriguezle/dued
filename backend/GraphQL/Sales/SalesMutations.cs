@@ -3,6 +3,7 @@ using GraphQL.Types;
 using Microsoft.EntityFrameworkCore;
 using duedgusto.DataAccess;
 using duedgusto.Models;
+using duedgusto.Services.ChiusureMensili;
 
 namespace duedgusto.GraphQL.Sales;
 
@@ -65,6 +66,14 @@ public class SalesMutations : ObjectGraphType
             throw new InvalidOperationException("Cassa non trovata");
         }
 
+        // Guard: verifica che il registro non appartenga a un mese chiuso
+        var chiusuraService = context.RequestServices!.CreateScope().ServiceProvider.GetRequiredService<ChiusuraMensileService>();
+        if (await chiusuraService.DataAppartieneAMeseChiusoAsync(register.Data))
+        {
+            throw new InvalidOperationException(
+                $"Impossibile creare vendite: il mese {register.Data:MM/yyyy} è chiuso.");
+        }
+
         // Create sale
         var sale = new Sale
         {
@@ -106,6 +115,14 @@ public class SalesMutations : ObjectGraphType
         if (sale == null)
         {
             throw new InvalidOperationException("Vendita non trovata");
+        }
+
+        // Guard: verifica che la vendita non appartenga a un mese chiuso
+        var chiusuraServiceUpdate = context.RequestServices!.CreateScope().ServiceProvider.GetRequiredService<ChiusuraMensileService>();
+        if (await chiusuraServiceUpdate.RegistroAppartieneAMeseChiusoAsync(sale.RegistroCassaId))
+        {
+            throw new InvalidOperationException(
+                "Impossibile modificare vendite: il mese corrispondente è chiuso.");
         }
 
         // Verify product if changed
@@ -152,6 +169,14 @@ public class SalesMutations : ObjectGraphType
         if (sale == null)
         {
             throw new InvalidOperationException("Vendita non trovata");
+        }
+
+        // Guard: verifica che la vendita non appartenga a un mese chiuso
+        var chiusuraServiceDelete = context.RequestServices!.CreateScope().ServiceProvider.GetRequiredService<ChiusuraMensileService>();
+        if (await chiusuraServiceDelete.RegistroAppartieneAMeseChiusoAsync(sale.RegistroCassaId))
+        {
+            throw new InvalidOperationException(
+                "Impossibile eliminare vendite: il mese corrispondente è chiuso.");
         }
 
         // Update register VenditeContanti total

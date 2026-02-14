@@ -51,6 +51,52 @@ export const mutationAggiungiSpesaLibera: TypedDocumentNode<AggiungiSpesaLiberaD
   ${spesaMensileLiberaFragment}
 `;
 
+// ============ MUTATION: Modifica Spesa Libera ============
+
+interface ModificaSpesaLiberaData {
+  monthlyClosures: {
+    modificaSpesaLibera: SpesaMensileLibera;
+  };
+}
+
+interface ModificaSpesaLiberaVariables {
+  spesaId: number;
+  descrizione?: string;
+  importo?: number;
+  categoria?: string;
+}
+
+export const mutationModificaSpesaLibera: TypedDocumentNode<ModificaSpesaLiberaData, ModificaSpesaLiberaVariables> = gql`
+  mutation ModificaSpesaLibera($spesaId: Int!, $descrizione: String, $importo: Decimal, $categoria: String) {
+    monthlyClosures {
+      modificaSpesaLibera(spesaId: $spesaId, descrizione: $descrizione, importo: $importo, categoria: $categoria) {
+        ...SpesaMensileLiberaFragment
+      }
+    }
+  }
+  ${spesaMensileLiberaFragment}
+`;
+
+// ============ MUTATION: Elimina Spesa Libera ============
+
+interface EliminaSpesaLiberaData {
+  monthlyClosures: {
+    eliminaSpesaLibera: boolean;
+  };
+}
+
+interface EliminaSpesaLiberaVariables {
+  spesaId: number;
+}
+
+export const mutationEliminaSpesaLibera: TypedDocumentNode<EliminaSpesaLiberaData, EliminaSpesaLiberaVariables> = gql`
+  mutation EliminaSpesaLibera($spesaId: Int!) {
+    monthlyClosures {
+      eliminaSpesaLibera(spesaId: $spesaId)
+    }
+  }
+`;
+
 // ============ MUTATION: Includi Pagamento Fornitore ============
 
 interface IncludiPagamentoFornitoreData {

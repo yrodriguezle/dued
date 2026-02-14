@@ -24,6 +24,7 @@ export const registroCassaMensileFragment = gql`
       incassoContanteTracciato
       incassiElettronici
       incassiFattura
+      differenza
       stato
     }
   }
@@ -57,6 +58,10 @@ export const chiusuraMensileFragment = gql`
     totaleFattureCalcolato
     speseAggiuntiveCalcolate
     ricavoNettoCalcolato
+    totaleIvaCalcolato
+    totaleImponibileCalcolato
+    totaleLordoCalcolato
+    totaleDifferenzeCassaCalcolato
 
     stato
     note

@@ -16,7 +16,9 @@
       "Bash(dotnet build:*)",
       "Bash(npm run)",
       "Bash(timeout 30 dotnet run:*)",
-      "Bash(dotnet ef database update:*)"
+      "Bash(dotnet ef database update:*)",
+      "Bash(git log:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []

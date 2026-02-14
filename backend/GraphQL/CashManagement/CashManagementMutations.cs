@@ -7,6 +7,7 @@ using duedgusto.Models;
 using duedgusto.Services.GraphQL;
 using duedgusto.DataAccess;
 using duedgusto.GraphQL.CashManagement.Types;
+using duedgusto.Services.ChiusureMensili;
 
 namespace duedgusto.GraphQL.CashManagement;
 
@@ -23,6 +24,14 @@ public class CashManagementMutations : ObjectGraphType
             {
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
                 RegistroCassaInput input = context.GetArgument<RegistroCassaInput>("registroCassa");
+
+                // Guard: verifica che la data non appartenga a un mese chiuso
+                var chiusuraService = GraphQLService.GetService<ChiusuraMensileService>(context);
+                if (await chiusuraService.DataAppartieneAMeseChiusoAsync(input.Data))
+                {
+                    throw new ExecutionError(
+                        $"Impossibile modificare il registro: il mese {input.Data:MM/yyyy} è chiuso.");
+                }
 
                 RegistroCassa? registroCassa = null;
 
@@ -217,6 +226,14 @@ public class CashManagementMutations : ObjectGraphType
                     throw new Exception("Il registro cassa è già chiuso");
                 }
 
+                // Guard: verifica che non appartenga a un mese chiuso
+                var chiusuraServiceClose = GraphQLService.GetService<ChiusuraMensileService>(context);
+                if (await chiusuraServiceClose.DataAppartieneAMeseChiusoAsync(registroCassa.Data))
+                {
+                    throw new ExecutionError(
+                        $"Impossibile modificare il registro: il mese {registroCassa.Data:MM/yyyy} è chiuso.");
+                }
+
                 registroCassa.Stato = "CLOSED";
                 registroCassa.AggiornatoIl = DateTime.UtcNow;
 
@@ -248,6 +265,14 @@ public class CashManagementMutations : ObjectGraphType
                 if (registroCassa.Stato != "DRAFT")
                 {
                     throw new Exception("Solo i registri cassa in bozza possono essere eliminati");
+                }
+
+                // Guard: verifica che non appartenga a un mese chiuso
+                var chiusuraServiceDelete = GraphQLService.GetService<ChiusuraMensileService>(context);
+                if (await chiusuraServiceDelete.DataAppartieneAMeseChiusoAsync(registroCassa.Data))
+                {
+                    throw new ExecutionError(
+                        $"Impossibile eliminare il registro: il mese {registroCassa.Data:MM/yyyy} è chiuso.");
                 }
 
                 dbContext.RegistriCassa.Remove(registroCassa);

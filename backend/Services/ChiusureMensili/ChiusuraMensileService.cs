@@ -38,20 +38,11 @@ public class ChiusuraMensileService
         var primoGiorno = new DateTime(anno, mese, 1);
         var ultimoGiorno = primoGiorno.AddMonths(1).AddDays(-1);
 
-        // 3. Validazione completezza registri
+        // 3. Recupera registri chiusi/riconciliati del mese (senza bloccare la creazione)
         var registriMese = await _dbContext.RegistriCassa
             .Where(r => r.Data >= primoGiorno && r.Data <= ultimoGiorno)
             .Where(r => r.Stato == "CLOSED" || r.Stato == "RECONCILED")
             .ToListAsync();
-
-        var giorniMancanti = ElencoGiorniMancanti(registriMese, primoGiorno, ultimoGiorno);
-        if (giorniMancanti.Any())
-        {
-            var giorniFormattati = string.Join(", ", giorniMancanti.Select(d => d.ToString("dd/MM/yyyy")));
-            throw new InvalidOperationException(
-                $"Impossibile creare chiusura: registri mancanti per i seguenti giorni: {giorniFormattati}"
-            );
-        }
 
         // 4. Verifica chiusura già esistente
         var esistente = await _dbContext.ChiusureMensili
@@ -132,6 +123,16 @@ public class ChiusuraMensileService
         {
             throw new InvalidOperationException(
                 $"Impossibile chiudere: stato attuale è '{chiusura.Stato}', deve essere 'BOZZA'"
+            );
+        }
+
+        // Validazione completezza registri prima della chiusura definitiva
+        var giorniMancanti = await ValidaCompletezzaRegistriAsync(chiusura.Anno, chiusura.Mese);
+        if (giorniMancanti.Any())
+        {
+            var giorniFormattati = string.Join(", ", giorniMancanti.Select(d => d.ToString("dd/MM/yyyy")));
+            throw new InvalidOperationException(
+                $"Impossibile chiudere: registri giornalieri mancanti per: {giorniFormattati}"
             );
         }
 
@@ -262,6 +263,71 @@ public class ChiusuraMensileService
     }
 
     /// <summary>
+    /// Modifica una spesa libera esistente. Permesso solo se la chiusura è in stato BOZZA.
+    /// </summary>
+    public async Task<SpesaMensileLibera> ModificaSpesaLiberaAsync(
+        int spesaId,
+        string? descrizione,
+        decimal? importo,
+        CategoriaSpesa? categoria)
+    {
+        var spesa = await _dbContext.SpeseMensiliLibere
+            .Include(s => s.Chiusura)
+            .FirstOrDefaultAsync(s => s.SpesaId == spesaId);
+
+        if (spesa == null)
+            throw new InvalidOperationException($"Spesa libera con ID {spesaId} non trovata");
+
+        if (spesa.Chiusura.Stato != "BOZZA")
+            throw new InvalidOperationException("Impossibile modificare spese: la chiusura non è in stato BOZZA");
+
+        if (descrizione != null)
+        {
+            if (string.IsNullOrWhiteSpace(descrizione))
+                throw new ArgumentException("Descrizione non può essere vuota", nameof(descrizione));
+            spesa.Descrizione = descrizione.Trim();
+        }
+
+        if (importo.HasValue)
+        {
+            if (importo.Value <= 0)
+                throw new ArgumentException("Importo deve essere maggiore di zero", nameof(importo));
+            spesa.Importo = importo.Value;
+        }
+
+        if (categoria.HasValue)
+            spesa.Categoria = categoria.Value;
+
+        spesa.AggiornatoIl = DateTime.UtcNow;
+        spesa.Chiusura.AggiornatoIl = DateTime.UtcNow;
+
+        await _dbContext.SaveChangesAsync();
+        return spesa;
+    }
+
+    /// <summary>
+    /// Elimina una spesa libera. Permesso solo se la chiusura è in stato BOZZA.
+    /// </summary>
+    public async Task<bool> EliminaSpesaLiberaAsync(int spesaId)
+    {
+        var spesa = await _dbContext.SpeseMensiliLibere
+            .Include(s => s.Chiusura)
+            .FirstOrDefaultAsync(s => s.SpesaId == spesaId);
+
+        if (spesa == null)
+            throw new InvalidOperationException($"Spesa libera con ID {spesaId} non trovata");
+
+        if (spesa.Chiusura.Stato != "BOZZA")
+            throw new InvalidOperationException("Impossibile eliminare spese: la chiusura non è in stato BOZZA");
+
+        spesa.Chiusura.AggiornatoIl = DateTime.UtcNow;
+        _dbContext.SpeseMensiliLibere.Remove(spesa);
+
+        await _dbContext.SaveChangesAsync();
+        return true;
+    }
+
+    /// <summary>
     /// Valida la completezza dei registri cassa per un mese specifico.
     /// Utile per pre-validare prima di creare una chiusura.
     /// </summary>
@@ -296,6 +362,31 @@ public class ChiusuraMensileService
             .Include(c => c.PagamentiInclusi)
                 .ThenInclude(p => p.Pagamento)
             .FirstOrDefaultAsync(c => c.ChiusuraId == chiusuraId);
+    }
+
+    /// <summary>
+    /// Verifica se una data appartiene a un mese con chiusura in stato CHIUSA o RICONCILIATA.
+    /// Usata come guard per impedire modifiche retroattive.
+    /// </summary>
+    public async Task<bool> DataAppartieneAMeseChiusoAsync(DateTime data)
+    {
+        return await _dbContext.ChiusureMensili
+            .AnyAsync(c => c.Anno == data.Year && c.Mese == data.Month
+                && (c.Stato == "CHIUSA" || c.Stato == "RICONCILIATA"));
+    }
+
+    /// <summary>
+    /// Verifica se un registro cassa appartiene a un mese chiuso tramite il suo ID.
+    /// </summary>
+    public async Task<bool> RegistroAppartieneAMeseChiusoAsync(int registroId)
+    {
+        var registro = await _dbContext.RegistriCassa
+            .FirstOrDefaultAsync(r => r.Id == registroId);
+
+        if (registro == null)
+            return false;
+
+        return await DataAppartieneAMeseChiusoAsync(registro.Data);
     }
 
     /// <summary>

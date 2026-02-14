@@ -75,6 +75,58 @@ public class MonthlyClosuresMutations : ObjectGraphType
                 }
             });
 
+        // Modifica spesa libera esistente
+        Field<SpesaMensileTyperaType>("modificaSpesaLibera")
+            .Description("Modifica una spesa libera esistente (solo in stato BOZZA)")
+            .Argument<NonNullGraphType<IntGraphType>>("spesaId", "ID della spesa da modificare")
+            .Argument<StringGraphType>("descrizione", "Nuova descrizione (opzionale)")
+            .Argument<DecimalGraphType>("importo", "Nuovo importo (opzionale)")
+            .Argument<StringGraphType>("categoria", "Nuova categoria (opzionale)")
+            .ResolveAsync(async context =>
+            {
+                var service = GraphQLService.GetService<ChiusuraMensileService>(context);
+                int spesaId = context.GetArgument<int>("spesaId");
+                string? descrizione = context.GetArgument<string?>("descrizione");
+                decimal? importo = context.GetArgument<decimal?>("importo");
+                string? categoriaStr = context.GetArgument<string?>("categoria");
+
+                CategoriaSpesa? categoria = null;
+                if (categoriaStr != null)
+                {
+                    if (!Enum.TryParse<CategoriaSpesa>(categoriaStr, ignoreCase: true, out var cat))
+                        throw new ExecutionError($"Categoria non valida: {categoriaStr}. Valori accettati: Affitto, Utenze, Stipendi, Altro");
+                    categoria = cat;
+                }
+
+                try
+                {
+                    return await service.ModificaSpesaLiberaAsync(spesaId, descrizione, importo, categoria);
+                }
+                catch (Exception ex)
+                {
+                    throw new ExecutionError(ex.Message);
+                }
+            });
+
+        // Elimina spesa libera
+        Field<BooleanGraphType>("eliminaSpesaLibera")
+            .Description("Elimina una spesa libera (solo in stato BOZZA)")
+            .Argument<NonNullGraphType<IntGraphType>>("spesaId", "ID della spesa da eliminare")
+            .ResolveAsync(async context =>
+            {
+                var service = GraphQLService.GetService<ChiusuraMensileService>(context);
+                int spesaId = context.GetArgument<int>("spesaId");
+
+                try
+                {
+                    return await service.EliminaSpesaLiberaAsync(spesaId);
+                }
+                catch (Exception ex)
+                {
+                    throw new ExecutionError(ex.Message);
+                }
+            });
+
         // Includi pagamento fornitore in chiusura
         Field<BooleanGraphType>("includiPagamentoFornitore")
             .Description("Associa un pagamento fornitore alla chiusura mensile")

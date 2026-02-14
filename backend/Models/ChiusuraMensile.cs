@@ -99,5 +99,33 @@ namespace duedgusto.Models
         /// </summary>
         [NotMapped]
         public decimal RicavoNettoCalcolato => RicavoTotaleCalcolato - SpeseAggiuntiveCalcolate;
+
+        /// <summary>
+        /// Totale IVA calcolato dalla somma di ImportoIva dei registri cassa inclusi
+        /// </summary>
+        [NotMapped]
+        public decimal TotaleIvaCalcolato => RegistriInclusi
+            .Where(r => r.Incluso)
+            .Sum(r => r.Registro?.ImportoIva ?? 0);
+
+        /// <summary>
+        /// Totale imponibile calcolato (ricavo totale - IVA)
+        /// </summary>
+        [NotMapped]
+        public decimal TotaleImponibileCalcolato => RicavoTotaleCalcolato - TotaleIvaCalcolato;
+
+        /// <summary>
+        /// Totale lordo calcolato (alias di ricavo totale, per chiarezza nei report)
+        /// </summary>
+        [NotMapped]
+        public decimal TotaleLordoCalcolato => RicavoTotaleCalcolato;
+
+        /// <summary>
+        /// Totale differenze di cassa aggregate dai registri cassa inclusi
+        /// </summary>
+        [NotMapped]
+        public decimal TotaleDifferenzeCassaCalcolato => RegistriInclusi
+            .Where(r => r.Incluso)
+            .Sum(r => r.Registro?.Differenza ?? 0);
     }
 }

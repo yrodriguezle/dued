@@ -1,19 +1,21 @@
 import React, { useMemo, useCallback, useRef } from 'react';
-import { Box, Typography, Paper, Button } from '@mui/material';
+import { Box, Typography, Paper, Button, IconButton } from '@mui/material';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { AgGridReact } from 'ag-grid-react';
-import { ColDef, GridApi, CellValueChangedEvent } from 'ag-grid-community';
+import { ColDef, GridApi, CellValueChangedEvent, ICellRendererParams } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 
 interface MonthlyExpensesDataGridProps {
     expenses: SpesaMensileLibera[];
     onExpensesChange: (expenses: SpesaMensileLibera[]) => void;
+    onDeleteExpense: (spesaId: number) => void;
     readOnly?: boolean;
 }
 
 const CATEGORIE_SPESA: CategoriaSpesa[] = ['Affitto', 'Utenze', 'Stipendi', 'Altro'];
 
-const MonthlyExpensesDataGrid: React.FC<MonthlyExpensesDataGridProps> = ({ expenses, onExpensesChange, readOnly = false }) => {
+const MonthlyExpensesDataGrid: React.FC<MonthlyExpensesDataGridProps> = ({ expenses, onExpensesChange, onDeleteExpense, readOnly = false }) => {
     const gridApiRef = useRef<GridApi | null>(null);
 
     const onGridReady = useCallback((params: { api: GridApi }) => {
@@ -43,28 +45,50 @@ const MonthlyExpensesDataGrid: React.FC<MonthlyExpensesDataGridProps> = ({ expen
         onExpensesChange([...expenses, newExpense]);
     }, [expenses, onExpensesChange]);
 
-    const columnDefs = useMemo<ColDef[]>(() => [
-        {
-            field: 'categoria',
-            headerName: 'Categoria',
-            editable: !readOnly,
-            width: 150,
-            cellEditor: 'agSelectCellEditor',
-            cellEditorParams: {
-                values: CATEGORIE_SPESA
-            }
-        },
-        { field: 'descrizione', headerName: 'Descrizione', editable: !readOnly, flex: 1 },
-        {
-            field: 'importo',
-            headerName: 'Importo',
-            editable: !readOnly,
-            valueParser: params => Number(params.newValue),
-            valueFormatter: (params) => params.value ? `€ ${Number(params.value).toFixed(2)}` : '€ 0.00',
-            type: 'numericColumn',
-            width: 120
-        },
-    ], [readOnly]);
+    const columnDefs = useMemo<ColDef[]>(() => {
+        const cols: ColDef[] = [
+            {
+                field: 'categoria',
+                headerName: 'Categoria',
+                editable: !readOnly,
+                width: 150,
+                cellEditor: 'agSelectCellEditor',
+                cellEditorParams: {
+                    values: CATEGORIE_SPESA
+                }
+            },
+            { field: 'descrizione', headerName: 'Descrizione', editable: !readOnly, flex: 1 },
+            {
+                field: 'importo',
+                headerName: 'Importo',
+                editable: !readOnly,
+                valueParser: params => Number(params.newValue),
+                valueFormatter: (params) => params.value ? `€ ${Number(params.value).toFixed(2)}` : '€ 0.00',
+                type: 'numericColumn',
+                width: 120
+            },
+        ];
+
+        if (!readOnly) {
+            cols.push({
+                headerName: '',
+                width: 60,
+                sortable: false,
+                filter: false,
+                cellRenderer: (params: ICellRendererParams) => (
+                    <IconButton
+                        size="small"
+                        color="error"
+                        onClick={() => onDeleteExpense(params.data.spesaId)}
+                    >
+                        <DeleteIcon fontSize="small" />
+                    </IconButton>
+                ),
+            });
+        }
+
+        return cols;
+    }, [readOnly, onDeleteExpense]);
 
     const defaultColDef = useMemo(() => ({
         sortable: true,

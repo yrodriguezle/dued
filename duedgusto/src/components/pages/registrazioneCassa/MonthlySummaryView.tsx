@@ -1,5 +1,5 @@
 import React from 'react';
-import { Typography, Paper, Grid } from '@mui/material';
+import { Typography, Paper, Grid, Divider } from '@mui/material';
 
 interface MonthlySummaryViewProps {
     closure: ChiusuraMensile;
@@ -29,6 +29,38 @@ const MonthlySummaryView: React.FC<MonthlySummaryViewProps> = ({ closure }) => {
 
                 <Grid item xs={6}><Typography>Pagamenti con Fattura:</Typography></Grid>
                 <Grid item xs={6}><Typography align="right">€ {closure.totaleFattureCalcolato.toFixed(2)}</Typography></Grid>
+
+                <Grid item xs={12}><Divider sx={{ my: 1 }} /></Grid>
+
+                {/* Dettaglio IVA */}
+                <Grid item xs={6}><Typography fontWeight="bold">Imponibile:</Typography></Grid>
+                <Grid item xs={6}><Typography align="right" fontWeight="bold">€ {closure.totaleImponibileCalcolato.toFixed(2)}</Typography></Grid>
+
+                <Grid item xs={6}><Typography fontWeight="bold">IVA:</Typography></Grid>
+                <Grid item xs={6}><Typography align="right" fontWeight="bold">€ {closure.totaleIvaCalcolato.toFixed(2)}</Typography></Grid>
+
+                <Grid item xs={6}><Typography fontWeight="bold">Totale Lordo:</Typography></Grid>
+                <Grid item xs={6}><Typography align="right" fontWeight="bold">€ {closure.totaleLordoCalcolato.toFixed(2)}</Typography></Grid>
+
+                {/* Differenze di cassa */}
+                {closure.totaleDifferenzeCassaCalcolato !== 0 && (
+                    <>
+                        <Grid item xs={12}><Divider sx={{ my: 1 }} /></Grid>
+                        <Grid item xs={6}>
+                            <Typography color={closure.totaleDifferenzeCassaCalcolato < 0 ? 'error' : 'success.main'}>
+                                Differenze di cassa aggregate:
+                            </Typography>
+                        </Grid>
+                        <Grid item xs={6}>
+                            <Typography
+                                align="right"
+                                color={closure.totaleDifferenzeCassaCalcolato < 0 ? 'error' : 'success.main'}
+                            >
+                                € {closure.totaleDifferenzeCassaCalcolato.toFixed(2)}
+                            </Typography>
+                        </Grid>
+                    </>
+                )}
             </Grid>
         </Paper>
     );

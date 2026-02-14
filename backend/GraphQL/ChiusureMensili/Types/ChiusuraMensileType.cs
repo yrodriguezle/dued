@@ -40,6 +40,22 @@ public class ChiusuraMensileType : ObjectGraphType<ChiusuraMensile>
             .Description("Ricavo netto calcolato (ricavo totale - spese aggiuntive)")
             .Resolve(context => context.Source.RicavoNettoCalcolato);
 
+        Field<DecimalGraphType>("totaleIvaCalcolato")
+            .Description("Totale IVA calcolato dalla somma di ImportoIva dei registri cassa inclusi")
+            .Resolve(context => context.Source.TotaleIvaCalcolato);
+
+        Field<DecimalGraphType>("totaleImponibileCalcolato")
+            .Description("Totale imponibile calcolato (ricavo totale - IVA)")
+            .Resolve(context => context.Source.TotaleImponibileCalcolato);
+
+        Field<DecimalGraphType>("totaleLordoCalcolato")
+            .Description("Totale lordo calcolato (alias di ricavo totale)")
+            .Resolve(context => context.Source.TotaleLordoCalcolato);
+
+        Field<DecimalGraphType>("totaleDifferenzeCassaCalcolato")
+            .Description("Totale differenze di cassa aggregate dai registri giornalieri")
+            .Resolve(context => context.Source.TotaleDifferenzeCassaCalcolato);
+
         Field("stato", x => x.Stato);
         Field("note", x => x.Note, nullable: true);
         Field("chiusaDa", x => x.ChiusaDa, nullable: true);

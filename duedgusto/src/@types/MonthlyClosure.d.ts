@@ -49,6 +49,10 @@ type ChiusuraMensile = {
   totaleFattureCalcolato: number;
   speseAggiuntiveCalcolate: number;
   ricavoNettoCalcolato: number;
+  totaleIvaCalcolato: number;
+  totaleImponibileCalcolato: number;
+  totaleLordoCalcolato: number;
+  totaleDifferenzeCassaCalcolato: number;
 
   // Relazioni
   registriInclusi: RegistroCassaMensile[];

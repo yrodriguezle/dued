@@ -20,6 +20,8 @@ interface NestedListItemProps {
   item: MenuItem;
   drawerOpen: boolean;
   onListItemClick: (hasChildren: boolean) => void;
+  isOpen: boolean;
+  onToggle: () => void;
 }
 
 interface NestedListProps {
@@ -29,17 +31,43 @@ interface NestedListProps {
 }
 
 const NestedList: React.FC<NestedListProps> = ({ drawerOpen, items, onListItemClick }) => {
+  const location = useLocation();
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+
+  // Auto-apri il menu che contiene la route attiva
+  useEffect(() => {
+    const activeIndex = items.findIndex(item => {
+      if (item.children) {
+        return item.children.some(child => child.path === location.pathname);
+      }
+      return false;
+    });
+    if (activeIndex >= 0) {
+      setOpenIndex(activeIndex);
+    }
+  }, [location.pathname, items]);
+
+  const handleToggle = (index: number) => {
+    setOpenIndex(prev => prev === index ? null : index);
+  };
+
   return (
     <List component="nav" sx={{ p: 0, m: 1 }}>
       {items.map((item, index) => (
-        <NestedListItem key={index} drawerOpen={drawerOpen} item={item} onListItemClick={onListItemClick} />
+        <NestedListItem
+          key={index}
+          drawerOpen={drawerOpen}
+          item={item}
+          onListItemClick={onListItemClick}
+          isOpen={openIndex === index}
+          onToggle={() => handleToggle(index)}
+        />
       ))}
     </List>
   );
 };
 
-const NestedListItem: React.FC<NestedListItemProps> = ({ item, drawerOpen, onListItemClick }) => {
-  const [open, setOpen] = useState(false);
+const NestedListItem: React.FC<NestedListItemProps> = ({ item, drawerOpen, onListItemClick, isOpen, onToggle }) => {
   const location = useLocation();
 
   const isItemActive = (item: MenuItem): boolean => {
@@ -53,16 +81,9 @@ const NestedListItem: React.FC<NestedListItemProps> = ({ item, drawerOpen, onLis
   };
   const active = isItemActive(item);
 
-  useEffect(() => {
-    if (isItemActive(item)) {
-      setOpen(true);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname, item]);
-
   const handleClick = () => {
     if (item.children) {
-      setOpen((prev) => !prev);
+      onToggle();
     }
     if (drawerOpen) {
       if (item.onClick) {
@@ -72,7 +93,7 @@ const NestedListItem: React.FC<NestedListItemProps> = ({ item, drawerOpen, onLis
     onListItemClick(!!item.children);
   };
 
-  const highlight = active || (item.children && open);
+  const highlight = active || (item.children && isOpen);
 
   return (
     <>
@@ -108,13 +129,20 @@ const NestedListItem: React.FC<NestedListItemProps> = ({ item, drawerOpen, onLis
           }}
           sx={{ opacity: drawerOpen ? 1 : 0 }}
         />
-        {item.children && drawerOpen ? open ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" /> : null}
+        {item.children && drawerOpen ? isOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" /> : null}
       </ListItemButton>
       {item.children && (
-        <Collapse in={open && drawerOpen} timeout="auto" unmountOnExit>
+        <Collapse in={isOpen && drawerOpen} timeout="auto" unmountOnExit>
           <List component="div" disablePadding>
             {item.children.map((child, index) => (
-              <NestedListItem key={index} drawerOpen={drawerOpen} item={child} onListItemClick={onListItemClick} />
+              <NestedListItem
+                key={index}
+                drawerOpen={drawerOpen}
+                item={child}
+                onListItemClick={onListItemClick}
+                isOpen={false}
+                onToggle={() => {}}
+              />
             ))}
           </List>
         </Collapse>
