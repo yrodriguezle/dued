@@ -18,6 +18,7 @@ function useInitializeValues({ skipInitialize, utenteId, currentDate }: UseIniti
       utenteId,
       notes: "",
       status: "DRAFT",
+      gridDirty: false,
     };
     return initialValues;
   }, [currentDate, utenteId]);

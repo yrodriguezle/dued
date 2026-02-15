@@ -34,6 +34,7 @@ const Schema = z.object({
   utenteId: z.number(),
   notes: z.string(),
   status: z.enum(["DRAFT", "CLOSED", "RECONCILED"]),
+  gridDirty: z.boolean().default(false),
 });
 
 export type FormikCashRegisterValues = z.infer<typeof Schema>;
@@ -82,6 +83,12 @@ function CashRegisterDetails() {
   const expensesGridRef = useRef<GridReadyEvent<DatagridData<ExpenseRow>> | null>(null);
   const { setTitle } = useContext(PageTitleContext);
   const utente = useStore((state) => state.utente);
+
+  // refreshKey: incrementato quando una griglia notifica un cambio, forza il ricalcolo del SummaryDataGrid
+  const [refreshKey, setRefreshKey] = useState(0);
+  const handleCellChange = useCallback(() => {
+    setRefreshKey((k) => k + 1);
+  }, []);
 
   // Stati per i dati iniziali delle griglie - mantengono referenza stabile
   const [initialOpeningCounts, setInitialOpeningCounts] = useState<CashCount[]>([]);
@@ -170,6 +177,7 @@ function CashRegisterDetails() {
         utenteId: cashRegister.utenteId,
         notes: cashRegister.note || "",
         status: cashRegister.stato,
+        gridDirty: false,
       };
       handleInitializeValues(formikValues);
 
@@ -192,10 +200,10 @@ function CashRegisterDetails() {
         cashRegister.incassi && cashRegister.incassi.length > 0
           ? cashRegister.incassi.map((i: IncassoCassa) => ({ type: i.tipo, amount: i.importo }))
           : [
-              { type: "Pago in contanti", amount: cashRegister.incassoContanteTracciato || 0 },
-              { type: "Pagamenti Elettronici", amount: cashRegister.incassiElettronici || 0 },
-              { type: "Pagamento con Fattura", amount: cashRegister.incassiFattura || 0 },
-            ]
+            { type: "Pago in contanti", amount: cashRegister.incassoContanteTracciato || 0 },
+            { type: "Pagamenti Elettronici", amount: cashRegister.incassiElettronici || 0 },
+            { type: "Pagamento con Fattura", amount: cashRegister.incassiFattura || 0 },
+          ]
       );
 
       setInitialExpenses(cashRegister.spese && cashRegister.spese.length > 0 ? cashRegister.spese.map((e: SpesaCassa) => ({ description: e.descrizione, amount: e.importo })) : []);
@@ -213,6 +221,7 @@ function CashRegisterDetails() {
         utenteId: utente?.id || 0,
         notes: "",
         status: "DRAFT",
+        gridDirty: false,
       };
       handleInitializeValues(newFormikValues);
 
@@ -358,8 +367,8 @@ function CashRegisterDetails() {
       }}
       onSubmit={onSubmit}
     >
-      {({ status, isSubmitting, isValid, dirty }) => {
-        const disableSave = status?.isFormLocked || isSubmitting || !isValid || !dirty;
+      {({ status, isSubmitting, isValid }) => {
+        const disableSave = status?.isFormLocked || isSubmitting || !isValid;
 
         return (
           <Form noValidate>
@@ -426,6 +435,8 @@ function CashRegisterDetails() {
                 closingRowData={closingRowData}
                 initialIncomes={initialIncomes}
                 initialExpenses={initialExpenses}
+                onCellChange={handleCellChange}
+                refreshKey={refreshKey}
               />
             </Box>
           </Form>

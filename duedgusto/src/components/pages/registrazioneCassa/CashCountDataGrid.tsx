@@ -1,7 +1,5 @@
-import { useMemo, useCallback, forwardRef, useEffect } from "react";
+import { useMemo, useCallback, forwardRef, useEffect, memo } from "react";
 import { Box, Typography, useTheme } from "@mui/material";
-import { useFormikContext } from "formik";
-import { FormikCashRegisterValues } from "./CashRegisterDetails";
 import Datagrid from "../../common/datagrid/Datagrid";
 import { DatagridCellValueChangedEvent, DatagridColDef, DatagridData } from "../../common/datagrid/@types/Datagrid";
 import { GridReadyEvent } from "ag-grid-community";
@@ -10,13 +8,12 @@ import { CashCountRowData } from "./useCashCountData";
 interface CashCountDataGridProps {
   rowData: CashCountRowData[];
   title: string;
+  isLocked: boolean;
+  onCellChange?: () => void;
 }
 
-const CashCountDataGrid = forwardRef<GridReadyEvent<DatagridData<CashCountRowData>>, CashCountDataGridProps>(({ rowData, title }, ref) => {
-  const formik = useFormikContext<FormikCashRegisterValues>();
+const CashCountDataGrid = memo(forwardRef<GridReadyEvent<DatagridData<CashCountRowData>>, CashCountDataGridProps>(({ rowData, title, isLocked, onCellChange }, ref) => {
   const theme = useTheme();
-
-  const isLocked = formik.status?.isFormLocked || false;
 
   const calculateTotal = useCallback((): number => {
     if (!ref || typeof ref === "function" || !ref.current) return 0;
@@ -106,8 +103,10 @@ const CashCountDataGrid = forwardRef<GridReadyEvent<DatagridData<CashCountRowDat
           }
         }
       }
+
+      onCellChange?.();
     },
-    [ref, calculateTotal]
+    [ref, calculateTotal, onCellChange]
   );
 
   const handleGridReady = useCallback(
@@ -162,7 +161,7 @@ const CashCountDataGrid = forwardRef<GridReadyEvent<DatagridData<CashCountRowDat
 
   return (
     <Box>
-      <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold", mb: 2 }}>
+      <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold", mb: 0 }}>
         {title}
       </Typography>
       <Box
@@ -202,7 +201,7 @@ const CashCountDataGrid = forwardRef<GridReadyEvent<DatagridData<CashCountRowDat
       </Box>
     </Box>
   );
-});
+}));
 
 CashCountDataGrid.displayName = "CashCountDataGrid";
 

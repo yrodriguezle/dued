@@ -1,18 +1,17 @@
-import { useMemo, forwardRef, useCallback } from "react";
+import { useMemo, forwardRef, useCallback, memo } from "react";
 import { Box, Typography } from "@mui/material";
-import { useFormikContext } from "formik";
-import { FormikCashRegisterValues, Income } from "./CashRegisterDetails";
+import { Income } from "./CashRegisterDetails";
 import Datagrid from "../../common/datagrid/Datagrid";
 import { DatagridColDef, DatagridCellValueChangedEvent, DatagridData } from "../../common/datagrid/@types/Datagrid";
 import { GridReadyEvent } from "ag-grid-community";
 
 interface IncomesDataGridProps {
   initialIncomes: Income[];
+  isLocked: boolean;
+  onCellChange?: () => void;
 }
 
-const IncomesDataGrid = forwardRef<GridReadyEvent<DatagridData<Income>>, IncomesDataGridProps>(({ initialIncomes }, ref) => {
-  const formik = useFormikContext<FormikCashRegisterValues>();
-  const isLocked = formik.status?.isFormLocked || false;
+const IncomesDataGrid = memo(forwardRef<GridReadyEvent<DatagridData<Income>>, IncomesDataGridProps>(({ initialIncomes, isLocked, onCellChange }, ref) => {
 
   // Usa i dati iniziali passati come prop
   const items = useMemo(() => {
@@ -53,7 +52,8 @@ const IncomesDataGrid = forwardRef<GridReadyEvent<DatagridData<Income>>, Incomes
     if (newAmount >= 0 && event.data) {
       event.data.amount = newAmount;
     }
-  }, []);
+    onCellChange?.();
+  }, [onCellChange]);
 
   const handleGridReady = useCallback((event: GridReadyEvent<DatagridData<Income>>) => {
     if (ref && typeof ref !== 'function') {
@@ -63,7 +63,7 @@ const IncomesDataGrid = forwardRef<GridReadyEvent<DatagridData<Income>>, Incomes
 
   return (
     <Box>
-      <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold", mb: 2 }}>
+      <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold", mb: 0 }}>
         INCASSI
       </Typography>
       <Box
@@ -89,7 +89,7 @@ const IncomesDataGrid = forwardRef<GridReadyEvent<DatagridData<Income>>, Incomes
       </Box>
     </Box>
   );
-});
+}));
 
 IncomesDataGrid.displayName = "IncomesDataGrid";
 

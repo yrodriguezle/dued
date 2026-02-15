@@ -28,6 +28,8 @@ interface CashRegisterFormDataGridProps {
   closingRowData: CashCountRowData[];
   initialIncomes: Income[];
   initialExpenses: Expense[];
+  onCellChange: () => void;
+  refreshKey: number;
 }
 
 const CashRegisterFormDataGrid: React.FC<CashRegisterFormDataGridProps> = ({
@@ -38,9 +40,12 @@ const CashRegisterFormDataGrid: React.FC<CashRegisterFormDataGridProps> = ({
   openingRowData,
   closingRowData,
   initialIncomes,
-  initialExpenses
+  initialExpenses,
+  onCellChange,
+  refreshKey,
 }) => {
   const formik = useFormikContext<FormikCashRegisterValues>();
+  const isLocked = formik.status?.isFormLocked || false;
 
   return (
     <Box sx={{ marginTop: 1, paddingX: { xs: 1, sm: 2, md: 3 } }}>
@@ -51,6 +56,8 @@ const CashRegisterFormDataGrid: React.FC<CashRegisterFormDataGridProps> = ({
             ref={openingGridRef}
             rowData={openingRowData}
             title="APERTURA CASSA"
+            isLocked={isLocked}
+            onCellChange={onCellChange}
           />
         </Grid>
 
@@ -60,17 +67,29 @@ const CashRegisterFormDataGrid: React.FC<CashRegisterFormDataGridProps> = ({
             ref={closingGridRef}
             rowData={closingRowData}
             title="CHIUSURA CASSA"
+            isLocked={isLocked}
+            onCellChange={onCellChange}
           />
         </Grid>
 
         {/* Incassi */}
         <Grid item xs={12} md={6}>
-          <IncomesDataGrid ref={incomesGridRef} initialIncomes={initialIncomes} />
+          <IncomesDataGrid
+            ref={incomesGridRef}
+            initialIncomes={initialIncomes}
+            isLocked={isLocked}
+            onCellChange={onCellChange}
+          />
         </Grid>
 
         {/* Spese */}
         <Grid item xs={12} md={6}>
-          <ExpensesDataGrid ref={expensesGridRef} initialExpenses={initialExpenses} />
+          <ExpensesDataGrid
+            ref={expensesGridRef}
+            initialExpenses={initialExpenses}
+            isLocked={isLocked}
+            onCellChange={onCellChange}
+          />
         </Grid>
 
         {/* Note */}
@@ -98,6 +117,7 @@ const CashRegisterFormDataGrid: React.FC<CashRegisterFormDataGridProps> = ({
             closingGridRef={closingGridRef}
             incomesGridRef={incomesGridRef}
             expensesGridRef={expensesGridRef}
+            refreshKey={refreshKey}
           />
         </Grid>
       </Grid>

@@ -1,14 +1,15 @@
-import { useMemo, useState, forwardRef, useCallback } from "react";
+import { useMemo, useState, forwardRef, useCallback, memo } from "react";
 import { Box, Typography } from "@mui/material";
-import { useFormikContext } from "formik";
 import { z } from "zod";
-import { FormikCashRegisterValues, Expense } from "./CashRegisterDetails";
+import { Expense } from "./CashRegisterDetails";
 import Datagrid from "../../common/datagrid/Datagrid";
 import { DatagridColDef, ValidationError, DatagridCellValueChangedEvent, DatagridData } from "../../common/datagrid/@types/Datagrid";
 import { GridReadyEvent } from "ag-grid-community";
 
 interface ExpensesDataGridProps {
   initialExpenses: Expense[];
+  isLocked: boolean;
+  onCellChange?: () => void;
 }
 
 // Schema Zod per validazione inline non bloccante
@@ -17,9 +18,7 @@ const expenseSchema = z.object({
   amount: z.number().min(0, "L'importo deve essere maggiore o uguale a 0"),
 });
 
-const ExpensesDataGrid = forwardRef<GridReadyEvent<DatagridData<Expense>>, ExpensesDataGridProps>(({ initialExpenses }, ref) => {
-  const formik = useFormikContext<FormikCashRegisterValues>();
-  const isLocked = formik.status?.isFormLocked || false;
+const ExpensesDataGrid = memo(forwardRef<GridReadyEvent<DatagridData<Expense>>, ExpensesDataGridProps>(({ initialExpenses, isLocked, onCellChange }, ref) => {
   const [validationErrors, setValidationErrors] = useState<Map<number, ValidationError[]>>(new Map());
 
   // Usa i dati iniziali passati come prop
@@ -65,7 +64,8 @@ const ExpensesDataGrid = forwardRef<GridReadyEvent<DatagridData<Expense>>, Expen
         event.data.amount = Math.max(0, newAmount);
       }
     }
-  }, []);
+    onCellChange?.();
+  }, [onCellChange]);
 
   const handleGridReady = useCallback((event: GridReadyEvent<DatagridData<Expense>>) => {
     if (ref && typeof ref !== 'function') {
@@ -80,7 +80,7 @@ const ExpensesDataGrid = forwardRef<GridReadyEvent<DatagridData<Expense>>, Expen
 
   return (
     <Box>
-      <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold", mb: 2 }}>
+      <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold", mb: 0 }}>
         SPESE
       </Typography>
       <Box
@@ -116,7 +116,7 @@ const ExpensesDataGrid = forwardRef<GridReadyEvent<DatagridData<Expense>>, Expen
       )}
     </Box>
   );
-});
+}));
 
 ExpensesDataGrid.displayName = "ExpensesDataGrid";
 

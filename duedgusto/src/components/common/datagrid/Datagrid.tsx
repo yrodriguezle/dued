@@ -185,9 +185,38 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
         handleTabNavigation(event as Parameters<typeof handleTabNavigation>[0]);
       }
 
-      // Se è ESC e NON si è in editing, verifica se cancellare la riga
       const keyboardEvent = event.event as KeyboardEvent | undefined;
-      if (keyboardEvent?.key === "Escape" && !isEditingRef.current && !readOnly && getNewRow) {
+      if (!keyboardEvent) return;
+
+      // ArrowUp/ArrowDown durante editing in agNumberCellEditor → naviga alla cella sopra/sotto
+      if ((keyboardEvent.key === "ArrowUp" || keyboardEvent.key === "ArrowDown") && "column" in event && event.column) {
+        const colDef = event.column.getColDef();
+        if (colDef.cellEditor === "agNumberCellEditor" && event.api.getEditingCells().length > 0) {
+          const currentRowIndex = event.node.rowIndex;
+          if (currentRowIndex === null) return;
+
+          const direction = keyboardEvent.key === "ArrowUp" ? -1 : 1;
+          const targetRowIndex = currentRowIndex + direction;
+
+          if (targetRowIndex < 0 || targetRowIndex >= event.api.getDisplayedRowCount()) return;
+
+          const targetNode = event.api.getDisplayedRowAtIndex(targetRowIndex);
+          if (!targetNode || targetNode.rowPinned) return;
+
+          event.api.stopEditing();
+          const colId = event.column.getColId();
+          event.api.setFocusedCell(targetRowIndex, colId);
+
+          if (event.column.isCellEditable(targetNode)) {
+            setTimeout(() => {
+              event.api.startEditingCell({ rowIndex: targetRowIndex, colKey: colId });
+            }, 1);
+          }
+        }
+      }
+
+      // Se è ESC e NON si è in editing, verifica se cancellare la riga
+      if (keyboardEvent.key === "Escape" && !isEditingRef.current && !readOnly && getNewRow) {
         const focusedCell = event.api.getFocusedCell();
         if (!focusedCell) return;
 
@@ -311,12 +340,29 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
     return gridData;
   }, []);
 
-  // Inietta la colonna numero riga se necessario
   const enhancedColumnDefs = useMemo<DatagridColDef<T>[]>(() => {
+    // Wrappa le colonne con agNumberCellEditor per sopprimere ArrowUp/ArrowDown durante editing
+    const cols = columnDefs.map((col) => {
+      if (col.cellEditor === "agNumberCellEditor") {
+        const originalSuppress = col.suppressKeyboardEvent;
+        return {
+          ...col,
+          suppressKeyboardEvent: (params: Parameters<NonNullable<DatagridColDef<T>["suppressKeyboardEvent"]>>[0]) => {
+            if (params.editing && (params.event.key === "ArrowUp" || params.event.key === "ArrowDown")) {
+              params.event.preventDefault();
+              return true;
+            }
+            return originalSuppress ? originalSuppress(params) : false;
+          },
+        };
+      }
+      return col;
+    });
+
     if (isPresentation || !showRowNumbers) {
-      return columnDefs;
+      return cols;
     }
-    return [createRowNumberColumn<T>(), ...columnDefs];
+    return [createRowNumberColumn<T>(), ...cols];
   }, [columnDefs, isPresentation, showRowNumbers]);
 
   const context = useRef({

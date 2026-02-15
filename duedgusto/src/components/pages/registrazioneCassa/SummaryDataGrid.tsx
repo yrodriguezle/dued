@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo } from "react";
 import { Box, Typography, useTheme } from "@mui/material";
 import Datagrid from "../../common/datagrid/Datagrid";
 import { DatagridColDef, DatagridData } from "../../common/datagrid/@types/Datagrid";
@@ -20,6 +20,7 @@ interface SummaryDataGridProps {
   closingGridRef: React.RefObject<GridReadyEvent<DatagridData<CashCountRowData>> | null>;
   incomesGridRef: React.RefObject<GridReadyEvent<DatagridData<IncomeRow>> | null>;
   expensesGridRef: React.RefObject<GridReadyEvent<DatagridData<ExpenseRow>> | null>;
+  refreshKey: number;
 }
 
 interface SummaryRowData extends Record<string, unknown> {
@@ -30,38 +31,34 @@ interface SummaryRowData extends Record<string, unknown> {
   textColor?: string;
 }
 
-function SummaryDataGrid({ openingGridRef, closingGridRef, incomesGridRef, expensesGridRef }: SummaryDataGridProps) {
+function calculateCashCountTotal(gridRef: React.RefObject<GridReadyEvent<DatagridData<CashCountRowData>> | null>): number {
+  if (!gridRef.current) return 0;
+
+  let total = 0;
+  gridRef.current.api.forEachNode((node) => {
+    if (node.data && !node.rowPinned) {
+      total += node.data.total;
+    }
+  });
+  return total;
+}
+
+function SummaryDataGrid({ openingGridRef, closingGridRef, incomesGridRef, expensesGridRef, refreshKey }: SummaryDataGridProps) {
   const theme = useTheme();
-  const [openingTotal, setOpeningTotal] = useState(0);
-  const [closingTotal, setClosingTotal] = useState(0);
 
-  // Ricalcola i totali quando le griglie cambiano
-  useEffect(() => {
-    const calculateTotal = (gridRef: React.RefObject<GridReadyEvent<DatagridData<CashCountRowData>> | null>): number => {
-      if (!gridRef.current) return 0;
-
-      let total = 0;
-      gridRef.current.api.forEachNode((node) => {
-        if (node.data && !node.rowPinned) {
-          total += node.data.total;
-        }
-      });
-      return total;
-    };
-
-    const interval = setInterval(() => {
-      setOpeningTotal(calculateTotal(openingGridRef));
-      setClosingTotal(calculateTotal(closingGridRef));
-    }, 100);
-
-    return () => clearInterval(interval);
-  }, [openingGridRef, closingGridRef]);
+  // refreshKey forces recalculation when grids change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const openingTotal = useMemo(() => calculateCashCountTotal(openingGridRef), [openingGridRef, refreshKey]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const closingTotal = useMemo(() => calculateCashCountTotal(closingGridRef), [closingGridRef, refreshKey]);
 
   const dailyIncome = closingTotal - openingTotal;
 
   // Leggi i dati dalle griglie incomes/expenses
-  const incomes = incomesGridRef.current?.context.getGridData() || [];
-  const expenses = expensesGridRef.current?.context.getGridData() || [];
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const incomes = useMemo(() => incomesGridRef.current?.context.getGridData() || [], [incomesGridRef, refreshKey]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const expenses = useMemo(() => expensesGridRef.current?.context.getGridData() || [], [expensesGridRef, refreshKey]);
 
   const cashInWhite = (incomes as IncomeRow[]).find((i) => i.type === "Pago in contanti")?.amount || 0;
   const electronicPayments = (incomes as IncomeRow[]).find((i) => i.type === "Pagamenti Elettronici")?.amount || 0;
@@ -161,7 +158,7 @@ function SummaryDataGrid({ openingGridRef, closingGridRef, incomesGridRef, expen
 
   return (
     <Box>
-      <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold", mb: 2 }}>
+      <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold", mb: 0 }}>
         RIEPILOGO VENDITE
       </Typography>
       <Box>
