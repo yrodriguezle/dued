@@ -1,5 +1,5 @@
 import { useContext, useEffect, useRef, useCallback } from "react";
-import { Box, CircularProgress, Container, Alert, Typography } from "@mui/material";
+import { Box, CircularProgress, Container, Alert } from "@mui/material";
 import { Formik, Form, FormikProps } from "formik";
 import { z } from "zod";
 import { toast } from "react-toastify";
@@ -35,7 +35,7 @@ const validationSchema = z.object({
 });
 
 function SettingsDetails() {
-  const { title, setTitle } = useContext(PageTitleContext);
+  const { setTitle } = useContext(PageTitleContext);
   const { settings, loading, error } = useGetBusinessSettings();
   const formRef = useRef<FormikProps<BusinessSettings>>(null);
   const { initialValues, handleInitializeValues } = useInitializeValues({ skipInitialize: false });
@@ -175,7 +175,7 @@ function SettingsDetails() {
       initialStatus={{ formStatus: formStatuses.UPDATE, isFormLocked: true }}
     >
       {() => (
-        <Form>
+        <Form style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 64px)" }}>
           <FormikToolbar
             onFormReset={handleResetForm}
             hideNewButton={true}
@@ -186,11 +186,8 @@ function SettingsDetails() {
               deleteDenied: true,
             }}
           />
-          <Box className="scrollable-box" sx={{ marginTop: 1, paddingX: 2, overflow: 'auto', height: 'calc(100vh - 64px - 41px)' }}>
-            <Typography id="view-title" variant="h5" gutterBottom>
-              {title}
-            </Typography>
-            <Box sx={{ paddingX: 1 }}>
+          <Box sx={{ flex: 1, overflow: "auto", minHeight: 0, px: 2, py: 2 }}>
+            <Box sx={{ maxWidth: 720 }}>
               <BusinessSettingsForm />
             </Box>
           </Box>

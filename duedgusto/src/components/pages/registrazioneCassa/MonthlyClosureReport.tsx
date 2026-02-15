@@ -8,7 +8,7 @@ interface MonthlyClosureReportProps {
 }
 
 const MOTIVO_LABELS_REPORT: Record<string, string> = {
-    ATTIVITA_NON_AVVIATA: "Attivit\u00e0 non avviata",
+    ATTIVITA_NON_AVVIATA: "Attività non avviata",
     CHIUSURA_PROGRAMMATA: "Chiusura programmata",
     EVENTO_ECCEZIONALE: "Evento eccezionale",
 };

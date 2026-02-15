@@ -57,7 +57,7 @@ import MonthlyClosureReport from "./MonthlyClosureReport";
 import { DatagridData } from "../../common/datagrid/@types/Datagrid";
 
 const MOTIVO_LABELS: Record<CodiceMotivo, string> = {
-  ATTIVITA_NON_AVVIATA: "Attivit\u00e0 non avviata",
+  ATTIVITA_NON_AVVIATA: "Attività non avviata",
   CHIUSURA_PROGRAMMATA: "Chiusura programmata",
   EVENTO_ECCEZIONALE: "Evento eccezionale",
 };
@@ -464,7 +464,7 @@ const MonthlyClosureDetails = () => {
 
         <Grid container spacing={2}>
           {/* Riepilogo compatto — metriche in strip */}
-          <Grid item xs={12}>
+          <Grid item xs={8}>
             <Paper elevation={1} sx={{ p: 2 }}>
               <Grid container spacing={2}>
                 <Grid item xs={6} sm={4} md={2}>

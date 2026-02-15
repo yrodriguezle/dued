@@ -82,7 +82,7 @@ const MonthlyExpensesDataGrid = forwardRef<GridReadyEvent<DatagridData<SpesaRow>
 
   return (
     <Box>
-      <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold", mb: 2 }}>
+      <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold", mb: 0 }}>
         Spese Mensili Libere
       </Typography>
       <Datagrid<SpesaRow>
