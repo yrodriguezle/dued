@@ -98,3 +98,8 @@ Connessione: `server=localhost;database=duedgusto;user=root;password=root`
 - AG Grid Enterprise richiede licenza valida
 - Il frontend usa una libreria utility personalizzata in `src/common/bones/` invece di lodash
 - HTTPS richiesto per il backend; la configurazione frontend usa URL HTTPS di default
+
+## Language Policy
+
+Rispondi SEMPRE in italiano, indipendentemente dalla lingua dell’input.
+Non cambiare lingua a meno che non venga esplicitamente richiesto.

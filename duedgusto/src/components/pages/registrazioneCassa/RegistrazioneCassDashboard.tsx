@@ -14,6 +14,7 @@ import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Cart
 
 import PageTitleContext from "../../layout/headerBar/PageTitleContext";
 import useQueryYearlySummary from "../../../graphql/cashRegister/useQueryYearlySummary";
+import useStore from "../../../store/useStore";
 
 const CHART_COLORS = {
   primary: "#1976d2",
@@ -86,6 +87,7 @@ function KPICard({ title, value, subtitle, trend, color = "primary", icon }: KPI
 function RegistrazioneCassDashboard() {
   const navigate = useNavigate();
   const { setTitle } = useContext(PageTitleContext);
+  const getNextOperatingDate = useStore((state) => state.getNextOperatingDate);
 
   // Anno e mese correnti
   const now = new Date();
@@ -202,8 +204,9 @@ function RegistrazioneCassDashboard() {
             color="primary"
             startIcon={<AddIcon />}
             onClick={() => {
-              const today = new Date().toISOString().split("T")[0];
-              navigate(`/gestionale/cassa/${today}`);
+              const date = getNextOperatingDate();
+              const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+              navigate(`/gestionale/cassa/${dateStr}`);
             }}
           >
             Nuova Cassa

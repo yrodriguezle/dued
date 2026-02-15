@@ -7,7 +7,18 @@ interface MonthlyClosureReportProps {
     closure: ChiusuraMensile;
 }
 
+const MOTIVO_LABELS_REPORT: Record<string, string> = {
+    ATTIVITA_NON_AVVIATA: "Attivit\u00e0 non avviata",
+    CHIUSURA_PROGRAMMATA: "Chiusura programmata",
+    EVENTO_ECCEZIONALE: "Evento eccezionale",
+};
+
 const MonthlyClosureReport: React.FC<MonthlyClosureReportProps> = ({ closure }) => {
+    const giorniEsclusiParsed: GiornoEscluso[] = (() => {
+        if (!closure.giorniEsclusi) return [];
+        try { return JSON.parse(closure.giorniEsclusi) as GiornoEscluso[]; } catch { return []; }
+    })();
+
     const handlePrint = () => {
         const printWindow = window.open('', '_blank');
         if (!printWindow) return;
@@ -107,6 +118,26 @@ const MonthlyClosureReport: React.FC<MonthlyClosureReportProps> = ({ closure }) 
                             `).join('')}
                         </tbody>
                     </table>
+                ` : ''}
+
+                ${giorniEsclusiParsed.length > 0 ? `
+                    <h2>Giorni Esclusi dalla Chiusura</h2>
+                    <table>
+                        <thead>
+                            <tr><th>Data</th><th>Motivo</th><th>Note</th><th>Data Esclusione</th></tr>
+                        </thead>
+                        <tbody>
+                            ${giorniEsclusiParsed.map(ge => `
+                                <tr>
+                                    <td>${dayjs(ge.data).format('DD/MM/YYYY')}</td>
+                                    <td>${MOTIVO_LABELS_REPORT[ge.codiceMotivo] || ge.codiceMotivo}</td>
+                                    <td>${ge.note || '-'}</td>
+                                    <td>${dayjs(ge.dataEsclusione).format('DD/MM/YYYY HH:mm')}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                    <p>Totale giorni esclusi: ${giorniEsclusiParsed.length}</p>
                 ` : ''}
 
                 <h2>Riepilogo Finale</h2>

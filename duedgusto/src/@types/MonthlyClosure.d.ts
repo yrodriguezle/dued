@@ -1,5 +1,15 @@
 // src/@types/MonthlyClosure.d.ts
 
+type CodiceMotivo = "ATTIVITA_NON_AVVIATA" | "CHIUSURA_PROGRAMMATA" | "EVENTO_ECCEZIONALE";
+
+type GiornoEscluso = {
+  data: string;
+  codiceMotivo: CodiceMotivo;
+  note?: string;
+  dataEsclusione: string;
+  utenteEsclusione: number;
+};
+
 type CategoriaSpesa = "Affitto" | "Utenze" | "Stipendi" | "Altro";
 
 type SpesaMensileLibera = {
@@ -58,6 +68,8 @@ type ChiusuraMensile = {
   registriInclusi: RegistroCassaMensile[];
   speseLibere: SpesaMensileLibera[];
   pagamentiInclusi: PagamentoMensileFornitori[];
+
+  giorniEsclusi: string | null;
 
   stato: "BOZZA" | "CHIUSA" | "RICONCILIATA";
   note: string | null;

@@ -63,6 +63,8 @@ export const chiusuraMensileFragment = gql`
     totaleLordoCalcolato
     totaleDifferenzeCassaCalcolato
 
+    giorniEsclusi
+
     stato
     note
     chiusaDa

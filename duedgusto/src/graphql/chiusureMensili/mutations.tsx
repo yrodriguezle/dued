@@ -118,6 +118,36 @@ export const mutationIncludiPagamentoFornitore: TypedDocumentNode<IncludiPagamen
   }
 `;
 
+// ============ MUTATION: Aggiorna Giorni Esclusi ============
+
+interface AggiornaGiorniEsclusiData {
+  monthlyClosures: {
+    aggiornaGiorniEsclusi: ChiusuraMensile;
+  };
+}
+
+interface GiornoEsclusoInput {
+  data: string;
+  codiceMotivo: string;
+  note?: string | null;
+}
+
+interface AggiornaGiorniEsclusiVariables {
+  chiusuraId: number;
+  giorniEsclusi: GiornoEsclusoInput[];
+}
+
+export const mutationAggiornaGiorniEsclusi: TypedDocumentNode<AggiornaGiorniEsclusiData, AggiornaGiorniEsclusiVariables> = gql`
+  mutation AggiornaGiorniEsclusi($chiusuraId: Int!, $giorniEsclusi: [GiornoEsclusoInput!]!) {
+    monthlyClosures {
+      aggiornaGiorniEsclusi(chiusuraId: $chiusuraId, giorniEsclusi: $giorniEsclusi) {
+        ...ChiusuraMensileFragment
+      }
+    }
+  }
+  ${chiusuraMensileFragment}
+`;
+
 // ============ MUTATION: Chiudi Chiusura Mensile ============
 
 interface ChiudiChiusuraMensileData {

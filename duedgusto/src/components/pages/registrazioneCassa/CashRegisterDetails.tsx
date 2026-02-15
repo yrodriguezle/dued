@@ -83,6 +83,8 @@ function CashRegisterDetails() {
   const expensesGridRef = useRef<GridReadyEvent<DatagridData<ExpenseRow>> | null>(null);
   const { setTitle } = useContext(PageTitleContext);
   const utente = useStore((state) => state.utente);
+  const isOpen = useStore((state) => state.isOpen);
+  const getNextOperatingDate = useStore((state) => state.getNextOperatingDate);
 
   // refreshKey: incrementato quando una griglia notifica un cambio, forza il ricalcolo del SummaryDataGrid
   const [refreshKey, setRefreshKey] = useState(0);
@@ -129,24 +131,28 @@ function CashRegisterDetails() {
     closingCounts: initialClosingCounts,
   });
 
-  // Navigate between days for cash register entry
+  // Navigate between days for cash register entry, skipping non-operating days
   const handlePreviousDay = useCallback(() => {
-    // Parse date and subtract 1 day
     const [year, month, day] = currentDate.split("-").map(Number);
     const date = new Date(year, month - 1, day);
-    date.setDate(date.getDate() - 1);
+    for (let i = 0; i < 7; i++) {
+      date.setDate(date.getDate() - 1);
+      if (isOpen(date)) break;
+    }
     const newDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
     navigate(`/gestionale/cassa/${newDate}`);
-  }, [currentDate, navigate]);
+  }, [currentDate, isOpen, navigate]);
 
   const handleNextDay = useCallback(() => {
-    // Parse date and add 1 day
     const [year, month, day] = currentDate.split("-").map(Number);
     const date = new Date(year, month - 1, day);
-    date.setDate(date.getDate() + 1);
+    for (let i = 0; i < 7; i++) {
+      date.setDate(date.getDate() + 1);
+      if (isOpen(date)) break;
+    }
     const newDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
     navigate(`/gestionale/cassa/${newDate}`);
-  }, [currentDate, navigate]);
+  }, [currentDate, isOpen, navigate]);
 
   const handleOpenMonthlyCalendar = useCallback(() => {
     // Estrai anno e mese dalla data corrente nell'URL
@@ -343,6 +349,17 @@ function CashRegisterDetails() {
       toast.error("Errore durante la chiusura della cassa");
     }
   };
+
+  // Redirect se il giorno corrente è non operativo
+  useEffect(() => {
+    const [y, m, d] = currentDate.split("-").map(Number);
+    const date = new Date(y, m - 1, d);
+    if (!isOpen(date)) {
+      const next = getNextOperatingDate(date);
+      const nextStr = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}-${String(next.getDate()).padStart(2, "0")}`;
+      navigate(`/gestionale/cassa/${nextStr}`, { replace: true });
+    }
+  }, [currentDate, isOpen, getNextOperatingDate, navigate]);
 
   if (loadingDenominations || loadingCashRegister) {
     return (

@@ -129,9 +129,17 @@ public class ChiusuraMensileService
 
         // Validazione completezza registri prima della chiusura definitiva
         var giorniMancanti = await ValidaCompletezzaRegistriAsync(chiusura.Anno, chiusura.Mese);
-        if (giorniMancanti.Any())
+
+        // Sottrai giorni esclusi
+        var esclusi = chiusura.GiorniEsclusi != null
+            ? JsonSerializer.Deserialize<List<GiornoEscluso>>(chiusura.GiorniEsclusi)!
+                .Select(e => e.Data.Date).ToHashSet()
+            : new HashSet<DateTime>();
+        var giorniEffettivamenteMancanti = giorniMancanti.Where(d => !esclusi.Contains(d.Date)).ToList();
+
+        if (giorniEffettivamenteMancanti.Any())
         {
-            var giorniFormattati = string.Join(", ", giorniMancanti.Select(d => d.ToString("dd/MM/yyyy")));
+            var giorniFormattati = string.Join(", ", giorniEffettivamenteMancanti.Select(d => d.ToString("dd/MM/yyyy")));
             throw new InvalidOperationException(
                 $"Impossibile chiudere: registri giornalieri mancanti per: {giorniFormattati}"
             );
@@ -326,6 +334,79 @@ public class ChiusuraMensileService
 
         await _dbContext.SaveChangesAsync();
         return true;
+    }
+
+    /// <summary>
+    /// Aggiorna i giorni esclusi dalla validazione della chiusura mensile.
+    /// Permesso solo se la chiusura è in stato BOZZA.
+    /// Ogni giorno escluso deve essere nel mese/anno della chiusura, un giorno operativo,
+    /// e non deve avere un RegistroCassa esistente (nemmeno DRAFT).
+    /// </summary>
+    public async Task<ChiusuraMensile> AggiornaGiorniEsclusiAsync(
+        int chiusuraId,
+        List<GiornoEscluso> giorniEsclusi)
+    {
+        var chiusura = await _dbContext.ChiusureMensili
+            .FirstOrDefaultAsync(c => c.ChiusuraId == chiusuraId);
+
+        if (chiusura == null)
+            throw new InvalidOperationException($"Chiusura mensile con ID {chiusuraId} non trovata");
+
+        if (chiusura.Stato != "BOZZA")
+        {
+            throw new InvalidOperationException(
+                "Impossibile modificare i giorni esclusi: la chiusura non è in stato BOZZA"
+            );
+        }
+
+        // Carica i giorni operativi
+        var settings = await _dbContext.BusinessSettings.FirstAsync();
+        var operatingDays = JsonSerializer.Deserialize<bool[]>(settings.OperatingDays)!;
+
+        var primoGiorno = new DateTime(chiusura.Anno, chiusura.Mese, 1);
+        var ultimoGiorno = primoGiorno.AddMonths(1).AddDays(-1);
+
+        foreach (var giorno in giorniEsclusi)
+        {
+            var data = giorno.Data.Date;
+
+            // Deve essere nel mese/anno della chiusura
+            if (data < primoGiorno || data > ultimoGiorno)
+            {
+                throw new InvalidOperationException(
+                    $"La data {data:dd/MM/yyyy} non appartiene al mese {chiusura.Mese:D2}/{chiusura.Anno}"
+                );
+            }
+
+            // Deve essere un giorno operativo
+            int operatingDayIndex = ((int)data.DayOfWeek + 6) % 7;
+            if (!operatingDays[operatingDayIndex])
+            {
+                throw new InvalidOperationException(
+                    $"La data {data:dd/MM/yyyy} non è un giorno operativo"
+                );
+            }
+
+            // Non deve avere un RegistroCassa esistente (nemmeno DRAFT)
+            var registroEsistente = await _dbContext.RegistriCassa
+                .AnyAsync(r => r.Data.Date == data);
+            if (registroEsistente)
+            {
+                throw new InvalidOperationException(
+                    $"Impossibile escludere {data:dd/MM/yyyy}: esiste un registro cassa per questa data"
+                );
+            }
+        }
+
+        chiusura.GiorniEsclusi = giorniEsclusi.Count > 0
+            ? JsonSerializer.Serialize(giorniEsclusi)
+            : null;
+        chiusura.AggiornatoIl = DateTime.UtcNow;
+
+        await _dbContext.SaveChangesAsync();
+
+        return await GetChiusuraConRelazioniAsync(chiusuraId)
+            ?? throw new InvalidOperationException("Errore nel recupero della chiusura");
     }
 
     /// <summary>

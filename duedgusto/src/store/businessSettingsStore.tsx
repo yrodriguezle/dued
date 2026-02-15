@@ -16,6 +16,7 @@ interface BusinessSettingsStoreState {
   setSettings: (settings: BusinessSettings) => void;
   isOpen: (date: Date) => boolean;
   isOpenNow: () => boolean;
+  getNextOperatingDate: (from?: Date) => Date;
   getOpeningTime: () => string | null;
   getClosingTime: () => string | null;
 }
@@ -55,6 +56,19 @@ function businessSettingsStore(set: any, get: () => Store): BusinessSettingsStor
 
       const currentTime = now.format("HH:mm");
       return currentTime >= settings.openingTime && currentTime <= settings.closingTime;
+    },
+
+    getNextOperatingDate: (from?: Date): Date => {
+      const state = get();
+      const date = new Date(from ?? new Date());
+      // Se il giorno è già operativo, ritornalo
+      if (state.isOpen(date)) return date;
+      // Cerca il prossimo giorno operativo (max 7 iterazioni)
+      for (let i = 1; i <= 7; i++) {
+        date.setDate(date.getDate() + 1);
+        if (state.isOpen(date)) return date;
+      }
+      return from ?? new Date(); // fallback
     },
 
     getOpeningTime: (): string | null => {

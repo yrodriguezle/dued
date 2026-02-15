@@ -80,6 +80,7 @@ interface Store {
   setSettings: (settings: BusinessSettings) => void;
   isOpen: (date: Date) => boolean;
   isOpenNow: () => boolean;
+  getNextOperatingDate: (from?: Date) => Date;
   getOpeningTime: () => string | null;
   getClosingTime: () => string | null;
 }

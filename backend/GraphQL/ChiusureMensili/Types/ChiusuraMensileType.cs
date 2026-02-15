@@ -56,6 +56,8 @@ public class ChiusuraMensileType : ObjectGraphType<ChiusuraMensile>
             .Description("Totale differenze di cassa aggregate dai registri giornalieri")
             .Resolve(context => context.Source.TotaleDifferenzeCassaCalcolato);
 
+        Field("giorniEsclusi", x => x.GiorniEsclusi, nullable: true);
+
         Field("stato", x => x.Stato);
         Field("note", x => x.Note, nullable: true);
         Field("chiusaDa", x => x.ChiusaDa, nullable: true);

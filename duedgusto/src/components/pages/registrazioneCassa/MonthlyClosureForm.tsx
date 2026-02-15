@@ -39,7 +39,7 @@ const MonthlyClosureForm: React.FC = () => {
     }
   };
 
-  const canCreate = validating && !validazioneLoading && giorniMancanti.length === 0;
+  const canCreate = validating && !validazioneLoading;
 
   return (
     <Box sx={{ padding: 3, maxWidth: 500 }}>
@@ -80,13 +80,8 @@ const MonthlyClosureForm: React.FC = () => {
       </Button>
 
       {validating && !validazioneLoading && giorniMancanti.length > 0 && (
-        <Alert severity="warning" sx={{ mb: 2 }}>
-          Registri mancanti per le seguenti date:
-          <ul>
-            {giorniMancanti.map((data) => (
-              <li key={data}>{dayjs(data).format('DD/MM/YYYY')}</li>
-            ))}
-          </ul>
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Ci sono {giorniMancanti.length} giorni mancanti. Potrai escluderli nella pagina di dettaglio prima della chiusura.
         </Alert>
       )}
 

@@ -13,6 +13,7 @@ import { DatagridColDef, DatagridData, DatagridRowDoubleClickedEvent } from "../
 import useConfirm from "../../common/confirm/useConfirm";
 import showToast from "../../../common/toast/showToast";
 import { DatagridStatus } from "../../../common/globals/constants";
+import useStore from "../../../store/useStore";
 
 export type RegistroCassaWithStatus = RegistroCassa & {
   status: DatagridStatus;
@@ -22,6 +23,7 @@ function ListaRegistrazioneCassa() {
   const navigate = useNavigate();
   const theme = useTheme();
   const { title, setTitle } = useContext(PageTitleContext);
+  const getNextOperatingDate = useStore((state) => state.getNextOperatingDate);
   const gridRef = useRef<GridReadyEvent<DatagridData<RegistroCassaWithStatus>> | null>(null);
   const [selectedRows, setSelectedRows] = useState<DatagridData<RegistroCassaWithStatus>[]>([]);
   const onConfirm = useConfirm();
@@ -55,10 +57,10 @@ function ListaRegistrazioneCassa() {
   }, []);
 
   const handleNew = useCallback(() => {
-    // Navigate to today's date
-    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
-    navigate(`/gestionale/cassa/${today}`);
-  }, [navigate]);
+    const date = getNextOperatingDate();
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    navigate(`/gestionale/cassa/${dateStr}`);
+  }, [getNextOperatingDate, navigate]);
 
   const handleDelete = useCallback(async () => {
     if (selectedRows.length === 0) {

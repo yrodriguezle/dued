@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { gql, TypedDocumentNode, useQuery } from "@apollo/client";
 import { chiusuraMensileFragment } from "./fragments";
 
@@ -102,6 +103,8 @@ export const getValidaCompletezzaRegistri: TypedDocumentNode<ValidaCompletezzaRe
   }
 `;
 
+const EMPTY_GIORNI: string[] = [];
+
 export const useQueryValidaCompletezzaRegistri = ({ anno, mese, skip }: { anno: number; mese: number; skip?: boolean }) => {
   const { data, loading, error, refetch } = useQuery<ValidaCompletezzaRegistriData>(
     getValidaCompletezzaRegistri,
@@ -111,8 +114,13 @@ export const useQueryValidaCompletezzaRegistri = ({ anno, mese, skip }: { anno: 
     }
   );
 
+  const giorniMancanti = useMemo(
+    () => data?.chiusureMensili.validaCompletezzaRegistri ?? EMPTY_GIORNI,
+    [data?.chiusureMensili.validaCompletezzaRegistri]
+  );
+
   return {
-    giorniMancanti: data?.chiusureMensili.validaCompletezzaRegistri || [],
+    giorniMancanti,
     loading,
     error,
     refetch,

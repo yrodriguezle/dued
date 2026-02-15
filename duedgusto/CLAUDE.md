@@ -196,6 +196,10 @@ alcuni problemi di tipo.
 
 **HTTPS in Sviluppo**: Il `config.json` predefinito usa URL HTTPS (`https://localhost:4000`). Assicurati che l'API backend supporti HTTPS o aggiorna la configurazione per HTTP.
 
+## Regole di Codice
+
+- **Non usare cicli `for`/`for...of`/`for...in`**: Preferisci sempre metodi funzionali come `.map()`, `.filter()`, `.reduce()`, `.forEach()`, `Promise.all()` ecc. Questo vale per tutto il codice React/TypeScript nel frontend. Se devi iterare e raccogliere risultati usa `.map()`, se devi eseguire operazioni asincrone in sequenza usa `reduce` con Promise, se devi eseguirle in parallelo usa `Promise.all(items.map(...))`.
+
 ## Convenzioni e Workflow
 
 ### Organizzazione del Codice

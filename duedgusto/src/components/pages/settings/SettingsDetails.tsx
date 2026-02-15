@@ -13,6 +13,7 @@ import useInitializeValues from "./useInitializeValues";
 import { UPDATE_BUSINESS_SETTINGS } from "../../../graphql/settings/mutations";
 import { formStatuses } from "../../../common/globals/constants";
 import useConfirm from "../../common/confirm/useConfirm";
+import useStore from "../../../store/useStore";
 
 const validationSchema = z.object({
   businessName: z.string().min(2, "Nome attività troppo corto"),
@@ -39,6 +40,7 @@ function SettingsDetails() {
   const formRef = useRef<FormikProps<BusinessSettings>>(null);
   const { initialValues, handleInitializeValues } = useInitializeValues({ skipInitialize: false });
   const onConfirm = useConfirm();
+  const setSettings = useStore((state) => state.setSettings);
 
   const [updateMutation] = useMutation(UPDATE_BUSINESS_SETTINGS, {
     onCompleted: (data) => {
@@ -49,6 +51,9 @@ function SettingsDetails() {
           ? JSON.parse(updated.operatingDays)
           : updated.operatingDays,
       };
+
+      // Aggiorna lo store globale per riflettere subito le modifiche (es. calendario)
+      setSettings(parsed as BusinessSettings);
 
       handleInitializeValues(parsed).then(() => {
         formRef.current?.setStatus({

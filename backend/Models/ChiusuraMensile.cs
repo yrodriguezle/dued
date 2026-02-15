@@ -33,6 +33,12 @@ namespace duedgusto.Models
 
         public DateTime AggiornatoIl { get; set; } = DateTime.UtcNow;
 
+        /// <summary>
+        /// JSON: lista di giorni esclusi dalla validazione della chiusura mensile.
+        /// Ogni elemento contiene data, motivo, note, timestamp esclusione e utente.
+        /// </summary>
+        public string? GiorniEsclusi { get; set; }
+
         // Navigation properties
         [ForeignKey("ChiusaDa")]
         public virtual Utente? ChiusaDaUtente { get; set; }

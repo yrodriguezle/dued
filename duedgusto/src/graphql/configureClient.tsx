@@ -120,6 +120,12 @@ function configureClient() {
                 };
               },
             },
+            chiusureMensili: {
+              keyArgs: false,
+              merge(existing = {}, incoming) {
+                return { ...existing, ...incoming };
+              },
+            },
           },
         },
       },

@@ -148,6 +148,44 @@ public class MonthlyClosuresMutations : ObjectGraphType
                 }
             });
 
+        // Aggiorna giorni esclusi dalla chiusura mensile
+        Field<ChiusuraMensileType>("aggiornaGiorniEsclusi")
+            .Description("Aggiorna i giorni esclusi dalla validazione della chiusura mensile (solo in stato BOZZA)")
+            .Argument<NonNullGraphType<IntGraphType>>("chiusuraId", "ID della chiusura")
+            .Argument<NonNullGraphType<ListGraphType<NonNullGraphType<GiornoEsclusoInputType>>>>("giorniEsclusi", "Lista dei giorni da escludere")
+            .ResolveAsync(async context =>
+            {
+                var service = GraphQLService.GetService<ChiusuraMensileService>(context);
+                var userContext = context.UserContext as GraphQLUserContext;
+                JwtHelper jwtHelper = GraphQLService.GetService<JwtHelper>(context);
+                int chiusuraId = context.GetArgument<int>("chiusuraId");
+                var inputGiorni = context.GetArgument<List<Dictionary<string, object>>>("giorniEsclusi");
+
+                int? utenteId = null;
+                if (userContext?.Principal != null)
+                {
+                    utenteId = jwtHelper.GetUserID(userContext.Principal);
+                }
+
+                var giorniEsclusi = inputGiorni.Select(g => new GiornoEscluso
+                {
+                    Data = Convert.ToDateTime(g["data"]),
+                    CodiceMotivo = g["codiceMotivo"].ToString()!,
+                    Note = g.ContainsKey("note") && g["note"] != null ? g["note"].ToString() : null,
+                    DataEsclusione = DateTime.UtcNow,
+                    UtenteEsclusione = utenteId ?? 0,
+                }).ToList();
+
+                try
+                {
+                    return await service.AggiornaGiorniEsclusiAsync(chiusuraId, giorniEsclusi);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    throw new ExecutionError(ex.Message);
+                }
+            });
+
         // 🔄 MIGRAZIONE DATI (eseguire una sola volta)
         Field<StringGraphType>("migraChiusureMensiliVecchioModello")
             .Description("Migra tutte le chiusure esistenti dal vecchio modello denormalizzato al nuovo modello referenziale. ATTENZIONE: Eseguire una sola volta!")

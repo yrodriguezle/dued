@@ -5,7 +5,6 @@ import Layout from "../components/layout/Layout";
 import { Fallback } from "./RoutesFallback";
 import useStore from "../store/useStore";
 import { loadDynamicComponent } from "./dynamicComponentLoader";
-import { getCurrentDate } from "../common/date/date";
 
 const HomePage = React.lazy(() => import("../components/pages/dashboard/HomePage.tsx"));
 const MonthlyClosureDetails = React.lazy(() => import("../components/pages/registrazioneCassa/MonthlyClosureDetails.tsx"));
@@ -15,6 +14,7 @@ const CashRegisterDetails = React.lazy(() => import("../components/pages/registr
 function ProtectedRoutes() {
   const utente = useStore((store) => store.utente);
   const inProgressGlobal = useStore((store) => store.inProgress.global);
+  const getNextOperatingDate = useStore((store) => store.getNextOperatingDate);
   const menuRoutes = useMemo(() => utente?.menus || [], [utente?.menus]);
 
   if (!isAuthenticated()) {
@@ -26,6 +26,9 @@ function ProtectedRoutes() {
     return <Fallback />;
   }
 
+  const cassaRedirectDate = getNextOperatingDate();
+  const cassaRedirectPath = `/gestionale/cassa/${cassaRedirectDate.getFullYear()}-${String(cassaRedirectDate.getMonth() + 1).padStart(2, "0")}-${String(cassaRedirectDate.getDate()).padStart(2, "0")}`;
+
   return (
     <Routes>
       <Route element={<Layout />}>
@@ -35,7 +38,7 @@ function ProtectedRoutes() {
           </Suspense>
         } />
         <Route index element={<Navigate to="dashboard" replace />} />
-        <Route path="cassa/details" element={<Navigate to={`/gestionale/cassa/${getCurrentDate("YYYY-MM-DD")}`} replace />} />
+        <Route path="cassa/details" element={<Navigate to={cassaRedirectPath} replace />} />
         <Route path="cassa/monthly" element={
           <Suspense fallback={<Fallback />}>
             <CashRegisterMonthlyPage />
