@@ -181,11 +181,13 @@ const CashCountDataGrid = memo(forwardRef<GridReadyEvent<DatagridData<CashCountR
           items={rowData}
           columnDefs={columnDefs}
           readOnly={isLocked}
-          showRowNumbers={true}
+          showRowNumbers={false}
           hideToolbar={true}
           onGridReady={handleGridReady}
           onCellValueChanged={handleCellValueChanged}
           suppressRowHoverHighlight={false}
+          defaultColDef={{ sortable: false, suppressMovable: true, resizable: true }}
+          rowSelection={{ mode: "singleRow", enableClickSelection: false, checkboxes: false }}
           getRowId={(params) => params.data.denominationId.toString()}
           pinnedBottomRowData={pinnedBottomRowData}
           getRowStyle={(params) => {

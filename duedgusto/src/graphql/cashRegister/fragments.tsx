@@ -1,41 +1,5 @@
 import { utenteFragment } from "../utente/fragment";
 
-export const registroCassaFragment = `
-  ${utenteFragment}
-  fragment RegistroCassaFragment on RegistroCassa {
-    id
-    data
-    utenteId
-    utente { ...UtenteFragment }
-    totaleApertura
-    totaleChiusura
-    venditeContanti
-    incassoContanteTracciato
-    incassiElettronici
-    incassiFattura
-    totaleVendite
-    speseFornitori
-    speseGiornaliere
-    contanteAtteso
-    differenza
-    contanteNetto
-    importoIva
-    note
-    stato
-    creatoIl
-    aggiornatoIl
-  }
-`;
-
-export const denominazioneMonetaFragment = `
-  fragment DenominazioneMonetaFragment on DenominazioneMoneta {
-    id
-    valore
-    tipo
-    ordineVisualizzazione
-  }
-`;
-
 export const conteggioMonetaFragment = `
   fragment ConteggioMonetaFragment on ConteggioMoneta {
     id
@@ -62,6 +26,49 @@ export const spesaCassaFragment = `
     registroCassaId
     descrizione
     importo
+  }
+`;
+
+export const registroCassaFragment = `
+  ${utenteFragment}
+  ${conteggioMonetaFragment}
+  ${incassoCassaFragment}
+  ${spesaCassaFragment}
+  fragment RegistroCassaFragment on RegistroCassa {
+    id
+    data
+    utenteId
+    utente { ...UtenteFragment }
+    totaleApertura
+    totaleChiusura
+    venditeContanti
+    incassoContanteTracciato
+    incassiElettronici
+    incassiFattura
+    totaleVendite
+    speseFornitori
+    speseGiornaliere
+    contanteAtteso
+    differenza
+    contanteNetto
+    importoIva
+    note
+    stato
+    creatoIl
+    aggiornatoIl
+    conteggiApertura { ...ConteggioMonetaFragment }
+    conteggiChiusura { ...ConteggioMonetaFragment }
+    incassi { ...IncassoCassaFragment }
+    spese { ...SpesaCassaFragment }
+  }
+`;
+
+export const denominazioneMonetaFragment = `
+  fragment DenominazioneMonetaFragment on DenominazioneMoneta {
+    id
+    valore
+    tipo
+    ordineVisualizzazione
   }
 `;
 

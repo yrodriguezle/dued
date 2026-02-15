@@ -85,6 +85,8 @@ const IncomesDataGrid = memo(forwardRef<GridReadyEvent<DatagridData<Income>>, In
           onCellValueChanged={handleCellValueChanged}
           onGridReady={handleGridReady}
           suppressRowHoverHighlight={false}
+          defaultColDef={{ sortable: false, suppressMovable: true, resizable: true }}
+          rowSelection={{ mode: "singleRow", enableClickSelection: false, checkboxes: false }}
         />
       </Box>
     </Box>

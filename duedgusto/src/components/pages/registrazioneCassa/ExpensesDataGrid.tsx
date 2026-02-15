@@ -103,6 +103,7 @@ const ExpensesDataGrid = memo(forwardRef<GridReadyEvent<DatagridData<Expense>>, 
           onCellValueChanged={handleCellValueChanged}
           onGridReady={handleGridReady}
           suppressRowHoverHighlight={false}
+          defaultColDef={{ sortable: false, suppressMovable: true, resizable: true }}
         />
       </Box>
       {validationErrors.size > 0 && (
