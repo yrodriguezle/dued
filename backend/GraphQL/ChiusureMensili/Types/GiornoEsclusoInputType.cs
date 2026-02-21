@@ -7,7 +7,7 @@ public class GiornoEsclusoInputType : InputObjectGraphType
     public GiornoEsclusoInputType()
     {
         Name = "GiornoEsclusoInput";
-        Field<NonNullGraphType<DateTimeGraphType>>("data");
+        Field<NonNullGraphType<DateGraphType>>("data");
         Field<NonNullGraphType<StringGraphType>>("codiceMotivo");
         Field<StringGraphType>("note");
     }

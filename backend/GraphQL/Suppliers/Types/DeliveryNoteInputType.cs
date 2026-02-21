@@ -23,7 +23,7 @@ public class DeliveryNoteInputType : InputObjectGraphType<DeliveryNoteInput>
         Field(x => x.InvoiceId, nullable: true);
         Field(x => x.SupplierId);
         Field(x => x.DdtNumber);
-        Field(x => x.DdtDate, type: typeof(DateTimeGraphType));
+        Field(x => x.DdtDate, type: typeof(DateGraphType));
         Field(x => x.Amount, nullable: true);
         Field(x => x.Notes, nullable: true);
     }

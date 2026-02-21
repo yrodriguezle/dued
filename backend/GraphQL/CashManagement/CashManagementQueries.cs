@@ -41,6 +41,9 @@ public class CashManagementQueries : ObjectGraphType
                         .ThenInclude(c => c.Denominazione)
                     .Include(r => r.IncassiCassa)
                     .Include(r => r.SpeseCassa)
+                    .Include(r => r.PagamentiFornitori)
+                        .ThenInclude(p => p.Ddt)
+                            .ThenInclude(d => d!.Fornitore)
                     .Where(r => r.Data == data)
                     .FirstOrDefaultAsync();
                 return result;

@@ -24,10 +24,10 @@ public class PurchaseInvoiceInputType : InputObjectGraphType<PurchaseInvoiceInpu
         Field(x => x.InvoiceId, nullable: true);
         Field(x => x.SupplierId);
         Field(x => x.InvoiceNumber);
-        Field(x => x.InvoiceDate, type: typeof(DateTimeGraphType));
+        Field(x => x.InvoiceDate, type: typeof(DateGraphType));
         Field(x => x.TaxableAmount);
         Field(x => x.VatRate);
-        Field(x => x.DueDate, nullable: true, type: typeof(DateTimeGraphType));
+        Field(x => x.DueDate, nullable: true, type: typeof(DateGraphType));
         Field(x => x.Notes, nullable: true);
         Field(x => x.Status);
     }

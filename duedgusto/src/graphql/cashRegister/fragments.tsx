@@ -60,6 +60,18 @@ export const registroCassaFragment = `
     conteggiChiusura { ...ConteggioMonetaFragment }
     incassi { ...IncassoCassaFragment }
     spese { ...SpesaCassaFragment }
+    pagamentiFornitori {
+      paymentId
+      amount
+      paymentMethod
+      ddt {
+        ddtNumber
+        supplier {
+          supplierId
+          businessName
+        }
+      }
+    }
   }
 `;
 

@@ -23,6 +23,13 @@ export interface SpesaCassaInput {
   importo: number;
 }
 
+export interface PagamentoFornitoreRegistroInput {
+  fornitoreId: number;
+  numeroDdt: string;
+  importo: number;
+  metodoPagamento?: string;
+}
+
 export interface RegistroCassaInput {
   id?: number;
   data: string;
@@ -31,6 +38,7 @@ export interface RegistroCassaInput {
   conteggiChiusura: ConteggioMonetaInput[];
   incassi: IncassoCassaInput[];
   spese: SpesaCassaInput[];
+  pagamentiFornitori: PagamentoFornitoreRegistroInput[];
   incassoContanteTracciato: number;
   incassiElettronici: number;
   incassiFattura: number;

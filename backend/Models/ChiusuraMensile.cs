@@ -17,9 +17,6 @@ namespace duedgusto.Models
         public int Mese { get; set; }
 
         [Required]
-        public DateTime UltimoGiornoLavorativo { get; set; }
-
-        [Required]
         [MaxLength(20)]
         public string Stato { get; set; } = "BOZZA"; // BOZZA, CHIUSA, RICONCILIATA
 

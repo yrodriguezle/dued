@@ -22,7 +22,7 @@ public class SupplierPaymentInputType : InputObjectGraphType<SupplierPaymentInpu
         Field(x => x.PaymentId, nullable: true);
         Field(x => x.InvoiceId, nullable: true);
         Field(x => x.DdtId, nullable: true);
-        Field(x => x.PaymentDate, type: typeof(DateTimeGraphType));
+        Field(x => x.PaymentDate, type: typeof(DateGraphType));
         Field(x => x.Amount);
         Field(x => x.PaymentMethod, nullable: true);
         Field(x => x.Notes, nullable: true);

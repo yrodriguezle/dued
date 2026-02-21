@@ -13,8 +13,6 @@ public class ChiusuraMensileType : ObjectGraphType<ChiusuraMensile>
         Field(x => x.ChiusuraId);
         Field("anno", x => x.Anno);
         Field("mese", x => x.Mese);
-        Field("ultimoGiornoLavorativo", x => x.UltimoGiornoLavorativo, type: typeof(DateTimeGraphType));
-
         // ✅ PROPRIETÀ CALCOLATE (modello referenziale puro)
         Field<DecimalGraphType>("ricavoTotaleCalcolato")
             .Description("Ricavo totale calcolato dalla somma dei registri cassa inclusi")

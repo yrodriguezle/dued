@@ -50,8 +50,6 @@ export const chiusuraMensileFragment = gql`
     chiusuraId
     anno
     mese
-    ultimoGiornoLavorativo
-
     ricavoTotaleCalcolato
     totaleContantiCalcolato
     totaleElettroniciCalcolato

@@ -223,12 +223,6 @@ public class SuppliersMutations : ObjectGraphType
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
                 SupplierPaymentInput input = context.GetArgument<SupplierPaymentInput>("payment");
 
-                // Validate that at least one of InvoiceId or DdtId is provided
-                if (!input.InvoiceId.HasValue && !input.DdtId.HasValue)
-                {
-                    throw new ExecutionError("Either InvoiceId or DdtId must be provided");
-                }
-
                 PagamentoFornitore? payment = null;
 
                 if (input.PaymentId.HasValue)

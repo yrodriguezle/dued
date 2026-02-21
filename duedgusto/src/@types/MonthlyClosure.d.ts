@@ -50,8 +50,6 @@ type ChiusuraMensile = {
   chiusuraId: number;
   anno: number;
   mese: number;
-  ultimoGiornoLavorativo: string;
-
   // Proprietà calcolate (compute on-the-fly dal backend)
   ricavoTotaleCalcolato: number;
   totaleContantiCalcolato: number;

@@ -181,8 +181,71 @@ public class CashManagementMutations : ObjectGraphType
                     totaleSpese += spesaInput.Importo;
                 }
 
+                // Process supplier payments from cash register
+                // Save first to ensure registroCassa.Id is available for new registers
+                await dbContext.SaveChangesAsync();
+
+                // 1. Remove previous supplier payments linked to this register (and their orphan DDTs)
+                var previousPayments = await dbContext.PagamentiFornitori
+                    .Where(p => p.RegistroCassaId == registroCassa.Id)
+                    .ToListAsync();
+                var previousDdtIds = previousPayments
+                    .Where(p => p.DdtId.HasValue)
+                    .Select(p => p.DdtId!.Value)
+                    .ToList();
+                dbContext.PagamentiFornitori.RemoveRange(previousPayments);
+                if (previousDdtIds.Count > 0)
+                {
+                    var orphanDdts = await dbContext.DocumentiTrasporto
+                        .Where(d => previousDdtIds.Contains(d.DdtId) && d.FatturaId == null)
+                        .ToListAsync();
+                    dbContext.DocumentiTrasporto.RemoveRange(orphanDdts);
+                }
+
+                // 2. Create new DDT + PagamentoFornitore + SpesaCassa for each input
+                decimal totalePagamentiFornitori = 0;
+                foreach (var pagInput in input.PagamentiFornitori)
+                {
+                    var fornitore = await dbContext.Fornitori
+                        .FirstOrDefaultAsync(f => f.FornitoreId == pagInput.FornitoreId)
+                        ?? throw new ExecutionError($"Fornitore con ID {pagInput.FornitoreId} non trovato");
+
+                    // Create orphan DDT
+                    var ddt = new DocumentoTrasporto
+                    {
+                        FornitoreId = pagInput.FornitoreId,
+                        NumeroDdt = pagInput.NumeroDdt,
+                        DataDdt = input.Data,
+                        Importo = pagInput.Importo,
+                        FatturaId = null,
+                    };
+                    dbContext.DocumentiTrasporto.Add(ddt);
+                    await dbContext.SaveChangesAsync(); // flush to get DdtId
+
+                    // Create PagamentoFornitore
+                    var pagamento = new PagamentoFornitore
+                    {
+                        DdtId = ddt.DdtId,
+                        DataPagamento = input.Data,
+                        Importo = pagInput.Importo,
+                        MetodoPagamento = pagInput.MetodoPagamento,
+                        Note = $"Pagamento da registro cassa del {input.Data:dd/MM/yyyy}",
+                        RegistroCassaId = registroCassa.Id,
+                    };
+                    dbContext.PagamentiFornitori.Add(pagamento);
+
+                    // Create SpesaCassa
+                    var descrizione = $"Pagamento {fornitore.RagioneSociale} - DDT {pagInput.NumeroDdt}";
+                    registroCassa.SpeseCassa.Add(new SpesaCassa
+                    {
+                        Descrizione = descrizione,
+                        Importo = pagInput.Importo,
+                    });
+                    totalePagamentiFornitori += pagInput.Importo;
+                }
+
                 // Update legacy expense fields
-                registroCassa.SpeseFornitori = input.SpeseFornitori;
+                registroCassa.SpeseFornitori = totalePagamentiFornitori;
                 registroCassa.SpeseGiornaliere = totaleSpese;
 
                 // TODO: Get actual sales data from sales table when implemented
@@ -211,6 +274,9 @@ public class CashManagementMutations : ObjectGraphType
                         .ThenInclude(c => c.Denominazione)
                     .Include(r => r.IncassiCassa)
                     .Include(r => r.SpeseCassa)
+                    .Include(r => r.PagamentiFornitori)
+                        .ThenInclude(p => p.Ddt)
+                            .ThenInclude(d => d!.Fornitore)
                     .FirstOrDefaultAsync(r => r.Id == registroCassa.Id);
             });
 

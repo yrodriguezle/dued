@@ -1,6 +1,7 @@
 using GraphQL.Types;
 using duedgusto.Models;
 using duedgusto.GraphQL.Authentication;
+using duedgusto.GraphQL.Suppliers.Types;
 
 namespace duedgusto.GraphQL.CashManagement.Types;
 
@@ -44,5 +45,8 @@ public class RegistroCassaType : ObjectGraphType<RegistroCassa>
 
         Field<ListGraphType<SpesaCassaType>, IEnumerable<SpesaCassa>>("spese")
             .Resolve(context => context.Source.SpeseCassa);
+
+        Field<ListGraphType<SupplierPaymentType>, IEnumerable<PagamentoFornitore>>("pagamentiFornitori")
+            .Resolve(context => context.Source.PagamentiFornitori);
     }
 }

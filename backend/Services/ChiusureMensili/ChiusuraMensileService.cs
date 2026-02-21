@@ -61,7 +61,6 @@ public class ChiusuraMensileService
         {
             Anno = anno,
             Mese = mese,
-            UltimoGiornoLavorativo = ultimoGiorno,
             Stato = "BOZZA",
             CreatoIl = DateTime.UtcNow,
             AggiornatoIl = DateTime.UtcNow

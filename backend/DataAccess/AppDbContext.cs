@@ -704,6 +704,11 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.DdtId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            entity.HasOne(x => x.RegistroCassa)
+                .WithMany(r => r.PagamentiFornitori)
+                .HasForeignKey(x => x.RegistroCassaId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             // Indice su DataPagamento per ordinamento/filtri
             entity.HasIndex(x => x.DataPagamento);
 
@@ -712,6 +717,9 @@ public class AppDbContext : DbContext
 
             // Indice su DdtId per join
             entity.HasIndex(x => x.DdtId);
+
+            // Indice su RegistroCassaId per join
+            entity.HasIndex(x => x.RegistroCassaId);
         });
 
         modelBuilder.Entity<ChiusuraMensile>(entity =>
@@ -729,10 +737,6 @@ public class AppDbContext : DbContext
                 .IsRequired();
 
             entity.Property(x => x.Mese)
-                .IsRequired();
-
-            entity.Property(x => x.UltimoGiornoLavorativo)
-                .HasColumnType("date")
                 .IsRequired();
 
             entity.Property(x => x.Stato)

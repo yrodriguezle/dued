@@ -20,7 +20,7 @@ import PageTitleContext from "../../layout/headerBar/PageTitleContext";
 import useQueryDenominations from "../../../graphql/cashRegister/useQueryDenominations";
 import useQueryCashRegister from "../../../graphql/cashRegister/useQueryCashRegister";
 import useSubmitCashRegister from "../../../graphql/cashRegister/useSubmitCashRegister";
-import { RegistroCassaInput } from "../../../graphql/cashRegister/mutations";
+import { PagamentoFornitoreRegistroInput, RegistroCassaInput } from "../../../graphql/cashRegister/mutations";
 import useCloseCashRegister from "../../../graphql/cashRegister/useCloseCashRegister";
 import useStore from "../../../store/useStore";
 import { toast } from "react-toastify";
@@ -53,6 +53,10 @@ export interface Income extends Record<string, unknown> {
 export interface Expense extends Record<string, unknown> {
   description: string;
   amount: number;
+  isSupplierPayment?: boolean;
+  supplierId?: number;
+  ddtNumber?: string;
+  paymentMethod?: string;
 }
 
 interface CashCountRow extends Record<string, unknown> {
@@ -212,7 +216,22 @@ function CashRegisterDetails() {
           ]
       );
 
-      setInitialExpenses(cashRegister.spese && cashRegister.spese.length > 0 ? cashRegister.spese.map((e: SpesaCassa) => ({ description: e.descrizione, amount: e.importo })) : []);
+      // Ricostruisci le spese: spese normali + pagamenti fornitore
+      const normalExpenses: Expense[] = cashRegister.spese?.map((e: SpesaCassa) => ({
+        description: e.descrizione,
+        amount: e.importo,
+      })) || [];
+      const supplierPaymentExpenses: Expense[] = cashRegister.pagamentiFornitori?.map(
+        (p: { amount: number; paymentMethod?: string; ddt?: { ddtNumber: string; supplier: { supplierId: number; businessName: string } } }) => ({
+          description: `Pagamento ${p.ddt?.supplier?.businessName || "Fornitore"} - DDT ${p.ddt?.ddtNumber || ""}`,
+          amount: p.amount,
+          isSupplierPayment: true,
+          supplierId: p.ddt?.supplier?.supplierId,
+          ddtNumber: p.ddt?.ddtNumber,
+          paymentMethod: p.paymentMethod,
+        })
+      ) || [];
+      setInitialExpenses([...supplierPaymentExpenses, ...normalExpenses]);
 
       setTimeout(() => {
         formRef.current?.setStatus({
@@ -270,6 +289,17 @@ function CashRegisterDetails() {
         return;
       }
 
+      // Separa spese normali da pagamenti fornitore
+      const normalExpenses = expenses.filter((row: Expense) => !row.isSupplierPayment);
+      const supplierPayments: PagamentoFornitoreRegistroInput[] = expenses
+        .filter((row: Expense) => row.isSupplierPayment && row.supplierId)
+        .map((row: Expense) => ({
+          fornitoreId: row.supplierId!,
+          numeroDdt: row.ddtNumber || "",
+          importo: row.amount,
+          metodoPagamento: row.paymentMethod || undefined,
+        }));
+
       // Converti gli array in campi per il backend (nomi italiani)
       const input: RegistroCassaInput = {
         id: values.registerId,
@@ -287,10 +317,11 @@ function CashRegisterDetails() {
           tipo: row.type,
           importo: row.amount,
         })),
-        spese: expenses.map((row: ExpenseRow) => ({
+        spese: normalExpenses.map((row: ExpenseRow) => ({
           descrizione: row.description,
           importo: row.amount,
         })),
+        pagamentiFornitori: supplierPayments,
         incassoContanteTracciato: incomes.find((i: IncomeRow) => i.type === "Pago in contanti")?.amount || 0,
         incassiElettronici: incomes.find((i: IncomeRow) => i.type === "Pagamenti Elettronici")?.amount || 0,
         incassiFattura: incomes.find((i: IncomeRow) => i.type === "Pagamento con Fattura")?.amount || 0,

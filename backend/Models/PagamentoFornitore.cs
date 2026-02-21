@@ -38,6 +38,10 @@ namespace duedgusto.Models
         [ForeignKey("DdtId")]
         public virtual DocumentoTrasporto? Ddt { get; set; }
 
+        public int? RegistroCassaId { get; set; }
+        [ForeignKey("RegistroCassaId")]
+        public virtual RegistroCassa? RegistroCassa { get; set; }
+
         public virtual ICollection<SpesaMensile> SpeseMensili { get; set; } = new List<SpesaMensile>();
     }
 }

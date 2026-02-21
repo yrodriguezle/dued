@@ -25,7 +25,7 @@ const ExpensesDataGrid = memo(forwardRef<GridReadyEvent<DatagridData<Expense>>, 
   const [dialogOpen, setDialogOpen] = useState(false);
   const gridEventRef = useRef<GridReadyEvent<DatagridData<Expense>> | null>(null);
 
-  const handlePaymentConfirm = useCallback((expense: { description: string; amount: number }) => {
+  const handlePaymentConfirm = useCallback((expense: Expense) => {
     if (gridEventRef.current) {
       gridEventRef.current.api.applyTransaction({ add: [expense as DatagridData<Expense>] });
     }
@@ -44,13 +44,13 @@ const ExpensesDataGrid = memo(forwardRef<GridReadyEvent<DatagridData<Expense>>, 
         headerName: "Causale",
         field: "description",
         flex: 2,
-        editable: !isLocked,
+        editable: (params) => !isLocked && !params.data?.isSupplierPayment,
       },
       {
         headerName: "Importo (€)",
         field: "amount",
         flex: 1,
-        editable: !isLocked,
+        editable: (params) => !isLocked && !params.data?.isSupplierPayment,
         cellEditor: "agNumberCellEditor",
         cellEditorParams: {
           min: 0,
