@@ -73,11 +73,11 @@ function SupplierList() {
     }
 
     try {
-      for (const row of selectedRows) {
-        await deleteSupplier({
-          variables: { supplierId: row.supplierId },
-        });
-      }
+      await Promise.all(
+        selectedRows.map((row) =>
+          deleteSupplier({ variables: { supplierId: row.supplierId } })
+        )
+      );
 
       showToast({
         type: "success",
@@ -147,6 +147,12 @@ function SupplierList() {
         headerName: "Città",
         field: "city",
         width: 150,
+        filter: "agTextColumnFilter",
+      },
+      {
+        headerName: "Provincia",
+        field: "province",
+        width: 100,
         filter: "agTextColumnFilter",
       },
       {

@@ -25,6 +25,7 @@ const Schema = z.object({
   address: z.string().optional(),
   city: z.string().optional(),
   postalCode: z.string().optional(),
+  province: z.string().optional(),
   country: z.string().default("IT"),
   notes: z.string().optional(),
   active: z.boolean().default(true),
@@ -42,10 +43,27 @@ const initialValues: FormikSupplierValues = {
   address: "",
   city: "",
   postalCode: "",
+  province: "",
   country: "IT",
   notes: "",
   active: true,
 };
+
+const mapSupplierToFormValues = (supplier: Supplier): FormikSupplierValues => ({
+  supplierId: supplier.supplierId,
+  businessName: supplier.businessName,
+  vatNumber: supplier.vatNumber || "",
+  fiscalCode: supplier.fiscalCode || "",
+  email: supplier.email || "",
+  phone: supplier.phone || "",
+  address: supplier.address || "",
+  city: supplier.city || "",
+  postalCode: supplier.postalCode || "",
+  province: supplier.province || "",
+  country: supplier.country || "IT",
+  notes: supplier.notes || "",
+  active: supplier.active,
+});
 
 function SupplierDetails() {
   const formRef = useRef<FormikProps<FormikSupplierValues>>(null);
@@ -70,23 +88,7 @@ function SupplierDetails() {
       if (!isNaN(supplierId)) {
         loadSupplier({ variables: { supplierId } }).then((result) => {
           if (result.data?.suppliers?.supplier) {
-            const supplier = result.data.suppliers.supplier;
-            const supplierValues: FormikSupplierValues = {
-              supplierId: supplier.supplierId,
-              businessName: supplier.businessName,
-              vatNumber: supplier.vatNumber || "",
-              fiscalCode: supplier.fiscalCode || "",
-              email: supplier.email || "",
-              phone: supplier.phone || "",
-              address: supplier.address || "",
-              city: supplier.city || "",
-              postalCode: supplier.postalCode || "",
-              country: supplier.country || "IT",
-              notes: supplier.notes || "",
-              active: supplier.active,
-            };
-
-            formRef.current?.setValues(supplierValues);
+            formRef.current?.setValues(mapSupplierToFormValues(result.data.suppliers.supplier));
             formRef.current?.setStatus({
               formStatus: formStatuses.UPDATE,
               isFormLocked: true,
@@ -117,21 +119,7 @@ function SupplierDetails() {
           const supplierId = parseInt(supplierIdParam, 10);
           const result = await loadSupplier({ variables: { supplierId } });
           if (result.data?.suppliers?.supplier) {
-            const supplier = result.data.suppliers.supplier;
-            formRef.current?.setValues({
-              supplierId: supplier.supplierId,
-              businessName: supplier.businessName,
-              vatNumber: supplier.vatNumber || "",
-              fiscalCode: supplier.fiscalCode || "",
-              email: supplier.email || "",
-              phone: supplier.phone || "",
-              address: supplier.address || "",
-              city: supplier.city || "",
-              postalCode: supplier.postalCode || "",
-              country: supplier.country || "IT",
-              notes: supplier.notes || "",
-              active: supplier.active,
-            });
+            formRef.current?.setValues(mapSupplierToFormValues(result.data.suppliers.supplier));
           }
         }
       } else {
@@ -156,6 +144,7 @@ function SupplierDetails() {
               address: values.address || undefined,
               city: values.city || undefined,
               postalCode: values.postalCode || undefined,
+              province: values.province || undefined,
               country: values.country || "IT",
               notes: values.notes || undefined,
               active: values.active,
