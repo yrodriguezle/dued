@@ -1,5 +1,5 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { Box, Chip, Paper } from "@mui/material";
+import { Box, Chip, Paper, Typography } from "@mui/material";
 import { useNavigate } from "react-router";
 import { GridReadyEvent } from "ag-grid-community";
 
@@ -174,29 +174,33 @@ function SupplierList() {
   );
 
   return (
-    <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+    <>
       <ListToolbar
         onNew={handleNew}
         onDelete={handleDelete}
         disabledDelete={selectedRows.length === 0}
       />
-
-      <Paper sx={{ flex: 1, overflow: "hidden", mt: 2 }}>
-        <Datagrid<SupplierNonNull>
-          presentation
-          height="100%"
-          items={suppliers}
-          columnDefs={columnDefs}
-          getRowId={({ data }) => data.supplierId.toString()}
-          rowSelection={{
-            mode: "multiRow",
-            headerCheckbox: true,
-          }}
-          onGridReady={handleGridReady}
-          onRowDoubleClicked={handleRowDoubleClick}
-        />
-      </Paper>
-    </Box>
+      <Box className="scrollable-box" sx={{ marginTop: 1, paddingX: 2, overflow: "auto", height: "calc(100vh - 64px - 48px)" }}>
+        <Typography id="view-title" variant="h5" gutterBottom>
+          Fornitori
+        </Typography>
+        <Paper sx={{ padding: 1, height: "calc(100% - 50px)" }}>
+          <Datagrid<SupplierNonNull>
+            presentation
+            height="100%"
+            items={suppliers}
+            columnDefs={columnDefs}
+            getRowId={({ data }) => data.supplierId.toString()}
+            rowSelection={{
+              mode: "multiRow",
+              headerCheckbox: true,
+            }}
+            onGridReady={handleGridReady}
+            onRowDoubleClicked={handleRowDoubleClick}
+          />
+        </Paper>
+      </Box>
+    </>
   );
 }
 

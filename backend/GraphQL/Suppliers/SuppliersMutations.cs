@@ -30,12 +30,7 @@ public class SuppliersMutations : ObjectGraphType
                 {
                     // Update existing supplier
                     supplier = await dbContext.Fornitori
-                        .FirstOrDefaultAsync(s => s.FornitoreId == input.SupplierId.Value);
-
-                    if (supplier == null)
-                    {
-                        throw new ExecutionError($"Supplier with ID {input.SupplierId} not found");
-                    }
+                        .FirstOrDefaultAsync(s => s.FornitoreId == input.SupplierId.Value) ?? throw new ExecutionError($"Supplier with ID {input.SupplierId} not found");
                 }
                 else
                 {
@@ -53,6 +48,7 @@ public class SuppliersMutations : ObjectGraphType
                 supplier.Indirizzo = input.Address;
                 supplier.Citta = input.City;
                 supplier.Cap = input.PostalCode;
+                supplier.Provincia = input.Province;
                 supplier.Paese = input.Country ?? "IT";
                 supplier.Note = input.Notes;
                 supplier.Attivo = input.Active;

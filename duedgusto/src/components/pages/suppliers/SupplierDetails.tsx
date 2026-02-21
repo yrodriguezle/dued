@@ -5,7 +5,7 @@ import Paper from "@mui/material/Paper";
 import { toast } from "react-toastify";
 import { useLocation, useNavigate } from "react-router";
 import { useLazyQuery, useMutation } from "@apollo/client";
-import { Box } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 
 import SupplierForm from "./SupplierForm";
 import FormikToolbar from "../../common/form/toolbar/FormikToolbar";
@@ -14,6 +14,10 @@ import useConfirm from "../../common/confirm/useConfirm";
 import PageTitleContext from "../../layout/headerBar/PageTitleContext";
 import { getSupplier } from "../../../graphql/suppliers/queries";
 import { mutationMutateSupplier } from "../../../graphql/suppliers/mutations";
+import useInitializeValues from "./useInitializeValues";
+import setInitialFocus from "./setInitialFocus";
+import sleep from "../../../common/bones/sleep";
+import { SupplierSearchbox } from "../../common/form/searchbox/searchboxOptions/supplierSearchboxOptions";
 
 const Schema = z.object({
   supplierId: z.number().optional(),
@@ -33,23 +37,7 @@ const Schema = z.object({
 
 export type FormikSupplierValues = z.infer<typeof Schema>;
 
-const initialValues: FormikSupplierValues = {
-  supplierId: undefined,
-  businessName: "",
-  vatNumber: "",
-  fiscalCode: "",
-  email: "",
-  phone: "",
-  address: "",
-  city: "",
-  postalCode: "",
-  province: "",
-  country: "IT",
-  notes: "",
-  active: true,
-};
-
-const mapSupplierToFormValues = (supplier: Supplier): FormikSupplierValues => ({
+const mapSupplierToFormValues = (supplier: Supplier): Partial<FormikSupplierValues> => ({
   supplierId: supplier.supplierId,
   businessName: supplier.businessName,
   vatNumber: supplier.vatNumber || "",
@@ -67,12 +55,13 @@ const mapSupplierToFormValues = (supplier: Supplier): FormikSupplierValues => ({
 
 function SupplierDetails() {
   const formRef = useRef<FormikProps<FormikSupplierValues>>(null);
-  const { setTitle } = useContext(PageTitleContext);
+  const { title, setTitle } = useContext(PageTitleContext);
   const location = useLocation();
   const navigate = useNavigate();
   const [loadSupplier] = useLazyQuery(getSupplier);
   const [mutateSupplier] = useMutation(mutationMutateSupplier);
   const onConfirm = useConfirm();
+  const { initialValues, handleInitializeValues } = useInitializeValues({ skipInitialize: false });
 
   useEffect(() => {
     setTitle("Dettaglio Fornitore");
@@ -88,16 +77,20 @@ function SupplierDetails() {
       if (!isNaN(supplierId)) {
         loadSupplier({ variables: { supplierId } }).then((result) => {
           if (result.data?.suppliers?.supplier) {
-            formRef.current?.setValues(mapSupplierToFormValues(result.data.suppliers.supplier));
-            formRef.current?.setStatus({
-              formStatus: formStatuses.UPDATE,
-              isFormLocked: true,
+            const supplierValues = mapSupplierToFormValues(result.data.suppliers.supplier);
+            handleInitializeValues(supplierValues).then(() => {
+              setTimeout(() => {
+                formRef.current?.setStatus({
+                  formStatus: formStatuses.UPDATE,
+                  isFormLocked: true,
+                });
+              }, 0);
             });
           }
         });
       }
     }
-  }, [location.search, loadSupplier]);
+  }, [location.search, loadSupplier, handleInitializeValues]);
 
   const handleResetForm = useCallback(
     async (hasChanges: boolean) => {
@@ -119,15 +112,30 @@ function SupplierDetails() {
           const supplierId = parseInt(supplierIdParam, 10);
           const result = await loadSupplier({ variables: { supplierId } });
           if (result.data?.suppliers?.supplier) {
-            formRef.current?.setValues(mapSupplierToFormValues(result.data.suppliers.supplier));
+            await handleInitializeValues(mapSupplierToFormValues(result.data.suppliers.supplier));
           }
         }
       } else {
+        await handleInitializeValues();
         formRef.current?.resetForm();
+        await sleep(200);
+        setInitialFocus();
       }
     },
-    [onConfirm, location.search, loadSupplier],
+    [onConfirm, location.search, loadSupplier, handleInitializeValues],
   );
+
+  const handleSelectedItem = useCallback((item: SupplierSearchbox) => {
+    const supplierValues = mapSupplierToFormValues(item);
+    handleInitializeValues(supplierValues).then(() => {
+      setTimeout(() => {
+        formRef.current?.setStatus({
+          formStatus: formStatuses.UPDATE,
+          isFormLocked: true,
+        });
+      }, 0);
+    });
+  }, [handleInitializeValues]);
 
   const handleSubmit = useCallback(
     async (values: FormikSupplierValues) => {
@@ -164,10 +172,14 @@ function SupplierDetails() {
           if (!values.supplierId) {
             navigate(`/gestionale/suppliers-details?supplierId=${supplier.supplierId}`);
           } else {
-            formRef.current?.setStatus({
-              formStatus: formStatuses.UPDATE,
-              isFormLocked: true,
-            });
+            const updatedValues = mapSupplierToFormValues(supplier);
+            await handleInitializeValues(updatedValues);
+            setTimeout(() => {
+              formRef.current?.setStatus({
+                formStatus: formStatuses.UPDATE,
+                isFormLocked: true,
+              });
+            }, 0);
           }
         }
       } catch {
@@ -177,50 +189,40 @@ function SupplierDetails() {
         });
       }
     },
-    [mutateSupplier, navigate],
+    [mutateSupplier, navigate, handleInitializeValues],
   );
 
-  const validate = useCallback((values: FormikSupplierValues) => {
-    try {
-      Schema.parse(values);
-      return {};
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        const errors: Record<string, string> = {};
-        error.errors.forEach((err) => {
-          if (err.path[0]) {
-            errors[err.path[0].toString()] = err.message;
-          }
-        });
-        return errors;
-      }
-      return {};
-    }
-  }, []);
-
   return (
-    <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
-      <Formik
-        innerRef={formRef}
-        initialValues={initialValues}
-        validate={validate}
-        onSubmit={handleSubmit}
-        initialStatus={{ formStatus: formStatuses.INSERT, isFormLocked: false }}
-      >
-        {({ isSubmitting }) => (
-          <Form style={{ height: "100%", display: "flex", flexDirection: "column" }}>
-            <FormikToolbar
-              onFormReset={handleResetForm}
-              disabledSave={isSubmitting}
-            />
-
-            <Paper sx={{ flex: 1, overflow: "auto", mt: 2, p: 3 }}>
-              <SupplierForm />
+    <Formik
+      innerRef={formRef}
+      enableReinitialize
+      initialValues={initialValues}
+      initialStatus={{ formStatus: formStatuses.INSERT, isFormLocked: false }}
+      validate={(values: FormikSupplierValues) => {
+        const result = Schema.safeParse(values);
+        if (result.success) {
+          return;
+        }
+        return Object.fromEntries(result.error.issues.map(({ path, message }) => [path[0], message]));
+      }}
+      onSubmit={handleSubmit}
+    >
+      {() => (
+        <Form noValidate>
+          <FormikToolbar
+            onFormReset={handleResetForm}
+          />
+          <Box className="scrollable-box" sx={{ marginTop: 1, paddingX: 2, overflow: 'auto', height: 'calc(100vh - 64px - 41px)' }}>
+            <Typography id="view-title" variant="h5" gutterBottom>
+              {title}
+            </Typography>
+            <Paper sx={{ padding: 1 }}>
+              <SupplierForm onSelectItem={handleSelectedItem} />
             </Paper>
-          </Form>
-        )}
-      </Formik>
-    </Box>
+          </Box>
+        </Form>
+      )}
+    </Formik>
   );
 }
 

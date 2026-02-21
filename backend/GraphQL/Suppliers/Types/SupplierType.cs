@@ -18,6 +18,7 @@ public class SupplierType : ObjectGraphType<Fornitore>
         Field("address", x => x.Indirizzo, nullable: true);
         Field("city", x => x.Citta, nullable: true);
         Field("postalCode", x => x.Cap, nullable: true);
+        Field("province", x => x.Provincia, nullable: true);
         Field("country", x => x.Paese);
         Field("notes", x => x.Note, nullable: true);
         Field("active", x => x.Attivo);

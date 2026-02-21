@@ -41,6 +41,7 @@ export const deliveryNoteFragment = `
     invoiceId
     supplierId
     supplier { ...SupplierFragment }
+    invoice { invoiceId invoiceNumber }
     ddtNumber
     ddtDate
     amount

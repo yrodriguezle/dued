@@ -30,6 +30,9 @@ namespace duedgusto.Models
         public string? Cap { get; set; }
 
         [MaxLength(2)]
+        public string? Provincia { get; set; }
+
+        [MaxLength(2)]
         public string Paese { get; set; } = "IT";
 
         [MaxLength(255)]

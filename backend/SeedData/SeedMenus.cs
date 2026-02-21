@@ -642,7 +642,7 @@ public static class SeedMenus
             {
                 Titolo = "Gestione Fornitori",
                 Percorso = "/gestionale/suppliers-details",
-                Icona = "Edit",
+                Icona = "Person3",
                 Visibile = true,
                 Posizione = 2,
                 NomeVista = "SupplierDetails",
@@ -655,7 +655,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(fornitoriChild2, "Gestione Fornitori", "/gestionale/suppliers-details", "Edit", true, 2,
+            UpdateMenuIfNeeded(fornitoriChild2, "Gestione Fornitori", "/gestionale/suppliers-details", "Person3", true, 2,
                 "SupplierDetails", "suppliers/SupplierDetails.tsx", superAdminRuolo, fornitoriMenu, ref needsUpdate);
             if (needsUpdate)
             {
@@ -724,6 +724,70 @@ public static class SeedMenus
             if (needsUpdate)
             {
                 dbContext.Menus.Update(fornitoriChild4);
+            }
+        }
+
+        // Menu figlio: DDT
+        var fornitoriChild5 = await dbContext.Menus
+            .Include(m => m.Ruoli)
+            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/delivery-notes-list");
+
+        if (fornitoriChild5 == null)
+        {
+            fornitoriChild5 = new Menu
+            {
+                Titolo = "DDT",
+                Percorso = "/gestionale/delivery-notes-list",
+                Icona = "LocalShipping",
+                Visibile = true,
+                Posizione = 5,
+                NomeVista = "DeliveryNoteList",
+                PercorsoFile = "deliveryNotes/DeliveryNoteList.tsx",
+                MenuPadreId = fornitoriMenu.Id
+            };
+            fornitoriChild5.Ruoli.Add(superAdminRuolo);
+            dbContext.Menus.Add(fornitoriChild5);
+        }
+        else
+        {
+            bool needsUpdate = false;
+            UpdateMenuIfNeeded(fornitoriChild5, "DDT", "/gestionale/delivery-notes-list", "LocalShipping", true, 5,
+                "DeliveryNoteList", "deliveryNotes/DeliveryNoteList.tsx", superAdminRuolo, fornitoriMenu, ref needsUpdate);
+            if (needsUpdate)
+            {
+                dbContext.Menus.Update(fornitoriChild5);
+            }
+        }
+
+        // Menu figlio: Gestione DDT (nascosto nella sidebar)
+        var fornitoriChild6 = await dbContext.Menus
+            .Include(m => m.Ruoli)
+            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/delivery-notes-details");
+
+        if (fornitoriChild6 == null)
+        {
+            fornitoriChild6 = new Menu
+            {
+                Titolo = "Gestione DDT",
+                Percorso = "/gestionale/delivery-notes-details",
+                Icona = "Edit",
+                Visibile = false,
+                Posizione = 6,
+                NomeVista = "DeliveryNoteDetails",
+                PercorsoFile = "deliveryNotes/DeliveryNoteDetails.tsx",
+                MenuPadreId = fornitoriMenu.Id
+            };
+            fornitoriChild6.Ruoli.Add(superAdminRuolo);
+            dbContext.Menus.Add(fornitoriChild6);
+        }
+        else
+        {
+            bool needsUpdate = false;
+            UpdateMenuIfNeeded(fornitoriChild6, "Gestione DDT", "/gestionale/delivery-notes-details", "Edit", false, 6,
+                "DeliveryNoteDetails", "deliveryNotes/DeliveryNoteDetails.tsx", superAdminRuolo, fornitoriMenu, ref needsUpdate);
+            if (needsUpdate)
+            {
+                dbContext.Menus.Update(fornitoriChild6);
             }
         }
 

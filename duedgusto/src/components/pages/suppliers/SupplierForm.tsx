@@ -1,8 +1,15 @@
 import { Paper, Typography, Grid, Box } from "@mui/material";
 import FormikTextField from "../../common/form/FormikTextField";
 import FormikCheckbox from "../../common/form/FormikCheckbox";
+import FormikSearchbox from "../../common/form/searchbox/FormikSearchbox";
+import supplierSearchboxOption, { SupplierSearchbox } from "../../common/form/searchbox/searchboxOptions/supplierSearchboxOptions";
+import { FormikSupplierValues } from "./SupplierDetails";
 
-function SupplierForm() {
+interface SupplierFormProps {
+  onSelectItem: (item: SupplierSearchbox) => void;
+}
+
+function SupplierForm({ onSelectItem }: SupplierFormProps) {
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
       {/* Sezione: Dati Generali */}
@@ -12,11 +19,16 @@ function SupplierForm() {
         </Typography>
         <Grid container spacing={2}>
           <Grid item xs={12} md={8}>
-            <FormikTextField
-              name="businessName"
+            <FormikSearchbox<FormikSupplierValues, SupplierSearchbox>
               label="Ragione Sociale *"
-              fullWidth
+              placeholder="Ragione Sociale"
+              name="businessName"
               autoFocus
+              required
+              fullWidth
+              fieldName="businessName"
+              options={supplierSearchboxOption}
+              onSelectItem={onSelectItem}
             />
           </Grid>
           <Grid item xs={12} md={4}>
@@ -59,7 +71,7 @@ function SupplierForm() {
             <FormikTextField name="postalCode" label="CAP" fullWidth />
           </Grid>
           <Grid item xs={12} md={4}>
-            <FormikTextField name="city" label="Città" fullWidth />
+            <FormikTextField name="city" label="Citta" fullWidth />
           </Grid>
           <Grid item xs={12} md={4}>
             <FormikTextField name="province" label="Provincia" fullWidth />

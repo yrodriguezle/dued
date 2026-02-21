@@ -17,6 +17,46 @@ const theme = (mode: PaletteMode | undefined) =>
         main: "#bf360c",
       },
     },
+    components: {
+      MuiTextField: {
+        defaultProps: {
+          size: "small",
+          margin: "dense",
+        },
+      },
+      MuiSelect: {
+        defaultProps: {
+          size: "small",
+          margin: "dense",
+        },
+      },
+      MuiButton: {
+        defaultProps: {
+          size: "small",
+        },
+      },
+      MuiIconButton: {
+        defaultProps: {
+          size: "small",
+        },
+      },
+      MuiChip: {
+        defaultProps: {
+          size: "small",
+        },
+      },
+      MuiFormControl: {
+        defaultProps: {
+          size: "small",
+          margin: "dense",
+        },
+      },
+      MuiAutocomplete: {
+        defaultProps: {
+          size: "small",
+        },
+      },
+    },
   });
 
 export default theme;

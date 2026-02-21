@@ -1,10 +1,12 @@
-import { useMemo, useState, forwardRef, useCallback, memo } from "react";
-import { Box, Typography } from "@mui/material";
+import { useMemo, useState, forwardRef, useCallback, useRef, memo } from "react";
+import { Box, Button, Typography } from "@mui/material";
+import PaymentIcon from "@mui/icons-material/Payment";
 import { z } from "zod";
 import { Expense } from "./CashRegisterDetails";
 import Datagrid from "../../common/datagrid/Datagrid";
 import { DatagridColDef, ValidationError, DatagridCellValueChangedEvent, DatagridData } from "../../common/datagrid/@types/Datagrid";
 import { GridReadyEvent } from "ag-grid-community";
+import SupplierPaymentDialog from "./SupplierPaymentDialog";
 
 interface ExpensesDataGridProps {
   initialExpenses: Expense[];
@@ -20,6 +22,16 @@ const expenseSchema = z.object({
 
 const ExpensesDataGrid = memo(forwardRef<GridReadyEvent<DatagridData<Expense>>, ExpensesDataGridProps>(({ initialExpenses, isLocked, onCellChange }, ref) => {
   const [validationErrors, setValidationErrors] = useState<Map<number, ValidationError[]>>(new Map());
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const gridEventRef = useRef<GridReadyEvent<DatagridData<Expense>> | null>(null);
+
+  const handlePaymentConfirm = useCallback((expense: { description: string; amount: number }) => {
+    if (gridEventRef.current) {
+      gridEventRef.current.api.applyTransaction({ add: [expense as DatagridData<Expense>] });
+    }
+    setDialogOpen(false);
+    onCellChange?.();
+  }, [onCellChange]);
 
   // Usa i dati iniziali passati come prop
   const items = useMemo(() => {
@@ -68,6 +80,7 @@ const ExpensesDataGrid = memo(forwardRef<GridReadyEvent<DatagridData<Expense>>, 
   }, [onCellChange]);
 
   const handleGridReady = useCallback((event: GridReadyEvent<DatagridData<Expense>>) => {
+    gridEventRef.current = event;
     if (ref && typeof ref !== 'function') {
       (ref as React.MutableRefObject<GridReadyEvent<DatagridData<Expense>> | null>).current = event;
     }
@@ -80,9 +93,25 @@ const ExpensesDataGrid = memo(forwardRef<GridReadyEvent<DatagridData<Expense>>, 
 
   return (
     <Box>
-      <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold", mb: 0 }}>
-        SPESE
-      </Typography>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0 }}>
+        <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold", mb: 0 }}>
+          SPESE
+        </Typography>
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<PaymentIcon />}
+          disabled={isLocked}
+          onClick={() => setDialogOpen(true)}
+        >
+          Paga Fornitore
+        </Button>
+      </Box>
+      <SupplierPaymentDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        onConfirm={handlePaymentConfirm}
+      />
       <Box
         sx={{
           "& .ag-right-aligned-cell input": {
