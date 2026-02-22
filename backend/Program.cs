@@ -101,9 +101,16 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddGraphQL((ctx) => ctx
     .AddSchema<GraphQLSchema>()
     .AddAutoClrMappings()
+    .AddErrorInfoProvider(opt =>
+    {
+        opt.ExposeExceptionDetails = builder.Environment.IsDevelopment();
+        opt.ExposeData = builder.Environment.IsDevelopment();
+        opt.ExposeExtensions = true;
+    })
     .ConfigureExecution(async (options, next) =>
     {
         var logger = options.RequestServices!.GetRequiredService<ILogger<Program>>();
+        var env = options.RequestServices!.GetRequiredService<IWebHostEnvironment>();
 
         var httpContextAccessor = options.RequestServices!.GetRequiredService<IHttpContextAccessor>();
         var user = httpContextAccessor.HttpContext?.User;
@@ -111,7 +118,23 @@ builder.Services.AddGraphQL((ctx) => ctx
 
         options.UnhandledExceptionDelegate = (exception) =>
         {
-            logger.LogError("{Error} occurred", exception.OriginalException.Message);
+            logger.LogError(exception.OriginalException,
+                "GraphQL unhandled exception in field '{FieldName}': {Error}",
+                exception.FieldContext?.FieldAst?.Name,
+                exception.OriginalException.Message);
+
+            if (env.IsDevelopment())
+            {
+                var ex = exception.OriginalException;
+                var details = $"{ex.GetType().Name}: {ex.Message}";
+                if (ex.InnerException != null)
+                    details += $"\n--- Inner: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}";
+                if (ex.InnerException?.InnerException != null)
+                    details += $"\n--- Inner.Inner: {ex.InnerException.InnerException.GetType().Name}: {ex.InnerException.InnerException.Message}";
+                details += $"\n--- StackTrace: {ex.StackTrace}";
+                exception.ErrorMessage = details;
+            }
+
             return Task.CompletedTask;
         };
         var result = await next(options);

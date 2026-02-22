@@ -71,6 +71,14 @@ export const registroCassaFragment = `
           businessName
         }
       }
+      invoice {
+        invoiceId
+        invoiceNumber
+        supplier {
+          supplierId
+          businessName
+        }
+      }
     }
   }
 `;

@@ -16,10 +16,10 @@ function DeliveryNoteForm({ onSelectSupplier, onSelectInvoice }: DeliveryNoteFor
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
-      {/* Sezione: Dati DDT */}
+      {/* Sezione: Fornitore e DDT */}
       <Paper variant="outlined" sx={{ p: 2.5 }}>
         <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
-          Dati DDT
+          Fornitore e DDT
         </Typography>
         <Grid container spacing={2}>
           <Grid item xs={12} md={6}>
@@ -47,6 +47,15 @@ function DeliveryNoteForm({ onSelectSupplier, onSelectInvoice }: DeliveryNoteFor
               sx={{ "& input": { colorScheme: dateColorScheme } }}
             />
           </Grid>
+        </Grid>
+      </Paper>
+
+      {/* Sezione: Importo e Fattura Collegata */}
+      <Paper variant="outlined" sx={{ p: 2.5 }}>
+        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+          Importo e Fattura Collegata
+        </Typography>
+        <Grid container spacing={2}>
           <Grid item xs={12} md={3}>
             <FormikTextField
               name="amount"

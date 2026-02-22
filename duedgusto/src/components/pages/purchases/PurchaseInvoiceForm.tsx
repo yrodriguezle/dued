@@ -207,10 +207,10 @@ function PurchaseInvoiceForm({ onSelectSupplier, onSelectInvoice, deliveryNotes,
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
-      {/* Sezione: Dati Fattura */}
+      {/* Sezione: Fornitore */}
       <Paper variant="outlined" sx={{ p: 2.5 }}>
         <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
-          Dati Fattura
+          Fornitore
         </Typography>
         <Grid container spacing={2}>
           <Grid item xs={12} md={8}>
@@ -234,7 +234,16 @@ function PurchaseInvoiceForm({ onSelectSupplier, onSelectInvoice, deliveryNotes,
               />
             )}
           </Grid>
-          <Grid item xs={12} md={3}>
+        </Grid>
+      </Paper>
+
+      {/* Sezione: Dati Fattura */}
+      <Paper variant="outlined" sx={{ p: 2.5 }}>
+        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+          Dati Fattura
+        </Typography>
+        <Grid container spacing={2}>
+          <Grid item xs={12} md={4}>
             <FormikSearchbox<FormikPurchaseInvoiceValues, PurchaseInvoiceSearchbox>
               label="Numero Fattura *"
               placeholder="Cerca fattura"
@@ -246,12 +255,21 @@ function PurchaseInvoiceForm({ onSelectSupplier, onSelectInvoice, deliveryNotes,
               onSelectItem={onSelectInvoice}
             />
           </Grid>
-          <Grid item xs={12} md={3}>
+          <Grid item xs={12} md={4}>
             <FormikTextField name="invoiceDate" label="Data Fattura *" type="date" fullWidth slotProps={{ inputLabel: { shrink: true } }} sx={{ "& input": { colorScheme: dateColorScheme } }} />
           </Grid>
-          <Grid item xs={12} md={3}>
+          <Grid item xs={12} md={4}>
             <FormikTextField name="dueDate" label="Data Scadenza" type="date" fullWidth slotProps={{ inputLabel: { shrink: true } }} sx={{ "& input": { colorScheme: dateColorScheme } }} />
           </Grid>
+        </Grid>
+      </Paper>
+
+      {/* Sezione: Importi */}
+      <Paper variant="outlined" sx={{ p: 2.5 }}>
+        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+          Importi
+        </Typography>
+        <Grid container spacing={2}>
           <Grid item xs={12} md={3}>
             <FormikTextField name="taxableAmount" label="Imponibile *" type="number" fullWidth slotProps={{ htmlInput: { step: "0.01", min: "0" } }} />
           </Grid>

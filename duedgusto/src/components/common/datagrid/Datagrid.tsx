@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useRef, useState, useEffect } from "react";
-import { CellValueChangedEvent, Column, GridReadyEvent, IRowNode, RowPinnedType, RowSelectionOptions } from "ag-grid-community";
+import { ReactNode, useCallback, useMemo, useRef, useState, useEffect } from "react";
+import { CellValueChangedEvent, Column, GridReadyEvent, IRowNode, RowPinnedType, RowSelectionOptions, SelectionChangedEvent } from "ag-grid-community";
 import Box from "@mui/material/Box";
 import { z } from "zod";
 
@@ -20,6 +20,7 @@ interface BaseDatagridProps<T extends Record<string, unknown>> extends Omit<Data
   addNewRowAt?: "top" | "bottom";
   showRowNumbers?: boolean;
   hideToolbar?: boolean;
+  additionalToolbarButtons?: ReactNode;
   validationSchema?: z.ZodSchema<T>;
   onValidationErrors?: (errors: Map<number, ValidationError[]>) => void;
 }
@@ -44,6 +45,7 @@ const initialStatus: DatagridAuxData = {
 
 function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
   const [canAddNewRow, setCanAddNewRow] = useState(true);
+  const [hasSelectedRow, setHasSelectedRow] = useState(false);
   const gridRef = useRef<GridReadyEvent<DatagridData<T>> | null>(null);
   const isEditingRef = useRef(false);
   const previousRowDataRef = useRef<DatagridData<T>[]>([]);
@@ -58,6 +60,7 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
     height,
     showRowNumbers = true,
     hideToolbar = false,
+    additionalToolbarButtons,
     validationSchema,
     onValidationErrors,
     columnDefs,
@@ -233,6 +236,10 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
     [handleTabNavigation, isEditingRef, readOnly, getNewRow, isRowPristine]
   );
 
+  const handleSelectionChanged = useCallback((event: SelectionChangedEvent<DatagridData<T>>) => {
+    setHasSelectedRow(event.api.getSelectedRows().length > 0);
+  }, []);
+
   const handleDeleteSelected = useCallback(() => {
     if (!gridRef.current || isPresentation) return;
     const selected = gridRef.current.api.getSelectedRows() as DatagridData<T>[];
@@ -372,7 +379,7 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
 
   return (
     <Box sx={{ height, display: "flex", flexDirection: "column" }}>
-      {!isPresentation && !hideToolbar && <DatagridToolbar canAddNewRow={canAddNewRow} readOnly={readOnly} gridRef={gridRef} onAdd={handleAddNewRow} onDelete={handleDeleteSelected} />}
+      {!isPresentation && (!hideToolbar || additionalToolbarButtons) && <DatagridToolbar canAddNewRow={canAddNewRow} readOnly={readOnly} hasSelectedRow={hasSelectedRow} hideStandardButtons={hideToolbar} gridRef={gridRef} onAdd={handleAddNewRow} onDelete={handleDeleteSelected} additionalButtons={additionalToolbarButtons} />}
       <Box sx={{ flex: 1 }} className="datagrid-root">
         <AgGrid<DatagridData<T>>
           {...gridProps}
@@ -384,6 +391,7 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
           onCellEditingStopped={handleCellEditingStopped}
           onCellKeyDown={handleCellKeyDown}
           onCellValueChanged={handleCellValueChanged}
+          onSelectionChanged={handleSelectionChanged}
           columnDefs={enhancedColumnDefs}
           rowData={rowData}
           onGridReady={handleGridReady}

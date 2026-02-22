@@ -8,12 +8,18 @@ import {
   TextField,
   Grid,
   Box,
+  ToggleButtonGroup,
+  ToggleButton,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import FormikSearchbox from "../../common/form/searchbox/FormikSearchbox";
 import supplierSearchboxOption, { SupplierSearchbox } from "../../common/form/searchbox/searchboxOptions/supplierSearchboxOptions";
 import showToast from "../../../common/toast/showToast";
 import { Formik, Form } from "formik";
-import { Expense } from "./CashRegisterDetails";
+import { Expense } from "./RegistroCassaDetails";
 
 interface SupplierPaymentDialogProps {
   open: boolean;
@@ -32,16 +38,20 @@ interface PaymentFormValues {
 function SupplierPaymentDialog({ open, onClose, onConfirm }: SupplierPaymentDialogProps) {
   const [supplierName, setSupplierName] = useState("");
   const [supplierId, setSupplierId] = useState<number>(0);
+  const [documentType, setDocumentType] = useState<"FA" | "DDT">("DDT");
   const [ddtNumber, setDdtNumber] = useState("");
+  const [invoiceNumber, setInvoiceNumber] = useState("");
   const [amount, setAmount] = useState<number>(0);
-  const [paymentMethod, setPaymentMethod] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("Contanti");
 
   const resetForm = useCallback(() => {
     setSupplierName("");
     setSupplierId(0);
+    setDocumentType("DDT");
     setDdtNumber("");
+    setInvoiceNumber("");
     setAmount(0);
-    setPaymentMethod("");
+    setPaymentMethod("Contanti");
   }, []);
 
   const handleClose = useCallback(() => {
@@ -66,27 +76,30 @@ function SupplierPaymentDialog({ open, onClose, onConfirm }: SupplierPaymentDial
       return;
     }
 
-    const ddtLabel = ddtNumber ? ` - DDT ${ddtNumber}` : "";
-    const description = `Pagamento ${supplierName}${ddtLabel}`;
+    const docNumber = documentType === "FA" ? invoiceNumber : ddtNumber;
+    const docLabel = docNumber ? ` - ${documentType} ${docNumber}` : "";
+    const description = `Pagamento ${supplierName}${docLabel}`;
 
     onConfirm({
       description,
       amount,
       isSupplierPayment: true,
       supplierId,
-      ddtNumber,
+      ddtNumber: documentType === "DDT" ? ddtNumber : undefined,
       paymentMethod: paymentMethod || undefined,
+      documentType,
+      invoiceNumber: documentType === "FA" ? invoiceNumber : undefined,
     });
     resetForm();
     onClose();
-  }, [supplierId, amount, ddtNumber, supplierName, paymentMethod, onConfirm, resetForm, onClose]);
+  }, [supplierId, amount, ddtNumber, invoiceNumber, supplierName, paymentMethod, documentType, onConfirm, resetForm, onClose]);
 
   const initialValues: PaymentFormValues = {
     supplierName: "",
     supplierId: 0,
     ddtNumber: "",
     amount: 0,
-    paymentMethod: "",
+    paymentMethod: "Contanti",
   };
 
   return (
@@ -114,12 +127,34 @@ function SupplierPaymentDialog({ open, onClose, onConfirm }: SupplierPaymentDial
                     />
                   </Grid>
                   <Grid item xs={12}>
-                    <TextField
-                      label="Numero DDT"
-                      fullWidth
-                      value={ddtNumber}
-                      onChange={(e) => setDdtNumber(e.target.value)}
-                    />
+                    <Box sx={{ display: "flex", justifyContent: "center" }}>
+                      <ToggleButtonGroup
+                        value={documentType}
+                        exclusive
+                        onChange={(_e, value) => { if (value) setDocumentType(value); }}
+                        size="small"
+                      >
+                        <ToggleButton value="DDT">DDT</ToggleButton>
+                        <ToggleButton value="FA">Fattura</ToggleButton>
+                      </ToggleButtonGroup>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12}>
+                    {documentType === "DDT" ? (
+                      <TextField
+                        label="Numero DDT"
+                        fullWidth
+                        value={ddtNumber}
+                        onChange={(e) => setDdtNumber(e.target.value)}
+                      />
+                    ) : (
+                      <TextField
+                        label="Numero Fattura"
+                        fullWidth
+                        value={invoiceNumber}
+                        onChange={(e) => setInvoiceNumber(e.target.value)}
+                      />
+                    )}
                   </Grid>
                   <Grid item xs={12} md={6}>
                     <TextField
@@ -132,12 +167,17 @@ function SupplierPaymentDialog({ open, onClose, onConfirm }: SupplierPaymentDial
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
-                    <TextField
-                      label="Metodo Pagamento"
-                      fullWidth
-                      value={paymentMethod}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                    />
+                    <FormControl fullWidth>
+                      <InputLabel>Metodo Pagamento</InputLabel>
+                      <Select
+                        value={paymentMethod}
+                        label="Metodo Pagamento"
+                        onChange={(e) => setPaymentMethod(e.target.value)}
+                      >
+                        <MenuItem value="Contanti">Contanti</MenuItem>
+                        <MenuItem value="Bonifico">Bonifico</MenuItem>
+                      </Select>
+                    </FormControl>
                   </Grid>
                 </Grid>
               </Box>

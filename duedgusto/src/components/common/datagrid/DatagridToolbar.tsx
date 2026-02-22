@@ -13,9 +13,12 @@ import { GridReadyEvent } from "ag-grid-community";
 interface DatagridToolbarProps<T> {
   canAddNewRow: boolean;
   readOnly?: boolean;
+  hasSelectedRow?: boolean;
+  hideStandardButtons?: boolean;
   gridRef?: RefObject<GridReadyEvent<T> | null>;
   onAdd: () => void;
   onDelete: () => void;
+  additionalButtons?: React.ReactNode;
 }
 
 interface Cache {
@@ -23,7 +26,7 @@ interface Cache {
   _cssClassCache: string;
 }
 
-const DatagridToolbar = <T,>({ canAddNewRow, readOnly, onAdd, onDelete }: DatagridToolbarProps<T>) => {
+const DatagridToolbar = <T,>({ canAddNewRow, readOnly, hasSelectedRow, hideStandardButtons, onAdd, onDelete, additionalButtons }: DatagridToolbarProps<T>) => {
   const { userTheme } = useStore((store) => store);
   const theme = (userTheme.mode === "light" ? themeLight : themeDark) as unknown as Cache;
 
@@ -60,38 +63,41 @@ const DatagridToolbar = <T,>({ canAddNewRow, readOnly, onAdd, onDelete }: Datagr
         }}
       >
         <Stack direction="row" spacing={1}>
-          <ButtonGroup size="small" variant="text" aria-label="Datagrid toolbar">
-            <Button
-              size="small"
-              startIcon={<AddIcon />}
-              onClick={onAdd}
-              disabled={readOnly || !canAddNewRow}
-              sx={{
-                minHeight: 0,
-                height: 32,
-                paddingY: 0.5,
-                paddingX: 1.5,
-                alignSelf: "center",
-              }}
-            >
-              Nuova riga
-            </Button>
-            <Button
-              size="small"
-              startIcon={<RemoveIcon />}
-              onClick={onDelete}
-              disabled={readOnly}
-              sx={{
-                minHeight: 0,
-                height: 32,
-                paddingY: 0.5,
-                paddingX: 1.5,
-                alignSelf: "center",
-              }}
-            >
-              Cancella riga
-            </Button>
-          </ButtonGroup>
+          {!hideStandardButtons && (
+            <ButtonGroup size="small" variant="text" aria-label="Datagrid toolbar">
+              <Button
+                size="small"
+                startIcon={<AddIcon />}
+                onClick={onAdd}
+                disabled={readOnly || !canAddNewRow}
+                sx={{
+                  minHeight: 0,
+                  height: 32,
+                  paddingY: 0.5,
+                  paddingX: 1.5,
+                  alignSelf: "center",
+                }}
+              >
+                Nuova riga
+              </Button>
+              <Button
+                size="small"
+                startIcon={<RemoveIcon />}
+                onClick={onDelete}
+                disabled={readOnly || !hasSelectedRow}
+                sx={{
+                  minHeight: 0,
+                  height: 32,
+                  paddingY: 0.5,
+                  paddingX: 1.5,
+                  alignSelf: "center",
+                }}
+              >
+                Cancella riga
+              </Button>
+            </ButtonGroup>
+          )}
+          {additionalButtons}
         </Stack>
       </Box>
     </Box>

@@ -234,3 +234,7 @@ Per aggiungere una nuova pagina/funzionalità:
 - Crea nuove slice store in `src/store/` seguendo il pattern esistente
 - Usa Apollo Client cache per dati GraphQL
 - Preferisci lo stato locale React quando possibile
+
+#### Regole
+
+- Usa sempre Context7 MCP quando ho bisogno di documentazione su librerie/API, generazione di codice, passaggi di setup o configurazione, senza che debba chiederlo esplicitamente.

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FormikCashRegisterValues } from "./CashRegisterDetails";
+import { FormikCashRegisterValues } from "./RegistroCassaDetails";
 import setInitialFocus from "./setInitialFocus";
 import mergeWithDefaults from "../../../common/form/mergeWithDefaults";
 

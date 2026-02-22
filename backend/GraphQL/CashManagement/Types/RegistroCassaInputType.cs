@@ -8,6 +8,8 @@ public class PagamentoFornitoreRegistroInput
     public string NumeroDdt { get; set; } = string.Empty;
     public decimal Importo { get; set; }
     public string? MetodoPagamento { get; set; }
+    public string TipoDocumento { get; set; } = "DDT"; // "FA" o "DDT"
+    public string? NumeroFattura { get; set; }
 }
 
 public class PagamentoFornitoreRegistroInputType : InputObjectGraphType<PagamentoFornitoreRegistroInput>
@@ -19,6 +21,8 @@ public class PagamentoFornitoreRegistroInputType : InputObjectGraphType<Pagament
         Field(x => x.NumeroDdt);
         Field(x => x.Importo);
         Field(x => x.MetodoPagamento, nullable: true);
+        Field(x => x.TipoDocumento);
+        Field(x => x.NumeroFattura, nullable: true);
     }
 }
 

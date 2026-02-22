@@ -1,5 +1,6 @@
 import { useMemo, useCallback, forwardRef, useEffect, memo } from "react";
-import { Box, Typography, useTheme } from "@mui/material";
+import { Box, Button, Typography, useTheme } from "@mui/material";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import Datagrid from "../../common/datagrid/Datagrid";
 import { DatagridCellValueChangedEvent, DatagridColDef, DatagridData } from "../../common/datagrid/@types/Datagrid";
 import { GridReadyEvent } from "ag-grid-community";
@@ -10,9 +11,10 @@ interface CashCountDataGridProps {
   title: string;
   isLocked: boolean;
   onCellChange?: () => void;
+  onCopyFromPrevious?: () => void;
 }
 
-const CashCountDataGrid = memo(forwardRef<GridReadyEvent<DatagridData<CashCountRowData>>, CashCountDataGridProps>(({ rowData, title, isLocked, onCellChange }, ref) => {
+const CashCountDataGrid = memo(forwardRef<GridReadyEvent<DatagridData<CashCountRowData>>, CashCountDataGridProps>(({ rowData, title, isLocked, onCellChange, onCopyFromPrevious }, ref) => {
   const theme = useTheme();
 
   const calculateTotal = useCallback((): number => {
@@ -159,6 +161,28 @@ const CashCountDataGrid = memo(forwardRef<GridReadyEvent<DatagridData<CashCountR
     }
   }, [ref, totalFromRowData]);
 
+  const copyFromPreviousButton = useMemo(() => {
+    if (!onCopyFromPrevious) return undefined;
+    return (
+      <Button
+        size="small"
+        variant="text"
+        startIcon={<ContentCopyIcon />}
+        disabled={isLocked}
+        onClick={onCopyFromPrevious}
+        sx={{
+          minHeight: 0,
+          height: 32,
+          paddingY: 0.5,
+          paddingX: 1.5,
+          alignSelf: "center",
+        }}
+      >
+        Copia da giorno prec.
+      </Button>
+    );
+  }, [onCopyFromPrevious, isLocked]);
+
   return (
     <Box>
       <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold", mb: 0 }}>
@@ -183,6 +207,7 @@ const CashCountDataGrid = memo(forwardRef<GridReadyEvent<DatagridData<CashCountR
           readOnly={isLocked}
           showRowNumbers={false}
           hideToolbar={true}
+          additionalToolbarButtons={copyFromPreviousButton}
           onGridReady={handleGridReady}
           onCellValueChanged={handleCellValueChanged}
           suppressRowHoverHighlight={false}

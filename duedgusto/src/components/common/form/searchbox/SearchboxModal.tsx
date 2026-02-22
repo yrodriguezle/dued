@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Modal, Box, Typography, IconButton } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 
@@ -8,6 +8,7 @@ import {
   DatagridGridReadyEvent,
   DatagridCellFocusedEvent,
   DatagridRowDoubleClickedEvent,
+  DatagridRowClickedEvent,
 } from "../../datagrid/@types/Datagrid";
 
 interface SearchboxModalProps<T> {
@@ -46,6 +47,7 @@ function SearchboxModal<T extends Record<string, unknown>>({
   onSelectItem,
 }: SearchboxModalProps<T>) {
   const [gridReady, setGridReady] = useState<DatagridGridReadyEvent<T> | null>(null);
+  const lastTapRef = useRef<{ rowId: string | undefined; time: number }>({ rowId: undefined, time: 0 });
 
   const handleGridReady = useCallback((event: DatagridGridReadyEvent<T>) => {
     setGridReady(event);
@@ -60,6 +62,29 @@ function SearchboxModal<T extends Record<string, unknown>>({
         const { status, ...originalData } = data;
         onSelectItem(originalData as unknown as T);
         onClose();
+      }
+    },
+    [onSelectItem, onClose]
+  );
+
+  const handleRowClicked = useCallback(
+    (event: DatagridRowClickedEvent<T>) => {
+      const data = event.data;
+      if (!data) return;
+
+      const rowId = event.node.id;
+      const now = Date.now();
+      const last = lastTapRef.current;
+
+      if (last.rowId === rowId && now - last.time < 500) {
+        // Double tap detected - select the row
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { status, ...originalData } = data;
+        onSelectItem(originalData as unknown as T);
+        onClose();
+        lastTapRef.current = { rowId: undefined, time: 0 };
+      } else {
+        lastTapRef.current = { rowId, time: now };
       }
     },
     [onSelectItem, onClose]
@@ -128,6 +153,7 @@ function SearchboxModal<T extends Record<string, unknown>>({
             loading={loading}
             onGridReady={handleGridReady}
             onRowDoubleClicked={handleRowDoubleClicked}
+            onRowClicked={handleRowClicked}
             onCellFocused={handleCellFocused}
             presentation
           />

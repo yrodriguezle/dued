@@ -545,8 +545,8 @@ public static class SeedMenus
                 Icona = "Edit",
                 Visibile = true,
                 Posizione = 4,
-                NomeVista = "CashRegisterDetails",
-                PercorsoFile = "registrazioneCassa/CashRegisterDetails.tsx",
+                NomeVista = "RegistroCassaDetails",
+                PercorsoFile = "registrazioneCassa/RegistroCassaDetails.tsx",
                 MenuPadre = cassaMenu,
                 Ruoli = [superAdminRuolo]
             };
@@ -556,7 +556,7 @@ public static class SeedMenus
         {
             bool needsUpdate = false;
             UpdateMenuIfNeeded(cassaChild4, "Gestione Cassa", "/gestionale/cassa/details", "Edit", true, 4,
-                "CashRegisterDetails", "registrazioneCassa/CashRegisterDetails.tsx", superAdminRuolo, cassaMenu, ref needsUpdate);
+                "RegistroCassaDetails", "registrazioneCassa/RegistroCassaDetails.tsx", superAdminRuolo, cassaMenu, ref needsUpdate);
             if (needsUpdate)
             {
                 dbContext.Menus.Update(cassaChild4);

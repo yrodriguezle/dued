@@ -185,13 +185,17 @@ public class CashManagementMutations : ObjectGraphType
                 // Save first to ensure registroCassa.Id is available for new registers
                 await dbContext.SaveChangesAsync();
 
-                // 1. Remove previous supplier payments linked to this register (and their orphan DDTs)
+                // 1. Remove previous supplier payments linked to this register (and their orphan DDTs/invoices)
                 var previousPayments = await dbContext.PagamentiFornitori
                     .Where(p => p.RegistroCassaId == registroCassa.Id)
                     .ToListAsync();
                 var previousDdtIds = previousPayments
                     .Where(p => p.DdtId.HasValue)
                     .Select(p => p.DdtId!.Value)
+                    .ToList();
+                var previousFatturaIds = previousPayments
+                    .Where(p => p.FatturaId.HasValue)
+                    .Select(p => p.FatturaId!.Value)
                     .ToList();
                 dbContext.PagamentiFornitori.RemoveRange(previousPayments);
                 if (previousDdtIds.Count > 0)
@@ -201,8 +205,17 @@ public class CashManagementMutations : ObjectGraphType
                         .ToListAsync();
                     dbContext.DocumentiTrasporto.RemoveRange(orphanDdts);
                 }
+                if (previousFatturaIds.Count > 0)
+                {
+                    // Remove orphan invoices created from cash register (no other payments referencing them)
+                    var orphanFatture = await dbContext.FattureAcquisto
+                        .Where(f => previousFatturaIds.Contains(f.FatturaId))
+                        .Where(f => !dbContext.PagamentiFornitori.Any(p => p.FatturaId == f.FatturaId && p.RegistroCassaId != registroCassa.Id))
+                        .ToListAsync();
+                    dbContext.FattureAcquisto.RemoveRange(orphanFatture);
+                }
 
-                // 2. Create new DDT + PagamentoFornitore + SpesaCassa for each input
+                // 2. Create new documents + PagamentoFornitore + SpesaCassa for each input
                 decimal totalePagamentiFornitori = 0;
                 foreach (var pagInput in input.PagamentiFornitori)
                 {
@@ -210,32 +223,65 @@ public class CashManagementMutations : ObjectGraphType
                         .FirstOrDefaultAsync(f => f.FornitoreId == pagInput.FornitoreId)
                         ?? throw new ExecutionError($"Fornitore con ID {pagInput.FornitoreId} non trovato");
 
-                    // Create orphan DDT
-                    var ddt = new DocumentoTrasporto
-                    {
-                        FornitoreId = pagInput.FornitoreId,
-                        NumeroDdt = pagInput.NumeroDdt,
-                        DataDdt = input.Data,
-                        Importo = pagInput.Importo,
-                        FatturaId = null,
-                    };
-                    dbContext.DocumentiTrasporto.Add(ddt);
-                    await dbContext.SaveChangesAsync(); // flush to get DdtId
+                    string descrizione;
+                    PagamentoFornitore pagamento;
 
-                    // Create PagamentoFornitore
-                    var pagamento = new PagamentoFornitore
+                    if (pagInput.TipoDocumento == "FA")
                     {
-                        DdtId = ddt.DdtId,
-                        DataPagamento = input.Data,
-                        Importo = pagInput.Importo,
-                        MetodoPagamento = pagInput.MetodoPagamento,
-                        Note = $"Pagamento da registro cassa del {input.Data:dd/MM/yyyy}",
-                        RegistroCassaId = registroCassa.Id,
-                    };
+                        // Create FatturaAcquisto
+                        var fattura = new FatturaAcquisto
+                        {
+                            FornitoreId = pagInput.FornitoreId,
+                            NumeroFattura = pagInput.NumeroFattura ?? "",
+                            DataFattura = input.Data,
+                            Imponibile = pagInput.Importo,
+                            Stato = "PAGATA",
+                        };
+                        dbContext.FattureAcquisto.Add(fattura);
+                        await dbContext.SaveChangesAsync(); // flush to get FatturaId
+
+                        pagamento = new PagamentoFornitore
+                        {
+                            FatturaId = fattura.FatturaId,
+                            DdtId = null,
+                            DataPagamento = input.Data,
+                            Importo = pagInput.Importo,
+                            MetodoPagamento = pagInput.MetodoPagamento,
+                            Note = $"Pagamento da registro cassa del {input.Data:dd/MM/yyyy}",
+                            RegistroCassaId = registroCassa.Id,
+                        };
+
+                        descrizione = $"Pagamento {fornitore.RagioneSociale} - FA {pagInput.NumeroFattura}";
+                    }
+                    else
+                    {
+                        // Create orphan DDT (existing behavior)
+                        var ddt = new DocumentoTrasporto
+                        {
+                            FornitoreId = pagInput.FornitoreId,
+                            NumeroDdt = pagInput.NumeroDdt,
+                            DataDdt = input.Data,
+                            Importo = pagInput.Importo,
+                            FatturaId = null,
+                        };
+                        dbContext.DocumentiTrasporto.Add(ddt);
+                        await dbContext.SaveChangesAsync(); // flush to get DdtId
+
+                        pagamento = new PagamentoFornitore
+                        {
+                            DdtId = ddt.DdtId,
+                            FatturaId = null,
+                            DataPagamento = input.Data,
+                            Importo = pagInput.Importo,
+                            MetodoPagamento = pagInput.MetodoPagamento,
+                            Note = $"Pagamento da registro cassa del {input.Data:dd/MM/yyyy}",
+                            RegistroCassaId = registroCassa.Id,
+                        };
+
+                        descrizione = $"Pagamento {fornitore.RagioneSociale} - DDT {pagInput.NumeroDdt}";
+                    }
+
                     dbContext.PagamentiFornitori.Add(pagamento);
-
-                    // Create SpesaCassa
-                    var descrizione = $"Pagamento {fornitore.RagioneSociale} - DDT {pagInput.NumeroDdt}";
                     registroCassa.SpeseCassa.Add(new SpesaCassa
                     {
                         Descrizione = descrizione,
@@ -277,6 +323,9 @@ public class CashManagementMutations : ObjectGraphType
                     .Include(r => r.PagamentiFornitori)
                         .ThenInclude(p => p.Ddt)
                             .ThenInclude(d => d!.Fornitore)
+                    .Include(r => r.PagamentiFornitori)
+                        .ThenInclude(p => p.Fattura)
+                            .ThenInclude(f => f!.Fornitore)
                     .FirstOrDefaultAsync(r => r.Id == registroCassa.Id);
             });
 

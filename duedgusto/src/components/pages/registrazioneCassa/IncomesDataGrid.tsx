@@ -1,6 +1,6 @@
 import { useMemo, forwardRef, useCallback, memo } from "react";
 import { Box, Typography } from "@mui/material";
-import { Income } from "./CashRegisterDetails";
+import { Income } from "./RegistroCassaDetails";
 import Datagrid from "../../common/datagrid/Datagrid";
 import { DatagridColDef, DatagridCellValueChangedEvent, DatagridData } from "../../common/datagrid/@types/Datagrid";
 import { GridReadyEvent } from "ag-grid-community";

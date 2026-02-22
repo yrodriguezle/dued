@@ -272,3 +272,7 @@ Il codebase segue un pattern di architettura a livelli senza progetti di test un
 - **Navigazione basata sui ruoli**: I menu vengono recuperati per l'utente autenticato tramite le relazioni dei ruoli; usare Role.Menus per popolare la navigazione
 - **Workflow registro di cassa**: Creare un CashRegister con conteggi apertura/chiusura persiste le entità CashCount; la chiusura transiziona lo stato a CLOSED; la riconciliazione è manuale tramite mutation successive
 - **Encoding caratteri database**: Tutte le tabelle usano UTF8MB4 per supporto caratteri internazionali; assicurarsi che il server MySQL abbia UTF8MB4 disponibile
+
+#### Regole
+
+- Usa sempre Context7 MCP quando ho bisogno di documentazione su librerie/API, generazione di codice, passaggi di setup o configurazione, senza che debba chiederlo esplicitamente.

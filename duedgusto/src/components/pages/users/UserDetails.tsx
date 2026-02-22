@@ -1,7 +1,6 @@
 import { useCallback, useContext, useEffect, useRef } from "react";
 import { Form, Formik, FormikProps } from "formik";
 import { z } from "zod";
-import Paper from "@mui/material/Paper";
 import { toast } from "react-toastify";
 import { useLocation } from "react-router";
 import { useLazyQuery } from "@apollo/client";
@@ -222,9 +221,7 @@ function UserDetails() {
             <Typography id="view-title" variant="h5" gutterBottom>
               {title}
             </Typography>
-            <Paper sx={{ padding: 1 }}>
-              <UserForm onSelectItem={handleSelectedItem} />
-            </Paper>
+            <UserForm onSelectItem={handleSelectedItem} />
           </Box>
         </Form>
       )}

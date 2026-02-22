@@ -28,6 +28,8 @@ export interface PagamentoFornitoreRegistroInput {
   numeroDdt: string;
   importo: number;
   metodoPagamento?: string;
+  tipoDocumento: "FA" | "DDT";
+  numeroFattura?: string;
 }
 
 export interface RegistroCassaInput {

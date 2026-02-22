@@ -7,6 +7,7 @@ import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import SaveIcon from "@mui/icons-material/Save";
 import LockIcon from "@mui/icons-material/Lock";
 import { useParams, useNavigate } from "react-router";
+import { useApolloClient } from "@apollo/client";
 import { GridReadyEvent } from "ag-grid-community";
 import FormikToolbarButton from "../../common/form/toolbar/FormikToolbarButton";
 
@@ -22,6 +23,7 @@ import useQueryCashRegister from "../../../graphql/cashRegister/useQueryCashRegi
 import useSubmitCashRegister from "../../../graphql/cashRegister/useSubmitCashRegister";
 import { PagamentoFornitoreRegistroInput, RegistroCassaInput } from "../../../graphql/cashRegister/mutations";
 import useCloseCashRegister from "../../../graphql/cashRegister/useCloseCashRegister";
+import { getRegistroCassa } from "../../../graphql/cashRegister/queries";
 import useStore from "../../../store/useStore";
 import { toast } from "react-toastify";
 import { getCurrentDate, getFormattedDate, getWeekdayName, parseDateForGraphQL } from "../../../common/date/date";
@@ -57,6 +59,8 @@ export interface Expense extends Record<string, unknown> {
   supplierId?: number;
   ddtNumber?: string;
   paymentMethod?: string;
+  documentType?: "FA" | "DDT";
+  invoiceNumber?: string;
 }
 
 interface CashCountRow extends Record<string, unknown> {
@@ -77,7 +81,7 @@ interface ExpenseRow extends Record<string, unknown> {
   amount: number;
 }
 
-function CashRegisterDetails() {
+function RegistroCassaDetails() {
   const { date: dateParam } = useParams<{ date?: string }>();
   const navigate = useNavigate();
   const formRef = useRef<FormikProps<FormikCashRegisterValues>>(null);
@@ -86,6 +90,7 @@ function CashRegisterDetails() {
   const incomesGridRef = useRef<GridReadyEvent<DatagridData<IncomeRow>> | null>(null);
   const expensesGridRef = useRef<GridReadyEvent<DatagridData<ExpenseRow>> | null>(null);
   const { setTitle } = useContext(PageTitleContext);
+  const client = useApolloClient();
   const utente = useStore((state) => state.utente);
   const isOpen = useStore((state) => state.isOpen);
   const getNextOperatingDate = useStore((state) => state.getNextOperatingDate);
@@ -164,6 +169,51 @@ function CashRegisterDetails() {
     navigate(`/gestionale/cassa/monthly?year=${year}&month=${month}`);
   }, [currentDate, navigate]);
 
+  // Copia i conteggi chiusura del giorno operativo precedente come apertura
+  const handleCopyFromPrevious = useCallback(async () => {
+    // Calcola la data del giorno operativo precedente
+    const [year, month, day] = currentDate.split("-").map(Number);
+    const date = new Date(year, month - 1, day);
+    Array.from({ length: 7 }).some(() => {
+      date.setDate(date.getDate() - 1);
+      return isOpen(date);
+    });
+    const prevDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    const parsedPrevDate = parseDateForGraphQL(prevDate);
+    if (!parsedPrevDate) return;
+
+    try {
+      const { data } = await client.query({
+        query: getRegistroCassa,
+        variables: { data: parsedPrevDate },
+        fetchPolicy: "network-only",
+      });
+
+      const registro = data?.cashManagement?.registroCassa;
+      if (!registro?.conteggiChiusura?.length) {
+        toast.warning("Nessun dato di chiusura trovato per il giorno precedente");
+        return;
+      }
+
+      const copiedCounts: CashCount[] = registro.conteggiChiusura.map((c: ConteggioMoneta) => {
+        // Per la denominazione con valore 5.00€ forza quantita = 2
+        const denomination = denominazioni.find((d: DenominazioneMoneta) => d.id === c.denominazioneMonetaId);
+        const quantita = denomination && denomination.valore === 5 ? 2 : c.quantita;
+        return {
+          denominazioneMonetaId: c.denominazioneMonetaId,
+          quantita,
+        };
+      });
+
+      setInitialOpeningCounts(copiedCounts);
+      handleCellChange();
+      toast.success("Conteggi apertura copiati dal giorno precedente");
+    } catch (error) {
+      logger.error("Errore durante la copia dal giorno precedente:", error);
+      toast.error("Errore durante la copia dal giorno precedente");
+    }
+  }, [currentDate, isOpen, client, denominazioni, handleCellChange]);
+
   const { submitCashRegister } = useSubmitCashRegister();
   const { closeCashRegister, loading: closing } = useCloseCashRegister();
   const onConfirm = useConfirm();
@@ -222,14 +272,30 @@ function CashRegisterDetails() {
         amount: e.importo,
       })) || [];
       const supplierPaymentExpenses: Expense[] = cashRegister.pagamentiFornitori?.map(
-        (p: { amount: number; paymentMethod?: string; ddt?: { ddtNumber: string; supplier: { supplierId: number; businessName: string } } }) => ({
-          description: `Pagamento ${p.ddt?.supplier?.businessName || "Fornitore"} - DDT ${p.ddt?.ddtNumber || ""}`,
-          amount: p.amount,
-          isSupplierPayment: true,
-          supplierId: p.ddt?.supplier?.supplierId,
-          ddtNumber: p.ddt?.ddtNumber,
-          paymentMethod: p.paymentMethod,
-        })
+        (p: PagamentoFornitoreRegistro) => {
+          const hasInvoice = !!p.invoice;
+          const supplierName = hasInvoice
+            ? (p.invoice?.supplier?.businessName || "Fornitore")
+            : (p.ddt?.supplier?.businessName || "Fornitore");
+          const supplierId = hasInvoice
+            ? p.invoice?.supplier?.supplierId
+            : p.ddt?.supplier?.supplierId;
+          const docType: "FA" | "DDT" = hasInvoice ? "FA" : "DDT";
+          const docLabel = hasInvoice
+            ? `FA ${p.invoice?.invoiceNumber || ""}`
+            : `DDT ${p.ddt?.ddtNumber || ""}`;
+
+          return {
+            description: `Pagamento ${supplierName} - ${docLabel}`,
+            amount: p.amount,
+            isSupplierPayment: true,
+            supplierId,
+            ddtNumber: p.ddt?.ddtNumber,
+            paymentMethod: p.paymentMethod,
+            documentType: docType,
+            invoiceNumber: p.invoice?.invoiceNumber,
+          };
+        }
       ) || [];
       setInitialExpenses([...supplierPaymentExpenses, ...normalExpenses]);
 
@@ -298,6 +364,8 @@ function CashRegisterDetails() {
           numeroDdt: row.ddtNumber || "",
           importo: row.amount,
           metodoPagamento: row.paymentMethod || undefined,
+          tipoDocumento: row.documentType || "DDT",
+          numeroFattura: row.invoiceNumber || undefined,
         }));
 
       // Converti gli array in campi per il backend (nomi italiani)
@@ -484,6 +552,7 @@ function CashRegisterDetails() {
                 initialIncomes={initialIncomes}
                 initialExpenses={initialExpenses}
                 onCellChange={handleCellChange}
+                onCopyFromPrevious={handleCopyFromPrevious}
                 refreshKey={refreshKey}
               />
             </Box>
@@ -494,4 +563,4 @@ function CashRegisterDetails() {
   );
 }
 
-export default CashRegisterDetails;
+export default RegistroCassaDetails;

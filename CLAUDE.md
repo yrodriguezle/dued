@@ -103,3 +103,5 @@ Connessione: `server=localhost;database=duedgusto;user=root;password=root`
 
 Rispondi SEMPRE in italiano, indipendentemente dalla lingua dell’input.
 Non cambiare lingua a meno che non venga esplicitamente richiesto.
+
+Usa sempre Context7 MCP quando ho bisogno di documentazione su librerie/API, generazione di codice, passaggi di setup o configurazione, senza che debba chiederlo esplicitamente.

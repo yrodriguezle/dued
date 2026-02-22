@@ -2,7 +2,7 @@ import { useMemo, useState, forwardRef, useCallback, useRef, memo } from "react"
 import { Box, Button, Typography } from "@mui/material";
 import PaymentIcon from "@mui/icons-material/Payment";
 import { z } from "zod";
-import { Expense } from "./CashRegisterDetails";
+import { Expense } from "./RegistroCassaDetails";
 import Datagrid from "../../common/datagrid/Datagrid";
 import { DatagridColDef, ValidationError, DatagridCellValueChangedEvent, DatagridData } from "../../common/datagrid/@types/Datagrid";
 import { GridReadyEvent } from "ag-grid-community";
@@ -40,6 +40,18 @@ const ExpensesDataGrid = memo(forwardRef<GridReadyEvent<DatagridData<Expense>>, 
 
   const columnDefs = useMemo<DatagridColDef<Expense>[]>(
     () => [
+      {
+        headerName: "Tipo",
+        field: "documentType",
+        width: 100,
+        editable: false,
+        valueGetter: (params) => {
+          if (params.data?.isSupplierPayment) {
+            return params.data.documentType === "FA" ? "FA" : "DDT";
+          }
+          return "RICEVUTA";
+        },
+      },
       {
         headerName: "Causale",
         field: "description",
@@ -91,22 +103,30 @@ const ExpensesDataGrid = memo(forwardRef<GridReadyEvent<DatagridData<Expense>>, 
     amount: 0,
   }), []);
 
+  const supplierPaymentButton = useMemo(() => (
+    <Button
+      size="small"
+      variant="text"
+      startIcon={<PaymentIcon />}
+      disabled={isLocked}
+      onClick={() => setDialogOpen(true)}
+      sx={{
+        minHeight: 0,
+        height: 32,
+        paddingY: 0.5,
+        paddingX: 1.5,
+        alignSelf: "center",
+      }}
+    >
+      Pagamento fornitore
+    </Button>
+  ), [isLocked]);
+
   return (
     <Box>
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0 }}>
-        <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold", mb: 0 }}>
-          SPESE
-        </Typography>
-        <Button
-          size="small"
-          variant="outlined"
-          startIcon={<PaymentIcon />}
-          disabled={isLocked}
-          onClick={() => setDialogOpen(true)}
-        >
-          Paga Fornitore
-        </Button>
-      </Box>
+      <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold", mb: 0 }}>
+        SPESE
+      </Typography>
       <SupplierPaymentDialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
@@ -126,6 +146,7 @@ const ExpensesDataGrid = memo(forwardRef<GridReadyEvent<DatagridData<Expense>>, 
           columnDefs={columnDefs}
           readOnly={isLocked}
           getNewRow={getNewExpense}
+          additionalToolbarButtons={supplierPaymentButton}
           validationSchema={expenseSchema}
           onValidationErrors={setValidationErrors}
           showRowNumbers={true}

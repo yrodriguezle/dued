@@ -133,7 +133,17 @@ const NestedListItem: React.FC<NestedListItemProps> = ({ item, drawerOpen, onLis
       </ListItemButton>
       {item.children && (
         <Collapse in={isOpen && drawerOpen} timeout="auto" unmountOnExit>
-          <List component="div" disablePadding>
+          <List
+            component="div"
+            disablePadding
+            sx={{
+              ml: 2,
+              borderLeft: 2,
+              borderColor: "primary.main",
+              borderRadius: "0 8px 8px 0",
+              py: 0.5,
+            }}
+          >
             {item.children.map((child, index) => (
               <NestedListItem
                 key={index}
@@ -141,7 +151,7 @@ const NestedListItem: React.FC<NestedListItemProps> = ({ item, drawerOpen, onLis
                 item={child}
                 onListItemClick={onListItemClick}
                 isOpen={false}
-                onToggle={() => {}}
+                onToggle={() => { }}
               />
             ))}
           </List>

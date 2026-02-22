@@ -1,7 +1,6 @@
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Form, Formik, FormikProps } from "formik";
 import { z } from "zod";
-import Paper from "@mui/material/Paper";
 import { toast } from "react-toastify";
 import { useLocation, useNavigate } from "react-router";
 import { useLazyQuery, useMutation } from "@apollo/client";
@@ -238,15 +237,13 @@ function PurchaseInvoiceDetails() {
             <Typography id="view-title" variant="h5" gutterBottom>
               {title}
             </Typography>
-            <Paper sx={{ padding: 1 }}>
-              <PurchaseInvoiceForm
-                onSelectSupplier={handleSelectSupplier}
-                onSelectInvoice={handleSelectInvoice}
-                deliveryNotes={deliveryNotes}
-                payments={supplierPayments}
-                onRefresh={handleRefresh}
-              />
-            </Paper>
+            <PurchaseInvoiceForm
+              onSelectSupplier={handleSelectSupplier}
+              onSelectInvoice={handleSelectInvoice}
+              deliveryNotes={deliveryNotes}
+              payments={supplierPayments}
+              onRefresh={handleRefresh}
+            />
           </Box>
         </Form>
       )}

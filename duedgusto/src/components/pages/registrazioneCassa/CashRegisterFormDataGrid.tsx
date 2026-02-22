@@ -1,6 +1,6 @@
 import { Grid, TextField, Box } from "@mui/material";
 import { useFormikContext } from "formik";
-import { FormikCashRegisterValues, Income, Expense } from "./CashRegisterDetails";
+import { FormikCashRegisterValues, Income, Expense } from "./RegistroCassaDetails";
 import CashCountDataGrid from "./CashCountDataGrid";
 import SummaryDataGrid from "./SummaryDataGrid";
 import IncomesDataGrid from "./IncomesDataGrid";
@@ -29,6 +29,7 @@ interface CashRegisterFormDataGridProps {
   initialIncomes: Income[];
   initialExpenses: Expense[];
   onCellChange: () => void;
+  onCopyFromPrevious?: () => void;
   refreshKey: number;
 }
 
@@ -42,6 +43,7 @@ const CashRegisterFormDataGrid: React.FC<CashRegisterFormDataGridProps> = ({
   initialIncomes,
   initialExpenses,
   onCellChange,
+  onCopyFromPrevious,
   refreshKey,
 }) => {
   const formik = useFormikContext<FormikCashRegisterValues>();
@@ -58,6 +60,7 @@ const CashRegisterFormDataGrid: React.FC<CashRegisterFormDataGridProps> = ({
             title="APERTURA CASSA"
             isLocked={isLocked}
             onCellChange={onCellChange}
+            onCopyFromPrevious={onCopyFromPrevious}
           />
         </Grid>
 
@@ -92,8 +95,19 @@ const CashRegisterFormDataGrid: React.FC<CashRegisterFormDataGridProps> = ({
           />
         </Grid>
 
-        {/* Note */}
+        {/* Riepilogo */}
         <Grid item xs={12} md={6}>
+          <SummaryDataGrid
+            openingGridRef={openingGridRef}
+            closingGridRef={closingGridRef}
+            incomesGridRef={incomesGridRef}
+            expensesGridRef={expensesGridRef}
+            refreshKey={refreshKey}
+          />
+        </Grid>
+
+        {/* Note */}
+        <Grid item xs={12}>
           <Box>
             <TextField
               label="Note"
@@ -108,17 +122,6 @@ const CashRegisterFormDataGrid: React.FC<CashRegisterFormDataGridProps> = ({
               placeholder="Inserisci eventuali note sulla chiusura cassa..."
             />
           </Box>
-        </Grid>
-
-        {/* Riepilogo */}
-        <Grid item xs={12} md={6}>
-          <SummaryDataGrid
-            openingGridRef={openingGridRef}
-            closingGridRef={closingGridRef}
-            incomesGridRef={incomesGridRef}
-            expensesGridRef={expensesGridRef}
-            refreshKey={refreshKey}
-          />
         </Grid>
       </Grid>
     </Box>

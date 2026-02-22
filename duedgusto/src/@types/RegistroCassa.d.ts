@@ -42,6 +42,28 @@ type SpesaCassa = {
   importo: number;
 };
 
+// PagamentoFornitoreRegistro
+type PagamentoFornitoreRegistro = {
+  paymentId: number;
+  amount: number;
+  paymentMethod?: string;
+  ddt?: {
+    ddtNumber: string;
+    supplier: {
+      supplierId: number;
+      businessName: string;
+    };
+  };
+  invoice?: {
+    invoiceId: number;
+    invoiceNumber: string;
+    supplier: {
+      supplierId: number;
+      businessName: string;
+    };
+  };
+};
+
 // RegistroCassa
 type RegistroCassa = {
   __typename: "RegistroCassa";
@@ -53,6 +75,7 @@ type RegistroCassa = {
   conteggiChiusura: ConteggioMoneta[];
   incassi: IncassoCassa[];
   spese: SpesaCassa[];
+  pagamentiFornitori: PagamentoFornitoreRegistro[];
   totaleApertura: number;
   totaleChiusura: number;
   venditeContanti: number;
