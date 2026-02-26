@@ -1,0 +1,45 @@
+# openspec/config.yaml
+schema: spec-driven
+
+context: |
+  Tech stack: .NET 8.0 (GraphQL.NET, EF Core, MySQL 8.0) + React 19 (TypeScript 5.7, Vite 6, MUI v6, Apollo Client 3)
+  Architecture: Layered backend (Controllers > GraphQL > Services > DataAccess), modular frontend with dynamic routing
+  State: Zustand 5 (global), Apollo Client cache (server), Formik 2 + Zod (forms)
+  Data grid: AG Grid Enterprise 33
+  Auth: JWT + httpOnly refresh token + CSRF double-submit cookie
+  Database: MySQL 8.0+ with EF Core migrations (auto-apply at startup)
+  Testing: None (no unit tests in codebase)
+  Linting: ESLint 9 + Prettier 3 (frontend), no linter configured (backend)
+  CI/CD: None configured
+  Language: Italian UI and codebase conventions; all source files use .tsx extension
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+    - Identify affected modules/packages (backend vs frontend vs both)
+    - Note if database migrations are required
+  specs:
+    - Use Given/When/Then format for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+    - Specify GraphQL schema changes when applicable
+  design:
+    - Include sequence diagrams for complex flows
+    - Document architecture decisions with rationale
+    - Specify EF Core model changes and migration strategy
+  tasks:
+    - Group tasks by phase (infrastructure, backend, frontend, testing)
+    - Use hierarchical numbering (1.1, 1.2, etc.)
+    - Keep tasks small enough to complete in one session
+    - Separate database migration tasks from application code tasks
+  apply:
+    - Follow existing code patterns and conventions
+    - Use .tsx extension for all frontend files
+    - Use functional iteration (.map, .filter, .reduce) - no for loops
+    - Use custom bones/ utilities instead of lodash
+    - GraphQL resolvers use GraphQLService.GetService<T>() pattern
+  verify:
+    - Run dotnet build for backend changes
+    - Run npm run ts:check and npm run lint for frontend changes
+    - Compare implementation against every spec scenario
+  archive:
+    - Warn before merging destructive deltas (large removals)
