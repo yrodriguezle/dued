@@ -57,27 +57,15 @@ function KPICard({ title, value, subtitle, trend, color = "primary", icon }: KPI
             )}
             {trend !== undefined && (
               <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
-                {trend >= 0 ? (
-                  <TrendingUpIcon color="success" fontSize="small" />
-                ) : (
-                  <TrendingDownIcon color="error" fontSize="small" />
-                )}
-                <Typography
-                  variant="body2"
-                  color={trend >= 0 ? "success.main" : "error.main"}
-                  sx={{ ml: 0.5 }}
-                >
+                {trend >= 0 ? <TrendingUpIcon color="success" fontSize="small" /> : <TrendingDownIcon color="error" fontSize="small" />}
+                <Typography variant="body2" color={trend >= 0 ? "success.main" : "error.main"} sx={{ ml: 0.5 }}>
                   {trend >= 0 ? "+" : ""}
                   {trend.toFixed(1)}%
                 </Typography>
               </Box>
             )}
           </Box>
-          {icon && (
-            <Box sx={{ color: `${color}.main`, opacity: 0.3 }}>
-              {icon}
-            </Box>
-          )}
+          {icon && <Box sx={{ color: `${color}.main`, opacity: 0.3 }}>{icon}</Box>}
         </Box>
       </CardContent>
     </Card>
@@ -117,26 +105,29 @@ function RegistrazioneCassDashboard() {
   const displayMonthData = useMemo(() => {
     if (selectedYear === currentYear) {
       // Anno corrente: mostra il mese corrente
-      return yearlyData.monthlyData.find((m) => m.month === currentMonth) || {
-        month: currentMonth,
-        year: selectedYear,
-        totalRevenue: 0,
-        totalCash: 0,
-        totalElectronic: 0,
-        count: 0,
-      };
+      return (
+        yearlyData.monthlyData.find((m) => m.month === currentMonth) || {
+          month: currentMonth,
+          year: selectedYear,
+          totalRevenue: 0,
+          totalCash: 0,
+          totalElectronic: 0,
+          count: 0,
+        }
+      );
     } else {
       // Anno passato: trova il mese con più ricavo
-      const monthWithMostRevenue = yearlyData.monthlyData.reduce((max, month) =>
-        month.totalRevenue > max.totalRevenue ? month : max
-        , yearlyData.monthlyData[0] || {
+      const monthWithMostRevenue = yearlyData.monthlyData.reduce(
+        (max, month) => (month.totalRevenue > max.totalRevenue ? month : max),
+        yearlyData.monthlyData[0] || {
           month: 1,
           year: selectedYear,
           totalRevenue: 0,
           totalCash: 0,
           totalElectronic: 0,
           count: 0,
-        });
+        }
+      );
       return monthWithMostRevenue;
     }
   }, [yearlyData.monthlyData, currentMonth, selectedYear, currentYear]);
@@ -226,8 +217,7 @@ function RegistrazioneCassDashboard() {
           <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
             {selectedYear === currentYear
               ? `Statistiche ${MONTH_NAMES[displayMonthData.month - 1]} ${selectedYear}`
-              : `Statistiche ${MONTH_NAMES[displayMonthData.month - 1]} ${selectedYear} (Mese Migliore)`
-            }
+              : `Statistiche ${MONTH_NAMES[displayMonthData.month - 1]} ${selectedYear} (Mese Migliore)`}
           </Typography>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
@@ -241,20 +231,10 @@ function RegistrazioneCassDashboard() {
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <KPICard
-            title="Pago in contanti Mese"
-            value={`€ ${displayMonthData.totalCash?.toFixed(2) || "0.00"}`}
-            icon={<AccountBalanceWalletIcon sx={{ fontSize: 48 }} />}
-            color="success"
-          />
+          <KPICard title="Pago in contanti Mese" value={`€ ${displayMonthData.totalCash?.toFixed(2) || "0.00"}`} icon={<AccountBalanceWalletIcon sx={{ fontSize: 48 }} />} color="success" />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <KPICard
-            title="Pagamenti Elettronici Mese"
-            value={`€ ${displayMonthData.totalElectronic?.toFixed(2) || "0.00"}`}
-            icon={<CreditCardIcon sx={{ fontSize: 48 }} />}
-            color="info"
-          />
+          <KPICard title="Pagamenti Elettronici Mese" value={`€ ${displayMonthData.totalElectronic?.toFixed(2) || "0.00"}`} icon={<CreditCardIcon sx={{ fontSize: 48 }} />} color="info" />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <KPICard
@@ -282,20 +262,10 @@ function RegistrazioneCassDashboard() {
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <KPICard
-            title="Pago in contanti Anno"
-            value={`€ ${yearlyData.yearlyTotals.totalCash?.toFixed(2) || "0.00"}`}
-            icon={<AccountBalanceWalletIcon sx={{ fontSize: 48 }} />}
-            color="success"
-          />
+          <KPICard title="Pago in contanti Anno" value={`€ ${yearlyData.yearlyTotals.totalCash?.toFixed(2) || "0.00"}`} icon={<AccountBalanceWalletIcon sx={{ fontSize: 48 }} />} color="success" />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <KPICard
-            title="Pagamenti Elettronici Anno"
-            value={`€ ${yearlyData.yearlyTotals.totalElectronic?.toFixed(2) || "0.00"}`}
-            icon={<CreditCardIcon sx={{ fontSize: 48 }} />}
-            color="info"
-          />
+          <KPICard title="Pagamenti Elettronici Anno" value={`€ ${yearlyData.yearlyTotals.totalElectronic?.toFixed(2) || "0.00"}`} icon={<CreditCardIcon sx={{ fontSize: 48 }} />} color="info" />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <KPICard
@@ -344,7 +314,7 @@ function RegistrazioneCassDashboard() {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ name, percent }) => `${name} ${percent !== undefined ? (percent * 100).toFixed(0) : '0'}%`}
+                    label={({ name, percent }) => `${name} ${percent !== undefined ? (percent * 100).toFixed(0) : "0"}%`}
                     outerRadius={100}
                     fill="#8884d8"
                     dataKey="value"

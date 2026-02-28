@@ -54,56 +54,27 @@ const CashRegisterFormDataGrid: React.FC<CashRegisterFormDataGridProps> = ({
       <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }}>
         {/* Apertura Cassa */}
         <Grid item xs={12} lg={6}>
-          <CashCountDataGrid
-            ref={openingGridRef}
-            rowData={openingRowData}
-            title="APERTURA CASSA"
-            isLocked={isLocked}
-            onCellChange={onCellChange}
-            onCopyFromPrevious={onCopyFromPrevious}
-          />
+          <CashCountDataGrid ref={openingGridRef} rowData={openingRowData} title="APERTURA CASSA" isLocked={isLocked} onCellChange={onCellChange} onCopyFromPrevious={onCopyFromPrevious} />
         </Grid>
 
         {/* Chiusura Cassa */}
         <Grid item xs={12} lg={6}>
-          <CashCountDataGrid
-            ref={closingGridRef}
-            rowData={closingRowData}
-            title="CHIUSURA CASSA"
-            isLocked={isLocked}
-            onCellChange={onCellChange}
-          />
+          <CashCountDataGrid ref={closingGridRef} rowData={closingRowData} title="CHIUSURA CASSA" isLocked={isLocked} onCellChange={onCellChange} />
         </Grid>
 
         {/* Incassi */}
         <Grid item xs={12} md={6}>
-          <IncomesDataGrid
-            ref={incomesGridRef}
-            initialIncomes={initialIncomes}
-            isLocked={isLocked}
-            onCellChange={onCellChange}
-          />
+          <IncomesDataGrid ref={incomesGridRef} initialIncomes={initialIncomes} isLocked={isLocked} onCellChange={onCellChange} />
         </Grid>
 
         {/* Spese */}
         <Grid item xs={12} md={6}>
-          <ExpensesDataGrid
-            ref={expensesGridRef}
-            initialExpenses={initialExpenses}
-            isLocked={isLocked}
-            onCellChange={onCellChange}
-          />
+          <ExpensesDataGrid ref={expensesGridRef} initialExpenses={initialExpenses} isLocked={isLocked} onCellChange={onCellChange} />
         </Grid>
 
         {/* Riepilogo */}
         <Grid item xs={12} md={6}>
-          <SummaryDataGrid
-            openingGridRef={openingGridRef}
-            closingGridRef={closingGridRef}
-            incomesGridRef={incomesGridRef}
-            expensesGridRef={expensesGridRef}
-            refreshKey={refreshKey}
-          />
+          <SummaryDataGrid openingGridRef={openingGridRef} closingGridRef={closingGridRef} incomesGridRef={incomesGridRef} expensesGridRef={expensesGridRef} refreshKey={refreshKey} />
         </Grid>
 
         {/* Note */}

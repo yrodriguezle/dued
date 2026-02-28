@@ -130,10 +130,7 @@ const MonthlyClosureDetails = () => {
     skip: !anno || !mese || !isDraft,
   });
 
-  const giorniEffettivamenteMancanti = useMemo(
-    () => giorniMancanti.filter((d) => !giorniEsclusiSet.has(dayjs(d).format("YYYY-MM-DD"))),
-    [giorniMancanti, giorniEsclusiSet]
-  );
+  const giorniEffettivamenteMancanti = useMemo(() => giorniMancanti.filter((d) => !giorniEsclusiSet.has(dayjs(d).format("YYYY-MM-DD"))), [giorniMancanti, giorniEsclusiSet]);
   const hasRegistriMancanti = giorniEffettivamenteMancanti.length > 0;
   const hasGiorniDaGestire = hasRegistriMancanti || giorniEsclusiParsed.length > 0;
 
@@ -159,7 +156,11 @@ const MonthlyClosureDetails = () => {
 
   useEffect(() => {
     if (anno && mese) {
-      setTitle(`Chiusura Mensile - ${dayjs().month(mese - 1).format("MMMM")} ${anno}`);
+      setTitle(
+        `Chiusura Mensile - ${dayjs()
+          .month(mese - 1)
+          .format("MMMM")} ${anno}`
+      );
     } else {
       setTitle("Dettagli Chiusura Mensile");
     }
@@ -375,12 +376,18 @@ const MonthlyClosureDetails = () => {
   // Modalità nuova: loading durante auto-creazione o errore
   if (isNewMode) {
     if (!newAnno || !newMese) {
-      return <Alert severity="error" sx={{ m: 2 }}>Parametri anno/mese mancanti.</Alert>;
+      return (
+        <Alert severity="error" sx={{ m: 2 }}>
+          Parametri anno/mese mancanti.
+        </Alert>
+      );
     }
     if (autoCreateError) {
       return (
         <Box sx={{ p: 3 }}>
-          <Alert severity="error" sx={{ mb: 2 }}>{autoCreateError}</Alert>
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {autoCreateError}
+          </Alert>
           <FormikToolbarButton startIcon={<ArrowBackIcon />} onClick={handleBack}>
             Torna alla lista
           </FormikToolbarButton>
@@ -391,7 +398,11 @@ const MonthlyClosureDetails = () => {
       <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "50vh", gap: 2 }}>
         <CircularProgress />
         <Typography color="text.secondary">
-          Creazione bozza per {dayjs().month(newMese - 1).format("MMMM")} {newAnno}...
+          Creazione bozza per{" "}
+          {dayjs()
+            .month(newMese - 1)
+            .format("MMMM")}{" "}
+          {newAnno}...
         </Typography>
       </Box>
     );
@@ -468,37 +479,49 @@ const MonthlyClosureDetails = () => {
             <Paper elevation={1} sx={{ p: 2 }}>
               <Grid container spacing={2}>
                 <Grid item xs={6} sm={4} md={2}>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>Ricavo Netto</Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                    Ricavo Netto
+                  </Typography>
                   <Typography variant="h5" fontWeight="bold" color="primary.main">
                     {`\u20AC ${chiusuraMensile.ricavoNettoCalcolato.toFixed(2)}`}
                   </Typography>
                 </Grid>
                 <Grid item xs={6} sm={4} md={2}>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>Totale Vendite</Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                    Totale Vendite
+                  </Typography>
                   <Typography variant="h6" fontWeight="bold" color="warning.main">
                     {`\u20AC ${totaleVendite.toFixed(2)}`}
                   </Typography>
                 </Grid>
                 <Grid item xs={6} sm={4} md={2}>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>Contanti</Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                    Contanti
+                  </Typography>
                   <Typography variant="h6" fontWeight="bold" color="success.main">
                     {`\u20AC ${chiusuraMensile.totaleContantiCalcolato.toFixed(2)}`}
                   </Typography>
                 </Grid>
                 <Grid item xs={6} sm={4} md={2}>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>Elettronici</Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                    Elettronici
+                  </Typography>
                   <Typography variant="h6" fontWeight="bold" color="success.main">
                     {`\u20AC ${chiusuraMensile.totaleElettroniciCalcolato.toFixed(2)}`}
                   </Typography>
                 </Grid>
                 <Grid item xs={6} sm={4} md={2}>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>Fatture</Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                    Fatture
+                  </Typography>
                   <Typography variant="h6" fontWeight="bold">
                     {`\u20AC ${chiusuraMensile.totaleFattureCalcolato.toFixed(2)}`}
                   </Typography>
                 </Grid>
                 <Grid item xs={6} sm={4} md={2}>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>Spese</Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                    Spese
+                  </Typography>
                   <Typography variant="h6" fontWeight="bold" color="error.main">
                     {`-\u20AC ${chiusuraMensile.speseAggiuntiveCalcolate.toFixed(2)}`}
                   </Typography>
@@ -562,7 +585,12 @@ const MonthlyClosureDetails = () => {
                             {`\u20AC ${((ri.registro as { differenza?: number }).differenza ?? 0).toFixed(2)}`}
                           </TableCell>
                           <TableCell>
-                            <Chip label={ri.registro.stato === "RECONCILED" ? "Riconciliato" : "Chiuso"} size="small" color={ri.registro.stato === "RECONCILED" ? "success" : "warning"} variant="outlined" />
+                            <Chip
+                              label={ri.registro.stato === "RECONCILED" ? "Riconciliato" : "Chiuso"}
+                              size="small"
+                              color={ri.registro.stato === "RECONCILED" ? "success" : "warning"}
+                              variant="outlined"
+                            />
                           </TableCell>
                         </TableRow>
                       ))}
@@ -659,12 +687,7 @@ const MonthlyClosureDetails = () => {
                     {esclusioniLocali.map((esclusione, idx) => (
                       <TableRow key={esclusione.data}>
                         <TableCell padding="checkbox">
-                          <Checkbox
-                            checked={esclusione.selected}
-                            onChange={(e) =>
-                              setEsclusioniLocali((prev) => prev.map((el, i) => (i === idx ? { ...el, selected: e.target.checked } : el)))
-                            }
-                          />
+                          <Checkbox checked={esclusione.selected} onChange={(e) => setEsclusioniLocali((prev) => prev.map((el, i) => (i === idx ? { ...el, selected: e.target.checked } : el)))} />
                         </TableCell>
                         <TableCell>
                           {dayjs(esclusione.data).format("DD/MM/YYYY")} ({dayjs(esclusione.data).format("dddd")})
@@ -673,11 +696,7 @@ const MonthlyClosureDetails = () => {
                           <Select
                             size="small"
                             value={esclusione.codiceMotivo}
-                            onChange={(e) =>
-                              setEsclusioniLocali((prev) =>
-                                prev.map((el, i) => (i === idx ? { ...el, codiceMotivo: e.target.value as CodiceMotivo } : el))
-                              )
-                            }
+                            onChange={(e) => setEsclusioniLocali((prev) => prev.map((el, i) => (i === idx ? { ...el, codiceMotivo: e.target.value as CodiceMotivo } : el)))}
                             sx={{ minWidth: 200 }}
                           >
                             <MenuItem value="ATTIVITA_NON_AVVIATA">{MOTIVO_LABELS.ATTIVITA_NON_AVVIATA}</MenuItem>
@@ -690,11 +709,7 @@ const MonthlyClosureDetails = () => {
                             size="small"
                             placeholder="Note (facoltativo)"
                             value={esclusione.note}
-                            onChange={(e) =>
-                              setEsclusioniLocali((prev) =>
-                                prev.map((el, i) => (i === idx ? { ...el, note: e.target.value.slice(0, 200) } : el))
-                              )
-                            }
+                            onChange={(e) => setEsclusioniLocali((prev) => prev.map((el, i) => (i === idx ? { ...el, note: e.target.value.slice(0, 200) } : el)))}
                             inputProps={{ maxLength: 200 }}
                             sx={{ minWidth: 200 }}
                           />
@@ -705,11 +720,7 @@ const MonthlyClosureDetails = () => {
                 </Table>
               </TableContainer>
               <Box sx={{ mt: 1.5, display: "flex", justifyContent: "flex-end" }}>
-                <Button
-                  variant="contained"
-                  disabled={isMutating || !esclusioniLocali.some((e) => e.selected)}
-                  onClick={handleEscludiSelezionati}
-                >
+                <Button variant="contained" disabled={isMutating || !esclusioniLocali.some((e) => e.selected)} onClick={handleEscludiSelezionati}>
                   {excludeLoading ? <CircularProgress size={20} /> : `Escludi Selezionati (${esclusioniLocali.filter((e) => e.selected).length})`}
                 </Button>
               </Box>
@@ -747,12 +758,7 @@ const MonthlyClosureDetails = () => {
                         <TableCell>{dayjs(ge.dataEsclusione).format("DD/MM/YYYY HH:mm")}</TableCell>
                         {isDraft && (
                           <TableCell align="center">
-                            <IconButton
-                              size="small"
-                              color="error"
-                              disabled={isMutating}
-                              onClick={() => handleRimuoviEsclusione(dayjs(ge.data).format("YYYY-MM-DD"))}
-                            >
+                            <IconButton size="small" color="error" disabled={isMutating} onClick={() => handleRimuoviEsclusione(dayjs(ge.data).format("YYYY-MM-DD"))}>
                               <RemoveCircleOutlineIcon />
                             </IconButton>
                           </TableCell>
@@ -766,9 +772,7 @@ const MonthlyClosureDetails = () => {
           )}
 
           {/* Nessun giorno da gestire */}
-          {esclusioniLocali.length === 0 && giorniEsclusiParsed.length === 0 && (
-            <Typography color="text.secondary">Nessun giorno mancante o escluso.</Typography>
-          )}
+          {esclusioniLocali.length === 0 && giorniEsclusiParsed.length === 0 && <Typography color="text.secondary">Nessun giorno mancante o escluso.</Typography>}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setGiorniMancantiModalOpen(false)}>Chiudi</Button>

@@ -4,15 +4,4 @@
  * l'isolamento delle dipendenze
  */
 
-export type {
-  ColDef,
-  ValueGetterParams,
-  ValueSetterParams,
-  GridReadyEvent,
-  ValueFormatterParams,
-  RowGroupOpenedEvent,
-  IRowNode,
-  Column,
-  RowPinnedType,
-  RowSelectionOptions,
-} from "ag-grid-community";
+export type { ColDef, ValueGetterParams, ValueSetterParams, GridReadyEvent, ValueFormatterParams, RowGroupOpenedEvent, IRowNode, Column, RowPinnedType, RowSelectionOptions } from "ag-grid-community";

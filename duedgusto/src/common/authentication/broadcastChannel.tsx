@@ -27,8 +27,7 @@ type AuthMessage = TokenRefreshedMessage | LogoutMessage;
 
 let channel: BroadcastChannel | null = null;
 
-const isBroadcastChannelSupported = (): boolean =>
-  typeof window !== "undefined" && "BroadcastChannel" in window;
+const isBroadcastChannelSupported = (): boolean => typeof window !== "undefined" && "BroadcastChannel" in window;
 
 /**
  * Gestisce i messaggi ricevuti da altre tab.

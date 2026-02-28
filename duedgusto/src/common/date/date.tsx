@@ -305,12 +305,7 @@ export const getMonthName = (monthNumber: number) => {
 
 export const getDayName = (date = new Date(), locale = "it-IT") => date.toLocaleDateString(locale, { weekday: "short" });
 
-export const getWeekdayName = (
-  dateInput: string | Date = new Date(),
-  locale = "it-IT",
-  short = false,
-  services = defaultServices
-): string => {
+export const getWeekdayName = (dateInput: string | Date = new Date(), locale = "it-IT", short = false, services = defaultServices): string => {
   try {
     let day: Date;
     if (typeof dateInput === "string") {

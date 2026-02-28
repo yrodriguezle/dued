@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { Box, Typography, Button, Alert, CircularProgress, Select, MenuItem, FormControl, InputLabel, SelectChangeEvent } from '@mui/material';
-import { useMutation } from '@apollo/client';
-import { useNavigate } from 'react-router';
-import { useQueryValidaCompletezzaRegistri } from '../../../graphql/chiusureMensili/queries';
-import { mutationCreaChiusuraMensile } from '../../../graphql/chiusureMensili/mutations';
-import dayjs from 'dayjs';
+import React, { useState } from "react";
+import { Box, Typography, Button, Alert, CircularProgress, Select, MenuItem, FormControl, InputLabel, SelectChangeEvent } from "@mui/material";
+import { useMutation } from "@apollo/client";
+import { useNavigate } from "react-router";
+import { useQueryValidaCompletezzaRegistri } from "../../../graphql/chiusureMensili/queries";
+import { mutationCreaChiusuraMensile } from "../../../graphql/chiusureMensili/mutations";
+import dayjs from "dayjs";
 
 const MonthlyClosureForm: React.FC = () => {
   const navigate = useNavigate();
@@ -12,7 +12,11 @@ const MonthlyClosureForm: React.FC = () => {
   const [mese, setMese] = useState(dayjs().month() + 1);
   const [validating, setValidating] = useState(false);
 
-  const { giorniMancanti, loading: validazioneLoading, refetch: refetchValidazione } = useQueryValidaCompletezzaRegistri({
+  const {
+    giorniMancanti,
+    loading: validazioneLoading,
+    refetch: refetchValidazione,
+  } = useQueryValidaCompletezzaRegistri({
     anno,
     mese,
     skip: !validating,
@@ -43,18 +47,25 @@ const MonthlyClosureForm: React.FC = () => {
 
   return (
     <Box sx={{ padding: 3, maxWidth: 500 }}>
-      <Typography variant="h5" gutterBottom>Nuova Chiusura Mensile</Typography>
+      <Typography variant="h5" gutterBottom>
+        Nuova Chiusura Mensile
+      </Typography>
 
-      <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+      <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
         <FormControl sx={{ minWidth: 120 }}>
           <InputLabel>Anno</InputLabel>
           <Select
             value={anno}
             label="Anno"
-            onChange={(e: SelectChangeEvent<number>) => { setAnno(e.target.value as number); setValidating(false); }}
+            onChange={(e: SelectChangeEvent<number>) => {
+              setAnno(e.target.value as number);
+              setValidating(false);
+            }}
           >
             {years.map((y) => (
-              <MenuItem key={y} value={y}>{y}</MenuItem>
+              <MenuItem key={y} value={y}>
+                {y}
+              </MenuItem>
             ))}
           </Select>
         </FormControl>
@@ -64,11 +75,16 @@ const MonthlyClosureForm: React.FC = () => {
           <Select
             value={mese}
             label="Mese"
-            onChange={(e: SelectChangeEvent<number>) => { setMese(e.target.value as number); setValidating(false); }}
+            onChange={(e: SelectChangeEvent<number>) => {
+              setMese(e.target.value as number);
+              setValidating(false);
+            }}
           >
             {months.map((m) => (
               <MenuItem key={m} value={m}>
-                {dayjs().month(m - 1).format('MMMM')}
+                {dayjs()
+                  .month(m - 1)
+                  .format("MMMM")}
               </MenuItem>
             ))}
           </Select>
@@ -76,7 +92,7 @@ const MonthlyClosureForm: React.FC = () => {
       </Box>
 
       <Button variant="outlined" onClick={handleValidate} disabled={validazioneLoading} sx={{ mb: 2 }}>
-        {validazioneLoading ? <CircularProgress size={20} /> : 'Valida Completezza Registri'}
+        {validazioneLoading ? <CircularProgress size={20} /> : "Valida Completezza Registri"}
       </Button>
 
       {validating && !validazioneLoading && giorniMancanti.length > 0 && (
@@ -97,15 +113,11 @@ const MonthlyClosureForm: React.FC = () => {
         </Alert>
       )}
 
-      <Box sx={{ display: 'flex', gap: 2 }}>
-        <Button
-          variant="contained"
-          onClick={handleCreaChiusura}
-          disabled={!canCreate || creazioneLoading}
-        >
-          {creazioneLoading ? <CircularProgress size={20} /> : 'Crea Chiusura Mensile'}
+      <Box sx={{ display: "flex", gap: 2 }}>
+        <Button variant="contained" onClick={handleCreaChiusura} disabled={!canCreate || creazioneLoading}>
+          {creazioneLoading ? <CircularProgress size={20} /> : "Crea Chiusura Mensile"}
         </Button>
-        <Button variant="text" onClick={() => navigate('/gestionale/cassa/monthly-closure')}>
+        <Button variant="text" onClick={() => navigate("/gestionale/cassa/monthly-closure")}>
           Annulla
         </Button>
       </Box>

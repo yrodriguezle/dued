@@ -6,4 +6,3 @@ const PageTitleContext = createContext<{
 }>({ title: "", setTitle: () => {} });
 
 export default PageTitleContext;
-

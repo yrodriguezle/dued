@@ -141,9 +141,7 @@ describe("refreshToken", () => {
   describe("retry con backoff esponenziale", () => {
     it("dovrebbe ritentare su errore 429 (Too Many Requests)", async () => {
       // Prima chiamata: 429, seconda: 200
-      mockFetch
-        .mockResolvedValueOnce(createMockResponse(429))
-        .mockResolvedValueOnce(createMockResponse(200, newTokenResponse));
+      mockFetch.mockResolvedValueOnce(createMockResponse(429)).mockResolvedValueOnce(createMockResponse(200, newTokenResponse));
 
       const promise = refreshToken(services);
 
@@ -157,9 +155,7 @@ describe("refreshToken", () => {
     });
 
     it("dovrebbe ritentare su errore 500 (Server Error)", async () => {
-      mockFetch
-        .mockResolvedValueOnce(createMockResponse(500))
-        .mockResolvedValueOnce(createMockResponse(200, newTokenResponse));
+      mockFetch.mockResolvedValueOnce(createMockResponse(500)).mockResolvedValueOnce(createMockResponse(200, newTokenResponse));
 
       const promise = refreshToken(services);
       await vi.advanceTimersByTimeAsync(1100);
@@ -171,9 +167,7 @@ describe("refreshToken", () => {
     });
 
     it("dovrebbe ritentare su errore 503 (Service Unavailable)", async () => {
-      mockFetch
-        .mockResolvedValueOnce(createMockResponse(503))
-        .mockResolvedValueOnce(createMockResponse(200, newTokenResponse));
+      mockFetch.mockResolvedValueOnce(createMockResponse(503)).mockResolvedValueOnce(createMockResponse(200, newTokenResponse));
 
       const promise = refreshToken(services);
       await vi.advanceTimersByTimeAsync(1100);
@@ -187,9 +181,9 @@ describe("refreshToken", () => {
     it("dovrebbe lanciare un errore dopo aver esaurito i retry (MAX_RETRIES=3)", async () => {
       // Flusso: retryCount 0,1,2 -> isRetryable e riprova; retryCount 3 -> throw
       mockFetch
-        .mockResolvedValueOnce(createMockResponse(500))  // retryCount=0
-        .mockResolvedValueOnce(createMockResponse(500))  // retryCount=1
-        .mockResolvedValueOnce(createMockResponse(500))  // retryCount=2
+        .mockResolvedValueOnce(createMockResponse(500)) // retryCount=0
+        .mockResolvedValueOnce(createMockResponse(500)) // retryCount=1
+        .mockResolvedValueOnce(createMockResponse(500)) // retryCount=2
         .mockResolvedValueOnce(createMockResponse(500)); // retryCount=3
 
       // Cattura la rejection immediatamente per evitare "unhandled rejection" con fake timers
@@ -209,9 +203,7 @@ describe("refreshToken", () => {
     });
 
     it("dovrebbe ritentare su errori di rete (fetch rejection)", async () => {
-      mockFetch
-        .mockRejectedValueOnce(new Error("Network error"))
-        .mockResolvedValueOnce(createMockResponse(200, newTokenResponse));
+      mockFetch.mockRejectedValueOnce(new Error("Network error")).mockResolvedValueOnce(createMockResponse(200, newTokenResponse));
 
       const promise = refreshToken(services);
       await vi.advanceTimersByTimeAsync(1100);

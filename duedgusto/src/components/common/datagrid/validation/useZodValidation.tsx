@@ -18,9 +18,7 @@ interface UseZodValidationReturn<T extends Record<string, unknown>> {
   validateAllRows: (api: GridApi<DatagridData<T>>) => Map<number, ValidationError[]>;
 }
 
-function useZodValidation<T extends Record<string, unknown>>(
-  props: UseZodValidationProps<T>
-): UseZodValidationReturn<T> {
+function useZodValidation<T extends Record<string, unknown>>(props: UseZodValidationProps<T>): UseZodValidationReturn<T> {
   const { schema } = props;
 
   const validateRow = useCallback(

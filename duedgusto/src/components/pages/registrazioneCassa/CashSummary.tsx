@@ -27,13 +27,7 @@ interface ExpenseRow extends Record<string, unknown> {
   amount: number;
 }
 
-function CashSummary({
-  openingGridRef,
-  closingGridRef,
-  incomesGridRef,
-  expensesGridRef
-}: CashSummaryProps) {
-
+function CashSummary({ openingGridRef, closingGridRef, incomesGridRef, expensesGridRef }: CashSummaryProps) {
   const calculateCountTotal = (counts: CashCountRow[]): number => {
     return counts.reduce((sum, count) => {
       return sum + (count.total || 0);
@@ -66,26 +60,12 @@ function CashSummary({
 
   const hasDifference = Math.abs(difference) > 5; // Soglia 5€
 
-  const SummaryRow = ({
-    label,
-    value,
-    bold = false,
-    highlight = false,
-  }: {
-    label: string;
-    value: number;
-    bold?: boolean;
-    highlight?: boolean;
-  }) => (
+  const SummaryRow = ({ label, value, bold = false, highlight = false }: { label: string; value: number; bold?: boolean; highlight?: boolean }) => (
     <Box sx={{ display: "flex", justifyContent: "space-between", py: 0.5 }}>
       <Typography variant={bold ? "subtitle1" : "body2"} fontWeight={bold ? "bold" : "normal"}>
         {label}
       </Typography>
-      <Typography
-        variant={bold ? "subtitle1" : "body2"}
-        fontWeight={bold ? "bold" : "normal"}
-        color={highlight ? (value >= 0 ? "success.main" : "error.main") : "inherit"}
-      >
+      <Typography variant={bold ? "subtitle1" : "body2"} fontWeight={bold ? "bold" : "normal"} color={highlight ? (value >= 0 ? "success.main" : "error.main") : "inherit"}>
         {value >= 0 ? "+" : ""}
         {value.toFixed(2)}€
       </Typography>

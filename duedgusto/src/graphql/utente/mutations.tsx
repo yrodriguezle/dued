@@ -37,4 +37,3 @@ export const mutationSubmitUtente: TypedDocumentNode<SubmitUtenteData, SubmitUte
     }
   }
 `;
-

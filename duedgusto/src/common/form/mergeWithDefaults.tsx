@@ -1,12 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 function isObject(obj: any): obj is Record<string, any> {
-  return obj !== null && typeof obj === 'object' && !Array.isArray(obj);
+  return obj !== null && typeof obj === "object" && !Array.isArray(obj);
 }
 
-export default function mergeWithDefaults<T extends object>(
-  values: Partial<T> | undefined,
-  defaults: T
-): T {
+export default function mergeWithDefaults<T extends object>(values: Partial<T> | undefined, defaults: T): T {
   const merged: T = { ...defaults };
 
   Object.keys(defaults).forEach((key) => {

@@ -94,12 +94,14 @@ function SupplierDetails() {
 
   const handleResetForm = useCallback(
     async (hasChanges: boolean) => {
-      const confirmed = !hasChanges || await onConfirm({
-        title: "Gestione fornitori",
-        content: "Sei sicuro di voler annullare le modifiche?",
-        acceptLabel: "Si",
-        cancelLabel: "No",
-      });
+      const confirmed =
+        !hasChanges ||
+        (await onConfirm({
+          title: "Gestione fornitori",
+          content: "Sei sicuro di voler annullare le modifiche?",
+          acceptLabel: "Si",
+          cancelLabel: "No",
+        }));
       if (!confirmed) {
         return;
       }
@@ -122,20 +124,23 @@ function SupplierDetails() {
         setInitialFocus();
       }
     },
-    [onConfirm, location.search, loadSupplier, handleInitializeValues],
+    [onConfirm, location.search, loadSupplier, handleInitializeValues]
   );
 
-  const handleSelectedItem = useCallback((item: SupplierSearchbox) => {
-    const supplierValues = mapSupplierToFormValues(item);
-    handleInitializeValues(supplierValues).then(() => {
-      setTimeout(() => {
-        formRef.current?.setStatus({
-          formStatus: formStatuses.UPDATE,
-          isFormLocked: true,
-        });
-      }, 0);
-    });
-  }, [handleInitializeValues]);
+  const handleSelectedItem = useCallback(
+    (item: SupplierSearchbox) => {
+      const supplierValues = mapSupplierToFormValues(item);
+      handleInitializeValues(supplierValues).then(() => {
+        setTimeout(() => {
+          formRef.current?.setStatus({
+            formStatus: formStatuses.UPDATE,
+            isFormLocked: true,
+          });
+        }, 0);
+      });
+    },
+    [handleInitializeValues]
+  );
 
   const handleSubmit = useCallback(
     async (values: FormikSupplierValues) => {
@@ -189,7 +194,7 @@ function SupplierDetails() {
         });
       }
     },
-    [mutateSupplier, navigate, handleInitializeValues],
+    [mutateSupplier, navigate, handleInitializeValues]
   );
 
   return (
@@ -209,10 +214,8 @@ function SupplierDetails() {
     >
       {() => (
         <Form noValidate>
-          <FormikToolbar
-            onFormReset={handleResetForm}
-          />
-          <Box className="scrollable-box" sx={{ marginTop: 1, paddingX: 2, overflow: 'auto', height: 'calc(100vh - 64px - 41px)' }}>
+          <FormikToolbar onFormReset={handleResetForm} />
+          <Box className="scrollable-box" sx={{ marginTop: 1, paddingX: 2, overflow: "auto", height: "calc(100vh - 64px - 41px)" }}>
             <Typography id="view-title" variant="h5" gutterBottom>
               {title}
             </Typography>

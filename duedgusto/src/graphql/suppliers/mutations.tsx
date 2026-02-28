@@ -1,10 +1,5 @@
 import { gql, TypedDocumentNode } from "@apollo/client";
-import {
-  supplierFragment,
-  purchaseInvoiceFragment,
-  deliveryNoteFragment,
-  supplierPaymentFragment,
-} from "./fragments";
+import { supplierFragment, purchaseInvoiceFragment, deliveryNoteFragment, supplierPaymentFragment } from "./fragments";
 
 // ============ SUPPLIER MUTATIONS ============
 
@@ -169,5 +164,3 @@ export const mutationDeleteSupplierPayment: TypedDocumentNode<DeleteSupplierPaym
     }
   }
 `;
-
-

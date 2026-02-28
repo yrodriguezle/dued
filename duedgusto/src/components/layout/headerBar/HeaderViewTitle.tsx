@@ -32,22 +32,20 @@ function HeaderViewTitle() {
     }
   }, [title]);
 
-  return (
-    render ? (
-      <Typography
-        component="h1"
-        variant="h6"
-        className={show ? 'fade-in' : 'fade-out'}
-        sx={{
-          marginLeft: 2,
-          fontFamily: "BrunoAce Regular",
-          color: (theme) => (theme.palette.mode === "light" ? theme.palette.secondary.light : theme.palette.primary.light),
-        }}
-      >
-        {title}
-      </Typography>
-    ) : null
-  );
+  return render ? (
+    <Typography
+      component="h1"
+      variant="h6"
+      className={show ? "fade-in" : "fade-out"}
+      sx={{
+        marginLeft: 2,
+        fontFamily: "BrunoAce Regular",
+        color: (theme) => (theme.palette.mode === "light" ? theme.palette.secondary.light : theme.palette.primary.light),
+      }}
+    >
+      {title}
+    </Typography>
+  ) : null;
 }
 
 export default HeaderViewTitle;

@@ -48,7 +48,7 @@ function configureClient() {
 
   const errorLink = onError(({ graphQLErrors, operation, forward }) => {
     if (graphQLErrors && graphQLErrors.some((err) => err.extensions?.code === "ACCESS_DENIED")) {
-      logger.log('Received ACCESS_DENIED, attempting token refresh from Apollo Client');
+      logger.log("Received ACCESS_DENIED, attempting token refresh from Apollo Client");
 
       // Usa il manager centralizzato per il refresh del token
       const forward$ = fromPromise(
@@ -63,7 +63,7 @@ function configureClient() {
             return false;
           })
           .catch((error) => {
-            logger.error('Token refresh failed in Apollo error link:', error);
+            logger.error("Token refresh failed in Apollo error link:", error);
             resolvePendingRequests(false);
             onRefreshFails();
             return false;
@@ -74,7 +74,7 @@ function configureClient() {
       return forward$.flatMap((success) => {
         if (!success) {
           // Se il refresh è fallito, non riprovare la richiesta
-          return fromPromise(Promise.reject(new Error('Token refresh failed')));
+          return fromPromise(Promise.reject(new Error("Token refresh failed")));
         }
 
         const authHeaders = getAuthHeaders();

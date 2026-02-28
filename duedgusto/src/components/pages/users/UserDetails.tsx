@@ -19,35 +19,40 @@ import PageTitleContext from "../../layout/headerBar/PageTitleContext";
 import useSubmitUtente from "../../../graphql/utente/useSubmitUser";
 import { getUtentePerId } from "../../../graphql/utente/queries";
 
-const Schema = z.object({
-  id: z.number(),
-  ruoloId: z.number().min(1, "L'utente deve avere un Ruolo"),
-  ruoloNome: z.string(),
-  nomeUtente: z.string().nonempty("Nome utente è obbligatorio"),
-  nome: z.string().nonempty("Nome è obbligatorio"),
-  cognome: z.string().nonempty("Cognome è obbligatorio"),
-  descrizione: z.string().optional(),
-  disabilitato: z.boolean(),
-  password: z.string().optional(),
-  confirmPassword: z.string().optional(),
-}).refine((data) => {
-  // Se è un nuovo utente (id === 0), la password è obbligatoria
-  if (data.id === 0 && !data.password) {
-    return false;
-  }
-  // Se la password è fornita, deve essere almeno 6 caratteri
-  if (data.password && data.password.length < 6) {
-    return false;
-  }
-  // Password e conferma devono coincidere
-  if (data.password !== data.confirmPassword) {
-    return false;
-  }
-  return true;
-}, {
-  message: "Le password devono coincidere e avere almeno 6 caratteri",
-  path: ["confirmPassword"],
-});
+const Schema = z
+  .object({
+    id: z.number(),
+    ruoloId: z.number().min(1, "L'utente deve avere un Ruolo"),
+    ruoloNome: z.string(),
+    nomeUtente: z.string().nonempty("Nome utente è obbligatorio"),
+    nome: z.string().nonempty("Nome è obbligatorio"),
+    cognome: z.string().nonempty("Cognome è obbligatorio"),
+    descrizione: z.string().optional(),
+    disabilitato: z.boolean(),
+    password: z.string().optional(),
+    confirmPassword: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      // Se è un nuovo utente (id === 0), la password è obbligatoria
+      if (data.id === 0 && !data.password) {
+        return false;
+      }
+      // Se la password è fornita, deve essere almeno 6 caratteri
+      if (data.password && data.password.length < 6) {
+        return false;
+      }
+      // Password e conferma devono coincidere
+      if (data.password !== data.confirmPassword) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Le password devono coincidere e avere almeno 6 caratteri",
+      path: ["confirmPassword"],
+    }
+  );
 
 export type FormikUtenteValues = z.infer<typeof Schema>;
 
@@ -105,12 +110,14 @@ function UserDetails() {
 
   const handleResetForm = useCallback(
     async (hasChanges: boolean) => {
-      const confirmed = !hasChanges || await onConfirm({
-        title: "Gestione utenti",
-        content: "Sei sicuro di voler annullare le modifiche?",
-        acceptLabel: "Si",
-        cancelLabel: "No",
-      });
+      const confirmed =
+        !hasChanges ||
+        (await onConfirm({
+          title: "Gestione utenti",
+          content: "Sei sicuro di voler annullare le modifiche?",
+          acceptLabel: "Si",
+          cancelLabel: "No",
+        }));
       if (!confirmed) {
         return;
       }
@@ -122,31 +129,34 @@ function UserDetails() {
         setInitialFocus();
       }
     },
-    [handleInitializeValues, onConfirm],
+    [handleInitializeValues, onConfirm]
   );
 
-  const handleSelectedItem = useCallback((item: UtenteSearchbox) => {
-    const itemsValues: Partial<FormikUtenteValues> = {
-      id: item.id,
-      ruoloId: item.ruoloId,
-      nomeUtente: item.nomeUtente,
-      nome: item.nome,
-      cognome: item.cognome,
-      descrizione: item.descrizione || "",
-      disabilitato: item.disabilitato,
-      password: "",
-      confirmPassword: "",
-    };
+  const handleSelectedItem = useCallback(
+    (item: UtenteSearchbox) => {
+      const itemsValues: Partial<FormikUtenteValues> = {
+        id: item.id,
+        ruoloId: item.ruoloId,
+        nomeUtente: item.nomeUtente,
+        nome: item.nome,
+        cognome: item.cognome,
+        descrizione: item.descrizione || "",
+        disabilitato: item.disabilitato,
+        password: "",
+        confirmPassword: "",
+      };
 
-    handleInitializeValues(itemsValues).then(() => {
-      setTimeout(() => {
-        formRef.current?.setStatus({
-          formStatus: formStatuses.UPDATE,
-          isFormLocked: true,
-        });
-      }, 0);
-    });
-  }, [handleInitializeValues]);
+      handleInitializeValues(itemsValues).then(() => {
+        setTimeout(() => {
+          formRef.current?.setStatus({
+            formStatus: formStatuses.UPDATE,
+            isFormLocked: true,
+          });
+        }, 0);
+      });
+    },
+    [handleInitializeValues]
+  );
 
   const onSubmit = async (values: FormikUtenteValues) => {
     try {
@@ -214,10 +224,8 @@ function UserDetails() {
     >
       {() => (
         <Form noValidate>
-          <FormikToolbar
-            onFormReset={handleResetForm}
-          />
-          <Box className="scrollable-box" sx={{ marginTop: 1, paddingX: 2, overflow: 'auto', height: 'calc(100vh - 64px - 41px)' }}>
+          <FormikToolbar onFormReset={handleResetForm} />
+          <Box className="scrollable-box" sx={{ marginTop: 1, paddingX: 2, overflow: "auto", height: "calc(100vh - 64px - 41px)" }}>
             <Typography id="view-title" variant="h5" gutterBottom>
               {title}
             </Typography>

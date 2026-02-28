@@ -3,13 +3,7 @@ import { Modal, Box, Typography, IconButton } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 
 import Datagrid from "../../datagrid/Datagrid";
-import {
-  DatagridColDef,
-  DatagridGridReadyEvent,
-  DatagridCellFocusedEvent,
-  DatagridRowDoubleClickedEvent,
-  DatagridRowClickedEvent,
-} from "../../datagrid/@types/Datagrid";
+import { DatagridColDef, DatagridGridReadyEvent, DatagridCellFocusedEvent, DatagridRowDoubleClickedEvent, DatagridRowClickedEvent } from "../../datagrid/@types/Datagrid";
 
 interface SearchboxModalProps<T> {
   open: boolean;
@@ -37,15 +31,7 @@ const modalStyle = {
   overflow: "hidden",
 };
 
-function SearchboxModal<T extends Record<string, unknown>>({
-  open,
-  title,
-  items,
-  columnDefs,
-  loading,
-  onClose,
-  onSelectItem,
-}: SearchboxModalProps<T>) {
+function SearchboxModal<T extends Record<string, unknown>>({ open, title, items, columnDefs, loading, onClose, onSelectItem }: SearchboxModalProps<T>) {
   const [gridReady, setGridReady] = useState<DatagridGridReadyEvent<T> | null>(null);
   const lastTapRef = useRef<{ rowId: string | undefined; time: number }>({ rowId: undefined, time: 0 });
 
@@ -118,12 +104,7 @@ function SearchboxModal<T extends Record<string, unknown>>({
   }, []);
 
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      aria-labelledby="searchbox-modal-title"
-      onKeyDown={handleKeyDown}
-    >
+    <Modal open={open} onClose={onClose} aria-labelledby="searchbox-modal-title" onKeyDown={handleKeyDown}>
       <Box sx={modalStyle}>
         {/* Header */}
         <Box

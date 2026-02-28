@@ -87,14 +87,14 @@ function SummaryDataGrid({ openingGridRef, closingGridRef, incomesGridRef, expen
         label: "Pago in contanti",
         value: cashInWhite,
         bgColor: theme.palette.success.light,
-        textColor: theme.palette.success.contrastText
+        textColor: theme.palette.success.contrastText,
       },
       {
         id: id++,
         label: "Elettronico",
         value: electronicPayments,
         bgColor: theme.palette.success.light,
-        textColor: theme.palette.success.contrastText
+        textColor: theme.palette.success.contrastText,
       },
       { id: id++, label: "Pagamento con Fattura", value: invoicePayments },
       {
@@ -102,19 +102,36 @@ function SummaryDataGrid({ openingGridRef, closingGridRef, incomesGridRef, expen
         label: "Totale Vendite",
         value: totalSales,
         bgColor: theme.palette.warning.light,
-        textColor: theme.palette.warning.contrastText
+        textColor: theme.palette.warning.contrastText,
       },
       {
         id: id++,
         label: "Spese Totali",
         value: totalExpenses,
         bgColor: theme.palette.error.light,
-        textColor: theme.palette.error.contrastText
+        textColor: theme.palette.error.contrastText,
       },
       { id: id++, label: "ECC", value: ecc },
       { id: id++, label: "IVA (10%)", value: vatAmount },
     ];
-  }, [closingTotal, openingTotal, dailyIncome, cashInWhite, electronicPayments, invoicePayments, totalSales, totalExpenses, ecc, vatAmount, theme.palette.success.light, theme.palette.success.contrastText, theme.palette.warning.light, theme.palette.warning.contrastText, theme.palette.error.light, theme.palette.error.contrastText]);
+  }, [
+    closingTotal,
+    openingTotal,
+    dailyIncome,
+    cashInWhite,
+    electronicPayments,
+    invoicePayments,
+    totalSales,
+    totalExpenses,
+    ecc,
+    vatAmount,
+    theme.palette.success.light,
+    theme.palette.success.contrastText,
+    theme.palette.warning.light,
+    theme.palette.warning.contrastText,
+    theme.palette.error.light,
+    theme.palette.error.contrastText,
+  ]);
 
   const columnDefs = useMemo<DatagridColDef<SummaryRowData>[]>(
     () => [

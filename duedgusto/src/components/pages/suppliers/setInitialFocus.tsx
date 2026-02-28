@@ -1,6 +1,6 @@
 function setInitialFocus() {
-  if (window.document.getElementsByName('businessName').length) {
-    window.document.getElementsByName('businessName')[0].focus();
+  if (window.document.getElementsByName("businessName").length) {
+    window.document.getElementsByName("businessName")[0].focus();
   }
 }
 

@@ -1,7 +1,5 @@
 function DatagridList() {
-  return (
-    <div>DatagridList</div>
-  );
+  return <div>DatagridList</div>;
 }
 
-export default DatagridList
+export default DatagridList;

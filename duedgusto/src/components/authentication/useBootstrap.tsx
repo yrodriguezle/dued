@@ -56,9 +56,7 @@ function useBootstrap() {
                 ...rawSettings,
                 openingTime: rawSettings.openingTime?.substring(0, 5) || "",
                 closingTime: rawSettings.closingTime?.substring(0, 5) || "",
-                operatingDays: typeof rawSettings.operatingDays === "string"
-                  ? JSON.parse(rawSettings.operatingDays)
-                  : rawSettings.operatingDays,
+                operatingDays: typeof rawSettings.operatingDays === "string" ? JSON.parse(rawSettings.operatingDays) : rawSettings.operatingDays,
               };
               setSettings(parsed);
             }
@@ -80,7 +78,7 @@ function useBootstrap() {
       await promiseLock.current;
     }
     bootstrap();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [confirm, offInProgress, onInProgress, receiveUtente, setSettings, serverStatus, utente]);
 }
 

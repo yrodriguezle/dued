@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFormikContext } from "formik";
-import { Box } from "@mui/material";
-import { GridApi, GridReadyEvent } from "ag-grid-community";
+import { Box, Chip, Paper, Typography } from "@mui/material";
+import { GridApi, GridReadyEvent, RowSelectedEvent } from "ag-grid-community";
 import Datagrid from "../../common/datagrid/Datagrid";
 import { MenuNonNull } from "../../common/form/searchbox/searchboxOptions/menuSearchboxOptions";
 import { DatagridColDef, DatagridData } from "../../common/datagrid/@types/Datagrid";
@@ -14,6 +14,7 @@ interface RoleMenusProps {
 
 function RoleMenus({ menus, onGridReady, selectedIds }: RoleMenusProps) {
   const gridApiRef = useRef<GridApi<DatagridData<MenuNonNull>> | null>(null);
+  const [selectedCount, setSelectedCount] = useState(0);
   const { status } = useFormikContext();
   const { isFormLocked } = useMemo(
     () => ({
@@ -23,13 +24,16 @@ function RoleMenus({ menus, onGridReady, selectedIds }: RoleMenusProps) {
     [status.formStatus, status.isFormLocked]
   );
 
+  const updateSelectedCount = useCallback(() => {
+    if (!gridApiRef.current || gridApiRef.current.isDestroyed()) return;
+    setSelectedCount(gridApiRef.current.getSelectedRows().length);
+  }, []);
+
   useEffect(() => {
     // Logic to disable checkboxes visually when form is locked (from previous restore)
     setTimeout(() => {
       if (isFormLocked) {
-        const containers = document.querySelectorAll(
-          'div[role="presentation"][data-ref="eCheckbox"].ag-labeled.ag-label-align-right.ag-checkbox.ag-input-field:not(.ag-disabled)'
-        );
+        const containers = document.querySelectorAll('div[role="presentation"][data-ref="eCheckbox"].ag-labeled.ag-label-align-right.ag-checkbox.ag-input-field:not(.ag-disabled)');
         containers.forEach((container) => {
           container.classList.add("ag-disabled");
           container.setAttribute("data-selection", "true");
@@ -56,7 +60,7 @@ function RoleMenus({ menus, onGridReady, selectedIds }: RoleMenusProps) {
         });
       }
     }, 0);
-  }, [isFormLocked, menus]); // Added menus dependency to re-apply if data refreshes
+  }, [isFormLocked, menus]);
 
   const syncSelection = useCallback(() => {
     if (!gridApiRef.current || gridApiRef.current.isDestroyed()) return;
@@ -73,14 +77,25 @@ function RoleMenus({ menus, onGridReady, selectedIds }: RoleMenusProps) {
           node.setSelected(shouldSelect);
         }
       });
+      updateSelectedCount();
     }, 100);
-  }, [selectedIds]);
+  }, [selectedIds, updateSelectedCount]);
 
-  const handleGridReady = useCallback((event: GridReadyEvent<DatagridData<MenuNonNull>>) => {
-    gridApiRef.current = event.api;
-    onGridReady(event);
-    syncSelection();
-  }, [onGridReady, syncSelection]);
+  const handleGridReady = useCallback(
+    (event: GridReadyEvent<DatagridData<MenuNonNull>>) => {
+      gridApiRef.current = event.api;
+      onGridReady(event);
+      syncSelection();
+    },
+    [onGridReady, syncSelection]
+  );
+
+  const handleRowSelected = useCallback(
+    (_event: RowSelectedEvent<DatagridData<MenuNonNull>>) => {
+      updateSelectedCount();
+    },
+    [updateSelectedCount]
+  );
 
   // Sync selection when selectedIds, menus, or lock state changes
   useEffect(() => {
@@ -90,21 +105,42 @@ function RoleMenus({ menus, onGridReady, selectedIds }: RoleMenusProps) {
   const columnDefs = useMemo<DatagridColDef<MenuNonNull>[]>(
     () => [
       { headerName: "Icona", field: "icona", filter: true, sortable: true, width: 150 },
-      { headerName: "View", field: "nomeVista", filter: true, sortable: true, width: 150 },
+      { headerName: "Vista", field: "nomeVista", filter: true, sortable: true, width: 150 },
       { headerName: "Percorso", field: "percorso", filter: true, sortable: true, width: 200 },
-      { headerName: "Visibile", field: "visibile", filter: true, sortable: true, width: 120 },
+      {
+        headerName: "Visibile",
+        field: "visibile",
+        filter: true,
+        sortable: true,
+        width: 120,
+        cellRenderer: ({ value }: { value: boolean }) => <Chip label={value ? "Si" : "No"} size="small" color={value ? "success" : "default"} variant="outlined" />,
+      },
     ],
     []
   );
 
-  const rowSelection = useMemo(() => ({
-    mode: "multiRow" as const,
-    groupSelects: "descendants" as const,
-    headerCheckbox: !isFormLocked,
-  }), [isFormLocked]);
+  const rowSelection = useMemo(
+    () => ({
+      mode: "multiRow" as const,
+      groupSelects: "descendants" as const,
+      headerCheckbox: !isFormLocked,
+    }),
+    [isFormLocked]
+  );
 
   return (
-    <Box sx={{ marginTop: 1, paddingX: 1 }}>
+    <Paper variant="outlined" sx={{ p: 2.5 }}>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
+        <Box>
+          <Typography variant="subtitle1" fontWeight={600}>
+            Permessi Menu
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Seleziona i menu accessibili per questo ruolo
+          </Typography>
+        </Box>
+        {selectedCount > 0 && <Chip label={`${selectedCount} menu selezionat${selectedCount === 1 ? "o" : "i"}`} size="small" color="primary" variant="outlined" />}
+      </Box>
       <Datagrid<MenuNonNull>
         presentation
         height="60vh"
@@ -125,9 +161,10 @@ function RoleMenus({ menus, onGridReady, selectedIds }: RoleMenusProps) {
         columnDefs={columnDefs}
         rowSelection={rowSelection}
         onGridReady={handleGridReady}
+        onRowSelected={handleRowSelected}
         onRowDataUpdated={syncSelection}
       />
-    </Box>
+    </Paper>
   );
 }
 

@@ -47,14 +47,17 @@ export function useQueryYearlySummary({ year, skip = false }: UseQueryYearlySumm
     const registriCassa = data?.connection?.registriCassa?.items || [];
 
     // Aggrega dati per mese
-    const monthlyMap = new Map<number, {
-      month: number;
-      year: number;
-      totalRevenue: number;
-      totalCash: number;
-      totalElectronic: number;
-      count: number;
-    }>();
+    const monthlyMap = new Map<
+      number,
+      {
+        month: number;
+        year: number;
+        totalRevenue: number;
+        totalCash: number;
+        totalElectronic: number;
+        count: number;
+      }
+    >();
 
     // Inizializza tutti i 12 mesi
     for (let m = 1; m <= 12; m++) {
@@ -76,7 +79,7 @@ export function useQueryYearlySummary({ year, skip = false }: UseQueryYearlySumm
       // Estrai anno e mese dalla data (usa UTC per evitare problemi di timezone)
       // La data arriva come ISO string: "2024-08-21T00:00:00.000Z"
       const dateValue = cr.data || "";
-      const dateParts = dateValue.split('T')[0].split('-'); // ["2024", "08", "21"]
+      const dateParts = dateValue.split("T")[0].split("-"); // ["2024", "08", "21"]
       const recordYear = parseInt(dateParts[0], 10); // 2024
       const month = parseInt(dateParts[1], 10); // 8
 

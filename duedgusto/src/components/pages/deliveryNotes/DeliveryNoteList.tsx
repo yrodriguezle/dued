@@ -79,11 +79,7 @@ function DeliveryNoteList() {
     }
 
     try {
-      await Promise.all(
-        selectedRows.map((row) =>
-          deleteDeliveryNote({ variables: { ddtId: row.ddtId } })
-        )
-      );
+      await Promise.all(selectedRows.map((row) => deleteDeliveryNote({ variables: { ddtId: row.ddtId } })));
 
       showToast({
         type: "success",
@@ -105,11 +101,14 @@ function DeliveryNoteList() {
     }
   }, [selectedRows, onConfirm, deleteDeliveryNote, refetch]);
 
-  const handleRowDoubleClick = useCallback((event: DatagridRowDoubleClickedEvent<DeliveryNoteNonNull>) => {
-    if (event.data) {
-      navigate(`/gestionale/delivery-notes-details?ddtId=${event.data.ddtId}`);
-    }
-  }, [navigate]);
+  const handleRowDoubleClick = useCallback(
+    (event: DatagridRowDoubleClickedEvent<DeliveryNoteNonNull>) => {
+      if (event.data) {
+        navigate(`/gestionale/delivery-notes-details?ddtId=${event.data.ddtId}`);
+      }
+    },
+    [navigate]
+  );
 
   const columnDefs = useMemo<DatagridColDef<DeliveryNoteNonNull>[]>(
     () => [
@@ -147,8 +146,7 @@ function DeliveryNoteList() {
         field: "amount",
         width: 120,
         filter: "agNumberColumnFilter",
-        valueFormatter: (params) =>
-          params.value != null ? `\u20AC ${Number(params.value).toFixed(2)}` : "",
+        valueFormatter: (params) => (params.value != null ? `\u20AC ${Number(params.value).toFixed(2)}` : ""),
       },
       {
         headerName: "Fattura",
@@ -173,11 +171,7 @@ function DeliveryNoteList() {
 
   return (
     <>
-      <ListToolbar
-        onNew={handleNew}
-        onDelete={handleDelete}
-        disabledDelete={selectedRows.length === 0}
-      />
+      <ListToolbar onNew={handleNew} onDelete={handleDelete} disabledDelete={selectedRows.length === 0} />
       <Box className="scrollable-box" sx={{ marginTop: 1, paddingX: 2, overflow: "auto", height: "calc(100vh - 64px - 48px)" }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 1 }}>
           <Typography id="view-title" variant="h5">

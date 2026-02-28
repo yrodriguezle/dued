@@ -36,9 +36,9 @@ const NestedList: React.FC<NestedListProps> = ({ drawerOpen, items, onListItemCl
 
   // Auto-apri il menu che contiene la route attiva
   useEffect(() => {
-    const activeIndex = items.findIndex(item => {
+    const activeIndex = items.findIndex((item) => {
       if (item.children) {
-        return item.children.some(child => child.path === location.pathname);
+        return item.children.some((child) => child.path === location.pathname);
       }
       return false;
     });
@@ -48,20 +48,13 @@ const NestedList: React.FC<NestedListProps> = ({ drawerOpen, items, onListItemCl
   }, [location.pathname, items]);
 
   const handleToggle = (index: number) => {
-    setOpenIndex(prev => prev === index ? null : index);
+    setOpenIndex((prev) => (prev === index ? null : index));
   };
 
   return (
     <List component="nav" sx={{ p: 0, m: 1 }}>
       {items.map((item, index) => (
-        <NestedListItem
-          key={index}
-          drawerOpen={drawerOpen}
-          item={item}
-          onListItemClick={onListItemClick}
-          isOpen={openIndex === index}
-          onToggle={() => handleToggle(index)}
-        />
+        <NestedListItem key={index} drawerOpen={drawerOpen} item={item} onListItemClick={onListItemClick} isOpen={openIndex === index} onToggle={() => handleToggle(index)} />
       ))}
     </List>
   );
@@ -145,14 +138,7 @@ const NestedListItem: React.FC<NestedListItemProps> = ({ item, drawerOpen, onLis
             }}
           >
             {item.children.map((child, index) => (
-              <NestedListItem
-                key={index}
-                drawerOpen={drawerOpen}
-                item={child}
-                onListItemClick={onListItemClick}
-                isOpen={false}
-                onToggle={() => { }}
-              />
+              <NestedListItem key={index} drawerOpen={drawerOpen} item={child} onListItemClick={onListItemClick} isOpen={false} onToggle={() => {}} />
             ))}
           </List>
         </Collapse>

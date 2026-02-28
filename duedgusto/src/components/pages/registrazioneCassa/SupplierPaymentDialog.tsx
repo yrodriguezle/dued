@@ -1,20 +1,5 @@
 import { useCallback, useState } from "react";
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  Grid,
-  Box,
-  ToggleButtonGroup,
-  ToggleButton,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-} from "@mui/material";
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Grid, Box, ToggleButtonGroup, ToggleButton, FormControl, InputLabel, Select, MenuItem } from "@mui/material";
 import FormikSearchbox from "../../common/form/searchbox/FormikSearchbox";
 import supplierSearchboxOption, { SupplierSearchbox } from "../../common/form/searchbox/searchboxOptions/supplierSearchboxOptions";
 import showToast from "../../../common/toast/showToast";
@@ -104,10 +89,7 @@ function SupplierPaymentDialog({ open, onClose, onConfirm }: SupplierPaymentDial
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth PaperProps={{ sx: { overflow: "visible" } }}>
-      <Formik
-        initialValues={initialValues}
-        onSubmit={handleConfirm}
-      >
+      <Formik initialValues={initialValues} onSubmit={handleConfirm}>
         {() => (
           <Form noValidate>
             <DialogTitle>Pagamento Fornitore</DialogTitle>
@@ -131,7 +113,9 @@ function SupplierPaymentDialog({ open, onClose, onConfirm }: SupplierPaymentDial
                       <ToggleButtonGroup
                         value={documentType}
                         exclusive
-                        onChange={(_e, value) => { if (value) setDocumentType(value); }}
+                        onChange={(_e, value) => {
+                          if (value) setDocumentType(value);
+                        }}
                         size="small"
                       >
                         <ToggleButton value="DDT">DDT</ToggleButton>
@@ -141,19 +125,9 @@ function SupplierPaymentDialog({ open, onClose, onConfirm }: SupplierPaymentDial
                   </Grid>
                   <Grid item xs={12}>
                     {documentType === "DDT" ? (
-                      <TextField
-                        label="Numero DDT"
-                        fullWidth
-                        value={ddtNumber}
-                        onChange={(e) => setDdtNumber(e.target.value)}
-                      />
+                      <TextField label="Numero DDT" fullWidth value={ddtNumber} onChange={(e) => setDdtNumber(e.target.value)} />
                     ) : (
-                      <TextField
-                        label="Numero Fattura"
-                        fullWidth
-                        value={invoiceNumber}
-                        onChange={(e) => setInvoiceNumber(e.target.value)}
-                      />
+                      <TextField label="Numero Fattura" fullWidth value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} />
                     )}
                   </Grid>
                   <Grid item xs={12} md={6}>
@@ -169,11 +143,7 @@ function SupplierPaymentDialog({ open, onClose, onConfirm }: SupplierPaymentDial
                   <Grid item xs={12} md={6}>
                     <FormControl fullWidth>
                       <InputLabel>Metodo Pagamento</InputLabel>
-                      <Select
-                        value={paymentMethod}
-                        label="Metodo Pagamento"
-                        onChange={(e) => setPaymentMethod(e.target.value)}
-                      >
+                      <Select value={paymentMethod} label="Metodo Pagamento" onChange={(e) => setPaymentMethod(e.target.value)}>
                         <MenuItem value="Contanti">Contanti</MenuItem>
                         <MenuItem value="Bonifico">Bonifico</MenuItem>
                       </Select>

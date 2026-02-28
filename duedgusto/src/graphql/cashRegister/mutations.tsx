@@ -105,4 +105,3 @@ export const mutationEliminaRegistroCassa: TypedDocumentNode<EliminaRegistroCass
     }
   }
 `;
-

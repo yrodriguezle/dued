@@ -47,12 +47,7 @@ function OperatingDaysSection({ errors, touched }: OperatingDaysSectionProps) {
             <Grid item xs={12} sm={6} md={4} key={index}>
               <FormControlLabel
                 control={
-                  <Checkbox
-                    checked={values.operatingDays[index] || false}
-                    onChange={(e) => handleDayChange(index, e.target.checked)}
-                    name={`operatingDays.${index}`}
-                    disabled={status?.isFormLocked}
-                  />
+                  <Checkbox checked={values.operatingDays[index] || false} onChange={(e) => handleDayChange(index, e.target.checked)} name={`operatingDays.${index}`} disabled={status?.isFormLocked} />
                 }
                 label={name}
               />

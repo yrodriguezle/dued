@@ -25,17 +25,14 @@ function useInitializeValues({ skipInitialize, utenteId, currentDate }: UseIniti
 
   const [initialValues, setInitialValues] = useState<FormikCashRegisterValues>(getDefaultInitialValues());
 
-  const handleInitializeValues = useCallback(
-    async (values?: FormikCashRegisterValues) => {
-      setInitialValues((prev) => mergeWithDefaults(values, prev));
-      if (!values) {
-        setInitialFocus();
-      }
+  const handleInitializeValues = useCallback(async (values?: FormikCashRegisterValues) => {
+    setInitialValues((prev) => mergeWithDefaults(values, prev));
+    if (!values) {
+      setInitialFocus();
+    }
 
-      return true;
-    },
-    []
-  );
+    return true;
+  }, []);
 
   useEffect(() => {
     if (!skipInitialize && !initialized.current) {

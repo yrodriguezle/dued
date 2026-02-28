@@ -1,10 +1,5 @@
 import { gql, TypedDocumentNode } from "@apollo/client";
-import {
-  supplierFragment,
-  purchaseInvoiceFragment,
-  deliveryNoteFragment,
-  supplierPaymentFragment,
-} from "./fragments";
+import { supplierFragment, purchaseInvoiceFragment, deliveryNoteFragment, supplierPaymentFragment } from "./fragments";
 
 // Get all suppliers
 interface GetSuppliersData {
@@ -183,4 +178,3 @@ export const getSupplierPaymentsConnection = gql(`
       }
     }
   }`);
-

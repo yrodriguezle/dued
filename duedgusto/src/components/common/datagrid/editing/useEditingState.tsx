@@ -9,9 +9,7 @@ interface UseEditingStateReturn {
   currentEditingRow: React.MutableRefObject<IRowNode | null>;
 }
 
-function useEditingState<T extends Record<string, unknown>>(
-  onEditingStatusChange?: (isEditing: boolean) => void
-): UseEditingStateReturn {
+function useEditingState<T extends Record<string, unknown>>(onEditingStatusChange?: (isEditing: boolean) => void): UseEditingStateReturn {
   const currentEditingRow = useRef<IRowNode<DatagridData<T>> | null>(null);
   const stopTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -31,7 +29,7 @@ function useEditingState<T extends Record<string, unknown>>(
       // Se si sta editando una riga diversa, rimuovere lo stato editing da TUTTE le righe con status Editing
       if (isNewRow) {
         // Cerca tutte le righe con status Editing e rimuovi lo stato
-        const nodesToUpdate: typeof node[] = [];
+        const nodesToUpdate: (typeof node)[] = [];
         api.forEachNode((n) => {
           if (n.data?.status === DatagridStatus.Editing && n.id !== node.id) {
             n.data.status = DatagridStatus.Modified;

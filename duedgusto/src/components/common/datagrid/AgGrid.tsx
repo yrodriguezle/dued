@@ -12,15 +12,7 @@ ModuleRegistry.registerModules([AllCommunityModule, SetFilterModule, MultiFilter
 
 function AgGridInner<T extends Record<string, unknown>>(agGridProps: AgGridReactProps<DatagridData<T>>, ref: ForwardedRef<AgGridReact<DatagridData<T>>>) {
   const { userTheme } = useStore((store) => store);
-  return (
-    <AgGridReact<DatagridData<T>>
-      localeText={AG_GRID_LOCALE_IT}
-      theme={userTheme.mode === "light" ? themeLight : themeDark}
-      stopEditingWhenCellsLoseFocus={true}
-      ref={ref}
-      {...agGridProps}
-    />
-  );
+  return <AgGridReact<DatagridData<T>> localeText={AG_GRID_LOCALE_IT} theme={userTheme.mode === "light" ? themeLight : themeDark} stopEditingWhenCellsLoseFocus={true} ref={ref} {...agGridProps} />;
 }
 
 const AgGrid = forwardRef(AgGridInner) as <T extends Record<string, unknown>>(props: AgGridReactProps<DatagridData<T>> & { ref?: ForwardedRef<AgGridReact<DatagridData<T>>> }) => JSX.Element;

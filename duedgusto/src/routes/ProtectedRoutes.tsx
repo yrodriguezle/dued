@@ -32,33 +32,48 @@ function ProtectedRoutes() {
   return (
     <Routes>
       <Route element={<Layout />}>
-        <Route path="dashboard" element={
-          <Suspense fallback={<Fallback />}>
-            <HomePage />
-          </Suspense>
-        } />
+        <Route
+          path="dashboard"
+          element={
+            <Suspense fallback={<Fallback />}>
+              <HomePage />
+            </Suspense>
+          }
+        />
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="cassa/details" element={<Navigate to={cassaRedirectPath} replace />} />
-        <Route path="cassa/monthly" element={
-          <Suspense fallback={<Fallback />}>
-            <CashRegisterMonthlyPage />
-          </Suspense>
-        } />
-        <Route path="cassa/monthly-closure/new" element={
-          <Suspense fallback={<Fallback />}>
-            <MonthlyClosureDetails />
-          </Suspense>
-        } />
-        <Route path="cassa/monthly-closure/:id" element={
-          <Suspense fallback={<Fallback />}>
-            <MonthlyClosureDetails />
-          </Suspense>
-        } />
-        <Route path="cassa/:date" element={
-          <Suspense fallback={<Fallback />}>
-            <CashRegisterDetails />
-          </Suspense>
-        } />
+        <Route
+          path="cassa/monthly"
+          element={
+            <Suspense fallback={<Fallback />}>
+              <CashRegisterMonthlyPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="cassa/monthly-closure/new"
+          element={
+            <Suspense fallback={<Fallback />}>
+              <MonthlyClosureDetails />
+            </Suspense>
+          }
+        />
+        <Route
+          path="cassa/monthly-closure/:id"
+          element={
+            <Suspense fallback={<Fallback />}>
+              <MonthlyClosureDetails />
+            </Suspense>
+          }
+        />
+        <Route
+          path="cassa/:date"
+          element={
+            <Suspense fallback={<Fallback />}>
+              <CashRegisterDetails />
+            </Suspense>
+          }
+        />
         {menuRoutes
           .filter((menu) => menu?.percorso && menu?.percorsoFile)
           .map((menu) => {

@@ -72,8 +72,8 @@ function UserForm({ onSelectItem }: UserFormProps) {
               fieldName="nome"
               options={ruoloSearchboxOptions}
               onSelectItem={(ruolo) => {
-                formik.setFieldValue('ruoloId', ruolo.id);
-                formik.setFieldValue('ruoloNome', ruolo.nome);
+                formik.setFieldValue("ruoloId", ruolo.id);
+                formik.setFieldValue("ruoloNome", ruolo.nome);
               }}
             />
           </Grid>

@@ -14,14 +14,10 @@ interface UseSearchboxQueryParamsProps<T extends Record<string, unknown>, K exte
 function useSearchboxQueryParams<T extends Record<string, unknown>, K extends keyof T>(props: UseSearchboxQueryParamsProps<T, K>) {
   const body = useMemo(() => {
     if (props.modal) {
-      const modalFields = props.options.modal.items
-        .map((item) => item.field)
-        .filter((f) => typeof f === 'string') as unknown as Extract<keyof T, string>[];
+      const modalFields = props.options.modal.items.map((item) => item.field).filter((f) => typeof f === "string") as unknown as Extract<keyof T, string>[];
       return modalFields;
     }
-    const fields = props.options.items
-      .map((item) => item.field)
-      .filter((f) => typeof f === 'string') as unknown as Extract<keyof T, string>[];
+    const fields = props.options.items.map((item) => item.field).filter((f) => typeof f === "string") as unknown as Extract<keyof T, string>[];
     return fields;
   }, [props.modal, props.options.items, props.options.modal.items]);
 

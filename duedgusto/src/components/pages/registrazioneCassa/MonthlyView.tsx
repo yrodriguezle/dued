@@ -1,19 +1,5 @@
 import { useContext, useEffect, useState } from "react";
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Grid,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  IconButton,
-} from "@mui/material";
+import { Box, Card, CardContent, Typography, Grid, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, IconButton } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import dayjs from "dayjs";
@@ -196,9 +182,7 @@ function MonthlyView() {
               borderRadius: 1,
             }}
           >
-            <Typography color="text.secondary">
-              Calendario con vendite giornaliere disponibile dopo implementazione backend
-            </Typography>
+            <Typography color="text.secondary">Calendario con vendite giornaliere disponibile dopo implementazione backend</Typography>
           </Box>
         </CardContent>
       </Card>

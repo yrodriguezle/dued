@@ -53,11 +53,7 @@ function Confirm() {
       <DialogContent>{content}</DialogContent>
       <DialogActions>
         {cancelLabel ? <Button onClick={handleCancel}>Disagree</Button> : null}
-        <Button
-          onClick={handleAccept}
-          color="primary"
-          ref={acceptButtonRef}
-        >
+        <Button onClick={handleAccept} color="primary" ref={acceptButtonRef}>
           {acceptLabel}
         </Button>
       </DialogActions>

@@ -7,7 +7,7 @@ interface SubmitRuoloData {
   };
 }
 
-export interface  SubmitRuoloValues {
+export interface SubmitRuoloValues {
   ruolo: RuoloInput;
   menuIds: number[];
 }

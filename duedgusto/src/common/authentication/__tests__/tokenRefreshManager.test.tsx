@@ -71,7 +71,10 @@ describe("tokenRefreshManager", () => {
     it("dovrebbe risolvere i callback pendenti con true in caso di successo", async () => {
       let resolveRefresh!: (value: boolean) => void;
       vi.mocked(refreshTokenMock).mockImplementation(
-        () => new Promise<boolean>((resolve) => { resolveRefresh = resolve; })
+        () =>
+          new Promise<boolean>((resolve) => {
+            resolveRefresh = resolve;
+          })
       );
 
       const { executeTokenRefresh, onTokenRefreshComplete } = await getModule();
@@ -93,7 +96,10 @@ describe("tokenRefreshManager", () => {
     it("dovrebbe risolvere i callback pendenti con false in caso di fallimento", async () => {
       let resolveRefresh!: (value: boolean) => void;
       vi.mocked(refreshTokenMock).mockImplementation(
-        () => new Promise<boolean>((resolve) => { resolveRefresh = resolve; })
+        () =>
+          new Promise<boolean>((resolve) => {
+            resolveRefresh = resolve;
+          })
       );
 
       const { executeTokenRefresh, onTokenRefreshComplete } = await getModule();
@@ -112,7 +118,10 @@ describe("tokenRefreshManager", () => {
     it("dovrebbe gestire un errore nel refresh e notificare i callback con false", async () => {
       let rejectRefresh!: (err: Error) => void;
       vi.mocked(refreshTokenMock).mockImplementation(
-        () => new Promise<boolean>((_resolve, reject) => { rejectRefresh = reject; })
+        () =>
+          new Promise<boolean>((_resolve, reject) => {
+            rejectRefresh = reject;
+          })
       );
 
       const { executeTokenRefresh, onTokenRefreshComplete } = await getModule();
@@ -161,7 +170,10 @@ describe("tokenRefreshManager", () => {
     it("dovrebbe restituire true durante un refresh attivo", async () => {
       let resolveRefresh!: (value: boolean) => void;
       vi.mocked(refreshTokenMock).mockImplementation(
-        () => new Promise<boolean>((resolve) => { resolveRefresh = resolve; })
+        () =>
+          new Promise<boolean>((resolve) => {
+            resolveRefresh = resolve;
+          })
       );
 
       const { executeTokenRefresh, isTokenRefreshInProgress } = await getModule();
@@ -183,7 +195,10 @@ describe("tokenRefreshManager", () => {
     it("dovrebbe registrare il callback e chiamarlo al completamento del refresh", async () => {
       let resolveRefresh!: (value: boolean) => void;
       vi.mocked(refreshTokenMock).mockImplementation(
-        () => new Promise<boolean>((resolve) => { resolveRefresh = resolve; })
+        () =>
+          new Promise<boolean>((resolve) => {
+            resolveRefresh = resolve;
+          })
       );
 
       const { executeTokenRefresh, onTokenRefreshComplete } = await getModule();

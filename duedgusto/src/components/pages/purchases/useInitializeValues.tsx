@@ -7,9 +7,7 @@ interface UseInitializeValuesProps {
   skipInitialize?: boolean;
 }
 
-function useInitializeValues({
-  skipInitialize,
-}: UseInitializeValuesProps) {
+function useInitializeValues({ skipInitialize }: UseInitializeValuesProps) {
   const initialized = useRef(false);
 
   const getDefaultInitialValues = useCallback(() => {
@@ -29,17 +27,14 @@ function useInitializeValues({
 
   const [initialValues, setInitialValues] = useState<FormikPurchaseInvoiceValues>(getDefaultInitialValues());
 
-  const handleInitializeValues = useCallback(
-    async (values?: Partial<FormikPurchaseInvoiceValues>) => {
-      setInitialValues((prev) => mergeWithDefaults(values, prev));
-      if (!values) {
-        setInitialFocus();
-      }
+  const handleInitializeValues = useCallback(async (values?: Partial<FormikPurchaseInvoiceValues>) => {
+    setInitialValues((prev) => mergeWithDefaults(values, prev));
+    if (!values) {
+      setInitialFocus();
+    }
 
-      return true;
-    },
-    []
-  );
+    return true;
+  }, []);
 
   useEffect(() => {
     if (!skipInitialize && !initialized.current) {

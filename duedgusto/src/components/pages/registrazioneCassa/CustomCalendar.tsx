@@ -20,12 +20,7 @@ interface CustomCalendarProps {
   currentDate?: Date;
 }
 
-export function CustomCalendar({
-  events,
-  onSelectEvent,
-  onSelectSlot,
-  currentDate = new Date(),
-}: CustomCalendarProps) {
+export function CustomCalendar({ events, onSelectEvent, onSelectSlot, currentDate = new Date() }: CustomCalendarProps) {
   const muiTheme = useTheme();
   const isDark = muiTheme.palette.mode === "dark";
   const isOpen = useStore((store) => store.isOpen);
@@ -139,24 +134,30 @@ export function CustomCalendar({
               }}
               sx={{
                 bgcolor: isDisabled
-                  ? isDark ? alpha(muiTheme.palette.background.paper, 0.3) : "grey.100"
+                  ? isDark
+                    ? alpha(muiTheme.palette.background.paper, 0.3)
+                    : "grey.100"
                   : isToday
-                    ? isDark ? alpha(muiTheme.palette.primary.main, 0.08) : alpha(muiTheme.palette.primary.main, 0.06)
-                    : isDark ? "background.paper" : "#fff",
-                cursor: isDisabled ? "default" : (!isDayOpen && !event) ? "default" : "pointer",
+                    ? isDark
+                      ? alpha(muiTheme.palette.primary.main, 0.08)
+                      : alpha(muiTheme.palette.primary.main, 0.06)
+                    : isDark
+                      ? "background.paper"
+                      : "#fff",
+                cursor: isDisabled ? "default" : !isDayOpen && !event ? "default" : "pointer",
                 opacity: isDisabled ? 0.4 : 1,
                 display: "flex",
                 flexDirection: "column",
                 position: "relative",
                 overflow: "hidden",
                 transition: "background-color 0.15s",
-                ...(!isDisabled && (isDayOpen || event) ? {
-                  "&:hover": {
-                    bgcolor: isDark
-                      ? alpha(muiTheme.palette.primary.main, 0.12)
-                      : alpha(muiTheme.palette.primary.main, 0.08),
-                  },
-                } : {}),
+                ...(!isDisabled && (isDayOpen || event)
+                  ? {
+                      "&:hover": {
+                        bgcolor: isDark ? alpha(muiTheme.palette.primary.main, 0.12) : alpha(muiTheme.palette.primary.main, 0.08),
+                      },
+                    }
+                  : {}),
               }}
             >
               {/* Barra stato laterale */}
@@ -180,17 +181,19 @@ export function CustomCalendar({
                     fontSize: "0.8rem",
                     fontWeight: isToday ? 700 : 400,
                     color: isCurrentMonth ? "text.primary" : "text.disabled",
-                    ...(isToday ? {
-                      bgcolor: "primary.main",
-                      color: "primary.contrastText",
-                      borderRadius: "50%",
-                      width: 22,
-                      height: 22,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      lineHeight: 1,
-                    } : {}),
+                    ...(isToday
+                      ? {
+                          bgcolor: "primary.main",
+                          color: "primary.contrastText",
+                          borderRadius: "50%",
+                          width: 22,
+                          height: 22,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          lineHeight: 1,
+                        }
+                      : {}),
                   }}
                 >
                   {format(date, "d")}
@@ -226,29 +229,16 @@ export function CustomCalendar({
                     {`\u20AC ${event.revenue.toFixed(2)}`}
                   </Typography>
                   <Box sx={{ display: "flex", gap: 0.5, mt: 0.25, flexWrap: "wrap" }}>
-                    {event.contanti > 0 && (
-                      <Typography sx={{ fontSize: "0.6rem", color: "success.main" }}>
-                        {`C: ${event.contanti.toFixed(0)}`}
-                      </Typography>
-                    )}
-                    {event.elettronici > 0 && (
-                      <Typography sx={{ fontSize: "0.6rem", color: "info.main" }}>
-                        {`E: ${event.elettronici.toFixed(0)}`}
-                      </Typography>
-                    )}
-                    {event.fatture > 0 && (
-                      <Typography sx={{ fontSize: "0.6rem", color: "text.secondary" }}>
-                        {`F: ${event.fatture.toFixed(0)}`}
-                      </Typography>
-                    )}
+                    {event.contanti > 0 && <Typography sx={{ fontSize: "0.6rem", color: "success.main" }}>{`C: ${event.contanti.toFixed(0)}`}</Typography>}
+                    {event.elettronici > 0 && <Typography sx={{ fontSize: "0.6rem", color: "info.main" }}>{`E: ${event.elettronici.toFixed(0)}`}</Typography>}
+                    {event.fatture > 0 && <Typography sx={{ fontSize: "0.6rem", color: "text.secondary" }}>{`F: ${event.fatture.toFixed(0)}`}</Typography>}
                   </Box>
                 </Box>
               ) : (
-                isCurrentMonth && !isDayOpen && (
+                isCurrentMonth &&
+                !isDayOpen && (
                   <Box sx={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Typography sx={{ fontSize: "0.65rem", color: "text.disabled", fontWeight: 500 }}>
-                      CHIUSO
-                    </Typography>
+                    <Typography sx={{ fontSize: "0.65rem", color: "text.disabled", fontWeight: 500 }}>CHIUSO</Typography>
                   </Box>
                 )
               )}
@@ -262,7 +252,9 @@ export function CustomCalendar({
         {Object.entries(STATO_CONFIG).map(([, cfg]) => (
           <Box key={cfg.label} sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
             <Box sx={{ width: 10, height: 10, borderRadius: "2px", bgcolor: cfg.color }} />
-            <Typography variant="caption" color="text.secondary">{cfg.label}</Typography>
+            <Typography variant="caption" color="text.secondary">
+              {cfg.label}
+            </Typography>
           </Box>
         ))}
       </Box>

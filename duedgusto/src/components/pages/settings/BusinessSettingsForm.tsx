@@ -47,21 +47,14 @@ function BusinessSettingsForm() {
         </Typography>
         <Grid container spacing={2}>
           <Grid item xs={12} sm={8}>
-            <FormikTextField
-              name="businessName"
-              label="Nome Attività"
-              fullWidth
-            />
+            <FormikTextField name="businessName" label="Nome Attività" fullWidth />
           </Grid>
           <Grid item xs={12} sm={4}>
-            <FormikTextField
-              name="currency"
-              label="Valuta"
-              select
-              fullWidth
-            >
+            <FormikTextField name="currency" label="Valuta" select fullWidth>
               {CURRENCIES.map((c) => (
-                <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>
+                <MenuItem key={c.value} value={c.value}>
+                  {c.label}
+                </MenuItem>
               ))}
             </FormikTextField>
           </Grid>
@@ -75,32 +68,17 @@ function BusinessSettingsForm() {
         </Typography>
         <Grid container spacing={2}>
           <Grid item xs={6} sm={3}>
-            <FormikTextField
-              name="openingTime"
-              label="Apertura"
-              type="time"
-              inputProps={{ step: "300" }}
-              fullWidth
-            />
+            <FormikTextField name="openingTime" label="Apertura" type="time" inputProps={{ step: "300" }} fullWidth />
           </Grid>
           <Grid item xs={6} sm={3}>
-            <FormikTextField
-              name="closingTime"
-              label="Chiusura"
-              type="time"
-              inputProps={{ step: "300" }}
-              fullWidth
-            />
+            <FormikTextField name="closingTime" label="Chiusura" type="time" inputProps={{ step: "300" }} fullWidth />
           </Grid>
           <Grid item xs={12} sm={6}>
-            <FormikTextField
-              name="timezone"
-              label="Fuso Orario"
-              select
-              fullWidth
-            >
+            <FormikTextField name="timezone" label="Fuso Orario" select fullWidth>
               {TIMEZONES.map((tz) => (
-                <MenuItem key={tz.value} value={tz.value}>{tz.label}</MenuItem>
+                <MenuItem key={tz.value} value={tz.value}>
+                  {tz.label}
+                </MenuItem>
               ))}
             </FormikTextField>
           </Grid>

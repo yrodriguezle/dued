@@ -1,17 +1,5 @@
 import { useCallback, useState } from "react";
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Box,
-  Grid,
-  Paper,
-  Typography,
-  IconButton,
-  Button,
-  CircularProgress,
-} from "@mui/material";
+import { Dialog, DialogTitle, DialogContent, DialogActions, Box, Grid, Paper, Typography, IconButton, Button, CircularProgress } from "@mui/material";
 import { ChevronLeft, ChevronRight, CheckCircle } from "@mui/icons-material";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
@@ -27,14 +15,7 @@ interface CashRegisterMonthlyCalendarProps {
   loading: boolean;
 }
 
-function CashRegisterMonthlyCalendar({
-  open,
-  onClose,
-  onSelectDate,
-  currentDate,
-  cashRegisters,
-  loading,
-}: CashRegisterMonthlyCalendarProps) {
+function CashRegisterMonthlyCalendar({ open, onClose, onSelectDate, currentDate, cashRegisters, loading }: CashRegisterMonthlyCalendarProps) {
   const [displayMonth, setDisplayMonth] = useState<dayjs.Dayjs>(dayjs(currentDate));
 
   // Map of dates that have saved cash registers
@@ -92,10 +73,7 @@ function CashRegisterMonthlyCalendar({
           <IconButton size="small" onClick={handlePreviousMonth}>
             <ChevronLeft />
           </IconButton>
-          <Typography variant="h6">
-            {displayMonth.format("MMMM YYYY").charAt(0).toUpperCase() +
-              displayMonth.format("MMMM YYYY").slice(1)}
-          </Typography>
+          <Typography variant="h6">{displayMonth.format("MMMM YYYY").charAt(0).toUpperCase() + displayMonth.format("MMMM YYYY").slice(1)}</Typography>
           <IconButton size="small" onClick={handleNextMonth}>
             <ChevronRight />
           </IconButton>
@@ -113,9 +91,7 @@ function CashRegisterMonthlyCalendar({
             <Grid container spacing={0.5} sx={{ mb: 2 }}>
               {weekdayHeaders.map((day) => (
                 <Grid item xs={12 / 7} key={day}>
-                  <Box sx={{ textAlign: "center", fontWeight: "bold", fontSize: "0.85rem" }}>
-                    {day}
-                  </Box>
+                  <Box sx={{ textAlign: "center", fontWeight: "bold", fontSize: "0.85rem" }}>{day}</Box>
                 </Grid>
               ))}
             </Grid>
@@ -124,14 +100,9 @@ function CashRegisterMonthlyCalendar({
             <Grid container spacing={0.5}>
               {calendarDays.map((day, index) => {
                 const isCurrentMonth = day !== null;
-                const isCurrentDay =
-                  isCurrentMonth && displayMonth.month() === dayjs(currentDate).month()
-                    ? day === dayjs(currentDate).date()
-                    : false;
+                const isCurrentDay = isCurrentMonth && displayMonth.month() === dayjs(currentDate).month() ? day === dayjs(currentDate).date() : false;
 
-                const dateString = isCurrentMonth
-                  ? displayMonth.date(day).format("YYYY-MM-DD")
-                  : "";
+                const dateString = isCurrentMonth ? displayMonth.date(day).format("YYYY-MM-DD") : "";
                 const hasCashRegister = isCurrentMonth && savedDates.has(dateString);
 
                 return (
@@ -154,9 +125,9 @@ function CashRegisterMonthlyCalendar({
                         flexDirection: "column",
                         "&:hover": isCurrentMonth
                           ? {
-                            backgroundColor: "#f0f0f0",
-                            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                          }
+                              backgroundColor: "#f0f0f0",
+                              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                            }
                           : {},
                       }}
                     >

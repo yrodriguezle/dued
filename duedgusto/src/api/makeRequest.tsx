@@ -46,7 +46,7 @@ async function makeRequest<T, InputData>({ path, method, data, headers = {}, fai
   }
 
   if (response.status === WEB_REQUEST_UNAUTHORIZED && !failOnForbidden) {
-    logger.log('Received 401, attempting token refresh from makeRequest');
+    logger.log("Received 401, attempting token refresh from makeRequest");
     const tokenRefreshed = await services.refreshToken();
     if (tokenRefreshed) {
       return makeRequest({

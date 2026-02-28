@@ -20,154 +20,167 @@ const expenseSchema = z.object({
   amount: z.number().min(0, "L'importo deve essere maggiore o uguale a 0"),
 });
 
-const ExpensesDataGrid = memo(forwardRef<GridReadyEvent<DatagridData<Expense>>, ExpensesDataGridProps>(({ initialExpenses, isLocked, onCellChange }, ref) => {
-  const [validationErrors, setValidationErrors] = useState<Map<number, ValidationError[]>>(new Map());
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const gridEventRef = useRef<GridReadyEvent<DatagridData<Expense>> | null>(null);
+const ExpensesDataGrid = memo(
+  forwardRef<GridReadyEvent<DatagridData<Expense>>, ExpensesDataGridProps>(({ initialExpenses, isLocked, onCellChange }, ref) => {
+    const [validationErrors, setValidationErrors] = useState<Map<number, ValidationError[]>>(new Map());
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const gridEventRef = useRef<GridReadyEvent<DatagridData<Expense>> | null>(null);
 
-  const handlePaymentConfirm = useCallback((expense: Expense) => {
-    if (gridEventRef.current) {
-      gridEventRef.current.api.applyTransaction({ add: [expense as DatagridData<Expense>] });
-    }
-    setDialogOpen(false);
-    onCellChange?.();
-  }, [onCellChange]);
-
-  // Usa i dati iniziali passati come prop
-  const items = useMemo(() => {
-    return initialExpenses || [];
-  }, [initialExpenses]);
-
-  const columnDefs = useMemo<DatagridColDef<Expense>[]>(
-    () => [
-      {
-        headerName: "Tipo",
-        field: "documentType",
-        width: 100,
-        editable: false,
-        valueGetter: (params) => {
-          if (params.data?.isSupplierPayment) {
-            return params.data.documentType === "FA" ? "FA" : "DDT";
-          }
-          return "RICEVUTA";
-        },
+    const handlePaymentConfirm = useCallback(
+      (expense: Expense) => {
+        if (gridEventRef.current) {
+          gridEventRef.current.api.applyTransaction({ add: [expense as DatagridData<Expense>] });
+        }
+        setDialogOpen(false);
+        onCellChange?.();
       },
-      {
-        headerName: "Causale",
-        field: "description",
-        flex: 2,
-        editable: (params) => !isLocked && !params.data?.isSupplierPayment,
-      },
-      {
-        headerName: "Importo (€)",
-        field: "amount",
-        flex: 1,
-        editable: (params) => !isLocked && !params.data?.isSupplierPayment,
-        cellEditor: "agNumberCellEditor",
-        cellEditorParams: {
-          min: 0,
-          precision: 2,
-        },
-        cellStyle: { textAlign: "right" },
-        cellClass: "ag-right-aligned-cell",
-        valueFormatter: (params) => {
-          if (params.value == null) return "0.00€";
-          return `${Number(params.value).toFixed(2)}€`;
-        },
-      },
-    ],
-    [isLocked]
-  );
+      [onCellChange]
+    );
 
-  const handleCellValueChanged = useCallback((event: DatagridCellValueChangedEvent<Expense>) => {
-    if (event.data) {
-      // Data is already updated by AG Grid, no need to manually update
-      // Just ensure values are valid
-      if (event.colDef.field === "amount") {
-        const newAmount = parseFloat(event.newValue) || 0;
-        event.data.amount = Math.max(0, newAmount);
-      }
-    }
-    onCellChange?.();
-  }, [onCellChange]);
+    // Usa i dati iniziali passati come prop
+    const items = useMemo(() => {
+      return initialExpenses || [];
+    }, [initialExpenses]);
 
-  const handleGridReady = useCallback((event: GridReadyEvent<DatagridData<Expense>>) => {
-    gridEventRef.current = event;
-    if (ref && typeof ref !== 'function') {
-      (ref as React.MutableRefObject<GridReadyEvent<DatagridData<Expense>> | null>).current = event;
-    }
-  }, [ref]);
-
-  const getNewExpense = useCallback((): Expense => ({
-    description: "",
-    amount: 0,
-  }), []);
-
-  const supplierPaymentButton = useMemo(() => (
-    <Button
-      size="small"
-      variant="text"
-      startIcon={<PaymentIcon />}
-      disabled={isLocked}
-      onClick={() => setDialogOpen(true)}
-      sx={{
-        minHeight: 0,
-        height: 32,
-        paddingY: 0.5,
-        paddingX: 1.5,
-        alignSelf: "center",
-      }}
-    >
-      Pagamento fornitore
-    </Button>
-  ), [isLocked]);
-
-  return (
-    <Box>
-      <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold", mb: 0 }}>
-        SPESE
-      </Typography>
-      <SupplierPaymentDialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        onConfirm={handlePaymentConfirm}
-      />
-      <Box
-        sx={{
-          "& .ag-right-aligned-cell input": {
-            textAlign: "right",
-            paddingRight: "14px",
+    const columnDefs = useMemo<DatagridColDef<Expense>[]>(
+      () => [
+        {
+          headerName: "Tipo",
+          field: "documentType",
+          width: 100,
+          editable: false,
+          valueGetter: (params) => {
+            if (params.data?.isSupplierPayment) {
+              return params.data.documentType === "FA" ? "FA" : "DDT";
+            }
+            return "RICEVUTA";
           },
-        }}
-      >
-        <Datagrid<Expense>
-          height="300px"
-          items={items}
-          columnDefs={columnDefs}
-          readOnly={isLocked}
-          getNewRow={getNewExpense}
-          additionalToolbarButtons={supplierPaymentButton}
-          validationSchema={expenseSchema}
-          onValidationErrors={setValidationErrors}
-          showRowNumbers={true}
-          onCellValueChanged={handleCellValueChanged}
-          onGridReady={handleGridReady}
-          suppressRowHoverHighlight={false}
-          defaultColDef={{ sortable: false, suppressMovable: true, resizable: true }}
-        />
-      </Box>
-      {validationErrors.size > 0 && (
-        <Box sx={{ mt: 1 }}>
-          {Array.from(validationErrors.entries()).map(([rowIndex, errors]) => (
-            <Typography key={rowIndex} color="error" variant="caption" display="block">
-              Riga {rowIndex + 1}: {errors.map((e) => e.message).join(", ")}
-            </Typography>
-          ))}
+        },
+        {
+          headerName: "Causale",
+          field: "description",
+          flex: 2,
+          editable: (params) => !isLocked && !params.data?.isSupplierPayment,
+        },
+        {
+          headerName: "Importo (€)",
+          field: "amount",
+          flex: 1,
+          editable: (params) => !isLocked && !params.data?.isSupplierPayment,
+          cellEditor: "agNumberCellEditor",
+          cellEditorParams: {
+            min: 0,
+            precision: 2,
+          },
+          cellStyle: { textAlign: "right" },
+          cellClass: "ag-right-aligned-cell",
+          valueFormatter: (params) => {
+            if (params.value == null) return "0.00€";
+            return `${Number(params.value).toFixed(2)}€`;
+          },
+        },
+      ],
+      [isLocked]
+    );
+
+    const handleCellValueChanged = useCallback(
+      (event: DatagridCellValueChangedEvent<Expense>) => {
+        if (event.data) {
+          // Data is already updated by AG Grid, no need to manually update
+          // Just ensure values are valid
+          if (event.colDef.field === "amount") {
+            const newAmount = parseFloat(event.newValue) || 0;
+            event.data.amount = Math.max(0, newAmount);
+          }
+        }
+        onCellChange?.();
+      },
+      [onCellChange]
+    );
+
+    const handleGridReady = useCallback(
+      (event: GridReadyEvent<DatagridData<Expense>>) => {
+        gridEventRef.current = event;
+        if (ref && typeof ref !== "function") {
+          (ref as React.MutableRefObject<GridReadyEvent<DatagridData<Expense>> | null>).current = event;
+        }
+      },
+      [ref]
+    );
+
+    const getNewExpense = useCallback(
+      (): Expense => ({
+        description: "",
+        amount: 0,
+      }),
+      []
+    );
+
+    const supplierPaymentButton = useMemo(
+      () => (
+        <Button
+          size="small"
+          variant="text"
+          startIcon={<PaymentIcon />}
+          disabled={isLocked}
+          onClick={() => setDialogOpen(true)}
+          sx={{
+            minHeight: 0,
+            height: 32,
+            paddingY: 0.5,
+            paddingX: 1.5,
+            alignSelf: "center",
+          }}
+        >
+          Pagamento fornitore
+        </Button>
+      ),
+      [isLocked]
+    );
+
+    return (
+      <Box>
+        <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold", mb: 0 }}>
+          SPESE
+        </Typography>
+        <SupplierPaymentDialog open={dialogOpen} onClose={() => setDialogOpen(false)} onConfirm={handlePaymentConfirm} />
+        <Box
+          sx={{
+            "& .ag-right-aligned-cell input": {
+              textAlign: "right",
+              paddingRight: "14px",
+            },
+          }}
+        >
+          <Datagrid<Expense>
+            height="300px"
+            items={items}
+            columnDefs={columnDefs}
+            readOnly={isLocked}
+            getNewRow={getNewExpense}
+            additionalToolbarButtons={supplierPaymentButton}
+            validationSchema={expenseSchema}
+            onValidationErrors={setValidationErrors}
+            showRowNumbers={true}
+            onCellValueChanged={handleCellValueChanged}
+            onGridReady={handleGridReady}
+            suppressRowHoverHighlight={false}
+            defaultColDef={{ sortable: false, suppressMovable: true, resizable: true }}
+          />
         </Box>
-      )}
-    </Box>
-  );
-}));
+        {validationErrors.size > 0 && (
+          <Box sx={{ mt: 1 }}>
+            {Array.from(validationErrors.entries()).map(([rowIndex, errors]) => (
+              <Typography key={rowIndex} color="error" variant="caption" display="block">
+                Riga {rowIndex + 1}: {errors.map((e) => e.message).join(", ")}
+              </Typography>
+            ))}
+          </Box>
+        )}
+      </Box>
+    );
+  })
+);
 
 ExpensesDataGrid.displayName = "ExpensesDataGrid";
 

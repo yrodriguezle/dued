@@ -66,4 +66,3 @@ export const supplierPaymentFragment = `
     createdAt
     updatedAt
   }`;
-

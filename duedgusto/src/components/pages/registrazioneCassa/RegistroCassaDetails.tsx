@@ -260,30 +260,25 @@ function RegistroCassaDetails() {
         cashRegister.incassi && cashRegister.incassi.length > 0
           ? cashRegister.incassi.map((i: IncassoCassa) => ({ type: i.tipo, amount: i.importo }))
           : [
-            { type: "Pago in contanti", amount: cashRegister.incassoContanteTracciato || 0 },
-            { type: "Pagamenti Elettronici", amount: cashRegister.incassiElettronici || 0 },
-            { type: "Pagamento con Fattura", amount: cashRegister.incassiFattura || 0 },
-          ]
+              { type: "Pago in contanti", amount: cashRegister.incassoContanteTracciato || 0 },
+              { type: "Pagamenti Elettronici", amount: cashRegister.incassiElettronici || 0 },
+              { type: "Pagamento con Fattura", amount: cashRegister.incassiFattura || 0 },
+            ]
       );
 
       // Ricostruisci le spese: spese normali + pagamenti fornitore
-      const normalExpenses: Expense[] = cashRegister.spese?.map((e: SpesaCassa) => ({
-        description: e.descrizione,
-        amount: e.importo,
-      })) || [];
-      const supplierPaymentExpenses: Expense[] = cashRegister.pagamentiFornitori?.map(
-        (p: PagamentoFornitoreRegistro) => {
+      const normalExpenses: Expense[] =
+        cashRegister.spese?.map((e: SpesaCassa) => ({
+          description: e.descrizione,
+          amount: e.importo,
+        })) || [];
+      const supplierPaymentExpenses: Expense[] =
+        cashRegister.pagamentiFornitori?.map((p: PagamentoFornitoreRegistro) => {
           const hasInvoice = !!p.invoice;
-          const supplierName = hasInvoice
-            ? (p.invoice?.supplier?.businessName || "Fornitore")
-            : (p.ddt?.supplier?.businessName || "Fornitore");
-          const supplierId = hasInvoice
-            ? p.invoice?.supplier?.supplierId
-            : p.ddt?.supplier?.supplierId;
+          const supplierName = hasInvoice ? p.invoice?.supplier?.businessName || "Fornitore" : p.ddt?.supplier?.businessName || "Fornitore";
+          const supplierId = hasInvoice ? p.invoice?.supplier?.supplierId : p.ddt?.supplier?.supplierId;
           const docType: "FA" | "DDT" = hasInvoice ? "FA" : "DDT";
-          const docLabel = hasInvoice
-            ? `FA ${p.invoice?.invoiceNumber || ""}`
-            : `DDT ${p.ddt?.ddtNumber || ""}`;
+          const docLabel = hasInvoice ? `FA ${p.invoice?.invoiceNumber || ""}` : `DDT ${p.ddt?.ddtNumber || ""}`;
 
           return {
             description: `Pagamento ${supplierName} - ${docLabel}`,
@@ -295,8 +290,7 @@ function RegistroCassaDetails() {
             documentType: docType,
             invoiceNumber: p.invoice?.invoiceNumber,
           };
-        }
-      ) || [];
+        }) || [];
       setInitialExpenses([...supplierPaymentExpenses, ...normalExpenses]);
 
       setTimeout(() => {
@@ -503,20 +497,11 @@ function RegistroCassaDetails() {
               >
                 {/* Bottoni azione a sinistra */}
                 <Box sx={{ height: 48, display: "flex", alignItems: "stretch" }}>
-                  <FormikToolbarButton
-                    startIcon={<SaveIcon />}
-                    disabled={disableSave}
-                    type="submit"
-                  >
+                  <FormikToolbarButton startIcon={<SaveIcon />} disabled={disableSave} type="submit">
                     Salva
                   </FormikToolbarButton>
                   {status?.formStatus === formStatuses.UPDATE && status?.isFormLocked === false && (
-                    <FormikToolbarButton
-                      startIcon={<LockIcon />}
-                      onClick={handleCloseCashRegister}
-                      disabled={closing}
-                      color="warning"
-                    >
+                    <FormikToolbarButton startIcon={<LockIcon />} onClick={handleCloseCashRegister} disabled={closing} color="warning">
                       Chiudi Cassa
                     </FormikToolbarButton>
                   )}

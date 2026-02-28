@@ -16,7 +16,7 @@ function useSignIn() {
     setError(null);
 
     try {
-      const result = await makeRequest<{ token: string, refreshToken: string }, SigninValues>({
+      const result = await makeRequest<{ token: string; refreshToken: string }, SigninValues>({
         path: "auth/signin",
         method: "POST",
         data: variables,

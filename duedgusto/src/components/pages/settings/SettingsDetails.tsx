@@ -19,15 +19,15 @@ const validationSchema = z.object({
   businessName: z.string().min(2, "Nome attività troppo corto"),
   openingTime: z.string().regex(/^\d{2}:\d{2}$/, "Formato orario non valido (HH:mm)"),
   closingTime: z.string().regex(/^\d{2}:\d{2}$/, "Formato orario non valido (HH:mm)"),
-  operatingDays: z.union([
-    z.array(z.boolean()),
-    z.string(),
-  ]).refine((days) => {
-    const arr = typeof days === "string" ? JSON.parse(days) : days;
-    return arr.some((day: boolean) => day === true);
-  }, {
-    message: "Seleziona almeno un giorno di apertura",
-  }),
+  operatingDays: z.union([z.array(z.boolean()), z.string()]).refine(
+    (days) => {
+      const arr = typeof days === "string" ? JSON.parse(days) : days;
+      return arr.some((day: boolean) => day === true);
+    },
+    {
+      message: "Seleziona almeno un giorno di apertura",
+    }
+  ),
   timezone: z.string(),
   currency: z.string(),
   vatRate: z.number().min(0, "IVA non può essere negativa").max(100, "IVA non può essere maggiore di 100"),
@@ -47,9 +47,7 @@ function SettingsDetails() {
       const updated = data.settings.updateBusinessSettings;
       const parsed = {
         ...updated,
-        operatingDays: typeof updated.operatingDays === "string"
-          ? JSON.parse(updated.operatingDays)
-          : updated.operatingDays,
+        operatingDays: typeof updated.operatingDays === "string" ? JSON.parse(updated.operatingDays) : updated.operatingDays,
       };
 
       // Aggiorna lo store globale per riflettere subito le modifiche (es. calendario)
@@ -88,12 +86,14 @@ function SettingsDetails() {
 
   const handleResetForm = useCallback(
     async (hasChanges: boolean) => {
-      const confirmed = !hasChanges || await onConfirm({
-        title: "Impostazioni",
-        content: "Sei sicuro di voler annullare le modifiche?",
-        acceptLabel: "Si",
-        cancelLabel: "No",
-      });
+      const confirmed =
+        !hasChanges ||
+        (await onConfirm({
+          title: "Impostazioni",
+          content: "Sei sicuro di voler annullare le modifiche?",
+          acceptLabel: "Si",
+          cancelLabel: "No",
+        }));
       if (!confirmed) {
         return;
       }
@@ -146,9 +146,7 @@ function SettingsDetails() {
   if (error) {
     return (
       <Container maxWidth="sm" sx={{ marginTop: 4 }}>
-        <Alert severity="error">
-          Errore nel caricamento delle impostazioni: {error.message}
-        </Alert>
+        <Alert severity="error">Errore nel caricamento delle impostazioni: {error.message}</Alert>
       </Container>
     );
   }
@@ -166,14 +164,7 @@ function SettingsDetails() {
   };
 
   return (
-    <Formik
-      innerRef={formRef}
-      initialValues={initialValues}
-      enableReinitialize
-      validate={validate}
-      onSubmit={handleSubmit}
-      initialStatus={{ formStatus: formStatuses.UPDATE, isFormLocked: true }}
-    >
+    <Formik innerRef={formRef} initialValues={initialValues} enableReinitialize validate={validate} onSubmit={handleSubmit} initialStatus={{ formStatus: formStatuses.UPDATE, isFormLocked: true }}>
       {() => (
         <Form style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 64px)" }}>
           <FormikToolbar

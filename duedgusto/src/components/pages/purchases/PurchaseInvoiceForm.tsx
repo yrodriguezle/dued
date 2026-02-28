@@ -12,10 +12,7 @@ import Datagrid from "../../common/datagrid/Datagrid";
 import { DatagridColDef, DatagridData } from "../../common/datagrid/@types/Datagrid";
 import { formStatuses } from "../../../common/globals/constants";
 import showToast from "../../../common/toast/showToast";
-import {
-  mutationMutateDeliveryNote,
-  mutationMutateSupplierPayment,
-} from "../../../graphql/suppliers/mutations";
+import { mutationMutateDeliveryNote, mutationMutateSupplierPayment } from "../../../graphql/suppliers/mutations";
 import { FormikPurchaseInvoiceValues } from "./PurchaseInvoiceDetails";
 
 type DeliveryNoteRow = {
@@ -226,13 +223,7 @@ function PurchaseInvoiceForm({ onSelectSupplier, onSelectInvoice, deliveryNotes,
             />
           </Grid>
           <Grid item xs={12} md={4} sx={{ display: "flex", alignItems: "center" }}>
-            {isUpdate && values.invoiceStatus && (
-              <Chip
-                label={statusLabelMap[values.invoiceStatus] ?? values.invoiceStatus}
-                color={statusColorMap[values.invoiceStatus] ?? "default"}
-                size="medium"
-              />
-            )}
+            {isUpdate && values.invoiceStatus && <Chip label={statusLabelMap[values.invoiceStatus] ?? values.invoiceStatus} color={statusColorMap[values.invoiceStatus] ?? "default"} size="medium" />}
           </Grid>
         </Grid>
       </Paper>

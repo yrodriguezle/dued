@@ -7,9 +7,7 @@ interface UseInitializeValuesProps {
   skipInitialize?: boolean;
 }
 
-function useInitializeValues({
-  skipInitialize,
-}: UseInitializeValuesProps) {
+function useInitializeValues({ skipInitialize }: UseInitializeValuesProps) {
   const initialized = useRef(false);
 
   const getDefaultInitialValues = useCallback(() => {

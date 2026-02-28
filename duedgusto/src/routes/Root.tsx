@@ -17,9 +17,7 @@ function Root() {
   const { userTheme } = useTheme();
 
   // Use shallow comparison to only re-render when any inProgress value actually changes
-  const isLoading = useStore(
-    useShallow((store) => Object.values(store.inProgress).some((value) => value === true))
-  );
+  const isLoading = useStore(useShallow((store) => Object.values(store.inProgress).some((value) => value === true)));
 
   // Memoize context value to prevent unnecessary re-renders of consumers
   const pageTitleContextValue = useMemo(() => ({ title, setTitle }), [title]);

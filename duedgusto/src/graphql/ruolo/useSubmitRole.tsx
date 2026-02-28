@@ -1,8 +1,8 @@
-import { useMutation } from "@apollo/client"
+import { useMutation } from "@apollo/client";
 import { mutationSubmitRuolo, SubmitRuoloValues } from "./mutations";
 
 function useSubmitRuolo() {
-  const [mutate, { data, error, loading}] = useMutation(mutationSubmitRuolo);
+  const [mutate, { data, error, loading }] = useMutation(mutationSubmitRuolo);
 
   const submitRuolo = async (variables: SubmitRuoloValues) => {
     const result = await mutate({
@@ -22,4 +22,4 @@ function useSubmitRuolo() {
   };
 }
 
-export default useSubmitRuolo
+export default useSubmitRuolo;

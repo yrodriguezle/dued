@@ -4,8 +4,8 @@ import InputAdornment from "@mui/material/InputAdornment";
 import IconButton from "@mui/material/IconButton";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import CircularProgress from '@mui/material/CircularProgress';
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import CircularProgress from "@mui/material/CircularProgress";
 import { GridReadyEvent } from "ag-grid-community";
 
 import { SearchboxOptions } from "../../../../@types/searchbox";
@@ -46,13 +46,10 @@ function Searchbox<T extends Record<string, unknown>>({ id, name, value, orderBy
     orderBy,
   });
 
-  const {
-    items,
-    loading,
-  } = useFetchData({
+  const { items, loading } = useFetchData({
     query,
     variables,
-    skip: (innerValue || '').toString().trim().length === 0,
+    skip: (innerValue || "").toString().trim().length === 0,
   });
 
   // Modal query - loads all items
@@ -65,10 +62,7 @@ function Searchbox<T extends Record<string, unknown>>({ id, name, value, orderBy
     pageSize: 100,
   });
 
-  const {
-    items: modalItems,
-    loading: modalLoading,
-  } = useFetchData({
+  const { items: modalItems, loading: modalLoading } = useFetchData({
     query: modalQuery,
     variables: modalVariables,
     skip: !modalOpen,
@@ -185,13 +179,7 @@ function Searchbox<T extends Record<string, unknown>>({ id, name, value, orderBy
                 {loading ? (
                   <CircularProgress size={20} />
                 ) : (
-                  <IconButton
-                    tabIndex={-1}
-                    edge="end"
-                    disabled={props.disabled}
-                    onClick={handleOpenModal}
-                    onMouseDown={(e) => e.preventDefault()}
-                  >
+                  <IconButton tabIndex={-1} edge="end" disabled={props.disabled} onClick={handleOpenModal} onMouseDown={(e) => e.preventDefault()}>
                     <ExpandMoreIcon />
                   </IconButton>
                 )}
@@ -205,7 +193,7 @@ function Searchbox<T extends Record<string, unknown>>({ id, name, value, orderBy
       />
       {resultsVisible && (
         <>
-          {!loading && (innerValue || '').toString().trim().length > 2 && (!items || items.length === 0) ? (
+          {!loading && (innerValue || "").toString().trim().length > 2 && (!items || items.length === 0) ? (
             <Paper
               elevation={8}
               sx={{
@@ -224,14 +212,7 @@ function Searchbox<T extends Record<string, unknown>>({ id, name, value, orderBy
               </Typography>
             </Paper>
           ) : (
-            <ContainerGridResults<T>
-              searchBoxId={searchBoxId}
-              loading={loading}
-              items={items}
-              columnDefs={options.items}
-              onGridReady={handleResultGridReady}
-              onSelectedItem={handleSelectedItem}
-            />
+            <ContainerGridResults<T> searchBoxId={searchBoxId} loading={loading} items={items} columnDefs={options.items} onGridReady={handleResultGridReady} onSelectedItem={handleSelectedItem} />
           )}
         </>
       )}

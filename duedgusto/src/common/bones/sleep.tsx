@@ -6,4 +6,4 @@ function sleep(milliseconds: number): Promise<boolean> {
   });
 }
 
-export default sleep
+export default sleep;

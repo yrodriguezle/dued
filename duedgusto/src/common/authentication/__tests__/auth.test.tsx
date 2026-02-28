@@ -1,15 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import {
-  getAuthToken,
-  setAuthToken,
-  isAuthenticated,
-  getAuthHeaders,
-  decodeJwtPayload,
-  removeAuthToken,
-  setRememberPassword,
-  hasRememberPassword,
-  removeRememberPassword,
-} from "../auth";
+import { getAuthToken, setAuthToken, isAuthenticated, getAuthHeaders, decodeJwtPayload, removeAuthToken, setRememberPassword, hasRememberPassword, removeRememberPassword } from "../auth";
 
 /**
  * Helper per creare un JWT valido di test.

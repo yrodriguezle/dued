@@ -9,7 +9,7 @@ import setInitialFocus from "./setInitialFocus";
 import { RuoloNonNull } from "../../common/form/searchbox/searchboxOptions/ruoloSearchboxOptions";
 import FormikToolbar from "../../common/form/toolbar/FormikToolbar";
 import RoleForm from "./RoleForm";
-import { Box, Paper, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import useSubmitRuolo from "../../../graphql/ruolo/useSubmitRole";
 import showToast from "../../../common/toast/showToast";
 import useGetAll from "../../../graphql/common/useGetAll";
@@ -64,15 +64,16 @@ function RoleDetails() {
     fetchPolicy: "network-only",
   });
 
-
   const handleResetForm = useCallback(
     async (hasChanges: boolean) => {
-      const confirmed = !hasChanges || await onConfirm({
-        title: "Gestione ruolo",
-        content: "Sei sicuro di voler annullare le modifiche?",
-        acceptLabel: "Si",
-        cancelLabel: "No",
-      });
+      const confirmed =
+        !hasChanges ||
+        (await onConfirm({
+          title: "Gestione ruolo",
+          content: "Sei sicuro di voler annullare le modifiche?",
+          acceptLabel: "Si",
+          cancelLabel: "No",
+        }));
       if (!confirmed) {
         return;
       }
@@ -86,22 +87,25 @@ function RoleDetails() {
       await sleep(200);
       setInitialFocus();
     },
-    [handleInitializeValues, onConfirm],
+    [handleInitializeValues, onConfirm]
   );
 
   const handleGridReady = useCallback((event: GridReadyEvent<DatagridData<MenuNonNull>>) => {
     gridRef.current = event;
   }, []);
 
-  const handleSelectedItem = useCallback((item: RuoloNonNull) => {
-    handleInitializeValues(item).then(() => {
-      setSelectedRuolo(item);
-      formRef.current?.setStatus({
-        formStatus: formStatuses.UPDATE,
-        isFormLocked: true,
+  const handleSelectedItem = useCallback(
+    (item: RuoloNonNull) => {
+      handleInitializeValues(item).then(() => {
+        setSelectedRuolo(item);
+        formRef.current?.setStatus({
+          formStatus: formStatuses.UPDATE,
+          isFormLocked: true,
+        });
       });
-    });
-  }, [handleInitializeValues]);
+    },
+    [handleInitializeValues]
+  );
 
   useEffect(() => {
     if (ruoloId && ruoli.length > 0) {
@@ -172,26 +176,15 @@ function RoleDetails() {
     >
       {() => (
         <Form noValidate>
-          <FormikToolbar
-            onFormReset={handleResetForm}
-          />
-          <Box className="scrollable-box" sx={{ marginTop: 1, paddingX: 2, overflow: 'auto', height: 'calc(100vh - 64px - 41px)' }}>
+          <FormikToolbar onFormReset={handleResetForm} />
+          <Box className="scrollable-box" sx={{ marginTop: 1, paddingX: 2, overflow: "auto", height: "calc(100vh - 64px - 41px)" }}>
             <Typography id="view-title" variant="h5" gutterBottom>
               {title}
             </Typography>
-            <Paper sx={{ padding: 1 }}>
-              <RoleForm
-                menus={data}
-                onSelectItem={handleSelectedItem}
-              />
-            </Paper>
-            <Paper sx={{ marginTop: 2, padding: 1 }}>
-              <RoleMenus
-                menus={data}
-                onGridReady={handleGridReady}
-                selectedIds={selectedRuolo?.menuIds}
-              />
-            </Paper>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
+              <RoleForm onSelectItem={handleSelectedItem} />
+              <RoleMenus menus={data} onGridReady={handleGridReady} selectedIds={selectedRuolo?.menuIds} />
+            </Box>
           </Box>
         </Form>
       )}

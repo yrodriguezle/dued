@@ -5,9 +5,7 @@ interface UseInitializeValuesProps {
   skipInitialize?: boolean;
 }
 
-function useInitializeValues({
-  skipInitialize,
-}: UseInitializeValuesProps) {
+function useInitializeValues({ skipInitialize }: UseInitializeValuesProps) {
   const initialized = useRef(false);
 
   const getDefaultInitialValues = useCallback(() => {
@@ -26,13 +24,10 @@ function useInitializeValues({
 
   const [initialValues, setInitialValues] = useState<BusinessSettings>(getDefaultInitialValues());
 
-  const handleInitializeValues = useCallback(
-    async (values?: Partial<BusinessSettings>) => {
-      setInitialValues((prev) => mergeWithDefaults(values, prev));
-      return true;
-    },
-    []
-  );
+  const handleInitializeValues = useCallback(async (values?: Partial<BusinessSettings>) => {
+    setInitialValues((prev) => mergeWithDefaults(values, prev));
+    return true;
+  }, []);
 
   useEffect(() => {
     if (!skipInitialize && !initialized.current) {

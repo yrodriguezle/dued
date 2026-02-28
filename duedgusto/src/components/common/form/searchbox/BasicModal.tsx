@@ -23,12 +23,7 @@ export default function BasicModal() {
       <Button variant="contained" onClick={handleOpen}>
         Apri Modal
       </Button>
-      <Modal
-        open={open}
-        onClose={handleClose}
-        aria-labelledby="modal-titolo"
-        aria-describedby="modal-descrizione"
-      >
+      <Modal open={open} onClose={handleClose} aria-labelledby="modal-titolo" aria-describedby="modal-descrizione">
         <Box sx={style}>
           <Typography id="modal-titolo" variant="h6" component="h2">
             Titolo della Modal
@@ -36,12 +31,7 @@ export default function BasicModal() {
           <Typography id="modal-descrizione" sx={{ mt: 2 }}>
             Questo è un esempio di contenuto dentro una Modal di MUI.
           </Typography>
-          <Button
-            variant="outlined"
-            color="primary"
-            sx={{ mt: 3 }}
-            onClick={handleClose}
-          >
+          <Button variant="outlined" color="primary" sx={{ mt: 3 }} onClick={handleClose}>
             Chiudi
           </Button>
         </Box>

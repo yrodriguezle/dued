@@ -108,13 +108,7 @@ function OperatingHoursSection({ errors, touched }: OperatingHoursSectionProps) 
         </Grid>
 
         <Grid item xs={12}>
-          <FormikTextField
-            name="businessName"
-            label="Nome Attività"
-            error={touched.businessName && !!errors.businessName}
-            helperText={touched.businessName && errors.businessName}
-            fullWidth
-          />
+          <FormikTextField name="businessName" label="Nome Attività" error={touched.businessName && !!errors.businessName} helperText={touched.businessName && errors.businessName} fullWidth />
         </Grid>
       </Grid>
     </Paper>

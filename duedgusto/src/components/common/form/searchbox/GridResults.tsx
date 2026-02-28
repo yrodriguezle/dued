@@ -16,21 +16,28 @@ function GridResults<T extends Record<string, unknown>>({ loading, items, column
   const gridRef = useRef<DatagridGridReadyEvent<T> | null>(null);
 
   // Wrapper i dati con DatagridData
-  const wrappedItems = useMemo<DatagridData<T>[]>(() =>
-    items.map(item => ({
-      ...item,
-      status: DatagridStatus.Valid
-    } as DatagridData<T>))
-  , [items]);
+  const wrappedItems = useMemo<DatagridData<T>[]>(
+    () =>
+      items.map(
+        (item) =>
+          ({
+            ...item,
+            status: DatagridStatus.Valid,
+          }) as DatagridData<T>
+      ),
+    [items]
+  );
 
   // Converte ColDef<T> in ColDef<DatagridData<T>> mappando i field
-  const wrappedColumnDefs = useMemo(() =>
-    columnDefs.map(col => ({
-      ...col,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      field: col.field as any, // Cast necessario per compatibilità tipi ColDef<T> -> ColDef<DatagridData<T>>
-    }))
-  , [columnDefs]);
+  const wrappedColumnDefs = useMemo(
+    () =>
+      columnDefs.map((col) => ({
+        ...col,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        field: col.field as any, // Cast necessario per compatibilità tipi ColDef<T> -> ColDef<DatagridData<T>>
+      })),
+    [columnDefs]
+  );
 
   const handleGridReady = useCallback(
     (event: DatagridGridReadyEvent<T>) => {

@@ -27,12 +27,7 @@ interface UseCashCountDataResult {
  * Hook che prepara i dati per le griglie di apertura e chiusura cassa
  * Viene chiamato una sola volta da CashRegisterDetails
  */
-function useCashCountData({
-  denominations,
-  openingCounts,
-  closingCounts
-}: UseCashCountDataProps): UseCashCountDataResult {
-
+function useCashCountData({ denominations, openingCounts, closingCounts }: UseCashCountDataProps): UseCashCountDataResult {
   // Prepara i dati per la griglia di apertura (escludi banconote grandi)
   const openingRowData = useMemo(() => {
     const coins = denominations.filter((d) => d.tipo === "COIN");

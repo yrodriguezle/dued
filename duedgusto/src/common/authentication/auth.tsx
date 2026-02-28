@@ -24,24 +24,13 @@ export const decodeJwtPayload = (token: string): Record<string, unknown> | null 
 };
 
 /**
- * Verifica se l'utente è autenticato controllando:
- * 1. Che esista un token JWT in localStorage
- * 2. Che il token non sia scaduto (claim "exp")
+ * Verifica se l'utente è autenticato controllando l'esistenza del token JWT in localStorage.
+ * Non controlla la scadenza: è responsabilità del server (ACCESS_DENIED) e del meccanismo
+ * di refresh (Apollo error link + tokenRefreshManager) gestire i token scaduti.
  */
 export const isAuthenticated = (): boolean => {
-  try {
-    const authToken = getAuthToken();
-    if (!authToken?.token) return false;
-
-    const payload = decodeJwtPayload(authToken.token);
-    if (!payload || typeof payload.exp !== "number") return false;
-
-    // exp è in secondi Unix, Date.now() è in millisecondi
-    const nowInSeconds = Math.floor(Date.now() / 1000);
-    return payload.exp > nowInSeconds;
-  } catch {
-    return false;
-  }
+  const authToken = getAuthToken();
+  return !!authToken?.token;
 };
 
 export const setAuthToken = (accessTokenAndrefreshToken: AuthToken) => {

@@ -379,7 +379,18 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
 
   return (
     <Box sx={{ height, display: "flex", flexDirection: "column" }}>
-      {!isPresentation && (!hideToolbar || additionalToolbarButtons) && <DatagridToolbar canAddNewRow={canAddNewRow} readOnly={readOnly} hasSelectedRow={hasSelectedRow} hideStandardButtons={hideToolbar} gridRef={gridRef} onAdd={handleAddNewRow} onDelete={handleDeleteSelected} additionalButtons={additionalToolbarButtons} />}
+      {!isPresentation && (!hideToolbar || additionalToolbarButtons) && (
+        <DatagridToolbar
+          canAddNewRow={canAddNewRow}
+          readOnly={readOnly}
+          hasSelectedRow={hasSelectedRow}
+          hideStandardButtons={hideToolbar}
+          gridRef={gridRef}
+          onAdd={handleAddNewRow}
+          onDelete={handleDeleteSelected}
+          additionalButtons={additionalToolbarButtons}
+        />
+      )}
       <Box sx={{ flex: 1 }} className="datagrid-root">
         <AgGrid<DatagridData<T>>
           {...gridProps}

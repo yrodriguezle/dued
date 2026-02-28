@@ -49,7 +49,6 @@ function useTabNavigation<T extends Record<string, unknown>>(props: UseTabNaviga
     (event: CellKeyDownEvent<DatagridData<T>>) => {
       const { event: keyboardEvent, api, node, column } = event;
 
-
       // Gestisci solo il tasto Tab (non Shift+Tab)
       if (!keyboardEvent || !("key" in keyboardEvent) || !("shiftKey" in keyboardEvent)) {
         return;

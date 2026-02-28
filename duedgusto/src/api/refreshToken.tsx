@@ -10,7 +10,7 @@ const defaultServices = {
 const MAX_RETRIES = 3;
 const INITIAL_DELAY_MS = 1000; // 1 second
 
-const delay = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
+const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
 const getBackoffDelay = (retryCount: number): number => {
   return INITIAL_DELAY_MS * Math.pow(2, retryCount);

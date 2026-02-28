@@ -38,14 +38,7 @@ function DeliveryNoteForm({ onSelectSupplier, onSelectInvoice }: DeliveryNoteFor
             <FormikTextField name="ddtNumber" label="Numero DDT *" fullWidth />
           </Grid>
           <Grid item xs={12} md={3}>
-            <FormikTextField
-              name="ddtDate"
-              label="Data DDT *"
-              type="date"
-              fullWidth
-              slotProps={{ inputLabel: { shrink: true } }}
-              sx={{ "& input": { colorScheme: dateColorScheme } }}
-            />
+            <FormikTextField name="ddtDate" label="Data DDT *" type="date" fullWidth slotProps={{ inputLabel: { shrink: true } }} sx={{ "& input": { colorScheme: dateColorScheme } }} />
           </Grid>
         </Grid>
       </Paper>
@@ -57,13 +50,7 @@ function DeliveryNoteForm({ onSelectSupplier, onSelectInvoice }: DeliveryNoteFor
         </Typography>
         <Grid container spacing={2}>
           <Grid item xs={12} md={3}>
-            <FormikTextField
-              name="amount"
-              label="Importo"
-              type="number"
-              fullWidth
-              slotProps={{ htmlInput: { step: "0.01", min: "0" } }}
-            />
+            <FormikTextField name="amount" label="Importo" type="number" fullWidth slotProps={{ htmlInput: { step: "0.01", min: "0" } }} />
           </Grid>
           <Grid item xs={12} md={9}>
             <FormikSearchbox<FormikDeliveryNoteValues, PurchaseInvoiceSearchbox>

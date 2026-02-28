@@ -25,7 +25,9 @@
       "Bash(timeout /t 5)",
       "Bash(find:*)",
       "Bash(grep:*)",
-      "Bash(cut:*)"
+      "Bash(cut:*)",
+      "Bash(npx prettier --write \"src/**/*.{tsx,ts,json,css,html}\")",
+      "Bash(npx prettier --write \"*.json\" \".prettierrc.json\" \"tsconfig*.json\" \"vite.config.ts\" \"eslint.config.js\")"
     ],
     "deny": [],
     "ask": []

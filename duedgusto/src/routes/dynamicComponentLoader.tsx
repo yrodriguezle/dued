@@ -4,10 +4,7 @@ import React, { ComponentType, LazyExoticComponent } from "react";
  * Mappa dei componenti disponibili per il caricamento dinamico.
  * Questa mappa viene popolata automaticamente usando import.meta.glob di Vite.
  */
-const componentModules = import.meta.glob<{ default: ComponentType<unknown> }>(
-  "../components/pages/**/*.tsx",
-  { eager: false }
-);
+const componentModules = import.meta.glob<{ default: ComponentType<unknown> }>("../components/pages/**/*.tsx", { eager: false });
 
 /**
  * Cache per i componenti già caricati per evitare chiamate duplicate

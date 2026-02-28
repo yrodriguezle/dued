@@ -50,11 +50,7 @@ describe("makeRequest", () => {
   });
 
   // Helper per creare mock Response
-  const createMockResponse = (
-    status: number,
-    body?: unknown,
-    options?: { contentLength?: string }
-  ) => {
+  const createMockResponse = (status: number, body?: unknown, options?: { contentLength?: string }) => {
     const responseText = body !== undefined ? JSON.stringify(body) : "";
     return {
       ok: status >= 200 && status < 300,
@@ -105,9 +101,7 @@ describe("makeRequest", () => {
     });
 
     it("dovrebbe restituire null quando content-length e' 0", async () => {
-      mockFetch.mockResolvedValueOnce(
-        createMockResponse(200, undefined, { contentLength: "0" })
-      );
+      mockFetch.mockResolvedValueOnce(createMockResponse(200, undefined, { contentLength: "0" }));
 
       const result = await makeRequest({ path: "test/endpoint", method: "GET" });
 
@@ -202,9 +196,7 @@ describe("makeRequest", () => {
     it("dovrebbe attivare il refresh del token su risposta 401", async () => {
       vi.mocked(executeTokenRefresh).mockResolvedValueOnce(true);
       // Prima chiamata: 401, seconda (retry dopo refresh): 200
-      mockFetch
-        .mockResolvedValueOnce(createMockResponse(401))
-        .mockResolvedValueOnce(createMockResponse(200, { data: "retried" }));
+      mockFetch.mockResolvedValueOnce(createMockResponse(401)).mockResolvedValueOnce(createMockResponse(200, { data: "retried" }));
 
       const result = await makeRequest({ path: "test/endpoint", method: "GET" });
 
@@ -229,9 +221,7 @@ describe("makeRequest", () => {
       mockFetch.mockResolvedValueOnce(response401);
 
       // Con failOnForbidden=true, il codice non entra nel blocco 401+refresh
-      await expect(
-        makeRequest({ path: "test/endpoint", method: "GET", failOnForbidden: true })
-      ).rejects.toThrow("Non autorizzato");
+      await expect(makeRequest({ path: "test/endpoint", method: "GET", failOnForbidden: true })).rejects.toThrow("Non autorizzato");
 
       expect(executeTokenRefresh).not.toHaveBeenCalled();
     });
@@ -244,13 +234,11 @@ describe("makeRequest", () => {
       retryResponse.json.mockResolvedValue(retryErrorJson);
 
       mockFetch
-        .mockResolvedValueOnce(createMockResponse(401))  // Prima richiesta
-        .mockResolvedValueOnce(retryResponse);             // Retry dopo refresh
+        .mockResolvedValueOnce(createMockResponse(401)) // Prima richiesta
+        .mockResolvedValueOnce(retryResponse); // Retry dopo refresh
 
       // Il retry riceve 401, ma con failOnForbidden=true non tenta il refresh
-      await expect(
-        makeRequest({ path: "test/endpoint", method: "GET" })
-      ).rejects.toThrow("Ancora non autorizzato");
+      await expect(makeRequest({ path: "test/endpoint", method: "GET" })).rejects.toThrow("Ancora non autorizzato");
 
       expect(executeTokenRefresh).toHaveBeenCalledOnce();
     });
@@ -262,9 +250,7 @@ describe("makeRequest", () => {
     it("dovrebbe lanciare un errore 'Richiesta non autorizzata' per 403", async () => {
       mockFetch.mockResolvedValueOnce(createMockResponse(403));
 
-      await expect(
-        makeRequest({ path: "test/endpoint", method: "GET" })
-      ).rejects.toThrow("Richiesta non autorizzata");
+      await expect(makeRequest({ path: "test/endpoint", method: "GET" })).rejects.toThrow("Richiesta non autorizzata");
     });
   });
 
@@ -277,9 +263,7 @@ describe("makeRequest", () => {
       response.json.mockResolvedValue(errorResponse);
       mockFetch.mockResolvedValueOnce(response);
 
-      await expect(
-        makeRequest({ path: "test/endpoint", method: "GET" })
-      ).rejects.toThrow("Errore personalizzato dal server");
+      await expect(makeRequest({ path: "test/endpoint", method: "GET" })).rejects.toThrow("Errore personalizzato dal server");
     });
 
     it("dovrebbe usare un messaggio di fallback quando la risposta JSON non ha message", async () => {
@@ -288,9 +272,7 @@ describe("makeRequest", () => {
       response.json.mockResolvedValue(errorResponse);
       mockFetch.mockResolvedValueOnce(response);
 
-      await expect(
-        makeRequest({ path: "test/endpoint", method: "GET" })
-      ).rejects.toThrow("Errore nella risposta del server");
+      await expect(makeRequest({ path: "test/endpoint", method: "GET" })).rejects.toThrow("Errore nella risposta del server");
     });
   });
 });

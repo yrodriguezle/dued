@@ -89,13 +89,7 @@ function SupplierForm({ onSelectItem }: SupplierFormProps) {
         </Typography>
         <Grid container spacing={2}>
           <Grid item xs={12}>
-            <FormikTextField
-              name="notes"
-              label="Note"
-              fullWidth
-              multiline
-              rows={4}
-            />
+            <FormikTextField name="notes" label="Note" fullWidth multiline rows={4} />
           </Grid>
         </Grid>
       </Paper>

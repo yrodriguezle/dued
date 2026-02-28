@@ -14,7 +14,9 @@
     "postinstall": "patch-package",
     "ts:check": "tsc -b",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "format": "prettier --write \"src/**/*.{tsx,ts,json,css,html}\"",
+    "format:check": "prettier --check \"src/**/*.{tsx,ts,json,css,html}\""
   },
   "dependencies": {
     "@apollo/client": "^3.13.4",

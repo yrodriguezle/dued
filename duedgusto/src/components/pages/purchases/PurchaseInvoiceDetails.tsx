@@ -42,15 +42,14 @@ const mapInvoiceToFormValues = (invoice: PurchaseInvoice): Partial<FormikPurchas
   invoiceDate: invoice.invoiceDate ? invoice.invoiceDate.split("T")[0] : "",
   dueDate: invoice.dueDate ? invoice.dueDate.split("T")[0] : "",
   taxableAmount: invoice.taxableAmount,
-  vatRate:
-    invoice.vatAmount != null && invoice.taxableAmount
-      ? Math.round((invoice.vatAmount / invoice.taxableAmount) * 100 * 100) / 100
-      : 22,
+  vatRate: invoice.vatAmount != null && invoice.taxableAmount ? Math.round((invoice.vatAmount / invoice.taxableAmount) * 100 * 100) / 100 : 22,
   notes: invoice.notes ?? "",
   invoiceStatus: invoice.invoiceStatus,
 });
 
-const mapFormValuesToInput = (values: FormikPurchaseInvoiceValues): {
+const mapFormValuesToInput = (
+  values: FormikPurchaseInvoiceValues
+): {
   invoiceId?: number;
   supplierId: number;
   invoiceNumber: string;
@@ -164,13 +163,10 @@ function PurchaseInvoiceDetails() {
     [onConfirm, location.search, loadInvoiceData, handleInitializeValues]
   );
 
-  const handleSelectSupplier = useCallback(
-    (item: SupplierSearchbox) => {
-      formRef.current?.setFieldValue("supplierId", item.supplierId);
-      formRef.current?.setFieldValue("supplierName", item.businessName);
-    },
-    []
-  );
+  const handleSelectSupplier = useCallback((item: SupplierSearchbox) => {
+    formRef.current?.setFieldValue("supplierId", item.supplierId);
+    formRef.current?.setFieldValue("supplierName", item.businessName);
+  }, []);
 
   const handleSelectInvoice = useCallback(
     (item: PurchaseInvoiceSearchbox) => {
@@ -230,20 +226,11 @@ function PurchaseInvoiceDetails() {
       {() => (
         <Form noValidate>
           <FormikToolbar onFormReset={handleResetForm} />
-          <Box
-            className="scrollable-box"
-            sx={{ marginTop: 1, paddingX: 2, overflow: "auto", height: "calc(100vh - 64px - 41px)" }}
-          >
+          <Box className="scrollable-box" sx={{ marginTop: 1, paddingX: 2, overflow: "auto", height: "calc(100vh - 64px - 41px)" }}>
             <Typography id="view-title" variant="h5" gutterBottom>
               {title}
             </Typography>
-            <PurchaseInvoiceForm
-              onSelectSupplier={handleSelectSupplier}
-              onSelectInvoice={handleSelectInvoice}
-              deliveryNotes={deliveryNotes}
-              payments={supplierPayments}
-              onRefresh={handleRefresh}
-            />
+            <PurchaseInvoiceForm onSelectSupplier={handleSelectSupplier} onSelectInvoice={handleSelectInvoice} deliveryNotes={deliveryNotes} payments={supplierPayments} onRefresh={handleRefresh} />
           </Box>
         </Form>
       )}

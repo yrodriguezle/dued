@@ -1,26 +1,25 @@
-import { Box, Grid } from "@mui/material";
+import { Grid, Paper, Typography } from "@mui/material";
 import ruoloSearchboxOptions, { RuoloNonNull } from "../../common/form/searchbox/searchboxOptions/ruoloSearchboxOptions";
 import FormikSearchbox from "../../common/form/searchbox/FormikSearchbox";
 import { FormikRuoloValues } from "./RoleDetails";
 import FormikTextField from "../../common/form/FormikTextField";
-import { MenuNonNull } from "../../common/form/searchbox/searchboxOptions/menuSearchboxOptions";
 
 interface RoleFormProps {
-  menus?: MenuNonNull[];
   onSelectItem: (item: RuoloNonNull) => void;
 }
 
-function RoleForm(props: RoleFormProps) {
-  const { onSelectItem } = props;
+function RoleForm({ onSelectItem }: RoleFormProps) {
   return (
-    <Grid container spacing={2} sx={{ marginTop: 0, paddingX: 3 }}>
-      <Grid xs={12} sm={8}>
-        <Box>
+    <Paper variant="outlined" sx={{ p: 2.5 }}>
+      <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+        Dati Ruolo
+      </Typography>
+      <Grid container spacing={2}>
+        <Grid item xs={12} md={6}>
           <FormikSearchbox<FormikRuoloValues, RuoloNonNull>
-            label="Nome ruolo:"
+            label="Nome ruolo *"
             placeholder="Nome ruolo"
             name="nome"
-            margin="normal"
             autoComplete="off"
             autoFocus
             required
@@ -29,19 +28,13 @@ function RoleForm(props: RoleFormProps) {
             options={ruoloSearchboxOptions}
             onSelectItem={onSelectItem}
           />
-          <FormikTextField
-            label="Descrizione:"
-            placeholder="Descrizione"
-            name="descrizione"
-            margin="normal"
-            autoComplete="off"
-            required
-            fullWidth
-          />
-        </Box>
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <FormikTextField label="Descrizione" placeholder="Descrizione" name="descrizione" autoComplete="off" fullWidth />
+        </Grid>
       </Grid>
-    </Grid>
-  )
+    </Paper>
+  );
 }
 
-export default RoleForm
+export default RoleForm;

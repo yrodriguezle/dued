@@ -3,9 +3,7 @@ import { MenuItem } from "../../components/layout/sideBar/NestedList";
 import { navigateTo } from "../navigator/navigator";
 
 const createMenuItem = (menu: Menu, menus: Menu[]): MenuItem => {
-  const children = menus
-    .filter((m) => m?.menuPadreId === menu?.id)
-    .sort((a, b) => (a?.posizione ?? 0) - (b?.posizione ?? 0));
+  const children = menus.filter((m) => m?.menuPadreId === menu?.id).sort((a, b) => (a?.posizione ?? 0) - (b?.posizione ?? 0));
   const path = menu?.percorso || "";
   return {
     label: menu?.titolo || "",
@@ -21,9 +19,7 @@ const createMenuItem = (menu: Menu, menus: Menu[]): MenuItem => {
 };
 
 function createDataTree(dataset: Menu[]): MenuItem[] {
-  const paretns: Menu[] = dataset
-    .filter((menu) => !menu?.menuPadreId)
-    .sort((a, b) => (a?.posizione ?? 0) - (b?.posizione ?? 0));
+  const paretns: Menu[] = dataset.filter((menu) => !menu?.menuPadreId).sort((a, b) => (a?.posizione ?? 0) - (b?.posizione ?? 0));
   return paretns.map((menu) => createMenuItem(menu, dataset));
 }
 

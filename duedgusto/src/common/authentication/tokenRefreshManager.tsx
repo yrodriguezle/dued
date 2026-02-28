@@ -32,7 +32,7 @@ export async function executeTokenRefresh(): Promise<boolean> {
   // Crea una nuova promise di refresh
   refreshPromise = refreshToken()
     .then((success) => {
-      logger.log(`Token refresh ${success ? 'succeeded' : 'failed'}`);
+      logger.log(`Token refresh ${success ? "succeeded" : "failed"}`);
       // Notifica tutti i callback in attesa
       pendingCallbacks.forEach((callback) => callback(success));
       pendingCallbacks = [];

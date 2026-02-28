@@ -26,13 +26,10 @@ export const getChiusureMensili: TypedDocumentNode<GetChiusureMensiliData, GetCh
 `;
 
 export const useQueryChiusureMensili = ({ anno }: { anno: number }) => {
-  const { data, loading, error, refetch } = useQuery<GetChiusureMensiliData>(
-    getChiusureMensili,
-    {
-      variables: { anno },
-      skip: !anno,
-    }
-  );
+  const { data, loading, error, refetch } = useQuery<GetChiusureMensiliData>(getChiusureMensili, {
+    variables: { anno },
+    skip: !anno,
+  });
 
   return {
     chiusureMensili: data?.chiusureMensili.chiusureMensili || [],
@@ -66,13 +63,10 @@ export const getChiusuraMensileById: TypedDocumentNode<GetChiusuraMensileData, G
 `;
 
 export const useQueryChiusuraMensile = ({ chiusuraId }: { chiusuraId: number }) => {
-  const { data, loading, error, refetch } = useQuery<GetChiusuraMensileData>(
-    getChiusuraMensileById,
-    {
-      variables: { chiusuraId },
-      skip: !chiusuraId,
-    }
-  );
+  const { data, loading, error, refetch } = useQuery<GetChiusuraMensileData>(getChiusuraMensileById, {
+    variables: { chiusuraId },
+    skip: !chiusuraId,
+  });
 
   return {
     chiusuraMensile: data?.chiusureMensili.chiusuraMensile,
@@ -106,18 +100,12 @@ export const getValidaCompletezzaRegistri: TypedDocumentNode<ValidaCompletezzaRe
 const EMPTY_GIORNI: string[] = [];
 
 export const useQueryValidaCompletezzaRegistri = ({ anno, mese, skip }: { anno: number; mese: number; skip?: boolean }) => {
-  const { data, loading, error, refetch } = useQuery<ValidaCompletezzaRegistriData>(
-    getValidaCompletezzaRegistri,
-    {
-      variables: { anno, mese },
-      skip: skip || !anno || !mese,
-    }
-  );
+  const { data, loading, error, refetch } = useQuery<ValidaCompletezzaRegistriData>(getValidaCompletezzaRegistri, {
+    variables: { anno, mese },
+    skip: skip || !anno || !mese,
+  });
 
-  const giorniMancanti = useMemo(
-    () => data?.chiusureMensili.validaCompletezzaRegistri ?? EMPTY_GIORNI,
-    [data?.chiusureMensili.validaCompletezzaRegistri]
-  );
+  const giorniMancanti = useMemo(() => data?.chiusureMensili.validaCompletezzaRegistri ?? EMPTY_GIORNI, [data?.chiusureMensili.validaCompletezzaRegistri]);
 
   return {
     giorniMancanti,

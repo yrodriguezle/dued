@@ -88,11 +88,14 @@ function RoleList() {
     }
   }, [selectedRows, onConfirm]);
 
-  const handleRowDoubleClick = useCallback((event: DatagridRowDoubleClickedEvent<RuoloNonNull>) => {
-    if (event.data) {
-      navigate(`/gestionale/roles-details?ruoloId=${event.data.id}`);
-    }
-  }, [navigate]);
+  const handleRowDoubleClick = useCallback(
+    (event: DatagridRowDoubleClickedEvent<RuoloNonNull>) => {
+      if (event.data) {
+        navigate(`/gestionale/roles-details?ruoloId=${event.data.id}`);
+      }
+    },
+    [navigate]
+  );
 
   const columnDefs = useMemo<DatagridColDef<RuoloNonNull>[]>(
     () => [
@@ -123,22 +126,14 @@ function RoleList() {
 
   return (
     <>
-      <ListToolbar
-        hideNewButton={false}
-        hideDeleteButton={false}
-        disabledDelete={selectedRows.length === 0}
-        onNew={handleNew}
-        onDelete={handleDelete}
-      />
+      <ListToolbar hideNewButton={false} hideDeleteButton={false} disabledDelete={selectedRows.length === 0} onNew={handleNew} onDelete={handleDelete} />
       <Box className="scrollable-box" sx={{ marginTop: 1, paddingX: 2, overflow: "auto", height: "calc(100vh - 64px - 48px)" }}>
         <Typography id="view-title" variant="h5" gutterBottom>
           Lista ruoli
         </Typography>
         <Paper sx={{ padding: 1, height: "calc(100% - 50px)" }}>
           {loading ? (
-            <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
-              Caricamento...
-            </Box>
+            <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>Caricamento...</Box>
           ) : (
             <Datagrid<RuoloNonNull>
               presentation

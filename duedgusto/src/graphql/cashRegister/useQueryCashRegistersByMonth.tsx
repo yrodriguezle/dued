@@ -9,11 +9,7 @@ interface UseQueryRegistriCassaByMonthProps {
   skip?: boolean;
 }
 
-export function useQueryCashRegistersByMonth({
-  year,
-  month,
-  skip = false,
-}: UseQueryRegistriCassaByMonthProps) {
+export function useQueryCashRegistersByMonth({ year, month, skip = false }: UseQueryRegistriCassaByMonthProps) {
   // Get first and last day of month
   const firstDay = dayjs(`${year}-${String(month).padStart(2, "0")}-01`);
   const lastDay = firstDay.endOf("month");

@@ -71,12 +71,7 @@ function CashRegisterMonthlyPage() {
   const monthlyStats = useMemo(() => {
     const totals = cashRegisters.reduce(
       (acc, cr: RegistroCassa) => {
-        const revenue =
-          (cr.totaleChiusura || 0) +
-          (cr.incassiFattura || 0) -
-          (cr.totaleApertura || 0) -
-          (cr.speseFornitori || 0) -
-          (cr.speseGiornaliere || 0);
+        const revenue = (cr.totaleChiusura || 0) + (cr.incassiFattura || 0) - (cr.totaleApertura || 0) - (cr.speseFornitori || 0) - (cr.speseGiornaliere || 0);
         return {
           ricavo: acc.ricavo + revenue,
           contanti: acc.contanti + (cr.incassoContanteTracciato || 0),
@@ -97,12 +92,7 @@ function CashRegisterMonthlyPage() {
   const events = useMemo<CashEvent[]>(() => {
     return cashRegisters.map((cr: RegistroCassa, index: number) => {
       const date = new Date(cr.data);
-      const revenue =
-        (cr.totaleChiusura || 0) +
-        (cr.incassiFattura || 0) -
-        (cr.totaleApertura || 0) -
-        (cr.speseFornitori || 0) -
-        (cr.speseGiornaliere || 0);
+      const revenue = (cr.totaleChiusura || 0) + (cr.incassiFattura || 0) - (cr.totaleApertura || 0) - (cr.speseFornitori || 0) - (cr.speseGiornaliere || 0);
 
       return {
         id: cr.id || index,
@@ -191,10 +181,7 @@ function CashRegisterMonthlyPage() {
             <IconButton size="small" onClick={handlePrevMonth} title="Mese precedente">
               <ChevronLeftIcon />
             </IconButton>
-            <Typography
-              variant="body1"
-              sx={{ minWidth: 160, textAlign: "center", fontWeight: 600, textTransform: "capitalize" }}
-            >
+            <Typography variant="body1" sx={{ minWidth: 160, textAlign: "center", fontWeight: 600, textTransform: "capitalize" }}>
               {monthLabel}
             </Typography>
             <IconButton size="small" onClick={handleNextMonth} title="Mese successivo">
@@ -248,12 +235,8 @@ function CashRegisterMonthlyPage() {
             <Divider orientation="vertical" flexItem />
             <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
               <Chip label={`${monthlyStats.registri} registri`} size="small" variant="outlined" />
-              {monthlyStats.riconciliati > 0 && (
-                <Chip label={`${monthlyStats.riconciliati} riconciliati`} size="small" color="success" variant="outlined" />
-              )}
-              {monthlyStats.bozze > 0 && (
-                <Chip label={`${monthlyStats.bozze} bozze`} size="small" color="warning" variant="outlined" />
-              )}
+              {monthlyStats.riconciliati > 0 && <Chip label={`${monthlyStats.riconciliati} riconciliati`} size="small" color="success" variant="outlined" />}
+              {monthlyStats.bozze > 0 && <Chip label={`${monthlyStats.bozze} bozze`} size="small" color="warning" variant="outlined" />}
             </Box>
           </Box>
         </Box>
@@ -261,12 +244,7 @@ function CashRegisterMonthlyPage() {
 
       {/* Calendario */}
       <Box sx={{ flex: 1, overflow: "hidden", minHeight: 0 }}>
-        <CustomCalendar
-          events={events}
-          onSelectEvent={handleSelectEvent}
-          onSelectSlot={handleSelectSlot}
-          currentDate={currentDate}
-        />
+        <CustomCalendar events={events} onSelectEvent={handleSelectEvent} onSelectSlot={handleSelectSlot} currentDate={currentDate} />
       </Box>
     </Box>
   );

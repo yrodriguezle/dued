@@ -20,13 +20,7 @@ interface RelayResult<T> {
   cursor: number;
 }
 
-function useFetchData<T>({
-  query,
-  variables,
-  skip,
-  reverseGrid,
-  fetchPolicy = "network-only",
-}: UseFetchDataProps<T>) {
+function useFetchData<T>({ query, variables, skip, reverseGrid, fetchPolicy = "network-only" }: UseFetchDataProps<T>) {
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [cursor, setCursor] = useState(0);
@@ -48,14 +42,17 @@ function useFetchData<T>({
     [client, query, variables]
   );
 
-  useEffect(() => () => {
-    if (firstPageSubscription?.current?.unsubscribe) {
-      firstPageSubscription.current.unsubscribe();
-    }
-    if (loadMoreSubscription?.current?.unsubscribe) {
-      loadMoreSubscription.current.unsubscribe();
-    }
-  }, []);
+  useEffect(
+    () => () => {
+      if (firstPageSubscription?.current?.unsubscribe) {
+        firstPageSubscription.current.unsubscribe();
+      }
+      if (loadMoreSubscription?.current?.unsubscribe) {
+        loadMoreSubscription.current.unsubscribe();
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     if (firstPageSubscription?.current?.unsubscribe) {

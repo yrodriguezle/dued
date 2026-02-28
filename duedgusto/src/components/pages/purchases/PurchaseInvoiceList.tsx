@@ -73,11 +73,7 @@ function PurchaseInvoiceList() {
     }
 
     try {
-      await Promise.all(
-        selectedRows.map((row) =>
-          deleteInvoice({ variables: { invoiceId: row.invoiceId } })
-        )
-      );
+      await Promise.all(selectedRows.map((row) => deleteInvoice({ variables: { invoiceId: row.invoiceId } })));
 
       showToast({
         type: "success",
@@ -99,11 +95,14 @@ function PurchaseInvoiceList() {
     }
   }, [selectedRows, onConfirm, deleteInvoice, refetch]);
 
-  const handleRowDoubleClick = useCallback((event: DatagridRowDoubleClickedEvent<PurchaseInvoiceNonNull>) => {
-    if (event.data) {
-      navigate(`/gestionale/purchase-invoices-details?invoiceId=${event.data.invoiceId}`);
-    }
-  }, [navigate]);
+  const handleRowDoubleClick = useCallback(
+    (event: DatagridRowDoubleClickedEvent<PurchaseInvoiceNonNull>) => {
+      if (event.data) {
+        navigate(`/gestionale/purchase-invoices-details?invoiceId=${event.data.invoiceId}`);
+      }
+    },
+    [navigate]
+  );
 
   const columnDefs = useMemo<DatagridColDef<PurchaseInvoiceNonNull>[]>(
     () => [
@@ -141,24 +140,21 @@ function PurchaseInvoiceList() {
         field: "taxableAmount",
         width: 120,
         filter: "agNumberColumnFilter",
-        valueFormatter: (params) =>
-          params.value != null ? `\u20AC ${Number(params.value).toFixed(2)}` : "",
+        valueFormatter: (params) => (params.value != null ? `\u20AC ${Number(params.value).toFixed(2)}` : ""),
       },
       {
         headerName: "IVA",
         field: "vatAmount",
         width: 100,
         filter: "agNumberColumnFilter",
-        valueFormatter: (params) =>
-          params.value != null ? `\u20AC ${Number(params.value).toFixed(2)}` : "",
+        valueFormatter: (params) => (params.value != null ? `\u20AC ${Number(params.value).toFixed(2)}` : ""),
       },
       {
         headerName: "Totale",
         field: "totalAmount",
         width: 120,
         filter: "agNumberColumnFilter",
-        valueFormatter: (params) =>
-          params.value != null ? `\u20AC ${Number(params.value).toFixed(2)}` : "",
+        valueFormatter: (params) => (params.value != null ? `\u20AC ${Number(params.value).toFixed(2)}` : ""),
       },
       {
         headerName: "Stato",
@@ -191,11 +187,7 @@ function PurchaseInvoiceList() {
 
   return (
     <>
-      <ListToolbar
-        onNew={handleNew}
-        onDelete={handleDelete}
-        disabledDelete={selectedRows.length === 0}
-      />
+      <ListToolbar onNew={handleNew} onDelete={handleDelete} disabledDelete={selectedRows.length === 0} />
       <Box className="scrollable-box" sx={{ marginTop: 1, paddingX: 2, overflow: "auto", height: "calc(100vh - 64px - 48px)" }}>
         <Typography id="view-title" variant="h5" gutterBottom>
           Fatture Acquisto
