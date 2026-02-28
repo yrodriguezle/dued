@@ -68,7 +68,7 @@ public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper, IWebHos
         (string RefreshToken, string Token) = jwtHelper.CreateSignedToken(claims);
         user.TokenAggiornamento = RefreshToken;
         // SECURITY FIX: Add server-side expiration for refresh token
-        user.ScadenzaTokenAggiornamento = DateTime.UtcNow.AddDays(7);
+        user.ScadenzaTokenAggiornamento = DateTime.UtcNow.AddDays(90);
 
         await dbContext.SaveChangesAsync();
         return Ok(new { Token, RefreshToken  });
@@ -82,6 +82,15 @@ public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper, IWebHos
         if (user == null)
         {
             return Unauthorized(new { message = "Invalid or expired refresh token" });
+        }
+
+        // SECURITY FIX: Validate refresh token expiration
+        if (!user.ScadenzaTokenAggiornamento.HasValue || user.ScadenzaTokenAggiornamento.Value < DateTime.UtcNow)
+        {
+            user.TokenAggiornamento = null;
+            user.ScadenzaTokenAggiornamento = null;
+            await dbContext.SaveChangesAsync();
+            return Unauthorized(new { message = "Refresh token scaduto" });
         }
 
         // SECURITY FIX: Check if account is disabled (could be disabled after login)
@@ -99,17 +108,54 @@ public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper, IWebHos
         var (RefreshToken, Token) = jwtHelper.CreateSignedToken(userClaims);
         user.TokenAggiornamento = RefreshToken;
         // SECURITY FIX: Update refresh token expiration on rotation
-        user.ScadenzaTokenAggiornamento = DateTime.UtcNow.AddDays(7);
+        user.ScadenzaTokenAggiornamento = DateTime.UtcNow.AddDays(90);
 
         await dbContext.SaveChangesAsync();
         return new ObjectResult(new { Token, RefreshToken });
     }
 
-    [HttpPost("logout")]
-    public async Task<IActionResult> Logout()
+    [HttpPost("logout"), AllowAnonymous]
+    public async Task<IActionResult> Logout([FromBody] LogoutRequest? request = null)
     {
-        // SECURITY FIX: Invalidate refresh token in database
-        int userId = Convert.ToInt32(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        // SECURITY FIX: Accept expired JWTs for logout
+        // Try to extract user ID from the request body token first, then fall back to Authorization header
+        int userId = 0;
+
+        // 1. Try from request body
+        if (!string.IsNullOrEmpty(request?.Token))
+        {
+            var principal = jwtHelper.GetPrincipalFromExpiredToken(request.Token);
+            if (principal != null)
+            {
+                userId = jwtHelper.GetUserID(principal);
+            }
+        }
+
+        // 2. Fallback: try from Authorization header
+        if (userId == 0)
+        {
+            string? authHeader = Request.Headers.Authorization.FirstOrDefault();
+            if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            {
+                string token = authHeader["Bearer ".Length..];
+                var principal = jwtHelper.GetPrincipalFromExpiredToken(token);
+                if (principal != null)
+                {
+                    userId = jwtHelper.GetUserID(principal);
+                }
+            }
+        }
+
+        // 3. Fallback: try from current authenticated user (if JWT is still valid)
+        if (userId == 0)
+        {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(claim))
+            {
+                userId = Convert.ToInt32(claim);
+            }
+        }
+
         if (userId > 0)
         {
             var user = await dbContext.Utenti.FindAsync(userId);
@@ -135,3 +181,4 @@ public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper, IWebHos
 }
 
 public record SignInRequest(string Username, string Password);
+public record LogoutRequest(string? Token);

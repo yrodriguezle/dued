@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 import useStore from "../../store/useStore";
 import fetchLoggedUtente from "../../graphql/utente/fetchLoggedUser";
 import { isAuthenticated } from "../../common/authentication/auth";
+import { initAuthChannel, cleanupAuthChannel } from "../../common/authentication/broadcastChannel";
 import useConfirm from "../common/confirm/useConfirm";
 import { OFFLINE } from "../../store/serverStatusStore";
 import logger from "../../common/logger/logger";
@@ -19,6 +20,14 @@ function useBootstrap() {
   const offInProgress = useStore((store) => store.offInProgress);
   const promiseLock = useRef<Promise<void> | null>(null);
   const confirm = useConfirm();
+
+  // Inizializza il BroadcastChannel per la sincronizzazione auth tra tab
+  useEffect(() => {
+    initAuthChannel();
+    return () => {
+      cleanupAuthChannel();
+    };
+  }, []);
 
   useEffect(() => {
     async function bootstrap() {

@@ -1,6 +1,6 @@
 import configureClient from "../../graphql/configureClient";
 import useStore from "../../store/useStore";
-import { removeAuthToken, removeLastActivity, removeRememberPassword } from "./auth";
+import { removeAuthToken, removeRememberPassword } from "./auth";
 import showToast from "../toast/showToast";
 import logger from "../logger/logger";
 import { navigateTo } from "../navigator/navigator";
@@ -18,7 +18,6 @@ async function onRefreshFails() {
     const { receiveUtente } = useStore.getState();
     const client = configureClient();
     removeAuthToken();
-    removeLastActivity();
     removeRememberPassword();
     receiveUtente(null);
     if (location.pathname !== "/signin") {

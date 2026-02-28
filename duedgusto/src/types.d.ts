@@ -4,7 +4,6 @@ interface Global extends Window {
   GRAPHQL_WEBSOCKET?: string;
   COPYRIGHT?: string;
   CONNECTION_INTERVAL_UPDATE_TIME?: number;
-  LOGON_TIME?: number;
   SEARCHBOX_CONTAINER_MIN_WIDTH?: number;
   appVersion?: string;
   ClassicEditor?: ClassicEditor;

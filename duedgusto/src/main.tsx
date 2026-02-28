@@ -28,7 +28,6 @@ import "./assets/css/app.css";
   globalThisWithProperties.GRAPHQL_WEBSOCKET = data.GRAPHQL_WEBSOCKET;
   globalThisWithProperties.COPYRIGHT = data.COPYRIGHT;
   globalThisWithProperties.CONNECTION_INTERVAL_UPDATE_TIME = data.CONNECTION_INTERVAL_UPDATE_TIME;
-  globalThisWithProperties.LOGON_TIME = 60;
   globalThisWithProperties.SEARCHBOX_CONTAINER_MIN_WIDTH = 500;
   globalThisWithProperties.appVersion = packageJson.version;
 

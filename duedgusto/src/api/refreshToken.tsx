@@ -1,4 +1,5 @@
 import { getAuthToken, setAuthToken } from "../common/authentication/auth";
+import { broadcastTokenRefreshed } from "../common/authentication/broadcastChannel";
 import logger from "../common/logger/logger";
 
 const defaultServices = {
@@ -40,6 +41,7 @@ async function refreshToken(services = defaultServices, retryCount = 0): Promise
     if (response.ok) {
       const responseData: AuthToken = await response.json();
       setAuthToken(responseData);
+      broadcastTokenRefreshed(responseData);
       return true;
     }
 

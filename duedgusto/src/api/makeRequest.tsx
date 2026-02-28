@@ -1,11 +1,8 @@
-import { getAuthHeaders, setLastActivity } from "../common/authentication/auth";
+import { getAuthHeaders } from "../common/authentication/auth";
 import onRefreshFails from "../common/authentication/onRefreshFails";
 import { executeTokenRefresh } from "../common/authentication/tokenRefreshManager";
-import debounce from "../common/bones/debounce";
 import logger from "../common/logger/logger";
 import { WEB_REQUEST_UNAUTHORIZED } from "./httpStatusCodes";
-
-const debouncedLastActivity = debounce(setLastActivity, 100);
 
 const defaultServices = {
   fetch: window.fetch.bind(window),
@@ -45,7 +42,6 @@ async function makeRequest<T, InputData>({ path, method, data, headers = {}, fai
     } catch (error) {
       logger.error(error);
     }
-    debouncedLastActivity();
     return responseData;
   }
 

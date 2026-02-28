@@ -15,7 +15,7 @@ public class JwtHelper
     private readonly SigningCredentials _signingCredentials;
     private readonly string _issuer = "duedgusto-api";
     private readonly string _audience = "duedgusto-clients";
-    private readonly TimeSpan _expiresIn = TimeSpan.FromMinutes(1);
+    private readonly TimeSpan _expiresIn = TimeSpan.FromMinutes(5);
 
     /// <summary>
     /// Initializes a new instance with the specified key and security key type.
@@ -173,6 +173,40 @@ public class JwtHelper
 
         // return the token
         return (GenerateRefreshToken(), new JwtSecurityTokenHandler().WriteToken(token));
+    }
+
+    /// <summary>
+    /// Extracts the ClaimsPrincipal from an expired JWT token.
+    /// Validates the token signature but ignores the expiration time.
+    /// Returns null if the token signature is invalid.
+    /// </summary>
+    public ClaimsPrincipal? GetPrincipalFromExpiredToken(string token)
+    {
+        var tokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = TokenValidationParameters.ValidateIssuer,
+            ValidIssuer = TokenValidationParameters.ValidIssuer,
+            ValidateAudience = TokenValidationParameters.ValidateAudience,
+            ValidAudience = TokenValidationParameters.ValidAudience,
+            ValidateLifetime = false, // Allow expired tokens
+            RequireExpirationTime = TokenValidationParameters.RequireExpirationTime,
+            RequireSignedTokens = TokenValidationParameters.RequireSignedTokens,
+            ValidateIssuerSigningKey = TokenValidationParameters.ValidateIssuerSigningKey,
+            IssuerSigningKeys = TokenValidationParameters.IssuerSigningKeys,
+            ValidAlgorithms = TokenValidationParameters.ValidAlgorithms,
+            ClockSkew = TokenValidationParameters.ClockSkew,
+        };
+
+        try
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out SecurityToken securityToken);
+            return principal;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     public int GetUserID(ClaimsPrincipal principal)
