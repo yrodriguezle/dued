@@ -14,12 +14,22 @@ log() {
 
 log "=== Inizio deploy DuedGusto ==="
 
-log "Esecuzione backup pre-deploy..."
-"$SCRIPT_DIR/backup.sh" || log "WARN: backup fallito, continuo comunque"
+# Backup pre-deploy (skip se i container non esistono ancora)
+if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "duedgusto-mysql"; then
+    log "Esecuzione backup pre-deploy..."
+    "$SCRIPT_DIR/backup.sh" || log "WARN: backup fallito, continuo comunque"
+else
+    log "Container MySQL non trovato, skip backup (primo deploy?)."
+fi
 
-log "Pull ultime modifiche da git..."
+# Git pull (skip se HEAD non ha un upstream configurato)
 cd "$REPO_DIR"
-git pull origin main
+if git rev-parse --abbrev-ref --symbolic-full-name @{u} &>/dev/null; then
+    log "Pull ultime modifiche da git..."
+    git pull origin main
+else
+    log "Nessun upstream configurato, skip git pull."
+fi
 
 log "Build frontend..."
 cd "$REPO_DIR/duedgusto"

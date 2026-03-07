@@ -21,7 +21,24 @@ apt-get update -y
 apt-get upgrade -y
 
 log "Installazione dipendenze base..."
-apt-get install -y ca-certificates curl gnupg lsb-release
+apt-get install -y ca-certificates curl gnupg lsb-release software-properties-common
+
+log "Installazione Git..."
+if ! command -v git &>/dev/null; then
+    apt-get install -y git
+    log "Git installato."
+else
+    log "Git gia' installato, skip."
+fi
+
+log "Installazione Node.js 20 LTS..."
+if ! command -v node &>/dev/null; then
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+    apt-get install -y nodejs
+    log "Node.js installato: $(node --version)"
+else
+    log "Node.js gia' installato: $(node --version)"
+fi
 
 log "Installazione Docker Engine..."
 if ! command -v docker &>/dev/null; then

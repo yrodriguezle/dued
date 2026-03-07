@@ -30,9 +30,13 @@ Configurazione di un VPS Ubuntu per ospitare DuedGusto in produzione.
 
 Non serve un dominio. L'app e accessibile via IP con certificato SSL self-signed.
 
+Non serve installare MySQL: gira in un container Docker.
+
 ---
 
-## 2. Setup VPS
+## 2. Primo Deploy (automatico)
+
+Il modo piu' semplice per il primo deploy. Un unico script che fa tutto.
 
 ### 2.1 Accesso SSH
 
@@ -40,41 +44,69 @@ Non serve un dominio. L'app e accessibile via IP con certificato SSL self-signed
 ssh root@<IP_VPS>
 ```
 
-### 2.2 Installazione Node.js 20 LTS
-
-```bash
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-apt-get install -y nodejs
-```
-
-### 2.3 Clonare il repository
-
-Il repository va in `/srv/duedgusto` (codice sorgente e build). La directory `/opt/duedgusto` (runtime) viene creata dallo script di setup.
+### 2.2 Clonare il repository
 
 ```bash
 git clone <URL_REPO> /srv/duedgusto
 ```
 
-### 2.4 Eseguire lo script di setup
+### 2.3 Eseguire il first-deploy
+
+```bash
+cd /srv/duedgusto
+sudo bash deploy/scripts/first-deploy.sh
+```
+
+Lo script fa **tutto automaticamente**:
+- Installa Git, Docker, Nginx, Node.js 20, OpenSSL
+- Configura firewall UFW (porte 22, 80, 443)
+- Genera automaticamente tutti i secret:
+  - Password MySQL root (32 char random)
+  - Chiave JWT (64+ char base64)
+  - Password superadmin (32 char random)
+- Crea il file `.env` con i secret generati
+- Rileva l'IP del server e configura `config.production.json`
+- Genera certificato SSL self-signed (10 anni)
+- Crea `/opt/duedgusto/` con sottodirectory
+- Configura Nginx come reverse proxy
+- Build del frontend
+- Avvia i container Docker (MySQL + Backend)
+- Esegue il seeding dei dati iniziali (menu, prodotti, denominazioni)
+- Verifica health check
+- Imposta backup automatico giornaliero alle 03:00
+
+Al termine, lo script stampa le credenziali generate. **Salvale in un posto sicuro!**
+
+### 2.4 Verifiche
+
+```bash
+docker compose ps
+curl -sf http://127.0.0.1:5000/health
+curl -sfk https://<IP_VPS>
+```
+
+### 2.5 Accesso all'applicazione
+
+Apri `https://<IP_VPS>` nel browser. Il certificato e' self-signed: clicca **Avanzate > Procedi**.
+
+Login con: `superadmin` / `<password stampata dallo script>`
+
+---
+
+## 3. Setup Manuale (alternativa)
+
+Se preferisci controllare ogni passaggio, puoi fare il setup manualmente.
+
+### 3.1 Script di setup VPS
 
 ```bash
 cd /srv/duedgusto
 sudo bash deploy/scripts/setup-vps.sh
 ```
 
-Lo script:
-- Installa Docker Engine, Nginx, OpenSSL
-- Configura firewall UFW (porte 22, 80, 443)
-- Genera certificato SSL self-signed (10 anni)
-- Crea `/opt/duedgusto/` con sottodirectory `frontend/dist`, `backups`, `logs`
-- Configura Nginx come reverse proxy
-- Imposta backup automatico giornaliero alle 03:00
+Installa Docker, Nginx, Node.js 20, Git. Configura firewall, SSL, Nginx, crontab.
 
----
-
-## 3. Configurazione Ambiente
-
-### 3.1 Creare il file .env
+### 3.2 Creare il file .env
 
 ```bash
 nano /srv/duedgusto/.env
@@ -91,15 +123,17 @@ SUPERADMIN_PASSWORD=<password_superadmin>
 chmod 600 /srv/duedgusto/.env
 ```
 
-### 3.2 Generare JWT_SECRET_KEY
+Per generare i secret:
 
 ```bash
+# Password MySQL e superadmin (32 char)
+openssl rand -base64 32 | tr -d '/+=' | head -c 32
+
+# Chiave JWT (64+ char)
 openssl rand -base64 64
 ```
 
 ### 3.3 Configurare il frontend
-
-Modificare `duedgusto/config.production.json` con l'IP reale del VPS:
 
 ```bash
 nano /srv/duedgusto/duedgusto/config.production.json
@@ -110,8 +144,15 @@ nano /srv/duedgusto/duedgusto/config.production.json
   "API_ENDPOINT": "https://<IP_VPS>",
   "GRAPHQL_ENDPOINT": "https://<IP_VPS>/graphql",
   "GRAPHQL_WEBSOCKET": "wss://<IP_VPS>/graphql",
-  "COPYRIGHT": "Copyright © 2025 Powered by iansoft"
+  "COPYRIGHT": "Copyright (c) 2025 Powered by iansoft"
 }
+```
+
+### 3.4 Primo deploy manuale
+
+```bash
+cd /srv/duedgusto
+bash deploy/scripts/deploy.sh
 ```
 
 ---
@@ -150,7 +191,7 @@ Aggiornare poi `deploy/nginx/duedgusto.conf` con i percorsi Let's Encrypt e il `
 
 ---
 
-## 5. Primo Deploy
+## 5. Deploy Successivi
 
 ```bash
 cd /srv/duedgusto
@@ -158,8 +199,8 @@ bash deploy/scripts/deploy.sh
 ```
 
 Il deploy esegue:
-1. Backup pre-deploy del database
-2. `git pull origin main`
+1. Backup pre-deploy del database (se MySQL e' in esecuzione)
+2. `git pull origin main` (se upstream configurato)
 3. Build frontend (`npm ci && npm run build`)
 4. Copia build in `/opt/duedgusto/frontend/dist/`
 5. Build immagine Docker backend

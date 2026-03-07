@@ -56,23 +56,34 @@ builder.Services.AddCors(options =>
     {
         policy.SetIsOriginAllowed(origin =>
         {
-            // Production: Only allow specific domains
-            if (!builder.Environment.IsDevelopment())
+            if (Uri.TryCreate(origin, UriKind.Absolute, out var uri))
             {
-                return origin == "https://app.duedgusto.com"; // Update with actual production domain
-            }
+                var host = uri.Host;
 
-            // Development: Allow localhost and local network IPs
-            if (origin.StartsWith("http://localhost:") || origin.StartsWith("https://localhost:"))
-            {
-                return true;
-            }
+                // Allow localhost
+                if (host == "localhost" || host == "127.0.0.1")
+                    return true;
 
-            // Allow local network IPs (192.168.x.x and 10.x.x.x) on any port
-            if (origin.StartsWith("https://192.168.") || origin.StartsWith("http://192.168.") ||
-                origin.StartsWith("https://10.") || origin.StartsWith("http://10."))
-            {
-                return true;
+                // Allow local network IPs (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+                if (System.Net.IPAddress.TryParse(host, out var ip))
+                {
+                    var bytes = ip.GetAddressBytes();
+                    if (bytes.Length == 4)
+                    {
+                        // 192.168.x.x
+                        if (bytes[0] == 192 && bytes[1] == 168) return true;
+                        // 10.x.x.x
+                        if (bytes[0] == 10) return true;
+                        // 172.16.0.0 - 172.31.255.255
+                        if (bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31) return true;
+                    }
+
+                    // Production: allow public IP access (served via Nginx on same IP)
+                    return true;
+                }
+
+                // Allow configured domain (e.g. app.duedgusto.com)
+                if (host == "app.duedgusto.com") return true;
             }
 
             return false;
