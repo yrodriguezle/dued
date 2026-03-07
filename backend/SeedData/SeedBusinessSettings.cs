@@ -1,5 +1,3 @@
-using Microsoft.EntityFrameworkCore;
-
 using duedgusto.DataAccess;
 using duedgusto.Models;
 
@@ -11,8 +9,6 @@ public static class SeedBusinessSettings
     {
         using IServiceScope scope = serviceProvider.CreateScope();
         AppDbContext dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-        await dbContext.Database.MigrateAsync();
 
         // Check if settings already exist
         if (!dbContext.BusinessSettings.Any())

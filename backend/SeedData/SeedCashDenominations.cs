@@ -12,8 +12,6 @@ public static class SeedCashDenominations
         using IServiceScope scope = serviceProvider.CreateScope();
         AppDbContext dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        await dbContext.Database.MigrateAsync();
-
         // Delete old denominations if they exist (0.01, 0.02, 200, 500)
         var oldDenominations = await dbContext.DenominazioniMoneta
             .Where(d => d.Valore == 0.01m || d.Valore == 0.02m || d.Valore == 200.00m || d.Valore == 500.00m)

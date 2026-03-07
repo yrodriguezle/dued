@@ -1,6 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-
-using duedgusto.DataAccess;
+﻿using duedgusto.DataAccess;
 using duedgusto.Models;
 using duedgusto.Services.HashPassword;
 
@@ -12,8 +10,6 @@ public static class SeedSuperadmin
     {
         using IServiceScope scope = serviceProvider.CreateScope();
         AppDbContext dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-        await dbContext.Database.MigrateAsync();
 
         if (!dbContext.Ruoli.Any(r => r.Nome == "SuperAdmin"))
         {

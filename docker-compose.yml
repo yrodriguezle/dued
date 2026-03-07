@@ -32,6 +32,7 @@ services:
       CONNECTION_STRING: "server=mysql;database=${MYSQL_DATABASE:-duedgusto};user=root;password=${MYSQL_ROOT_PASSWORD}"
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD}
+      SEED_ON_STARTUP: "false"
     ports:
       - "127.0.0.1:5000:5000"
     networks:

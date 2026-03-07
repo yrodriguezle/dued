@@ -12,8 +12,8 @@ using duedgusto.DataAccess;
 namespace duedgusto.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260203093309_RifacimentoChiusureMensiliOpzioneA")]
-    partial class RifacimentoChiusureMensiliOpzioneA
+    [Migration("20260307142133_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -137,20 +137,14 @@ namespace duedgusto.Migrations
                         .HasColumnType("datetime")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
+                    b.Property<string>("GiorniEsclusi")
+                        .HasColumnType("longtext");
+
                     b.Property<int>("Mese")
                         .HasColumnType("int");
 
                     b.Property<string>("Note")
                         .HasColumnType("text");
-
-                    b.Property<decimal?>("RicavoNetto")
-                        .HasColumnType("decimal(10,2)");
-
-                    b.Property<decimal?>("RicavoTotale")
-                        .HasColumnType("decimal(10,2)");
-
-                    b.Property<decimal?>("SpeseAggiuntive")
-                        .HasColumnType("decimal(10,2)");
 
                     b.Property<string>("Stato")
                         .IsRequired()
@@ -158,18 +152,6 @@ namespace duedgusto.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("varchar(20)")
                         .HasDefaultValue("BOZZA");
-
-                    b.Property<decimal?>("TotaleContanti")
-                        .HasColumnType("decimal(10,2)");
-
-                    b.Property<decimal?>("TotaleElettronici")
-                        .HasColumnType("decimal(10,2)");
-
-                    b.Property<decimal?>("TotaleFatture")
-                        .HasColumnType("decimal(10,2)");
-
-                    b.Property<DateTime>("UltimoGiornoLavorativo")
-                        .HasColumnType("date");
 
                     b.HasKey("ChiusuraId");
 
@@ -423,6 +405,10 @@ namespace duedgusto.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("varchar(20)");
 
+                    b.Property<string>("Provincia")
+                        .HasMaxLength(2)
+                        .HasColumnType("varchar(2)");
+
                     b.Property<string>("RagioneSociale")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -561,6 +547,9 @@ namespace duedgusto.Migrations
                     b.Property<string>("Note")
                         .HasColumnType("text");
 
+                    b.Property<int?>("RegistroCassaId")
+                        .HasColumnType("int");
+
                     b.HasKey("PagamentoId");
 
                     b.HasIndex("DataPagamento");
@@ -568,6 +557,8 @@ namespace duedgusto.Migrations
                     b.HasIndex("DdtId");
 
                     b.HasIndex("FatturaId");
+
+                    b.HasIndex("RegistroCassaId");
 
                     b.ToTable("PagamentiFornitori", (string)null);
 
@@ -1129,9 +1120,16 @@ namespace duedgusto.Migrations
                         .HasForeignKey("FatturaId")
                         .OnDelete(DeleteBehavior.Cascade);
 
+                    b.HasOne("duedgusto.Models.RegistroCassa", "RegistroCassa")
+                        .WithMany("PagamentiFornitori")
+                        .HasForeignKey("RegistroCassaId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Ddt");
 
                     b.Navigation("Fattura");
+
+                    b.Navigation("RegistroCassa");
                 });
 
             modelBuilder.Entity("duedgusto.Models.PagamentoMensileFornitori", b =>
@@ -1216,7 +1214,7 @@ namespace duedgusto.Migrations
             modelBuilder.Entity("duedgusto.Models.SpesaMensile", b =>
                 {
                     b.HasOne("duedgusto.Models.ChiusuraMensile", "Chiusura")
-                        .WithMany("Spese")
+                        .WithMany()
                         .HasForeignKey("ChiusuraId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1258,8 +1256,6 @@ namespace duedgusto.Migrations
                     b.Navigation("PagamentiInclusi");
 
                     b.Navigation("RegistriInclusi");
-
-                    b.Navigation("Spese");
 
                     b.Navigation("SpeseLibere");
                 });
@@ -1308,6 +1304,8 @@ namespace duedgusto.Migrations
                     b.Navigation("ConteggiMoneta");
 
                     b.Navigation("IncassiCassa");
+
+                    b.Navigation("PagamentiFornitori");
 
                     b.Navigation("SpeseCassa");
                 });

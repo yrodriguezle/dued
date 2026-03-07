@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace duedgusto.Migrations
 {
     /// <inheritdoc />
-    public partial class AddTables : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -79,6 +79,8 @@ namespace duedgusto.Migrations
                     Citta = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Cap = table.Column<string>(type: "varchar(10)", maxLength: 10, nullable: true, collation: "utf8mb4_unicode_ci")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Provincia = table.Column<string>(type: "varchar(2)", maxLength: 2, nullable: true, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Paese = table.Column<string>(type: "varchar(2)", maxLength: 2, nullable: false, defaultValue: "IT", collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -316,13 +318,6 @@ namespace duedgusto.Migrations
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     Anno = table.Column<int>(type: "int", nullable: false),
                     Mese = table.Column<int>(type: "int", nullable: false),
-                    UltimoGiornoLavorativo = table.Column<DateTime>(type: "date", nullable: false),
-                    RicavoTotale = table.Column<decimal>(type: "decimal(10,2)", nullable: true),
-                    TotaleContanti = table.Column<decimal>(type: "decimal(10,2)", nullable: true),
-                    TotaleElettronici = table.Column<decimal>(type: "decimal(10,2)", nullable: true),
-                    TotaleFatture = table.Column<decimal>(type: "decimal(10,2)", nullable: true),
-                    SpeseAggiuntive = table.Column<decimal>(type: "decimal(10,2)", nullable: true),
-                    RicavoNetto = table.Column<decimal>(type: "decimal(10,2)", nullable: true),
                     Stato = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false, defaultValue: "BOZZA", collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Note = table.Column<string>(type: "text", nullable: true, collation: "utf8mb4_unicode_ci")
@@ -330,7 +325,9 @@ namespace duedgusto.Migrations
                     ChiusaDa = table.Column<int>(type: "int", nullable: true),
                     ChiusaIl = table.Column<DateTime>(type: "datetime", nullable: true),
                     CreatoIl = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
-                    AggiornatoIl = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP")
+                    AggiornatoIl = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"),
+                    GiorniEsclusi = table.Column<string>(type: "longtext", nullable: true, collation: "utf8mb4_unicode_ci")
+                        .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
                 {
@@ -387,36 +384,28 @@ namespace duedgusto.Migrations
                 .Annotation("Relational:Collation", "utf8mb4_unicode_ci");
 
             migrationBuilder.CreateTable(
-                name: "PagamentiFornitori",
+                name: "SpeseMensiliLibere",
                 columns: table => new
                 {
-                    PagamentoId = table.Column<int>(type: "int", nullable: false)
+                    SpesaId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    FatturaId = table.Column<int>(type: "int", nullable: true),
-                    DdtId = table.Column<int>(type: "int", nullable: true),
-                    DataPagamento = table.Column<DateTime>(type: "date", nullable: false),
-                    Importo = table.Column<decimal>(type: "decimal(10,2)", nullable: false),
-                    MetodoPagamento = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
+                    ChiusuraId = table.Column<int>(type: "int", nullable: false),
+                    Descrizione = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    Note = table.Column<string>(type: "text", nullable: true, collation: "utf8mb4_unicode_ci")
+                    Importo = table.Column<decimal>(type: "decimal(10,2)", nullable: false),
+                    Categoria = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false, collation: "utf8mb4_unicode_ci")
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     CreatoIl = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
                     AggiornatoIl = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP")
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_PagamentiFornitori", x => x.PagamentoId);
+                    table.PrimaryKey("PK_SpeseMensiliLibere", x => x.SpesaId);
                     table.ForeignKey(
-                        name: "FK_PagamentiFornitori_DocumentiTrasporto_DdtId",
-                        column: x => x.DdtId,
-                        principalTable: "DocumentiTrasporto",
-                        principalColumn: "DdtId",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_PagamentiFornitori_FattureAcquisto_FatturaId",
-                        column: x => x.FatturaId,
-                        principalTable: "FattureAcquisto",
-                        principalColumn: "FatturaId",
+                        name: "FK_SpeseMensiliLibere_ChiusureMensili_ChiusuraId",
+                        column: x => x.ChiusuraId,
+                        principalTable: "ChiusureMensili",
+                        principalColumn: "ChiusuraId",
                         onDelete: ReferentialAction.Cascade);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4")
@@ -478,6 +467,76 @@ namespace duedgusto.Migrations
                 .Annotation("Relational:Collation", "utf8mb4_unicode_ci");
 
             migrationBuilder.CreateTable(
+                name: "PagamentiFornitori",
+                columns: table => new
+                {
+                    PagamentoId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    FatturaId = table.Column<int>(type: "int", nullable: true),
+                    DdtId = table.Column<int>(type: "int", nullable: true),
+                    DataPagamento = table.Column<DateTime>(type: "date", nullable: false),
+                    Importo = table.Column<decimal>(type: "decimal(10,2)", nullable: false),
+                    MetodoPagamento = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Note = table.Column<string>(type: "text", nullable: true, collation: "utf8mb4_unicode_ci")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    CreatoIl = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
+                    AggiornatoIl = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"),
+                    RegistroCassaId = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PagamentiFornitori", x => x.PagamentoId);
+                    table.ForeignKey(
+                        name: "FK_PagamentiFornitori_DocumentiTrasporto_DdtId",
+                        column: x => x.DdtId,
+                        principalTable: "DocumentiTrasporto",
+                        principalColumn: "DdtId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_PagamentiFornitori_FattureAcquisto_FatturaId",
+                        column: x => x.FatturaId,
+                        principalTable: "FattureAcquisto",
+                        principalColumn: "FatturaId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_PagamentiFornitori_RegistriCassa_RegistroCassaId",
+                        column: x => x.RegistroCassaId,
+                        principalTable: "RegistriCassa",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4")
+                .Annotation("Relational:Collation", "utf8mb4_unicode_ci");
+
+            migrationBuilder.CreateTable(
+                name: "RegistriCassaMensili",
+                columns: table => new
+                {
+                    ChiusuraId = table.Column<int>(type: "int", nullable: false),
+                    RegistroId = table.Column<int>(type: "int", nullable: false),
+                    Incluso = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RegistriCassaMensili", x => new { x.ChiusuraId, x.RegistroId });
+                    table.ForeignKey(
+                        name: "FK_RegistriCassaMensili_ChiusureMensili_ChiusuraId",
+                        column: x => x.ChiusuraId,
+                        principalTable: "ChiusureMensili",
+                        principalColumn: "ChiusuraId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_RegistriCassaMensili_RegistriCassa_RegistroId",
+                        column: x => x.RegistroId,
+                        principalTable: "RegistriCassa",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4")
+                .Annotation("Relational:Collation", "utf8mb4_unicode_ci");
+
+            migrationBuilder.CreateTable(
                 name: "Sales",
                 columns: table => new
                 {
@@ -533,6 +592,33 @@ namespace duedgusto.Migrations
                         principalTable: "RegistriCassa",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4")
+                .Annotation("Relational:Collation", "utf8mb4_unicode_ci");
+
+            migrationBuilder.CreateTable(
+                name: "PagamentiMensiliFornitori",
+                columns: table => new
+                {
+                    ChiusuraId = table.Column<int>(type: "int", nullable: false),
+                    PagamentoId = table.Column<int>(type: "int", nullable: false),
+                    InclusoInChiusura = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PagamentiMensiliFornitori", x => new { x.ChiusuraId, x.PagamentoId });
+                    table.ForeignKey(
+                        name: "FK_PagamentiMensiliFornitori_ChiusureMensili_ChiusuraId",
+                        column: x => x.ChiusuraId,
+                        principalTable: "ChiusureMensili",
+                        principalColumn: "ChiusuraId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_PagamentiMensiliFornitori_PagamentiFornitori_PagamentoId",
+                        column: x => x.PagamentoId,
+                        principalTable: "PagamentiFornitori",
+                        principalColumn: "PagamentoId",
+                        onDelete: ReferentialAction.Restrict);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4")
                 .Annotation("Relational:Collation", "utf8mb4_unicode_ci");
@@ -673,6 +759,21 @@ namespace duedgusto.Migrations
                 column: "FatturaId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_PagamentiFornitori_RegistroCassaId",
+                table: "PagamentiFornitori",
+                column: "RegistroCassaId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PagamentiMensiliFornitori_ChiusuraId",
+                table: "PagamentiMensiliFornitori",
+                column: "ChiusuraId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PagamentiMensiliFornitori_PagamentoId",
+                table: "PagamentiMensiliFornitori",
+                column: "PagamentoId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Products_Code",
                 table: "Products",
                 column: "Code",
@@ -688,6 +789,16 @@ namespace duedgusto.Migrations
                 name: "IX_RegistriCassa_UtenteId",
                 table: "RegistriCassa",
                 column: "UtenteId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RegistriCassaMensili_ChiusuraId",
+                table: "RegistriCassaMensili",
+                column: "ChiusuraId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RegistriCassaMensili_RegistroId",
+                table: "RegistriCassaMensili",
+                column: "RegistroId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_RuoloMenu_RuoloId",
@@ -730,6 +841,16 @@ namespace duedgusto.Migrations
                 column: "PagamentoId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_SpeseMensiliLibere_Categoria",
+                table: "SpeseMensiliLibere",
+                column: "Categoria");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SpeseMensiliLibere_ChiusuraId",
+                table: "SpeseMensiliLibere",
+                column: "ChiusuraId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Utenti_RuoloId",
                 table: "Utenti",
                 column: "RuoloId");
@@ -748,6 +869,12 @@ namespace duedgusto.Migrations
                 name: "IncassiCassa");
 
             migrationBuilder.DropTable(
+                name: "PagamentiMensiliFornitori");
+
+            migrationBuilder.DropTable(
+                name: "RegistriCassaMensili");
+
+            migrationBuilder.DropTable(
                 name: "RuoloMenu");
 
             migrationBuilder.DropTable(
@@ -760,6 +887,9 @@ namespace duedgusto.Migrations
                 name: "SpeseMensili");
 
             migrationBuilder.DropTable(
+                name: "SpeseMensiliLibere");
+
+            migrationBuilder.DropTable(
                 name: "DenominazioniMoneta");
 
             migrationBuilder.DropTable(
@@ -769,28 +899,28 @@ namespace duedgusto.Migrations
                 name: "Products");
 
             migrationBuilder.DropTable(
-                name: "RegistriCassa");
+                name: "PagamentiFornitori");
 
             migrationBuilder.DropTable(
                 name: "ChiusureMensili");
 
             migrationBuilder.DropTable(
-                name: "PagamentiFornitori");
-
-            migrationBuilder.DropTable(
-                name: "Utenti");
-
-            migrationBuilder.DropTable(
                 name: "DocumentiTrasporto");
 
             migrationBuilder.DropTable(
-                name: "Ruoli");
+                name: "RegistriCassa");
 
             migrationBuilder.DropTable(
                 name: "FattureAcquisto");
 
             migrationBuilder.DropTable(
+                name: "Utenti");
+
+            migrationBuilder.DropTable(
                 name: "Fornitori");
+
+            migrationBuilder.DropTable(
+                name: "Ruoli");
         }
     }
 }

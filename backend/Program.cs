@@ -190,12 +190,17 @@ using (var scope = app.Services.CreateScope())
     var dbContext = services.GetRequiredService<AppDbContext>();
     await dbContext.Database.MigrateAsync();
 
-    // Seed initial data
+    // SeedSuperadmin always runs (needed for first boot, has its own Any() check)
     await SeedSuperadmin.Initialize(services);
-    await SeedMenus.Initialize(services);
-    await SeedCashDenominations.Initialize(services);
-    await SeedProducts.Initialize(services);
-    await SeedBusinessSettings.Initialize(services);
+
+    var seedOnStartup = Environment.GetEnvironmentVariable("SEED_ON_STARTUP")?.ToLower() != "false";
+    if (seedOnStartup)
+    {
+        await SeedMenus.Initialize(services);
+        await SeedCashDenominations.Initialize(services);
+        await SeedProducts.Initialize(services);
+        await SeedBusinessSettings.Initialize(services);
+    }
 }
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
