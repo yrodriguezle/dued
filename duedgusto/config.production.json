@@ -1,6 +1,6 @@
 {
-  "API_ENDPOINT": "https://app.duedgusto.com",
-  "GRAPHQL_ENDPOINT": "https://app.duedgusto.com/graphql",
-  "GRAPHQL_WEBSOCKET": "wss://app.duedgusto.com/graphql",
+  "API_ENDPOINT": "https://<IP_VPS>",
+  "GRAPHQL_ENDPOINT": "https://<IP_VPS>/graphql",
+  "GRAPHQL_WEBSOCKET": "wss://<IP_VPS>/graphql",
   "COPYRIGHT": "Copyright © 2025 Powered by iansoft"
 }

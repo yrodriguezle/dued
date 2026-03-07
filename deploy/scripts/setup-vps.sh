@@ -52,12 +52,12 @@ else
     log "Nginx gia' installato, skip."
 fi
 
-log "Installazione Certbot..."
-if ! command -v certbot &>/dev/null; then
-    apt-get install -y certbot python3-certbot-nginx
-    log "Certbot installato."
+log "Installazione OpenSSL..."
+if ! command -v openssl &>/dev/null; then
+    apt-get install -y openssl
+    log "OpenSSL installato."
 else
-    log "Certbot gia' installato, skip."
+    log "OpenSSL gia' installato, skip."
 fi
 
 log "Configurazione UFW firewall..."
@@ -73,7 +73,22 @@ log "Creazione struttura directory..."
 mkdir -p "$APP_DIR/frontend/dist"
 mkdir -p "$APP_DIR/backups"
 mkdir -p "$APP_DIR/logs"
-mkdir -p /var/www/certbot
+log "Generazione certificato SSL self-signed..."
+SSL_DIR="/etc/ssl/duedgusto"
+if [[ ! -f "$SSL_DIR/fullchain.pem" ]]; then
+    mkdir -p "$SSL_DIR"
+    openssl req -x509 -nodes -days 3650 \
+        -newkey rsa:2048 \
+        -keyout "$SSL_DIR/privkey.pem" \
+        -out "$SSL_DIR/fullchain.pem" \
+        -subj "/C=IT/ST=Italy/L=Local/O=DuedGusto/CN=$(hostname -I | awk '{print $1}')" \
+        -addext "subjectAltName=IP:$(hostname -I | awk '{print $1}'),IP:127.0.0.1"
+    chmod 600 "$SSL_DIR/privkey.pem"
+    chmod 644 "$SSL_DIR/fullchain.pem"
+    log "Certificato self-signed generato in $SSL_DIR (validita' 10 anni)."
+else
+    log "Certificato self-signed gia' presente, skip."
+fi
 
 log "Configurazione Nginx..."
 cp "$REPO_DIR/deploy/nginx/duedgusto.conf" /etc/nginx/sites-available/duedgusto.conf
@@ -90,13 +105,16 @@ log "Crontab configurato (backup giornaliero alle 03:00)."
 log ""
 log "=== Setup completato ==="
 log ""
-log "Prossimi passi:"
-log "  1. Ottenere certificato SSL:"
-log "     certbot --nginx -d app.duedgusto.com"
+log "Certificato SSL self-signed generato in: /etc/ssl/duedgusto/"
 log ""
-log "  2. Creare il file .env nella root del progetto ($REPO_DIR/.env):"
+log "Prossimi passi:"
+log "  1. Creare il file .env nella root del progetto ($REPO_DIR/.env):"
 log "     MYSQL_ROOT_PASSWORD=<password_sicura>"
 log "     MYSQL_DATABASE=duedgusto"
+log "     JWT_SECRET_KEY=<chiave_jwt>"
+log "     SUPERADMIN_PASSWORD=<password_superadmin>"
+log ""
+log "  2. Aggiornare duedgusto/config.production.json con l'IP del server"
 log ""
 log "  3. Eseguire il primo deploy:"
 log "     $REPO_DIR/deploy/scripts/deploy.sh"

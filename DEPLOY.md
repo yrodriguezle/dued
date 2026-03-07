@@ -32,14 +32,14 @@ Questa guida descrive come configurare un VPS Ubuntu per ospitare DuedGusto in p
 
 ### Requisiti DNS
 
-- Un dominio con record DNS di tipo A che punta all'IP pubblico del VPS.
-- Dominio previsto: `app.duedgusto.com`
+- Non e necessario un dominio. L'applicazione e accessibile tramite IP pubblico del VPS.
+- I certificati SSL sono self-signed (generati automaticamente dallo script di setup).
 
 ### Software installato automaticamente dallo script di setup
 
 - Docker Engine + Docker Compose plugin
 - Nginx
-- Certbot (per Let's Encrypt)
+- OpenSSL (per certificati self-signed)
 - UFW (firewall)
 
 ---
@@ -82,7 +82,7 @@ cd /opt/duedgusto
 Lo script `setup-vps.sh` deve essere eseguito come root. Esegue le seguenti operazioni:
 
 - Aggiornamento pacchetti di sistema
-- Installazione Docker Engine, Nginx e Certbot
+- Installazione Docker Engine, Nginx e OpenSSL
 - Configurazione firewall UFW (porte 22, 80, 443)
 - Creazione struttura directory (`/opt/duedgusto/frontend/dist`, `/opt/duedgusto/backups`, `/opt/duedgusto/logs`)
 - Copia configurazione Nginx da `deploy/nginx/duedgusto.conf`
@@ -133,13 +133,16 @@ Scegliere una password sicura per `MYSQL_ROOT_PASSWORD`. Questa password viene u
 
 `SUPERADMIN_PASSWORD` e la password dell'utente amministratore iniziale che viene creato al primo avvio del backend.
 
-### 3.5 Configurazione frontend di produzione (opzionale)
+### 3.5 Configurazione frontend di produzione
 
-Se necessario, creare il file `duedgusto/config.production.json` con la configurazione runtime del frontend:
+Modificare il file `duedgusto/config.production.json` sostituendo `<IP_VPS>` con l'IP pubblico del server:
 
 ```json
 {
-  "apiUrl": "https://app.duedgusto.com"
+  "API_ENDPOINT": "https://<IP_VPS>",
+  "GRAPHQL_ENDPOINT": "https://<IP_VPS>/graphql",
+  "GRAPHQL_WEBSOCKET": "wss://<IP_VPS>/graphql",
+  "COPYRIGHT": "Copyright © 2025 Powered by iansoft"
 }
 ```
 
@@ -149,42 +152,47 @@ Durante il deploy, questo file viene copiato automaticamente come `config.json` 
 
 ## 4. Certificato SSL
 
-### 4.1 Ottenere il certificato
+### 4.1 Certificato self-signed (generato automaticamente)
 
-Prima di richiedere il certificato, assicurarsi che:
-- Il record DNS A punti all'IP del VPS
-- Nginx sia in esecuzione (`systemctl status nginx`)
-- La porta 80 sia raggiungibile dall'esterno
+Lo script `setup-vps.sh` genera automaticamente un certificato SSL self-signed durante il setup iniziale. Il certificato:
+- Viene salvato in `/etc/ssl/duedgusto/`
+- Ha validita di 10 anni
+- Include l'IP del server come Subject Alternative Name (SAN)
+- E pronto all'uso senza bisogno di un dominio
 
-Eseguire Certbot:
+I file generati:
+- `/etc/ssl/duedgusto/fullchain.pem` - Certificato
+- `/etc/ssl/duedgusto/privkey.pem` - Chiave privata
 
-```bash
-sudo certbot --nginx -d app.duedgusto.com
-```
+### 4.2 Rigenerare il certificato (es. cambio IP)
 
-Seguire le istruzioni interattive. Certbot:
-- Ottiene il certificato Let's Encrypt
-- Configura automaticamente Nginx per HTTPS
-- Imposta il rinnovo automatico
-
-### 4.2 Verificare il rinnovo automatico
-
-Certbot configura automaticamente un timer systemd per il rinnovo. Verificare:
+Se l'IP del server cambia, rigenerare il certificato:
 
 ```bash
-sudo certbot renew --dry-run
+SERVER_IP=$(hostname -I | awk '{print $1}')
+sudo openssl req -x509 -nodes -days 3650 \
+    -newkey rsa:2048 \
+    -keyout /etc/ssl/duedgusto/privkey.pem \
+    -out /etc/ssl/duedgusto/fullchain.pem \
+    -subj "/C=IT/ST=Italy/L=Local/O=DuedGusto/CN=$SERVER_IP" \
+    -addext "subjectAltName=IP:$SERVER_IP,IP:127.0.0.1"
+sudo systemctl reload nginx
 ```
 
-### 4.3 Nota sulla configurazione Nginx
+### 4.3 Nota sui browser
 
-La configurazione Nginx in `deploy/nginx/duedgusto.conf` prevede gia i percorsi dei certificati Let's Encrypt:
+I certificati self-signed causano un avviso di sicurezza nel browser. Gli utenti dovranno accettare manualmente il certificato al primo accesso. Questo e normale e atteso in assenza di un dominio con certificato CA.
 
+### 4.4 Migrazione futura a Let's Encrypt
+
+Quando si disporra di un dominio, sara possibile migrare a Let's Encrypt:
+
+```bash
+sudo apt-get install -y certbot python3-certbot-nginx
+sudo certbot --nginx -d <DOMINIO>
 ```
-ssl_certificate /etc/letsencrypt/live/app.duedgusto.com/fullchain.pem;
-ssl_certificate_key /etc/letsencrypt/live/app.duedgusto.com/privkey.pem;
-```
 
-Queste righe causeranno un errore Nginx se il certificato non e ancora stato ottenuto. In tal caso, commentare temporaneamente il blocco HTTPS nella configurazione Nginx, ottenere il certificato, e poi riabilitarlo.
+Aggiornare poi `deploy/nginx/duedgusto.conf` con i percorsi dei certificati Let's Encrypt e il `server_name` con il dominio.
 
 ---
 
@@ -217,10 +225,10 @@ Verificare che il backend risponda:
 curl -sf http://127.0.0.1:5000/health
 ```
 
-Verificare che il frontend sia raggiungibile:
+Verificare che il frontend sia raggiungibile (usare `-k` per accettare il certificato self-signed):
 
 ```bash
-curl -sf https://app.duedgusto.com
+curl -sfk https://<IP_VPS>
 ```
 
 Controllare lo stato dei container:
@@ -480,22 +488,25 @@ docker compose restart backend
 
 Se il container si riavvia continuamente, controllare i log per errori nella connection string o nella configurazione.
 
-### Certificato SSL scaduto
+### Certificato SSL scaduto o IP cambiato
 
-**Causa**: Il rinnovo automatico di Certbot ha fallito.
+**Causa**: Il certificato self-signed e scaduto o l'IP del server e cambiato.
 
 **Soluzioni:**
 
 ```bash
-# Verificare lo stato del certificato
-sudo certbot certificates
+# Verificare la scadenza del certificato
+openssl x509 -in /etc/ssl/duedgusto/fullchain.pem -noout -dates
 
-# Rinnovare manualmente
-sudo certbot renew
-
-# Se il rinnovo fallisce, verificare che la porta 80 sia raggiungibile
-sudo ufw status
-curl -sf http://app.duedgusto.com/.well-known/acme-challenge/test
+# Rigenerare il certificato (vedi sezione 4.2)
+SERVER_IP=$(hostname -I | awk '{print $1}')
+sudo openssl req -x509 -nodes -days 3650 \
+    -newkey rsa:2048 \
+    -keyout /etc/ssl/duedgusto/privkey.pem \
+    -out /etc/ssl/duedgusto/fullchain.pem \
+    -subj "/C=IT/ST=Italy/L=Local/O=DuedGusto/CN=$SERVER_IP" \
+    -addext "subjectAltName=IP:$SERVER_IP,IP:127.0.0.1"
+sudo systemctl reload nginx
 ```
 
 ### Container non parte
