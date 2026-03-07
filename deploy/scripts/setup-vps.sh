@@ -98,7 +98,7 @@ nginx -t
 log "Nginx configurato."
 
 log "Configurazione backup automatico (crontab)..."
-BACKUP_CRON="0 3 * * * $APP_DIR/deploy/scripts/backup.sh >> $APP_DIR/logs/backup.log 2>&1"
+BACKUP_CRON="0 3 * * * $REPO_DIR/deploy/scripts/backup.sh >> $APP_DIR/logs/backup.log 2>&1"
 (crontab -l 2>/dev/null | grep -v "backup.sh" || true; echo "$BACKUP_CRON") | crontab -
 log "Crontab configurato (backup giornaliero alle 03:00)."
 
