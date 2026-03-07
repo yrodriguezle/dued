@@ -27,3 +27,20 @@ packages
 
 # Node.js
 node_modules/
+
+# Environment secrets
+.env
+.env.*
+!.env.production.example
+
+# SSL certificates
+*.pem
+*.key
+*.crt
+
+# Docker/Production data
+mysql-data/
+backups/
+
+# Deploy artifacts
+deploy/scripts/*.log

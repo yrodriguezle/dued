@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 
 using GraphQL;
 using GraphQL.Types;
@@ -43,7 +44,9 @@ builder.Services.AddControllers();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
-    string connectionString = builder.Configuration.GetConnectionString("Default") ?? string.Empty;
+    string connectionString = Environment.GetEnvironmentVariable("CONNECTION_STRING")
+        ?? builder.Configuration.GetConnectionString("Default")
+        ?? string.Empty;
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
 });
 
@@ -152,12 +155,16 @@ builder.Services.AddGraphQL((ctx) => ctx
 
 var app = builder.Build();
 
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
+    app.UseHttpsRedirection();
 }
-
-app.UseHttpsRedirection();
 
 app.UseCors("AllowSpecificOrigins");
 
@@ -190,5 +197,7 @@ using (var scope = app.Services.CreateScope())
     await SeedProducts.Initialize(services);
     await SeedBusinessSettings.Initialize(services);
 }
+
+app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
 
 app.Run();

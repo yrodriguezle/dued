@@ -1,0 +1,15 @@
+node_modules/
+.git/
+.github/
+.env
+.env.*
+!.env.production.example
+deploy/
+duedgusto/node_modules/
+duedgusto/dist/
+mysql-data/
+backups/
+*.md
+.claude/
+.agents/
+openspec/

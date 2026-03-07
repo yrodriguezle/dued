@@ -1,0 +1,10 @@
+bin/
+obj/
+.env
+.env.*
+*.pem
+*.key
+.vs/
+.vscode/
+*.user
+*.suo

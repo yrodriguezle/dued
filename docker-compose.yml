@@ -1,0 +1,50 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: duedgusto-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-duedgusto}
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - duedgusto-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: duedgusto-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      CONNECTION_STRING: "server=mysql;database=${MYSQL_DATABASE:-duedgusto};user=root;password=${MYSQL_ROOT_PASSWORD}"
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD}
+    ports:
+      - "127.0.0.1:5000:5000"
+    networks:
+      - duedgusto-net
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+volumes:
+  mysql_data:
+
+networks:
+  duedgusto-net:
+    driver: bridge
