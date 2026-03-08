@@ -31,6 +31,20 @@ else
     log "Nessun upstream configurato, skip git pull."
 fi
 
+# Auto-increment patch version
+CURRENT_VERSION=$(node -p "require('$REPO_DIR/package.json').version")
+IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+NEW_VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
+cd "$REPO_DIR"
+npm version "$NEW_VERSION" --no-git-tag-version --allow-same-version
+cd "$REPO_DIR/duedgusto"
+npm version "$NEW_VERSION" --no-git-tag-version --allow-same-version
+cd "$REPO_DIR"
+git add package.json duedgusto/package.json
+git commit -m "chore: bump version to $NEW_VERSION [skip ci]" || true
+git push origin main || log "WARN: push versione fallito"
+log "Versione aggiornata: $CURRENT_VERSION -> $NEW_VERSION"
+
 log "Build frontend..."
 cd "$REPO_DIR/duedgusto"
 npm ci
@@ -40,12 +54,17 @@ log "Copia frontend nella directory di serving..."
 rm -rf "$APP_DIR/frontend/dist/"*
 cp -r "$REPO_DIR/duedgusto/dist/"* "$APP_DIR/frontend/dist/"
 
-if [[ -f "$REPO_DIR/duedgusto/config.production.json" ]]; then
-    cp "$REPO_DIR/duedgusto/config.production.json" "$APP_DIR/frontend/dist/config.json"
-    log "Config di produzione copiato."
-else
-    log "WARN: config.production.json non trovato, config.json non aggiornato."
-fi
+# Genera config.json con l'IP reale del server
+SERVER_IP=$(hostname -I | awk '{print $1}')
+cat > "$APP_DIR/frontend/dist/config.json" <<EOF
+{
+  "API_ENDPOINT": "https://$SERVER_IP",
+  "GRAPHQL_ENDPOINT": "https://$SERVER_IP/graphql",
+  "GRAPHQL_WEBSOCKET": "wss://$SERVER_IP/graphql",
+  "COPYRIGHT": "Copyright (c) $(date '+%Y') Powered by iansoft"
+}
+EOF
+log "Config generato con IP: $SERVER_IP"
 
 log "Build e restart container Docker..."
 cd "$REPO_DIR"
