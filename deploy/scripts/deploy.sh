@@ -72,6 +72,6 @@ if [[ $ELAPSED -ge $TIMEOUT ]]; then
 fi
 
 log "Reload Nginx..."
-systemctl reload nginx
+sudo systemctl reload nginx
 
 log "=== Deploy completato con successo ==="
