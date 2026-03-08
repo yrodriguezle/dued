@@ -1,4 +1,6 @@
 import SwipeableDrawer from "@mui/material/SwipeableDrawer";
+import Typography from "@mui/material/Typography";
+import Box from "@mui/material/Box";
 
 import Drawer from "./Drawer";
 import NestedList, { MenuItem } from "./NestedList";
@@ -28,14 +30,23 @@ function Sidebar({ drawerOpen, drawerSwipeable, mobileDrawerOpen, setMobileDrawe
     return createDataTree(menus);
   }, [utente]);
 
+  const appVersion = (window as Global).appVersion;
+
   const renderDrawer = useCallback(
     (open: boolean) => (
       <Drawer variant="permanent" open={open}>
-        <div style={{ marginTop: `50px` }}></div>
-        <NestedList items={menuItems} drawerOpen={open} onListItemClick={onListItemClick} />
+        <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
+          <div style={{ marginTop: `50px` }}></div>
+          <NestedList items={menuItems} drawerOpen={open} onListItemClick={onListItemClick} />
+          {open && appVersion && (
+            <Typography variant="caption" sx={{ mt: "auto", p: 1, textAlign: "center", color: "text.secondary" }}>
+              v{appVersion}
+            </Typography>
+          )}
+        </Box>
       </Drawer>
     ),
-    [menuItems, onListItemClick]
+    [menuItems, onListItemClick, appVersion]
   );
 
   return drawerSwipeable ? (

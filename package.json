@@ -7,7 +7,10 @@
   "scripts": {
     "setup": "node setup-dev-environment.js",
     "dev:frontend": "cd duedgusto && npm run dev",
-    "dev:backend": "cd backend && dotnet run"
+    "dev:backend": "cd backend && dotnet run",
+    "version:patch": "npm version patch --no-git-tag-version && cd duedgusto && npm version patch --no-git-tag-version",
+    "version:minor": "npm version minor --no-git-tag-version && cd duedgusto && npm version minor --no-git-tag-version",
+    "version:major": "npm version major --no-git-tag-version && cd duedgusto && npm version major --no-git-tag-version"
   },
   "keywords": [],
   "author": "",

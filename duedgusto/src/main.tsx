@@ -12,7 +12,6 @@ import "react-toastify/dist/ReactToastify.css";
 import App from "./App";
 import fetchConfiguration from "./api/fetchConfiguration";
 import configureClient from "./graphql/configureClient";
-import packageJson from "../package.json";
 import "./assets/css/app.css";
 
 (async function render() {
@@ -29,7 +28,7 @@ import "./assets/css/app.css";
   globalThisWithProperties.COPYRIGHT = data.COPYRIGHT;
   globalThisWithProperties.CONNECTION_INTERVAL_UPDATE_TIME = data.CONNECTION_INTERVAL_UPDATE_TIME;
   globalThisWithProperties.SEARCHBOX_CONTAINER_MIN_WIDTH = 500;
-  globalThisWithProperties.appVersion = packageJson.version;
+  globalThisWithProperties.appVersion = __APP_VERSION__;
 
   const client = configureClient();
 

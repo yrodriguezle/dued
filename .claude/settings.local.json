@@ -23,6 +23,10 @@
       "Bash(ls:*)"
     ],
     "deny": [],
-    "ask": []
+    "ask": [],
+    "attribution": {
+      "commit": "",
+      "pr": ""
+    }
   }
 }

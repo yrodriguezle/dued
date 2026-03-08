@@ -2,6 +2,16 @@ name: Deploy DuedGusto
 
 on:
   workflow_dispatch:
+    inputs:
+      bump_type:
+        description: 'Version bump type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
   push:
     branches: [main]
 
@@ -22,4 +32,4 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /srv/duedgusto
-            bash deploy/scripts/deploy.sh
+            bash deploy/scripts/deploy.sh ${{ github.event.inputs.bump_type || 'patch' }}
