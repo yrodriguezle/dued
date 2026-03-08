@@ -42,19 +42,19 @@ LOG_FILE="$APP_DIR/logs/first-deploy.log"
 log() {
     local msg="[$(date '+%Y-%m-%d %H:%M:%S')] $*"
     echo -e "${GREEN}${msg}${NC}"
-    [[ -d "$(dirname "$LOG_FILE")" ]] && echo "$msg" >> "$LOG_FILE"
+    [[ -d "$(dirname "$LOG_FILE")" ]] && echo "$msg" >> "$LOG_FILE" || true
 }
 
 warn() {
     local msg="[$(date '+%Y-%m-%d %H:%M:%S')] WARN: $*"
     echo -e "${YELLOW}${msg}${NC}"
-    [[ -d "$(dirname "$LOG_FILE")" ]] && echo "$msg" >> "$LOG_FILE"
+    [[ -d "$(dirname "$LOG_FILE")" ]] && echo "$msg" >> "$LOG_FILE" || true
 }
 
 err() {
     local msg="[$(date '+%Y-%m-%d %H:%M:%S')] ERRORE: $*"
     echo -e "${RED}${msg}${NC}" >&2
-    [[ -d "$(dirname "$LOG_FILE")" ]] && echo "$msg" >> "$LOG_FILE"
+    [[ -d "$(dirname "$LOG_FILE")" ]] && echo "$msg" >> "$LOG_FILE" || true
     exit 1
 }
 
