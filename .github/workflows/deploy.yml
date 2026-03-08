@@ -32,4 +32,6 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /srv/duedgusto
+            git stash --include-untracked -q 2>/dev/null || true
+            git pull origin main
             bash deploy/scripts/deploy.sh ${{ github.event.inputs.bump_type || 'patch' }}
