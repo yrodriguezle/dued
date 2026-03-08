@@ -27,6 +27,7 @@ fi
 cd "$REPO_DIR"
 if git rev-parse --abbrev-ref --symbolic-full-name @{u} &>/dev/null; then
     log "Pull ultime modifiche da git..."
+    git stash --include-untracked -q 2>/dev/null || true
     git pull origin main
 else
     log "Nessun upstream configurato, skip git pull."
