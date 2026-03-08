@@ -77,7 +77,7 @@ log "Config generato con IP: $SERVER_IP"
 log "Build e restart container Docker..."
 cd "$REPO_DIR"
 docker compose build backend
-docker tag dued-backend:latest "dued-backend:$NEW_VERSION"
+docker tag duedgusto-backend:latest "duedgusto-backend:$NEW_VERSION"
 docker compose up -d
 
 log "Attesa health check backend..."
