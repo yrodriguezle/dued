@@ -1,9 +1,9 @@
 name: Deploy DuedGusto
 
 on:
-  workflow_dispatch: # Solo manuale finche' il VPS non e' configurato
-  # push:
-  #   branches: [main]
+  workflow_dispatch:
+  push:
+    branches: [main]
 
 jobs:
   build:
