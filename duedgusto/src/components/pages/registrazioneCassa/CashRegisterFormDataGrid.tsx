@@ -1,3 +1,4 @@
+
 import { Grid, TextField, Box } from "@mui/material";
 import { useFormikContext } from "formik";
 import { FormikCashRegisterValues, Income, Expense } from "./RegistroCassaDetails";
@@ -50,34 +51,29 @@ const CashRegisterFormDataGrid: React.FC<CashRegisterFormDataGridProps> = ({
   const isLocked = formik.status?.isFormLocked || false;
 
   return (
-    <Box sx={{ marginTop: 1, paddingX: { xs: 1, sm: 2, md: 3 } }}>
-      <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }}>
+    <Box sx={{ marginTop: 1, paddingX: { xs: 0, sm: 1, md: 2 }, overflow: "hidden", width: "100%", boxSizing: "border-box" }}>
+      <Grid container spacing={{ xs: 1, sm: 2.5, md: 3 }}>
         {/* Apertura Cassa */}
         <Grid item xs={12} lg={6}>
           <CashCountDataGrid ref={openingGridRef} rowData={openingRowData} title="APERTURA CASSA" isLocked={isLocked} onCellChange={onCellChange} onCopyFromPrevious={onCopyFromPrevious} />
         </Grid>
 
-        {/* Chiusura Cassa */}
         <Grid item xs={12} lg={6}>
           <CashCountDataGrid ref={closingGridRef} rowData={closingRowData} title="CHIUSURA CASSA" isLocked={isLocked} onCellChange={onCellChange} />
         </Grid>
 
-        {/* Incassi */}
         <Grid item xs={12} md={6}>
           <IncomesDataGrid ref={incomesGridRef} initialIncomes={initialIncomes} isLocked={isLocked} onCellChange={onCellChange} />
         </Grid>
 
-        {/* Spese */}
         <Grid item xs={12} md={6}>
           <ExpensesDataGrid ref={expensesGridRef} initialExpenses={initialExpenses} isLocked={isLocked} onCellChange={onCellChange} />
         </Grid>
 
-        {/* Riepilogo */}
         <Grid item xs={12} md={6}>
           <SummaryDataGrid openingGridRef={openingGridRef} closingGridRef={closingGridRef} incomesGridRef={incomesGridRef} expensesGridRef={expensesGridRef} refreshKey={refreshKey} />
         </Grid>
 
-        {/* Note */}
         <Grid item xs={12}>
           <Box>
             <TextField

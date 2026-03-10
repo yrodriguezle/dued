@@ -1,5 +1,8 @@
+
 import { useMemo, useState, forwardRef, useCallback, useRef, memo } from "react";
-import { Box, Button, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
+import RemoveIcon from "@mui/icons-material/Remove";
 import PaymentIcon from "@mui/icons-material/Payment";
 import { z } from "zod";
 import { Expense } from "./RegistroCassaDetails";
@@ -7,6 +10,7 @@ import Datagrid from "../../common/datagrid/Datagrid";
 import { DatagridColDef, ValidationError, DatagridCellValueChangedEvent, DatagridData } from "../../common/datagrid/@types/Datagrid";
 import { GridReadyEvent } from "ag-grid-community";
 import SupplierPaymentDialog from "./SupplierPaymentDialog";
+import OverflowToolbar, { OverflowAction } from "../../common/toolbar/OverflowToolbar";
 
 interface ExpensesDataGridProps {
   initialExpenses: Expense[];
@@ -47,25 +51,28 @@ const ExpensesDataGrid = memo(
         {
           headerName: "Tipo",
           field: "documentType",
-          width: 100,
+          width: 70,
+          minWidth: 50,
           editable: false,
           valueGetter: (params) => {
             if (params.data?.isSupplierPayment) {
               return params.data.documentType === "FA" ? "FA" : "DDT";
             }
-            return "RICEVUTA";
+            return "RIC";
           },
         },
         {
           headerName: "Causale",
           field: "description",
           flex: 2,
+          minWidth: 80,
           editable: (params) => !isLocked && !params.data?.isSupplierPayment,
         },
         {
-          headerName: "Importo (€)",
+          headerName: "Importo",
           field: "amount",
           flex: 1,
+          minWidth: 70,
           editable: (params) => !isLocked && !params.data?.isSupplierPayment,
           cellEditor: "agNumberCellEditor",
           cellEditorParams: {
@@ -86,8 +93,6 @@ const ExpensesDataGrid = memo(
     const handleCellValueChanged = useCallback(
       (event: DatagridCellValueChangedEvent<Expense>) => {
         if (event.data) {
-          // Data is already updated by AG Grid, no need to manually update
-          // Just ensure values are valid
           if (event.colDef.field === "amount") {
             const newAmount = parseFloat(event.newValue) || 0;
             event.data.amount = Math.max(0, newAmount);
@@ -116,26 +121,30 @@ const ExpensesDataGrid = memo(
       []
     );
 
-    const supplierPaymentButton = useMemo(
-      () => (
-        <Button
-          size="small"
-          variant="text"
-          startIcon={<PaymentIcon />}
-          disabled={isLocked}
-          onClick={() => setDialogOpen(true)}
-          sx={{
-            minHeight: 0,
-            height: 32,
-            paddingY: 0.5,
-            paddingX: 1.5,
-            alignSelf: "center",
-          }}
-        >
-          Pagamento fornitore
-        </Button>
-      ),
-      [isLocked]
+    const handleAddRow = useCallback(() => {
+      if (gridEventRef.current) {
+        gridEventRef.current.api.applyTransaction({ add: [{ description: "", amount: 0 } as DatagridData<Expense>] });
+      }
+      onCellChange?.();
+    }, [onCellChange]);
+
+    const handleDeleteSelected = useCallback(() => {
+      if (gridEventRef.current) {
+        const selected = gridEventRef.current.api.getSelectedRows();
+        if (selected.length > 0) {
+          gridEventRef.current.api.applyTransaction({ remove: selected });
+          onCellChange?.();
+        }
+      }
+    }, [onCellChange]);
+
+    const toolbarActions = useMemo<OverflowAction[]>(
+      () => [
+        { key: "add", label: "Nuova riga", icon: <AddIcon fontSize="small" />, onClick: handleAddRow, disabled: isLocked },
+        { key: "delete", label: "Cancella riga", icon: <RemoveIcon fontSize="small" />, onClick: handleDeleteSelected, disabled: isLocked },
+        { key: "supplier", label: "Pagamento fornitore", icon: <PaymentIcon fontSize="small" />, onClick: () => setDialogOpen(true), disabled: isLocked },
+      ],
+      [handleAddRow, handleDeleteSelected, isLocked]
     );
 
     return (
@@ -158,14 +167,15 @@ const ExpensesDataGrid = memo(
             columnDefs={columnDefs}
             readOnly={isLocked}
             getNewRow={getNewExpense}
-            additionalToolbarButtons={supplierPaymentButton}
+            additionalToolbarButtons={<OverflowToolbar actions={toolbarActions} />}
+            hideToolbar={true}
             validationSchema={expenseSchema}
             onValidationErrors={setValidationErrors}
             showRowNumbers={true}
             onCellValueChanged={handleCellValueChanged}
             onGridReady={handleGridReady}
             suppressRowHoverHighlight={false}
-            defaultColDef={{ sortable: false, suppressMovable: true, resizable: true }}
+            defaultColDef={{ sortable: false, suppressMovable: true, resizable: true, minWidth: 50 }}
           />
         </Box>
         {validationErrors.size > 0 && (

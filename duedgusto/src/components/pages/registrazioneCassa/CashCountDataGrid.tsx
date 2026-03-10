@@ -36,6 +36,7 @@ const CashCountDataGrid = memo(
           headerName: "Taglio",
           field: "value",
           flex: 1,
+          minWidth: 70,
           editable: false,
           valueFormatter: (params) => {
             if (params.node?.rowPinned) {
@@ -45,9 +46,10 @@ const CashCountDataGrid = memo(
           },
         },
         {
-          headerName: "Quantità",
+          headerName: "Qtà",
           field: "quantity",
           flex: 1,
+          minWidth: 60,
           editable: (params) => !isLocked && !params.node?.rowPinned,
           cellEditor: "agNumberCellEditor",
           cellEditorParams: {
@@ -67,6 +69,7 @@ const CashCountDataGrid = memo(
           headerName: "Totale",
           field: "total",
           flex: 1,
+          minWidth: 70,
           editable: false,
           cellStyle: (params) => {
             const style: Record<string, string> = { textAlign: "right" };
@@ -212,7 +215,7 @@ const CashCountDataGrid = memo(
             onGridReady={handleGridReady}
             onCellValueChanged={handleCellValueChanged}
             suppressRowHoverHighlight={false}
-            defaultColDef={{ sortable: false, suppressMovable: true, resizable: true }}
+            defaultColDef={{ sortable: false, suppressMovable: true, resizable: true, minWidth: 50 }}
             rowSelection={{ mode: "singleRow", enableClickSelection: false, checkboxes: false }}
             getRowId={(params) => params.data.denominationId.toString()}
             pinnedBottomRowData={pinnedBottomRowData}

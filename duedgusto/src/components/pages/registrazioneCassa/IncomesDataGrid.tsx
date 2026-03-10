@@ -91,7 +91,7 @@ const IncomesDataGrid = memo(
             onCellValueChanged={handleCellValueChanged}
             onGridReady={handleGridReady}
             suppressRowHoverHighlight={false}
-            defaultColDef={{ sortable: false, suppressMovable: true, resizable: true }}
+            defaultColDef={{ sortable: false, suppressMovable: true, resizable: true, minWidth: 50 }}
             rowSelection={{ mode: "singleRow", enableClickSelection: false, checkboxes: false }}
           />
         </Box>

@@ -60,9 +60,12 @@ const DatagridToolbar = <T,>({ canAddNewRow, readOnly, hasSelectedRow, hideStand
           paddingX: 1,
           display: "flex",
           alignItems: "center",
+          overflow: "hidden",
+          width: "100%",
+          boxSizing: "border-box",
         }}
       >
-        <Stack direction="row" spacing={1}>
+        <Stack direction="row" spacing={1} sx={{ width: "100%", overflow: "hidden" }}>
           {!hideStandardButtons && (
             <ButtonGroup size="small" variant="text" aria-label="Datagrid toolbar">
               <Button

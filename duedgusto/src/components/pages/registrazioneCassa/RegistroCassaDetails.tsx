@@ -1,3 +1,4 @@
+
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Form, Formik, FormikProps } from "formik";
 import { z } from "zod";
@@ -260,10 +261,10 @@ function RegistroCassaDetails() {
         cashRegister.incassi && cashRegister.incassi.length > 0
           ? cashRegister.incassi.map((i: IncassoCassa) => ({ type: i.tipo, amount: i.importo }))
           : [
-              { type: "Pago in contanti", amount: cashRegister.incassoContanteTracciato || 0 },
-              { type: "Pagamenti Elettronici", amount: cashRegister.incassiElettronici || 0 },
-              { type: "Pagamento con Fattura", amount: cashRegister.incassiFattura || 0 },
-            ]
+            { type: "Pago in contanti", amount: cashRegister.incassoContanteTracciato || 0 },
+            { type: "Pagamenti Elettronici", amount: cashRegister.incassiElettronici || 0 },
+            { type: "Pagamento con Fattura", amount: cashRegister.incassiFattura || 0 },
+          ]
       );
 
       // Ricostruisci le spese: spese normali + pagamenti fornitore
@@ -482,7 +483,6 @@ function RegistroCassaDetails() {
 
         return (
           <Form noValidate>
-            {/* Toolbar in stile FormikToolbar */}
             <Box sx={{ borderBottom: 1, borderColor: "divider", bgcolor: "background.paper" }}>
               <Toolbar
                 variant="dense"
@@ -492,10 +492,10 @@ function RegistroCassaDetails() {
                   height: 48,
                   display: "flex",
                   justifyContent: "space-between",
-                  px: 2,
+                  alignItems: "center",
+                  px: { xs: 0.5, sm: 2 },
                 }}
               >
-                {/* Bottoni azione a sinistra */}
                 <Box sx={{ height: 48, display: "flex", alignItems: "stretch" }}>
                   <FormikToolbarButton startIcon={<SaveIcon />} disabled={disableSave} type="submit">
                     Salva
@@ -506,14 +506,12 @@ function RegistroCassaDetails() {
                     </FormikToolbarButton>
                   )}
                 </Box>
-
-                {/* Navigazione date al centro/destra */}
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                   <IconButton size="small" onClick={handlePreviousDay} title="Giorno precedente">
                     <ArrowBack fontSize="small" />
                   </IconButton>
-                  <Typography variant="body2" sx={{ minWidth: 200, textAlign: "center" }}>
-                    {getWeekdayName(currentDate)} - {getFormattedDate(currentDate, "DD/MM/YYYY")}
+                  <Typography variant="body2" sx={{ textAlign: "center", whiteSpace: "nowrap" }}>
+                    {getWeekdayName(currentDate, "it-IT", true)} - {getFormattedDate(currentDate, "DD/MM/YYYY")}
                   </Typography>
                   <IconButton size="small" onClick={handleNextDay} title="Giorno successivo">
                     <ArrowForward fontSize="small" />
@@ -525,8 +523,19 @@ function RegistroCassaDetails() {
               </Toolbar>
             </Box>
 
-            {/* Contenuto principale */}
-            <Box sx={{ paddingX: { xs: 1, sm: 2 }, paddingTop: 2, paddingBottom: 3 }}>
+            <Box
+              className="scrollable-box"
+              sx={{
+                marginTop: 1,
+                paddingX: { xs: 0.5, sm: 1, md: 2 },
+                paddingBottom: 3,
+                overflowY: "auto",
+                overflowX: "hidden",
+                height: "calc(100vh - 64px - 41px)",
+                width: "100%",
+                boxSizing: "border-box",
+              }}
+            >
               <CashRegisterFormDataGrid
                 openingGridRef={openingGridRef}
                 closingGridRef={closingGridRef}

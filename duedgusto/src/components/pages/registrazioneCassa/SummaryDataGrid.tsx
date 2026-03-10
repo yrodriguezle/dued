@@ -185,7 +185,7 @@ function SummaryDataGrid({ openingGridRef, closingGridRef, incomesGridRef, expen
           columnDefs={columnDefs}
           presentation
           suppressRowHoverHighlight={false}
-          defaultColDef={{ sortable: false, suppressMovable: true, resizable: true }}
+          defaultColDef={{ sortable: false, suppressMovable: true, resizable: true, minWidth: 50 }}
           domLayout="autoHeight"
         />
       </Box>
