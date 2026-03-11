@@ -11,5 +11,5 @@ outputs:
     description: 'New version number (MAJOR.MINOR.PATCH)'
 
 runs:
-  using: 'node20'
+  using: 'node24'
   main: 'dist/index.js'
