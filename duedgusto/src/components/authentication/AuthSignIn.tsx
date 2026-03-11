@@ -81,6 +81,7 @@ function AuthSignIn() {
           borderColor: "divider",
           bgcolor: theme.palette.mode === "dark" ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)",
           borderRadius: "0 0 12px 12px",
+          textAlign: "center",
         }}
       >
         <Copyright />

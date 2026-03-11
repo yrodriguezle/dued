@@ -37,13 +37,13 @@ function useSignOut() {
     // Clear client-side authentication
     removeAuthToken();
     receiveUtente(null);
-    if (client) {
-      client.resetStore();
-    }
     if (navigate) {
       navigate("/signin", { replace: true });
     } else {
       window.location.reload();
+    }
+    if (client) {
+      client.resetStore();
     }
   }, [client, navigate, receiveUtente]);
 }

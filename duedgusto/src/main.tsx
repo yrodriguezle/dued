@@ -30,6 +30,17 @@ import "./assets/css/app.css";
   globalThisWithProperties.SEARCHBOX_CONTAINER_MIN_WIDTH = 500;
   globalThisWithProperties.appVersion = __APP_VERSION__;
 
+  // Carica il nome attività dalle impostazioni (non blocca l'avvio se fallisce)
+  try {
+    const settingsResponse = await fetch(`${data.API_ENDPOINT}/api/public/business-name`);
+    if (settingsResponse.ok) {
+      const settingsData = await settingsResponse.json();
+      globalThisWithProperties.BUSINESS_NAME = settingsData.businessName;
+    }
+  } catch {
+    // Fallback: usa il nome di default
+  }
+
   const client = configureClient();
 
   createRoot(document.getElementById("root")!).render(

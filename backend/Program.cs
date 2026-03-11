@@ -225,4 +225,10 @@ app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = Dat
 
 app.MapGet("/version", () => Results.Ok(new { version = appVersion }));
 
+app.MapGet("/api/public/business-name", async (AppDbContext dbContext) =>
+{
+    var settings = await dbContext.BusinessSettings.FirstOrDefaultAsync();
+    return Results.Ok(new { businessName = settings?.BusinessName ?? "DuedGusto" });
+});
+
 app.Run();

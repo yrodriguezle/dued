@@ -7,20 +7,20 @@ import { navigateTo } from "../navigator/navigator";
 
 async function onRefreshFails() {
   try {
-    showToast({
-      type: "error",
-      position: "bottom-right",
-      message: "Utente non autenticato",
-      autoClose: false,
-      toastId: "refresh-token-error",
-    });
-
     const { receiveUtente } = useStore.getState();
     const client = configureClient();
     removeAuthToken();
     removeRememberPassword();
     receiveUtente(null);
+
     if (location.pathname !== "/signin") {
+      showToast({
+        type: "error",
+        position: "bottom-right",
+        message: "Utente non autenticato",
+        autoClose: false,
+        toastId: "refresh-token-error",
+      });
       if (client) {
         client.resetStore();
       }
