@@ -6,13 +6,17 @@
   "description": "DuedGusto workspace - Frontend + Backend",
   "scripts": {
     "setup": "node setup-dev-environment.js",
+    "dev": "concurrently -n backend,frontend -c blue,green \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:frontend": "cd duedgusto && npm run dev",
-    "dev:backend": "cd backend && dotnet run",
+    "dev:backend": "cd backend && dotnet run --launch-profile https",
     "version:patch": "npm version patch --no-git-tag-version && cd duedgusto && npm version patch --no-git-tag-version",
     "version:minor": "npm version minor --no-git-tag-version && cd duedgusto && npm version minor --no-git-tag-version",
     "version:major": "npm version major --no-git-tag-version && cd duedgusto && npm version major --no-git-tag-version"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
 }
