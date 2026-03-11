@@ -9,6 +9,7 @@ lerna-debug.log*
 
 node_modules
 dist
+!.github/actions/**/dist
 dist-ssr
 *.local
 nul
