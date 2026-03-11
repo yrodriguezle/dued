@@ -118,7 +118,20 @@ function RoleDetails() {
 
   const onSubmit = async (values: FormikRuoloValues) => {
     try {
-      const menuIds = gridRef.current?.api.getSelectedNodes().map((node) => node.data?.id as number) || [];
+      const selectedNodes = gridRef.current?.api.getSelectedNodes() ?? [];
+      // Include ancestor IDs: parent menus must be in DB for createDataTree to render children in sidebar
+      const menuIdSet = new Set<number>();
+      selectedNodes.forEach((node) => {
+        if (node.data?.id != null) {
+          menuIdSet.add(node.data.id as number);
+          let parent = node.parent;
+          while (parent) {
+            if (parent.data?.id != null) menuIdSet.add(parent.data.id as number);
+            parent = parent.parent;
+          }
+        }
+      });
+      const menuIds = Array.from(menuIdSet);
       if (menuIds.length === 0) {
         showToast({
           type: "warning",

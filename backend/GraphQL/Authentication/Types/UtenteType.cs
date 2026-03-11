@@ -32,10 +32,25 @@ public class UtenteType : ObjectGraphType<Utente>
             {
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
                 int ruoloId = context.Source.RuoloId;
-                return await dbContext.Menus
+                var menus = await dbContext.Menus
                     .Where(m => m.Ruoli.Any(r => r.Id == ruoloId))
                     .OrderBy(m => m.Posizione)
                     .ToListAsync();
+                // Also include parent menus so createDataTree can build the sidebar tree
+                var existingIds = menus.Select(m => m.Id).ToHashSet();
+                var missingParentIds = menus
+                    .Where(m => m.MenuPadreId.HasValue && !existingIds.Contains(m.MenuPadreId!.Value))
+                    .Select(m => m.MenuPadreId!.Value)
+                    .Distinct()
+                    .ToList();
+                if (missingParentIds.Count > 0)
+                {
+                    var parentMenus = await dbContext.Menus
+                        .Where(m => missingParentIds.Contains(m.Id))
+                        .ToListAsync();
+                    menus.AddRange(parentMenus);
+                }
+                return menus.OrderBy(m => m.Posizione);
             });
     }
 }
