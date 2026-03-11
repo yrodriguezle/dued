@@ -19,6 +19,9 @@ on:
       - 'duedgusto/package.json'
       - 'backend/duedgusto.csproj'
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 permissions:
   contents: write
 
@@ -48,14 +51,6 @@ jobs:
         with:
           bump-type: ${{ github.event.inputs.bump_type || 'patch' }}
 
-      - name: Commit and push version
-        run: |
-          git config user.email "actions@github.com"
-          git config user.name "GitHub Action"
-          git add package.json duedgusto/package.json backend/duedgusto.csproj
-          git commit -m "chore: v${{ steps.version.outputs.version }} [skip ci]"
-          git push
-
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
         with:
@@ -67,3 +62,11 @@ jobs:
             git stash --include-untracked -q 2>/dev/null || true
             git pull origin main
             bash deploy/scripts/deploy.sh
+
+      - name: Commit and push version
+        run: |
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Action"
+          git add package.json duedgusto/package.json backend/duedgusto.csproj
+          git commit -m "chore: v${{ steps.version.outputs.version }} [skip ci]"
+          git push
