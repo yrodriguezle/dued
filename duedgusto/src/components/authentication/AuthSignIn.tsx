@@ -6,6 +6,7 @@ import useProgress from "../common/progress/useProgress";
 import useSignIn from "../../graphql/utente/useSignIn";
 import useGetLoggedUtente from "../../common/authentication/useGetLoggedUser";
 import { setRememberPassword } from "../../common/authentication/auth";
+import hideToast from "../../common/toast/hideToast";
 import LogoSection from "../common/logo/LogoSection";
 import AuthSignInForm, { AuthSignInValues } from "./AuthSignInForm";
 import Copyright from "../common/copyright/Copyright";
@@ -31,6 +32,7 @@ function AuthSignIn() {
           return;
         }
         setRememberPassword(values.alwaysConnected);
+        hideToast("refresh-token-error");
         await fetchUtente();
         navigate("/gestionale", { replace: true });
       } catch (error) {
