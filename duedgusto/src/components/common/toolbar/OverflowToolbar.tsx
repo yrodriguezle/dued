@@ -21,7 +21,7 @@ interface OverflowToolbarProps {
 function OverflowToolbar({ actions }: OverflowToolbarProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
-  const [visibleCount, setVisibleCount] = useState(actions.length);
+  const [visibleCount, setVisibleCount] = useState(0);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
 
   const MORE_BUTTON_WIDTH = 40;
@@ -73,7 +73,7 @@ function OverflowToolbar({ actions }: OverflowToolbarProps) {
   const overflowActions = actions.slice(visibleCount);
 
   return (
-    <Box ref={containerRef} sx={{ display: "flex", alignItems: "center", width: "100%", overflow: "hidden" }}>
+    <Box ref={containerRef} sx={{ display: "flex", alignItems: "center", width: "100%", minWidth: 0, overflow: "hidden" }}>
       {/* Div nascosto fuori schermo per misurare la larghezza reale di ogni bottone */}
       <Box
         ref={measureRef}

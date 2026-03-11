@@ -482,8 +482,8 @@ function RegistroCassaDetails() {
         const disableSave = status?.isFormLocked || isSubmitting || !isValid;
 
         return (
-          <Form noValidate>
-            <Box sx={{ borderBottom: 1, borderColor: "divider", bgcolor: "background.paper" }}>
+          <Form noValidate style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 64px)", overflow: "hidden" }}>
+            <Box sx={{ borderBottom: 1, borderColor: "divider", bgcolor: "background.paper", flexShrink: 0 }}>
               <Toolbar
                 variant="dense"
                 disableGutters
@@ -526,13 +526,14 @@ function RegistroCassaDetails() {
             <Box
               className="scrollable-box"
               sx={{
+                flex: 1,
                 marginTop: 1,
                 paddingX: { xs: 0.5, sm: 1, md: 2 },
                 paddingBottom: 3,
                 overflowY: "auto",
                 overflowX: "hidden",
-                height: "calc(100vh - 64px - 41px)",
-                width: "100%",
+                overscrollBehavior: "contain",
+                minHeight: 0,
                 boxSizing: "border-box",
               }}
             >

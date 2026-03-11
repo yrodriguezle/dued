@@ -155,6 +155,8 @@ const ExpensesDataGrid = memo(
         <SupplierPaymentDialog open={dialogOpen} onClose={() => setDialogOpen(false)} onConfirm={handlePaymentConfirm} />
         <Box
           sx={{
+            minWidth: 0,
+            overflow: "hidden",
             "& .ag-right-aligned-cell input": {
               textAlign: "right",
               paddingRight: "14px",
