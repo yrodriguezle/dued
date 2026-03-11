@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -55,9 +55,29 @@ public class AuthMutations : ObjectGraphType
                     .ToList()
                     .ForEach(m => ruolo.Menus.Add(m));
 
-
                 await dbContext.SaveChangesAsync();
                 return ruolo;
+            });
+
+        Field<BooleanGraphType, bool>("deleteRuolo")
+            .Argument<NonNullGraphType<IntGraphType>>("id", "ID del ruolo da eliminare")
+            .ResolveAsync(async context =>
+            {
+                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                int id = context.GetArgument<int>("id");
+
+                bool hasUsers = await dbContext.Utenti.AnyAsync(u => u.RuoloId == id);
+                if (hasUsers)
+                    throw new ExecutionError("Impossibile eliminare il ruolo: ci sono utenti assegnati a questo ruolo");
+
+                Ruolo? ruolo = await dbContext.Ruoli.Include(r => r.Menus).FirstOrDefaultAsync(r => r.Id == id);
+                if (ruolo == null)
+                    throw new ExecutionError("Ruolo non trovato");
+
+                ruolo.Menus.Clear();
+                dbContext.Ruoli.Remove(ruolo);
+                await dbContext.SaveChangesAsync();
+                return true;
             });
 
         Field<UtenteType, Utente>("mutateUtente")
@@ -120,8 +140,5 @@ public class AuthMutations : ObjectGraphType
                     return newUser;
                 }
             });
-
-
-
     }
 }

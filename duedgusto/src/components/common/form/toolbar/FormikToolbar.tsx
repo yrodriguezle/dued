@@ -23,6 +23,7 @@ interface FormikToolbarProps {
   hideNewButton?: boolean;
   hideDeleteButton?: boolean;
   onFormReset: (hasChanges: boolean) => Promise<void>;
+  onDelete?: () => Promise<void>;
 }
 
 export default function FormikToolbar({
@@ -35,6 +36,7 @@ export default function FormikToolbar({
   hideNewButton,
   hideDeleteButton,
   onFormReset,
+  onDelete,
 }: FormikToolbarProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -94,7 +96,7 @@ export default function FormikToolbar({
             </FormikToolbarButton>
           )}
           {!hideDeleteButton && (
-            <FormikToolbarButton startIcon={<DeleteIcon />} color="error" disabled={disableDelete}>
+            <FormikToolbarButton startIcon={<DeleteIcon />} color="error" disabled={disableDelete} onClick={onDelete}>
               Elimina
             </FormikToolbarButton>
           )}

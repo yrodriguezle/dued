@@ -22,3 +22,17 @@ export const mutationSubmitRuolo: TypedDocumentNode<SubmitRuoloData, SubmitRuolo
     }
   }
 `;
+
+interface DeleteRuoloData {
+  authentication: {
+    deleteRuolo: boolean;
+  };
+}
+
+export const mutationDeleteRuolo: TypedDocumentNode<DeleteRuoloData, { id: number }> = gql`
+  mutation DeleteRuolo($id: Int!) {
+    authentication {
+      deleteRuolo(id: $id)
+    }
+  }
+`;

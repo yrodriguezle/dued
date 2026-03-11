@@ -11,6 +11,7 @@ import FormikToolbar from "../../common/form/toolbar/FormikToolbar";
 import RoleForm from "./RoleForm";
 import { Box, Typography } from "@mui/material";
 import useSubmitRuolo from "../../../graphql/ruolo/useSubmitRole";
+import useDeleteRuolo from "../../../graphql/ruolo/useDeleteRuolo";
 import showToast from "../../../common/toast/showToast";
 import useGetAll from "../../../graphql/common/useGetAll";
 import { menuFragment } from "../../../graphql/menus/fragments";
@@ -43,6 +44,7 @@ function RoleDetails() {
   const formRef = useRef<FormikProps<FormikRuoloValues>>(null);
   const { initialValues, handleInitializeValues } = useInitializeValues({ skipInitialize: false });
   const { submitRuolo } = useSubmitRuolo();
+  const { deleteRuolo } = useDeleteRuolo();
   const onConfirm = useConfirm();
 
   useEffect(() => {
@@ -115,6 +117,23 @@ function RoleDetails() {
       }
     }
   }, [ruoloId, ruoli, handleSelectedItem]);
+
+  const handleDelete = useCallback(async () => {
+    const confirmed = await onConfirm({
+      title: "Elimina ruolo",
+      content: `Sei sicuro di voler eliminare il ruolo "${selectedRuolo?.nome}"?`,
+      acceptLabel: "Elimina",
+      cancelLabel: "Annulla",
+    });
+    if (!confirmed || !selectedRuolo) return;
+    try {
+      await deleteRuolo(selectedRuolo.id);
+      showToast({ type: "success", position: "bottom-right", message: "Ruolo eliminato con successo", autoClose: 2000, toastId: "success" });
+      await handleResetForm(false);
+    } catch (error: any) {
+      showToast({ type: "error", position: "bottom-right", message: error?.message || "Errore durante l'eliminazione", toastId: "error" });
+    }
+  }, [onConfirm, selectedRuolo, deleteRuolo, handleResetForm]);
 
   const onSubmit = async (values: FormikRuoloValues) => {
     try {
@@ -189,7 +208,7 @@ function RoleDetails() {
     >
       {() => (
         <Form noValidate>
-          <FormikToolbar onFormReset={handleResetForm} />
+          <FormikToolbar onFormReset={handleResetForm} onDelete={handleDelete} />
           <Box className="scrollable-box" sx={{ marginTop: 1, paddingX: 2, overflow: "auto", height: "calc(100vh - 64px - 41px)" }}>
             <Typography id="view-title" variant="h5" gutterBottom>
               {title}
