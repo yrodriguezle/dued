@@ -49,7 +49,11 @@ sed -i "s|<Version>.*</Version>|<Version>$NEW_VERSION</Version>|" "$REPO_DIR/bac
 cd "$REPO_DIR"
 git add package.json duedgusto/package.json backend/duedgusto.csproj
 git commit -m "chore: bump version to $NEW_VERSION [skip ci]" || true
-git push origin main || log "WARN: push versione fallito"
+if ! git push origin main; then
+    log "ERRORE: push versione fallito. Tentativo rebase e retry..."
+    git pull --rebase origin main || { log "ERRORE: rebase fallito, versione $NEW_VERSION non pushata"; exit 1; }
+    git push origin main || { log "ERRORE: push fallito anche dopo rebase"; exit 1; }
+fi
 log "Versione aggiornata: $CURRENT_VERSION -> $NEW_VERSION"
 
 log "Build frontend..."
