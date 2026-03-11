@@ -19,6 +19,9 @@ on:
       - 'duedgusto/package.json'
       - 'backend/duedgusto.csproj'
 
+permissions:
+  contents: write
+
 concurrency:
   group: deploy
   cancel-in-progress: true
@@ -26,8 +29,33 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
     timeout-minutes: 15
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Bump version
+        id: version
+        uses: ./.github/actions/versioning-action
+        with:
+          bump-type: ${{ github.event.inputs.bump_type || 'patch' }}
+
+      - name: Commit and push version
+        run: |
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Action"
+          git add package.json duedgusto/package.json backend/duedgusto.csproj
+          git commit -m "chore: v${{ steps.version.outputs.version }} [skip ci]"
+          git push
+
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
         with:
@@ -38,4 +66,4 @@ jobs:
             cd /srv/duedgusto
             git stash --include-untracked -q 2>/dev/null || true
             git pull origin main
-            bash deploy/scripts/deploy.sh ${{ github.event.inputs.bump_type || 'patch' }}
+            bash deploy/scripts/deploy.sh

@@ -1,0 +1,15 @@
+name: Versioning DuedGusto
+description: Bump version in package.json (root + duedgusto/) and backend csproj
+inputs:
+  bump-type:
+    description: 'Version bump type: patch, minor, or major'
+    required: true
+    default: 'patch'
+
+outputs:
+  version:
+    description: 'New version number (MAJOR.MINOR.PATCH)'
+
+runs:
+  using: 'node20'
+  main: 'dist/index.js'

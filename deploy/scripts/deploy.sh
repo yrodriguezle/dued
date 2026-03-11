@@ -5,7 +5,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 APP_DIR="/opt/duedgusto"
 LOG_FILE="$APP_DIR/logs/deploy.log"
-BUMP_TYPE="${1:-patch}"
 
 log() {
     local msg="[$(date '+%Y-%m-%d %H:%M:%S')] $*"
@@ -33,28 +32,9 @@ else
     log "Nessun upstream configurato, skip git pull."
 fi
 
-# Auto-increment version
-CURRENT_VERSION=$(node -p "require('$REPO_DIR/package.json').version")
-IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
-case "$BUMP_TYPE" in
-  major) NEW_VERSION="$((MAJOR + 1)).0.0" ;;
-  minor) NEW_VERSION="$MAJOR.$((MINOR + 1)).0" ;;
-  patch|*) NEW_VERSION="$MAJOR.$MINOR.$((PATCH + 1))" ;;
-esac
-cd "$REPO_DIR"
-npm version "$NEW_VERSION" --no-git-tag-version --allow-same-version
-cd "$REPO_DIR/duedgusto"
-npm version "$NEW_VERSION" --no-git-tag-version --allow-same-version
-sed -i "s|<Version>.*</Version>|<Version>$NEW_VERSION</Version>|" "$REPO_DIR/backend/duedgusto.csproj"
-cd "$REPO_DIR"
-git add package.json duedgusto/package.json backend/duedgusto.csproj
-git commit -m "chore: bump version to $NEW_VERSION [skip ci]" || true
-if ! git push origin main; then
-    log "ERRORE: push versione fallito. Tentativo rebase e retry..."
-    git pull --rebase origin main || { log "ERRORE: rebase fallito, versione $NEW_VERSION non pushata"; exit 1; }
-    git push origin main || { log "ERRORE: push fallito anche dopo rebase"; exit 1; }
-fi
-log "Versione aggiornata: $CURRENT_VERSION -> $NEW_VERSION"
+# Leggi versione corrente (readonly - il versioning avviene nel CI)
+VERSION=$(node -p "require('$REPO_DIR/package.json').version")
+log "Versione corrente: $VERSION"
 
 log "Build frontend..."
 cd "$REPO_DIR/duedgusto"
@@ -69,7 +49,7 @@ cp -r "$REPO_DIR/duedgusto/dist/"* "$APP_DIR/frontend/dist/"
 SERVER_IP=$(hostname -I | awk '{print $1}')
 cat > "$APP_DIR/frontend/dist/config.json" <<EOF
 {
-  "APP_VERSION": "$NEW_VERSION",
+  "APP_VERSION": "$VERSION",
   "API_ENDPOINT": "https://$SERVER_IP",
   "GRAPHQL_ENDPOINT": "https://$SERVER_IP/graphql",
   "GRAPHQL_WEBSOCKET": "wss://$SERVER_IP/graphql",
@@ -81,7 +61,7 @@ log "Config generato con IP: $SERVER_IP"
 log "Build e restart container Docker..."
 cd "$REPO_DIR"
 docker compose build backend
-docker tag duedgusto-backend:latest "duedgusto-backend:$NEW_VERSION"
+docker tag duedgusto-backend:latest "duedgusto-backend:$VERSION"
 docker compose up -d
 
 log "Attesa health check backend..."
