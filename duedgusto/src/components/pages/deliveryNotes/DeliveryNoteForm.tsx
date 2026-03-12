@@ -1,4 +1,4 @@
-import { Paper, Typography, Grid, Box, useTheme } from "@mui/material";
+import { Paper, Typography, Box, useTheme } from "@mui/material";
 import FormikTextField from "../../common/form/FormikTextField";
 import FormikSearchbox from "../../common/form/searchbox/FormikSearchbox";
 import supplierSearchboxOption, { SupplierSearchbox } from "../../common/form/searchbox/searchboxOptions/supplierSearchboxOptions";
@@ -21,8 +21,8 @@ function DeliveryNoteForm({ onSelectSupplier, onSelectInvoice }: DeliveryNoteFor
         <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
           Fornitore e DDT
         </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={6}>
+        <div className="grid grid-cols-12 gap-4">
+          <div className="col-span-12 md:col-span-6">
             <FormikSearchbox<FormikDeliveryNoteValues, SupplierSearchbox>
               label="Fornitore *"
               placeholder="Seleziona fornitore"
@@ -33,14 +33,14 @@ function DeliveryNoteForm({ onSelectSupplier, onSelectInvoice }: DeliveryNoteFor
               options={supplierSearchboxOption}
               onSelectItem={onSelectSupplier}
             />
-          </Grid>
-          <Grid item xs={12} md={3}>
+          </div>
+          <div className="col-span-12 md:col-span-3">
             <FormikTextField name="ddtNumber" label="Numero DDT *" fullWidth />
-          </Grid>
-          <Grid item xs={12} md={3}>
+          </div>
+          <div className="col-span-12 md:col-span-3">
             <FormikTextField name="ddtDate" label="Data DDT *" type="date" fullWidth slotProps={{ inputLabel: { shrink: true } }} sx={{ "& input": { colorScheme: dateColorScheme } }} />
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       </Paper>
 
       {/* Sezione: Importo e Fattura Collegata */}
@@ -48,11 +48,11 @@ function DeliveryNoteForm({ onSelectSupplier, onSelectInvoice }: DeliveryNoteFor
         <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
           Importo e Fattura Collegata
         </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={3}>
+        <div className="grid grid-cols-12 gap-4">
+          <div className="col-span-12 md:col-span-3">
             <FormikTextField name="amount" label="Importo" type="number" fullWidth slotProps={{ htmlInput: { step: "0.01", min: "0" } }} />
-          </Grid>
-          <Grid item xs={12} md={9}>
+          </div>
+          <div className="col-span-12 md:col-span-9">
             <FormikSearchbox<FormikDeliveryNoteValues, PurchaseInvoiceSearchbox>
               label="Fattura"
               placeholder="Cerca fattura"
@@ -62,8 +62,8 @@ function DeliveryNoteForm({ onSelectSupplier, onSelectInvoice }: DeliveryNoteFor
               options={purchaseInvoiceSearchboxOption}
               onSelectItem={onSelectInvoice}
             />
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       </Paper>
 
       {/* Sezione: Note */}
@@ -71,11 +71,11 @@ function DeliveryNoteForm({ onSelectSupplier, onSelectInvoice }: DeliveryNoteFor
         <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
           Note
         </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12}>
+        <div className="grid grid-cols-12 gap-4">
+          <div className="col-span-12">
             <FormikTextField name="notes" label="Note" fullWidth multiline rows={3} />
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       </Paper>
     </Box>
   );

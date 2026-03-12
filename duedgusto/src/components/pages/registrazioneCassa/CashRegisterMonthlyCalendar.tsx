@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { Dialog, DialogTitle, DialogContent, DialogActions, Box, Grid, Paper, Typography, IconButton, Button, CircularProgress } from "@mui/material";
+import { Dialog, DialogTitle, DialogContent, DialogActions, Box, Paper, Typography, IconButton, Button, CircularProgress } from "@mui/material";
 import { ChevronLeft, ChevronRight, CheckCircle } from "@mui/icons-material";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
@@ -88,16 +88,16 @@ function CashRegisterMonthlyCalendar({ open, onClose, onSelectDate, currentDate,
         ) : (
           <Box sx={{ mt: 2 }}>
             {/* Weekday headers */}
-            <Grid container spacing={0.5} sx={{ mb: 2 }}>
+            <div className="grid grid-cols-7 gap-1 mb-4">
               {weekdayHeaders.map((day) => (
-                <Grid item xs={12 / 7} key={day}>
+                <div key={day}>
                   <Box sx={{ textAlign: "center", fontWeight: "bold", fontSize: "0.85rem" }}>{day}</Box>
-                </Grid>
+                </div>
               ))}
-            </Grid>
+            </div>
 
             {/* Calendar grid */}
-            <Grid container spacing={0.5}>
+            <div className="grid grid-cols-7 gap-1">
               {calendarDays.map((day, index) => {
                 const isCurrentMonth = day !== null;
                 const isCurrentDay = isCurrentMonth && displayMonth.month() === dayjs(currentDate).month() ? day === dayjs(currentDate).date() : false;
@@ -106,7 +106,7 @@ function CashRegisterMonthlyCalendar({ open, onClose, onSelectDate, currentDate,
                 const hasCashRegister = isCurrentMonth && savedDates.has(dateString);
 
                 return (
-                  <Grid item xs={12 / 7} key={`${day}-${index}`}>
+                  <div key={`${day}-${index}`}>
                     <Paper
                       onClick={() => isCurrentMonth && handleDateSelect(day!)}
                       sx={{
@@ -148,10 +148,10 @@ function CashRegisterMonthlyCalendar({ open, onClose, onSelectDate, currentDate,
                         </>
                       )}
                     </Paper>
-                  </Grid>
+                  </div>
                 );
               })}
-            </Grid>
+            </div>
           </Box>
         )}
       </DialogContent>

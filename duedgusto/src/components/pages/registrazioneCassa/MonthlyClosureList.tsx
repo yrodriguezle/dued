@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect } from "react";
-import { Box, Typography, CircularProgress, Alert, Select, MenuItem, FormControl, InputLabel, SelectChangeEvent, Paper, Grid } from "@mui/material";
+import { Box, Typography, CircularProgress, Alert, Select, MenuItem, FormControl, InputLabel, SelectChangeEvent, Paper } from "@mui/material";
 import { alpha, useTheme, Theme } from "@mui/material/styles";
 import { useNavigate } from "react-router";
 import { useQueryChiusureMensili } from "../../../graphql/chiusureMensili/queries";
@@ -107,14 +107,14 @@ const MonthlyClosureList: React.FC = () => {
           </Box>
 
           {/* Griglia calendario mesi */}
-          <Grid container spacing={2}>
+          <div className="grid grid-cols-12 gap-4">
             {MONTH_NAMES.map((monthName, index) => {
               const monthNumber = index + 1;
               const closure = closureByMonth.get(monthNumber);
               const isFuture = year === dayjs().year() && monthNumber > dayjs().month() + 1;
 
               return (
-                <Grid item xs={6} sm={4} md={3} key={monthNumber}>
+                <div className="col-span-6 sm:col-span-4 md:col-span-3" key={monthNumber}>
                   <Paper
                     elevation={closure ? 3 : 1}
                     onClick={() => !isFuture && handleMonthClick(monthNumber)}
@@ -160,10 +160,10 @@ const MonthlyClosureList: React.FC = () => {
                       </Typography>
                     )}
                   </Paper>
-                </Grid>
+                </div>
               );
             })}
-          </Grid>
+          </div>
         </>
       )}
     </Box>

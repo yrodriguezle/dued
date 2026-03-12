@@ -16,7 +16,11 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "format": "prettier --write \"src/**/*.{tsx,ts,json,css,html}\"",
-    "format:check": "prettier --check \"src/**/*.{tsx,ts,json,css,html}\""
+    "format:check": "prettier --check \"src/**/*.{tsx,ts,json,css,html}\"",
+    "test:e2e": "playwright test",
+    "test:e2e:update": "playwright test --update-snapshots",
+    "test:visual": "playwright test e2e/visual-regression",
+    "test:visual:update": "playwright test e2e/visual-regression --update-snapshots"
   },
   "dependencies": {
     "@apollo/client": "^3.13.4",
@@ -25,9 +29,11 @@
     "@fontsource/roboto": "^5.2.5",
     "@mui/icons-material": "^6.4.8",
     "@mui/material": "^6.4.8",
+    "@tailwindcss/vite": "^4.2.1",
     "ag-grid-community": "^33.2.4",
     "ag-grid-enterprise": "^33.2.4",
     "ag-grid-react": "^33.2.4",
+    "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",
     "formik": "^2.4.6",
@@ -37,11 +43,13 @@
     "react-router": "^7.4.0",
     "react-toastify": "^11.0.5",
     "recharts": "^3.6.0",
+    "tailwindcss": "^4.2.1",
     "zod": "^3.24.2",
     "zustand": "^5.0.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",
+    "@playwright/test": "^1.58.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",

@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react";
-import { Paper, Typography, Grid, Box, Chip, useTheme } from "@mui/material";
+import { Paper, Typography, Box, Chip, useTheme } from "@mui/material";
 import { useFormikContext } from "formik";
 import { useMutation } from "@apollo/client";
 import { CellValueChangedEvent } from "ag-grid-community";
@@ -209,8 +209,8 @@ function PurchaseInvoiceForm({ onSelectSupplier, onSelectInvoice, deliveryNotes,
         <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
           Fornitore
         </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={8}>
+        <div className="grid grid-cols-12 gap-4">
+          <div className="col-span-12 md:col-span-8">
             <FormikSearchbox<FormikPurchaseInvoiceValues, SupplierSearchbox>
               label="Fornitore *"
               placeholder="Seleziona fornitore"
@@ -221,11 +221,11 @@ function PurchaseInvoiceForm({ onSelectSupplier, onSelectInvoice, deliveryNotes,
               options={supplierSearchboxOption}
               onSelectItem={onSelectSupplier}
             />
-          </Grid>
-          <Grid item xs={12} md={4} sx={{ display: "flex", alignItems: "center" }}>
+          </div>
+          <div className="col-span-12 md:col-span-4 flex items-center">
             {isUpdate && values.invoiceStatus && <Chip label={statusLabelMap[values.invoiceStatus] ?? values.invoiceStatus} color={statusColorMap[values.invoiceStatus] ?? "default"} size="medium" />}
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       </Paper>
 
       {/* Sezione: Dati Fattura */}
@@ -233,8 +233,8 @@ function PurchaseInvoiceForm({ onSelectSupplier, onSelectInvoice, deliveryNotes,
         <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
           Dati Fattura
         </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={4}>
+        <div className="grid grid-cols-12 gap-4">
+          <div className="col-span-12 md:col-span-4">
             <FormikSearchbox<FormikPurchaseInvoiceValues, PurchaseInvoiceSearchbox>
               label="Numero Fattura *"
               placeholder="Cerca fattura"
@@ -245,14 +245,14 @@ function PurchaseInvoiceForm({ onSelectSupplier, onSelectInvoice, deliveryNotes,
               options={purchaseInvoiceSearchboxOption}
               onSelectItem={onSelectInvoice}
             />
-          </Grid>
-          <Grid item xs={12} md={4}>
+          </div>
+          <div className="col-span-12 md:col-span-4">
             <FormikTextField name="invoiceDate" label="Data Fattura *" type="date" fullWidth slotProps={{ inputLabel: { shrink: true } }} sx={{ "& input": { colorScheme: dateColorScheme } }} />
-          </Grid>
-          <Grid item xs={12} md={4}>
+          </div>
+          <div className="col-span-12 md:col-span-4">
             <FormikTextField name="dueDate" label="Data Scadenza" type="date" fullWidth slotProps={{ inputLabel: { shrink: true } }} sx={{ "& input": { colorScheme: dateColorScheme } }} />
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       </Paper>
 
       {/* Sezione: Importi */}
@@ -260,20 +260,20 @@ function PurchaseInvoiceForm({ onSelectSupplier, onSelectInvoice, deliveryNotes,
         <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
           Importi
         </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={3}>
+        <div className="grid grid-cols-12 gap-4">
+          <div className="col-span-12 md:col-span-3">
             <FormikTextField name="taxableAmount" label="Imponibile *" type="number" fullWidth slotProps={{ htmlInput: { step: "0.01", min: "0" } }} />
-          </Grid>
-          <Grid item xs={12} md={3}>
+          </div>
+          <div className="col-span-12 md:col-span-3">
             <FormikTextField name="vatRate" label="Aliquota IVA %" type="number" fullWidth slotProps={{ htmlInput: { step: "0.01", min: "0", max: "100" } }} />
-          </Grid>
-          <Grid item xs={12} md={3}>
+          </div>
+          <div className="col-span-12 md:col-span-3">
             <FormikTextField name="_vatAmount" label="IVA Calcolata" fullWidth disabled value={vatAmount.toFixed(2)} />
-          </Grid>
-          <Grid item xs={12} md={3}>
+          </div>
+          <div className="col-span-12 md:col-span-3">
             <FormikTextField name="_totalAmount" label="Totale con IVA" fullWidth disabled value={totalAmount.toFixed(2)} />
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       </Paper>
 
       {/* Sezione: Note */}
@@ -281,11 +281,11 @@ function PurchaseInvoiceForm({ onSelectSupplier, onSelectInvoice, deliveryNotes,
         <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
           Note
         </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12}>
+        <div className="grid grid-cols-12 gap-4">
+          <div className="col-span-12">
             <FormikTextField name="notes" label="Note" fullWidth multiline rows={3} />
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       </Paper>
 
       {/* Sezione: DDT - solo in UPDATE */}

@@ -6,7 +6,6 @@ import {
   CircularProgress,
   Alert,
   Paper,
-  Grid,
   Toolbar,
   Table,
   TableBody,
@@ -473,60 +472,60 @@ const MonthlyClosureDetails = () => {
           </Alert>
         )}
 
-        <Grid container spacing={2}>
+        <div className="grid grid-cols-12 gap-4">
           {/* Riepilogo compatto — metriche in strip */}
-          <Grid item xs={8}>
+          <div className="col-span-8">
             <Paper elevation={1} sx={{ p: 2 }}>
-              <Grid container spacing={2}>
-                <Grid item xs={6} sm={4} md={2}>
+              <div className="grid grid-cols-12 gap-4">
+                <div className="col-span-6 sm:col-span-4 md:col-span-2">
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
                     Ricavo Netto
                   </Typography>
                   <Typography variant="h5" fontWeight="bold" color="primary.main">
                     {`\u20AC ${chiusuraMensile.ricavoNettoCalcolato.toFixed(2)}`}
                   </Typography>
-                </Grid>
-                <Grid item xs={6} sm={4} md={2}>
+                </div>
+                <div className="col-span-6 sm:col-span-4 md:col-span-2">
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
                     Totale Vendite
                   </Typography>
                   <Typography variant="h6" fontWeight="bold" color="warning.main">
                     {`\u20AC ${totaleVendite.toFixed(2)}`}
                   </Typography>
-                </Grid>
-                <Grid item xs={6} sm={4} md={2}>
+                </div>
+                <div className="col-span-6 sm:col-span-4 md:col-span-2">
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
                     Contanti
                   </Typography>
                   <Typography variant="h6" fontWeight="bold" color="success.main">
                     {`\u20AC ${chiusuraMensile.totaleContantiCalcolato.toFixed(2)}`}
                   </Typography>
-                </Grid>
-                <Grid item xs={6} sm={4} md={2}>
+                </div>
+                <div className="col-span-6 sm:col-span-4 md:col-span-2">
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
                     Elettronici
                   </Typography>
                   <Typography variant="h6" fontWeight="bold" color="success.main">
                     {`\u20AC ${chiusuraMensile.totaleElettroniciCalcolato.toFixed(2)}`}
                   </Typography>
-                </Grid>
-                <Grid item xs={6} sm={4} md={2}>
+                </div>
+                <div className="col-span-6 sm:col-span-4 md:col-span-2">
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
                     Fatture
                   </Typography>
                   <Typography variant="h6" fontWeight="bold">
                     {`\u20AC ${chiusuraMensile.totaleFattureCalcolato.toFixed(2)}`}
                   </Typography>
-                </Grid>
-                <Grid item xs={6} sm={4} md={2}>
+                </div>
+                <div className="col-span-6 sm:col-span-4 md:col-span-2">
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
                     Spese
                   </Typography>
                   <Typography variant="h6" fontWeight="bold" color="error.main">
                     {`-\u20AC ${chiusuraMensile.speseAggiuntiveCalcolate.toFixed(2)}`}
                   </Typography>
-                </Grid>
-              </Grid>
+                </div>
+              </div>
 
               {/* Sub-dettaglio fiscale */}
               <Divider sx={{ my: 1.5 }} />
@@ -551,11 +550,11 @@ const MonthlyClosureDetails = () => {
                 </Typography>
               </Box>
             </Paper>
-          </Grid>
+          </div>
 
           {/* Registri Giornalieri Inclusi */}
           {registriInclusi.length > 0 && (
-            <Grid item xs={12}>
+            <div className="col-span-12">
               <Paper elevation={1} sx={{ p: 2 }}>
                 <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                   Registri Giornalieri ({registriInclusi.length})
@@ -598,17 +597,17 @@ const MonthlyClosureDetails = () => {
                   </Table>
                 </TableContainer>
               </Paper>
-            </Grid>
+            </div>
           )}
 
           {/* Spese Mensili Libere */}
-          <Grid item xs={12}>
+          <div className="col-span-12">
             <MonthlyExpensesDataGrid ref={expensesGridRef} expenses={chiusuraMensile?.speseLibere ?? []} readOnly={isReadOnly} />
-          </Grid>
+          </div>
 
           {/* Pagamenti Fornitori Inclusi */}
           {chiusuraMensile.pagamentiInclusi.length > 0 && (
-            <Grid item xs={12}>
+            <div className="col-span-12">
               <Paper elevation={1} sx={{ p: 2 }}>
                 <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                   Pagamenti Fornitori ({chiusuraMensile.pagamentiInclusi.length})
@@ -636,25 +635,25 @@ const MonthlyClosureDetails = () => {
                   </Table>
                 </TableContainer>
               </Paper>
-            </Grid>
+            </div>
           )}
 
           {/* Info chiusura */}
           {chiusuraMensile.stato !== "BOZZA" && chiusuraMensile.chiusaDaUtente && (
-            <Grid item xs={12}>
+            <div className="col-span-12">
               <Typography variant="body2" color="text.secondary">
                 Chiusa da {chiusuraMensile.chiusaDaUtente.nomeUtente} il {dayjs(chiusuraMensile.chiusaIl).format("DD/MM/YYYY HH:mm")}
               </Typography>
-            </Grid>
+            </div>
           )}
 
           {/* Note */}
           {chiusuraMensile.note && (
-            <Grid item xs={12}>
+            <div className="col-span-12">
               <Typography variant="body2">Note: {chiusuraMensile.note}</Typography>
-            </Grid>
+            </div>
           )}
-        </Grid>
+        </div>
       </Box>
 
       {/* Dialog: Gestione Giorni Mancanti ed Esclusi */}

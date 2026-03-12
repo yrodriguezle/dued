@@ -1,4 +1,4 @@
-import { Paper, Typography, FormControlLabel, Checkbox, Grid, Box } from "@mui/material";
+import { Paper, Typography, FormControlLabel, Checkbox, Box } from "@mui/material";
 import { useFormikContext } from "formik";
 
 const daysOfWeek = [
@@ -42,18 +42,18 @@ function OperatingDaysSection({ errors, touched }: OperatingDaysSectionProps) {
           Seleziona i giorni in cui l'attività è aperta
         </Typography>
 
-        <Grid container spacing={2}>
+        <div className="grid grid-cols-12 gap-4">
           {daysOfWeek.map(({ index, name }) => (
-            <Grid item xs={12} sm={6} md={4} key={index}>
+            <div className="col-span-12 sm:col-span-6 md:col-span-4" key={index}>
               <FormControlLabel
                 control={
                   <Checkbox checked={values.operatingDays[index] || false} onChange={(e) => handleDayChange(index, e.target.checked)} name={`operatingDays.${index}`} disabled={status?.isFormLocked} />
                 }
                 label={name}
               />
-            </Grid>
+            </div>
           ))}
-        </Grid>
+        </div>
       </Box>
 
       {errors.operatingDays && touched.operatingDays && (

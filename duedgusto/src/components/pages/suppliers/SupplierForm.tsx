@@ -1,4 +1,4 @@
-import { Paper, Typography, Grid, Box } from "@mui/material";
+import { Paper, Typography, Box } from "@mui/material";
 import FormikTextField from "../../common/form/FormikTextField";
 import FormikCheckbox from "../../common/form/FormikCheckbox";
 import FormikSearchbox from "../../common/form/searchbox/FormikSearchbox";
@@ -17,8 +17,8 @@ function SupplierForm({ onSelectItem }: SupplierFormProps) {
         <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
           Dati Generali
         </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={8}>
+        <div className="grid grid-cols-12 gap-4">
+          <div className="col-span-12 md:col-span-8">
             <FormikSearchbox<FormikSupplierValues, SupplierSearchbox>
               label="Ragione Sociale *"
               placeholder="Ragione Sociale"
@@ -30,17 +30,17 @@ function SupplierForm({ onSelectItem }: SupplierFormProps) {
               options={supplierSearchboxOption}
               onSelectItem={onSelectItem}
             />
-          </Grid>
-          <Grid item xs={12} md={4}>
+          </div>
+          <div className="col-span-12 md:col-span-4">
             <FormikCheckbox name="active" label="Attivo" />
-          </Grid>
-          <Grid item xs={12} md={6}>
+          </div>
+          <div className="col-span-12 md:col-span-6">
             <FormikTextField name="vatNumber" label="Partita IVA" fullWidth />
-          </Grid>
-          <Grid item xs={12} md={6}>
+          </div>
+          <div className="col-span-12 md:col-span-6">
             <FormikTextField name="fiscalCode" label="Codice Fiscale" fullWidth />
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       </Paper>
 
       {/* Sezione: Contatti */}
@@ -48,14 +48,14 @@ function SupplierForm({ onSelectItem }: SupplierFormProps) {
         <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
           Contatti
         </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={6}>
+        <div className="grid grid-cols-12 gap-4">
+          <div className="col-span-12 md:col-span-6">
             <FormikTextField name="email" label="Email" type="email" fullWidth />
-          </Grid>
-          <Grid item xs={12} md={6}>
+          </div>
+          <div className="col-span-12 md:col-span-6">
             <FormikTextField name="phone" label="Telefono" fullWidth />
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       </Paper>
 
       {/* Sezione: Indirizzo */}
@@ -63,23 +63,23 @@ function SupplierForm({ onSelectItem }: SupplierFormProps) {
         <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
           Indirizzo
         </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={9}>
+        <div className="grid grid-cols-12 gap-4">
+          <div className="col-span-12 md:col-span-9">
             <FormikTextField name="address" label="Indirizzo" fullWidth />
-          </Grid>
-          <Grid item xs={12} md={3}>
+          </div>
+          <div className="col-span-12 md:col-span-3">
             <FormikTextField name="postalCode" label="CAP" fullWidth />
-          </Grid>
-          <Grid item xs={12} md={4}>
+          </div>
+          <div className="col-span-12 md:col-span-4">
             <FormikTextField name="city" label="Citta" fullWidth />
-          </Grid>
-          <Grid item xs={12} md={4}>
+          </div>
+          <div className="col-span-12 md:col-span-4">
             <FormikTextField name="province" label="Provincia" fullWidth />
-          </Grid>
-          <Grid item xs={12} md={4}>
+          </div>
+          <div className="col-span-12 md:col-span-4">
             <FormikTextField name="country" label="Paese" fullWidth />
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       </Paper>
 
       {/* Sezione: Note */}
@@ -87,11 +87,11 @@ function SupplierForm({ onSelectItem }: SupplierFormProps) {
         <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
           Note
         </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12}>
+        <div className="grid grid-cols-12 gap-4">
+          <div className="col-span-12">
             <FormikTextField name="notes" label="Note" fullWidth multiline rows={4} />
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       </Paper>
     </Box>
   );

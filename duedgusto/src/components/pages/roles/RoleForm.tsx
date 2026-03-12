@@ -1,4 +1,4 @@
-import { Grid, Paper, Typography } from "@mui/material";
+import { Paper, Typography } from "@mui/material";
 import ruoloSearchboxOptions, { RuoloNonNull } from "../../common/form/searchbox/searchboxOptions/ruoloSearchboxOptions";
 import FormikSearchbox from "../../common/form/searchbox/FormikSearchbox";
 import { FormikRuoloValues } from "./RoleDetails";
@@ -14,8 +14,8 @@ function RoleForm({ onSelectItem }: RoleFormProps) {
       <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
         Dati Ruolo
       </Typography>
-      <Grid container spacing={2}>
-        <Grid item xs={12} md={6}>
+      <div className="grid grid-cols-12 gap-4">
+        <div className="col-span-12 md:col-span-6">
           <FormikSearchbox<FormikRuoloValues, RuoloNonNull>
             label="Nome ruolo *"
             placeholder="Nome ruolo"
@@ -28,11 +28,11 @@ function RoleForm({ onSelectItem }: RoleFormProps) {
             options={ruoloSearchboxOptions}
             onSelectItem={onSelectItem}
           />
-        </Grid>
-        <Grid item xs={12} md={6}>
+        </div>
+        <div className="col-span-12 md:col-span-6">
           <FormikTextField label="Descrizione" placeholder="Descrizione" name="descrizione" autoComplete="off" fullWidth />
-        </Grid>
-      </Grid>
+        </div>
+      </div>
     </Paper>
   );
 }

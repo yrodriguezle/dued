@@ -1,4 +1,4 @@
-import { Paper, Typography, Grid, Box, FormControlLabel, Checkbox, MenuItem } from "@mui/material";
+import { Paper, Typography, Box, FormControlLabel, Checkbox, MenuItem } from "@mui/material";
 import { useFormikContext } from "formik";
 import FormikTextField from "../../common/form/FormikTextField";
 
@@ -45,11 +45,11 @@ function BusinessSettingsForm() {
         <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
           Attività
         </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={8}>
+        <div className="grid grid-cols-12 gap-4">
+          <div className="col-span-12 sm:col-span-8">
             <FormikTextField name="businessName" label="Nome Attività" fullWidth />
-          </Grid>
-          <Grid item xs={12} sm={4}>
+          </div>
+          <div className="col-span-12 sm:col-span-4">
             <FormikTextField name="currency" label="Valuta" select fullWidth>
               {CURRENCIES.map((c) => (
                 <MenuItem key={c.value} value={c.value}>
@@ -57,8 +57,8 @@ function BusinessSettingsForm() {
                 </MenuItem>
               ))}
             </FormikTextField>
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       </Paper>
 
       {/* Sezione: Programmazione */}
@@ -66,14 +66,14 @@ function BusinessSettingsForm() {
         <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
           Programmazione
         </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={6} sm={3}>
+        <div className="grid grid-cols-12 gap-4">
+          <div className="col-span-6 sm:col-span-3">
             <FormikTextField name="openingTime" label="Apertura" type="time" inputProps={{ step: "300" }} fullWidth />
-          </Grid>
-          <Grid item xs={6} sm={3}>
+          </div>
+          <div className="col-span-6 sm:col-span-3">
             <FormikTextField name="closingTime" label="Chiusura" type="time" inputProps={{ step: "300" }} fullWidth />
-          </Grid>
-          <Grid item xs={12} sm={6}>
+          </div>
+          <div className="col-span-12 sm:col-span-6">
             <FormikTextField name="timezone" label="Fuso Orario" select fullWidth>
               {TIMEZONES.map((tz) => (
                 <MenuItem key={tz.value} value={tz.value}>
@@ -81,10 +81,10 @@ function BusinessSettingsForm() {
                 </MenuItem>
               ))}
             </FormikTextField>
-          </Grid>
+          </div>
 
           {/* Giorni operativi */}
-          <Grid item xs={12}>
+          <div className="col-span-12">
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
               Giorni di apertura
             </Typography>
@@ -111,8 +111,8 @@ function BusinessSettingsForm() {
                 {typeof errors.operatingDays === "string" ? errors.operatingDays : ""}
               </Typography>
             )}
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       </Paper>
 
       {/* Sezione: Impostazioni Fiscali */}
@@ -120,8 +120,8 @@ function BusinessSettingsForm() {
         <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
           Impostazioni Fiscali
         </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={4}>
+        <div className="grid grid-cols-12 gap-4">
+          <div className="col-span-12 sm:col-span-4">
             <FormikTextField
               name="vatRate"
               label="Aliquota IVA (%)"
@@ -132,8 +132,8 @@ function BusinessSettingsForm() {
               }}
               fullWidth
             />
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       </Paper>
     </Box>
   );

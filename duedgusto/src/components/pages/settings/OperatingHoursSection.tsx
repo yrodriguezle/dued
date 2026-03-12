@@ -1,4 +1,4 @@
-import { Paper, Typography, Grid } from "@mui/material";
+import { Paper, Typography } from "@mui/material";
 import FormikTextField from "../../common/form/FormikTextField";
 
 interface OperatingHoursSectionProps {
@@ -30,8 +30,8 @@ function OperatingHoursSection({ errors, touched }: OperatingHoursSectionProps) 
         Orari di Apertura
       </Typography>
 
-      <Grid container spacing={2}>
-        <Grid item xs={12} sm={6}>
+      <div className="grid grid-cols-12 gap-4">
+        <div className="col-span-12 sm:col-span-6">
           <FormikTextField
             name="openingTime"
             label="Orario Apertura"
@@ -41,9 +41,9 @@ function OperatingHoursSection({ errors, touched }: OperatingHoursSectionProps) 
             helperText={touched.openingTime && errors.openingTime}
             fullWidth
           />
-        </Grid>
+        </div>
 
-        <Grid item xs={12} sm={6}>
+        <div className="col-span-12 sm:col-span-6">
           <FormikTextField
             name="closingTime"
             label="Orario Chiusura"
@@ -53,9 +53,9 @@ function OperatingHoursSection({ errors, touched }: OperatingHoursSectionProps) 
             helperText={touched.closingTime && errors.closingTime}
             fullWidth
           />
-        </Grid>
+        </div>
 
-        <Grid item xs={12} sm={6}>
+        <div className="col-span-12 sm:col-span-6">
           <FormikTextField
             name="timezone"
             label="Fuso Orario"
@@ -73,9 +73,9 @@ function OperatingHoursSection({ errors, touched }: OperatingHoursSectionProps) 
               </option>
             ))}
           </FormikTextField>
-        </Grid>
+        </div>
 
-        <Grid item xs={12} sm={6}>
+        <div className="col-span-12 sm:col-span-6">
           <FormikTextField
             name="currency"
             label="Valuta"
@@ -93,9 +93,9 @@ function OperatingHoursSection({ errors, touched }: OperatingHoursSectionProps) 
               </option>
             ))}
           </FormikTextField>
-        </Grid>
+        </div>
 
-        <Grid item xs={12}>
+        <div className="col-span-12">
           <FormikTextField
             name="vatRate"
             label="Aliquota IVA (%)"
@@ -105,12 +105,12 @@ function OperatingHoursSection({ errors, touched }: OperatingHoursSectionProps) 
             helperText={touched.vatRate && errors.vatRate}
             fullWidth
           />
-        </Grid>
+        </div>
 
-        <Grid item xs={12}>
+        <div className="col-span-12">
           <FormikTextField name="businessName" label="Nome Attività" error={touched.businessName && !!errors.businessName} helperText={touched.businessName && errors.businessName} fullWidth />
-        </Grid>
-      </Grid>
+        </div>
+      </div>
     </Paper>
   );
 }

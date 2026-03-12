@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState, useMemo } from "react";
-import { Box, Card, CardContent, Typography, Grid, Button, Select, MenuItem, FormControl, InputLabel, CircularProgress } from "@mui/material";
+import { Box, Card, CardContent, Typography, Button, Select, MenuItem, FormControl, InputLabel, CircularProgress } from "@mui/material";
 import { useNavigate } from "react-router";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import TrendingDownIcon from "@mui/icons-material/TrendingDown";
@@ -211,16 +211,16 @@ function RegistrazioneCassDashboard() {
         </Box>
       </Box>
 
-      <Grid container spacing={3}>
+      <div className="grid grid-cols-12 gap-6">
         {/* KPI Mese Visualizzato */}
-        <Grid item xs={12}>
+        <div className="col-span-12">
           <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
             {selectedYear === currentYear
               ? `Statistiche ${MONTH_NAMES[displayMonthData.month - 1]} ${selectedYear}`
               : `Statistiche ${MONTH_NAMES[displayMonthData.month - 1]} ${selectedYear} (Mese Migliore)`}
           </Typography>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        </div>
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <KPICard
             title={`Ricavo ${MONTH_NAMES[displayMonthData.month - 1]}`}
             value={`€ ${displayMonthData.totalRevenue?.toFixed(2) || "0.00"}`}
@@ -229,14 +229,14 @@ function RegistrazioneCassDashboard() {
             icon={<PointOfSaleIcon sx={{ fontSize: 48 }} />}
             color="primary"
           />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        </div>
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <KPICard title="Pago in contanti Mese" value={`€ ${displayMonthData.totalCash?.toFixed(2) || "0.00"}`} icon={<AccountBalanceWalletIcon sx={{ fontSize: 48 }} />} color="success" />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        </div>
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <KPICard title="Pagamenti Elettronici Mese" value={`€ ${displayMonthData.totalElectronic?.toFixed(2) || "0.00"}`} icon={<CreditCardIcon sx={{ fontSize: 48 }} />} color="info" />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        </div>
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <KPICard
             title="Media Giornaliera Mese"
             value={`€ ${(displayMonthData.count > 0 ? displayMonthData.totalRevenue / displayMonthData.count : 0)?.toFixed(2) || "0.00"}`}
@@ -244,15 +244,15 @@ function RegistrazioneCassDashboard() {
             icon={<TrendingUpIcon sx={{ fontSize: 48 }} />}
             color="secondary"
           />
-        </Grid>
+        </div>
 
         {/* KPI Annuali */}
-        <Grid item xs={12}>
+        <div className="col-span-12">
           <Typography variant="h6" gutterBottom sx={{ mt: 2, mb: 2 }}>
             Statistiche Anno {selectedYear}
           </Typography>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        </div>
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <KPICard
             title={`Ricavo Totale ${selectedYear}`}
             value={`€ ${yearlyData.yearlyTotals.totalRevenue?.toFixed(2) || "0.00"}`}
@@ -260,14 +260,14 @@ function RegistrazioneCassDashboard() {
             icon={<EuroIcon sx={{ fontSize: 48 }} />}
             color="primary"
           />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        </div>
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <KPICard title="Pago in contanti Anno" value={`€ ${yearlyData.yearlyTotals.totalCash?.toFixed(2) || "0.00"}`} icon={<AccountBalanceWalletIcon sx={{ fontSize: 48 }} />} color="success" />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        </div>
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <KPICard title="Pagamenti Elettronici Anno" value={`€ ${yearlyData.yearlyTotals.totalElectronic?.toFixed(2) || "0.00"}`} icon={<CreditCardIcon sx={{ fontSize: 48 }} />} color="info" />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        </div>
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <KPICard
             title="Media Giornaliera Anno"
             value={`€ ${yearlyData.yearlyTotals.averageDaily?.toFixed(2) || "0.00"}`}
@@ -275,10 +275,10 @@ function RegistrazioneCassDashboard() {
             icon={<TrendingUpIcon sx={{ fontSize: 48 }} />}
             color="secondary"
           />
-        </Grid>
+        </div>
 
         {/* Grafico Trend Ricavi Mensili */}
-        <Grid item xs={12} lg={8}>
+        <div className="col-span-12 lg:col-span-8">
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -298,10 +298,10 @@ function RegistrazioneCassDashboard() {
               </ResponsiveContainer>
             </CardContent>
           </Card>
-        </Grid>
+        </div>
 
         {/* Grafico Breakdown Pagamenti */}
-        <Grid item xs={12} lg={4}>
+        <div className="col-span-12 lg:col-span-4">
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -339,10 +339,10 @@ function RegistrazioneCassDashboard() {
               </Box>
             </CardContent>
           </Card>
-        </Grid>
+        </div>
 
         {/* Grafico Trend Lineare */}
-        <Grid item xs={12}>
+        <div className="col-span-12">
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -362,8 +362,8 @@ function RegistrazioneCassDashboard() {
               </ResponsiveContainer>
             </CardContent>
           </Card>
-        </Grid>
-      </Grid>
+        </div>
+      </div>
     </Box>
   );
 }

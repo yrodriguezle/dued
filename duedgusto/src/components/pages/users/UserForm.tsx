@@ -1,4 +1,4 @@
-import { Box, Grid, Paper, Typography } from "@mui/material";
+import { Box, Paper, Typography } from "@mui/material";
 import { useFormikContext } from "formik";
 import FormikTextField from "../../common/form/FormikTextField";
 import FormikCheckbox from "../../common/form/FormikCheckbox";
@@ -21,8 +21,8 @@ function UserForm({ onSelectItem }: UserFormProps) {
         <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
           Ricerca Utente
         </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={6}>
+        <div className="grid grid-cols-12 gap-4">
+          <div className="col-span-12 md:col-span-6">
             <FormikSearchbox<FormikUtenteValues, UtenteSearchbox>
               label="Nome utente *"
               placeholder="Nome utente"
@@ -34,8 +34,8 @@ function UserForm({ onSelectItem }: UserFormProps) {
               options={utenteSearchboxOption}
               onSelectItem={onSelectItem}
             />
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       </Paper>
 
       {/* Sezione: Dati Personali */}
@@ -43,17 +43,17 @@ function UserForm({ onSelectItem }: UserFormProps) {
         <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
           Dati Personali
         </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={6}>
+        <div className="grid grid-cols-12 gap-4">
+          <div className="col-span-12 md:col-span-6">
             <FormikTextField label="Nome *" placeholder="Nome" name="nome" autoComplete="off" required fullWidth />
-          </Grid>
-          <Grid item xs={12} md={6}>
+          </div>
+          <div className="col-span-12 md:col-span-6">
             <FormikTextField label="Cognome *" placeholder="Cognome" name="cognome" autoComplete="off" required fullWidth />
-          </Grid>
-          <Grid item xs={12}>
+          </div>
+          <div className="col-span-12">
             <FormikTextField label="Descrizione" placeholder="Descrizione" name="descrizione" autoComplete="off" fullWidth />
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       </Paper>
 
       {/* Sezione: Ruolo e Accesso */}
@@ -61,8 +61,8 @@ function UserForm({ onSelectItem }: UserFormProps) {
         <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
           Ruolo e Accesso
         </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={6}>
+        <div className="grid grid-cols-12 gap-4">
+          <div className="col-span-12 md:col-span-6">
             <FormikSearchbox<FormikUtenteValues, RuoloNonNull>
               label="Ruolo *"
               placeholder="Seleziona ruolo"
@@ -76,11 +76,11 @@ function UserForm({ onSelectItem }: UserFormProps) {
                 formik.setFieldValue("ruoloNome", ruolo.nome);
               }}
             />
-          </Grid>
-          <Grid item xs={12} md={6} sx={{ display: "flex", alignItems: "center" }}>
+          </div>
+          <div className="col-span-12 md:col-span-6 flex items-center">
             <FormikCheckbox<FormikUtenteValues> name="disabilitato" label="Disabilitato" />
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       </Paper>
 
       {/* Sezione: Sicurezza */}
@@ -93,8 +93,8 @@ function UserForm({ onSelectItem }: UserFormProps) {
             Lascia i campi vuoti per mantenere la password attuale.
           </Typography>
         )}
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={6}>
+        <div className="grid grid-cols-12 gap-4">
+          <div className="col-span-12 md:col-span-6">
             <FormikTextField
               label={formik.values.id === 0 ? "Password *" : "Nuova Password"}
               placeholder={formik.values.id === 0 ? "Password" : "Nuova password"}
@@ -104,8 +104,8 @@ function UserForm({ onSelectItem }: UserFormProps) {
               required={formik.values.id === 0}
               fullWidth
             />
-          </Grid>
-          <Grid item xs={12} md={6}>
+          </div>
+          <div className="col-span-12 md:col-span-6">
             <FormikTextField
               label={formik.values.id === 0 ? "Conferma Password *" : "Conferma Nuova Password"}
               placeholder="Conferma password"
@@ -115,8 +115,8 @@ function UserForm({ onSelectItem }: UserFormProps) {
               required={formik.values.id === 0}
               fullWidth
             />
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       </Paper>
     </Box>
   );

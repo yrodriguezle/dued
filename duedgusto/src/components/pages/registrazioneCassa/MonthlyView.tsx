@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState } from "react";
-import { Box, Card, CardContent, Typography, Grid, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, IconButton } from "@mui/material";
+import { Box, Card, CardContent, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, IconButton } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import dayjs from "dayjs";
@@ -62,8 +62,8 @@ function MonthlyView() {
       </Box>
 
       {/* Summary Cards */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+      <div className="grid grid-cols-12 gap-6 mb-6">
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <Card>
             <CardContent>
               <Typography color="text.secondary" gutterBottom variant="overline">
@@ -74,8 +74,8 @@ function MonthlyView() {
               </Typography>
             </CardContent>
           </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        </div>
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <Card>
             <CardContent>
               <Typography color="text.secondary" gutterBottom variant="overline">
@@ -86,8 +86,8 @@ function MonthlyView() {
               </Typography>
             </CardContent>
           </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        </div>
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <Card>
             <CardContent>
               <Typography color="text.secondary" gutterBottom variant="overline">
@@ -98,8 +98,8 @@ function MonthlyView() {
               </Typography>
             </CardContent>
           </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        </div>
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <Card>
             <CardContent>
               <Typography color="text.secondary" gutterBottom variant="overline">
@@ -110,8 +110,8 @@ function MonthlyView() {
               </Typography>
             </CardContent>
           </Card>
-        </Grid>
-      </Grid>
+        </div>
+      </div>
 
       {/* Detailed Table */}
       <Card>

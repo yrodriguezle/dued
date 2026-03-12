@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Grid, Box, ToggleButtonGroup, ToggleButton, FormControl, InputLabel, Select, MenuItem } from "@mui/material";
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Box, ToggleButtonGroup, ToggleButton, FormControl, InputLabel, Select, MenuItem } from "@mui/material";
 import FormikSearchbox from "../../common/form/searchbox/FormikSearchbox";
 import supplierSearchboxOption, { SupplierSearchbox } from "../../common/form/searchbox/searchboxOptions/supplierSearchboxOptions";
 import showToast from "../../../common/toast/showToast";
@@ -95,8 +95,8 @@ function SupplierPaymentDialog({ open, onClose, onConfirm }: SupplierPaymentDial
             <DialogTitle>Pagamento Fornitore</DialogTitle>
             <DialogContent sx={{ overflow: "visible" }}>
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
-                <Grid container spacing={2}>
-                  <Grid item xs={12}>
+                <div className="grid grid-cols-12 gap-4">
+                  <div className="col-span-12">
                     <FormikSearchbox<PaymentFormValues, SupplierSearchbox>
                       label="Fornitore *"
                       placeholder="Seleziona fornitore"
@@ -107,8 +107,8 @@ function SupplierPaymentDialog({ open, onClose, onConfirm }: SupplierPaymentDial
                       options={supplierSearchboxOption}
                       onSelectItem={handleSelectSupplier}
                     />
-                  </Grid>
-                  <Grid item xs={12}>
+                  </div>
+                  <div className="col-span-12">
                     <Box sx={{ display: "flex", justifyContent: "center" }}>
                       <ToggleButtonGroup
                         value={documentType}
@@ -122,15 +122,15 @@ function SupplierPaymentDialog({ open, onClose, onConfirm }: SupplierPaymentDial
                         <ToggleButton value="FA">Fattura</ToggleButton>
                       </ToggleButtonGroup>
                     </Box>
-                  </Grid>
-                  <Grid item xs={12}>
+                  </div>
+                  <div className="col-span-12">
                     {documentType === "DDT" ? (
                       <TextField label="Numero DDT" fullWidth value={ddtNumber} onChange={(e) => setDdtNumber(e.target.value)} />
                     ) : (
                       <TextField label="Numero Fattura" fullWidth value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} />
                     )}
-                  </Grid>
-                  <Grid item xs={12} md={6}>
+                  </div>
+                  <div className="col-span-12 md:col-span-6">
                     <TextField
                       label="Importo *"
                       type="number"
@@ -139,8 +139,8 @@ function SupplierPaymentDialog({ open, onClose, onConfirm }: SupplierPaymentDial
                       onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
                       slotProps={{ htmlInput: { step: "0.01", min: "0" } }}
                     />
-                  </Grid>
-                  <Grid item xs={12} md={6}>
+                  </div>
+                  <div className="col-span-12 md:col-span-6">
                     <FormControl fullWidth>
                       <InputLabel>Metodo Pagamento</InputLabel>
                       <Select value={paymentMethod} label="Metodo Pagamento" onChange={(e) => setPaymentMethod(e.target.value)}>
@@ -148,8 +148,8 @@ function SupplierPaymentDialog({ open, onClose, onConfirm }: SupplierPaymentDial
                         <MenuItem value="Bonifico">Bonifico</MenuItem>
                       </Select>
                     </FormControl>
-                  </Grid>
-                </Grid>
+                  </div>
+                </div>
               </Box>
             </DialogContent>
             <DialogActions>

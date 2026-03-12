@@ -1,5 +1,5 @@
 
-import { Grid, TextField, Box } from "@mui/material";
+import { TextField, Box } from "@mui/material";
 import { useFormikContext } from "formik";
 import { FormikCashRegisterValues, Income, Expense } from "./RegistroCassaDetails";
 import CashCountDataGrid from "./CashCountDataGrid";
@@ -52,29 +52,29 @@ const CashRegisterFormDataGrid: React.FC<CashRegisterFormDataGridProps> = ({
 
   return (
     <Box sx={{ marginTop: 1, paddingX: { xs: 0, sm: 1, md: 2 }, overflow: "hidden", width: "100%", boxSizing: "border-box" }}>
-      <Grid container spacing={{ xs: 1, sm: 2.5, md: 3 }}>
+      <div className="grid grid-cols-12 gap-2 sm:gap-5 md:gap-6">
         {/* Apertura Cassa */}
-        <Grid item xs={12} lg={6}>
+        <div className="col-span-12 lg:col-span-6">
           <CashCountDataGrid ref={openingGridRef} rowData={openingRowData} title="APERTURA CASSA" isLocked={isLocked} onCellChange={onCellChange} onCopyFromPrevious={onCopyFromPrevious} />
-        </Grid>
+        </div>
 
-        <Grid item xs={12} lg={6}>
+        <div className="col-span-12 lg:col-span-6">
           <CashCountDataGrid ref={closingGridRef} rowData={closingRowData} title="CHIUSURA CASSA" isLocked={isLocked} onCellChange={onCellChange} />
-        </Grid>
+        </div>
 
-        <Grid item xs={12} md={6}>
+        <div className="col-span-12 md:col-span-6">
           <IncomesDataGrid ref={incomesGridRef} initialIncomes={initialIncomes} isLocked={isLocked} onCellChange={onCellChange} />
-        </Grid>
+        </div>
 
-        <Grid item xs={12} md={6}>
+        <div className="col-span-12 md:col-span-6">
           <ExpensesDataGrid ref={expensesGridRef} initialExpenses={initialExpenses} isLocked={isLocked} onCellChange={onCellChange} />
-        </Grid>
+        </div>
 
-        <Grid item xs={12} md={6}>
+        <div className="col-span-12 md:col-span-6">
           <SummaryDataGrid openingGridRef={openingGridRef} closingGridRef={closingGridRef} incomesGridRef={incomesGridRef} expensesGridRef={expensesGridRef} refreshKey={refreshKey} />
-        </Grid>
+        </div>
 
-        <Grid item xs={12}>
+        <div className="col-span-12">
           <Box>
             <TextField
               label="Note"
@@ -89,8 +89,8 @@ const CashRegisterFormDataGrid: React.FC<CashRegisterFormDataGridProps> = ({
               placeholder="Inserisci eventuali note sulla chiusura cassa..."
             />
           </Box>
-        </Grid>
-      </Grid>
+        </div>
+      </div>
     </Box>
   );
 };
