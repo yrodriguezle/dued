@@ -5,6 +5,7 @@ import { DatagridColDef, DatagridData } from "../../common/datagrid/@types/Datag
 import { GridReadyEvent } from "ag-grid-community";
 import formatCurrency from "../../../common/bones/formatCurrency";
 import { CashCountRowData } from "./useCashCountData";
+import { Income, Expense } from "./RegistroCassaDetails";
 
 interface IncomeRow extends Record<string, unknown> {
   type: string;
@@ -21,6 +22,10 @@ interface SummaryDataGridProps {
   closingGridRef: React.RefObject<GridReadyEvent<DatagridData<CashCountRowData>> | null>;
   incomesGridRef: React.RefObject<GridReadyEvent<DatagridData<IncomeRow>> | null>;
   expensesGridRef: React.RefObject<GridReadyEvent<DatagridData<ExpenseRow>> | null>;
+  openingRowData: CashCountRowData[];
+  closingRowData: CashCountRowData[];
+  initialIncomes: Income[];
+  initialExpenses: Expense[];
   refreshKey: number;
 }
 
@@ -32,34 +37,57 @@ interface SummaryRowData extends Record<string, unknown> {
   textColor?: string;
 }
 
-function calculateCashCountTotal(gridRef: React.RefObject<GridReadyEvent<DatagridData<CashCountRowData>> | null>): number {
-  if (!gridRef.current) return 0;
-
-  let total = 0;
-  gridRef.current.api.forEachNode((node) => {
-    if (node.data && !node.rowPinned) {
-      total += node.data.total;
-    }
-  });
-  return total;
+function calculateCashCountTotal(
+  gridRef: React.RefObject<GridReadyEvent<DatagridData<CashCountRowData>> | null>,
+  fallbackData: CashCountRowData[]
+): number {
+  if (gridRef.current) {
+    let nodeCount = 0;
+    let total = 0;
+    gridRef.current.api.forEachNode((node) => {
+      if (node.data && !node.rowPinned) {
+        nodeCount++;
+        total += node.data.total;
+      }
+    });
+    if (nodeCount > 0) return total;
+  }
+  // Fallback: calcola dai dati props quando la griglia non è ancora pronta
+  return fallbackData.reduce((sum, row) => sum + row.total, 0);
 }
 
-function SummaryDataGrid({ openingGridRef, closingGridRef, incomesGridRef, expensesGridRef, refreshKey }: SummaryDataGridProps) {
+function SummaryDataGrid({
+  openingGridRef,
+  closingGridRef,
+  incomesGridRef,
+  expensesGridRef,
+  openingRowData,
+  closingRowData,
+  initialIncomes,
+  initialExpenses,
+  refreshKey,
+}: SummaryDataGridProps) {
   const theme = useTheme();
 
   // refreshKey forces recalculation when grids change
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const openingTotal = useMemo(() => calculateCashCountTotal(openingGridRef), [openingGridRef, refreshKey]);
+  const openingTotal = useMemo(() => calculateCashCountTotal(openingGridRef, openingRowData), [openingGridRef, openingRowData, refreshKey]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const closingTotal = useMemo(() => calculateCashCountTotal(closingGridRef), [closingGridRef, refreshKey]);
+  const closingTotal = useMemo(() => calculateCashCountTotal(closingGridRef, closingRowData), [closingGridRef, closingRowData, refreshKey]);
 
   const dailyIncome = closingTotal - openingTotal;
 
-  // Leggi i dati dalle griglie incomes/expenses
+  // Leggi i dati dalle griglie incomes/expenses, con fallback ai dati props
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const incomes = useMemo(() => incomesGridRef.current?.context.getGridData() || [], [incomesGridRef, refreshKey]);
+  const incomes = useMemo(() => {
+    const gridData = incomesGridRef.current?.context?.getGridData();
+    return gridData?.length ? gridData : initialIncomes;
+  }, [incomesGridRef, initialIncomes, refreshKey]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const expenses = useMemo(() => expensesGridRef.current?.context.getGridData() || [], [expensesGridRef, refreshKey]);
+  const expenses = useMemo(() => {
+    const gridData = expensesGridRef.current?.context?.getGridData();
+    return gridData?.length ? gridData : initialExpenses;
+  }, [expensesGridRef, initialExpenses, refreshKey]);
 
   const cashInWhite = (incomes as IncomeRow[]).find((i) => i.type === "Pago in contanti")?.amount || 0;
   const electronicPayments = (incomes as IncomeRow[]).find((i) => i.type === "Pagamenti Elettronici")?.amount || 0;

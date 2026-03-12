@@ -8,7 +8,7 @@ function useCloseCashRegister() {
     const result = await mutate({
       variables: { registroCassaId },
       // Aggiorna la cache per riflettere lo stato CLOSED nella vista mensile
-      refetchQueries: ["GetRegistriCassaConnection", "GetRegistroCassa"],
+      refetchQueries: ["GetRegistriCassa", "GetRegistroCassa"],
       awaitRefetchQueries: false,
     });
     if (result.data?.cashManagement?.chiudiRegistroCassa) {

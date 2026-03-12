@@ -209,7 +209,7 @@ function RegistroCassaDetails() {
 
       setInitialOpeningCounts(copiedCounts);
       handleCellChange();
-      toast.success("Conteggi apertura copiati dal giorno precedente");
+      toast.success("Conteggi apertura copiati dal giorno precedente", { position: "bottom-right" });
     } catch (error) {
       logger.error("Errore durante la copia dal giorno precedente:", error);
       toast.error("Errore durante la copia dal giorno precedente");
@@ -227,8 +227,6 @@ function RegistroCassaDetails() {
   // Initialize form with cash register data when available
   useEffect(() => {
     if (cashRegister) {
-      logger.log("Loading cashRegister from server", cashRegister);
-
       // Convert date from ISO 8601 to YYYY-MM-DD
       const dateStr = cashRegister.data.split("T")[0]; // Extract YYYY-MM-DD from ISO string
 
@@ -395,12 +393,10 @@ function RegistroCassaDetails() {
         stato: values.status as StatoRegistroCassa,
       };
 
-      logger.log("onSubmit - input to be sent", input);
-
       const result = await submitCashRegister({ registroCassa: input });
 
       if (result) {
-        toast.success("Cassa salvata con successo!");
+        toast.success("Cassa salvata con successo!", { position: "bottom-right" });
 
         // Aggiorna il form con l'ID ritornato dal server
         // Questo assicura che i successivi salvataggi siano update
@@ -434,7 +430,7 @@ function RegistroCassaDetails() {
 
     try {
       await closeCashRegister(formRef.current.values.registerId);
-      toast.success("Cassa chiusa con successo!");
+      toast.success("Cassa chiusa con successo!", { position: "bottom-right" });
       formRef.current?.setStatus({
         formStatus: formStatuses.UPDATE,
         isFormLocked: true,

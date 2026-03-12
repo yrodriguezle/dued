@@ -1,19 +1,23 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Box, Chip, Typography, useTheme } from "@mui/material";
 import { useNavigate } from "react-router";
+import { useMutation } from "@apollo/client";
 import { GridReadyEvent, ICellRendererParams, ValueFormatterParams, ValueGetterParams } from "ag-grid-community";
+import { toast } from "react-toastify";
 import { getFormattedDate } from "../../../common/date/date";
+import formatCurrency from "../../../common/bones/formatCurrency";
 
 import Datagrid from "../../common/datagrid/Datagrid";
 import ListToolbar from "../../common/form/toolbar/ListToolbar";
 import PageTitleContext from "../../layout/headerBar/PageTitleContext";
 import useFetchData from "../../../graphql/common/useFetchData";
 import { getRegistriCassa } from "../../../graphql/cashRegister/queries";
+import { mutationEliminaRegistroCassa } from "../../../graphql/cashRegister/mutations";
 import { DatagridColDef, DatagridData, DatagridRowDoubleClickedEvent } from "../../common/datagrid/@types/Datagrid";
 import useConfirm from "../../common/confirm/useConfirm";
-import showToast from "../../../common/toast/showToast";
 import { DatagridStatus } from "../../../common/globals/constants";
 import useStore from "../../../store/useStore";
+import logger from "../../../common/logger/logger";
 
 export type RegistroCassaWithStatus = RegistroCassa & {
   status: DatagridStatus;
@@ -27,6 +31,7 @@ function ListaRegistrazioneCassa() {
   const gridRef = useRef<GridReadyEvent<DatagridData<RegistroCassaWithStatus>> | null>(null);
   const [selectedRows, setSelectedRows] = useState<DatagridData<RegistroCassaWithStatus>[]>([]);
   const onConfirm = useConfirm();
+  const [eliminaRegistroCassa] = useMutation(mutationEliminaRegistroCassa);
 
   useEffect(() => {
     setTitle("Chiusure cassa");
@@ -63,47 +68,33 @@ function ListaRegistrazioneCassa() {
   }, [getNextOperatingDate, navigate]);
 
   const handleDelete = useCallback(async () => {
-    if (selectedRows.length === 0) {
-      showToast({
-        type: "warning",
-        position: "bottom-right",
-        message: "Seleziona almeno una chiusura cassa da eliminare",
-        autoClose: 2000,
-        toastId: "warning-no-selection",
-      });
-      return;
-    }
+    if (selectedRows.length === 0) return;
 
     const confirmed = await onConfirm({
       title: "Conferma eliminazione",
-      content: `Sei sicuro di voler eliminare ${selectedRows.length} chiusura/e cassa selezionata/e?`,
+      content: `Sei sicuro di voler eliminare ${selectedRows.length} registrazione/i cassa selezionata/e?`,
       acceptLabel: "Elimina",
       cancelLabel: "Annulla",
     });
 
-    if (!confirmed) {
-      return;
-    }
+    if (!confirmed) return;
 
     try {
-      // TODO: Implementare la mutation per l'eliminazione
-      showToast({
-        type: "info",
-        position: "bottom-right",
-        message: "Funzionalità di eliminazione non ancora implementata",
-        autoClose: 2000,
-        toastId: "info-delete",
-      });
-    } catch {
-      showToast({
-        type: "error",
-        position: "bottom-right",
-        message: "Errore durante l'eliminazione",
-        autoClose: 3000,
-        toastId: "error-delete",
-      });
+      await Promise.all(
+        selectedRows.map((row) =>
+          eliminaRegistroCassa({
+            variables: { registroCassaId: row.id },
+            refetchQueries: ["GetRegistriCassa"],
+          })
+        )
+      );
+      toast.success(`${selectedRows.length} registrazione/i eliminata/e`, { position: "bottom-right" });
+      setSelectedRows([]);
+    } catch (error) {
+      logger.error("Errore durante l'eliminazione:", error);
+      toast.error("Errore durante l'eliminazione");
     }
-  }, [selectedRows, onConfirm]);
+  }, [selectedRows, onConfirm, eliminaRegistroCassa]);
 
   const handleRowDoubleClicked = useCallback(
     (event: DatagridRowDoubleClickedEvent<RegistroCassaWithStatus>) => {
@@ -116,6 +107,13 @@ function ListaRegistrazioneCassa() {
     },
     [navigate]
   );
+
+  // Solo le righe in stato DRAFT sono selezionabili
+  const isRowSelectable = useCallback((params: { data: DatagridData<RegistroCassaWithStatus> | undefined }) => {
+    const stato = params.data?.stato;
+    if (typeof stato === "number") return stato === 0;
+    return stato === "DRAFT";
+  }, []);
 
   const columnDefs = useMemo<DatagridColDef<RegistroCassaWithStatus>[]>(
     () => [
@@ -134,17 +132,15 @@ function ListaRegistrazioneCassa() {
         field: "totaleApertura",
         headerName: "Apertura",
         width: 120,
-        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => {
-          return `€ ${params.value?.toFixed(2) || "0.00"}`;
-        },
+        type: "rightAligned",
+        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => formatCurrency(params.value),
       },
       {
         field: "totaleChiusura",
         headerName: "Totale Cassa",
         width: 120,
-        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => {
-          return `€ ${params.value?.toFixed(2) || "0.00"}`;
-        },
+        type: "rightAligned",
+        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => formatCurrency(params.value),
       },
       {
         colId: "incassoGiornaliero",
@@ -155,27 +151,24 @@ function ListaRegistrazioneCassa() {
           if (!cr) return 0;
           return (cr.totaleChiusura || 0) - (cr.totaleApertura || 0);
         },
-        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => {
-          return `€ ${params.value?.toFixed(2) || "0.00"}`;
-        },
+        type: "rightAligned",
+        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => formatCurrency(params.value),
       },
       {
         field: "incassoContanteTracciato",
         headerName: "Pago in contanti",
         width: 140,
         cellStyle: { backgroundColor: theme.palette.success.light, color: theme.palette.success.contrastText },
-        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => {
-          return `€ ${params.value?.toFixed(2) || "0.00"}`;
-        },
+        type: "rightAligned",
+        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => formatCurrency(params.value),
       },
       {
         field: "incassiElettronici",
         headerName: "Elettronico",
         width: 120,
         cellStyle: { backgroundColor: theme.palette.success.light, color: theme.palette.success.contrastText },
-        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => {
-          return `€ ${params.value?.toFixed(2) || "0.00"}`;
-        },
+        type: "rightAligned",
+        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => formatCurrency(params.value),
       },
       {
         field: "totaleVendite",
@@ -188,17 +181,15 @@ function ListaRegistrazioneCassa() {
           // Totale Vendite = (Totale Cassa - Apertura) + Elettronico
           return (cr.totaleChiusura || 0) - (cr.totaleApertura || 0) + (cr.incassiElettronici || 0);
         },
-        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => {
-          return `€ ${params.value?.toFixed(2) || "0.00"}`;
-        },
+        type: "rightAligned",
+        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => formatCurrency(params.value),
       },
       {
         field: "incassiFattura",
         headerName: "Pagamenti Fattura",
         width: 150,
-        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => {
-          return `€ ${params.value?.toFixed(2) || "0.00"}`;
-        },
+        type: "rightAligned",
+        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => formatCurrency(params.value),
       },
       {
         colId: "speseTotali",
@@ -210,9 +201,8 @@ function ListaRegistrazioneCassa() {
           if (!cr) return 0;
           return (cr.speseFornitori || 0) + (cr.speseGiornaliere || 0);
         },
-        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => {
-          return `€ ${params.value?.toFixed(2) || "0.00"}`;
-        },
+        type: "rightAligned",
+        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => formatCurrency(params.value),
       },
       {
         colId: "ecc",
@@ -225,9 +215,8 @@ function ListaRegistrazioneCassa() {
           const totalSales = (cr.totaleChiusura || 0) - (cr.totaleApertura || 0) + (cr.incassiElettronici || 0);
           return totalSales - (cr.incassoContanteTracciato || 0) - (cr.incassiElettronici || 0);
         },
-        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => {
-          return `€ ${params.value?.toFixed(2) || "0.00"}`;
-        },
+        type: "rightAligned",
+        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => formatCurrency(params.value),
       },
       {
         field: "stato",
@@ -268,7 +257,7 @@ function ListaRegistrazioneCassa() {
 
   return (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
-      <ListToolbar onNew={handleNew} onDelete={handleDelete} />
+      <ListToolbar onNew={handleNew} onDelete={handleDelete} disabledDelete={selectedRows.length === 0} />
       <Box sx={{ marginTop: 1, paddingX: 2 }}>
         <Typography id="view-title" variant="h5" gutterBottom>
           {title}
@@ -282,6 +271,11 @@ function ListaRegistrazioneCassa() {
           loading={loading}
           onGridReady={handleGridReady}
           onRowDoubleClicked={handleRowDoubleClicked}
+          rowSelection={{
+            mode: "multiRow",
+            headerCheckbox: true,
+            isRowSelectable,
+          }}
           presentation
         />
       </Box>

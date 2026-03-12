@@ -71,7 +71,17 @@ const CashRegisterFormDataGrid: React.FC<CashRegisterFormDataGridProps> = ({
         </div>
 
         <div className="col-span-12 md:col-span-6">
-          <SummaryDataGrid openingGridRef={openingGridRef} closingGridRef={closingGridRef} incomesGridRef={incomesGridRef} expensesGridRef={expensesGridRef} refreshKey={refreshKey} />
+          <SummaryDataGrid
+            openingGridRef={openingGridRef}
+            closingGridRef={closingGridRef}
+            incomesGridRef={incomesGridRef}
+            expensesGridRef={expensesGridRef}
+            openingRowData={openingRowData}
+            closingRowData={closingRowData}
+            initialIncomes={initialIncomes}
+            initialExpenses={initialExpenses}
+            refreshKey={refreshKey}
+          />
         </div>
 
         <div className="col-span-12">

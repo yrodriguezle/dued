@@ -16,7 +16,7 @@ function useSubmitCashRegister() {
           query: getRegistroCassa,
           variables: { data: variables.registroCassa.data },
         },
-        "GetRegistriCassaConnection",
+        "GetRegistriCassa",
       ],
       awaitRefetchQueries: false,
     });
