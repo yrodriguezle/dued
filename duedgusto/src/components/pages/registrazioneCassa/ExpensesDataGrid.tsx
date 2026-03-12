@@ -9,6 +9,7 @@ import { Expense } from "./RegistroCassaDetails";
 import Datagrid from "../../common/datagrid/Datagrid";
 import { DatagridColDef, ValidationError, DatagridCellValueChangedEvent, DatagridData } from "../../common/datagrid/@types/Datagrid";
 import { GridReadyEvent } from "ag-grid-community";
+import formatCurrency from "../../../common/bones/formatCurrency";
 import SupplierPaymentDialog from "./SupplierPaymentDialog";
 import OverflowToolbar, { OverflowAction } from "../../common/toolbar/OverflowToolbar";
 
@@ -82,8 +83,7 @@ const ExpensesDataGrid = memo(
           cellStyle: { textAlign: "right" },
           cellClass: "ag-right-aligned-cell",
           valueFormatter: (params) => {
-            if (params.value == null) return "0.00€";
-            return `${Number(params.value).toFixed(2)}€`;
+            return formatCurrency(params.value);
           },
         },
       ],

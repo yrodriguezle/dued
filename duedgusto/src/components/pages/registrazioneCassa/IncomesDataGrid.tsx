@@ -4,6 +4,7 @@ import { Income } from "./RegistroCassaDetails";
 import Datagrid from "../../common/datagrid/Datagrid";
 import { DatagridColDef, DatagridCellValueChangedEvent, DatagridData } from "../../common/datagrid/@types/Datagrid";
 import { GridReadyEvent } from "ag-grid-community";
+import formatCurrency from "../../../common/bones/formatCurrency";
 
 interface IncomesDataGridProps {
   initialIncomes: Income[];
@@ -27,7 +28,7 @@ const IncomesDataGrid = memo(
           editable: false,
         },
         {
-          headerName: "Importo (€)",
+          headerName: "Importo",
           field: "amount",
           flex: 1,
           editable: !isLocked,
@@ -39,8 +40,7 @@ const IncomesDataGrid = memo(
           cellStyle: { textAlign: "right" },
           cellClass: "ag-right-aligned-cell",
           valueFormatter: (params) => {
-            if (params.value == null) return "0.00€";
-            return `${Number(params.value).toFixed(2)}€`;
+            return formatCurrency(params.value);
           },
         },
       ],

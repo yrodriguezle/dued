@@ -5,6 +5,7 @@ import Datagrid from "../../common/datagrid/Datagrid";
 import { DatagridCellValueChangedEvent, DatagridColDef, DatagridData } from "../../common/datagrid/@types/Datagrid";
 import { GridReadyEvent } from "ag-grid-community";
 import { CashCountRowData } from "./useCashCountData";
+import formatCurrency from "../../../common/bones/formatCurrency";
 
 interface CashCountDataGridProps {
   rowData: CashCountRowData[];
@@ -38,11 +39,12 @@ const CashCountDataGrid = memo(
           flex: 1,
           minWidth: 70,
           editable: false,
+          cellStyle: { textAlign: "right" },
           valueFormatter: (params) => {
             if (params.node?.rowPinned) {
               return "TOTALE";
             }
-            return `${params.value.toFixed(2)}€`;
+            return formatCurrency(params.value);
           },
         },
         {
@@ -80,7 +82,7 @@ const CashCountDataGrid = memo(
             return style;
           },
           valueFormatter: (params) => {
-            return `${params.value.toFixed(2)}€`;
+            return formatCurrency(params.value);
           },
         },
       ],

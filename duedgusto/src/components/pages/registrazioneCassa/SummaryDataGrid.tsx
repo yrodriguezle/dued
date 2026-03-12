@@ -3,6 +3,7 @@ import { Box, Typography, useTheme } from "@mui/material";
 import Datagrid from "../../common/datagrid/Datagrid";
 import { DatagridColDef, DatagridData } from "../../common/datagrid/@types/Datagrid";
 import { GridReadyEvent } from "ag-grid-community";
+import formatCurrency from "../../../common/bones/formatCurrency";
 import { CashCountRowData } from "./useCashCountData";
 
 interface IncomeRow extends Record<string, unknown> {
@@ -166,7 +167,7 @@ function SummaryDataGrid({ openingGridRef, closingGridRef, incomesGridRef, expen
           const value = params.value;
           const data = params.data as SummaryRowData;
           const prefix = value >= 0 && !data.label.includes("(-)") ? "+" : "";
-          return `${prefix}${value.toFixed(2)}€`;
+          return `${prefix}${formatCurrency(value)}`;
         },
       },
     ],
