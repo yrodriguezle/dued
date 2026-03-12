@@ -1,4 +1,4 @@
-import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, FocusEventHandler, ChangeEventHandler } from "react";
+import React, { forwardRef, useCallback, useEffect, useLayoutEffect, useImperativeHandle, useMemo, useRef, useState, FocusEventHandler, ChangeEventHandler } from "react";
 import MTextField, { TextFieldProps as MTextFieldProps } from "@mui/material/TextField";
 import InputAdornment from "@mui/material/InputAdornment";
 import IconButton from "@mui/material/IconButton";
@@ -45,12 +45,22 @@ const TextField = forwardRef<TextFieldRef, TextFieldProps>(({ value = "", name, 
     setInnerValue(value);
   }, [value]);
 
+  // Ripristina la posizione del cursore dopo che innerValue è stato aggiornato
+  useLayoutEffect(() => {
+    if (caretSelection.current && inputRef.current) {
+      inputRef.current.setSelectionRange(caretSelection.current.start, caretSelection.current.end);
+      caretSelection.current = null;
+    }
+  }, [innerValue]);
+
   const handleChange: ChangeEventHandler<HTMLInputElement> = useCallback(
     (event) => {
+      const { selectionStart, selectionEnd } = event.target;
       let transformedValue = event.target.value;
       if (textUpperCase) {
         transformedValue = transformedValue.toUpperCase();
       }
+      caretSelection.current = { start: selectionStart ?? 0, end: selectionEnd ?? 0 };
       if (onChange && typeof onChange === "function") {
         onChange(name, transformedValue);
       } else {
