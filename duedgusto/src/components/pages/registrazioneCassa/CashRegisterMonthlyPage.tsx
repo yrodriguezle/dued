@@ -227,7 +227,7 @@ function CashRegisterMonthlyPage() {
               <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1 }}>
                 Elettronici
               </Typography>
-              <Typography variant={isMobile ? "body2" : "body1"} fontWeight="bold" color="warning.main" sx={{ lineHeight: 1.3 }}>
+              <Typography variant={isMobile ? "body1" : "h6"} fontWeight="bold" color="warning.main" sx={{ lineHeight: 1.3 }}>
                 {`\u20AC ${monthlyStats.elettronici.toFixed(2)}`}
               </Typography>
             </Box>
@@ -241,7 +241,7 @@ function CashRegisterMonthlyPage() {
       )}
 
       {/* Calendario */}
-      <Box sx={{ flex: 1, overflow: "hidden", minHeight: 0 }}>
+      <Box sx={{ flex: 1, overflow: "hidden", minHeight: 0, maxWidth: 900, mx: "auto", width: "100%" }}>
         <CustomCalendar events={events} onSelectEvent={handleSelectEvent} onSelectSlot={handleSelectSlot} currentDate={currentDate} />
       </Box>
     </Box>
