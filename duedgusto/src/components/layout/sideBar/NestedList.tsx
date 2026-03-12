@@ -108,16 +108,18 @@ const NestedListItem: React.FC<NestedListItemProps> = ({ item, drawerOpen, onLis
           sx={{
             minWidth: 0,
             justifyContent: "center",
-            mr: drawerOpen ? 3 : "auto",
+            mr: drawerOpen ? 1.5 : "auto",
           }}
         >
           {item.icon}
         </ListItemIcon>
         <ListItemText
           primary={item.label}
+          title={item.label}
           slotProps={{
             primary: {
               fontSize: "small",
+              noWrap: true,
             },
           }}
           sx={{ opacity: drawerOpen ? 1 : 0 }}

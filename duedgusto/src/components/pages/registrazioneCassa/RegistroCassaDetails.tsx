@@ -483,7 +483,7 @@ function RegistroCassaDetails() {
         const disableSave = status?.isFormLocked || isSubmitting || !isValid;
 
         return (
-          <Form noValidate>
+          <Form noValidate style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
             <FormikToolbar
               hideUnlockButton
               hideNewButton
@@ -515,10 +515,10 @@ function RegistroCassaDetails() {
             <Box
               className="scrollable-box"
               sx={{
-                marginTop: 0,
+                flex: 1,
+                minHeight: 0,
                 paddingX: { xs: 0.5, sm: 1, md: 2 },
                 overflow: "auto",
-                height: "calc(100vh - 97px)",
                 overscrollBehavior: "contain",
                 boxSizing: "border-box",
                 backgroundColor: "background.paper",

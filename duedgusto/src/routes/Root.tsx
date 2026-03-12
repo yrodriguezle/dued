@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { ThemeProvider, CssBaseline } from "@mui/material";
+import { ThemeProvider, CssBaseline, GlobalStyles } from "@mui/material";
 import Backdrop from "@mui/material/Backdrop";
 import CircularProgress from "@mui/material/CircularProgress";
 import { ToastContainer } from "react-toastify";
@@ -27,6 +27,7 @@ function Root() {
       <PageTitleContext.Provider value={pageTitleContextValue}>
         <ThemeProvider theme={theme(userTheme.theme)}>
           <CssBaseline />
+          <GlobalStyles styles={{ html: { height: "100%", overflow: "hidden" }, body: { height: "100%", overflow: "hidden" } }} />
           <Outlet />
           <ToastContainer theme={userTheme.theme} />
           <Confirm />

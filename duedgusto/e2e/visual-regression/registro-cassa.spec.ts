@@ -1,4 +1,4 @@
-import { test } from "@playwright/test";
+import { test, expect } from "@playwright/test";
 import { visualTest, navigateAndWait, takeScreenshot, AUTH_STATE_PATH } from "./helpers";
 
 /**
@@ -97,6 +97,46 @@ test.describe("Registro Cassa Details", () => {
     }
 
     await takeScreenshot(page, "registro-cassa-summary");
+  });
+
+  test("registro cassa — nessuno scroll globale a livello viewport", async ({ page }) => {
+    await navigateAndWait(page, `cassa/${datePath}`);
+
+    // Verifica che html e body abbiano overflow: hidden (previene scroll globale)
+    const overflowCheck = await page.evaluate(() => {
+      const html = document.documentElement;
+      const body = document.body;
+      return {
+        htmlOverflow: getComputedStyle(html).overflow,
+        bodyOverflow: getComputedStyle(body).overflow,
+        bodyScrollHeight: body.scrollHeight,
+        bodyClientHeight: body.clientHeight,
+        bodyFits: body.scrollHeight <= body.clientHeight,
+      };
+    });
+
+    // html e body devono avere overflow: hidden per prevenire scroll globale
+    expect(overflowCheck.htmlOverflow).toBe("hidden");
+    expect(overflowCheck.bodyOverflow).toBe("hidden");
+    // body non deve traboccare
+    expect(overflowCheck.bodyFits).toBe(true);
+  });
+
+  test("registro cassa — SummaryDataGrid altezza contenuta", async ({ page }) => {
+    await navigateAndWait(page, `cassa/${datePath}`);
+
+    // Scrolla il container interno per rendere visibile il SummaryDataGrid (su mobile è sotto il fold)
+    const summaryHeading = page.getByText("RIEPILOGO VENDITE");
+    await summaryHeading.scrollIntoViewIfNeeded();
+    await expect(summaryHeading).toBeVisible();
+
+    // Il parent Box di SummaryDataGrid dovrebbe avere altezza ragionevole (< 500px con margini)
+    const summaryBox = summaryHeading.locator("..");
+    const boundingBox = await summaryBox.boundingBox();
+    expect(boundingBox).not.toBeNull();
+
+    // Con domLayout="autoHeight" l'altezza esplode; con altezza fissa deve restare sotto 500px
+    expect(boundingBox!.height).toBeLessThan(500);
   });
 });
 

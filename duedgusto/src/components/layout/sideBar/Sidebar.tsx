@@ -36,10 +36,12 @@ function Sidebar({ drawerOpen, drawerSwipeable, mobileDrawerOpen, setMobileDrawe
     (open: boolean) => (
       <Drawer variant="permanent" open={open}>
         <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
-          <div style={{ marginTop: `50px` }}></div>
-          <NestedList items={menuItems} drawerOpen={open} onListItemClick={onListItemClick} />
+          <Box sx={{ flexShrink: 0, height: 50 }} />
+          <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden" }}>
+            <NestedList items={menuItems} drawerOpen={open} onListItemClick={onListItemClick} />
+          </Box>
           {open && appVersion && (
-            <Typography variant="caption" sx={{ mt: "auto", p: 1, textAlign: "center", color: "text.secondary" }}>
+            <Typography variant="caption" sx={{ p: 1, textAlign: "center", color: "text.secondary" }}>
               v{appVersion}
             </Typography>
           )}
