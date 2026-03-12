@@ -1,15 +1,16 @@
+ 
 
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Form, Formik, FormikProps } from "formik";
 import { z } from "zod";
-import { Box, Typography, Toolbar, IconButton } from "@mui/material";
+import { Box, Typography, IconButton } from "@mui/material";
 import { ArrowBack, ArrowForward } from "@mui/icons-material";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
-import SaveIcon from "@mui/icons-material/Save";
 import LockIcon from "@mui/icons-material/Lock";
 import { useParams, useNavigate } from "react-router";
 import { useApolloClient } from "@apollo/client";
 import { GridReadyEvent } from "ag-grid-community";
+import FormikToolbar from "../../common/form/toolbar/FormikToolbar";
 import FormikToolbarButton from "../../common/form/toolbar/FormikToolbarButton";
 
 import CashRegisterFormDataGrid from "./CashRegisterFormDataGrid";
@@ -482,31 +483,14 @@ function RegistroCassaDetails() {
         const disableSave = status?.isFormLocked || isSubmitting || !isValid;
 
         return (
-          <Form noValidate style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 64px)", overflow: "hidden" }}>
-            <Box sx={{ borderBottom: 1, borderColor: "divider", bgcolor: "background.paper", flexShrink: 0 }}>
-              <Toolbar
-                variant="dense"
-                disableGutters
-                sx={{
-                  minHeight: 48,
-                  height: 48,
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  px: { xs: 0.5, sm: 2 },
-                }}
-              >
-                <Box sx={{ height: 48, display: "flex", alignItems: "stretch" }}>
-                  <FormikToolbarButton startIcon={<SaveIcon />} disabled={disableSave} type="submit">
-                    Salva
-                  </FormikToolbarButton>
-                  {status?.formStatus === formStatuses.UPDATE && status?.isFormLocked === false && (
-                    <FormikToolbarButton startIcon={<LockIcon />} onClick={handleCloseCashRegister} disabled={closing} color="warning">
-                      Chiudi Cassa
-                    </FormikToolbarButton>
-                  )}
-                </Box>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+          <Form noValidate>
+            <FormikToolbar
+              hideUnlockButton
+              hideNewButton
+              hideDeleteButton
+              disabledSave={disableSave}
+              rightContent={
+                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, pr: { xs: 0.5, sm: 2 } }}>
                   <IconButton size="small" onClick={handlePreviousDay} title="Giorno precedente">
                     <ArrowBack fontSize="small" />
                   </IconButton>
@@ -520,21 +504,24 @@ function RegistroCassaDetails() {
                     <CalendarMonthIcon fontSize="small" />
                   </IconButton>
                 </Box>
-              </Toolbar>
-            </Box>
-
+              }
+            >
+              {status?.formStatus === formStatuses.UPDATE && status?.isFormLocked === false && (
+                <FormikToolbarButton startIcon={<LockIcon />} onClick={handleCloseCashRegister} disabled={closing} color="warning">
+                  Chiudi Cassa
+                </FormikToolbarButton>
+              )}
+            </FormikToolbar>
             <Box
               className="scrollable-box"
               sx={{
-                flex: 1,
-                marginTop: 1,
+                marginTop: 0,
                 paddingX: { xs: 0.5, sm: 1, md: 2 },
-                paddingBottom: 3,
-                overflowY: "auto",
-                overflowX: "hidden",
+                overflow: "auto",
+                height: "calc(100vh - 97px)",
                 overscrollBehavior: "contain",
-                minHeight: 0,
                 boxSizing: "border-box",
+                backgroundColor: "background.paper",
               }}
             >
               <CashRegisterFormDataGrid

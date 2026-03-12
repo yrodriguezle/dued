@@ -178,17 +178,15 @@ function SummaryDataGrid({ openingGridRef, closingGridRef, incomesGridRef, expen
       <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold", mb: 0 }}>
         RIEPILOGO VENDITE
       </Typography>
-      <Box>
-        <Datagrid
-          height="auto"
-          items={rowData}
-          columnDefs={columnDefs}
-          presentation
-          suppressRowHoverHighlight={false}
-          defaultColDef={{ sortable: false, suppressMovable: true, resizable: true, minWidth: 50 }}
-          domLayout="autoHeight"
-        />
-      </Box>
+      <Datagrid
+        height="400px"
+        items={rowData}
+        columnDefs={columnDefs}
+        presentation
+        suppressRowHoverHighlight={false}
+        defaultColDef={{ sortable: false, suppressMovable: true, resizable: true, minWidth: 50 }}
+        domLayout="autoHeight"
+      />
     </Box>
   );
 }

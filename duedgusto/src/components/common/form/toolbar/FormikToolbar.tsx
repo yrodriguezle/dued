@@ -8,6 +8,7 @@ import FormikToolbarButton from "./FormikToolbarButton";
 import { useFormikContext } from "formik";
 import { formStatuses } from "../../../../common/globals/constants";
 import { useCallback, useMemo } from "react";
+import type { ReactNode } from "react";
 
 interface FormikToolbarProps {
   permissions?: {
@@ -22,11 +23,15 @@ interface FormikToolbarProps {
   hideSaveButton?: boolean;
   hideNewButton?: boolean;
   hideDeleteButton?: boolean;
-  onFormReset: (hasChanges: boolean) => Promise<void>;
+  onFormReset?: (hasChanges: boolean) => Promise<void>;
   onDelete?: () => Promise<void>;
+  /** Bottoni o contenuto extra da mostrare nella sezione sinistra dopo i bottoni standard */
+  children?: ReactNode;
+  /** Contenuto personalizzato per la sezione destra della toolbar */
+  rightContent?: ReactNode;
 }
 
-export default function FormikToolbar({
+function FormikToolbar({
   permissions,
   disabledSave,
   disabledDelete,
@@ -37,6 +42,8 @@ export default function FormikToolbar({
   hideDeleteButton,
   onFormReset,
   onDelete,
+  children,
+  rightContent,
 }: FormikToolbarProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -91,7 +98,7 @@ export default function FormikToolbar({
             </FormikToolbarButton>
           )}
           {!hideNewButton && (
-            <FormikToolbarButton startIcon={<AddIcon />} onClick={() => onFormReset(!disableSave)}>
+            <FormikToolbarButton startIcon={<AddIcon />} onClick={() => onFormReset?.(!disableSave)}>
               Nuovo
             </FormikToolbarButton>
           )}
@@ -100,8 +107,9 @@ export default function FormikToolbar({
               Elimina
             </FormikToolbarButton>
           )}
+          {children}
         </Box>
-        {isMobile ? (
+        {rightContent ?? (isMobile ? (
           <IconButton
             size="small"
             sx={{
@@ -114,8 +122,10 @@ export default function FormikToolbar({
           </IconButton>
         ) : (
           <Box sx={{ display: "flex", alignItems: "stretch", gap: 1 }}>{/* Altri bottoni */}</Box>
-        )}
+        ))}
       </Toolbar>
     </Box>
   );
 }
+
+export default FormikToolbar;
