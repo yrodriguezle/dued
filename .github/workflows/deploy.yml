@@ -57,11 +57,14 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: DEPLOY_VERSION
           script: |
             cd /srv/duedgusto
             git stash --include-untracked -q 2>/dev/null || true
             git pull origin main
-            bash deploy/scripts/deploy.sh
+            DEPLOY_VERSION="$DEPLOY_VERSION" bash deploy/scripts/deploy.sh
+        env:
+          DEPLOY_VERSION: ${{ steps.version.outputs.version }}
 
       - name: Commit and push version
         run: |

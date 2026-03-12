@@ -32,9 +32,9 @@ else
     log "Nessun upstream configurato, skip git pull."
 fi
 
-# Leggi versione corrente (readonly - il versioning avviene nel CI)
-VERSION=$(node -p "require('$REPO_DIR/package.json').version")
-log "Versione corrente: $VERSION"
+# Usa la versione dal CI se disponibile, altrimenti leggi dal package.json
+VERSION="${DEPLOY_VERSION:-$(node -p "require('$REPO_DIR/package.json').version")}"
+log "Versione deploy: $VERSION"
 
 log "Build frontend..."
 cd "$REPO_DIR/duedgusto"
