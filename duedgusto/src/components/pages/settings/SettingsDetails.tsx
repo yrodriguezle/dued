@@ -166,7 +166,7 @@ function SettingsDetails() {
   return (
     <Formik innerRef={formRef} initialValues={initialValues} enableReinitialize validate={validate} onSubmit={handleSubmit} initialStatus={{ formStatus: formStatuses.UPDATE, isFormLocked: true }}>
       {() => (
-        <Form style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 64px)" }}>
+        <Form style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 48px)" }}>
           <FormikToolbar
             onFormReset={handleResetForm}
             hideNewButton={true}

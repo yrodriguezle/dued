@@ -171,7 +171,7 @@ function RegistrazioneCassDashboard() {
   }
 
   return (
-    <Box sx={{ px: 3, pt: 3, pb: 0 }}>
+    <Box sx={{ px: 3, pt: 3, pb: 2 }}>
       {/* Header con selettore anno e azioni */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3, flexWrap: "wrap", gap: 2 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
