@@ -36,6 +36,7 @@ function Layout() {
           component="main"
           sx={{
             flexGrow: 1,
+            minWidth: 0,
             overflow: "auto",
             transition: "margin 0.3s",
             backgroundColor: theme.palette.mode === "dark" ? "transparent" : theme.palette.grey[100],

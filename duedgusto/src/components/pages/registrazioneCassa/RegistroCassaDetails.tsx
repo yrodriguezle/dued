@@ -3,7 +3,7 @@
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Form, Formik, FormikProps } from "formik";
 import { z } from "zod";
-import { Box, Typography, IconButton } from "@mui/material";
+import { Box, Typography, IconButton, useMediaQuery, useTheme } from "@mui/material";
 import { ArrowBack, ArrowForward } from "@mui/icons-material";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import LockIcon from "@mui/icons-material/Lock";
@@ -86,6 +86,8 @@ interface ExpenseRow extends Record<string, unknown> {
 function RegistroCassaDetails() {
   const { date: dateParam } = useParams<{ date?: string }>();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const formRef = useRef<FormikProps<FormikCashRegisterValues>>(null);
   const openingGridRef = useRef<GridReadyEvent<DatagridData<CashCountRow>> | null>(null);
   const closingGridRef = useRef<GridReadyEvent<DatagridData<CashCountRow>> | null>(null);
@@ -486,12 +488,15 @@ function RegistroCassaDetails() {
               hideDeleteButton
               disabledSave={disableSave}
               rightContent={
-                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, pr: { xs: 0.5, sm: 2 } }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0, sm: 0.5 }, pr: { xs: 0.5, sm: 2 } }}>
                   <IconButton size="small" onClick={handlePreviousDay} title="Giorno precedente">
                     <ArrowBack fontSize="small" />
                   </IconButton>
-                  <Typography variant="body2" sx={{ textAlign: "center", whiteSpace: "nowrap" }}>
-                    {getWeekdayName(currentDate, "it-IT", true)} - {getFormattedDate(currentDate, "DD/MM/YYYY")}
+                  <Typography variant="body2" sx={{ textAlign: "center", whiteSpace: "nowrap", fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
+                    {isMobile
+                      ? getFormattedDate(currentDate, "DD/MM")
+                      : `${getWeekdayName(currentDate, "it-IT", true)} - ${getFormattedDate(currentDate, "DD/MM/YYYY")}`
+                    }
                   </Typography>
                   <IconButton size="small" onClick={handleNextDay} title="Giorno successivo">
                     <ArrowForward fontSize="small" />

@@ -109,20 +109,22 @@ function FormikToolbar({
           )}
           {children}
         </Box>
-        {rightContent ?? (isMobile ? (
-          <IconButton
-            size="small"
-            sx={{
-              "&:hover": {
-                backgroundColor: theme.palette.action.hover,
-              },
-            }}
-          >
-            <MoreVertIcon />
-          </IconButton>
-        ) : (
-          <Box sx={{ display: "flex", alignItems: "stretch", gap: 1 }}>{/* Altri bottoni */}</Box>
-        ))}
+        <Box sx={{ minWidth: 0, overflow: "hidden", display: "flex", alignItems: "center" }}>
+          {rightContent ?? (isMobile ? (
+            <IconButton
+              size="small"
+              sx={{
+                "&:hover": {
+                  backgroundColor: theme.palette.action.hover,
+                },
+              }}
+            >
+              <MoreVertIcon />
+            </IconButton>
+          ) : (
+            <Box sx={{ display: "flex", alignItems: "stretch", gap: 1 }}>{/* Altri bottoni */}</Box>
+          ))}
+        </Box>
       </Toolbar>
     </Box>
   );

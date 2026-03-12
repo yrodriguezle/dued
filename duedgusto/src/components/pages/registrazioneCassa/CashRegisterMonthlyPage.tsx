@@ -1,6 +1,6 @@
 import { useCallback, useContext, useMemo, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { Box, Typography, Toolbar, IconButton, CircularProgress, Divider, Chip } from "@mui/material";
+import { Box, Typography, Toolbar, IconButton, CircularProgress, Divider, Chip, useMediaQuery, useTheme } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
@@ -30,6 +30,8 @@ export interface CashEvent {
 
 function CashRegisterMonthlyPage() {
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const { setTitle } = useContext(PageTitleContext);
   const [searchParams] = useSearchParams();
 
@@ -164,16 +166,29 @@ function CashRegisterMonthlyPage() {
       <Box sx={{ borderBottom: 1, borderColor: "divider", bgcolor: "background.paper", flexShrink: 0 }}>
         <Toolbar variant="dense" disableGutters sx={{ minHeight: 48, height: 48, display: "flex", justifyContent: "space-between" }}>
           <Box sx={{ height: 48, display: "flex", alignItems: "stretch" }}>
-            <FormikToolbarButton startIcon={<ArrowBackIcon />} onClick={handleBack}>
-              Indietro
-            </FormikToolbarButton>
-            <FormikToolbarButton startIcon={<SummarizeIcon />} onClick={handleChiusuraMensile}>
-              Chiusura Mensile
-            </FormikToolbarButton>
+            {isMobile ? (
+              <>
+                <IconButton size="small" onClick={handleBack} title="Indietro" sx={{ height: 48, width: 48 }}>
+                  <ArrowBackIcon />
+                </IconButton>
+                <IconButton size="small" onClick={handleChiusuraMensile} title="Chiusura Mensile" sx={{ height: 48, width: 48 }}>
+                  <SummarizeIcon />
+                </IconButton>
+              </>
+            ) : (
+              <>
+                <FormikToolbarButton startIcon={<ArrowBackIcon />} onClick={handleBack}>
+                  Indietro
+                </FormikToolbarButton>
+                <FormikToolbarButton startIcon={<SummarizeIcon />} onClick={handleChiusuraMensile}>
+                  Chiusura Mensile
+                </FormikToolbarButton>
+              </>
+            )}
           </Box>
 
           {/* Navigazione mese e anno */}
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, pr: 1 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0, sm: 0.5 }, pr: { xs: 0.5, sm: 1 } }}>
             <IconButton size="small" onClick={handlePrevYear} title="Anno precedente">
               <ChevronLeftIcon fontSize="small" />
               <ChevronLeftIcon fontSize="small" sx={{ ml: -1.2 }} />
@@ -181,7 +196,7 @@ function CashRegisterMonthlyPage() {
             <IconButton size="small" onClick={handlePrevMonth} title="Mese precedente">
               <ChevronLeftIcon />
             </IconButton>
-            <Typography variant="body1" sx={{ minWidth: 160, textAlign: "center", fontWeight: 600, textTransform: "capitalize" }}>
+            <Typography variant={isMobile ? "body2" : "body1"} sx={{ minWidth: { xs: 110, sm: 160 }, textAlign: "center", fontWeight: 600, textTransform: "capitalize" }}>
               {monthLabel}
             </Typography>
             <IconButton size="small" onClick={handleNextMonth} title="Mese successivo">
@@ -197,45 +212,28 @@ function CashRegisterMonthlyPage() {
 
       {/* KPI Strip */}
       {cashRegisters.length > 0 && (
-        <Box sx={{ flexShrink: 0, borderBottom: 1, borderColor: "divider", bgcolor: "background.paper", px: 2, py: 1.5 }}>
-          <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 3 }}>
-            <Box sx={{ minWidth: 110 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1 }}>
-                Ricavo Totale
-              </Typography>
-              <Typography variant="h6" fontWeight="bold" color="primary.main" sx={{ lineHeight: 1.3 }}>
-                {`\u20AC ${monthlyStats.ricavo.toFixed(2)}`}
-              </Typography>
-            </Box>
-            <Divider orientation="vertical" flexItem />
-            <Box sx={{ minWidth: 100 }}>
+        <Box sx={{ flexShrink: 0, borderBottom: 1, borderColor: "divider", bgcolor: "background.paper", px: { xs: 1, sm: 2 }, py: { xs: 1, sm: 1.5 } }}>
+          <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: { xs: 1.5, sm: 3 } }}>
+            <Box sx={{ minWidth: { xs: "auto", sm: 110 } }}>
               <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1 }}>
                 Contanti
               </Typography>
-              <Typography variant="body1" fontWeight="bold" color="success.main" sx={{ lineHeight: 1.3 }}>
+              <Typography variant={isMobile ? "body1" : "h6"} fontWeight="bold" color="primary.main" sx={{ lineHeight: 1.3 }}>
                 {`\u20AC ${monthlyStats.contanti.toFixed(2)}`}
               </Typography>
             </Box>
-            <Box sx={{ minWidth: 100 }}>
+            {!isMobile && <Divider orientation="vertical" flexItem />}
+            <Box sx={{ minWidth: { xs: "auto", sm: 100 } }}>
               <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1 }}>
                 Elettronici
               </Typography>
-              <Typography variant="body1" fontWeight="bold" color="info.main" sx={{ lineHeight: 1.3 }}>
+              <Typography variant={isMobile ? "body2" : "body1"} fontWeight="bold" color="warning.main" sx={{ lineHeight: 1.3 }}>
                 {`\u20AC ${monthlyStats.elettronici.toFixed(2)}`}
               </Typography>
             </Box>
-            <Box sx={{ minWidth: 90 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1 }}>
-                Fatture
-              </Typography>
-              <Typography variant="body1" fontWeight="bold" sx={{ lineHeight: 1.3 }}>
-                {`\u20AC ${monthlyStats.fatture.toFixed(2)}`}
-              </Typography>
-            </Box>
-            <Divider orientation="vertical" flexItem />
-            <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+            {!isMobile && <Divider orientation="vertical" flexItem />}
+            <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
               <Chip label={`${monthlyStats.registri} registri`} size="small" variant="outlined" />
-              {monthlyStats.riconciliati > 0 && <Chip label={`${monthlyStats.riconciliati} riconciliati`} size="small" color="success" variant="outlined" />}
               {monthlyStats.bozze > 0 && <Chip label={`${monthlyStats.bozze} bozze`} size="small" color="warning" variant="outlined" />}
             </Box>
           </Box>

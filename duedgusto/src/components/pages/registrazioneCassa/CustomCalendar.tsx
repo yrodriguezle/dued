@@ -1,7 +1,7 @@
 import { useMemo, useCallback } from "react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek } from "date-fns";
 import dayjs from "dayjs";
-import { Box, Typography, useTheme, alpha } from "@mui/material";
+import { Box, Typography, useTheme, useMediaQuery, alpha } from "@mui/material";
 import useStore from "../../../store/useStore";
 import type { CashEvent } from "./CashRegisterMonthlyPage";
 
@@ -23,6 +23,7 @@ interface CustomCalendarProps {
 export function CustomCalendar({ events, onSelectEvent, onSelectSlot, currentDate = new Date() }: CustomCalendarProps) {
   const muiTheme = useTheme();
   const isDark = muiTheme.palette.mode === "dark";
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down("sm"));
   const isOpen = useStore((store) => store.isOpen);
 
   const monthStart = startOfMonth(currentDate);
@@ -66,7 +67,7 @@ export function CustomCalendar({ events, onSelectEvent, onSelectSlot, currentDat
   const numRows = paddedDays.length / 7;
 
   return (
-    <Box sx={{ height: "100%", display: "flex", flexDirection: "column", p: 1.5 }}>
+    <Box sx={{ height: "100%", display: "flex", flexDirection: "column", p: { xs: 0.5, sm: 1.5 } }}>
       {/* Header giorni della settimana */}
       <Box
         sx={{
@@ -81,10 +82,10 @@ export function CustomCalendar({ events, onSelectEvent, onSelectSlot, currentDat
           <Box
             key={day}
             sx={{
-              py: 0.75,
+              py: { xs: 0.25, sm: 0.75 },
               textAlign: "center",
               fontWeight: 600,
-              fontSize: "0.8rem",
+              fontSize: { xs: "0.65rem", sm: "0.8rem" },
               color: i >= 5 ? "text.secondary" : "text.primary",
             }}
           >
@@ -151,6 +152,7 @@ export function CustomCalendar({ events, onSelectEvent, onSelectSlot, currentDat
                 position: "relative",
                 overflow: "hidden",
                 transition: "background-color 0.15s",
+                minHeight: { xs: 44, sm: "auto" },
                 ...(!isDisabled && (isDayOpen || event)
                   ? {
                       "&:hover": {
@@ -175,10 +177,10 @@ export function CustomCalendar({ events, onSelectEvent, onSelectSlot, currentDat
               )}
 
               {/* Numero giorno */}
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", px: 0.75, pt: 0.5 }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", px: { xs: 0.25, sm: 0.75 }, pt: { xs: 0.25, sm: 0.5 } }}>
                 <Typography
                   sx={{
-                    fontSize: "0.8rem",
+                    fontSize: { xs: "0.65rem", sm: "0.8rem" },
                     fontWeight: isToday ? 700 : 400,
                     color: isCurrentMonth ? "text.primary" : "text.disabled",
                     ...(isToday
@@ -186,8 +188,8 @@ export function CustomCalendar({ events, onSelectEvent, onSelectSlot, currentDat
                           bgcolor: "primary.main",
                           color: "primary.contrastText",
                           borderRadius: "50%",
-                          width: 22,
-                          height: 22,
+                          width: { xs: 18, sm: 22 },
+                          height: { xs: 18, sm: 22 },
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
@@ -203,36 +205,38 @@ export function CustomCalendar({ events, onSelectEvent, onSelectSlot, currentDat
                 {event && statoConfig && (
                   <Typography
                     sx={{
-                      fontSize: "0.6rem",
+                      fontSize: { xs: "0.5rem", sm: "0.6rem" },
                       fontWeight: 600,
                       color: statoConfig.color,
                       textTransform: "uppercase",
                       letterSpacing: "0.02em",
                     }}
                   >
-                    {statoConfig.label}
+                    {isMobile ? statoConfig.label.charAt(0) : statoConfig.label}
                   </Typography>
                 )}
               </Box>
 
               {/* Contenuto evento */}
               {event ? (
-                <Box sx={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", px: 0.75, pb: 0.5 }}>
+                <Box sx={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", px: { xs: 0.25, sm: 0.75 }, pb: { xs: 0.25, sm: 0.5 } }}>
                   <Typography
                     sx={{
-                      fontSize: "0.95rem",
+                      fontSize: { xs: "0.7rem", sm: "0.95rem" },
                       fontWeight: 700,
                       color: event.revenue >= 0 ? "text.primary" : "error.main",
                       lineHeight: 1.2,
                     }}
                   >
-                    {`\u20AC ${event.revenue.toFixed(2)}`}
+                    {isMobile ? `${event.revenue.toFixed(0)}` : `\u20AC ${event.revenue.toFixed(2)}`}
                   </Typography>
-                  <Box sx={{ display: "flex", gap: 0.5, mt: 0.25, flexWrap: "wrap" }}>
-                    {event.contanti > 0 && <Typography sx={{ fontSize: "0.6rem", color: "success.main" }}>{`C: ${event.contanti.toFixed(0)}`}</Typography>}
-                    {event.elettronici > 0 && <Typography sx={{ fontSize: "0.6rem", color: "info.main" }}>{`E: ${event.elettronici.toFixed(0)}`}</Typography>}
-                    {event.fatture > 0 && <Typography sx={{ fontSize: "0.6rem", color: "text.secondary" }}>{`F: ${event.fatture.toFixed(0)}`}</Typography>}
-                  </Box>
+                  {!isMobile && (
+                    <Box sx={{ display: "flex", gap: 0.5, mt: 0.25, flexWrap: "wrap" }}>
+                      {event.contanti > 0 && <Typography sx={{ fontSize: "0.6rem", color: "success.main" }}>{`C: ${event.contanti.toFixed(0)}`}</Typography>}
+                      {event.elettronici > 0 && <Typography sx={{ fontSize: "0.6rem", color: "info.main" }}>{`E: ${event.elettronici.toFixed(0)}`}</Typography>}
+                      {event.fatture > 0 && <Typography sx={{ fontSize: "0.6rem", color: "text.secondary" }}>{`F: ${event.fatture.toFixed(0)}`}</Typography>}
+                    </Box>
+                  )}
                 </Box>
               ) : (
                 isCurrentMonth &&
