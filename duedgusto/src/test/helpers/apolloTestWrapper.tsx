@@ -24,7 +24,7 @@ export const createTestCache = () =>
               return { ...existing, ...incoming };
             },
           },
-          cashManagement: {
+          gestioneCassa: {
             keyArgs: false,
             merge(existing = {}, incoming) {
               return { ...existing, ...incoming };

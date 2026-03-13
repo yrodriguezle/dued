@@ -4,7 +4,7 @@ import { getDashboardKPIs } from "./queries";
 function useQueryDashboardKPIs() {
   const { data, error, loading, refetch } = useQuery(getDashboardKPIs);
 
-  const kpis = data?.cashManagement?.dashboardKPIs || null;
+  const kpis = data?.gestioneCassa?.dashboardKPIs || null;
 
   return {
     kpis,

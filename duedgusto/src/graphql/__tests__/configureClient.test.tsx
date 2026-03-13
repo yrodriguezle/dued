@@ -104,7 +104,7 @@ describe("configureClient", () => {
   // ─── Cache policies ────────────────────────────────────────────
 
   describe("cache policies", () => {
-    it("dovrebbe configurare InMemoryCache con typePolicies per connection, cashManagement e chiusureMensili", async () => {
+    it("dovrebbe configurare InMemoryCache con typePolicies per connection, gestioneCassa e chiusureMensili", async () => {
       const { default: configureClient } = await getModule();
       const client = configureClient();
 

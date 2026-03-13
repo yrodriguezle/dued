@@ -20,8 +20,8 @@ function useSubmitCashRegister() {
       ],
       awaitRefetchQueries: false,
     });
-    if (result.data?.cashManagement?.mutateRegistroCassa) {
-      return result.data.cashManagement.mutateRegistroCassa;
+    if (result.data?.gestioneCassa?.mutateRegistroCassa) {
+      return result.data.gestioneCassa.mutateRegistroCassa;
     }
     return null;
   };

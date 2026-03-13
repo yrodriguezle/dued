@@ -61,7 +61,7 @@ function AuthSignIn() {
     >
       <Box sx={{ px: 4, pt: 5, pb: 3 }}>
         <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", mb: 3 }}>
-          <LogoSection variant="h3" />
+          <LogoSection variant="h4" />
         </Box>
 
         {message && (

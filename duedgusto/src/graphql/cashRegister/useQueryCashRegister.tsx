@@ -12,7 +12,7 @@ function useQueryCashRegister({ data: dataParam, skip = false }: UseQueryRegistr
     skip,
   });
 
-  const registroCassa = data?.cashManagement?.registroCassa || null;
+  const registroCassa = data?.gestioneCassa?.registroCassa || null;
 
   return {
     registroCassa,

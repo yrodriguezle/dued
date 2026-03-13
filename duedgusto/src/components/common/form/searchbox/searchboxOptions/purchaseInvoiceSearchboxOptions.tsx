@@ -37,9 +37,9 @@ const items: DatagridColDef<PurchaseInvoiceSearchbox>[] = [
 ];
 
 const purchaseInvoiceSearchboxOption: SearchboxOptions<PurchaseInvoiceSearchbox> = {
-  query: "purchaseInvoices",
+  query: "fattureAcquisto",
   id: "invoiceId",
-  tableName: "purchaseInvoices",
+  tableName: "fattureAcquisto",
   items,
   modal: {
     title: "Seleziona una fattura",

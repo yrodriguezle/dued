@@ -3,7 +3,7 @@ import { denominazioneMonetaFragment, registroCassaFragment } from "./fragments"
 
 // Get all denominations
 interface GetDenominazioniData {
-  cashManagement: {
+  gestioneCassa: {
     denominazioni: DenominazioneMoneta[];
   };
 }
@@ -11,7 +11,7 @@ interface GetDenominazioniData {
 export const getDenominazioni: TypedDocumentNode<GetDenominazioniData> = gql(`
   ${denominazioneMonetaFragment}
   query GetDenominazioni {
-    cashManagement {
+    gestioneCassa {
       denominazioni {
         ...DenominazioneMonetaFragment
       }
@@ -20,7 +20,7 @@ export const getDenominazioni: TypedDocumentNode<GetDenominazioniData> = gql(`
 
 // Get single cash register by date
 interface GetRegistroCassaData {
-  cashManagement: {
+  gestioneCassa: {
     registroCassa: RegistroCassa;
   };
 }
@@ -32,7 +32,7 @@ interface GetRegistroCassaVariables {
 export const getRegistroCassa: TypedDocumentNode<GetRegistroCassaData, GetRegistroCassaVariables> = gql(`
   ${registroCassaFragment}
   query GetRegistroCassa($data: DateTime!) {
-    cashManagement {
+    gestioneCassa {
       registroCassa(data: $data) {
         ...RegistroCassaFragment
       }
@@ -61,14 +61,14 @@ export const getRegistriCassa: TypedDocumentNode<RelayData<RegistroCassa>, Relay
 
 // Get dashboard KPIs
 interface GetDashboardKPIsData {
-  cashManagement: {
+  gestioneCassa: {
     dashboardKPIs: RegistroCassaKPI;
   };
 }
 
 export const getDashboardKPIs: TypedDocumentNode<GetDashboardKPIsData> = gql(`
   query GetDashboardKPIs {
-    cashManagement {
+    gestioneCassa {
       dashboardKPIs {
         venditeOggi
         differenzaOggi
@@ -81,7 +81,7 @@ export const getDashboardKPIs: TypedDocumentNode<GetDashboardKPIsData> = gql(`
 
 // Get monthly summary (if still needed)
 interface GetRiepilogoMensileData {
-  cashManagement: {
+  gestioneCassa: {
     riepilogoMensile: RiepilogoMensileCassa;
     // Legacy alias
     monthlySummary?: RiepilogoMensileCassa;
@@ -98,7 +98,7 @@ interface GetRiepilogoMensileVariables {
 
 export const getRiepilogoMensile: TypedDocumentNode<GetRiepilogoMensileData, GetRiepilogoMensileVariables> = gql(`
   query GetRiepilogoMensile($anno: Int!, $mese: Int!) {
-    cashManagement {
+    gestioneCassa {
       riepilogoMensile(anno: $anno, mese: $mese) {
         mese
         anno

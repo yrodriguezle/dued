@@ -1,6 +1,6 @@
 using GraphQL.Types;
 
-namespace duedgusto.GraphQL.MonthlyClosures.Types;
+namespace duedgusto.GraphQL.ChiusureMensili.Types;
 
 public class SpesaMensileInput
 {
@@ -26,4 +26,3 @@ public class SpesaMensileInputType : InputObjectGraphType<SpesaMensileInput>
         Field(x => x.Categoria, nullable: true);
     }
 }
-

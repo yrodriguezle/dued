@@ -4,7 +4,7 @@ import { getDenominazioni } from "./queries";
 function useQueryDenominations() {
   const { data, error, loading } = useQuery(getDenominazioni);
 
-  const denominazioni = data?.cashManagement?.denominazioni || [];
+  const denominazioni = data?.gestioneCassa?.denominazioni || [];
 
   return {
     denominazioni,

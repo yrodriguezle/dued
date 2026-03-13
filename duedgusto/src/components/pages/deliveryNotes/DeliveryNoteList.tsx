@@ -32,7 +32,7 @@ function DeliveryNoteList() {
 
   const { data: deliveryNotes, refetch } = useGetAll<DeliveryNoteNonNull>({
     fragment: deliveryNoteFragment,
-    queryName: "deliveryNotes",
+    queryName: "documentiTrasporto",
     fragmentBody: "...DeliveryNoteFragment",
     fetchPolicy: "network-only",
   });

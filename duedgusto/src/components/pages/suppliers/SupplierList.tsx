@@ -31,7 +31,7 @@ function SupplierList() {
 
   const { data: suppliers, refetch } = useGetAll<SupplierNonNull>({
     fragment: supplierFragment,
-    queryName: "suppliers",
+    queryName: "fornitori",
     fragmentBody: "...SupplierFragment",
     fetchPolicy: "network-only",
   });

@@ -4,7 +4,7 @@ import { chiusuraMensileFragment, spesaMensileLiberaFragment } from "./fragments
 // ============ MUTATION: Crea Chiusura Mensile ============
 
 interface CreaChiusuraMensileData {
-  monthlyClosures: {
+  chiusureMensili: {
     creaChiusuraMensile: ChiusuraMensile;
   };
 }
@@ -16,7 +16,7 @@ interface CreaChiusuraMensileVariables {
 
 export const mutationCreaChiusuraMensile: TypedDocumentNode<CreaChiusuraMensileData, CreaChiusuraMensileVariables> = gql`
   mutation CreaChiusuraMensile($anno: Int!, $mese: Int!) {
-    monthlyClosures {
+    chiusureMensili {
       creaChiusuraMensile(anno: $anno, mese: $mese) {
         ...ChiusuraMensileFragment
       }
@@ -28,7 +28,7 @@ export const mutationCreaChiusuraMensile: TypedDocumentNode<CreaChiusuraMensileD
 // ============ MUTATION: Aggiungi Spesa Libera ============
 
 interface AggiungiSpesaLiberaData {
-  monthlyClosures: {
+  chiusureMensili: {
     aggiungiSpesaLibera: SpesaMensileLibera;
   };
 }
@@ -42,7 +42,7 @@ interface AggiungiSpesaLiberaVariables {
 
 export const mutationAggiungiSpesaLibera: TypedDocumentNode<AggiungiSpesaLiberaData, AggiungiSpesaLiberaVariables> = gql`
   mutation AggiungiSpesaLibera($chiusuraId: Int!, $descrizione: String!, $importo: Decimal!, $categoria: String!) {
-    monthlyClosures {
+    chiusureMensili {
       aggiungiSpesaLibera(chiusuraId: $chiusuraId, descrizione: $descrizione, importo: $importo, categoria: $categoria) {
         ...SpesaMensileLiberaFragment
       }
@@ -54,7 +54,7 @@ export const mutationAggiungiSpesaLibera: TypedDocumentNode<AggiungiSpesaLiberaD
 // ============ MUTATION: Modifica Spesa Libera ============
 
 interface ModificaSpesaLiberaData {
-  monthlyClosures: {
+  chiusureMensili: {
     modificaSpesaLibera: SpesaMensileLibera;
   };
 }
@@ -68,7 +68,7 @@ interface ModificaSpesaLiberaVariables {
 
 export const mutationModificaSpesaLibera: TypedDocumentNode<ModificaSpesaLiberaData, ModificaSpesaLiberaVariables> = gql`
   mutation ModificaSpesaLibera($spesaId: Int!, $descrizione: String, $importo: Decimal, $categoria: String) {
-    monthlyClosures {
+    chiusureMensili {
       modificaSpesaLibera(spesaId: $spesaId, descrizione: $descrizione, importo: $importo, categoria: $categoria) {
         ...SpesaMensileLiberaFragment
       }
@@ -80,7 +80,7 @@ export const mutationModificaSpesaLibera: TypedDocumentNode<ModificaSpesaLiberaD
 // ============ MUTATION: Elimina Spesa Libera ============
 
 interface EliminaSpesaLiberaData {
-  monthlyClosures: {
+  chiusureMensili: {
     eliminaSpesaLibera: boolean;
   };
 }
@@ -91,7 +91,7 @@ interface EliminaSpesaLiberaVariables {
 
 export const mutationEliminaSpesaLibera: TypedDocumentNode<EliminaSpesaLiberaData, EliminaSpesaLiberaVariables> = gql`
   mutation EliminaSpesaLibera($spesaId: Int!) {
-    monthlyClosures {
+    chiusureMensili {
       eliminaSpesaLibera(spesaId: $spesaId)
     }
   }
@@ -100,7 +100,7 @@ export const mutationEliminaSpesaLibera: TypedDocumentNode<EliminaSpesaLiberaDat
 // ============ MUTATION: Includi Pagamento Fornitore ============
 
 interface IncludiPagamentoFornitoreData {
-  monthlyClosures: {
+  chiusureMensili: {
     includiPagamentoFornitore: boolean;
   };
 }
@@ -112,7 +112,7 @@ interface IncludiPagamentoFornitoreVariables {
 
 export const mutationIncludiPagamentoFornitore: TypedDocumentNode<IncludiPagamentoFornitoreData, IncludiPagamentoFornitoreVariables> = gql`
   mutation IncludiPagamentoFornitore($chiusuraId: Int!, $pagamentoId: Int!) {
-    monthlyClosures {
+    chiusureMensili {
       includiPagamentoFornitore(chiusuraId: $chiusuraId, pagamentoId: $pagamentoId)
     }
   }
@@ -121,7 +121,7 @@ export const mutationIncludiPagamentoFornitore: TypedDocumentNode<IncludiPagamen
 // ============ MUTATION: Aggiorna Giorni Esclusi ============
 
 interface AggiornaGiorniEsclusiData {
-  monthlyClosures: {
+  chiusureMensili: {
     aggiornaGiorniEsclusi: ChiusuraMensile;
   };
 }
@@ -139,7 +139,7 @@ interface AggiornaGiorniEsclusiVariables {
 
 export const mutationAggiornaGiorniEsclusi: TypedDocumentNode<AggiornaGiorniEsclusiData, AggiornaGiorniEsclusiVariables> = gql`
   mutation AggiornaGiorniEsclusi($chiusuraId: Int!, $giorniEsclusi: [GiornoEsclusoInput!]!) {
-    monthlyClosures {
+    chiusureMensili {
       aggiornaGiorniEsclusi(chiusuraId: $chiusuraId, giorniEsclusi: $giorniEsclusi) {
         ...ChiusuraMensileFragment
       }
@@ -151,7 +151,7 @@ export const mutationAggiornaGiorniEsclusi: TypedDocumentNode<AggiornaGiorniEscl
 // ============ MUTATION: Chiudi Chiusura Mensile ============
 
 interface ChiudiChiusuraMensileData {
-  monthlyClosures: {
+  chiusureMensili: {
     chiudiChiusuraMensile: ChiusuraMensile;
   };
 }
@@ -162,7 +162,7 @@ interface ChiudiChiusuraMensileVariables {
 
 export const mutationChiudiChiusuraMensile: TypedDocumentNode<ChiudiChiusuraMensileData, ChiudiChiusuraMensileVariables> = gql`
   mutation ChiudiChiusuraMensile($chiusuraId: Int!) {
-    monthlyClosures {
+    chiusureMensili {
       chiudiChiusuraMensile(chiusuraId: $chiusuraId) {
         ...ChiusuraMensileFragment
       }
@@ -174,7 +174,7 @@ export const mutationChiudiChiusuraMensile: TypedDocumentNode<ChiudiChiusuraMens
 // ============ MUTATION: Elimina Chiusura Mensile ============
 
 interface EliminaChiusuraMensileData {
-  monthlyClosures: {
+  chiusureMensili: {
     eliminaChiusuraMensile: boolean;
   };
 }
@@ -185,7 +185,7 @@ interface EliminaChiusuraMensileVariables {
 
 export const mutationEliminaChiusuraMensile: TypedDocumentNode<EliminaChiusuraMensileData, EliminaChiusuraMensileVariables> = gql`
   mutation EliminaChiusuraMensile($chiusuraId: Int!) {
-    monthlyClosures {
+    chiusureMensili {
       eliminaChiusuraMensile(chiusuraId: $chiusuraId)
     }
   }

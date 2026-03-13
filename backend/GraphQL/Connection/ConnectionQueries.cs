@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 
 using GraphQL;
 using GraphQL.Types;
@@ -8,9 +8,8 @@ using GraphQL.Types.Relay.DataObjects;
 using duedgusto.Models;
 using duedgusto.Services.GraphQL;
 using duedgusto.GraphQL.Authentication;
-using duedgusto.GraphQL.CashManagement.Types;
+using duedgusto.GraphQL.GestioneCassa.Types;
 using duedgusto.GraphQL.Suppliers.Types;
-using duedgusto.GraphQL.MonthlyClosures.Types;
 using duedgusto.GraphQL.ChiusureMensili.Types;
 
 namespace duedgusto.GraphQL.Connection;
@@ -126,7 +125,7 @@ public class ConnectionQueries : ObjectGraphType
                 return connection;
             });
 
-        Field<ConnectionType<SupplierType>>("suppliers")
+        Field<ConnectionType<SupplierType>>("fornitori")
             .Argument<IntGraphType>("first", "Number of items to return")
             .Argument<IntGraphType>("cursor", "Offset for pagination (deprecated, use after)")
             .Argument<StringGraphType>("after", "Cursor after which to return items")
@@ -145,7 +144,7 @@ public class ConnectionQueries : ObjectGraphType
                 return connection;
             });
 
-        Field<ConnectionType<PurchaseInvoiceType>>("purchaseInvoices")
+        Field<ConnectionType<PurchaseInvoiceType>>("fattureAcquisto")
             .Argument<IntGraphType>("first", "Number of items to return")
             .Argument<IntGraphType>("cursor", "Offset for pagination (deprecated, use after)")
             .Argument<StringGraphType>("after", "Cursor after which to return items")
@@ -171,7 +170,7 @@ public class ConnectionQueries : ObjectGraphType
                 return connection;
             });
 
-        Field<ConnectionType<DeliveryNoteType>>("deliveryNotes")
+        Field<ConnectionType<DeliveryNoteType>>("documentiTrasporto")
             .Argument<IntGraphType>("first", "Number of items to return")
             .Argument<IntGraphType>("cursor", "Offset for pagination (deprecated, use after)")
             .Argument<StringGraphType>("after", "Cursor after which to return items")
@@ -197,7 +196,7 @@ public class ConnectionQueries : ObjectGraphType
                 return connection;
             });
 
-        Field<ConnectionType<SupplierPaymentType>>("supplierPayments")
+        Field<ConnectionType<SupplierPaymentType>>("pagamentiFornitori")
             .Argument<IntGraphType>("first", "Number of items to return")
             .Argument<IntGraphType>("cursor", "Offset for pagination (deprecated, use after)")
             .Argument<StringGraphType>("after", "Cursor after which to return items")
@@ -225,7 +224,7 @@ public class ConnectionQueries : ObjectGraphType
                 return connection;
             });
 
-        Field<ConnectionType<ChiusuraMensileType>>("monthlyClosures")
+        Field<ConnectionType<ChiusuraMensileType>>("chiusureMensili")
             .Argument<IntGraphType>("first", "Number of items to return")
             .Argument<IntGraphType>("cursor", "Offset for pagination (deprecated, use after)")
             .Argument<StringGraphType>("after", "Cursor after which to return items")
@@ -254,7 +253,7 @@ public class ConnectionQueries : ObjectGraphType
                 return connection;
             });
 
-        Field<ConnectionType<MonthlyExpenseType>>("monthlyExpenses")
+        Field<ConnectionType<SpesaMensileType>>("speseMensili")
             .Argument<IntGraphType>("first", "Number of items to return")
             .Argument<IntGraphType>("cursor", "Offset for pagination (deprecated, use after)")
             .Argument<StringGraphType>("after", "Cursor after which to return items")

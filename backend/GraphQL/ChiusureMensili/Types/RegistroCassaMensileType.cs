@@ -1,6 +1,6 @@
 using GraphQL.Types;
 using duedgusto.Models;
-using duedgusto.GraphQL.CashManagement.Types;
+using duedgusto.GraphQL.GestioneCassa.Types;
 
 namespace duedgusto.GraphQL.ChiusureMensili.Types;
 

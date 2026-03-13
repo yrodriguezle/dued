@@ -19,7 +19,7 @@ function MonthlyView() {
     },
   });
 
-  const summary = data?.cashManagement?.monthlySummary;
+  const summary = data?.gestioneCassa?.monthlySummary;
 
   useEffect(() => {
     setTitle("Vista Mensile Cassa");

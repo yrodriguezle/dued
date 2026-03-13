@@ -37,7 +37,7 @@ const MonthlyClosureForm: React.FC = () => {
       variables: { anno, mese },
     });
 
-    const chiusura = result.data?.monthlyClosures.creaChiusuraMensile;
+    const chiusura = result.data?.chiusureMensili.creaChiusuraMensile;
     if (chiusura) {
       navigate(`/gestionale/cassa/monthly-closure/${chiusura.chiusuraId}`);
     }

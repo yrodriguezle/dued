@@ -3,7 +3,7 @@ import { registroCassaFragment } from "./fragments";
 
 // Submit (create or update) cash register
 interface SubmitRegistroCassaData {
-  cashManagement: {
+  gestioneCassa: {
     mutateRegistroCassa: RegistroCassa;
   };
 }
@@ -57,7 +57,7 @@ export interface SubmitRegistroCassaValues {
 export const mutationSubmitRegistroCassa: TypedDocumentNode<SubmitRegistroCassaData, SubmitRegistroCassaValues> = gql`
   ${registroCassaFragment}
   mutation SubmitRegistroCassa($registroCassa: RegistroCassaInput!) {
-    cashManagement {
+    gestioneCassa {
       mutateRegistroCassa(registroCassa: $registroCassa) {
         ...RegistroCassaFragment
       }
@@ -67,7 +67,7 @@ export const mutationSubmitRegistroCassa: TypedDocumentNode<SubmitRegistroCassaD
 
 // Close cash register (change status to CLOSED)
 interface ChiudiRegistroCassaData {
-  cashManagement: {
+  gestioneCassa: {
     chiudiRegistroCassa: RegistroCassa;
   };
 }
@@ -79,7 +79,7 @@ interface ChiudiRegistroCassaValues {
 export const mutationChiudiRegistroCassa: TypedDocumentNode<ChiudiRegistroCassaData, ChiudiRegistroCassaValues> = gql`
   ${registroCassaFragment}
   mutation ChiudiRegistroCassa($registroCassaId: Int!) {
-    cashManagement {
+    gestioneCassa {
       chiudiRegistroCassa(registroCassaId: $registroCassaId) {
         ...RegistroCassaFragment
       }
@@ -89,7 +89,7 @@ export const mutationChiudiRegistroCassa: TypedDocumentNode<ChiudiRegistroCassaD
 
 // Delete cash register
 interface EliminaRegistroCassaData {
-  cashManagement: {
+  gestioneCassa: {
     eliminaRegistroCassa: boolean;
   };
 }
@@ -100,7 +100,7 @@ interface EliminaRegistroCassaValues {
 
 export const mutationEliminaRegistroCassa: TypedDocumentNode<EliminaRegistroCassaData, EliminaRegistroCassaValues> = gql`
   mutation EliminaRegistroCassa($registroCassaId: Int!) {
-    cashManagement {
+    gestioneCassa {
       eliminaRegistroCassa(registroCassaId: $registroCassaId)
     }
   }

@@ -25,7 +25,7 @@ describe("useQueryDashboardKPIs", () => {
       variableMatcher: () => true,
       result: {
         data: {
-          cashManagement: {
+          gestioneCassa: {
             __typename: "CashManagementQueries",
             dashboardKPIs: mockKPIs,
           },
@@ -56,7 +56,7 @@ describe("useQueryDashboardKPIs", () => {
       variableMatcher: () => true,
       result: {
         data: {
-          cashManagement: {
+          gestioneCassa: {
             __typename: "CashManagementQueries",
             dashboardKPIs: null,
           },

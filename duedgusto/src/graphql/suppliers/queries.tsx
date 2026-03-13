@@ -23,7 +23,7 @@ export const getSuppliersConnection = gql(`
   ${supplierFragment}
   query GetSuppliersConnection($pageSize: Int!, $where: String, $orderBy: String, $cursor: Int) {
     connection {
-      suppliers(first: $pageSize, where: $where, orderBy: $orderBy, cursor: $cursor) {
+      fornitori(first: $pageSize, where: $where, orderBy: $orderBy, cursor: $cursor) {
         totalCount
         pageInfo {
           hasNextPage
@@ -67,7 +67,7 @@ export const getPurchaseInvoicesConnection = gql(`
   ${purchaseInvoiceFragment}
   query GetPurchaseInvoicesConnection($pageSize: Int!, $where: String, $orderBy: String, $cursor: Int) {
     connection {
-      purchaseInvoices(first: $pageSize, where: $where, orderBy: $orderBy, cursor: $cursor) {
+      fattureAcquisto(first: $pageSize, where: $where, orderBy: $orderBy, cursor: $cursor) {
         totalCount
         pageInfo {
           hasNextPage
@@ -115,7 +115,7 @@ export const getDeliveryNotesConnection = gql(`
   ${deliveryNoteFragment}
   query GetDeliveryNotesConnection($pageSize: Int!, $where: String, $orderBy: String, $cursor: Int) {
     connection {
-      deliveryNotes(first: $pageSize, where: $where, orderBy: $orderBy, cursor: $cursor) {
+      documentiTrasporto(first: $pageSize, where: $where, orderBy: $orderBy, cursor: $cursor) {
         totalCount
         pageInfo {
           hasNextPage
@@ -161,7 +161,7 @@ export const getSupplierPaymentsConnection = gql(`
   ${supplierPaymentFragment}
   query GetSupplierPaymentsConnection($pageSize: Int!, $where: String, $orderBy: String, $cursor: Int) {
     connection {
-      supplierPayments(first: $pageSize, where: $where, orderBy: $orderBy, cursor: $cursor) {
+      pagamentiFornitori(first: $pageSize, where: $where, orderBy: $orderBy, cursor: $cursor) {
         totalCount
         pageInfo {
           hasNextPage

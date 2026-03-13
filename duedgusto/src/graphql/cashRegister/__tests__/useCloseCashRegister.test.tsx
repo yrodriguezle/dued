@@ -57,7 +57,7 @@ describe("useCloseCashRegister", () => {
       variableMatcher: (vars) => vars?.registroCassaId === 1,
       result: {
         data: {
-          cashManagement: {
+          gestioneCassa: {
             __typename: "CashManagementMutations",
             chiudiRegistroCassa: mockClosedRegister,
           },
@@ -96,7 +96,7 @@ describe("useCloseCashRegister", () => {
       variableMatcher: () => true,
       result: {
         data: {
-          cashManagement: {
+          gestioneCassa: {
             __typename: "CashManagementMutations",
             chiudiRegistroCassa: null,
           },

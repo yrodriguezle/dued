@@ -54,19 +54,19 @@ public class SalesTests : IDisposable
         return registro;
     }
 
-    private Product SeedProduct(string code = "P001", string name = "Prodotto Test", decimal price = 10.00m, string? category = "Bevande")
+    private Prodotto SeedProdotto(string codice = "P001", string nome = "Prodotto Test", decimal prezzo = 10.00m, string? categoria = "Bevande")
     {
-        var product = new Product
+        var prodotto = new Prodotto
         {
-            Code = code,
-            Name = name,
-            Price = price,
-            Category = category,
-            IsActive = true
+            Codice = codice,
+            Nome = nome,
+            Prezzo = prezzo,
+            Categoria = categoria,
+            Attivo = true
         };
-        _dbContext.Products.Add(product);
+        _dbContext.Prodotti.Add(prodotto);
         _dbContext.SaveChanges();
-        return product;
+        return prodotto;
     }
 
     #endregion
@@ -79,35 +79,35 @@ public class SalesTests : IDisposable
         // Arrange
         var utente = SeedUtente();
         var registro = SeedRegistroCassa(utente, new DateTime(2026, 3, 12));
-        var product = SeedProduct("CAFFE", "Caffe Espresso", 1.20m);
+        var prodotto = SeedProdotto("CAFFE", "Caffe Espresso", 1.20m);
 
         // Act — replicate the create sale mutation logic
-        var sale = new Sale
+        var vendita = new Vendita
         {
             RegistroCassaId = registro.Id,
-            ProductId = product.ProductId,
-            Quantity = 3,
-            UnitPrice = product.Price,
-            TotalPrice = 3 * product.Price,
-            Timestamp = DateTime.UtcNow
+            ProdottoId = prodotto.ProdottoId,
+            Quantita = 3,
+            PrezzoUnitario = prodotto.Prezzo,
+            PrezzoTotale = 3 * prodotto.Prezzo,
+            DataOra = DateTime.UtcNow
         };
-        _dbContext.Sales.Add(sale);
+        _dbContext.Vendite.Add(vendita);
 
         // Update register totals (as the mutation does)
-        registro.VenditeContanti += sale.TotalPrice;
+        registro.VenditeContanti += vendita.PrezzoTotale;
         registro.TotaleVendite = registro.VenditeContanti + registro.IncassiElettronici;
         await _dbContext.SaveChangesAsync();
 
         // Assert
-        var persistedSale = await _dbContext.Sales
-            .Include(s => s.Product)
-            .FirstOrDefaultAsync(s => s.SaleId == sale.SaleId);
-        persistedSale.Should().NotBeNull();
-        persistedSale!.Quantity.Should().Be(3);
-        persistedSale.UnitPrice.Should().Be(1.20m);
-        persistedSale.TotalPrice.Should().Be(3.60m);
-        persistedSale.Product.Should().NotBeNull();
-        persistedSale.Product.Name.Should().Be("Caffe Espresso");
+        var persistedVendita = await _dbContext.Vendite
+            .Include(s => s.Prodotto)
+            .FirstOrDefaultAsync(s => s.VenditaId == vendita.VenditaId);
+        persistedVendita.Should().NotBeNull();
+        persistedVendita!.Quantita.Should().Be(3);
+        persistedVendita.PrezzoUnitario.Should().Be(1.20m);
+        persistedVendita.PrezzoTotale.Should().Be(3.60m);
+        persistedVendita.Prodotto.Should().NotBeNull();
+        persistedVendita.Prodotto.Nome.Should().Be("Caffe Espresso");
 
         var updatedRegister = await _dbContext.RegistriCassa.FirstAsync(r => r.Id == registro.Id);
         updatedRegister.VenditeContanti.Should().Be(3.60m);
@@ -124,33 +124,33 @@ public class SalesTests : IDisposable
         // Arrange
         var utente = SeedUtente();
         var registro = SeedRegistroCassa(utente, new DateTime(2026, 3, 12));
-        var product = SeedProduct("ACQUA", "Acqua Naturale", 2.00m);
+        var prodotto = SeedProdotto("ACQUA", "Acqua Naturale", 2.00m);
 
-        var sale = new Sale
+        var vendita = new Vendita
         {
             RegistroCassaId = registro.Id,
-            ProductId = product.ProductId,
-            Quantity = 5,
-            UnitPrice = product.Price,
-            TotalPrice = 5 * product.Price,
-            Timestamp = DateTime.UtcNow
+            ProdottoId = prodotto.ProdottoId,
+            Quantita = 5,
+            PrezzoUnitario = prodotto.Prezzo,
+            PrezzoTotale = 5 * prodotto.Prezzo,
+            DataOra = DateTime.UtcNow
         };
-        _dbContext.Sales.Add(sale);
+        _dbContext.Vendite.Add(vendita);
         registro.VenditeContanti = 10.00m;
         registro.TotaleVendite = 10.00m;
         await _dbContext.SaveChangesAsync();
 
         // Act — replicate the delete sale mutation logic
-        var loadedSale = await _dbContext.Sales.FirstAsync(s => s.SaleId == sale.SaleId);
+        var loadedVendita = await _dbContext.Vendite.FirstAsync(s => s.VenditaId == vendita.VenditaId);
         var loadedRegister = await _dbContext.RegistriCassa.FirstAsync(r => r.Id == registro.Id);
-        loadedRegister.VenditeContanti -= loadedSale.TotalPrice;
+        loadedRegister.VenditeContanti -= loadedVendita.PrezzoTotale;
         loadedRegister.TotaleVendite = loadedRegister.VenditeContanti + loadedRegister.IncassiElettronici;
-        _dbContext.Sales.Remove(loadedSale);
+        _dbContext.Vendite.Remove(loadedVendita);
         await _dbContext.SaveChangesAsync();
 
         // Assert
-        var deletedSale = await _dbContext.Sales.FindAsync(sale.SaleId);
-        deletedSale.Should().BeNull();
+        var deletedVendita = await _dbContext.Vendite.FindAsync(vendita.VenditaId);
+        deletedVendita.Should().BeNull();
 
         var resultRegister = await _dbContext.RegistriCassa.FirstAsync(r => r.Id == registro.Id);
         resultRegister.VenditeContanti.Should().Be(0m);
@@ -168,47 +168,47 @@ public class SalesTests : IDisposable
         var utente = SeedUtente();
         var registro1 = SeedRegistroCassa(utente, new DateTime(2026, 3, 12));
         var registro2 = SeedRegistroCassa(utente, new DateTime(2026, 3, 13));
-        var product = SeedProduct();
+        var prodotto = SeedProdotto();
 
-        _dbContext.Sales.Add(new Sale
+        _dbContext.Vendite.Add(new Vendita
         {
             RegistroCassaId = registro1.Id,
-            ProductId = product.ProductId,
-            Quantity = 1,
-            UnitPrice = 10m,
-            TotalPrice = 10m,
-            Timestamp = DateTime.UtcNow
+            ProdottoId = prodotto.ProdottoId,
+            Quantita = 1,
+            PrezzoUnitario = 10m,
+            PrezzoTotale = 10m,
+            DataOra = DateTime.UtcNow
         });
-        _dbContext.Sales.Add(new Sale
+        _dbContext.Vendite.Add(new Vendita
         {
             RegistroCassaId = registro1.Id,
-            ProductId = product.ProductId,
-            Quantity = 2,
-            UnitPrice = 10m,
-            TotalPrice = 20m,
-            Timestamp = DateTime.UtcNow
+            ProdottoId = prodotto.ProdottoId,
+            Quantita = 2,
+            PrezzoUnitario = 10m,
+            PrezzoTotale = 20m,
+            DataOra = DateTime.UtcNow
         });
-        _dbContext.Sales.Add(new Sale
+        _dbContext.Vendite.Add(new Vendita
         {
             RegistroCassaId = registro2.Id,
-            ProductId = product.ProductId,
-            Quantity = 3,
-            UnitPrice = 10m,
-            TotalPrice = 30m,
-            Timestamp = DateTime.UtcNow
+            ProdottoId = prodotto.ProdottoId,
+            Quantita = 3,
+            PrezzoUnitario = 10m,
+            PrezzoTotale = 30m,
+            DataOra = DateTime.UtcNow
         });
         await _dbContext.SaveChangesAsync();
 
         // Act — mirrors the sales query resolver: filter by registerId
-        var results = await _dbContext.Sales
+        var results = await _dbContext.Vendite
             .Where(s => s.RegistroCassaId == registro1.Id)
-            .Include(s => s.Product)
-            .OrderByDescending(s => s.Timestamp)
+            .Include(s => s.Prodotto)
+            .OrderByDescending(s => s.DataOra)
             .ToListAsync();
 
         // Assert
         results.Should().HaveCount(2);
-        results.Sum(s => s.TotalPrice).Should().Be(30m);
+        results.Sum(s => s.PrezzoTotale).Should().Be(30m);
     }
 
     #endregion
@@ -219,43 +219,43 @@ public class SalesTests : IDisposable
     public async Task QueryProducts_FilterByCategory_ReturnsMatchingProducts()
     {
         // Arrange
-        SeedProduct("P001", "Caffe", 1.20m, "Bevande");
-        SeedProduct("P002", "Acqua", 1.00m, "Bevande");
-        SeedProduct("P003", "Pizza Margherita", 8.00m, "Pizze");
-        SeedProduct("P004", "Inattivo", 5.00m, "Bevande");
+        SeedProdotto("P001", "Caffe", 1.20m, "Bevande");
+        SeedProdotto("P002", "Acqua", 1.00m, "Bevande");
+        SeedProdotto("P003", "Pizza Margherita", 8.00m, "Pizze");
+        SeedProdotto("P004", "Inattivo", 5.00m, "Bevande");
 
         // Deactivate last product
-        var inactive = await _dbContext.Products.FirstAsync(p => p.Code == "P004");
-        inactive.IsActive = false;
+        var inactive = await _dbContext.Prodotti.FirstAsync(p => p.Codice == "P004");
+        inactive.Attivo = false;
         await _dbContext.SaveChangesAsync();
 
         // Act — mirrors the products query with category filter
         var category = "Bevande";
-        var results = await _dbContext.Products
-            .Where(p => p.IsActive)
-            .Where(p => p.Category == category)
-            .OrderBy(p => p.Code)
+        var results = await _dbContext.Prodotti
+            .Where(p => p.Attivo)
+            .Where(p => p.Categoria == category)
+            .OrderBy(p => p.Codice)
             .ToListAsync();
 
         // Assert
         results.Should().HaveCount(2);
-        results[0].Code.Should().Be("P001");
-        results[1].Code.Should().Be("P002");
+        results[0].Codice.Should().Be("P001");
+        results[1].Codice.Should().Be("P002");
     }
 
     [Fact]
     public async Task QueryProductCategories_ReturnsDistinctCategories()
     {
         // Arrange
-        SeedProduct("P001", "Caffe", 1.20m, "Bevande");
-        SeedProduct("P002", "Pizza", 8.00m, "Pizze");
-        SeedProduct("P003", "Acqua", 1.00m, "Bevande");
-        SeedProduct("P004", "Tiramisu", 5.00m, "Dolci");
+        SeedProdotto("P001", "Caffe", 1.20m, "Bevande");
+        SeedProdotto("P002", "Pizza", 8.00m, "Pizze");
+        SeedProdotto("P003", "Acqua", 1.00m, "Bevande");
+        SeedProdotto("P004", "Tiramisu", 5.00m, "Dolci");
 
         // Act — mirrors productCategories query
-        var categories = await _dbContext.Products
-            .Where(p => p.IsActive && p.Category != null)
-            .Select(p => p.Category)
+        var categories = await _dbContext.Prodotti
+            .Where(p => p.Attivo && p.Categoria != null)
+            .Select(p => p.Categoria)
             .Distinct()
             .OrderBy(c => c)
             .ToListAsync();

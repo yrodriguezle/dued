@@ -11,9 +11,9 @@ using duedgusto.Services.ChiusureMensili;
 
 namespace duedgusto.GraphQL.ChiusureMensili;
 
-public class MonthlyClosuresQueries : ObjectGraphType
+public class ChiusureMensiliQueries : ObjectGraphType
 {
-    public MonthlyClosuresQueries()
+    public ChiusureMensiliQueries()
     {
         this.Authorize();
 
@@ -58,7 +58,7 @@ public class MonthlyClosuresQueries : ObjectGraphType
                     .ToListAsync();
             });
 
-        // ✅ NUOVA QUERY: Valida completezza registri per un mese
+        // NUOVA QUERY: Valida completezza registri per un mese
         Field<ListGraphType<DateTimeGraphType>>("validaCompletezzaRegistri")
             .Description("Ritorna lista di date per cui mancano registri cassa chiusi nel mese specificato")
             .Argument<NonNullGraphType<IntGraphType>>("anno", "Anno da validare")
@@ -74,4 +74,3 @@ public class MonthlyClosuresQueries : ObjectGraphType
             });
     }
 }
-

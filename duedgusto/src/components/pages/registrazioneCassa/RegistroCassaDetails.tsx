@@ -193,7 +193,7 @@ function RegistroCassaDetails() {
         fetchPolicy: "network-only",
       });
 
-      const registro = data?.cashManagement?.registroCassa;
+      const registro = data?.gestioneCassa?.registroCassa;
       if (!registro?.conteggiChiusura?.length) {
         toast.warning("Nessun dato di chiusura trovato per il giorno precedente");
         return;

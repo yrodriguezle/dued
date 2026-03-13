@@ -3,7 +3,7 @@ using duedgusto.Models;
 using duedgusto.GraphQL.Authentication;
 using duedgusto.GraphQL.Suppliers.Types;
 
-namespace duedgusto.GraphQL.CashManagement.Types;
+namespace duedgusto.GraphQL.GestioneCassa.Types;
 
 public class RegistroCassaType : ObjectGraphType<RegistroCassa>
 {

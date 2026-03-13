@@ -106,8 +106,8 @@ function configureClient() {
                 return { ...existing, ...incoming };
               },
             },
-            cashManagement: {
-              // Merge function for cashManagement field to avoid cache loss warnings
+            gestioneCassa: {
+              // Merge function for gestioneCassa field to avoid cache loss warnings
               // This field doesn't have a stable ID, so we use keyArgs: false to merge
               // all requests into a single cache entry
               keyArgs: false,

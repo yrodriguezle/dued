@@ -11,15 +11,13 @@ using duedgusto.Services.Jwt;
 using duedgusto.GraphQL.ChiusureMensili.Types;
 using duedgusto.Services.ChiusureMensili;
 
-namespace duedgusto.GraphQL.MonthlyClosures;
+namespace duedgusto.GraphQL.ChiusureMensili;
 
-public class MonthlyClosuresMutations : ObjectGraphType
+public class ChiusureMensiliMutations : ObjectGraphType
 {
-    public MonthlyClosuresMutations()
+    public ChiusureMensiliMutations()
     {
         this.Authorize();
-
-        // ✅ NUOVE MUTATIONS (modello referenziale puro con ChiusuraMensileService)
 
         // Crea chiusura mensile con validazione completezza registri
         Field<ChiusuraMensileType>("creaChiusuraMensile")
@@ -186,7 +184,7 @@ public class MonthlyClosuresMutations : ObjectGraphType
                 }
             });
 
-        // 🔄 MIGRAZIONE DATI (eseguire una sola volta)
+        // Migrazione dati (eseguire una sola volta)
         Field<StringGraphType>("migraChiusureMensiliVecchioModello")
             .Description("Migra tutte le chiusure esistenti dal vecchio modello denormalizzato al nuovo modello referenziale. ATTENZIONE: Eseguire una sola volta!")
             .ResolveAsync(async context =>

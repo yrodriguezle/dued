@@ -63,7 +63,7 @@ describe("useQueryCashRegister", () => {
       variableMatcher: (vars) => vars?.data === "2026-03-12",
       result: {
         data: {
-          cashManagement: {
+          gestioneCassa: {
             __typename: "CashManagementQueries",
             registroCassa: mockRegistroCassa,
           },
@@ -98,7 +98,7 @@ describe("useQueryCashRegister", () => {
       variableMatcher: () => true,
       result: {
         data: {
-          cashManagement: {
+          gestioneCassa: {
             __typename: "CashManagementQueries",
             registroCassa: mockRegistroCassa,
           },

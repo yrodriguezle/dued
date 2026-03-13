@@ -11,8 +11,8 @@ function useCloseCashRegister() {
       refetchQueries: ["GetRegistriCassa", "GetRegistroCassa"],
       awaitRefetchQueries: false,
     });
-    if (result.data?.cashManagement?.chiudiRegistroCassa) {
-      return result.data.cashManagement.chiudiRegistroCassa;
+    if (result.data?.gestioneCassa?.chiudiRegistroCassa) {
+      return result.data.gestioneCassa.chiudiRegistroCassa;
     }
     return null;
   };

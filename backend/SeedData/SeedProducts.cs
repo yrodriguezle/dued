@@ -17,7 +17,7 @@ public class SeedProducts
         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         // Check if products already exist
-        if (await dbContext.Products.AnyAsync())
+        if (await dbContext.Prodotti.AnyAsync())
         {
             Console.WriteLine("Products already seeded, skipping...");
             return;
@@ -69,7 +69,7 @@ public class SeedProducts
             }
 
             // Add products to database
-            await dbContext.Products.AddRangeAsync(products);
+            await dbContext.Prodotti.AddRangeAsync(products);
             await dbContext.SaveChangesAsync();
 
             Console.WriteLine($"Successfully seeded {products.Count} products from CSV");
@@ -86,9 +86,9 @@ public class SeedProducts
     /// Reads products from the CSV file
     /// CSV format: Numero,Codice,Nome,Prezzo,Categoria
     /// </summary>
-    private static List<Product> ReadProductsFromCsv(string filePath)
+    private static List<Prodotto> ReadProductsFromCsv(string filePath)
     {
-        var products = new List<Product>();
+        var products = new List<Prodotto>();
 
         try
         {
@@ -125,16 +125,16 @@ public class SeedProducts
                         continue;
                     }
 
-                    var product = new Product
+                    var product = new Prodotto
                     {
-                        Code = codice,
-                        Name = nome,
-                        Price = prezzo,
-                        Category = categoria,
-                        UnitOfMeasure = "pz",
-                        IsActive = true,
-                        CreatedAt = DateTime.UtcNow,
-                        UpdatedAt = DateTime.UtcNow
+                        Codice = codice,
+                        Nome = nome,
+                        Prezzo = prezzo,
+                        Categoria = categoria,
+                        UnitaDiMisura = "pz",
+                        Attivo = true,
+                        CreatoIl = DateTime.UtcNow,
+                        AggiornatoIl = DateTime.UtcNow
                     };
 
                     products.Add(product);

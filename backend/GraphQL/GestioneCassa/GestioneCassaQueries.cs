@@ -6,13 +6,13 @@ using GraphQL.Types;
 using duedgusto.Models;
 using duedgusto.Services.GraphQL;
 using duedgusto.DataAccess;
-using duedgusto.GraphQL.CashManagement.Types;
+using duedgusto.GraphQL.GestioneCassa.Types;
 
-namespace duedgusto.GraphQL.CashManagement;
+namespace duedgusto.GraphQL.GestioneCassa;
 
-public class CashManagementQueries : ObjectGraphType
+public class GestioneCassaQueries : ObjectGraphType
 {
-    public CashManagementQueries()
+    public GestioneCassaQueries()
     {
         this.Authorize();
 

@@ -17,8 +17,8 @@ public class AppDbContext : DbContext
     public DbSet<Menu> Menus { get; set; }
 
     // Products and Sales
-    public DbSet<Product> Products { get; set; }
-    public DbSet<Sale> Sales { get; set; }
+    public DbSet<Prodotto> Prodotti { get; set; }
+    public DbSet<Vendita> Vendite { get; set; }
 
     // Cash Management
     public DbSet<DenominazioneMoneta> DenominazioniMoneta { get; set; }
@@ -311,58 +311,58 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // Product Configuration
-        modelBuilder.Entity<Product>(entity =>
+        // Product Configuration (Prodotto)
+        modelBuilder.Entity<Prodotto>(entity =>
         {
             entity
-                .ToTable("Products")
+                .ToTable("Prodotti")
                 .HasCharSet("utf8mb4")
                 .UseCollation("utf8mb4_unicode_ci")
-                .HasKey(x => x.ProductId);
+                .HasKey(x => x.ProdottoId);
 
-            entity.Property(x => x.ProductId)
+            entity.Property(x => x.ProdottoId)
                 .ValueGeneratedOnAdd();
 
-            entity.Property(x => x.Code)
+            entity.Property(x => x.Codice)
                 .HasMaxLength(50)
                 .IsRequired();
 
-            entity.Property(x => x.Name)
+            entity.Property(x => x.Nome)
                 .HasMaxLength(255)
                 .IsRequired();
 
-            entity.Property(x => x.Description)
+            entity.Property(x => x.Descrizione)
                 .HasColumnType("text");
 
-            entity.Property(x => x.Price)
+            entity.Property(x => x.Prezzo)
                 .HasColumnType("decimal(10,2)")
                 .IsRequired();
 
-            entity.Property(x => x.Category)
+            entity.Property(x => x.Categoria)
                 .HasMaxLength(100);
 
-            entity.Property(x => x.UnitOfMeasure)
+            entity.Property(x => x.UnitaDiMisura)
                 .HasMaxLength(20)
                 .HasDefaultValue("pz");
 
-            entity.Property(x => x.IsActive)
+            entity.Property(x => x.Attivo)
                 .HasDefaultValue(true);
 
-            entity.Property(x => x.CreatedAt)
+            entity.Property(x => x.CreatoIl)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-            entity.Property(x => x.UpdatedAt)
+            entity.Property(x => x.AggiornatoIl)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
 
-            entity.HasMany(x => x.Sales)
-                .WithOne(x => x.Product)
-                .HasForeignKey(x => x.ProductId)
+            entity.HasMany(x => x.Vendite)
+                .WithOne(x => x.Prodotto)
+                .HasForeignKey(x => x.ProdottoId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Index on Code for faster lookups
-            entity.HasIndex(x => x.Code)
+            // Index on Codice for faster lookups
+            entity.HasIndex(x => x.Codice)
                 .IsUnique();
         });
 
@@ -421,42 +421,42 @@ public class AppDbContext : DbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
         });
 
-        // Sale Configuration
-        modelBuilder.Entity<Sale>(entity =>
+        // Sale Configuration (Vendita)
+        modelBuilder.Entity<Vendita>(entity =>
         {
             entity
-                .ToTable("Sales")
+                .ToTable("Vendite")
                 .HasCharSet("utf8mb4")
                 .UseCollation("utf8mb4_unicode_ci")
-                .HasKey(x => x.SaleId);
+                .HasKey(x => x.VenditaId);
 
-            entity.Property(x => x.SaleId)
+            entity.Property(x => x.VenditaId)
                 .ValueGeneratedOnAdd();
 
-            entity.Property(x => x.Quantity)
+            entity.Property(x => x.Quantita)
                 .HasColumnType("decimal(10,2)")
                 .IsRequired();
 
-            entity.Property(x => x.UnitPrice)
+            entity.Property(x => x.PrezzoUnitario)
                 .HasColumnType("decimal(10,2)")
                 .IsRequired();
 
-            entity.Property(x => x.TotalPrice)
+            entity.Property(x => x.PrezzoTotale)
                 .HasColumnType("decimal(10,2)")
                 .IsRequired();
 
-            entity.Property(x => x.Notes)
+            entity.Property(x => x.Note)
                 .HasColumnType("text");
 
-            entity.Property(x => x.Timestamp)
+            entity.Property(x => x.DataOra)
                 .HasColumnType("datetime")
                 .IsRequired();
 
-            entity.Property(x => x.CreatedAt)
+            entity.Property(x => x.CreatoIl)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-            entity.Property(x => x.UpdatedAt)
+            entity.Property(x => x.AggiornatoIl)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
 
@@ -465,16 +465,16 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.RegistroCassaId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasOne(x => x.Product)
-                .WithMany(x => x.Sales)
-                .HasForeignKey(x => x.ProductId)
+            entity.HasOne(x => x.Prodotto)
+                .WithMany(x => x.Vendite)
+                .HasForeignKey(x => x.ProdottoId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // Index on RegistroCassaId for faster queries by register
             entity.HasIndex(x => x.RegistroCassaId);
 
-            // Index on Timestamp for time-based filtering
-            entity.HasIndex(x => x.Timestamp);
+            // Index on DataOra for time-based filtering
+            entity.HasIndex(x => x.DataOra);
         });
 
         // Supplier Management Configuration

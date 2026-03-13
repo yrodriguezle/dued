@@ -1,6 +1,6 @@
 using GraphQL.Types;
 
-namespace duedgusto.GraphQL.CashManagement.Types;
+namespace duedgusto.GraphQL.GestioneCassa.Types;
 
 public class PagamentoFornitoreRegistroInput
 {

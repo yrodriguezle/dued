@@ -77,7 +77,7 @@ function useFetchData<T>({ query, variables, skip, reverseGrid, fetchPolicy = "n
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const firstPageAny = firstPage as any;
           if (firstPageAny?.connection?.[queryName]) {
-            // Old pattern: data.connection[queryName]
+            // Grouped pattern: data.connection[queryName]
             connectionData = firstPageAny.connection[queryName];
           } else if (firstPageAny?.[queryName]) {
             // New pattern: data[queryName]
@@ -146,7 +146,7 @@ function useFetchData<T>({ query, variables, skip, reverseGrid, fetchPolicy = "n
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const nextPageAny = nextPage as any;
             if (nextPageAny?.connection?.[queryName]) {
-              // Old pattern: data.connection[queryName]
+              // Grouped pattern: data.connection[queryName]
               connectionData = nextPageAny.connection[queryName];
             } else if (nextPageAny?.[queryName]) {
               // New pattern: data[queryName]

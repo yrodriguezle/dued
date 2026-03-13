@@ -3,11 +3,11 @@ using duedgusto.Models;
 using duedgusto.GraphQL.Suppliers.Types;
 using duedgusto.GraphQL.ChiusureMensili.Types;
 
-namespace duedgusto.GraphQL.MonthlyClosures.Types;
+namespace duedgusto.GraphQL.ChiusureMensili.Types;
 
-public class MonthlyExpenseType : ObjectGraphType<SpesaMensile>
+public class SpesaMensileType : ObjectGraphType<SpesaMensile>
 {
-    public MonthlyExpenseType()
+    public SpesaMensileType()
     {
         Name = "SpesaMensile";
 

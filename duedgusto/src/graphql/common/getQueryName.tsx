@@ -8,11 +8,11 @@ function getQueryName<T>(query: TypedDocumentNode<RelayData<T>, RelayVariables>)
     throw new Error("No operation definition found in the provided query document.");
   }
 
-  // First, try to find a 'connection' field (old pattern)
+  // First, try to find a 'connection' field (pattern with grouped queries)
   const connectionField = operationDefinition.selectionSet.selections.find((selection) => selection.kind === "Field" && selection.name.value === "connection") as FieldNode | undefined;
 
   if (connectionField) {
-    // Old pattern: query { connection { queryName { ... } } }
+    // Pattern: query { connection { queryName { ... } } }
     if (!connectionField.selectionSet || connectionField.selectionSet.selections.length === 0) {
       throw new Error("No fields found under 'connection' in the query document.");
     }
@@ -25,7 +25,7 @@ function getQueryName<T>(query: TypedDocumentNode<RelayData<T>, RelayVariables>)
     return queryField.name.value;
   }
 
-  // New pattern: query { queryName { ... } } (standard Relay connection at root)
+  // Direct pattern: query { queryName { ... } } (standard Relay connection at root)
   // Find the first field that has a 'totalCount' or 'pageInfo' child (indicates it's a connection)
   for (const selection of operationDefinition.selectionSet.selections) {
     if (selection.kind === "Field" && selection.selectionSet) {

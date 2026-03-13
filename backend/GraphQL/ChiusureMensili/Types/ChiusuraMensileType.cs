@@ -1,7 +1,7 @@
 using GraphQL.Types;
 using duedgusto.Models;
 using duedgusto.GraphQL.Authentication;
-using duedgusto.GraphQL.MonthlyClosures.Types;
+using duedgusto.GraphQL.ChiusureMensili.Types;
 
 namespace duedgusto.GraphQL.ChiusureMensili.Types;
 

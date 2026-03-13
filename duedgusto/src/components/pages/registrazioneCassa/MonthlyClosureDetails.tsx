@@ -170,7 +170,7 @@ const MonthlyClosureDetails = () => {
       autoCreateInitiated.current = true;
       creaChiusura({ variables: { anno: newAnno, mese: newMese } })
         .then((result) => {
-          const nuovaChiusura = result.data?.monthlyClosures.creaChiusuraMensile;
+          const nuovaChiusura = result.data?.chiusureMensili.creaChiusuraMensile;
           if (nuovaChiusura) {
             navigate(`/gestionale/cassa/monthly-closure/${nuovaChiusura.chiusuraId}`, { replace: true });
           } else {
@@ -267,7 +267,7 @@ const MonthlyClosureDetails = () => {
     try {
       if (isNewMode) {
         const result = await creaChiusura({ variables: { anno: newAnno, mese: newMese } });
-        const nuovaChiusura = result.data?.monthlyClosures.creaChiusuraMensile;
+        const nuovaChiusura = result.data?.chiusureMensili.creaChiusuraMensile;
         if (!nuovaChiusura) return;
 
         for (const expense of localSpeseLibere) {

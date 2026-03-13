@@ -77,7 +77,7 @@ const createRefetchMock = (): MockedResponse => ({
   },
   result: {
     data: {
-      cashManagement: {
+      gestioneCassa: {
         __typename: "CashManagementQueries",
         registroCassa: mockResultData,
       },
@@ -92,7 +92,7 @@ describe("useSubmitCashRegister", () => {
       variableMatcher: (vars) => vars?.registroCassa?.data === "2026-03-12",
       result: {
         data: {
-          cashManagement: {
+          gestioneCassa: {
             __typename: "CashManagementMutations",
             mutateRegistroCassa: mockResultData,
           },
@@ -130,7 +130,7 @@ describe("useSubmitCashRegister", () => {
       variableMatcher: () => true,
       result: {
         data: {
-          cashManagement: {
+          gestioneCassa: {
             __typename: "CashManagementMutations",
             mutateRegistroCassa: null,
           },

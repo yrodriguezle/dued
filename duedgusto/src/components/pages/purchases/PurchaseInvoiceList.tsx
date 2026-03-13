@@ -31,7 +31,7 @@ function PurchaseInvoiceList() {
 
   const { data: invoices, refetch } = useGetAll<PurchaseInvoiceNonNull>({
     fragment: purchaseInvoiceFragment,
-    queryName: "purchaseInvoices",
+    queryName: "fattureAcquisto",
     fragmentBody: "...PurchaseInvoiceFragment",
     fetchPolicy: "network-only",
   });

@@ -1,7 +1,7 @@
 using GraphQL.Types;
 using duedgusto.Models;
 
-namespace duedgusto.GraphQL.CashManagement.Types;
+namespace duedgusto.GraphQL.GestioneCassa.Types;
 
 public class DenominazioneMonetaType : ObjectGraphType<DenominazioneMoneta>
 {

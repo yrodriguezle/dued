@@ -1,6 +1,6 @@
 using GraphQL.Types;
 using duedgusto.Models;
-using duedgusto.GraphQL.MonthlyClosures.Types;
+using duedgusto.GraphQL.ChiusureMensili.Types;
 
 namespace duedgusto.GraphQL.Suppliers.Types;
 
@@ -26,7 +26,7 @@ public class SupplierPaymentType : ObjectGraphType<PagamentoFornitore>
         Field<DeliveryNoteType, DocumentoTrasporto>("ddt")
             .Resolve(context => context.Source.Ddt);
 
-        Field<ListGraphType<MonthlyExpenseType>, IEnumerable<SpesaMensile>>("monthlyExpenses")
+        Field<ListGraphType<SpesaMensileType>, IEnumerable<SpesaMensile>>("monthlyExpenses")
             .Resolve(context => context.Source.SpeseMensili);
     }
 }

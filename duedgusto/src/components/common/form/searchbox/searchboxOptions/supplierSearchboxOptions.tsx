@@ -31,9 +31,9 @@ const items: DatagridColDef<SupplierSearchbox>[] = [
 ];
 
 const supplierSearchboxOption: SearchboxOptions<SupplierSearchbox> = {
-  query: "suppliers",
+  query: "fornitori",
   id: "supplierId",
-  tableName: "suppliers",
+  tableName: "fornitori",
   view: "SupplierDetails",
   items,
   modal: {

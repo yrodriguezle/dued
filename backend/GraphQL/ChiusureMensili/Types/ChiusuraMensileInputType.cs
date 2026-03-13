@@ -1,4 +1,4 @@
-using duedgusto.GraphQL.MonthlyClosures.Types;
+using duedgusto.GraphQL.ChiusureMensili.Types;
 using GraphQL.Types;
 
 namespace duedgusto.GraphQL.ChiusureMensili.Types;
