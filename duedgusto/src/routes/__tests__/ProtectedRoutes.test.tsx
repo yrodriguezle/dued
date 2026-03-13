@@ -152,6 +152,7 @@ describe("ProtectedRoutes", () => {
       const state = {
         utente: mockUtente,
         inProgress: {},
+        settingsLoaded: true,
         getNextOperatingDate: () => new Date(2026, 2, 12),
       } as unknown as Store;
       return selector(state);
@@ -201,6 +202,7 @@ describe("ProtectedRoutes", () => {
       const state = {
         utente: mockUtente,
         inProgress: {},
+        settingsLoaded: true,
         getNextOperatingDate: () => new Date(2026, 2, 12),
       } as unknown as Store;
       return selector(state);

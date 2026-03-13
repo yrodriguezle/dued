@@ -79,12 +79,12 @@ describe("businessSettingsStore", () => {
     expect(store.getState().settings?.businessName).toBe("Nuovo Nome");
   });
 
-  it("deve ritornare true da isOpen quando non ci sono settings", () => {
+  it("deve ritornare false da isOpen quando non ci sono settings", () => {
     const store = createBusinessSettingsStore();
     const monday = new Date(2026, 2, 9); // 9 marzo 2026, lunedì
 
-    // Senza settings, assume aperto
-    expect(store.getState().isOpen(monday)).toBe(true);
+    // Senza settings, assume chiuso
+    expect(store.getState().isOpen(monday)).toBe(false);
   });
 
   it("deve verificare isOpen per giorni operativi", () => {
