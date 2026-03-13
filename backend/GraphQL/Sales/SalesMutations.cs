@@ -16,32 +16,20 @@ public class SalesMutations : ObjectGraphType
         Name = "SalesMutation";
 
         // Create sale
-        Field<SaleType>(
-            "createSale",
-            arguments: new QueryArguments(
-                new QueryArgument<NonNullGraphType<CreateSaleInputType>> { Name = "input" }
-            ),
-            resolve: context => CreateSaleAsync(context, dbContext)
-        );
+        Field<SaleType>("createSale")
+            .Argument<NonNullGraphType<CreateSaleInputType>>("input", "Dati vendita")
+            .ResolveAsync(async context => await CreateSaleAsync(context, dbContext));
 
         // Update sale
-        Field<SaleType>(
-            "updateSale",
-            arguments: new QueryArguments(
-                new QueryArgument<NonNullGraphType<IntGraphType>> { Name = "id" },
-                new QueryArgument<NonNullGraphType<UpdateSaleInputType>> { Name = "input" }
-            ),
-            resolve: context => UpdateSaleAsync(context, dbContext)
-        );
+        Field<SaleType>("updateSale")
+            .Argument<NonNullGraphType<IntGraphType>>("id", "ID vendita")
+            .Argument<NonNullGraphType<UpdateSaleInputType>>("input", "Dati aggiornamento")
+            .ResolveAsync(async context => await UpdateSaleAsync(context, dbContext));
 
         // Delete sale
-        Field<BooleanGraphType>(
-            "deleteSale",
-            arguments: new QueryArguments(
-                new QueryArgument<NonNullGraphType<IntGraphType>> { Name = "id" }
-            ),
-            resolve: context => DeleteSaleAsync(context, dbContext)
-        );
+        Field<BooleanGraphType>("deleteSale")
+            .Argument<NonNullGraphType<IntGraphType>>("id", "ID vendita")
+            .ResolveAsync(async context => (object)await DeleteSaleAsync(context, dbContext));
     }
 
     private static async Task<Sale> CreateSaleAsync(IResolveFieldContext context, AppDbContext dbContext)
