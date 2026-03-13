@@ -27265,6 +27265,10 @@ async function run() {
     // Bump duedgusto/package.json
     await commandExec(`npm version ${bumpType} --no-git-tag-version --prefix ./duedgusto`);
 
+    // Sync package-lock.json files after version bump
+    await commandExec('npm install --package-lock-only');
+    await commandExec('npm install --package-lock-only --prefix ./duedgusto');
+
     // Read new version from root package.json
     const pkg = JSON.parse(await promises_default().readFile(FILES.rootPackage, 'utf8'));
     const newVersion = pkg.version;

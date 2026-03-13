@@ -9,9 +9,9 @@
     "dev": "concurrently -n backend,frontend -c blue,green \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:frontend": "cd duedgusto && npm run dev",
     "dev:backend": "cd backend && dotnet run --launch-profile https",
-    "version:patch": "npm version patch --no-git-tag-version && cd duedgusto && npm version patch --no-git-tag-version",
-    "version:minor": "npm version minor --no-git-tag-version && cd duedgusto && npm version minor --no-git-tag-version",
-    "version:major": "npm version major --no-git-tag-version && cd duedgusto && npm version major --no-git-tag-version"
+    "version:patch": "npm version patch --no-git-tag-version && cd duedgusto && npm version patch --no-git-tag-version && npm install --package-lock-only && cd .. && npm install --package-lock-only",
+    "version:minor": "npm version minor --no-git-tag-version && cd duedgusto && npm version minor --no-git-tag-version && npm install --package-lock-only && cd .. && npm install --package-lock-only",
+    "version:major": "npm version major --no-git-tag-version && cd duedgusto && npm version major --no-git-tag-version && npm install --package-lock-only && cd .. && npm install --package-lock-only"
   },
   "keywords": [],
   "author": "",
