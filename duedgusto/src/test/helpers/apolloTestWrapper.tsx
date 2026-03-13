@@ -70,7 +70,7 @@ export const createMockApolloProvider = ({
 /**
  * Factory per creare mock response GraphQL con tipo sicuro.
  */
-export const createMockResponse = <TData, TVars = Record<string, unknown>>(
+export const createMockResponse = <TData extends Record<string, unknown>, TVars = Record<string, unknown>>(
   query: DocumentNode,
   data: TData,
   variables?: TVars
