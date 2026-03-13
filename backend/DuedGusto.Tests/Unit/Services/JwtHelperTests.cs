@@ -150,10 +150,12 @@ public class JwtHelperTests
         var claims = CreateTestClaims();
         var (_, token) = _jwtHelper.CreateSignedToken(claims);
 
-        // Tamper with the signature (last segment)
+        // Tamper with the signature (change a character in the middle to avoid base64 padding bits)
         var parts = token.Split('.');
-        var tamperedSignature = parts[2][..^1] + (parts[2][^1] == 'A' ? 'B' : 'A');
-        var tamperedToken = $"{parts[0]}.{parts[1]}.{tamperedSignature}";
+        var sigChars = parts[2].ToCharArray();
+        var midIndex = sigChars.Length / 2;
+        sigChars[midIndex] = sigChars[midIndex] == 'A' ? 'B' : 'A';
+        var tamperedToken = $"{parts[0]}.{parts[1]}.{new string(sigChars)}";
 
         // Act & Assert
         var act = () => _tokenHandler.ValidateToken(
