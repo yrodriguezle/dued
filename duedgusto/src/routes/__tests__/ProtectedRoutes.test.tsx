@@ -7,8 +7,9 @@ vi.mock("../../common/authentication/auth", () => ({
 }));
 
 vi.mock("../../store/useStore", () => {
-  const mockStore = vi.fn();
-  mockStore.getState = vi.fn(() => ({}));
+  const mockStore = Object.assign(vi.fn(), {
+    getState: vi.fn(() => ({})),
+  });
   return { default: mockStore };
 });
 

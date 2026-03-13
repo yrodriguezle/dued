@@ -8,7 +8,7 @@ import useGetAll from "../useGetAll";
 // con un link custom che intercetta tutte le richieste.
 
 const createMockClient = (
-  queryHandler: (variables: Record<string, unknown>) => unknown
+  queryHandler: (variables: Record<string, unknown>) => Record<string, unknown>
 ) => {
   const mockLink = new ApolloLink((operation) => {
     return new Observable((observer) => {
@@ -28,8 +28,8 @@ const createMockClient = (
           fields: {
             connection: {
               keyArgs: false,
-              merge(existing = {}, incoming: Record<string, unknown>) {
-                return { ...existing, ...incoming };
+              merge(existing, incoming: Record<string, unknown>) {
+                return { ...(existing as Record<string, unknown> ?? {}), ...incoming };
               },
             },
           },
