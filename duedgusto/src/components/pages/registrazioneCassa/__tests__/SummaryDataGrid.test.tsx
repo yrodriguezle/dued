@@ -51,6 +51,10 @@ describe("SummaryDataGrid", () => {
           closingGridRef={closingGridRef}
           incomesGridRef={incomesGridRef as never}
           expensesGridRef={expensesGridRef as never}
+          openingRowData={[]}
+          closingRowData={[]}
+          initialIncomes={[]}
+          initialExpenses={[]}
           refreshKey={0}
         />
       </ThemeProvider>
@@ -74,6 +78,10 @@ describe("SummaryDataGrid", () => {
           closingGridRef={closingGridRef}
           incomesGridRef={incomesGridRef as never}
           expensesGridRef={expensesGridRef as never}
+          openingRowData={[]}
+          closingRowData={[]}
+          initialIncomes={[]}
+          initialExpenses={[]}
           refreshKey={0}
         />
       </ThemeProvider>
@@ -95,6 +103,10 @@ describe("SummaryDataGrid", () => {
           closingGridRef={closingGridRef}
           incomesGridRef={incomesGridRef as never}
           expensesGridRef={expensesGridRef as never}
+          openingRowData={[]}
+          closingRowData={[]}
+          initialIncomes={[]}
+          initialExpenses={[]}
           refreshKey={0}
         />
       </ThemeProvider>

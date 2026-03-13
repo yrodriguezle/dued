@@ -213,6 +213,12 @@ using (var scope = app.Services.CreateScope())
         await SeedProducts.Initialize(services);
         await SeedBusinessSettings.Initialize(services);
     }
+
+    // Utente test e2e — solo in Development
+    if (app.Environment.IsDevelopment())
+    {
+        await SeedTestUser.Initialize(services);
+    }
 }
 
 var appVersion = Assembly.GetEntryAssembly()?

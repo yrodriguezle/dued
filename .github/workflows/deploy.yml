@@ -40,10 +40,24 @@ jobs:
         with:
           persist-credentials: true
 
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+
+      - name: Run backend tests
+        run: cd backend && dotnet test --verbosity minimal
+
+      - name: Install frontend dependencies
+        run: cd duedgusto && npm ci
+
+      - name: Run frontend tests
+        run: cd duedgusto && npx vitest run
 
       - name: Bump version
         id: version

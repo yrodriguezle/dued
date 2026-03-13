@@ -226,4 +226,150 @@ describe("tokenRefreshManager", () => {
       expect(callback).toHaveBeenCalledWith(false);
     });
   });
+
+  // ─── Gestione concorrente 401 (REQ-1.6.4) ──────────────────────
+
+  describe("gestione concorrente 401", () => {
+    it("dovrebbe eseguire un solo refresh anche con tre richieste 401 simultanee", async () => {
+      let resolveRefresh!: (value: boolean) => void;
+      let callCount = 0;
+      vi.mocked(refreshTokenMock).mockImplementation(() => {
+        callCount++;
+        return new Promise<boolean>((resolve) => {
+          resolveRefresh = resolve;
+        });
+      });
+
+      const { executeTokenRefresh } = await getModule();
+
+      // Simula tre richieste 401 simultanee
+      const promise1 = executeTokenRefresh();
+      const promise2 = executeTokenRefresh();
+      const promise3 = executeTokenRefresh();
+
+      // Solo una chiamata a refreshToken deve essere stata effettuata
+      expect(callCount).toBe(1);
+
+      // Risolvi il refresh
+      resolveRefresh(true);
+      const [result1, result2, result3] = await Promise.all([promise1, promise2, promise3]);
+
+      expect(result1).toBe(true);
+      expect(result2).toBe(true);
+      expect(result3).toBe(true);
+    });
+
+    it("dovrebbe riprovare tutte le richieste in coda dopo un refresh riuscito", async () => {
+      let resolveRefresh!: (value: boolean) => void;
+      vi.mocked(refreshTokenMock).mockImplementation(
+        () =>
+          new Promise<boolean>((resolve) => {
+            resolveRefresh = resolve;
+          })
+      );
+
+      const { executeTokenRefresh, onTokenRefreshComplete } = await getModule();
+
+      // Avvia il refresh (prima richiesta 401)
+      const refreshPromise = executeTokenRefresh();
+
+      // Registra callback per le richieste in coda (simulate altre 401)
+      const callback1 = vi.fn();
+      const callback2 = vi.fn();
+      const callback3 = vi.fn();
+      onTokenRefreshComplete(callback1);
+      onTokenRefreshComplete(callback2);
+      onTokenRefreshComplete(callback3);
+
+      // Refresh riuscito
+      resolveRefresh(true);
+      await refreshPromise;
+
+      // Tutti i callback devono essere stati chiamati con true
+      expect(callback1).toHaveBeenCalledWith(true);
+      expect(callback2).toHaveBeenCalledWith(true);
+      expect(callback3).toHaveBeenCalledWith(true);
+    });
+
+    it("dovrebbe rifiutare tutte le richieste in coda se il refresh fallisce", async () => {
+      let resolveRefresh!: (value: boolean) => void;
+      vi.mocked(refreshTokenMock).mockImplementation(
+        () =>
+          new Promise<boolean>((resolve) => {
+            resolveRefresh = resolve;
+          })
+      );
+
+      const { executeTokenRefresh, onTokenRefreshComplete } = await getModule();
+
+      // Avvia il refresh
+      const refreshPromise = executeTokenRefresh();
+
+      // Registra callback per le richieste in coda
+      const callback1 = vi.fn();
+      const callback2 = vi.fn();
+      const callback3 = vi.fn();
+      onTokenRefreshComplete(callback1);
+      onTokenRefreshComplete(callback2);
+      onTokenRefreshComplete(callback3);
+
+      // Refresh fallito
+      resolveRefresh(false);
+      await refreshPromise;
+
+      // Tutti i callback devono essere stati chiamati con false
+      expect(callback1).toHaveBeenCalledWith(false);
+      expect(callback2).toHaveBeenCalledWith(false);
+      expect(callback3).toHaveBeenCalledWith(false);
+    });
+
+    it("dovrebbe rifiutare tutte le richieste in coda se il refresh lancia un errore", async () => {
+      let rejectRefresh!: (err: Error) => void;
+      vi.mocked(refreshTokenMock).mockImplementation(
+        () =>
+          new Promise<boolean>((_resolve, reject) => {
+            rejectRefresh = reject;
+          })
+      );
+
+      const { executeTokenRefresh, onTokenRefreshComplete } = await getModule();
+
+      // Avvia il refresh
+      const refreshPromise = executeTokenRefresh();
+
+      // Registra callback
+      const callback1 = vi.fn();
+      const callback2 = vi.fn();
+      onTokenRefreshComplete(callback1);
+      onTokenRefreshComplete(callback2);
+
+      // Refresh con errore
+      rejectRefresh(new Error("Server error"));
+      const result = await refreshPromise;
+
+      expect(result).toBe(false);
+      expect(callback1).toHaveBeenCalledWith(false);
+      expect(callback2).toHaveBeenCalledWith(false);
+    });
+
+    it("dovrebbe permettere un nuovo refresh dopo che il precedente e' completato", async () => {
+      let callCount = 0;
+      vi.mocked(refreshTokenMock).mockImplementation(() => {
+        callCount++;
+        return Promise.resolve(true);
+      });
+
+      const { executeTokenRefresh, isTokenRefreshInProgress } = await getModule();
+
+      // Primo refresh
+      await executeTokenRefresh();
+      expect(callCount).toBe(1);
+      expect(isTokenRefreshInProgress()).toBe(false);
+
+      // Secondo refresh (dovrebbe avviare una nuova chiamata)
+      await executeTokenRefresh();
+      expect(callCount).toBe(2);
+      expect(isTokenRefreshInProgress()).toBe(false);
+    });
+  });
 });

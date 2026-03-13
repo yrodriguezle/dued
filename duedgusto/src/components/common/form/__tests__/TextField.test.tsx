@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen, act } from "@testing-library/react";
 import TextField from "../TextField";
 
@@ -102,5 +102,49 @@ describe("TextField - cursor position", () => {
 
     expect(input.value).toBe("test!");
     expect(input.selectionStart).toBe(5);
+  });
+});
+
+describe("TextField - comportamento controllato vs non controllato", () => {
+  it("dovrebbe funzionare come componente controllato con value e onChange", () => {
+    const handleChange = vi.fn();
+    render(<TextField name="test" value="controllato" onChange={handleChange} label="Test" />);
+
+    const input = screen.getByRole("textbox") as HTMLInputElement;
+    expect(input.value).toBe("controllato");
+  });
+
+  it("dovrebbe aggiornare il valore interno quando il prop value cambia", () => {
+    const { rerender } = render(<TextField name="test" value="primo" label="Test" />);
+    const input = screen.getByRole("textbox") as HTMLInputElement;
+    expect(input.value).toBe("primo");
+
+    rerender(<TextField name="test" value="secondo" label="Test" />);
+    expect(input.value).toBe("secondo");
+  });
+
+  it("dovrebbe usare stringa vuota come valore di default quando value non e' fornito", () => {
+    render(<TextField name="test" label="Test" />);
+    const input = screen.getByRole("textbox") as HTMLInputElement;
+    expect(input.value).toBe("");
+  });
+});
+
+describe("TextField - passthrough delle props", () => {
+  it("dovrebbe applicare la prop disabled", () => {
+    render(<TextField name="test" value="" label="Test" disabled />);
+    const input = screen.getByRole("textbox");
+    expect(input).toBeDisabled();
+  });
+
+  it("dovrebbe mostrare il toggle password per type=password", () => {
+    render(<TextField name="password" value="" label="Password" type="password" />);
+    const toggleButton = screen.getByLabelText("toggle password visibility");
+    expect(toggleButton).toBeInTheDocument();
+  });
+
+  it("dovrebbe passare la prop error per lo stile di errore", () => {
+    render(<TextField name="test" value="" label="Test" error helperText="Errore campo" />);
+    expect(screen.getByText("Errore campo")).toBeInTheDocument();
   });
 });

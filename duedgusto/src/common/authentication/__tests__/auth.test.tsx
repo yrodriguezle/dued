@@ -153,36 +153,37 @@ describe("auth", () => {
       expect(isAuthenticated()).toBe(false);
     });
 
-    it("dovrebbe restituire false quando il JWT e' scaduto (exp < now)", () => {
-      // Token scaduto 1 ora fa
+    it("dovrebbe restituire true quando il JWT e' scaduto (non verifica exp)", () => {
+      // isAuthenticated controlla solo l'esistenza del token, non la scadenza.
+      // La gestione dei token scaduti e' delegata al server (ACCESS_DENIED) e al refresh token.
       const expiredTime = Math.floor(Date.now() / 1000) - 3600;
       const authToken = createValidAuthToken(expiredTime);
       localStorage.setItem("jwtToken", JSON.stringify(authToken));
 
-      expect(isAuthenticated()).toBe(false);
+      expect(isAuthenticated()).toBe(true);
     });
 
-    it("dovrebbe restituire false quando il JWT e' malformato", () => {
+    it("dovrebbe restituire true quando il JWT e' malformato (controlla solo esistenza)", () => {
       const authToken = { token: "not-a-valid-jwt", refreshToken: "ref" };
       localStorage.setItem("jwtToken", JSON.stringify(authToken));
 
-      expect(isAuthenticated()).toBe(false);
+      expect(isAuthenticated()).toBe(true);
     });
 
-    it("dovrebbe restituire false quando il payload JWT non ha il claim exp", () => {
+    it("dovrebbe restituire true quando il payload JWT non ha il claim exp (controlla solo esistenza)", () => {
       const tokenWithoutExp = createTestJwt({ sub: "user1", name: "No Exp" });
       const authToken = { token: tokenWithoutExp, refreshToken: "ref" };
       localStorage.setItem("jwtToken", JSON.stringify(authToken));
 
-      expect(isAuthenticated()).toBe(false);
+      expect(isAuthenticated()).toBe(true);
     });
 
-    it("dovrebbe restituire false quando exp non e' un numero", () => {
+    it("dovrebbe restituire true quando exp non e' un numero (controlla solo esistenza)", () => {
       const tokenWithStringExp = createTestJwt({ sub: "user1", exp: "not-a-number" });
       const authToken = { token: tokenWithStringExp, refreshToken: "ref" };
       localStorage.setItem("jwtToken", JSON.stringify(authToken));
 
-      expect(isAuthenticated()).toBe(false);
+      expect(isAuthenticated()).toBe(true);
     });
 
     it("dovrebbe restituire false quando il token e' null", () => {

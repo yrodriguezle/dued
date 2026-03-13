@@ -7,6 +7,14 @@
     <Version>1.0.20</Version>
   </PropertyGroup>
 
+  <!-- Exclude test project from compilation -->
+  <ItemGroup>
+    <Compile Remove="DuedGusto.Tests/**" />
+    <Content Remove="DuedGusto.Tests/**" />
+    <EmbeddedResource Remove="DuedGusto.Tests/**" />
+    <None Remove="DuedGusto.Tests/**" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="DotNetEnv" Version="3.1.1" />
     <PackageReference Include="GraphQL" Version="8.4.1" />
