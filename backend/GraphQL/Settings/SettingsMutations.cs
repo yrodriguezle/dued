@@ -105,6 +105,22 @@ public class SettingsMutations : ObjectGraphType
                 if (!DateOnly.TryParse(input.DataInizio, out var dataInizio))
                     throw new ExecutionError("dataInizio deve essere una data valida (formato: yyyy-MM-dd)");
 
+                // Parse orari (default da BusinessSettings se non forniti)
+                TimeOnly? orarioApertura = null;
+                TimeOnly? orarioChiusura = null;
+                if (!string.IsNullOrEmpty(input.OrarioApertura))
+                {
+                    if (!TimeOnly.TryParse(input.OrarioApertura, out var oa))
+                        throw new ExecutionError("orarioApertura deve essere un orario valido (formato: HH:mm)");
+                    orarioApertura = oa;
+                }
+                if (!string.IsNullOrEmpty(input.OrarioChiusura))
+                {
+                    if (!TimeOnly.TryParse(input.OrarioChiusura, out var oc))
+                        throw new ExecutionError("orarioChiusura deve essere un orario valido (formato: HH:mm)");
+                    orarioChiusura = oc;
+                }
+
                 DateOnly? dataFine = null;
                 if (!string.IsNullOrEmpty(input.DataFine))
                 {
@@ -164,6 +180,8 @@ public class SettingsMutations : ObjectGraphType
                         DataInizio = dataInizio,
                         DataFine = dataFine,
                         GiorniOperativi = input.GiorniOperativi,
+                        OrarioApertura = orarioApertura ?? TimeOnly.Parse(settings.OpeningTime),
+                        OrarioChiusura = orarioChiusura ?? TimeOnly.Parse(settings.ClosingTime),
                         SettingsId = settings.SettingsId,
                         CreatoIl = DateTime.UtcNow,
                         AggiornatoIl = DateTime.UtcNow
@@ -171,10 +189,12 @@ public class SettingsMutations : ObjectGraphType
 
                     dbContext.PeriodiProgrammazione.Add(nuovo);
 
-                    // Sync OperatingDays in BusinessSettings if the new period is active
+                    // Sync BusinessSettings if the new period is active
                     if (dataFine == null)
                     {
                         settings.OperatingDays = input.GiorniOperativi;
+                        settings.OpeningTime = nuovo.OrarioApertura.ToString("HH:mm");
+                        settings.ClosingTime = nuovo.OrarioChiusura.ToString("HH:mm");
                         settings.UpdatedAt = DateTime.UtcNow;
                     }
 
@@ -259,6 +279,22 @@ public class SettingsMutations : ObjectGraphType
                     }
                 }
 
+                // Parse orari if provided
+                TimeOnly? parsedOrarioApertura = null;
+                if (!string.IsNullOrEmpty(input.OrarioApertura))
+                {
+                    if (!TimeOnly.TryParse(input.OrarioApertura, out var oa))
+                        throw new ExecutionError("orarioApertura deve essere un orario valido (formato: HH:mm)");
+                    parsedOrarioApertura = oa;
+                }
+                TimeOnly? parsedOrarioChiusura = null;
+                if (!string.IsNullOrEmpty(input.OrarioChiusura))
+                {
+                    if (!TimeOnly.TryParse(input.OrarioChiusura, out var oc))
+                        throw new ExecutionError("orarioChiusura deve essere un orario valido (formato: HH:mm)");
+                    parsedOrarioChiusura = oc;
+                }
+
                 // Update fields if provided
                 if (parsedDataInizio != null)
                     periodo.DataInizio = parsedDataInizio.Value;
@@ -270,13 +306,21 @@ public class SettingsMutations : ObjectGraphType
                 if (!string.IsNullOrEmpty(input.GiorniOperativi))
                     periodo.GiorniOperativi = input.GiorniOperativi;
 
+                if (parsedOrarioApertura != null)
+                    periodo.OrarioApertura = parsedOrarioApertura.Value;
+
+                if (parsedOrarioChiusura != null)
+                    periodo.OrarioChiusura = parsedOrarioChiusura.Value;
+
                 periodo.AggiornatoIl = DateTime.UtcNow;
 
-                // Sync OperatingDays if this is the active period
+                // Sync BusinessSettings if this is the active period
                 if (periodo.DataFine == null)
                 {
                     var settings = await dbContext.BusinessSettings.FirstAsync();
                     settings.OperatingDays = periodo.GiorniOperativi;
+                    settings.OpeningTime = periodo.OrarioApertura.ToString("HH:mm");
+                    settings.ClosingTime = periodo.OrarioChiusura.ToString("HH:mm");
                     settings.UpdatedAt = DateTime.UtcNow;
                 }
 

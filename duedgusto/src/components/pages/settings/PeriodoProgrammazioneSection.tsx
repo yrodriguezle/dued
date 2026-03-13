@@ -46,6 +46,8 @@ interface PeriodoDialogState {
   periodoId?: number;
   dataInizio: string;
   giorniOperativi: boolean[];
+  orarioApertura: string;
+  orarioChiusura: string;
 }
 
 const initialDialogState: PeriodoDialogState = {
@@ -53,6 +55,8 @@ const initialDialogState: PeriodoDialogState = {
   mode: "crea",
   dataInizio: dayjs().format("YYYY-MM-DD"),
   giorniOperativi: [...defaultGiorniOperativi],
+  orarioApertura: "09:00",
+  orarioChiusura: "18:00",
 };
 
 interface PeriodoProgrammazioneSectionProps {
@@ -104,14 +108,19 @@ function PeriodoProgrammazioneSection({ periodi }: PeriodoProgrammazioneSectionP
   // Ordina i periodi per DataInizio DESC
   const periodiOrdinati = [...periodi].sort((a, b) => (b.dataInizio > a.dataInizio ? 1 : -1));
 
+  // Prendi gli orari dal periodo attivo come default per nuovi periodi
+  const periodoAttivo = periodi.find((p) => p.dataFine === null);
+
   const handleApriDialogNuovo = useCallback(() => {
     setDialogState({
       open: true,
       mode: "crea",
       dataInizio: dayjs().format("YYYY-MM-DD"),
       giorniOperativi: [...defaultGiorniOperativi],
+      orarioApertura: periodoAttivo?.orarioApertura ?? "09:00",
+      orarioChiusura: periodoAttivo?.orarioChiusura ?? "18:00",
     });
-  }, []);
+  }, [periodoAttivo]);
 
   const handleApriDialogModifica = useCallback((periodo: PeriodoProgrammazione) => {
     setDialogState({
@@ -120,6 +129,8 @@ function PeriodoProgrammazioneSection({ periodi }: PeriodoProgrammazioneSectionP
       periodoId: periodo.periodoId,
       dataInizio: periodo.dataInizio,
       giorniOperativi: [...periodo.giorniOperativi],
+      orarioApertura: periodo.orarioApertura,
+      orarioChiusura: periodo.orarioChiusura,
     });
   }, []);
 
@@ -148,6 +159,8 @@ function PeriodoProgrammazioneSection({ periodi }: PeriodoProgrammazioneSectionP
           periodo: {
             dataInizio: dialogState.dataInizio,
             giorniOperativi: giorniOperativiJson,
+            orarioApertura: dialogState.orarioApertura,
+            orarioChiusura: dialogState.orarioChiusura,
           },
         },
       });
@@ -158,6 +171,8 @@ function PeriodoProgrammazioneSection({ periodi }: PeriodoProgrammazioneSectionP
             periodoId: dialogState.periodoId,
             dataInizio: dialogState.dataInizio,
             giorniOperativi: giorniOperativiJson,
+            orarioApertura: dialogState.orarioApertura,
+            orarioChiusura: dialogState.orarioChiusura,
           },
         },
       });
@@ -233,6 +248,11 @@ function PeriodoProgrammazioneSection({ periodi }: PeriodoProgrammazioneSectionP
                   )}
                 </Box>
               </Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 0.5 }}>
+                <Typography variant="body2" color="text.secondary">
+                  {periodo.orarioApertura} - {periodo.orarioChiusura}
+                </Typography>
+              </Box>
               <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
                 {GIORNI_SETTIMANA.map(({ index, label }) => (
                   <FormControlLabel
@@ -260,9 +280,30 @@ function PeriodoProgrammazioneSection({ periodi }: PeriodoProgrammazioneSectionP
               value={dialogState.dataInizio}
               onChange={(e) => handleCambiaDataInizio(e.target.value)}
               slotProps={{ inputLabel: { shrink: true } }}
+              sx={{ colorScheme: (theme) => theme.palette.mode }}
               fullWidth
               disabled={dialogState.mode === "modifica"}
             />
+            <Box sx={{ display: "flex", gap: 2 }}>
+              <TextField
+                label="Apertura"
+                type="time"
+                value={dialogState.orarioApertura}
+                onChange={(e) => setDialogState((prev) => ({ ...prev, orarioApertura: e.target.value }))}
+                slotProps={{ inputLabel: { shrink: true }, htmlInput: { step: 300 } }}
+                sx={{ colorScheme: (theme) => theme.palette.mode }}
+                fullWidth
+              />
+              <TextField
+                label="Chiusura"
+                type="time"
+                value={dialogState.orarioChiusura}
+                onChange={(e) => setDialogState((prev) => ({ ...prev, orarioChiusura: e.target.value }))}
+                slotProps={{ inputLabel: { shrink: true }, htmlInput: { step: 300 } }}
+                sx={{ colorScheme: (theme) => theme.palette.mode }}
+                fullWidth
+              />
+            </Box>
             <Box>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                 Giorni di apertura

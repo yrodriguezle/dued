@@ -53,12 +53,6 @@ function BusinessSettingsForm({ periodi }: BusinessSettingsFormProps) {
           Programmazione
         </Typography>
         <div className="grid grid-cols-12 gap-4">
-          <div className="col-span-6 sm:col-span-3">
-            <FormikTextField name="openingTime" label="Apertura" type="time" inputProps={{ step: "300" }} fullWidth />
-          </div>
-          <div className="col-span-6 sm:col-span-3">
-            <FormikTextField name="closingTime" label="Chiusura" type="time" inputProps={{ step: "300" }} fullWidth />
-          </div>
           <div className="col-span-12 sm:col-span-6">
             <FormikTextField name="timezone" label="Fuso Orario" select fullWidth>
               {TIMEZONES.map((tz) => (
@@ -71,7 +65,7 @@ function BusinessSettingsForm({ periodi }: BusinessSettingsFormProps) {
         </div>
       </Paper>
 
-      {/* Sezione: Periodi di apertura */}
+      {/* Sezione: Periodi di apertura (include orari) */}
       <PeriodoProgrammazioneSection periodi={periodi} />
 
       {/* Sezione: Impostazioni Fiscali */}

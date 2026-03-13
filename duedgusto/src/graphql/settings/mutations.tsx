@@ -25,6 +25,8 @@ export const CREA_PERIODO_PROGRAMMAZIONE = gql`
         dataInizio
         dataFine
         giorniOperativi
+        orarioApertura
+        orarioChiusura
         settingsId
         creatoIl
         aggiornatoIl
@@ -41,6 +43,8 @@ export const AGGIORNA_PERIODO_PROGRAMMAZIONE = gql`
         dataInizio
         dataFine
         giorniOperativi
+        orarioApertura
+        orarioChiusura
         settingsId
         creatoIl
         aggiornatoIl

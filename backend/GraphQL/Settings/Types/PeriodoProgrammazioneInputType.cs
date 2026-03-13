@@ -8,6 +8,8 @@ public class PeriodoProgrammazioneInput
     public string? DataInizio { get; set; }
     public string? DataFine { get; set; }
     public string? GiorniOperativi { get; set; }
+    public string? OrarioApertura { get; set; }
+    public string? OrarioChiusura { get; set; }
 }
 
 public class PeriodoProgrammazioneInputType : InputObjectGraphType<PeriodoProgrammazioneInput>
@@ -18,5 +20,7 @@ public class PeriodoProgrammazioneInputType : InputObjectGraphType<PeriodoProgra
         Field(x => x.DataInizio, nullable: true);
         Field(x => x.DataFine, nullable: true);
         Field(x => x.GiorniOperativi, nullable: true);
+        Field(x => x.OrarioApertura, nullable: true);
+        Field(x => x.OrarioChiusura, nullable: true);
     }
 }

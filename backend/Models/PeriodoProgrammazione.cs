@@ -28,6 +28,16 @@ public class PeriodoProgrammazione
     public string GiorniOperativi { get; set; } = "[true,true,true,true,true,false,false]";
 
     /// <summary>
+    /// Orario di apertura per questo periodo (es. 09:00)
+    /// </summary>
+    public TimeOnly OrarioApertura { get; set; } = new TimeOnly(9, 0);
+
+    /// <summary>
+    /// Orario di chiusura per questo periodo (es. 18:00)
+    /// </summary>
+    public TimeOnly OrarioChiusura { get; set; } = new TimeOnly(18, 0);
+
+    /// <summary>
     /// FK alla configurazione dell'attivita
     /// </summary>
     public int SettingsId { get; set; }

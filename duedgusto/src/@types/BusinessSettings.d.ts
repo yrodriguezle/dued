@@ -26,6 +26,8 @@ type PeriodoProgrammazione = {
   dataInizio: string; // "YYYY-MM-DD"
   dataFine: string | null; // "YYYY-MM-DD" o null (periodo attivo)
   giorniOperativi: boolean[];
+  orarioApertura: string; // "HH:mm"
+  orarioChiusura: string; // "HH:mm"
   settingsId: number;
   creatoIl?: string;
   aggiornatoIl?: string;

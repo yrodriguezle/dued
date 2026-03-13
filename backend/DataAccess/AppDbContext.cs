@@ -446,6 +446,16 @@ public class AppDbContext : DbContext
                 .IsRequired()
                 .HasDefaultValue("[true,true,true,true,true,false,false]");
 
+            entity.Property(x => x.OrarioApertura)
+                .HasColumnType("time")
+                .IsRequired()
+                .HasDefaultValue(new TimeOnly(9, 0));
+
+            entity.Property(x => x.OrarioChiusura)
+                .HasColumnType("time")
+                .IsRequired()
+                .HasDefaultValue(new TimeOnly(18, 0));
+
             entity.Property(x => x.CreatoIl)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");

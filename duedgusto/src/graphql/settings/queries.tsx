@@ -20,6 +20,8 @@ export const GET_BUSINESS_SETTINGS = gql`
         dataInizio
         dataFine
         giorniOperativi
+        orarioApertura
+        orarioChiusura
       }
     }
   }
