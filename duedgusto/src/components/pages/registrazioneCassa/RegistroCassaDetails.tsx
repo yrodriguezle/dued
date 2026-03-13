@@ -99,10 +99,38 @@ function RegistroCassaDetails() {
   const isOpen = useStore((state) => state.isOpen);
   const getNextOperatingDate = useStore((state) => state.getNextOperatingDate);
 
-  // refreshKey: incrementato quando una griglia notifica un cambio, forza il ricalcolo del SummaryDataGrid
-  const [refreshKey, setRefreshKey] = useState(0);
+  // handleCellChange: segnala che il form ha modifiche non salvate
   const handleCellChange = useCallback(() => {
-    setRefreshKey((k) => k + 1);
+    formRef.current?.setFieldValue("gridDirty", true);
+  }, []);
+
+  // summaryData: stato aggregato aggiornato via callback dalle griglie figlie
+  const [summaryData, setSummaryData] = useState<SummaryData>({
+    openingTotal: 0,
+    closingTotal: 0,
+    incomes: [],
+    expensesTotalAmount: 0,
+    receiptExpensesAmount: 0,
+  });
+
+  const handleOpeningTotalChange = useCallback((total: number) => {
+    setSummaryData((prev) => ({ ...prev, openingTotal: total }));
+  }, []);
+
+  const handleClosingTotalChange = useCallback((total: number) => {
+    setSummaryData((prev) => ({ ...prev, closingTotal: total }));
+  }, []);
+
+  const handleIncomesChange = useCallback((incomes: IncomeEntry[]) => {
+    setSummaryData((prev) => ({ ...prev, incomes }));
+  }, []);
+
+  const handleExpensesChange = useCallback((totalAmount: number, receiptAmount: number) => {
+    setSummaryData((prev) => ({
+      ...prev,
+      expensesTotalAmount: totalAmount,
+      receiptExpensesAmount: receiptAmount,
+    }));
   }, []);
 
   // Stati per i dati iniziali delle griglie - mantengono referenza stabile
@@ -536,7 +564,11 @@ function RegistroCassaDetails() {
                 initialExpenses={initialExpenses}
                 onCellChange={handleCellChange}
                 onCopyFromPrevious={handleCopyFromPrevious}
-                refreshKey={refreshKey}
+                summaryData={summaryData}
+                onOpeningTotalChange={handleOpeningTotalChange}
+                onClosingTotalChange={handleClosingTotalChange}
+                onIncomesChange={handleIncomesChange}
+                onExpensesChange={handleExpensesChange}
               />
             </Box>
           </Form>

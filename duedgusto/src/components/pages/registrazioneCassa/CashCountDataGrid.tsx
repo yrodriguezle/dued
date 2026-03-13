@@ -13,10 +13,11 @@ interface CashCountDataGridProps {
   isLocked: boolean;
   onCellChange?: () => void;
   onCopyFromPrevious?: () => void;
+  onTotalChange?: (total: number) => void;
 }
 
 const CashCountDataGrid = memo(
-  forwardRef<GridReadyEvent<DatagridData<CashCountRowData>>, CashCountDataGridProps>(({ rowData, title, isLocked, onCellChange, onCopyFromPrevious }, ref) => {
+  forwardRef<GridReadyEvent<DatagridData<CashCountRowData>>, CashCountDataGridProps>(({ rowData, title, isLocked, onCellChange, onCopyFromPrevious, onTotalChange }, ref) => {
     const theme = useTheme();
 
     const calculateTotal = useCallback((): number => {
@@ -106,15 +107,17 @@ const CashCountDataGrid = memo(
           if (ref && typeof ref !== "function" && ref.current) {
             const pinnedNode = ref.current.api.getPinnedBottomRow(0);
             if (pinnedNode?.data) {
-              pinnedNode.data.total = calculateTotal();
+              const newTotal = calculateTotal();
+              pinnedNode.data.total = newTotal;
               ref.current.api.refreshCells({ rowNodes: [pinnedNode], force: true });
+              onTotalChange?.(newTotal);
             }
           }
         }
 
         onCellChange?.();
       },
-      [ref, calculateTotal, onCellChange]
+      [ref, calculateTotal, onCellChange, onTotalChange]
     );
 
     const handleGridReady = useCallback(
@@ -128,13 +131,15 @@ const CashCountDataGrid = memo(
           if (ref && typeof ref !== "function" && ref.current) {
             const pinnedNode = ref.current.api.getPinnedBottomRow(0);
             if (pinnedNode?.data) {
-              pinnedNode.data.total = calculateTotal();
+              const newTotal = calculateTotal();
+              pinnedNode.data.total = newTotal;
               ref.current.api.refreshCells({ rowNodes: [pinnedNode], force: true });
+              onTotalChange?.(newTotal);
             }
           }
         }, 0);
       },
-      [ref, calculateTotal]
+      [ref, calculateTotal, onTotalChange]
     );
 
     // Calcola il totale direttamente dai rowData
@@ -156,7 +161,7 @@ const CashCountDataGrid = memo(
       [totalFromRowData]
     );
 
-    // Aggiorna la riga pinnata quando rowData cambia
+    // Aggiorna la riga pinnata quando rowData cambia (es. copia da giorno precedente)
     useEffect(() => {
       if (ref && typeof ref !== "function" && ref.current) {
         const pinnedNode = ref.current.api.getPinnedBottomRow(0);
@@ -165,7 +170,8 @@ const CashCountDataGrid = memo(
           ref.current.api.refreshCells({ rowNodes: [pinnedNode], force: true });
         }
       }
-    }, [ref, totalFromRowData]);
+      onTotalChange?.(totalFromRowData);
+    }, [ref, totalFromRowData, onTotalChange]);
 
     const copyFromPreviousButton = useMemo(() => {
       if (!onCopyFromPrevious) return undefined;

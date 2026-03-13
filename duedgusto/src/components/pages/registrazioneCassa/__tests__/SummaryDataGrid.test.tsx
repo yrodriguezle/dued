@@ -1,117 +1,75 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render } from "@testing-library/react";
+import { describe, it, expect } from "vitest";
+import { render, screen } from "@testing-library/react";
 import { ThemeProvider, createTheme } from "@mui/material";
-import { GridReadyEvent } from "ag-grid-community";
-import { DatagridData } from "../../../common/datagrid/@types/Datagrid";
-import { CashCountRowData } from "../useCashCountData";
-
-// Cattura le props passate al Datagrid
-let capturedDatagridProps: Record<string, unknown> = {};
-
-vi.mock("../../../common/datagrid/Datagrid", () => ({
-  default: (props: Record<string, unknown>) => {
-    capturedDatagridProps = props;
-    return <div data-testid="mock-datagrid" />;
-  },
-}));
-
-// Import DOPO il mock
-import SummaryDataGrid from "../SummaryDataGrid";
+import { SummaryDataGrid } from "../SummaryDataGrid";
 
 const theme = createTheme();
 
-function createMockGridRef() {
-  return {
-    current: {
-      api: {
-        forEachNode: vi.fn(),
-      },
-      context: {
-        getGridData: vi.fn(() => []),
-      },
-    },
-  } as unknown as React.RefObject<GridReadyEvent<DatagridData<CashCountRowData>> | null>;
+function renderWithTheme(summaryData: SummaryData) {
+  return render(
+    <ThemeProvider theme={theme}>
+      <SummaryDataGrid summaryData={summaryData} />
+    </ThemeProvider>
+  );
 }
 
+const emptySummary: SummaryData = {
+  openingTotal: 0,
+  closingTotal: 0,
+  incomes: [],
+  expensesTotalAmount: 0,
+  receiptExpensesAmount: 0,
+};
+
 describe("SummaryDataGrid", () => {
-  beforeEach(() => {
-    capturedDatagridProps = {};
+  it("deve renderizzare tutte le label KPI", () => {
+    renderWithTheme(emptySummary);
+    expect(screen.getByText("Totale (-) Apertura")).toBeInTheDocument();
+    expect(screen.getByText("Pagato Contanti")).toBeInTheDocument();
+    expect(screen.getByText("Elett")).toBeInTheDocument();
+    expect(screen.getByText("Totale Vendite")).toBeInTheDocument();
+    expect(screen.getByText("Fornitori / Spese gg")).toBeInTheDocument();
+    expect(screen.getByText("ECC")).toBeInTheDocument();
+    expect(screen.getByText("NC ecc")).toBeInTheDocument();
   });
 
-  it("NON deve passare domLayout='autoHeight' al Datagrid — causa scroll globale", () => {
-    const openingGridRef = createMockGridRef();
-    const closingGridRef = createMockGridRef();
-    const incomesGridRef = createMockGridRef();
-    const expensesGridRef = createMockGridRef();
-
-    render(
-      <ThemeProvider theme={theme}>
-        <SummaryDataGrid
-          openingGridRef={openingGridRef}
-          closingGridRef={closingGridRef}
-          incomesGridRef={incomesGridRef as never}
-          expensesGridRef={expensesGridRef as never}
-          openingRowData={[]}
-          closingRowData={[]}
-          initialIncomes={[]}
-          initialExpenses={[]}
-          refreshKey={0}
-        />
-      </ThemeProvider>
-    );
-
-    // Il bug: domLayout="autoHeight" ignora height="400px" e fa espandere AG Grid
-    // causando uno scroll globale che rompe la UI del registro cassa
-    expect(capturedDatagridProps.domLayout).not.toBe("autoHeight");
+  it("deve calcolare correttamente il Totale Vendite", () => {
+    // movimento = 400 - 100 = 300; elettronico = 200; totalSales = 300 + 200 = 500
+    const summary: SummaryData = {
+      openingTotal: 100,
+      closingTotal: 400,
+      incomes: [
+        { type: "Pago in contanti", amount: 50 },
+        { type: "Pagamenti Elettronici", amount: 200 },
+        { type: "Pagamento con Fattura", amount: 30 },
+      ],
+      expensesTotalAmount: 0,
+      receiptExpensesAmount: 0,
+    };
+    renderWithTheme(summary);
+    expect(screen.getByText("Totale Vendite")).toBeInTheDocument();
   });
 
-  it("deve avere un'altezza fissa di 400px", () => {
-    const openingGridRef = createMockGridRef();
-    const closingGridRef = createMockGridRef();
-    const incomesGridRef = createMockGridRef();
-    const expensesGridRef = createMockGridRef();
-
-    render(
-      <ThemeProvider theme={theme}>
-        <SummaryDataGrid
-          openingGridRef={openingGridRef}
-          closingGridRef={closingGridRef}
-          incomesGridRef={incomesGridRef as never}
-          expensesGridRef={expensesGridRef as never}
-          openingRowData={[]}
-          closingRowData={[]}
-          initialIncomes={[]}
-          initialExpenses={[]}
-          refreshKey={0}
-        />
-      </ThemeProvider>
-    );
-
-    expect(capturedDatagridProps.height).toBe("400px");
+  it("deve mostrare la label ECC", () => {
+    renderWithTheme(emptySummary);
+    expect(screen.getByText("ECC")).toBeInTheDocument();
   });
 
-  it("deve essere in modalità presentation (read-only)", () => {
-    const openingGridRef = createMockGridRef();
-    const closingGridRef = createMockGridRef();
-    const incomesGridRef = createMockGridRef();
-    const expensesGridRef = createMockGridRef();
+  it("deve mostrare NC ecc per spese scontrino", () => {
+    const summary: SummaryData = {
+      openingTotal: 0,
+      closingTotal: 0,
+      incomes: [],
+      expensesTotalAmount: 150,
+      receiptExpensesAmount: 50,
+    };
+    renderWithTheme(summary);
+    expect(screen.getByText("NC ecc")).toBeInTheDocument();
+    expect(screen.getByText("Fornitori / Spese gg")).toBeInTheDocument();
+  });
 
-    render(
-      <ThemeProvider theme={theme}>
-        <SummaryDataGrid
-          openingGridRef={openingGridRef}
-          closingGridRef={closingGridRef}
-          incomesGridRef={incomesGridRef as never}
-          expensesGridRef={expensesGridRef as never}
-          openingRowData={[]}
-          closingRowData={[]}
-          initialIncomes={[]}
-          initialExpenses={[]}
-          refreshKey={0}
-        />
-      </ThemeProvider>
-    );
-
-    expect(capturedDatagridProps.presentation).toBe(true);
+  it("non deve mostrare il titolo RIEPILOGO VENDITE", () => {
+    renderWithTheme(emptySummary);
+    expect(screen.queryByText("RIEPILOGO VENDITE")).not.toBeInTheDocument();
   });
 });

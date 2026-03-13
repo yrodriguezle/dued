@@ -17,6 +17,7 @@ interface ExpensesDataGridProps {
   initialExpenses: Expense[];
   isLocked: boolean;
   onCellChange?: () => void;
+  onExpensesChange?: (totalAmount: number, receiptAmount: number) => void;
 }
 
 // Schema Zod per validazione inline non bloccante
@@ -26,20 +27,39 @@ const expenseSchema = z.object({
 });
 
 const ExpensesDataGrid = memo(
-  forwardRef<GridReadyEvent<DatagridData<Expense>>, ExpensesDataGridProps>(({ initialExpenses, isLocked, onCellChange }, ref) => {
+  forwardRef<GridReadyEvent<DatagridData<Expense>>, ExpensesDataGridProps>(({ initialExpenses, isLocked, onCellChange, onExpensesChange }, ref) => {
     const [validationErrors, setValidationErrors] = useState<Map<number, ValidationError[]>>(new Map());
     const [dialogOpen, setDialogOpen] = useState(false);
     const gridEventRef = useRef<GridReadyEvent<DatagridData<Expense>> | null>(null);
+
+    const reportExpenses = useCallback(
+      (api: GridReadyEvent<DatagridData<Expense>>["api"]) => {
+        if (!onExpensesChange) return;
+        let total = 0;
+        let receiptTotal = 0;
+        api.forEachNode((node) => {
+          if (node.data) {
+            total += node.data.amount || 0;
+            if (!node.data.isSupplierPayment) {
+              receiptTotal += node.data.amount || 0;
+            }
+          }
+        });
+        onExpensesChange(total, receiptTotal);
+      },
+      [onExpensesChange]
+    );
 
     const handlePaymentConfirm = useCallback(
       (expense: Expense) => {
         if (gridEventRef.current) {
           gridEventRef.current.api.applyTransaction({ add: [expense as DatagridData<Expense>] });
+          reportExpenses(gridEventRef.current.api);
         }
         setDialogOpen(false);
         onCellChange?.();
       },
-      [onCellChange]
+      [onCellChange, reportExpenses]
     );
 
     // Usa i dati iniziali passati come prop
@@ -99,8 +119,9 @@ const ExpensesDataGrid = memo(
           }
         }
         onCellChange?.();
+        reportExpenses(event.api);
       },
-      [onCellChange]
+      [onCellChange, reportExpenses]
     );
 
     const handleGridReady = useCallback(
@@ -109,8 +130,9 @@ const ExpensesDataGrid = memo(
         if (ref && typeof ref !== "function") {
           (ref as React.MutableRefObject<GridReadyEvent<DatagridData<Expense>> | null>).current = event;
         }
+        reportExpenses(event.api);
       },
-      [ref]
+      [ref, reportExpenses]
     );
 
     const getNewExpense = useCallback(
@@ -124,19 +146,21 @@ const ExpensesDataGrid = memo(
     const handleAddRow = useCallback(() => {
       if (gridEventRef.current) {
         gridEventRef.current.api.applyTransaction({ add: [{ description: "", amount: 0 } as DatagridData<Expense>] });
+        reportExpenses(gridEventRef.current.api);
       }
       onCellChange?.();
-    }, [onCellChange]);
+    }, [onCellChange, reportExpenses]);
 
     const handleDeleteSelected = useCallback(() => {
       if (gridEventRef.current) {
         const selected = gridEventRef.current.api.getSelectedRows();
         if (selected.length > 0) {
           gridEventRef.current.api.applyTransaction({ remove: selected });
+          reportExpenses(gridEventRef.current.api);
           onCellChange?.();
         }
       }
-    }, [onCellChange]);
+    }, [onCellChange, reportExpenses]);
 
     const toolbarActions = useMemo<OverflowAction[]>(
       () => [

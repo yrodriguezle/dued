@@ -1,220 +1,100 @@
 import { useMemo } from "react";
-import { Box, Typography, useTheme } from "@mui/material";
-import Datagrid from "../../common/datagrid/Datagrid";
-import { DatagridColDef, DatagridData } from "../../common/datagrid/@types/Datagrid";
-import { GridReadyEvent } from "ag-grid-community";
+import { Box, Paper, Typography } from "@mui/material";
 import formatCurrency from "../../../common/bones/formatCurrency";
-import { CashCountRowData } from "./useCashCountData";
-import { Income, Expense } from "./RegistroCassaDetails";
-
-interface IncomeRow extends Record<string, unknown> {
-  type: string;
-  amount: number;
-}
-
-interface ExpenseRow extends Record<string, unknown> {
-  description: string;
-  amount: number;
-}
 
 interface SummaryDataGridProps {
-  openingGridRef: React.RefObject<GridReadyEvent<DatagridData<CashCountRowData>> | null>;
-  closingGridRef: React.RefObject<GridReadyEvent<DatagridData<CashCountRowData>> | null>;
-  incomesGridRef: React.RefObject<GridReadyEvent<DatagridData<IncomeRow>> | null>;
-  expensesGridRef: React.RefObject<GridReadyEvent<DatagridData<ExpenseRow>> | null>;
-  openingRowData: CashCountRowData[];
-  closingRowData: CashCountRowData[];
-  initialIncomes: Income[];
-  initialExpenses: Expense[];
-  refreshKey: number;
+  summaryData: SummaryData;
 }
 
-interface SummaryRowData extends Record<string, unknown> {
-  id: number;
+interface KPICardProps {
   label: string;
   value: number;
-  bgColor?: string;
-  textColor?: string;
+  highlight?: boolean;
+  negative?: boolean;
 }
 
-function calculateCashCountTotal(
-  gridRef: React.RefObject<GridReadyEvent<DatagridData<CashCountRowData>> | null>,
-  fallbackData: CashCountRowData[]
-): number {
-  if (gridRef.current) {
-    let nodeCount = 0;
-    let total = 0;
-    gridRef.current.api.forEachNode((node) => {
-      if (node.data && !node.rowPinned) {
-        nodeCount++;
-        total += node.data.total;
-      }
-    });
-    if (nodeCount > 0) return total;
-  }
-  // Fallback: calcola dai dati props quando la griglia non è ancora pronta
-  return fallbackData.reduce((sum, row) => sum + row.total, 0);
-}
-
-function SummaryDataGrid({
-  openingGridRef,
-  closingGridRef,
-  incomesGridRef,
-  expensesGridRef,
-  openingRowData,
-  closingRowData,
-  initialIncomes,
-  initialExpenses,
-  refreshKey,
-}: SummaryDataGridProps) {
-  const theme = useTheme();
-
-  // refreshKey forces recalculation when grids change
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const openingTotal = useMemo(() => calculateCashCountTotal(openingGridRef, openingRowData), [openingGridRef, openingRowData, refreshKey]);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const closingTotal = useMemo(() => calculateCashCountTotal(closingGridRef, closingRowData), [closingGridRef, closingRowData, refreshKey]);
-
-  const dailyIncome = closingTotal - openingTotal;
-
-  // Leggi i dati dalle griglie incomes/expenses, con fallback ai dati props
-   
-  const incomes = useMemo(() => {
-    const gridData = incomesGridRef.current?.context?.getGridData();
-    return gridData?.length ? gridData : initialIncomes;
-  }, [incomesGridRef, initialIncomes]);
-   
-  const expenses = useMemo(() => {
-    const gridData = expensesGridRef.current?.context?.getGridData();
-    return gridData?.length ? gridData : initialExpenses;
-  }, [expensesGridRef, initialExpenses]);
-
-  const cashInWhite = (incomes as IncomeRow[]).find((i) => i.type === "Pago in contanti")?.amount || 0;
-  const electronicPayments = (incomes as IncomeRow[]).find((i) => i.type === "Pagamenti Elettronici")?.amount || 0;
-  const invoicePayments = (incomes as IncomeRow[]).find((i) => i.type === "Pagamento con Fattura")?.amount || 0;
-
-  // Totale Vendite = (Totale Cassa - Apertura) + Elettronico
-  const totalSales = dailyIncome + electronicPayments;
-
-  // ECC = Totale Vendite - Pago in contanti - Elettronico
-  const ecc = totalSales - cashInWhite - electronicPayments;
-
-  // Calcola le spese
-  const totalExpenses = (expenses as ExpenseRow[]).reduce((sum, expense) => sum + (expense.amount || 0), 0);
-
-  // Calcoli
-  const vatAmount = totalSales * 0.1; // 10% IVA (configurabile)
-
-  const rowData = useMemo<SummaryRowData[]>(() => {
-    let id = 0;
-    return [
-      { id: id++, label: "Totale Cassa", value: closingTotal },
-      { id: id++, label: "(-) Apertura", value: -openingTotal },
-      { id: id++, label: "Totale (-) Apertura", value: dailyIncome },
-      {
-        id: id++,
-        label: "Pago in contanti",
-        value: cashInWhite,
-        bgColor: theme.palette.success.light,
-        textColor: theme.palette.success.contrastText,
-      },
-      {
-        id: id++,
-        label: "Elettronico",
-        value: electronicPayments,
-        bgColor: theme.palette.success.light,
-        textColor: theme.palette.success.contrastText,
-      },
-      { id: id++, label: "Pagamento con Fattura", value: invoicePayments },
-      {
-        id: id++,
-        label: "Totale Vendite",
-        value: totalSales,
-        bgColor: theme.palette.warning.light,
-        textColor: theme.palette.warning.contrastText,
-      },
-      {
-        id: id++,
-        label: "Spese Totali",
-        value: totalExpenses,
-        bgColor: theme.palette.error.light,
-        textColor: theme.palette.error.contrastText,
-      },
-      { id: id++, label: "ECC", value: ecc },
-      { id: id++, label: "IVA (10%)", value: vatAmount },
-    ];
-  }, [
-    closingTotal,
-    openingTotal,
-    dailyIncome,
-    cashInWhite,
-    electronicPayments,
-    invoicePayments,
-    totalSales,
-    totalExpenses,
-    ecc,
-    vatAmount,
-    theme.palette.success.light,
-    theme.palette.success.contrastText,
-    theme.palette.warning.light,
-    theme.palette.warning.contrastText,
-    theme.palette.error.light,
-    theme.palette.error.contrastText,
-  ]);
-
-  const columnDefs = useMemo<DatagridColDef<SummaryRowData>[]>(
-    () => [
-      {
-        headerName: "Descrizione",
-        field: "label",
-        flex: 2,
-        editable: false,
-        cellStyle: (params) => {
-          const data = params.data as SummaryRowData;
-          const style: Record<string, string> = {};
-          if (data.bgColor) style.backgroundColor = data.bgColor;
-          if (data.textColor) style.color = data.textColor;
-          return style;
-        },
-      },
-      {
-        headerName: "Importo",
-        field: "value",
-        flex: 1,
-        editable: false,
-        cellStyle: (params) => {
-          const data = params.data as SummaryRowData;
-          const style: Record<string, string> = {
-            textAlign: "right",
-          };
-          if (data.bgColor) style.backgroundColor = data.bgColor;
-          if (data.textColor) style.color = data.textColor;
-          return style;
-        },
-        valueFormatter: (params) => {
-          const value = params.value;
-          const data = params.data as SummaryRowData;
-          const prefix = value >= 0 && !data.label.includes("(-)") ? "+" : "";
-          return `${prefix}${formatCurrency(value)}`;
-        },
-      },
-    ],
-    []
+function KPICard({ label, value, highlight, negative }: KPICardProps) {
+  return (
+    <Paper
+      variant="outlined"
+      sx={{
+        p: 1,
+        textAlign: "center",
+        flex: "1 1 auto",
+        minWidth: "100px",
+        ...(highlight && { borderColor: "#ffab40", borderWidth: 2 }),
+      }}
+    >
+      <Typography variant="caption" color="text.secondary" display="block" noWrap>
+        {label}
+      </Typography>
+      <Typography
+        variant="h6"
+        fontWeight="bold"
+        color={negative ? "error.main" : "text.primary"}
+        noWrap
+      >
+        {formatCurrency(value)}
+      </Typography>
+    </Paper>
   );
+}
+
+export function SummaryDataGrid({ summaryData }: SummaryDataGridProps) {
+  const { openingTotal, closingTotal, incomes, expensesTotalAmount, receiptExpensesAmount } = summaryData;
+
+  const {
+    dailyMovement,
+    cashIncome,
+    electronicIncome,
+    totalSales,
+    resto,
+    ecc,
+    restoFinale,
+  } = useMemo(() => {
+    // Y: Totale (-) Apertura = Chiusura - Apertura
+    const movement = closingTotal - openingTotal;
+
+    // Z: Pagato Contanti
+    const cash = incomes.find((i) => i.type === "Pago in contanti")?.amount ?? 0;
+
+    // AA: Elettronico
+    const electronic = incomes.find((i) => i.type === "Pagamenti Elettronici")?.amount ?? 0;
+
+    // AB: Totale Vendite = Movimento + Elettronico
+    const sales = movement + electronic;
+
+    // AD: Resto = Contanti - Spese totali
+    const restoValue = cash - expensesTotalAmount;
+
+    // AE: ECC = Movimento - Contanti
+    const eccValue = movement - cash;
+
+    // AG: Resto finale = ECC - NC ecc (spese scontrino)
+    const restoFinaleValue = eccValue - receiptExpensesAmount;
+
+    return {
+      dailyMovement: movement,
+      cashIncome: cash,
+      electronicIncome: electronic,
+      totalSales: sales,
+      resto: restoValue,
+      ecc: eccValue,
+      restoFinale: restoFinaleValue,
+    };
+  }, [closingTotal, openingTotal, incomes, expensesTotalAmount, receiptExpensesAmount]);
 
   return (
-    <Box>
-      <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold", mb: 0 }}>
-        RIEPILOGO VENDITE
-      </Typography>
-      <Datagrid
-        height="400px"
-        items={rowData}
-        columnDefs={columnDefs}
-        presentation
-        suppressRowHoverHighlight={false}
-        defaultColDef={{ sortable: false, suppressMovable: true, resizable: true, minWidth: 50 }}
-      />
+    <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+      <KPICard label="Totale (-) Apertura" value={dailyMovement} />
+      <KPICard label="Pagato Contanti" value={cashIncome} />
+      <KPICard label="Elett" value={electronicIncome} />
+      <KPICard label="Totale Vendite" value={totalSales} highlight />
+      <KPICard label="Fornitori / Spese gg" value={expensesTotalAmount} negative />
+      <KPICard label="Resto" value={resto} />
+      <KPICard label="ECC" value={ecc} />
+      <KPICard label="NC ecc" value={receiptExpensesAmount} />
+      <KPICard label="Resto" value={restoFinale} highlight />
     </Box>
   );
 }

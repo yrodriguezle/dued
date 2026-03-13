@@ -10,10 +10,11 @@ interface IncomesDataGridProps {
   initialIncomes: Income[];
   isLocked: boolean;
   onCellChange?: () => void;
+  onIncomesChange?: (incomes: IncomeEntry[]) => void;
 }
 
 const IncomesDataGrid = memo(
-  forwardRef<GridReadyEvent<DatagridData<Income>>, IncomesDataGridProps>(({ initialIncomes, isLocked, onCellChange }, ref) => {
+  forwardRef<GridReadyEvent<DatagridData<Income>>, IncomesDataGridProps>(({ initialIncomes, isLocked, onCellChange, onIncomesChange }, ref) => {
     // Usa i dati iniziali passati come prop
     const items = useMemo(() => {
       return initialIncomes || [];
@@ -47,6 +48,20 @@ const IncomesDataGrid = memo(
       [isLocked]
     );
 
+    const reportIncomes = useCallback(
+      (api: GridReadyEvent<DatagridData<Income>>["api"]) => {
+        if (!onIncomesChange) return;
+        const entries: IncomeEntry[] = [];
+        api.forEachNode((node) => {
+          if (node.data) {
+            entries.push({ type: node.data.type, amount: node.data.amount });
+          }
+        });
+        onIncomesChange(entries);
+      },
+      [onIncomesChange]
+    );
+
     const handleCellValueChanged = useCallback(
       (event: DatagridCellValueChangedEvent<Income>) => {
         const newAmount = parseFloat(event.newValue) || 0;
@@ -54,8 +69,9 @@ const IncomesDataGrid = memo(
           event.data.amount = newAmount;
         }
         onCellChange?.();
+        reportIncomes(event.api);
       },
-      [onCellChange]
+      [onCellChange, reportIncomes]
     );
 
     const handleGridReady = useCallback(
@@ -63,8 +79,9 @@ const IncomesDataGrid = memo(
         if (ref && typeof ref !== "function") {
           (ref as React.MutableRefObject<GridReadyEvent<DatagridData<Income>> | null>).current = event;
         }
+        reportIncomes(event.api);
       },
-      [ref]
+      [ref, reportIncomes]
     );
 
     return (

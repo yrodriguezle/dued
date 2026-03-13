@@ -31,7 +31,11 @@ interface CashRegisterFormDataGridProps {
   initialExpenses: Expense[];
   onCellChange: () => void;
   onCopyFromPrevious?: () => void;
-  refreshKey: number;
+  summaryData: SummaryData;
+  onOpeningTotalChange: (total: number) => void;
+  onClosingTotalChange: (total: number) => void;
+  onIncomesChange: (incomes: IncomeEntry[]) => void;
+  onExpensesChange: (totalAmount: number, receiptAmount: number) => void;
 }
 
 const CashRegisterFormDataGrid: React.FC<CashRegisterFormDataGridProps> = ({
@@ -45,7 +49,11 @@ const CashRegisterFormDataGrid: React.FC<CashRegisterFormDataGridProps> = ({
   initialExpenses,
   onCellChange,
   onCopyFromPrevious,
-  refreshKey,
+  summaryData,
+  onOpeningTotalChange,
+  onClosingTotalChange,
+  onIncomesChange,
+  onExpensesChange,
 }) => {
   const formik = useFormikContext<FormikCashRegisterValues>();
   const isLocked = formik.status?.isFormLocked || false;
@@ -55,33 +63,23 @@ const CashRegisterFormDataGrid: React.FC<CashRegisterFormDataGridProps> = ({
       <div className="grid grid-cols-12 gap-2 sm:gap-5 md:gap-6">
         {/* Apertura Cassa */}
         <div className="col-span-12 lg:col-span-6">
-          <CashCountDataGrid ref={openingGridRef} rowData={openingRowData} title="APERTURA CASSA" isLocked={isLocked} onCellChange={onCellChange} onCopyFromPrevious={onCopyFromPrevious} />
+          <CashCountDataGrid ref={openingGridRef} rowData={openingRowData} title="APERTURA CASSA" isLocked={isLocked} onCellChange={onCellChange} onCopyFromPrevious={onCopyFromPrevious} onTotalChange={onOpeningTotalChange} />
         </div>
 
         <div className="col-span-12 lg:col-span-6">
-          <CashCountDataGrid ref={closingGridRef} rowData={closingRowData} title="CHIUSURA CASSA" isLocked={isLocked} onCellChange={onCellChange} />
+          <CashCountDataGrid ref={closingGridRef} rowData={closingRowData} title="CHIUSURA CASSA" isLocked={isLocked} onCellChange={onCellChange} onTotalChange={onClosingTotalChange} />
         </div>
 
         <div className="col-span-12 md:col-span-6">
-          <IncomesDataGrid ref={incomesGridRef} initialIncomes={initialIncomes} isLocked={isLocked} onCellChange={onCellChange} />
+          <IncomesDataGrid ref={incomesGridRef} initialIncomes={initialIncomes} isLocked={isLocked} onCellChange={onCellChange} onIncomesChange={onIncomesChange} />
         </div>
 
         <div className="col-span-12 md:col-span-6">
-          <ExpensesDataGrid ref={expensesGridRef} initialExpenses={initialExpenses} isLocked={isLocked} onCellChange={onCellChange} />
+          <ExpensesDataGrid ref={expensesGridRef} initialExpenses={initialExpenses} isLocked={isLocked} onCellChange={onCellChange} onExpensesChange={onExpensesChange} />
         </div>
 
-        <div className="col-span-12 md:col-span-6">
-          <SummaryDataGrid
-            openingGridRef={openingGridRef}
-            closingGridRef={closingGridRef}
-            incomesGridRef={incomesGridRef}
-            expensesGridRef={expensesGridRef}
-            openingRowData={openingRowData}
-            closingRowData={closingRowData}
-            initialIncomes={initialIncomes}
-            initialExpenses={initialExpenses}
-            refreshKey={refreshKey}
-          />
+        <div className="col-span-12">
+          <SummaryDataGrid summaryData={summaryData} />
         </div>
 
         <div className="col-span-12">
