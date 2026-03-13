@@ -157,7 +157,7 @@ function UserList() {
   return (
     <>
       <ListToolbar hideNewButton={false} hideDeleteButton={false} disabledDelete={selectedRows.length === 0} onNew={handleNew} onDelete={handleDelete} />
-      <Box className="scrollable-box" sx={{ marginTop: 1, paddingX: 2, overflow: "auto", height: "calc(100vh - 64px - 48px)" }}>
+      <Box className="scrollable-box" sx={{ marginTop: 1, paddingX: 2, overflow: "auto", height: "calc(100dvh - 64px - 48px)" }}>
         <Typography id="view-title" variant="h5" gutterBottom>
           Lista utenti
         </Typography>

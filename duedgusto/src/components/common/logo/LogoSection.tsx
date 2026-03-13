@@ -18,6 +18,7 @@ function LogoSection(props: TypographyProps) {
           marginLeft: 1,
           fontFamily: "BrunoAce Regular",
           color: (theme) => (theme.palette.mode === "light" ? theme.palette.secondary.light : theme.palette.primary.light),
+          display: { xs: "none", md: "block" },
         }}
         {...props}
       >

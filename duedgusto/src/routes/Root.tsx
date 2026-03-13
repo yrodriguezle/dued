@@ -27,7 +27,7 @@ function Root() {
       <PageTitleContext.Provider value={pageTitleContextValue}>
         <ThemeProvider theme={theme(userTheme.theme)}>
           <CssBaseline />
-          <GlobalStyles styles={{ html: { height: "100%", overflow: "hidden" }, body: { height: "100%", overflow: "hidden" } }} />
+          <GlobalStyles styles={{ html: { height: "100dvh", overflow: "hidden" }, body: { height: "100dvh", overflow: "hidden" } }} />
           <Outlet />
           <ToastContainer theme={userTheme.theme} />
           <Confirm />

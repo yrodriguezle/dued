@@ -13,14 +13,14 @@ function Layout() {
   const { drawerOpen, drawerSwipeable, mobileDrawerOpen, toggleDrawer, setMobileDrawerOpen, onCloseSwipeable, onListItemClick } = useSideBar();
 
   return (
-    <Box sx={{ height: "100vh", overflow: "hidden" }}>
+    <Box sx={{ height: "100dvh", overflow: "hidden" }}>
       <HeaderBar drawerOpen={drawerOpen} setHeaderHeight={setHeaderHeight} toggleDrawer={toggleDrawer} />
       <Box
         sx={{
           display: "flex",
           marginTop: `${headerHeight}px`,
           transition: "margin 0.3s",
-          height: `calc(100vh - ${headerHeight}px)`,
+          height: `calc(100dvh - ${headerHeight}px)`,
           overflow: "hidden",
         }}
       >

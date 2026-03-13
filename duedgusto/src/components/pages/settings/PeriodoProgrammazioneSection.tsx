@@ -116,7 +116,7 @@ function PeriodoProgrammazioneSection({ periodi }: PeriodoProgrammazioneSectionP
       open: true,
       mode: "crea",
       dataInizio: dayjs().format("YYYY-MM-DD"),
-      giorniOperativi: [...defaultGiorniOperativi],
+      giorniOperativi: periodoAttivo ? [...periodoAttivo.giorniOperativi] : [...defaultGiorniOperativi],
       orarioApertura: periodoAttivo?.orarioApertura ?? "09:00",
       orarioChiusura: periodoAttivo?.orarioChiusura ?? "18:00",
     });
@@ -197,6 +197,8 @@ function PeriodoProgrammazioneSection({ periodi }: PeriodoProgrammazioneSectionP
   );
 
   const isLoading = creando || aggiornando || eliminando;
+
+  const nessunaGiornoSelezionato = dialogState.giorniOperativi.every((g) => !g);
 
   return (
     <Paper variant="outlined" sx={{ p: 2.5 }}>
@@ -324,6 +326,11 @@ function PeriodoProgrammazioneSection({ periodi }: PeriodoProgrammazioneSectionP
                   />
                 ))}
               </Box>
+              {nessunaGiornoSelezionato && (
+                <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
+                  Seleziona almeno un giorno di apertura
+                </Typography>
+              )}
             </Box>
           </Box>
         </DialogContent>
@@ -331,7 +338,7 @@ function PeriodoProgrammazioneSection({ periodi }: PeriodoProgrammazioneSectionP
           <Button onClick={handleChiudiDialog} disabled={isLoading}>
             Annulla
           </Button>
-          <Button variant="contained" onClick={handleSubmitDialog} disabled={isLoading}>
+          <Button variant="contained" onClick={handleSubmitDialog} disabled={isLoading || nessunaGiornoSelezionato}>
             {dialogState.mode === "crea" ? "Crea" : "Salva"}
           </Button>
         </DialogActions>

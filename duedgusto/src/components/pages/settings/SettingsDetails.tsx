@@ -137,7 +137,7 @@ function SettingsDetails() {
 
   if (loading) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100dvh" }}>
         <CircularProgress />
       </Box>
     );
@@ -166,7 +166,7 @@ function SettingsDetails() {
   return (
     <Formik innerRef={formRef} initialValues={initialValues} enableReinitialize validate={validate} onSubmit={handleSubmit} initialStatus={{ formStatus: formStatuses.UPDATE, isFormLocked: true }}>
       {() => (
-        <Form style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 48px)" }}>
+        <Form style={{ display: "flex", flexDirection: "column", height: "calc(100dvh - 48px)" }}>
           <FormikToolbar
             onFormReset={handleResetForm}
             hideNewButton={true}

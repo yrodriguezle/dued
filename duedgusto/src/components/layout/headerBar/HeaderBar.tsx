@@ -34,11 +34,11 @@ function HeaderBar({ drawerOpen, setHeaderHeight, toggleDrawer }: HeaderBarProps
         zIndex: (theme) => theme.zIndex.drawer + 1,
       }}
     >
-      <Toolbar disableGutters variant="dense">
+      <Toolbar disableGutters variant="dense" sx={{ minWidth: 0 }}>
         <DrawerMenuButton drawerOpen={drawerOpen} toggleDrawer={toggleDrawer} />
         <LogoSection variant="h6" />
         <HeaderViewTitle />
-        <Box sx={{ marginLeft: "auto" }}>
+        <Box sx={{ marginLeft: "auto", flexShrink: 0 }}>
           <ThemeMenuButton />
           <ProfileMenuButton />
         </Box>

@@ -420,7 +420,7 @@ const MonthlyClosureDetails = () => {
   const totaleVendite = (chiusuraMensile.totaleContantiCalcolato ?? 0) + (chiusuraMensile.totaleElettroniciCalcolato ?? 0);
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", height: "calc(100vh - 64px)" }}>
+    <Box sx={{ display: "flex", flexDirection: "column", height: "calc(100dvh - 64px)" }}>
       {/* Toolbar */}
       <Box sx={{ borderBottom: 1, borderColor: "divider", bgcolor: "background.paper", flexShrink: 0 }}>
         <Toolbar variant="dense" disableGutters sx={{ minHeight: 48, height: 48, display: "flex", justifyContent: "space-between" }}>

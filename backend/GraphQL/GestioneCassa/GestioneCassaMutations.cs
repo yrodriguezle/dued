@@ -36,10 +36,37 @@ public class GestioneCassaMutations : ObjectGraphType
 
                 // Guard: verifica che la data sia un giorno operativo
                 var settings = await dbContext.BusinessSettings.FirstAsync();
-                var operatingDays = JsonSerializer.Deserialize<bool[]>(settings.OperatingDays)!;
                 // Mappa DayOfWeek (.NET: 0=Sunday) a indice array (0=Monday)
                 int operatingDayIndex = ((int)input.Data.DayOfWeek + 6) % 7;
-                if (!operatingDays[operatingDayIndex])
+                var dataOnly = DateOnly.FromDateTime(input.Data);
+
+                // Controlla prima i periodi di programmazione
+                var periodi = await dbContext.PeriodiProgrammazione.ToListAsync();
+                bool isOperatingDay;
+
+                if (periodi.Count > 0)
+                {
+                    var periodo = periodi.FirstOrDefault(p =>
+                        p.DataInizio <= dataOnly && (p.DataFine == null || p.DataFine >= dataOnly));
+
+                    if (periodo == null)
+                    {
+                        var nomeGiorno = input.Data.ToString("dddd", new System.Globalization.CultureInfo("it-IT"));
+                        throw new ExecutionError(
+                            $"Impossibile creare un registro cassa: nessun periodo di programmazione copre la data ({nomeGiorno} {input.Data:dd/MM/yyyy}).");
+                    }
+
+                    var giorniPeriodo = JsonSerializer.Deserialize<bool[]>(periodo.GiorniOperativi)!;
+                    isOperatingDay = giorniPeriodo[operatingDayIndex];
+                }
+                else
+                {
+                    // Fallback alle impostazioni globali se non ci sono periodi
+                    var operatingDays = JsonSerializer.Deserialize<bool[]>(settings.OperatingDays)!;
+                    isOperatingDay = operatingDays[operatingDayIndex];
+                }
+
+                if (!isOperatingDay)
                 {
                     var nomeGiorno = input.Data.ToString("dddd", new System.Globalization.CultureInfo("it-IT"));
                     throw new ExecutionError(

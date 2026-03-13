@@ -209,7 +209,7 @@ function RoleDetails() {
       {() => (
         <Form noValidate>
           <FormikToolbar onFormReset={handleResetForm} onDelete={handleDelete} />
-          <Box className="scrollable-box" sx={{ marginTop: 1, paddingX: 2, overflow: "auto", height: "calc(100vh - 64px - 41px)" }}>
+          <Box className="scrollable-box" sx={{ marginTop: 1, paddingX: 2, overflow: "auto", height: "calc(100dvh - 64px - 41px)" }}>
             <Typography id="view-title" variant="h5" gutterBottom>
               {title}
             </Typography>
