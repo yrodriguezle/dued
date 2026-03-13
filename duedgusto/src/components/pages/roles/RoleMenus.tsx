@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFormikContext } from "formik";
 import { Box, Chip, Paper, Typography } from "@mui/material";
-import { GridApi, GridReadyEvent, RowSelectedEvent } from "ag-grid-community";
+import { GridApi, GridReadyEvent } from "ag-grid-community";
 import Datagrid from "../../common/datagrid/Datagrid";
 import { MenuNonNull } from "../../common/form/searchbox/searchboxOptions/menuSearchboxOptions";
 import { DatagridColDef, DatagridData } from "../../common/datagrid/@types/Datagrid";
@@ -91,7 +91,7 @@ function RoleMenus({ menus, onGridReady, selectedIds }: RoleMenusProps) {
   );
 
   const handleRowSelected = useCallback(
-    (_event: RowSelectedEvent<DatagridData<MenuNonNull>>) => {
+    () => {
       updateSelectedCount();
     },
     [updateSelectedCount]

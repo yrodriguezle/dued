@@ -130,8 +130,8 @@ function RoleDetails() {
       await deleteRuolo(selectedRuolo.id);
       showToast({ type: "success", position: "bottom-right", message: "Ruolo eliminato con successo", autoClose: 2000, toastId: "success" });
       await handleResetForm(false);
-    } catch (error: any) {
-      showToast({ type: "error", position: "bottom-right", message: error?.message || "Errore durante l'eliminazione", toastId: "error" });
+    } catch (error: unknown) {
+      showToast({ type: "error", position: "bottom-right", message: error instanceof Error ? error.message : "Errore durante l'eliminazione", toastId: "error" });
     }
   }, [onConfirm, selectedRuolo, deleteRuolo, handleResetForm]);
 

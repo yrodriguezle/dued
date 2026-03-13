@@ -66,14 +66,17 @@ class BroadcastChannelMock {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   addEventListener(_type: string, _listener: EventListener) {
     // Implementazione minima per i test
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   removeEventListener(_type: string, _listener: EventListener) {
     // Implementazione minima per i test
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   dispatchEvent(_event: Event): boolean {
     return true;
   }
