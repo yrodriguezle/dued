@@ -19,6 +19,6 @@ public class CreateSaleInputType : InputObjectGraphType<CreateSaleInput>
         Field(x => x.ProductId);
         Field(x => x.Quantity);
         Field(x => x.Notes, nullable: true);
-        Field(x => x.Timestamp, nullable: true, type: typeof(DateTimeGraphType));
+        Field(x => x.Timestamp, type: typeof(DateTimeGraphType));
     }
 }

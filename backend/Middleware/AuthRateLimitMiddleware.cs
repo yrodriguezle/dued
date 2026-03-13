@@ -53,7 +53,7 @@ public class AuthRateLimitMiddleware
                     path);
 
                 context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-                context.Response.Headers.Add("Retry-After", (limits.WindowMinutes * 60).ToString());
+                context.Response.Headers.Append("Retry-After", (limits.WindowMinutes * 60).ToString());
 
                 await context.Response.WriteAsJsonAsync(new
                 {

@@ -81,7 +81,7 @@ public class SettingsMutations : ObjectGraphType
                     await dbContext.SaveChangesAsync();
                     return settings;
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
                     throw;
                 }

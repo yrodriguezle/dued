@@ -216,9 +216,9 @@ public class ConnectionQueries : ObjectGraphType
                     query =>
                     {
                         return query
-                            .Include(p => p.Fattura)
+                            .Include(p => p.Fattura!)
                                 .ThenInclude(f => f.Fornitore)
-                            .Include(p => p.Ddt)
+                            .Include(p => p.Ddt!)
                                 .ThenInclude(d => d.Fornitore)
                             .Include(p => p.SpeseMensili);
                     });
@@ -274,11 +274,11 @@ public class ConnectionQueries : ObjectGraphType
                     {
                         return query
                             .Include(e => e.Chiusura)
-                            .Include(e => e.Pagamento)
-                                .ThenInclude(p => p.Fattura)
+                            .Include(e => e.Pagamento!)
+                                .ThenInclude(p => p.Fattura!)
                                     .ThenInclude(f => f.Fornitore)
-                            .Include(e => e.Pagamento)
-                                .ThenInclude(p => p.Ddt)
+                            .Include(e => e.Pagamento!)
+                                .ThenInclude(p => p.Ddt!)
                                     .ThenInclude(d => d.Fornitore);
                     });
                 return connection;

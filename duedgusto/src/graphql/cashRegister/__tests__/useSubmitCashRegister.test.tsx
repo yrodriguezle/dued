@@ -3,6 +3,7 @@ import { MockedProvider, MockedResponse } from "@apollo/client/testing";
 import { ReactNode } from "react";
 import useSubmitCashRegister from "../useSubmitCashRegister";
 import { mutationSubmitRegistroCassa, SubmitRegistroCassaValues } from "../mutations";
+import { getRegistroCassa } from "../queries";
 
 const createWrapper = (mocks: MockedResponse[]) =>
   ({ children }: { children: ReactNode }) => (
@@ -69,6 +70,21 @@ const mockResultData = {
   pagamentiFornitori: [],
 };
 
+const createRefetchMock = (): MockedResponse => ({
+  request: {
+    query: getRegistroCassa,
+    variables: { data: "2026-03-12" },
+  },
+  result: {
+    data: {
+      cashManagement: {
+        __typename: "CashManagementQueries",
+        registroCassa: mockResultData,
+      },
+    },
+  },
+});
+
 describe("useSubmitCashRegister", () => {
   it("dovrebbe chiamare la mutation e restituire il risultato", async () => {
     const mock: MockedResponse = {
@@ -84,7 +100,7 @@ describe("useSubmitCashRegister", () => {
       },
     };
 
-    const wrapper = createWrapper([mock]);
+    const wrapper = createWrapper([mock, createRefetchMock()]);
 
     const { result } = renderHook(() => useSubmitCashRegister(), { wrapper });
 
@@ -122,7 +138,7 @@ describe("useSubmitCashRegister", () => {
       },
     };
 
-    const wrapper = createWrapper([mock]);
+    const wrapper = createWrapper([mock, createRefetchMock()]);
 
     const { result } = renderHook(() => useSubmitCashRegister(), { wrapper });
 
