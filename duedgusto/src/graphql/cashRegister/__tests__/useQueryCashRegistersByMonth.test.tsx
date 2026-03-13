@@ -9,10 +9,51 @@ const createWrapper = (mocks: MockedResponse[]) =>
     <MockedProvider mocks={mocks}>{children}</MockedProvider>
   );
 
+const makeMockRegistro = (overrides: Record<string, unknown>) => ({
+  __typename: "RegistroCassa",
+  id: 1,
+  utenteId: 1,
+  totaleApertura: 100,
+  totaleChiusura: 500,
+  venditeContanti: 300,
+  incassoContanteTracciato: 200,
+  incassiElettronici: 150,
+  incassiFattura: 50,
+  totaleVendite: 400,
+  speseFornitori: 30,
+  speseGiornaliere: 20,
+  contanteAtteso: 350,
+  differenza: 0,
+  contanteNetto: 350,
+  importoIva: 80,
+  note: null,
+  stato: "DRAFT",
+  creatoIl: "2026-03-01T08:00:00Z",
+  aggiornatoIl: "2026-03-01T08:00:00Z",
+  utente: {
+    __typename: "Utente",
+    id: 1,
+    nomeUtente: "admin",
+    nome: "Admin",
+    cognome: "User",
+    descrizione: "",
+    disabilitato: false,
+    ruoloId: 1,
+    ruolo: { __typename: "Ruolo", id: 1, nome: "Admin", descrizione: "", menuIds: [] },
+    menus: [],
+  },
+  conteggiApertura: [],
+  conteggiChiusura: [],
+  incassi: [],
+  spese: [],
+  pagamentiFornitori: [],
+  ...overrides,
+});
+
 const mockRegistriCassa = [
-  { __typename: "RegistroCassa", id: 1, data: "2026-03-01T00:00:00.000Z" },
-  { __typename: "RegistroCassa", id: 2, data: "2026-03-15T00:00:00.000Z" },
-  { __typename: "RegistroCassa", id: 3, data: "2026-03-31T00:00:00.000Z" },
+  makeMockRegistro({ id: 1, data: "2026-03-01T00:00:00.000Z" }),
+  makeMockRegistro({ id: 2, data: "2026-03-15T00:00:00.000Z" }),
+  makeMockRegistro({ id: 3, data: "2026-03-31T00:00:00.000Z" }),
 ];
 
 const createConnectionMock = (
