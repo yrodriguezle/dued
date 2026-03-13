@@ -24,6 +24,7 @@ export const RouterTestWrapper = ({ initialEntries = ["/"], children }: RouterTe
  * Factory per creare un wrapper MemoryRouter come componente wrapper
  * compatibile con renderHook di @testing-library/react.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export const createRouterWrapper =
   (initialEntries: string[] = ["/"]) =>
   ({ children }: { children: ReactNode }) => (

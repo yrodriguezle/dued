@@ -3,6 +3,7 @@ import { MockedProvider, MockedResponse } from "@apollo/client/testing";
 import { ReactNode } from "react";
 import useCloseCashRegister from "../useCloseCashRegister";
 import { mutationChiudiRegistroCassa } from "../mutations";
+import { describe, expect, it } from "vitest";
 
 const createWrapper = (mocks: MockedResponse[]) =>
   ({ children }: { children: ReactNode }) => (

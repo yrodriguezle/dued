@@ -106,10 +106,12 @@ function useBootstrap() {
               const rawPeriodi = settingsData?.settings?.periodiProgrammazione;
               if (Array.isArray(rawPeriodi)) {
                 const periodi: PeriodoProgrammazione[] = rawPeriodi.map(
-                  (p: { periodoId: number; dataInizio: string; dataFine: string | null; giorniOperativi: unknown; settingsId?: number; creatoIl?: string; aggiornatoIl?: string }) => ({
+                  (p: { periodoId: number; dataInizio: string; dataFine: string | null; giorniOperativi: unknown; orarioApertura?: string; orarioChiusura?: string; settingsId?: number; creatoIl?: string; aggiornatoIl?: string }) => ({
                     ...p,
                     settingsId: p.settingsId ?? 0,
                     giorniOperativi: parseOperatingDays(p.giorniOperativi),
+                    orarioApertura: p.orarioApertura ?? "09:00",
+                    orarioChiusura: p.orarioChiusura ?? "18:00",
                   }),
                 );
                 setPeriodi(periodi);

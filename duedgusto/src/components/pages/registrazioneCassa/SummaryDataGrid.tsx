@@ -78,16 +78,16 @@ function SummaryDataGrid({
   const dailyIncome = closingTotal - openingTotal;
 
   // Leggi i dati dalle griglie incomes/expenses, con fallback ai dati props
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   const incomes = useMemo(() => {
     const gridData = incomesGridRef.current?.context?.getGridData();
     return gridData?.length ? gridData : initialIncomes;
-  }, [incomesGridRef, initialIncomes, refreshKey]);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [incomesGridRef, initialIncomes]);
+   
   const expenses = useMemo(() => {
     const gridData = expensesGridRef.current?.context?.getGridData();
     return gridData?.length ? gridData : initialExpenses;
-  }, [expensesGridRef, initialExpenses, refreshKey]);
+  }, [expensesGridRef, initialExpenses]);
 
   const cashInWhite = (incomes as IncomeRow[]).find((i) => i.type === "Pago in contanti")?.amount || 0;
   const electronicPayments = (incomes as IncomeRow[]).find((i) => i.type === "Pagamenti Elettronici")?.amount || 0;
