@@ -14,6 +14,7 @@ const CashRegisterDetails = React.lazy(() => import("../components/pages/registr
 function ProtectedRoutes() {
   const utente = useStore((store) => store.utente);
   const inProgressGlobal = useStore((store) => store.inProgress.global);
+  const settingsLoaded = useStore((store) => store.settingsLoaded);
   const getNextOperatingDate = useStore((store) => store.getNextOperatingDate);
   const menuRoutes = useMemo(() => utente?.menus || [], [utente?.menus]);
 
@@ -21,8 +22,8 @@ function ProtectedRoutes() {
     return <Navigate to={"/signin"} replace />;
   }
 
-  // Wait for utente data to load before rendering routes
-  if (inProgressGlobal || !utente) {
+  // Wait for utente data and settings to load before rendering routes
+  if (inProgressGlobal || !utente || !settingsLoaded) {
     return <Fallback />;
   }
 

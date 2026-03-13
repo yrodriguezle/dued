@@ -1,6 +1,6 @@
-import { Paper, Typography, Box, FormControlLabel, Checkbox, MenuItem } from "@mui/material";
-import { useFormikContext } from "formik";
+import { Paper, Typography, Box, MenuItem } from "@mui/material";
 import FormikTextField from "../../common/form/FormikTextField";
+import PeriodoProgrammazioneSection from "./PeriodoProgrammazioneSection";
 
 const TIMEZONES = [
   { value: "Europe/Rome", label: "Roma (CEST/CET)" },
@@ -19,25 +19,11 @@ const CURRENCIES = [
   { value: "GBP", label: "GBP (\u00A3)" },
 ];
 
-const DAYS_OF_WEEK = [
-  { index: 0, name: "Lunedì" },
-  { index: 1, name: "Martedì" },
-  { index: 2, name: "Mercoledì" },
-  { index: 3, name: "Giovedì" },
-  { index: 4, name: "Venerdì" },
-  { index: 5, name: "Sabato" },
-  { index: 6, name: "Domenica" },
-];
+interface BusinessSettingsFormProps {
+  periodi: PeriodoProgrammazione[];
+}
 
-function BusinessSettingsForm() {
-  const { values, errors, touched, setFieldValue, setFieldTouched, status } = useFormikContext<BusinessSettings>();
-  const isLocked = status?.isFormLocked;
-
-  const handleDayChange = (index: number, checked: boolean) => {
-    setFieldValue(`operatingDays.${index}`, checked);
-    setFieldTouched("operatingDays", true);
-  };
-
+function BusinessSettingsForm({ periodi }: BusinessSettingsFormProps) {
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
       {/* Sezione: Attività */}
@@ -82,38 +68,11 @@ function BusinessSettingsForm() {
               ))}
             </FormikTextField>
           </div>
-
-          {/* Giorni operativi */}
-          <div className="col-span-12">
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              Giorni di apertura
-            </Typography>
-            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-              {DAYS_OF_WEEK.map(({ index, name }) => (
-                <FormControlLabel
-                  key={index}
-                  control={
-                    <Checkbox
-                      checked={values.operatingDays[index] || false}
-                      onChange={(e) => handleDayChange(index, e.target.checked)}
-                      name={`operatingDays.${index}`}
-                      disabled={isLocked}
-                      size="small"
-                    />
-                  }
-                  label={name}
-                  sx={{ mr: 2 }}
-                />
-              ))}
-            </Box>
-            {errors.operatingDays && touched.operatingDays && (
-              <Typography color="error" variant="caption">
-                {typeof errors.operatingDays === "string" ? errors.operatingDays : ""}
-              </Typography>
-            )}
-          </div>
         </div>
       </Paper>
+
+      {/* Sezione: Periodi di apertura */}
+      <PeriodoProgrammazioneSection periodi={periodi} />
 
       {/* Sezione: Impostazioni Fiscali */}
       <Paper variant="outlined" sx={{ p: 2.5 }}>

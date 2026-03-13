@@ -358,9 +358,12 @@ public class ChiusuraMensileService
             );
         }
 
-        // Carica i giorni operativi
+        // Carica i periodi di programmazione e i giorni operativi globali come fallback
+        var periodi = await _dbContext.PeriodiProgrammazione
+            .OrderBy(p => p.DataInizio)
+            .ToListAsync();
         var settings = await _dbContext.BusinessSettings.FirstAsync();
-        var operatingDays = JsonSerializer.Deserialize<bool[]>(settings.OperatingDays)!;
+        var operatingDaysGlobali = JsonSerializer.Deserialize<bool[]>(settings.OperatingDays)!;
 
         var primoGiorno = new DateTime(chiusura.Anno, chiusura.Mese, 1);
         var ultimoGiorno = primoGiorno.AddMonths(1).AddDays(-1);
@@ -377,9 +380,35 @@ public class ChiusuraMensileService
                 );
             }
 
-            // Deve essere un giorno operativo
+            // Determina i giorni operativi per questa data (per-periodo o fallback globale)
             int operatingDayIndex = ((int)data.DayOfWeek + 6) % 7;
-            if (!operatingDays[operatingDayIndex])
+            bool isOperativo;
+
+            if (periodi.Count > 0)
+            {
+                var dataOnly = DateOnly.FromDateTime(data);
+                var periodo = periodi.FirstOrDefault(p =>
+                    p.DataInizio <= dataOnly &&
+                    (p.DataFine == null || p.DataFine >= dataOnly));
+
+                if (periodo == null)
+                {
+                    isOperativo = false;
+                }
+                else
+                {
+                    var operatingDaysPeriodo = JsonSerializer.Deserialize<bool[]>(periodo.GiorniOperativi);
+                    isOperativo = operatingDaysPeriodo != null && operatingDaysPeriodo.Length == 7
+                        && operatingDaysPeriodo[operatingDayIndex];
+                }
+            }
+            else
+            {
+                isOperativo = operatingDaysGlobali[operatingDayIndex];
+            }
+
+            // Deve essere un giorno operativo
+            if (!isOperativo)
             {
                 throw new InvalidOperationException(
                     $"La data {data:dd/MM/yyyy} non è un giorno operativo"
@@ -411,6 +440,8 @@ public class ChiusuraMensileService
     /// <summary>
     /// Valida la completezza dei registri cassa per un mese specifico.
     /// Utile per pre-validare prima di creare una chiusura.
+    /// Utilizza i periodi di programmazione per determinare i giorni operativi
+    /// di ciascun giorno del mese, gestendo anche mesi a cavallo tra due periodi.
     /// </summary>
     /// <param name="anno">Anno da validare</param>
     /// <param name="mese">Mese da validare (1-12)</param>
@@ -425,11 +456,23 @@ public class ChiusuraMensileService
             .Where(r => r.Stato == "CLOSED" || r.Stato == "RECONCILED")
             .ToListAsync();
 
-        // Carica i giorni operativi da BusinessSettings per filtrare solo i giorni lavorativi
-        var settings = await _dbContext.BusinessSettings.FirstAsync();
-        var operatingDays = JsonSerializer.Deserialize<bool[]>(settings.OperatingDays)!;
+        // Carica i periodi di programmazione per determinare i giorni operativi per-periodo
+        var periodi = await _dbContext.PeriodiProgrammazione
+            .OrderBy(p => p.DataInizio)
+            .ToListAsync();
 
-        return ElencoGiorniMancanti(registriMese, primoGiorno, ultimoGiorno, operatingDays);
+        if (periodi.Count > 0)
+        {
+            // Usa i periodi di programmazione per determinare i giorni operativi per ogni giorno
+            return ElencoGiorniMancantiPerPeriodo(registriMese, primoGiorno, ultimoGiorno, periodi);
+        }
+        else
+        {
+            // Fallback: usa il campo globale OperatingDays di BusinessSettings
+            var settings = await _dbContext.BusinessSettings.FirstAsync();
+            var operatingDays = JsonSerializer.Deserialize<bool[]>(settings.OperatingDays)!;
+            return ElencoGiorniMancanti(registriMese, primoGiorno, ultimoGiorno, operatingDays);
+        }
     }
 
     /// <summary>
@@ -493,6 +536,64 @@ public class ChiusuraMensileService
             int operatingDayIndex = ((int)data.DayOfWeek + 6) % 7;
 
             // Salta i giorni non operativi (es. sabato/domenica se chiusi)
+            if (!operatingDays[operatingDayIndex])
+                continue;
+
+            if (!giorniPresenti.Contains(data.Date))
+            {
+                giorniMancanti.Add(data);
+            }
+        }
+
+        return giorniMancanti;
+    }
+
+    /// <summary>
+    /// Calcola l'elenco dei giorni mancanti usando i periodi di programmazione.
+    /// Per ogni giorno del mese, trova quale periodo lo copre (DataInizio &lt;= giorno
+    /// AND (DataFine &gt;= giorno OR DataFine = null)) e usa i GiorniOperativi di quel periodo.
+    /// Gestisce correttamente mesi a cavallo tra due periodi.
+    /// </summary>
+    private List<DateTime> ElencoGiorniMancantiPerPeriodo(
+        List<RegistroCassa> registri,
+        DateTime primoGiorno,
+        DateTime ultimoGiorno,
+        List<PeriodoProgrammazione> periodi)
+    {
+        var giorniPresenti = registri.Select(r => r.Data.Date).ToHashSet();
+        var giorniMancanti = new List<DateTime>();
+
+        for (var data = primoGiorno; data <= ultimoGiorno; data = data.AddDays(1))
+        {
+            var dataOnly = DateOnly.FromDateTime(data);
+
+            // Trova il periodo che copre questa data
+            var periodo = periodi.FirstOrDefault(p =>
+                p.DataInizio <= dataOnly &&
+                (p.DataFine == null || p.DataFine >= dataOnly));
+
+            // Se nessun periodo copre questa data, la consideriamo non operativa
+            if (periodo == null)
+                continue;
+
+            // Parse giorniOperativi del periodo
+            bool[]? operatingDays;
+            try
+            {
+                operatingDays = JsonSerializer.Deserialize<bool[]>(periodo.GiorniOperativi);
+            }
+            catch
+            {
+                continue; // Se il JSON non è valido, salta il giorno
+            }
+
+            if (operatingDays == null || operatingDays.Length != 7)
+                continue;
+
+            // Mappa DayOfWeek (.NET: 0=Sunday) a indice array operatingDays (0=Monday)
+            int operatingDayIndex = ((int)data.DayOfWeek + 6) % 7;
+
+            // Salta i giorni non operativi secondo questo periodo
             if (!operatingDays[operatingDayIndex])
                 continue;
 

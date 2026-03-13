@@ -55,4 +55,9 @@ public class BusinessSettings
     /// Data dell'ultimo aggiornamento
     /// </summary>
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// Periodi di programmazione associati a questa configurazione
+    /// </summary>
+    public List<PeriodoProgrammazione> Periodi { get; set; } = new();
 }

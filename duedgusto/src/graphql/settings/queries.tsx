@@ -15,6 +15,12 @@ export const GET_BUSINESS_SETTINGS = gql`
         updatedAt
         createdAt
       }
+      periodiProgrammazione {
+        periodoId
+        dataInizio
+        dataFine
+        giorniOperativi
+      }
     }
   }
 `;

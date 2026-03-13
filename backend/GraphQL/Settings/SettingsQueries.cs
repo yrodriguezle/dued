@@ -23,5 +23,24 @@ public class SettingsQueries : ObjectGraphType
                 return await dbContext.BusinessSettings
                     .FirstOrDefaultAsync();
             });
+
+        // Get all programming periods ordered by DataInizio DESC
+        Field<ListGraphType<NonNullGraphType<PeriodoProgrammazioneType>>, List<PeriodoProgrammazione>>("periodiProgrammazione")
+            .ResolveAsync(async context =>
+            {
+                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                return await dbContext.PeriodiProgrammazione
+                    .OrderByDescending(p => p.DataInizio)
+                    .ToListAsync();
+            });
+
+        // Get active period (DataFine = null)
+        Field<PeriodoProgrammazioneType, PeriodoProgrammazione>("periodoAttivo")
+            .ResolveAsync(async context =>
+            {
+                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                return await dbContext.PeriodiProgrammazione
+                    .FirstOrDefaultAsync(p => p.DataFine == null);
+            });
     }
 }

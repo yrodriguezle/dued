@@ -4,6 +4,7 @@ import { GET_BUSINESS_SETTINGS } from "./queries";
 
 interface UseGetBusinessSettingsResult {
   settings: BusinessSettings | undefined;
+  periodi: PeriodoProgrammazione[];
   loading: boolean;
   error: Error | undefined;
   refetch: () => Promise<unknown>;
@@ -27,8 +28,19 @@ export function useGetBusinessSettings(skip = false): UseGetBusinessSettingsResu
     } as BusinessSettings;
   }, [data?.settings?.businessSettings]);
 
+  const periodi = useMemo(() => {
+    const rawPeriodi = data?.settings?.periodiProgrammazione;
+    if (!rawPeriodi || !Array.isArray(rawPeriodi)) return [];
+
+    return rawPeriodi.map((p: { periodoId: number; dataInizio: string; dataFine: string | null; giorniOperativi: string | boolean[] }) => ({
+      ...p,
+      giorniOperativi: typeof p.giorniOperativi === "string" ? JSON.parse(p.giorniOperativi) : p.giorniOperativi,
+    })) as PeriodoProgrammazione[];
+  }, [data?.settings?.periodiProgrammazione]);
+
   return {
     settings,
+    periodi,
     loading,
     error,
     refetch,

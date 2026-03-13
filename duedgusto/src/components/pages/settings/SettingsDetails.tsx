@@ -36,7 +36,7 @@ const validationSchema = z.object({
 
 function SettingsDetails() {
   const { setTitle } = useContext(PageTitleContext);
-  const { settings, loading, error } = useGetBusinessSettings();
+  const { settings, periodi, loading, error } = useGetBusinessSettings();
   const formRef = useRef<FormikProps<BusinessSettings>>(null);
   const { initialValues, handleInitializeValues } = useInitializeValues({ skipInitialize: false });
   const onConfirm = useConfirm();
@@ -179,7 +179,7 @@ function SettingsDetails() {
           />
           <Box sx={{ flex: 1, overflow: "auto", minHeight: 0, px: 2, py: 2 }}>
             <Box sx={{ maxWidth: 720 }}>
-              <BusinessSettingsForm />
+              <BusinessSettingsForm periodi={periodi} />
             </Box>
           </Box>
         </Form>

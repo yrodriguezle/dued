@@ -14,6 +14,12 @@ const weekDayMap: Record<number, number> = {
 interface BusinessSettingsStoreState {
   settings: BusinessSettings | null;
   setSettings: (settings: BusinessSettings) => void;
+  settingsLoaded: boolean;
+  setSettingsLoaded: (loaded: boolean) => void;
+  settingsError: string | null;
+  setSettingsError: (error: string | null) => void;
+  periodi: PeriodoProgrammazione[];
+  setPeriodi: (periodi: PeriodoProgrammazione[]) => void;
   isOpen: (date: Date) => boolean;
   isOpenNow: () => boolean;
   getNextOperatingDate: (from?: Date) => Date;
@@ -25,26 +31,52 @@ interface BusinessSettingsStoreState {
 function businessSettingsStore(set: any, get: () => Store): BusinessSettingsStoreState {
   return {
     settings: null,
+    settingsLoaded: false,
+    settingsError: null,
+    periodi: [],
 
     setSettings: (settings: BusinessSettings) => {
       set((state: Store) => ({ ...state, settings }));
     },
 
+    setSettingsLoaded: (loaded: boolean) => {
+      set((state: Store) => ({ ...state, settingsLoaded: loaded }));
+    },
+
+    setSettingsError: (error: string | null) => {
+      set((state: Store) => ({ ...state, settingsError: error }));
+    },
+
+    setPeriodi: (periodi: PeriodoProgrammazione[]) => {
+      set((state: Store) => ({ ...state, periodi }));
+    },
+
     isOpen: (date: Date): boolean => {
       const state = get();
       const settings = state.settings as BusinessSettings | null;
-      if (!settings) return true; // Se no settings, assume aperto
+      if (!settings) return false; // Se no settings, assume chiuso
 
       const dayOfWeek = date.getDay(); // 0=domenica, 6=sabato
       const operatingDayIndex = weekDayMap[dayOfWeek];
 
+      // Se ci sono periodi di programmazione, cerca quello che copre la data
+      if (state.periodi.length > 0) {
+        const dateStr = dayjs(date).format("YYYY-MM-DD");
+        const periodo = state.periodi.find(
+          (p) => p.dataInizio <= dateStr && (p.dataFine === null || p.dataFine >= dateStr),
+        );
+        if (!periodo) return false; // Nessun periodo copre la data
+        return periodo.giorniOperativi[operatingDayIndex] === true;
+      }
+
+      // Fallback: usa operatingDays globale se non ci sono periodi
       return settings.operatingDays[operatingDayIndex] === true;
     },
 
     isOpenNow: (): boolean => {
       const state = get();
       const settings = state.settings as BusinessSettings | null;
-      if (!settings) return true;
+      if (!settings) return false;
 
       const now = dayjs();
       const dayOfWeek = now.day();

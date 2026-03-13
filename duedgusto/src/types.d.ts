@@ -78,6 +78,12 @@ interface Store {
   // businessSettings
   settings: BusinessSettings | null;
   setSettings: (settings: BusinessSettings) => void;
+  settingsLoaded: boolean;
+  setSettingsLoaded: (loaded: boolean) => void;
+  settingsError: string | null;
+  setSettingsError: (error: string | null) => void;
+  periodi: PeriodoProgrammazione[];
+  setPeriodi: (periodi: PeriodoProgrammazione[]) => void;
   isOpen: (date: Date) => boolean;
   isOpenNow: () => boolean;
   getNextOperatingDate: (from?: Date) => Date;

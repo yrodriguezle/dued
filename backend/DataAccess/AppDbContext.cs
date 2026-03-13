@@ -29,6 +29,7 @@ public class AppDbContext : DbContext
 
     // Business Settings
     public DbSet<BusinessSettings> BusinessSettings { get; set; }
+    public DbSet<PeriodoProgrammazione> PeriodiProgrammazione { get; set; }
 
     // Supplier Management
     public DbSet<Fornitore> Fornitori { get; set; }
@@ -419,6 +420,47 @@ public class AppDbContext : DbContext
             entity.Property(x => x.UpdatedAt)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+        });
+
+        // Periodo Programmazione Configuration
+        modelBuilder.Entity<PeriodoProgrammazione>(entity =>
+        {
+            entity
+                .ToTable("PeriodiProgrammazione")
+                .HasCharSet("utf8mb4")
+                .UseCollation("utf8mb4_unicode_ci")
+                .HasKey(x => x.PeriodoId);
+
+            entity.Property(x => x.PeriodoId)
+                .ValueGeneratedOnAdd();
+
+            entity.Property(x => x.DataInizio)
+                .HasColumnType("date")
+                .IsRequired();
+
+            entity.Property(x => x.DataFine)
+                .HasColumnType("date");
+
+            entity.Property(x => x.GiorniOperativi)
+                .HasColumnType("json")
+                .IsRequired()
+                .HasDefaultValue("[true,true,true,true,true,false,false]");
+
+            entity.Property(x => x.CreatoIl)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.Property(x => x.AggiornatoIl)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+
+            entity.HasOne(x => x.Settings)
+                .WithMany(s => s.Periodi)
+                .HasForeignKey(x => x.SettingsId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Indice su SettingsId + DataInizio per ricerca periodo per data
+            entity.HasIndex(x => new { x.SettingsId, x.DataInizio });
         });
 
         // Sale Configuration (Vendita)

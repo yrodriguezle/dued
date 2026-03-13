@@ -20,3 +20,13 @@ type BusinessSettingsInput = {
   currency: string;
   vatRate: number;
 };
+
+type PeriodoProgrammazione = {
+  periodoId: number;
+  dataInizio: string; // "YYYY-MM-DD"
+  dataFine: string | null; // "YYYY-MM-DD" o null (periodo attivo)
+  giorniOperativi: boolean[];
+  settingsId: number;
+  creatoIl?: string;
+  aggiornatoIl?: string;
+};
