@@ -29,8 +29,8 @@ namespace duedgusto.Migrations
             migrationBuilder.Sql(@"
                 UPDATE PeriodiProgrammazione pp
                 JOIN BusinessSettings bs ON pp.SettingsId = bs.SettingsId
-                SET pp.OrarioApertura = STR_TO_DATE(bs.OpeningTime, '%H:%i'),
-                    pp.OrarioChiusura = STR_TO_DATE(bs.ClosingTime, '%H:%i')
+                SET pp.OrarioApertura = CAST(CONCAT(bs.OpeningTime, ':00') AS TIME),
+                    pp.OrarioChiusura = CAST(CONCAT(bs.ClosingTime, ':00') AS TIME)
             ");
         }
 

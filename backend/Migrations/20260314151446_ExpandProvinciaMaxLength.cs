@@ -10,20 +10,17 @@ namespace duedgusto.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AlterColumn<string>(
-                name: "Provincia",
-                table: "Fornitori",
-                type: "varchar(100)",
-                maxLength: 100,
-                nullable: true,
-                collation: "utf8mb4_unicode_ci",
-                oldClrType: typeof(string),
-                oldType: "varchar(2)",
-                oldMaxLength: 2,
-                oldNullable: true)
-                .Annotation("MySql:CharSet", "utf8mb4")
-                .OldAnnotation("MySql:CharSet", "utf8mb4")
-                .OldAnnotation("Relational:Collation", "utf8mb4_unicode_ci");
+            // La colonna potrebbe non esistere se il DB è stato creato senza di essa
+            migrationBuilder.Sql(@"
+                SET @col_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Fornitori' AND COLUMN_NAME = 'Provincia');
+                SET @sql = IF(@col_exists > 0,
+                    'ALTER TABLE `Fornitori` MODIFY COLUMN `Provincia` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL',
+                    'ALTER TABLE `Fornitori` ADD COLUMN `Provincia` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL');
+                PREPARE stmt FROM @sql;
+                EXECUTE stmt;
+                DEALLOCATE PREPARE stmt;
+            ");
         }
 
         /// <inheritdoc />
