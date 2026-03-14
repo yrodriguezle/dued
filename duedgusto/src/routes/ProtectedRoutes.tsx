@@ -10,6 +10,7 @@ const HomePage = React.lazy(() => import("../components/pages/dashboard/HomePage
 const MonthlyClosureDetails = React.lazy(() => import("../components/pages/registrazioneCassa/MonthlyClosureDetails.tsx"));
 const CashRegisterMonthlyPage = React.lazy(() => import("../components/pages/registrazioneCassa/CashRegisterMonthlyPage.tsx"));
 const CashRegisterDetails = React.lazy(() => import("../components/pages/registrazioneCassa/RegistroCassaDetails.tsx"));
+const ProfilePage = React.lazy(() => import("../components/pages/profile/ProfilePage.tsx"));
 
 function ProtectedRoutes() {
   const utente = useStore((store) => store.utente);
@@ -87,6 +88,14 @@ function ProtectedRoutes() {
           element={
             <Suspense fallback={<Fallback />}>
               <CashRegisterDetails />
+            </Suspense>
+          }
+        />
+        <Route
+          path="profilo"
+          element={
+            <Suspense fallback={<Fallback />}>
+              <ProfilePage />
             </Suspense>
           }
         />

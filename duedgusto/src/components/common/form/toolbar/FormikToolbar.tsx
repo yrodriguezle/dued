@@ -7,8 +7,9 @@ import AddIcon from "@mui/icons-material/Add";
 import FormikToolbarButton from "./FormikToolbarButton";
 import { useFormikContext } from "formik";
 import { formStatuses } from "../../../../common/globals/constants";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import type { ReactNode } from "react";
+import useStore from "../../../../store/useStore";
 
 interface FormikToolbarProps {
   permissions?: {
@@ -50,6 +51,12 @@ function FormikToolbar({
   const formikProps = useFormikContext();
   const { insertDenied, updateDenied, deleteDenied } = permissions || {};
   const { isSubmitting, status, dirty } = formikProps;
+  const setFormDirty = useStore((state) => state.setFormDirty);
+
+  useEffect(() => {
+    setFormDirty(dirty);
+    return () => setFormDirty(false);
+  }, [dirty, setFormDirty]);
 
   const disableUnlock = useMemo(() => updateDenied || status.formStatus === formStatuses.INSERT || disabledUnlockButton, [disabledUnlockButton, status.formStatus, updateDenied]);
   const disableSave = useMemo(

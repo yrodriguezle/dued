@@ -1,15 +1,17 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { IconButton, ListItemIcon, Menu, MenuItem, Tooltip, Typography } from "@mui/material";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import useSignOut from "../../../common/authentication/useSignOut";
 import LogoutIcon from "@mui/icons-material/Logout";
 import Persona from "./Persona";
 import useStore from "../../../store/useStore";
+import { useNavigate } from "react-router";
 
 function ProfileMenuButton() {
   const utente = useStore((store) => store.utente);
   const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
   const signOut = useSignOut();
+  const navigate = useNavigate();
 
   const handleOpenUserMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorElUser(event.currentTarget);
@@ -18,6 +20,11 @@ function ProfileMenuButton() {
   const handleCloseUserMenu = () => {
     setAnchorElUser(null);
   };
+
+  const handleNavigateToProfile = useCallback(() => {
+    handleCloseUserMenu();
+    navigate("/gestionale/profilo");
+  }, [navigate]);
 
   return (
     <>
@@ -48,11 +55,11 @@ function ProfileMenuButton() {
         open={Boolean(anchorElUser)}
         onClose={handleCloseUserMenu}
       >
-        <MenuItem onClick={handleCloseUserMenu}>
+        <MenuItem onClick={handleNavigateToProfile}>
           <ListItemIcon>
             <AccountCircleIcon fontSize="small" />
           </ListItemIcon>
-          <Typography sx={{ textAlign: "center" }}>Profile</Typography>
+          <Typography sx={{ textAlign: "center" }}>Profilo</Typography>
         </MenuItem>
         <MenuItem onClick={signOut}>
           <ListItemIcon>

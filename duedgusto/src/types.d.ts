@@ -75,6 +75,9 @@ interface Store {
   // serverStatus
   serverStatus: ServerStatus;
   receiveServerStatus: (serverStatus: ServerStatus) => void;
+  // formDirty
+  isFormDirty: boolean;
+  setFormDirty: (dirty: boolean) => void;
   // businessSettings
   settings: BusinessSettings | null;
   setSettings: (settings: BusinessSettings) => void;

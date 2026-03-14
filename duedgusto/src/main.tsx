@@ -1,6 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter } from "react-router";
+import { RouterProvider } from "react-router";
 import { ApolloProvider } from "@apollo/client";
 
 import "./tailwind.css";
@@ -11,7 +11,7 @@ import "@fontsource/roboto/500.css";
 import "@fontsource/roboto/700.css";
 import "react-toastify/dist/ReactToastify.css";
 
-import App from "./App";
+import router from "./routes/appRouter";
 import fetchConfiguration from "./api/fetchConfiguration";
 import configureClient from "./graphql/configureClient";
 import "./assets/css/app.css";
@@ -47,11 +47,9 @@ import "./assets/css/app.css";
 
   createRoot(document.getElementById("root")!).render(
     <StrictMode>
-      <BrowserRouter>
-        <ApolloProvider client={client}>
-          <App />
-        </ApolloProvider>
-      </BrowserRouter>
+      <ApolloProvider client={client}>
+        <RouterProvider router={router} />
+      </ApolloProvider>
     </StrictMode>
   );
 })();

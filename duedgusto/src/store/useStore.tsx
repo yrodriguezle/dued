@@ -4,6 +4,7 @@ import inProgressStore from "./inProgressStore";
 import themeStore from "./themeStore";
 import confirmDialogStore from "./confirmDialogStore";
 import serverStatusStore from "./serverStatusStore";
+import formDirtyStore from "./formDirtyStore";
 import businessSettingsStore from "./businessSettingsStore";
 
 const useStore = create<Store>((set, get) => ({
@@ -12,6 +13,7 @@ const useStore = create<Store>((set, get) => ({
   ...themeStore(set),
   ...confirmDialogStore(set),
   ...serverStatusStore(set),
+  ...formDirtyStore(set),
   ...businessSettingsStore(set, get),
 }));
 
