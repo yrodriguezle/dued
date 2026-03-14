@@ -29,7 +29,7 @@ namespace duedgusto.Models
         [MaxLength(10)]
         public string? Cap { get; set; }
 
-        [MaxLength(2)]
+        [MaxLength(100)]
         public string? Provincia { get; set; }
 
         [MaxLength(2)]

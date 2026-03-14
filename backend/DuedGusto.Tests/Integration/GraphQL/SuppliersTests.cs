@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+using System.Reflection;
 using DuedGusto.Tests.Helpers;
 
 namespace DuedGusto.Tests.Integration.GraphQL;
@@ -214,6 +216,43 @@ public class SuppliersTests : IDisposable
         // Assert
         fornitore.Attivo.Should().BeTrue();
         fornitore.Paese.Should().Be("IT");
+    }
+
+    #endregion
+
+    #region Provincia MaxLength
+
+    [Fact]
+    public void Provincia_MaxLength_ShouldAcceptFullProvinceNames()
+    {
+        // Arrange — verify the MaxLength attribute allows full province names
+        var maxLengthAttr = typeof(Fornitore)
+            .GetProperty(nameof(Fornitore.Provincia))!
+            .GetCustomAttribute<MaxLengthAttribute>();
+
+        // Assert — must be at least 50 to hold names like "Verbano-Cusio-Ossola"
+        maxLengthAttr.Should().NotBeNull();
+        maxLengthAttr!.Length.Should().BeGreaterThanOrEqualTo(50);
+    }
+
+    [Fact]
+    public async Task CreateSupplier_WithLongProvince_PersistsToDatabase()
+    {
+        // Arrange & Act — use a full province name instead of just a 2-char code
+        var fornitore = new Fornitore
+        {
+            RagioneSociale = "Fornitore Piemonte SRL",
+            Provincia = "Verbano-Cusio-Ossola",
+            Paese = "IT"
+        };
+        _dbContext.Fornitori.Add(fornitore);
+        await _dbContext.SaveChangesAsync();
+
+        // Assert
+        var persisted = await _dbContext.Fornitori
+            .FirstOrDefaultAsync(f => f.FornitoreId == fornitore.FornitoreId);
+        persisted.Should().NotBeNull();
+        persisted!.Provincia.Should().Be("Verbano-Cusio-Ossola");
     }
 
     #endregion
