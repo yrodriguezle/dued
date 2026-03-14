@@ -10,6 +10,7 @@ import inProgressStore from "../../store/inProgressStore";
 import themeStore from "../../store/themeStore";
 import confirmDialogStore from "../../store/confirmDialogStore";
 import serverStatusStore from "../../store/serverStatusStore";
+import formDirtyStore from "../../store/formDirtyStore";
 import businessSettingsStore from "../../store/businessSettingsStore";
 
 /**
@@ -24,6 +25,7 @@ export const createTestStore = (overrides?: Partial<Store>) => {
     ...themeStore(set),
     ...confirmDialogStore(set),
     ...serverStatusStore(set),
+    ...formDirtyStore(set),
     ...businessSettingsStore(set, get),
     ...overrides,
   }));
