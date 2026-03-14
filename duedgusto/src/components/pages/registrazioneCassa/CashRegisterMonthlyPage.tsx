@@ -69,32 +69,34 @@ function CashRegisterMonthlyPage() {
     setTitle("Cassa - Vista Mensile");
   }, [setTitle]);
 
-  // Metriche mensili calcolate dai registri
+  // Metriche mensili — stesse formule del riepilogo giornaliero (SummaryDataGrid)
   const monthlyStats = useMemo(() => {
-    const totals = cashRegisters.reduce(
+    return cashRegisters.reduce(
       (acc, cr: RegistroCassa) => {
-        const revenue = (cr.totaleChiusura || 0) + (cr.incassiFattura || 0) - (cr.totaleApertura || 0) - (cr.speseFornitori || 0) - (cr.speseGiornaliere || 0);
+        const movimento = (cr.totaleChiusura || 0) - (cr.totaleApertura || 0);
+        const contantiDichiarati = cr.incassi?.find((i: IncassoCassa) => i.tipo === "Pago in contanti")?.importo ?? 0;
+        const elettronici = cr.incassi?.find((i: IncassoCassa) => i.tipo === "Pagamenti Elettronici")?.importo ?? 0;
+        const fatture = cr.incassi?.find((i: IncassoCassa) => i.tipo === "Pagamento con Fattura")?.importo ?? 0;
         return {
-          ricavo: acc.ricavo + revenue,
-          contanti: acc.contanti + (cr.incassoContanteTracciato || 0),
-          elettronici: acc.elettronici + (cr.incassiElettronici || 0),
-          fatture: acc.fatture + (cr.incassiFattura || 0),
+          contanti: acc.contanti + contantiDichiarati,
+          elettronici: acc.elettronici + elettronici,
+          totaleVendite: acc.totaleVendite + movimento + elettronici,
+          fatture: acc.fatture + fatture,
+          spese: acc.spese + (cr.speseFornitori || 0) + (cr.speseGiornaliere || 0),
           registri: acc.registri + 1,
           chiusi: acc.chiusi + (cr.stato === "CLOSED" || cr.stato === "RECONCILED" ? 1 : 0),
-          riconciliati: acc.riconciliati + (cr.stato === "RECONCILED" ? 1 : 0),
           bozze: acc.bozze + (cr.stato === "DRAFT" ? 1 : 0),
         };
       },
-      { ricavo: 0, contanti: 0, elettronici: 0, fatture: 0, registri: 0, chiusi: 0, riconciliati: 0, bozze: 0 }
+      { totaleVendite: 0, contanti: 0, elettronici: 0, fatture: 0, spese: 0, registri: 0, chiusi: 0, bozze: 0 }
     );
-    return totals;
   }, [cashRegisters]);
 
   // Eventi per il calendario
   const events = useMemo<CashEvent[]>(() => {
     return cashRegisters.map((cr: RegistroCassa, index: number) => {
       const date = new Date(cr.data);
-      const revenue = (cr.totaleChiusura || 0) + (cr.incassiFattura || 0) - (cr.totaleApertura || 0) - (cr.speseFornitori || 0) - (cr.speseGiornaliere || 0);
+      const revenue = (cr.totaleChiusura || 0) - (cr.totaleApertura || 0) + (cr.incassiElettronici || 0);
 
       return {
         id: cr.id || index,
@@ -256,67 +258,148 @@ function CashRegisterMonthlyPage() {
       </Box>
 
       {/* KPI Strip */}
-      {cashRegisters.length > 0 && (
-        <Box sx={{ flexShrink: 0, borderBottom: 1, borderColor: "divider", bgcolor: "background.paper", px: { xs: 1, sm: 2 }, py: { xs: 1, sm: 1.5 } }}>
-          <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: { xs: 1.5, sm: 3 } }}>
-            <Box sx={{ minWidth: { xs: "auto", sm: 110 } }}>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ lineHeight: 1 }}
-              >
-                Contanti
-              </Typography>
-              <Typography
-                variant={isMobile ? "body1" : "h6"}
-                fontWeight="bold"
-                color="primary.main"
-                sx={{ lineHeight: 1.3 }}
-              >
-                {`\u20AC ${monthlyStats.contanti.toFixed(2)}`}
-              </Typography>
-            </Box>
-            {!isMobile && <Divider
-              orientation="vertical"
-              flexItem
+      <Box sx={{ flexShrink: 0, borderBottom: 1, borderColor: "divider", bgcolor: "background.paper", px: { xs: 1, sm: 2 }, py: { xs: 1, sm: 1.5 } }}>
+        <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: { xs: 1.5, sm: 2.5 } }}>
+          <Box sx={{ minWidth: { xs: "auto", sm: 100 } }}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ lineHeight: 1 }}
+            >
+              Totale Vendite
+            </Typography>
+            <Typography
+              variant={isMobile ? "body2" : "body1"}
+              fontWeight="bold"
+              color="primary.main"
+              sx={{ lineHeight: 1.3 }}
+            >
+              {`\u20AC ${monthlyStats.totaleVendite.toFixed(2)}`}
+            </Typography>
+          </Box>
+          {!isMobile && <Divider
+            orientation="vertical"
+            flexItem
+          />}
+          <Box sx={{ minWidth: { xs: "auto", sm: 90 } }}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ lineHeight: 1 }}
+            >
+              Contanti
+            </Typography>
+            <Typography
+              variant={isMobile ? "body2" : "body1"}
+              fontWeight="bold"
+              color="success.main"
+              sx={{ lineHeight: 1.3 }}
+            >
+              {`\u20AC ${monthlyStats.contanti.toFixed(2)}`}
+            </Typography>
+          </Box>
+          {!isMobile && <Divider
+            orientation="vertical"
+            flexItem
+          />}
+          <Box sx={{ minWidth: { xs: "auto", sm: 90 } }}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ lineHeight: 1 }}
+            >
+              Elettronici
+            </Typography>
+            <Typography
+              variant={isMobile ? "body2" : "body1"}
+              fontWeight="bold"
+              color="warning.main"
+              sx={{ lineHeight: 1.3 }}
+            >
+              {`\u20AC ${monthlyStats.elettronici.toFixed(2)}`}
+            </Typography>
+          </Box>
+          {!isMobile && <Divider
+            orientation="vertical"
+            flexItem
+          />}
+          <Box sx={{ minWidth: { xs: "auto", sm: 80 } }}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ lineHeight: 1 }}
+            >
+              Fatture
+            </Typography>
+            <Typography
+              variant={isMobile ? "body2" : "body1"}
+              fontWeight="bold"
+              sx={{ lineHeight: 1.3 }}
+            >
+              {`\u20AC ${monthlyStats.fatture.toFixed(2)}`}
+            </Typography>
+          </Box>
+          {!isMobile && <Divider
+            orientation="vertical"
+            flexItem
+          />}
+          <Box sx={{ minWidth: { xs: "auto", sm: 80 } }}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ lineHeight: 1 }}
+            >
+              Spese
+            </Typography>
+            <Typography
+              variant={isMobile ? "body2" : "body1"}
+              fontWeight="bold"
+              color="error.main"
+              sx={{ lineHeight: 1.3 }}
+            >
+              {monthlyStats.spese > 0 ? `-\u20AC ${monthlyStats.spese.toFixed(2)}` : `\u20AC 0.00`}
+            </Typography>
+          </Box>
+          {!isMobile && <Divider
+            orientation="vertical"
+            flexItem
+          />}
+          <Box sx={{ minWidth: { xs: "auto", sm: 80 } }}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ lineHeight: 1 }}
+            >
+              Netto
+            </Typography>
+            <Typography
+              variant={isMobile ? "body2" : "body1"}
+              fontWeight="bold"
+              color="primary.main"
+              sx={{ lineHeight: 1.3 }}
+            >
+              {`\u20AC ${(monthlyStats.totaleVendite - monthlyStats.spese).toFixed(2)}`}
+            </Typography>
+          </Box>
+          {!isMobile && <Divider
+            orientation="vertical"
+            flexItem
+          />}
+          <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
+            <Chip
+              label={`${monthlyStats.registri} registri`}
+              size="small"
+              variant="outlined"
+            />
+            {monthlyStats.bozze > 0 && <Chip
+              label={`${monthlyStats.bozze} bozze`}
+              size="small"
+              color="warning"
+              variant="outlined"
             />}
-            <Box sx={{ minWidth: { xs: "auto", sm: 100 } }}>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ lineHeight: 1 }}
-              >
-                Elettronici
-              </Typography>
-              <Typography
-                variant={isMobile ? "body1" : "h6"}
-                fontWeight="bold"
-                color="warning.main"
-                sx={{ lineHeight: 1.3 }}
-              >
-                {`\u20AC ${monthlyStats.elettronici.toFixed(2)}`}
-              </Typography>
-            </Box>
-            {!isMobile && <Divider
-              orientation="vertical"
-              flexItem
-            />}
-            <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
-              <Chip
-                label={`${monthlyStats.registri} registri`}
-                size="small"
-                variant="outlined"
-              />
-              {monthlyStats.bozze > 0 && <Chip
-                label={`${monthlyStats.bozze} bozze`}
-                size="small"
-                color="warning"
-                variant="outlined"
-              />}
-            </Box>
           </Box>
         </Box>
-      )}
+      </Box>
 
       {/* Calendario */}
       <Box sx={{ flex: 1, overflow: "hidden", minHeight: 0, maxWidth: 900, mx: "auto", width: "100%" }}>

@@ -34,6 +34,11 @@ const theme = (mode: PaletteMode | undefined) =>
         defaultProps: {
           size: "small",
         },
+        styleOverrides: {
+          root: {
+            lineHeight: 1,
+          },
+        },
       },
       MuiIconButton: {
         defaultProps: {

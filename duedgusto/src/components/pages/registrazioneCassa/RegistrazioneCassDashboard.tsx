@@ -240,6 +240,7 @@ function RegistrazioneCassDashboard() {
           </Button>
           <Button
             variant="outlined"
+            color="secondary"
             startIcon={<ListIcon />}
             onClick={() => navigate("/gestionale/cassa/list")}
           >
@@ -247,6 +248,7 @@ function RegistrazioneCassDashboard() {
           </Button>
           <Button
             variant="outlined"
+            color="secondary"
             startIcon={<CalendarMonthIcon />}
             onClick={() => navigate("/gestionale/cassa/monthly")}
           >
@@ -259,9 +261,9 @@ function RegistrazioneCassDashboard() {
         {/* KPI Mese Visualizzato */}
         <div className="col-span-12">
           <Typography
-            variant="h6"
+            variant="h5"
             gutterBottom
-            sx={{ mb: 2 }}
+            sx={{ mb: 0 }}
           >
             {selectedYear === currentYear
               ? `Statistiche ${MONTH_NAMES[displayMonthData.month - 1]} ${selectedYear}`
@@ -307,9 +309,8 @@ function RegistrazioneCassDashboard() {
         {/* KPI Annuali */}
         <div className="col-span-12">
           <Typography
-            variant="h6"
+            variant="h5"
             gutterBottom
-            sx={{ mt: 2, mb: 2 }}
           >
             Statistiche Anno {selectedYear}
           </Typography>
