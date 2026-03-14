@@ -391,7 +391,10 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
           additionalButtons={additionalToolbarButtons}
         />
       )}
-      <Box sx={{ flex: 1 }} className="datagrid-root">
+      <Box
+        sx={{ flex: 1 }}
+        className="datagrid-root"
+      >
         <AgGrid<DatagridData<T>>
           {...gridProps}
           rowSelection={rowSelection}

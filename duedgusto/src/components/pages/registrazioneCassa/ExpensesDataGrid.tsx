@@ -173,10 +173,18 @@ const ExpensesDataGrid = memo(
 
     return (
       <Box>
-        <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold", mb: 0 }}>
+        <Typography
+          variant="h6"
+          gutterBottom
+          sx={{ fontWeight: "bold", mb: 0 }}
+        >
           SPESE
         </Typography>
-        <SupplierPaymentDialog open={dialogOpen} onClose={() => setDialogOpen(false)} onConfirm={handlePaymentConfirm} />
+        <SupplierPaymentDialog
+          open={dialogOpen}
+          onClose={() => setDialogOpen(false)}
+          onConfirm={handlePaymentConfirm}
+        />
         <Box
           sx={{
             minWidth: 0,
@@ -207,7 +215,12 @@ const ExpensesDataGrid = memo(
         {validationErrors.size > 0 && (
           <Box sx={{ mt: 1 }}>
             {Array.from(validationErrors.entries()).map(([rowIndex, errors]) => (
-              <Typography key={rowIndex} color="error" variant="caption" display="block">
+              <Typography
+                key={rowIndex}
+                color="error"
+                variant="caption"
+                display="block"
+              >
                 Riga {rowIndex + 1}: {errors.map((e) => e.message).join(", ")}
               </Typography>
             ))}

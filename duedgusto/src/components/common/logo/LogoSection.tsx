@@ -10,7 +10,10 @@ function LogoSection(props: TypographyProps) {
 
   return (
     <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-      <Avatar alt={displayName} src={logo} />
+      <Avatar
+        alt={displayName}
+        src={logo}
+      />
       <Typography
         component="h1"
         variant="h4"

@@ -44,7 +44,10 @@ interface FormikTextFieldProps<Values> extends Omit<TextFieldProps, "onChange" |
 
 function FormikTextField<Values>({ name, onChange, onBlur, params, ...props }: FormikTextFieldProps<Values>, ref: Ref<TextFieldRef>) {
   return (
-    <FastField name={name} params={params}>
+    <FastField
+      name={name}
+      params={params}
+    >
       {({ field, form, meta }: FastFieldProps) => {
         return (
           <TextField

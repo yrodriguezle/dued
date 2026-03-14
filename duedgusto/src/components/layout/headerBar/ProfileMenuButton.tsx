@@ -22,8 +22,14 @@ function ProfileMenuButton() {
   return (
     <>
       <Tooltip title="Impostazioni">
-        <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-          <Persona alt={`${utente?.nome} ${utente?.cognome}`} text={`${utente?.nome} ${utente?.cognome}`} />
+        <IconButton
+          onClick={handleOpenUserMenu}
+          sx={{ p: 0 }}
+        >
+          <Persona
+            alt={`${utente?.nome} ${utente?.cognome}`}
+            text={`${utente?.nome} ${utente?.cognome}`}
+          />
         </IconButton>
       </Tooltip>
       <Menu

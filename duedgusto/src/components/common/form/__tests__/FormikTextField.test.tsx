@@ -9,7 +9,10 @@ describe("FormikTextField", () => {
   it("dovrebbe renderizzare con il valore iniziale di Formik", () => {
     render(
       <FormikTestWrapper initialValues={{ nome: "Mario" }}>
-        <FormikTextField name="nome" label="Nome" />
+        <FormikTextField
+          name="nome"
+          label="Nome"
+        />
       </FormikTestWrapper>
     );
 
@@ -22,7 +25,10 @@ describe("FormikTextField", () => {
 
     render(
       <FormikTestWrapper initialValues={{ nome: "" }}>
-        <FormikTextField name="nome" label="Nome" />
+        <FormikTextField
+          name="nome"
+          label="Nome"
+        />
       </FormikTestWrapper>
     );
 
@@ -40,8 +46,14 @@ describe("FormikTextField", () => {
     });
 
     render(
-      <FormikTestWrapper initialValues={{ email: "" }} validationSchema={schema}>
-        <FormikTextField name="email" label="Email" />
+      <FormikTestWrapper
+        initialValues={{ email: "" }}
+        validationSchema={schema}
+      >
+        <FormikTextField
+          name="email"
+          label="Email"
+        />
       </FormikTestWrapper>
     );
 
@@ -60,7 +72,11 @@ describe("FormikTextField", () => {
     // Since we can't easily trigger isSubmitting via wrapper, test the disabled prop passthrough
     render(
       <FormikTestWrapper initialValues={{ nome: "Test" }}>
-        <FormikTextField name="nome" label="Nome" disabled />
+        <FormikTextField
+          name="nome"
+          label="Nome"
+          disabled
+        />
       </FormikTestWrapper>
     );
 
@@ -74,7 +90,11 @@ describe("FormikTextField", () => {
 
     render(
       <FormikTestWrapper initialValues={{ nome: "" }}>
-        <FormikTextField name="nome" label="Nome" onChange={customOnChange} />
+        <FormikTextField
+          name="nome"
+          label="Nome"
+          onChange={customOnChange}
+        />
       </FormikTestWrapper>
     );
 
@@ -90,7 +110,10 @@ describe("FormikTextField", () => {
   it("dovrebbe renderizzare con la label corretta", () => {
     render(
       <FormikTestWrapper initialValues={{ indirizzo: "" }}>
-        <FormikTextField name="indirizzo" label="Indirizzo" />
+        <FormikTextField
+          name="indirizzo"
+          label="Indirizzo"
+        />
       </FormikTestWrapper>
     );
 

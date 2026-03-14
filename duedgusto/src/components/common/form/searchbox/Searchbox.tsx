@@ -158,7 +158,10 @@ function Searchbox<T extends Record<string, unknown>>({ id, name, value, orderBy
   );
 
   return (
-    <div ref={containerRef} style={{ position: "relative" }}>
+    <div
+      ref={containerRef}
+      style={{ position: "relative" }}
+    >
       <TextField
         inputRef={inputRef}
         id={searchBoxId}
@@ -179,7 +182,13 @@ function Searchbox<T extends Record<string, unknown>>({ id, name, value, orderBy
                 {loading ? (
                   <CircularProgress size={20} />
                 ) : (
-                  <IconButton tabIndex={-1} edge="end" disabled={props.disabled} onClick={handleOpenModal} onMouseDown={(e) => e.preventDefault()}>
+                  <IconButton
+                    tabIndex={-1}
+                    edge="end"
+                    disabled={props.disabled}
+                    onClick={handleOpenModal}
+                    onMouseDown={(e) => e.preventDefault()}
+                  >
                     <ExpandMoreIcon />
                   </IconButton>
                 )}
@@ -207,12 +216,22 @@ function Searchbox<T extends Record<string, unknown>>({ id, name, value, orderBy
                 textAlign: "center",
               }}
             >
-              <Typography variant="body2" color="text.secondary">
+              <Typography
+                variant="body2"
+                color="text.secondary"
+              >
                 Nessun risultato trovato
               </Typography>
             </Paper>
           ) : (
-            <ContainerGridResults<T> searchBoxId={searchBoxId} loading={loading} items={items} columnDefs={options.items} onGridReady={handleResultGridReady} onSelectedItem={handleSelectedItem} />
+            <ContainerGridResults<T>
+              searchBoxId={searchBoxId}
+              loading={loading}
+              items={items}
+              columnDefs={options.items}
+              onGridReady={handleResultGridReady}
+              onSelectedItem={handleSelectedItem}
+            />
           )}
         </>
       )}

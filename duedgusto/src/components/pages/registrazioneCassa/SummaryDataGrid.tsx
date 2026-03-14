@@ -25,7 +25,12 @@ function KPICard({ label, value, highlight, negative }: KPICardProps) {
         ...(highlight && { borderColor: "#ffab40", borderWidth: 2 }),
       }}
     >
-      <Typography variant="caption" color="text.secondary" display="block" noWrap>
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        display="block"
+        noWrap
+      >
         {label}
       </Typography>
       <Typography
@@ -86,15 +91,45 @@ export function SummaryDataGrid({ summaryData }: SummaryDataGridProps) {
 
   return (
     <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-      <KPICard label="Totale (-) Apertura" value={dailyMovement} />
-      <KPICard label="Pagato Contanti" value={cashIncome} />
-      <KPICard label="Elett" value={electronicIncome} />
-      <KPICard label="Totale Vendite" value={totalSales} highlight />
-      <KPICard label="Fornitori / Spese gg" value={expensesTotalAmount} negative />
-      <KPICard label="Resto" value={resto} />
-      <KPICard label="ECC" value={ecc} />
-      <KPICard label="NC ecc" value={receiptExpensesAmount} />
-      <KPICard label="Resto" value={restoFinale} highlight />
+      <KPICard
+        label="Totale (-) Apertura"
+        value={dailyMovement}
+      />
+      <KPICard
+        label="Pagato Contanti"
+        value={cashIncome}
+      />
+      <KPICard
+        label="Elett"
+        value={electronicIncome}
+      />
+      <KPICard
+        label="Totale Vendite"
+        value={totalSales}
+        highlight
+      />
+      <KPICard
+        label="Fornitori / Spese gg"
+        value={expensesTotalAmount}
+        negative
+      />
+      <KPICard
+        label="Resto"
+        value={resto}
+      />
+      <KPICard
+        label="ECC"
+        value={ecc}
+      />
+      <KPICard
+        label="NC ecc"
+        value={receiptExpensesAmount}
+      />
+      <KPICard
+        label="Resto"
+        value={restoFinale}
+        highlight
+      />
     </Box>
   );
 }

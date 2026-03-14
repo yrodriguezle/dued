@@ -41,12 +41,20 @@ function ListToolbar({ permissions, disabledDelete, hideNewButton, hideDeleteBut
       >
         <Box sx={{ height: 48, display: "flex", alignItems: "stretch" }}>
           {!hideNewButton && (
-            <FormikToolbarButton startIcon={<AddIcon />} onClick={onNew}>
+            <FormikToolbarButton
+              startIcon={<AddIcon />}
+              onClick={onNew}
+            >
               Nuovo
             </FormikToolbarButton>
           )}
           {!hideDeleteButton && (
-            <FormikToolbarButton startIcon={<DeleteIcon />} color="error" disabled={disableDelete} onClick={onDelete}>
+            <FormikToolbarButton
+              startIcon={<DeleteIcon />}
+              color="error"
+              disabled={disableDelete}
+              onClick={onDelete}
+            >
               Elimina
             </FormikToolbarButton>
           )}

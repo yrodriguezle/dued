@@ -22,7 +22,10 @@ const IconFactory: React.FC<IconFactoryProps> = ({ name, fontSize = "default", c
     return null;
   }
 
-  return <IconComponent fontSize={fontSize} color={color} />;
+  return <IconComponent
+    fontSize={fontSize}
+    color={color}
+  />;
 };
 
 export default IconFactory;

@@ -225,8 +225,15 @@ function UserDetails() {
       {() => (
         <Form noValidate>
           <FormikToolbar onFormReset={handleResetForm} />
-          <Box className="scrollable-box" sx={{ marginTop: 1, paddingX: 2, overflow: "auto", height: "calc(100dvh - 64px - 41px)" }}>
-            <Typography id="view-title" variant="h5" gutterBottom>
+          <Box
+            className="scrollable-box"
+            sx={{ marginTop: 1, paddingX: 2, overflow: "auto", height: "calc(100dvh - 64px - 41px)" }}
+          >
+            <Typography
+              id="view-title"
+              variant="h5"
+              gutterBottom
+            >
               {title}
             </Typography>
             <UserForm onSelectItem={handleSelectedItem} />

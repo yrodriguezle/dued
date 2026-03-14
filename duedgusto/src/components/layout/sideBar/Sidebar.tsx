@@ -34,14 +34,24 @@ function Sidebar({ drawerOpen, drawerSwipeable, mobileDrawerOpen, setMobileDrawe
 
   const renderDrawer = useCallback(
     (open: boolean) => (
-      <Drawer variant="permanent" open={open}>
+      <Drawer
+        variant="permanent"
+        open={open}
+      >
         <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
           <Box sx={{ flexShrink: 0, height: 50 }} />
           <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden" }}>
-            <NestedList items={menuItems} drawerOpen={open} onListItemClick={onListItemClick} />
+            <NestedList
+              items={menuItems}
+              drawerOpen={open}
+              onListItemClick={onListItemClick}
+            />
           </Box>
           {open && appVersion && (
-            <Typography variant="caption" sx={{ p: 1, textAlign: "center", color: "text.secondary" }}>
+            <Typography
+              variant="caption"
+              sx={{ p: 1, textAlign: "center", color: "text.secondary" }}
+            >
               v{appVersion}
             </Typography>
           )}
@@ -52,7 +62,13 @@ function Sidebar({ drawerOpen, drawerSwipeable, mobileDrawerOpen, setMobileDrawe
   );
 
   return drawerSwipeable ? (
-    <SwipeableDrawer open={mobileDrawerOpen} onOpen={() => setMobileDrawerOpen(true)} onClose={onCloseSwipeable} disableBackdropTransition={!iOS} disableDiscovery={iOS}>
+    <SwipeableDrawer
+      open={mobileDrawerOpen}
+      onOpen={() => setMobileDrawerOpen(true)}
+      onClose={onCloseSwipeable}
+      disableBackdropTransition={!iOS}
+      disableDiscovery={iOS}
+    >
       {renderDrawer(true)}
     </SwipeableDrawer>
   ) : (

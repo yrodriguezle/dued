@@ -67,14 +67,25 @@ function CashRegisterMonthlyCalendar({ open, onClose, onSelectDate, currentDate,
   const weekdayHeaders = ["Dom", "Lun", "Mar", "Mer", "Gio", "Ven", "Sab"];
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+    >
       <DialogTitle>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <IconButton size="small" onClick={handlePreviousMonth}>
+          <IconButton
+            size="small"
+            onClick={handlePreviousMonth}
+          >
             <ChevronLeft />
           </IconButton>
           <Typography variant="h6">{displayMonth.format("MMMM YYYY").charAt(0).toUpperCase() + displayMonth.format("MMMM YYYY").slice(1)}</Typography>
-          <IconButton size="small" onClick={handleNextMonth}>
+          <IconButton
+            size="small"
+            onClick={handleNextMonth}
+          >
             <ChevronRight />
           </IconButton>
         </Box>
@@ -133,7 +144,10 @@ function CashRegisterMonthlyCalendar({ open, onClose, onSelectDate, currentDate,
                     >
                       {isCurrentMonth && (
                         <>
-                          <Typography variant="body2" sx={{ fontWeight: isCurrentDay ? "bold" : "normal" }}>
+                          <Typography
+                            variant="body2"
+                            sx={{ fontWeight: isCurrentDay ? "bold" : "normal" }}
+                          >
                             {day}
                           </Typography>
                           {hasCashRegister && (

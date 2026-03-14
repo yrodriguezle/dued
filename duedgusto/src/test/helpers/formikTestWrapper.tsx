@@ -40,7 +40,11 @@ export const FormikTestWrapper = <T extends FormikValues>({
     : undefined;
 
   return (
-    <Formik initialValues={initialValues} validate={validate} onSubmit={onSubmit}>
+    <Formik
+      initialValues={initialValues}
+      validate={validate}
+      onSubmit={onSubmit}
+    >
       <Form>{children}</Form>
     </Formik>
   );

@@ -79,7 +79,10 @@ function AuthSignInForm({ onSubmit }: AuthSignInFormProps) {
                 },
               }}
             />
-            <FormikCheckbox label="Rimani connesso" name="alwaysConnected" />
+            <FormikCheckbox
+              label="Rimani connesso"
+              name="alwaysConnected"
+            />
             <Button
               type="submit"
               fullWidth

@@ -33,21 +33,36 @@ function OperatingDaysSection({ errors, touched }: OperatingDaysSectionProps) {
 
   return (
     <Paper sx={{ padding: 1 }}>
-      <Typography variant="h6" sx={{ marginBottom: 2, fontWeight: "bold" }}>
+      <Typography
+        variant="h6"
+        sx={{ marginBottom: 2, fontWeight: "bold" }}
+      >
         Giorni di Apertura
       </Typography>
 
       <Box sx={{ marginBottom: 2 }}>
-        <Typography variant="body2" color="text.secondary" sx={{ marginBottom: 2 }}>
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ marginBottom: 2 }}
+        >
           Seleziona i giorni in cui l'attività è aperta
         </Typography>
 
         <div className="grid grid-cols-12 gap-4">
           {daysOfWeek.map(({ index, name }) => (
-            <div className="col-span-12 sm:col-span-6 md:col-span-4" key={index}>
+            <div
+              className="col-span-12 sm:col-span-6 md:col-span-4"
+              key={index}
+            >
               <FormControlLabel
                 control={
-                  <Checkbox checked={values.operatingDays[index] || false} onChange={(e) => handleDayChange(index, e.target.checked)} name={`operatingDays.${index}`} disabled={status?.isFormLocked} />
+                  <Checkbox
+                    checked={values.operatingDays[index] || false}
+                    onChange={(e) => handleDayChange(index, e.target.checked)}
+                    name={`operatingDays.${index}`}
+                    disabled={status?.isFormLocked}
+                  />
                 }
                 label={name}
               />
@@ -57,7 +72,10 @@ function OperatingDaysSection({ errors, touched }: OperatingDaysSectionProps) {
       </Box>
 
       {errors.operatingDays && touched.operatingDays && (
-        <Typography color="error" variant="caption">
+        <Typography
+          color="error"
+          variant="caption"
+        >
           {errors.operatingDays}
         </Typography>
       )}

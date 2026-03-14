@@ -14,7 +14,11 @@ function Layout() {
 
   return (
     <Box sx={{ height: "100dvh", overflow: "hidden" }}>
-      <HeaderBar drawerOpen={drawerOpen} setHeaderHeight={setHeaderHeight} toggleDrawer={toggleDrawer} />
+      <HeaderBar
+        drawerOpen={drawerOpen}
+        setHeaderHeight={setHeaderHeight}
+        toggleDrawer={toggleDrawer}
+      />
       <Box
         sx={{
           display: "flex",

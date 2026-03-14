@@ -13,8 +13,15 @@ function SupplierForm({ onSelectItem }: SupplierFormProps) {
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
       {/* Sezione: Dati Generali */}
-      <Paper variant="outlined" sx={{ p: 2.5 }}>
-        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+      <Paper
+        variant="outlined"
+        sx={{ p: 2.5 }}
+      >
+        <Typography
+          variant="subtitle1"
+          fontWeight={600}
+          sx={{ mb: 2 }}
+        >
           Dati Generali
         </Typography>
         <div className="grid grid-cols-12 gap-4">
@@ -32,64 +39,131 @@ function SupplierForm({ onSelectItem }: SupplierFormProps) {
             />
           </div>
           <div className="col-span-12 md:col-span-4">
-            <FormikCheckbox name="active" label="Attivo" />
+            <FormikCheckbox
+              name="active"
+              label="Attivo"
+            />
           </div>
           <div className="col-span-12 md:col-span-6">
-            <FormikTextField name="vatNumber" label="Partita IVA" fullWidth />
+            <FormikTextField
+              name="vatNumber"
+              label="Partita IVA"
+              fullWidth
+            />
           </div>
           <div className="col-span-12 md:col-span-6">
-            <FormikTextField name="fiscalCode" label="Codice Fiscale" fullWidth />
+            <FormikTextField
+              name="fiscalCode"
+              label="Codice Fiscale"
+              fullWidth
+            />
           </div>
         </div>
       </Paper>
 
       {/* Sezione: Contatti */}
-      <Paper variant="outlined" sx={{ p: 2.5 }}>
-        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+      <Paper
+        variant="outlined"
+        sx={{ p: 2.5 }}
+      >
+        <Typography
+          variant="subtitle1"
+          fontWeight={600}
+          sx={{ mb: 2 }}
+        >
           Contatti
         </Typography>
         <div className="grid grid-cols-12 gap-4">
           <div className="col-span-12 md:col-span-6">
-            <FormikTextField name="email" label="Email" type="email" fullWidth />
+            <FormikTextField
+              name="email"
+              label="Email"
+              type="email"
+              fullWidth
+            />
           </div>
           <div className="col-span-12 md:col-span-6">
-            <FormikTextField name="phone" label="Telefono" fullWidth />
+            <FormikTextField
+              name="phone"
+              label="Telefono"
+              fullWidth
+            />
           </div>
         </div>
       </Paper>
 
       {/* Sezione: Indirizzo */}
-      <Paper variant="outlined" sx={{ p: 2.5 }}>
-        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+      <Paper
+        variant="outlined"
+        sx={{ p: 2.5 }}
+      >
+        <Typography
+          variant="subtitle1"
+          fontWeight={600}
+          sx={{ mb: 2 }}
+        >
           Indirizzo
         </Typography>
         <div className="grid grid-cols-12 gap-4">
           <div className="col-span-12 md:col-span-9">
-            <FormikTextField name="address" label="Indirizzo" fullWidth />
+            <FormikTextField
+              name="address"
+              label="Indirizzo"
+              fullWidth
+            />
           </div>
           <div className="col-span-12 md:col-span-3">
-            <FormikTextField name="postalCode" label="CAP" fullWidth />
+            <FormikTextField
+              name="postalCode"
+              label="CAP"
+              fullWidth
+            />
           </div>
           <div className="col-span-12 md:col-span-4">
-            <FormikTextField name="city" label="Citta" fullWidth />
+            <FormikTextField
+              name="city"
+              label="Citta"
+              fullWidth
+            />
           </div>
           <div className="col-span-12 md:col-span-4">
-            <FormikTextField name="province" label="Provincia" fullWidth />
+            <FormikTextField
+              name="province"
+              label="Provincia"
+              fullWidth
+            />
           </div>
           <div className="col-span-12 md:col-span-4">
-            <FormikTextField name="country" label="Paese" fullWidth />
+            <FormikTextField
+              name="country"
+              label="Paese"
+              fullWidth
+            />
           </div>
         </div>
       </Paper>
 
       {/* Sezione: Note */}
-      <Paper variant="outlined" sx={{ p: 2.5 }}>
-        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+      <Paper
+        variant="outlined"
+        sx={{ p: 2.5 }}
+      >
+        <Typography
+          variant="subtitle1"
+          fontWeight={600}
+          sx={{ mb: 2 }}
+        >
           Note
         </Typography>
         <div className="grid grid-cols-12 gap-4">
           <div className="col-span-12">
-            <FormikTextField name="notes" label="Note" fullWidth multiline rows={4} />
+            <FormikTextField
+              name="notes"
+              label="Note"
+              fullWidth
+              multiline
+              rows={4}
+            />
           </div>
         </div>
       </Paper>

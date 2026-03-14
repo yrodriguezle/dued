@@ -71,9 +71,18 @@ const MonthlyClosureList: React.FC = () => {
         <Typography variant="h4">Chiusure Mensili</Typography>
         <FormControl sx={{ minWidth: 120 }}>
           <InputLabel id="year-select-label">Anno</InputLabel>
-          <Select labelId="year-select-label" id="year-select" value={year} label="Anno" onChange={handleYearChange}>
+          <Select
+            labelId="year-select-label"
+            id="year-select"
+            value={year}
+            label="Anno"
+            onChange={handleYearChange}
+          >
             {years.map((y) => (
-              <MenuItem key={y} value={y}>
+              <MenuItem
+                key={y}
+                value={y}
+              >
                 {y}
               </MenuItem>
             ))}
@@ -114,7 +123,10 @@ const MonthlyClosureList: React.FC = () => {
               const isFuture = year === dayjs().year() && monthNumber > dayjs().month() + 1;
 
               return (
-                <div className="col-span-6 sm:col-span-4 md:col-span-3" key={monthNumber}>
+                <div
+                  className="col-span-6 sm:col-span-4 md:col-span-3"
+                  key={monthNumber}
+                >
                   <Paper
                     elevation={closure ? 3 : 1}
                     onClick={() => !isFuture && handleMonthClick(monthNumber)}
@@ -138,24 +150,40 @@ const MonthlyClosureList: React.FC = () => {
                       justifyContent: "space-between",
                     }}
                   >
-                    <Typography variant="h6" fontWeight="bold">
+                    <Typography
+                      variant="h6"
+                      fontWeight="bold"
+                    >
                       {monthName}
                     </Typography>
 
                     {closure ? (
                       <Box>
-                        <Typography variant="caption" color="text.secondary" display="block">
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          display="block"
+                        >
                           {closure.stato}
                         </Typography>
-                        <Typography variant="body2" fontWeight="bold">
+                        <Typography
+                          variant="body2"
+                          fontWeight="bold"
+                        >
                           € {closure.ricavoNettoCalcolato.toFixed(2)}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                        >
                           {closure.registriInclusi.length} registri
                         </Typography>
                       </Box>
                     ) : (
-                      <Typography variant="caption" color="text.secondary">
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                      >
                         {isFuture ? "Mese futuro" : "Nessuna chiusura"}
                       </Typography>
                     )}

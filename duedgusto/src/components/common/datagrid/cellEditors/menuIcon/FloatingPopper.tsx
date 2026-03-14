@@ -34,7 +34,10 @@ function FloatingPopper(props: FloatingPopperProps) {
       setInitialFocus={false}
       gapSpace={5}
     >
-      <Paper {...paperProps} style={{ margin: 0 }}>
+      <Paper
+        {...paperProps}
+        style={{ margin: 0 }}
+      >
         {content}
       </Paper>
     </Callout>

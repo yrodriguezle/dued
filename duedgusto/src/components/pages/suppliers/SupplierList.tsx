@@ -159,7 +159,11 @@ function SupplierList() {
         field: "active",
         width: 100,
         cellRenderer: (params: { value: boolean }) => {
-          return <Chip label={params.value ? "Attivo" : "Disattivo"} color={params.value ? "success" : "default"} size="small" />;
+          return <Chip
+            label={params.value ? "Attivo" : "Disattivo"}
+            color={params.value ? "success" : "default"}
+            size="small"
+          />;
         },
       },
     ],
@@ -168,9 +172,20 @@ function SupplierList() {
 
   return (
     <>
-      <ListToolbar onNew={handleNew} onDelete={handleDelete} disabledDelete={selectedRows.length === 0} />
-      <Box className="scrollable-box" sx={{ marginTop: 1, paddingX: 2, overflow: "auto", height: "calc(100dvh - 64px - 48px)" }}>
-        <Typography id="view-title" variant="h5" gutterBottom>
+      <ListToolbar
+        onNew={handleNew}
+        onDelete={handleDelete}
+        disabledDelete={selectedRows.length === 0}
+      />
+      <Box
+        className="scrollable-box"
+        sx={{ marginTop: 1, paddingX: 2, overflow: "auto", height: "calc(100dvh - 64px - 48px)" }}
+      >
+        <Typography
+          id="view-title"
+          variant="h5"
+          gutterBottom
+        >
           Fornitori
         </Typography>
         <Paper sx={{ padding: 1, height: "calc(100% - 50px)" }}>

@@ -17,12 +17,33 @@ function App() {
 
   return (
     <Routes>
-      <Route path="/" element={<Root />}>
-        <Route path="gestionale/*" element={<ProtectedRoutes />} />
-        <Route path="signin" element={<SignInPage />} />
+      <Route
+        path="/"
+        element={<Root />}
+      >
+        <Route
+          path="gestionale/*"
+          element={<ProtectedRoutes />}
+        />
+        <Route
+          path="signin"
+          element={<SignInPage />}
+        />
 
-        <Route path="*" element={<Navigate to={"/gestionale"} replace />} />
-        <Route path="/" element={<Navigate to={"/gestionale"} replace />} />
+        <Route
+          path="*"
+          element={<Navigate
+            to={"/gestionale"}
+            replace
+          />}
+        />
+        <Route
+          path="/"
+          element={<Navigate
+            to={"/gestionale"}
+            replace
+          />}
+        />
       </Route>
     </Routes>
   );

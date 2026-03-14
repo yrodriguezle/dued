@@ -47,7 +47,10 @@ const MonthlyClosureForm: React.FC = () => {
 
   return (
     <Box sx={{ padding: 3, maxWidth: 500 }}>
-      <Typography variant="h5" gutterBottom>
+      <Typography
+        variant="h5"
+        gutterBottom
+      >
         Nuova Chiusura Mensile
       </Typography>
 
@@ -63,7 +66,10 @@ const MonthlyClosureForm: React.FC = () => {
             }}
           >
             {years.map((y) => (
-              <MenuItem key={y} value={y}>
+              <MenuItem
+                key={y}
+                value={y}
+              >
                 {y}
               </MenuItem>
             ))}
@@ -81,7 +87,10 @@ const MonthlyClosureForm: React.FC = () => {
             }}
           >
             {months.map((m) => (
-              <MenuItem key={m} value={m}>
+              <MenuItem
+                key={m}
+                value={m}
+              >
                 {dayjs()
                   .month(m - 1)
                   .format("MMMM")}
@@ -91,33 +100,54 @@ const MonthlyClosureForm: React.FC = () => {
         </FormControl>
       </Box>
 
-      <Button variant="outlined" onClick={handleValidate} disabled={validazioneLoading} sx={{ mb: 2 }}>
+      <Button
+        variant="outlined"
+        onClick={handleValidate}
+        disabled={validazioneLoading}
+        sx={{ mb: 2 }}
+      >
         {validazioneLoading ? <CircularProgress size={20} /> : "Valida Completezza Registri"}
       </Button>
 
       {validating && !validazioneLoading && giorniMancanti.length > 0 && (
-        <Alert severity="info" sx={{ mb: 2 }}>
+        <Alert
+          severity="info"
+          sx={{ mb: 2 }}
+        >
           Ci sono {giorniMancanti.length} giorni mancanti. Potrai escluderli nella pagina di dettaglio prima della chiusura.
         </Alert>
       )}
 
       {validating && !validazioneLoading && giorniMancanti.length === 0 && (
-        <Alert severity="success" sx={{ mb: 2 }}>
+        <Alert
+          severity="success"
+          sx={{ mb: 2 }}
+        >
           Tutti i registri giornalieri sono presenti e chiusi.
         </Alert>
       )}
 
       {creazioneError && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert
+          severity="error"
+          sx={{ mb: 2 }}
+        >
           Errore nella creazione: {creazioneError.message}
         </Alert>
       )}
 
       <Box sx={{ display: "flex", gap: 2 }}>
-        <Button variant="contained" onClick={handleCreaChiusura} disabled={!canCreate || creazioneLoading}>
+        <Button
+          variant="contained"
+          onClick={handleCreaChiusura}
+          disabled={!canCreate || creazioneLoading}
+        >
           {creazioneLoading ? <CircularProgress size={20} /> : "Crea Chiusura Mensile"}
         </Button>
-        <Button variant="text" onClick={() => navigate("/gestionale/cassa/monthly-closure")}>
+        <Button
+          variant="text"
+          onClick={() => navigate("/gestionale/cassa/monthly-closure")}
+        >
           Annulla
         </Button>
       </Box>

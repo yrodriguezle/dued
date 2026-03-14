@@ -254,9 +254,15 @@ export function CustomCalendar({ events, onSelectEvent, onSelectSlot, currentDat
       {/* Legenda */}
       <Box sx={{ display: "flex", gap: 2, mt: 1, flexShrink: 0, justifyContent: "flex-end" }}>
         {Object.entries(STATO_CONFIG).map(([, cfg]) => (
-          <Box key={cfg.label} sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+          <Box
+            key={cfg.label}
+            sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+          >
             <Box sx={{ width: 10, height: 10, borderRadius: "2px", bgcolor: cfg.color }} />
-            <Typography variant="caption" color="text.secondary">
+            <Typography
+              variant="caption"
+              color="text.secondary"
+            >
               {cfg.label}
             </Typography>
           </Box>

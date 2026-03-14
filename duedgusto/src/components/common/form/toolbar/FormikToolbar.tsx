@@ -88,22 +88,38 @@ function FormikToolbar({
       >
         <Box sx={{ height: 48, display: "flex", alignItems: "stretch" }}>
           {!hideUnlockButton && (
-            <FormikToolbarButton startIcon={<EditIcon />} disabled={disableUnlock} onClick={handleUnlockForm}>
+            <FormikToolbarButton
+              startIcon={<EditIcon />}
+              disabled={disableUnlock}
+              onClick={handleUnlockForm}
+            >
               {status.isFormLocked || status.formStatus === formStatuses.INSERT ? "Modifica" : "Annulla"}
             </FormikToolbarButton>
           )}
           {!hideSaveButton && (
-            <FormikToolbarButton startIcon={<SaveIcon />} disabled={disableSave} onClick={formikProps.submitForm}>
+            <FormikToolbarButton
+              startIcon={<SaveIcon />}
+              disabled={disableSave}
+              onClick={formikProps.submitForm}
+            >
               Salva
             </FormikToolbarButton>
           )}
           {!hideNewButton && (
-            <FormikToolbarButton startIcon={<AddIcon />} onClick={() => onFormReset?.(!disableSave)}>
+            <FormikToolbarButton
+              startIcon={<AddIcon />}
+              onClick={() => onFormReset?.(!disableSave)}
+            >
               Nuovo
             </FormikToolbarButton>
           )}
           {!hideDeleteButton && (
-            <FormikToolbarButton startIcon={<DeleteIcon />} color="error" disabled={disableDelete} onClick={onDelete}>
+            <FormikToolbarButton
+              startIcon={<DeleteIcon />}
+              color="error"
+              disabled={disableDelete}
+              onClick={onDelete}
+            >
               Elimina
             </FormikToolbarButton>
           )}

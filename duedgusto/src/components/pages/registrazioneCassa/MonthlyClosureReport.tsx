@@ -205,7 +205,10 @@ const MonthlyClosureReport: React.FC<MonthlyClosureReportProps> = ({ closure }) 
   };
 
   return (
-    <FormikToolbarButton startIcon={<PrintIcon />} onClick={handlePrint}>
+    <FormikToolbarButton
+      startIcon={<PrintIcon />}
+      onClick={handlePrint}
+    >
       Stampa Report
     </FormikToolbarButton>
   );

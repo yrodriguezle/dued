@@ -53,7 +53,10 @@ interface FormikSearchboxProps<Values, T extends Record<string, unknown>> extend
 
 function FormikSearchbox<Values, T extends Record<string, unknown>>({ name, onChange, onBlur, params, ...props }: FormikSearchboxProps<Values, T>) {
   return (
-    <FastField name={name} params={params}>
+    <FastField
+      name={name}
+      params={params}
+    >
       {({ field, form, meta }: FastFieldProps) => (
         <Searchbox
           name={field.name}

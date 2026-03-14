@@ -17,8 +17,15 @@ function DeliveryNoteForm({ onSelectSupplier, onSelectInvoice }: DeliveryNoteFor
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
       {/* Sezione: Fornitore e DDT */}
-      <Paper variant="outlined" sx={{ p: 2.5 }}>
-        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+      <Paper
+        variant="outlined"
+        sx={{ p: 2.5 }}
+      >
+        <Typography
+          variant="subtitle1"
+          fontWeight={600}
+          sx={{ mb: 2 }}
+        >
           Fornitore e DDT
         </Typography>
         <div className="grid grid-cols-12 gap-4">
@@ -35,22 +42,46 @@ function DeliveryNoteForm({ onSelectSupplier, onSelectInvoice }: DeliveryNoteFor
             />
           </div>
           <div className="col-span-12 md:col-span-3">
-            <FormikTextField name="ddtNumber" label="Numero DDT *" fullWidth />
+            <FormikTextField
+              name="ddtNumber"
+              label="Numero DDT *"
+              fullWidth
+            />
           </div>
           <div className="col-span-12 md:col-span-3">
-            <FormikTextField name="ddtDate" label="Data DDT *" type="date" fullWidth slotProps={{ inputLabel: { shrink: true } }} sx={{ "& input": { colorScheme: dateColorScheme } }} />
+            <FormikTextField
+              name="ddtDate"
+              label="Data DDT *"
+              type="date"
+              fullWidth
+              slotProps={{ inputLabel: { shrink: true } }}
+              sx={{ "& input": { colorScheme: dateColorScheme } }}
+            />
           </div>
         </div>
       </Paper>
 
       {/* Sezione: Importo e Fattura Collegata */}
-      <Paper variant="outlined" sx={{ p: 2.5 }}>
-        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+      <Paper
+        variant="outlined"
+        sx={{ p: 2.5 }}
+      >
+        <Typography
+          variant="subtitle1"
+          fontWeight={600}
+          sx={{ mb: 2 }}
+        >
           Importo e Fattura Collegata
         </Typography>
         <div className="grid grid-cols-12 gap-4">
           <div className="col-span-12 md:col-span-3">
-            <FormikTextField name="amount" label="Importo" type="number" fullWidth slotProps={{ htmlInput: { step: "0.01", min: "0" } }} />
+            <FormikTextField
+              name="amount"
+              label="Importo"
+              type="number"
+              fullWidth
+              slotProps={{ htmlInput: { step: "0.01", min: "0" } }}
+            />
           </div>
           <div className="col-span-12 md:col-span-9">
             <FormikSearchbox<FormikDeliveryNoteValues, PurchaseInvoiceSearchbox>
@@ -67,13 +98,26 @@ function DeliveryNoteForm({ onSelectSupplier, onSelectInvoice }: DeliveryNoteFor
       </Paper>
 
       {/* Sezione: Note */}
-      <Paper variant="outlined" sx={{ p: 2.5 }}>
-        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+      <Paper
+        variant="outlined"
+        sx={{ p: 2.5 }}
+      >
+        <Typography
+          variant="subtitle1"
+          fontWeight={600}
+          sx={{ mb: 2 }}
+        >
           Note
         </Typography>
         <div className="grid grid-cols-12 gap-4">
           <div className="col-span-12">
-            <FormikTextField name="notes" label="Note" fullWidth multiline rows={3} />
+            <FormikTextField
+              name="notes"
+              label="Note"
+              fullWidth
+              multiline
+              rows={3}
+            />
           </div>
         </div>
       </Paper>

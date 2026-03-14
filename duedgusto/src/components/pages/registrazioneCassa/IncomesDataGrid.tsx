@@ -86,7 +86,11 @@ const IncomesDataGrid = memo(
 
     return (
       <Box>
-        <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold", mb: 0 }}>
+        <Typography
+          variant="h6"
+          gutterBottom
+          sx={{ fontWeight: "bold", mb: 0 }}
+        >
           INCASSI
         </Typography>
         <Box

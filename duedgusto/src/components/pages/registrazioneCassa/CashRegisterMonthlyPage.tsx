@@ -164,23 +164,43 @@ function CashRegisterMonthlyPage() {
     <Box sx={{ display: "flex", flexDirection: "column", height: "calc(100dvh - 64px)" }}>
       {/* Toolbar */}
       <Box sx={{ borderBottom: 1, borderColor: "divider", bgcolor: "background.paper", flexShrink: 0 }}>
-        <Toolbar variant="dense" disableGutters sx={{ minHeight: 48, height: 48, display: "flex", justifyContent: "space-between" }}>
+        <Toolbar
+          variant="dense"
+          disableGutters
+          sx={{ minHeight: 48, height: 48, display: "flex", justifyContent: "space-between" }}
+        >
           <Box sx={{ height: 48, display: "flex", alignItems: "stretch" }}>
             {isMobile ? (
               <>
-                <IconButton size="small" onClick={handleBack} title="Indietro" sx={{ height: 48, width: 48 }}>
+                <IconButton
+                  size="small"
+                  onClick={handleBack}
+                  title="Indietro"
+                  sx={{ height: 48, width: 48 }}
+                >
                   <ArrowBackIcon />
                 </IconButton>
-                <IconButton size="small" onClick={handleChiusuraMensile} title="Chiusura Mensile" sx={{ height: 48, width: 48 }}>
+                <IconButton
+                  size="small"
+                  onClick={handleChiusuraMensile}
+                  title="Chiusura Mensile"
+                  sx={{ height: 48, width: 48 }}
+                >
                   <SummarizeIcon />
                 </IconButton>
               </>
             ) : (
               <>
-                <FormikToolbarButton startIcon={<ArrowBackIcon />} onClick={handleBack}>
+                <FormikToolbarButton
+                  startIcon={<ArrowBackIcon />}
+                  onClick={handleBack}
+                >
                   Indietro
                 </FormikToolbarButton>
-                <FormikToolbarButton startIcon={<SummarizeIcon />} onClick={handleChiusuraMensile}>
+                <FormikToolbarButton
+                  startIcon={<SummarizeIcon />}
+                  onClick={handleChiusuraMensile}
+                >
                   Chiusura Mensile
                 </FormikToolbarButton>
               </>
@@ -189,21 +209,46 @@ function CashRegisterMonthlyPage() {
 
           {/* Navigazione mese e anno */}
           <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0, sm: 0.5 }, pr: { xs: 0.5, sm: 1 } }}>
-            <IconButton size="small" onClick={handlePrevYear} title="Anno precedente">
+            <IconButton
+              size="small"
+              onClick={handlePrevYear}
+              title="Anno precedente"
+            >
               <ChevronLeftIcon fontSize="small" />
-              <ChevronLeftIcon fontSize="small" sx={{ ml: -1.2 }} />
+              <ChevronLeftIcon
+                fontSize="small"
+                sx={{ ml: -1.2 }}
+              />
             </IconButton>
-            <IconButton size="small" onClick={handlePrevMonth} title="Mese precedente">
+            <IconButton
+              size="small"
+              onClick={handlePrevMonth}
+              title="Mese precedente"
+            >
               <ChevronLeftIcon />
             </IconButton>
-            <Typography variant={isMobile ? "body2" : "body1"} sx={{ minWidth: { xs: 110, sm: 160 }, textAlign: "center", fontWeight: 600, textTransform: "capitalize" }}>
+            <Typography
+              variant={isMobile ? "body2" : "body1"}
+              sx={{ minWidth: { xs: 110, sm: 160 }, textAlign: "center", fontWeight: 600, textTransform: "capitalize" }}
+            >
               {monthLabel}
             </Typography>
-            <IconButton size="small" onClick={handleNextMonth} title="Mese successivo">
+            <IconButton
+              size="small"
+              onClick={handleNextMonth}
+              title="Mese successivo"
+            >
               <ChevronRightIcon />
             </IconButton>
-            <IconButton size="small" onClick={handleNextYear} title="Anno successivo">
-              <ChevronRightIcon fontSize="small" sx={{ mr: -1.2 }} />
+            <IconButton
+              size="small"
+              onClick={handleNextYear}
+              title="Anno successivo"
+            >
+              <ChevronRightIcon
+                fontSize="small"
+                sx={{ mr: -1.2 }}
+              />
               <ChevronRightIcon fontSize="small" />
             </IconButton>
           </Box>
@@ -215,26 +260,59 @@ function CashRegisterMonthlyPage() {
         <Box sx={{ flexShrink: 0, borderBottom: 1, borderColor: "divider", bgcolor: "background.paper", px: { xs: 1, sm: 2 }, py: { xs: 1, sm: 1.5 } }}>
           <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: { xs: 1.5, sm: 3 } }}>
             <Box sx={{ minWidth: { xs: "auto", sm: 110 } }}>
-              <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1 }}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ lineHeight: 1 }}
+              >
                 Contanti
               </Typography>
-              <Typography variant={isMobile ? "body1" : "h6"} fontWeight="bold" color="primary.main" sx={{ lineHeight: 1.3 }}>
+              <Typography
+                variant={isMobile ? "body1" : "h6"}
+                fontWeight="bold"
+                color="primary.main"
+                sx={{ lineHeight: 1.3 }}
+              >
                 {`\u20AC ${monthlyStats.contanti.toFixed(2)}`}
               </Typography>
             </Box>
-            {!isMobile && <Divider orientation="vertical" flexItem />}
+            {!isMobile && <Divider
+              orientation="vertical"
+              flexItem
+            />}
             <Box sx={{ minWidth: { xs: "auto", sm: 100 } }}>
-              <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1 }}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ lineHeight: 1 }}
+              >
                 Elettronici
               </Typography>
-              <Typography variant={isMobile ? "body1" : "h6"} fontWeight="bold" color="warning.main" sx={{ lineHeight: 1.3 }}>
+              <Typography
+                variant={isMobile ? "body1" : "h6"}
+                fontWeight="bold"
+                color="warning.main"
+                sx={{ lineHeight: 1.3 }}
+              >
                 {`\u20AC ${monthlyStats.elettronici.toFixed(2)}`}
               </Typography>
             </Box>
-            {!isMobile && <Divider orientation="vertical" flexItem />}
+            {!isMobile && <Divider
+              orientation="vertical"
+              flexItem
+            />}
             <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
-              <Chip label={`${monthlyStats.registri} registri`} size="small" variant="outlined" />
-              {monthlyStats.bozze > 0 && <Chip label={`${monthlyStats.bozze} bozze`} size="small" color="warning" variant="outlined" />}
+              <Chip
+                label={`${monthlyStats.registri} registri`}
+                size="small"
+                variant="outlined"
+              />
+              {monthlyStats.bozze > 0 && <Chip
+                label={`${monthlyStats.bozze} bozze`}
+                size="small"
+                color="warning"
+                variant="outlined"
+              />}
             </Box>
           </Box>
         </Box>
@@ -242,7 +320,12 @@ function CashRegisterMonthlyPage() {
 
       {/* Calendario */}
       <Box sx={{ flex: 1, overflow: "hidden", minHeight: 0, maxWidth: 900, mx: "auto", width: "100%" }}>
-        <CustomCalendar events={events} onSelectEvent={handleSelectEvent} onSelectSlot={handleSelectSlot} currentDate={currentDate} />
+        <CustomCalendar
+          events={events}
+          onSelectEvent={handleSelectEvent}
+          onSelectSlot={handleSelectSlot}
+          currentDate={currentDate}
+        />
       </Box>
     </Box>
   );

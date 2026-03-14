@@ -45,14 +45,20 @@ function MonthlyView() {
     <Box sx={{ p: 3 }}>
       {/* Header con navigazione mese */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
-        <Typography variant="h4" fontWeight="bold">
+        <Typography
+          variant="h4"
+          fontWeight="bold"
+        >
           Vista Mensile Cassa
         </Typography>
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
           <IconButton onClick={handlePreviousMonth}>
             <ArrowBackIcon />
           </IconButton>
-          <Typography variant="h5" sx={{ minWidth: 200, textAlign: "center" }}>
+          <Typography
+            variant="h5"
+            sx={{ minWidth: 200, textAlign: "center" }}
+          >
             {selectedDate.format("MMMM YYYY")}
           </Typography>
           <IconButton onClick={handleNextMonth}>
@@ -66,10 +72,18 @@ function MonthlyView() {
         <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <Card>
             <CardContent>
-              <Typography color="text.secondary" gutterBottom variant="overline">
+              <Typography
+                color="text.secondary"
+                gutterBottom
+                variant="overline"
+              >
                 Vendite Totali
               </Typography>
-              <Typography variant="h5" color="primary.main" fontWeight="bold">
+              <Typography
+                variant="h5"
+                color="primary.main"
+                fontWeight="bold"
+              >
                 € {summary?.totaleVendite?.toFixed(2) || "0.00"}
               </Typography>
             </CardContent>
@@ -78,10 +92,18 @@ function MonthlyView() {
         <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <Card>
             <CardContent>
-              <Typography color="text.secondary" gutterBottom variant="overline">
+              <Typography
+                color="text.secondary"
+                gutterBottom
+                variant="overline"
+              >
                 Contanti
               </Typography>
-              <Typography variant="h5" color="success.main" fontWeight="bold">
+              <Typography
+                variant="h5"
+                color="success.main"
+                fontWeight="bold"
+              >
                 € {summary?.totaleContanti?.toFixed(2) || "0.00"}
               </Typography>
             </CardContent>
@@ -90,10 +112,18 @@ function MonthlyView() {
         <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <Card>
             <CardContent>
-              <Typography color="text.secondary" gutterBottom variant="overline">
+              <Typography
+                color="text.secondary"
+                gutterBottom
+                variant="overline"
+              >
                 Pagamenti Elettronici
               </Typography>
-              <Typography variant="h5" color="info.main" fontWeight="bold">
+              <Typography
+                variant="h5"
+                color="info.main"
+                fontWeight="bold"
+              >
                 € {summary?.totaleElettronici?.toFixed(2) || "0.00"}
               </Typography>
             </CardContent>
@@ -102,10 +132,18 @@ function MonthlyView() {
         <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <Card>
             <CardContent>
-              <Typography color="text.secondary" gutterBottom variant="overline">
+              <Typography
+                color="text.secondary"
+                gutterBottom
+                variant="overline"
+              >
                 Media Giornaliera
               </Typography>
-              <Typography variant="h5" color="secondary.main" fontWeight="bold">
+              <Typography
+                variant="h5"
+                color="secondary.main"
+                fontWeight="bold"
+              >
                 € {summary?.mediaGiornaliera?.toFixed(2) || "0.00"}
               </Typography>
             </CardContent>
@@ -116,20 +154,32 @@ function MonthlyView() {
       {/* Detailed Table */}
       <Card>
         <CardContent>
-          <Typography variant="h6" gutterBottom>
+          <Typography
+            variant="h6"
+            gutterBottom
+          >
             Riepilogo Dettagliato
           </Typography>
-          <TableContainer component={Paper} variant="outlined">
+          <TableContainer
+            component={Paper}
+            variant="outlined"
+          >
             <Table>
               <TableHead>
                 <TableRow>
                   <TableCell>
-                    <Typography variant="subtitle2" fontWeight="bold">
+                    <Typography
+                      variant="subtitle2"
+                      fontWeight="bold"
+                    >
                       Metrica
                     </Typography>
                   </TableCell>
                   <TableCell align="right">
-                    <Typography variant="subtitle2" fontWeight="bold">
+                    <Typography
+                      variant="subtitle2"
+                      fontWeight="bold"
+                    >
                       Valore
                     </Typography>
                   </TableCell>
@@ -169,7 +219,10 @@ function MonthlyView() {
       {/* Placeholder per calendario */}
       <Card sx={{ mt: 3 }}>
         <CardContent>
-          <Typography variant="h6" gutterBottom>
+          <Typography
+            variant="h6"
+            gutterBottom
+          >
             Calendario Mensile
           </Typography>
           <Box

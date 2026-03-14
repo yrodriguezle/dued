@@ -130,7 +130,12 @@ const TextField = forwardRef<TextFieldRef, TextFieldProps>(({ value = "", name, 
           endAdornment:
             props.type === "password" ? (
               <InputAdornment position="end">
-                <IconButton disabled={props.disabled} aria-label="toggle password visibility" onClick={handleClickShowPassword} onMouseDown={handleMouseDownPassword}>
+                <IconButton
+                  disabled={props.disabled}
+                  aria-label="toggle password visibility"
+                  onClick={handleClickShowPassword}
+                  onMouseDown={handleMouseDownPassword}
+                >
                   {showPassword ? <VisibilityOffIcon color={props.error ? "error" : "inherit"} /> : <VisibilityIcon color={props.error ? "error" : "inherit"} />}
                 </IconButton>
               </InputAdornment>

@@ -201,18 +201,33 @@ function PeriodoProgrammazioneSection({ periodi }: PeriodoProgrammazioneSectionP
   const nessunaGiornoSelezionato = dialogState.giorniOperativi.every((g) => !g);
 
   return (
-    <Paper variant="outlined" sx={{ p: 2.5 }}>
+    <Paper
+      variant="outlined"
+      sx={{ p: 2.5 }}
+    >
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-        <Typography variant="subtitle1" fontWeight={600}>
+        <Typography
+          variant="subtitle1"
+          fontWeight={600}
+        >
           Periodi di apertura
         </Typography>
-        <Button variant="outlined" size="small" startIcon={<AddIcon />} onClick={handleApriDialogNuovo} disabled={isLoading}>
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<AddIcon />}
+          onClick={handleApriDialogNuovo}
+          disabled={isLoading}
+        >
           Nuovo Periodo
         </Button>
       </Box>
 
       {periodiOrdinati.length === 0 && (
-        <Typography variant="body2" color="text.secondary">
+        <Typography
+          variant="body2"
+          color="text.secondary"
+        >
           Nessun periodo configurato.
         </Typography>
       )}
@@ -233,25 +248,46 @@ function PeriodoProgrammazioneSection({ periodi }: PeriodoProgrammazioneSectionP
             >
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <Typography variant="body2" fontWeight={600}>
+                  <Typography
+                    variant="body2"
+                    fontWeight={600}
+                  >
                     Dal {dayjs(periodo.dataInizio).format("DD/MM/YYYY")}
                     {periodo.dataFine ? ` al ${dayjs(periodo.dataFine).format("DD/MM/YYYY")}` : ""}
                   </Typography>
-                  {isAttivo && <Chip label="In corso" color="primary" size="small" />}
+                  {isAttivo && <Chip
+                    label="In corso"
+                    color="primary"
+                    size="small"
+                  />}
                 </Box>
                 <Box sx={{ display: "flex", gap: 0.5 }}>
-                  <IconButton size="small" onClick={() => handleApriDialogModifica(periodo)} disabled={isLoading} title="Modifica">
+                  <IconButton
+                    size="small"
+                    onClick={() => handleApriDialogModifica(periodo)}
+                    disabled={isLoading}
+                    title="Modifica"
+                  >
                     <EditIcon fontSize="small" />
                   </IconButton>
                   {!isAttivo && (
-                    <IconButton size="small" onClick={() => handleElimina(periodo)} disabled={isLoading} color="error" title="Elimina">
+                    <IconButton
+                      size="small"
+                      onClick={() => handleElimina(periodo)}
+                      disabled={isLoading}
+                      color="error"
+                      title="Elimina"
+                    >
                       <DeleteIcon fontSize="small" />
                     </IconButton>
                   )}
                 </Box>
               </Box>
               <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 0.5 }}>
-                <Typography variant="body2" color="text.secondary">
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                >
                   {periodo.orarioApertura} - {periodo.orarioChiusura}
                 </Typography>
               </Box>
@@ -259,7 +295,11 @@ function PeriodoProgrammazioneSection({ periodi }: PeriodoProgrammazioneSectionP
                 {GIORNI_SETTIMANA.map(({ index, label }) => (
                   <FormControlLabel
                     key={index}
-                    control={<Checkbox checked={periodo.giorniOperativi[index] || false} size="small" disabled />}
+                    control={<Checkbox
+                      checked={periodo.giorniOperativi[index] || false}
+                      size="small"
+                      disabled
+                    />}
                     label={label}
                     sx={{ mr: 1, "& .MuiFormControlLabel-label": { fontSize: "0.8rem" } }}
                   />
@@ -271,7 +311,12 @@ function PeriodoProgrammazioneSection({ periodi }: PeriodoProgrammazioneSectionP
       </Box>
 
       {/* Dialog Crea / Modifica Periodo */}
-      <Dialog open={dialogState.open} onClose={handleChiudiDialog} maxWidth="xs" fullWidth>
+      <Dialog
+        open={dialogState.open}
+        onClose={handleChiudiDialog}
+        maxWidth="xs"
+        fullWidth
+      >
         <DialogTitle>{dialogState.mode === "crea" ? "Nuovo Periodo" : "Modifica Periodo"}</DialogTitle>
         <Divider />
         <DialogContent sx={{ pt: 2 }}>
@@ -307,7 +352,11 @@ function PeriodoProgrammazioneSection({ periodi }: PeriodoProgrammazioneSectionP
               />
             </Box>
             <Box>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mb: 1 }}
+              >
                 Giorni di apertura
               </Typography>
               <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
@@ -327,7 +376,11 @@ function PeriodoProgrammazioneSection({ periodi }: PeriodoProgrammazioneSectionP
                 ))}
               </Box>
               {nessunaGiornoSelezionato && (
-                <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
+                <Typography
+                  variant="caption"
+                  color="error"
+                  sx={{ mt: 0.5 }}
+                >
                   Seleziona almeno un giorno di apertura
                 </Typography>
               )}
@@ -335,10 +388,17 @@ function PeriodoProgrammazioneSection({ periodi }: PeriodoProgrammazioneSectionP
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleChiudiDialog} disabled={isLoading}>
+          <Button
+            onClick={handleChiudiDialog}
+            disabled={isLoading}
+          >
             Annulla
           </Button>
-          <Button variant="contained" onClick={handleSubmitDialog} disabled={isLoading || nessunaGiornoSelezionato}>
+          <Button
+            variant="contained"
+            onClick={handleSubmitDialog}
+            disabled={isLoading || nessunaGiornoSelezionato}
+          >
             {dialogState.mode === "crea" ? "Crea" : "Salva"}
           </Button>
         </DialogActions>

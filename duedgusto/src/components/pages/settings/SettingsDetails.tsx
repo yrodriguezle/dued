@@ -145,7 +145,10 @@ function SettingsDetails() {
 
   if (error) {
     return (
-      <Container maxWidth="sm" sx={{ marginTop: 4 }}>
+      <Container
+        maxWidth="sm"
+        sx={{ marginTop: 4 }}
+      >
         <Alert severity="error">Errore nel caricamento delle impostazioni: {error.message}</Alert>
       </Container>
     );
@@ -164,7 +167,14 @@ function SettingsDetails() {
   };
 
   return (
-    <Formik innerRef={formRef} initialValues={initialValues} enableReinitialize validate={validate} onSubmit={handleSubmit} initialStatus={{ formStatus: formStatuses.UPDATE, isFormLocked: true }}>
+    <Formik
+      innerRef={formRef}
+      initialValues={initialValues}
+      enableReinitialize
+      validate={validate}
+      onSubmit={handleSubmit}
+      initialStatus={{ formStatus: formStatuses.UPDATE, isFormLocked: true }}
+    >
       {() => (
         <Form style={{ display: "flex", flexDirection: "column", height: "calc(100dvh - 48px)" }}>
           <FormikToolbar

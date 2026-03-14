@@ -8,7 +8,10 @@ describe("FormikCheckbox", () => {
   it("dovrebbe renderizzare con stato iniziale unchecked (false)", () => {
     render(
       <FormikTestWrapper initialValues={{ attivo: false }}>
-        <FormikCheckbox name="attivo" label="Attivo" />
+        <FormikCheckbox
+          name="attivo"
+          label="Attivo"
+        />
       </FormikTestWrapper>
     );
 
@@ -19,7 +22,10 @@ describe("FormikCheckbox", () => {
   it("dovrebbe renderizzare con stato iniziale checked (true)", () => {
     render(
       <FormikTestWrapper initialValues={{ attivo: true }}>
-        <FormikCheckbox name="attivo" label="Attivo" />
+        <FormikCheckbox
+          name="attivo"
+          label="Attivo"
+        />
       </FormikTestWrapper>
     );
 
@@ -32,7 +38,10 @@ describe("FormikCheckbox", () => {
 
     render(
       <FormikTestWrapper initialValues={{ attivo: false }}>
-        <FormikCheckbox name="attivo" label="Attivo" />
+        <FormikCheckbox
+          name="attivo"
+          label="Attivo"
+        />
       </FormikTestWrapper>
     );
 
@@ -51,7 +60,10 @@ describe("FormikCheckbox", () => {
   it("dovrebbe mostrare la label correttamente", () => {
     render(
       <FormikTestWrapper initialValues={{ newsletter: false }}>
-        <FormikCheckbox name="newsletter" label="Iscriviti alla newsletter" />
+        <FormikCheckbox
+          name="newsletter"
+          label="Iscriviti alla newsletter"
+        />
       </FormikTestWrapper>
     );
 
@@ -64,7 +76,11 @@ describe("FormikCheckbox", () => {
 
     render(
       <FormikTestWrapper initialValues={{ attivo: false }}>
-        <FormikCheckbox name="attivo" label="Attivo" onChange={customOnChange} />
+        <FormikCheckbox
+          name="attivo"
+          label="Attivo"
+          onChange={customOnChange}
+        />
       </FormikTestWrapper>
     );
 

@@ -10,8 +10,15 @@ interface RoleFormProps {
 
 function RoleForm({ onSelectItem }: RoleFormProps) {
   return (
-    <Paper variant="outlined" sx={{ p: 2.5 }}>
-      <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+    <Paper
+      variant="outlined"
+      sx={{ p: 2.5 }}
+    >
+      <Typography
+        variant="subtitle1"
+        fontWeight={600}
+        sx={{ mb: 2 }}
+      >
         Dati Ruolo
       </Typography>
       <div className="grid grid-cols-12 gap-4">
@@ -30,7 +37,13 @@ function RoleForm({ onSelectItem }: RoleFormProps) {
           />
         </div>
         <div className="col-span-12 md:col-span-6">
-          <FormikTextField label="Descrizione" placeholder="Descrizione" name="descrizione" autoComplete="off" fullWidth />
+          <FormikTextField
+            label="Descrizione"
+            placeholder="Descrizione"
+            name="descrizione"
+            autoComplete="off"
+            fullWidth
+          />
         </div>
       </div>
     </Paper>

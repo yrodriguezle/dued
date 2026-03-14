@@ -53,7 +53,12 @@ describe("FormikSearchbox", () => {
   it("dovrebbe renderizzare con il valore iniziale di Formik", () => {
     render(
       <FormikTestWrapper initialValues={{ fornitore: "Fornitore A" }}>
-        <FormikSearchbox name="fornitore" label="Fornitore" options={testOptions} onSelectItem={mockOnSelectItem} />
+        <FormikSearchbox
+          name="fornitore"
+          label="Fornitore"
+          options={testOptions}
+          onSelectItem={mockOnSelectItem}
+        />
       </FormikTestWrapper>
     );
 
@@ -66,7 +71,12 @@ describe("FormikSearchbox", () => {
 
     render(
       <FormikTestWrapper initialValues={{ fornitore: "" }}>
-        <FormikSearchbox name="fornitore" label="Fornitore" options={testOptions} onSelectItem={mockOnSelectItem} />
+        <FormikSearchbox
+          name="fornitore"
+          label="Fornitore"
+          options={testOptions}
+          onSelectItem={mockOnSelectItem}
+        />
       </FormikTestWrapper>
     );
 
@@ -80,7 +90,13 @@ describe("FormikSearchbox", () => {
   it("dovrebbe essere disabilitato quando la prop disabled e' true", () => {
     render(
       <FormikTestWrapper initialValues={{ fornitore: "" }}>
-        <FormikSearchbox name="fornitore" label="Fornitore" options={testOptions} onSelectItem={mockOnSelectItem} disabled />
+        <FormikSearchbox
+          name="fornitore"
+          label="Fornitore"
+          options={testOptions}
+          onSelectItem={mockOnSelectItem}
+          disabled
+        />
       </FormikTestWrapper>
     );
 
@@ -96,8 +112,16 @@ describe("FormikSearchbox", () => {
     });
 
     render(
-      <FormikTestWrapper initialValues={{ fornitore: "" }} validationSchema={schema}>
-        <FormikSearchbox name="fornitore" label="Fornitore" options={testOptions} onSelectItem={mockOnSelectItem} />
+      <FormikTestWrapper
+        initialValues={{ fornitore: "" }}
+        validationSchema={schema}
+      >
+        <FormikSearchbox
+          name="fornitore"
+          label="Fornitore"
+          options={testOptions}
+          onSelectItem={mockOnSelectItem}
+        />
       </FormikTestWrapper>
     );
 
@@ -117,7 +141,12 @@ describe("FormikSearchbox", () => {
 
     render(
       <FormikTestWrapper initialValues={{ fornitore: "" }}>
-        <FormikSearchbox name="fornitore" label="Fornitore" options={testOptions} onSelectItem={mockOnSelectItem} />
+        <FormikSearchbox
+          name="fornitore"
+          label="Fornitore"
+          options={testOptions}
+          onSelectItem={mockOnSelectItem}
+        />
       </FormikTestWrapper>
     );
 

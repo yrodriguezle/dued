@@ -208,14 +208,28 @@ function RoleDetails() {
     >
       {() => (
         <Form noValidate>
-          <FormikToolbar onFormReset={handleResetForm} onDelete={handleDelete} />
-          <Box className="scrollable-box" sx={{ marginTop: 1, paddingX: 2, overflow: "auto", height: "calc(100dvh - 64px - 41px)" }}>
-            <Typography id="view-title" variant="h5" gutterBottom>
+          <FormikToolbar
+            onFormReset={handleResetForm}
+            onDelete={handleDelete}
+          />
+          <Box
+            className="scrollable-box"
+            sx={{ marginTop: 1, paddingX: 2, overflow: "auto", height: "calc(100dvh - 64px - 41px)" }}
+          >
+            <Typography
+              id="view-title"
+              variant="h5"
+              gutterBottom
+            >
               {title}
             </Typography>
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
               <RoleForm onSelectItem={handleSelectedItem} />
-              <RoleMenus menus={data} onGridReady={handleGridReady} selectedIds={selectedRuolo?.menuIds} />
+              <RoleMenus
+                menus={data}
+                onGridReady={handleGridReady}
+                selectedIds={selectedRuolo?.menuIds}
+              />
             </Box>
           </Box>
         </Form>

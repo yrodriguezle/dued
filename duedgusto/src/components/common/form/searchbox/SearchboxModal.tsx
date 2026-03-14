@@ -104,7 +104,12 @@ function SearchboxModal<T extends Record<string, unknown>>({ open, title, items,
   }, []);
 
   return (
-    <Modal open={open} onClose={onClose} aria-labelledby="searchbox-modal-title" onKeyDown={handleKeyDown}>
+    <Modal
+      open={open}
+      onClose={onClose}
+      aria-labelledby="searchbox-modal-title"
+      onKeyDown={handleKeyDown}
+    >
       <Box sx={modalStyle}>
         {/* Header */}
         <Box
@@ -117,10 +122,17 @@ function SearchboxModal<T extends Record<string, unknown>>({ open, title, items,
             borderColor: "divider",
           }}
         >
-          <Typography id="searchbox-modal-title" variant="h6" component="h2">
+          <Typography
+            id="searchbox-modal-title"
+            variant="h6"
+            component="h2"
+          >
             {title}
           </Typography>
-          <IconButton onClick={onClose} size="small">
+          <IconButton
+            onClick={onClose}
+            size="small"
+          >
             <CloseIcon />
           </IconButton>
         </Box>
@@ -149,7 +161,10 @@ function SearchboxModal<T extends Record<string, unknown>>({ open, title, items,
             bgcolor: "action.hover",
           }}
         >
-          <Typography variant="caption" color="text.secondary">
+          <Typography
+            variant="caption"
+            color="text.secondary"
+          >
             Doppio click su una riga o premi Invio per selezionare
           </Typography>
         </Box>

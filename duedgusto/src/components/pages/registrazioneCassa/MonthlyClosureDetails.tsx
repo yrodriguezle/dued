@@ -376,7 +376,10 @@ const MonthlyClosureDetails = () => {
   if (isNewMode) {
     if (!newAnno || !newMese) {
       return (
-        <Alert severity="error" sx={{ m: 2 }}>
+        <Alert
+          severity="error"
+          sx={{ m: 2 }}
+        >
           Parametri anno/mese mancanti.
         </Alert>
       );
@@ -384,10 +387,16 @@ const MonthlyClosureDetails = () => {
     if (autoCreateError) {
       return (
         <Box sx={{ p: 3 }}>
-          <Alert severity="error" sx={{ mb: 2 }}>
+          <Alert
+            severity="error"
+            sx={{ mb: 2 }}
+          >
             {autoCreateError}
           </Alert>
-          <FormikToolbarButton startIcon={<ArrowBackIcon />} onClick={handleBack}>
+          <FormikToolbarButton
+            startIcon={<ArrowBackIcon />}
+            onClick={handleBack}
+          >
             Torna alla lista
           </FormikToolbarButton>
         </Box>
@@ -423,26 +432,46 @@ const MonthlyClosureDetails = () => {
     <Box sx={{ display: "flex", flexDirection: "column", height: "calc(100dvh - 64px)" }}>
       {/* Toolbar */}
       <Box sx={{ borderBottom: 1, borderColor: "divider", bgcolor: "background.paper", flexShrink: 0 }}>
-        <Toolbar variant="dense" disableGutters sx={{ minHeight: 48, height: 48, display: "flex", justifyContent: "space-between" }}>
+        <Toolbar
+          variant="dense"
+          disableGutters
+          sx={{ minHeight: 48, height: 48, display: "flex", justifyContent: "space-between" }}
+        >
           <Box sx={{ height: 48, display: "flex", alignItems: "stretch" }}>
-            <FormikToolbarButton startIcon={<ArrowBackIcon />} onClick={handleBack}>
+            <FormikToolbarButton
+              startIcon={<ArrowBackIcon />}
+              onClick={handleBack}
+            >
               Indietro
             </FormikToolbarButton>
 
             {isDraft && (
-              <FormikToolbarButton startIcon={<SaveIcon />} disabled={isMutating} onClick={handleSaveExpenses}>
+              <FormikToolbarButton
+                startIcon={<SaveIcon />}
+                disabled={isMutating}
+                onClick={handleSaveExpenses}
+              >
                 Salva
               </FormikToolbarButton>
             )}
 
             {isDraft && !isNewMode && (
-              <FormikToolbarButton startIcon={<LockIcon />} disabled={isMutating || hasRegistriMancanti} onClick={handleChiudiMese}>
+              <FormikToolbarButton
+                startIcon={<LockIcon />}
+                disabled={isMutating || hasRegistriMancanti}
+                onClick={handleChiudiMese}
+              >
                 Chiudi Mese
               </FormikToolbarButton>
             )}
 
             {isDraft && !isNewMode && (
-              <FormikToolbarButton startIcon={<DeleteIcon />} color="error" disabled={isMutating} onClick={handleElimina}>
+              <FormikToolbarButton
+                startIcon={<DeleteIcon />}
+                color="error"
+                disabled={isMutating}
+                onClick={handleElimina}
+              >
                 Elimina
               </FormikToolbarButton>
             )}
@@ -451,8 +480,15 @@ const MonthlyClosureDetails = () => {
           <Box sx={{ display: "flex", alignItems: "center", height: 48, gap: 0.5, pr: 1 }}>
             {/* Badge giorni mancanti */}
             {isDraft && hasGiorniDaGestire && (
-              <IconButton onClick={() => setGiorniMancantiModalOpen(true)} size="small">
-                <Badge badgeContent={giorniEffettivamenteMancanti.length} color="error" invisible={!hasRegistriMancanti}>
+              <IconButton
+                onClick={() => setGiorniMancantiModalOpen(true)}
+                size="small"
+              >
+                <Badge
+                  badgeContent={giorniEffettivamenteMancanti.length}
+                  color="error"
+                  invisible={!hasRegistriMancanti}
+                >
                   <EventBusyIcon color={hasRegistriMancanti ? "error" : "action"} />
                 </Badge>
               </IconButton>
@@ -466,7 +502,10 @@ const MonthlyClosureDetails = () => {
       <Box sx={{ flex: 1, overflow: "auto", minHeight: 0, px: 2, py: 2 }}>
         {/* Alert registri non riconciliati */}
         {registriNonRiconciliati.length > 0 && (
-          <Alert severity="warning" sx={{ mb: 2 }}>
+          <Alert
+            severity="warning"
+            sx={{ mb: 2 }}
+          >
             {registriNonRiconciliati.length} registr{registriNonRiconciliati.length === 1 ? "o" : "i"} giornalier{registriNonRiconciliati.length === 1 ? "o" : "i"} non riconciliat
             {registriNonRiconciliati.length === 1 ? "o" : "i"}. La chiusura \u00E8 possibile, ma si consiglia la riconciliazione per maggiore accuratezza.
           </Alert>
@@ -475,53 +514,103 @@ const MonthlyClosureDetails = () => {
         <div className="grid grid-cols-12 gap-4">
           {/* Riepilogo compatto — metriche in strip */}
           <div className="col-span-8">
-            <Paper elevation={1} sx={{ p: 2 }}>
+            <Paper
+              elevation={1}
+              sx={{ p: 2 }}
+            >
               <div className="grid grid-cols-12 gap-4">
                 <div className="col-span-6 sm:col-span-4 md:col-span-2">
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mb: 0.5 }}
+                  >
                     Ricavo Netto
                   </Typography>
-                  <Typography variant="h5" fontWeight="bold" color="primary.main">
+                  <Typography
+                    variant="h5"
+                    fontWeight="bold"
+                    color="primary.main"
+                  >
                     {`\u20AC ${chiusuraMensile.ricavoNettoCalcolato.toFixed(2)}`}
                   </Typography>
                 </div>
                 <div className="col-span-6 sm:col-span-4 md:col-span-2">
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mb: 0.5 }}
+                  >
                     Totale Vendite
                   </Typography>
-                  <Typography variant="h6" fontWeight="bold" color="warning.main">
+                  <Typography
+                    variant="h6"
+                    fontWeight="bold"
+                    color="warning.main"
+                  >
                     {`\u20AC ${totaleVendite.toFixed(2)}`}
                   </Typography>
                 </div>
                 <div className="col-span-6 sm:col-span-4 md:col-span-2">
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mb: 0.5 }}
+                  >
                     Contanti
                   </Typography>
-                  <Typography variant="h6" fontWeight="bold" color="success.main">
+                  <Typography
+                    variant="h6"
+                    fontWeight="bold"
+                    color="success.main"
+                  >
                     {`\u20AC ${chiusuraMensile.totaleContantiCalcolato.toFixed(2)}`}
                   </Typography>
                 </div>
                 <div className="col-span-6 sm:col-span-4 md:col-span-2">
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mb: 0.5 }}
+                  >
                     Elettronici
                   </Typography>
-                  <Typography variant="h6" fontWeight="bold" color="success.main">
+                  <Typography
+                    variant="h6"
+                    fontWeight="bold"
+                    color="success.main"
+                  >
                     {`\u20AC ${chiusuraMensile.totaleElettroniciCalcolato.toFixed(2)}`}
                   </Typography>
                 </div>
                 <div className="col-span-6 sm:col-span-4 md:col-span-2">
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mb: 0.5 }}
+                  >
                     Fatture
                   </Typography>
-                  <Typography variant="h6" fontWeight="bold">
+                  <Typography
+                    variant="h6"
+                    fontWeight="bold"
+                  >
                     {`\u20AC ${chiusuraMensile.totaleFattureCalcolato.toFixed(2)}`}
                   </Typography>
                 </div>
                 <div className="col-span-6 sm:col-span-4 md:col-span-2">
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mb: 0.5 }}
+                  >
                     Spese
                   </Typography>
-                  <Typography variant="h6" fontWeight="bold" color="error.main">
+                  <Typography
+                    variant="h6"
+                    fontWeight="bold"
+                    color="error.main"
+                  >
                     {`-\u20AC ${chiusuraMensile.speseAggiuntiveCalcolate.toFixed(2)}`}
                   </Typography>
                 </div>
@@ -530,21 +619,36 @@ const MonthlyClosureDetails = () => {
               {/* Sub-dettaglio fiscale */}
               <Divider sx={{ my: 1.5 }} />
               <Box sx={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
-                <Typography variant="body2" color="text.secondary">
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                >
                   Lordo: {`\u20AC ${chiusuraMensile.totaleLordoCalcolato.toFixed(2)}`}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                >
                   Imponibile: {`\u20AC ${chiusuraMensile.totaleImponibileCalcolato.toFixed(2)}`}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                >
                   IVA: {`\u20AC ${chiusuraMensile.totaleIvaCalcolato.toFixed(2)}`}
                 </Typography>
                 {chiusuraMensile.totaleDifferenzeCassaCalcolato !== 0 && (
-                  <Typography variant="body2" color={chiusuraMensile.totaleDifferenzeCassaCalcolato < 0 ? "error.main" : "success.main"}>
+                  <Typography
+                    variant="body2"
+                    color={chiusuraMensile.totaleDifferenzeCassaCalcolato < 0 ? "error.main" : "success.main"}
+                  >
                     Differenze cassa: {`\u20AC ${chiusuraMensile.totaleDifferenzeCassaCalcolato.toFixed(2)}`}
                   </Typography>
                 )}
-                <Typography variant="body2" color="text.secondary">
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                >
                   {registriInclusi.length} registri inclusi
                   {giorniEsclusiParsed.length > 0 && ` \u00B7 ${giorniEsclusiParsed.length} giorni esclusi`}
                 </Typography>
@@ -555,8 +659,15 @@ const MonthlyClosureDetails = () => {
           {/* Registri Giornalieri Inclusi */}
           {registriInclusi.length > 0 && (
             <div className="col-span-12">
-              <Paper elevation={1} sx={{ p: 2 }}>
-                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+              <Paper
+                elevation={1}
+                sx={{ p: 2 }}
+              >
+                <Typography
+                  variant="subtitle1"
+                  fontWeight="bold"
+                  gutterBottom
+                >
                   Registri Giornalieri ({registriInclusi.length})
                 </Typography>
                 <TableContainer>
@@ -580,7 +691,10 @@ const MonthlyClosureDetails = () => {
                           <TableCell align="right">{`\u20AC ${(ri.registro.incassoContanteTracciato ?? 0).toFixed(2)}`}</TableCell>
                           <TableCell align="right">{`\u20AC ${(ri.registro.incassiElettronici ?? 0).toFixed(2)}`}</TableCell>
                           <TableCell align="right">{`\u20AC ${(ri.registro.incassiFattura ?? 0).toFixed(2)}`}</TableCell>
-                          <TableCell align="right" sx={{ color: (ri.registro as { differenza?: number }).differenza !== 0 ? "error.main" : "inherit" }}>
+                          <TableCell
+                            align="right"
+                            sx={{ color: (ri.registro as { differenza?: number }).differenza !== 0 ? "error.main" : "inherit" }}
+                          >
                             {`\u20AC ${((ri.registro as { differenza?: number }).differenza ?? 0).toFixed(2)}`}
                           </TableCell>
                           <TableCell>
@@ -602,14 +716,25 @@ const MonthlyClosureDetails = () => {
 
           {/* Spese Mensili Libere */}
           <div className="col-span-12">
-            <MonthlyExpensesDataGrid ref={expensesGridRef} expenses={chiusuraMensile?.speseLibere ?? []} readOnly={isReadOnly} />
+            <MonthlyExpensesDataGrid
+              ref={expensesGridRef}
+              expenses={chiusuraMensile?.speseLibere ?? []}
+              readOnly={isReadOnly}
+            />
           </div>
 
           {/* Pagamenti Fornitori Inclusi */}
           {chiusuraMensile.pagamentiInclusi.length > 0 && (
             <div className="col-span-12">
-              <Paper elevation={1} sx={{ p: 2 }}>
-                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+              <Paper
+                elevation={1}
+                sx={{ p: 2 }}
+              >
+                <Typography
+                  variant="subtitle1"
+                  fontWeight="bold"
+                  gutterBottom
+                >
                   Pagamenti Fornitori ({chiusuraMensile.pagamentiInclusi.length})
                 </Typography>
                 <TableContainer>
@@ -641,7 +766,10 @@ const MonthlyClosureDetails = () => {
           {/* Info chiusura */}
           {chiusuraMensile.stato !== "BOZZA" && chiusuraMensile.chiusaDaUtente && (
             <div className="col-span-12">
-              <Typography variant="body2" color="text.secondary">
+              <Typography
+                variant="body2"
+                color="text.secondary"
+              >
                 Chiusa da {chiusuraMensile.chiusaDaUtente.nomeUtente} il {dayjs(chiusuraMensile.chiusaIl).format("DD/MM/YYYY HH:mm")}
               </Typography>
             </div>
@@ -657,13 +785,22 @@ const MonthlyClosureDetails = () => {
       </Box>
 
       {/* Dialog: Gestione Giorni Mancanti ed Esclusi */}
-      <Dialog open={giorniMancantiModalOpen} onClose={() => setGiorniMancantiModalOpen(false)} maxWidth="md" fullWidth>
+      <Dialog
+        open={giorniMancantiModalOpen}
+        onClose={() => setGiorniMancantiModalOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
         <DialogTitle>Gestione Giorni</DialogTitle>
         <DialogContent dividers>
           {/* Giorni mancanti da escludere */}
           {esclusioniLocali.length > 0 && (
             <Box sx={{ mb: giorniEsclusiParsed.length > 0 ? 3 : 0 }}>
-              <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
+              <Typography
+                variant="subtitle1"
+                fontWeight="bold"
+                sx={{ mb: 1 }}
+              >
                 Giorni Mancanti da Escludere ({esclusioniLocali.length})
               </Typography>
               <TableContainer>
@@ -686,7 +823,10 @@ const MonthlyClosureDetails = () => {
                     {esclusioniLocali.map((esclusione, idx) => (
                       <TableRow key={esclusione.data}>
                         <TableCell padding="checkbox">
-                          <Checkbox checked={esclusione.selected} onChange={(e) => setEsclusioniLocali((prev) => prev.map((el, i) => (i === idx ? { ...el, selected: e.target.checked } : el)))} />
+                          <Checkbox
+                            checked={esclusione.selected}
+                            onChange={(e) => setEsclusioniLocali((prev) => prev.map((el, i) => (i === idx ? { ...el, selected: e.target.checked } : el)))}
+                          />
                         </TableCell>
                         <TableCell>
                           {dayjs(esclusione.data).format("DD/MM/YYYY")} ({dayjs(esclusione.data).format("dddd")})
@@ -719,7 +859,11 @@ const MonthlyClosureDetails = () => {
                 </Table>
               </TableContainer>
               <Box sx={{ mt: 1.5, display: "flex", justifyContent: "flex-end" }}>
-                <Button variant="contained" disabled={isMutating || !esclusioniLocali.some((e) => e.selected)} onClick={handleEscludiSelezionati}>
+                <Button
+                  variant="contained"
+                  disabled={isMutating || !esclusioniLocali.some((e) => e.selected)}
+                  onClick={handleEscludiSelezionati}
+                >
                   {excludeLoading ? <CircularProgress size={20} /> : `Escludi Selezionati (${esclusioniLocali.filter((e) => e.selected).length})`}
                 </Button>
               </Box>
@@ -732,7 +876,11 @@ const MonthlyClosureDetails = () => {
           {/* Giorni già esclusi */}
           {giorniEsclusiParsed.length > 0 && (
             <Box>
-              <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
+              <Typography
+                variant="subtitle1"
+                fontWeight="bold"
+                sx={{ mb: 1 }}
+              >
                 Giorni Già Esclusi ({giorniEsclusiParsed.length})
               </Typography>
               <TableContainer>
@@ -757,7 +905,12 @@ const MonthlyClosureDetails = () => {
                         <TableCell>{dayjs(ge.dataEsclusione).format("DD/MM/YYYY HH:mm")}</TableCell>
                         {isDraft && (
                           <TableCell align="center">
-                            <IconButton size="small" color="error" disabled={isMutating} onClick={() => handleRimuoviEsclusione(dayjs(ge.data).format("YYYY-MM-DD"))}>
+                            <IconButton
+                              size="small"
+                              color="error"
+                              disabled={isMutating}
+                              onClick={() => handleRimuoviEsclusione(dayjs(ge.data).format("YYYY-MM-DD"))}
+                            >
                               <RemoveCircleOutlineIcon />
                             </IconButton>
                           </TableCell>

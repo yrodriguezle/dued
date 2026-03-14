@@ -15,7 +15,10 @@ interface PersonaProps extends AvatarProps {
 }
 
 function Persona({ text, ...otherProps }: PersonaProps) {
-  return <Avatar {...stringAvatar(text)} {...otherProps} />;
+  return <Avatar
+    {...stringAvatar(text)}
+    {...otherProps}
+  />;
 }
 
 export default Persona;

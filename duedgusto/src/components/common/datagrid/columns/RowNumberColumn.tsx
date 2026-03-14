@@ -24,7 +24,10 @@ function RowNumberCellRenderer<T extends Record<string, unknown>>(props: ICellRe
           height: "100%",
         }}
       >
-        <Edit sx={{ fontSize: 16, color: "primary.main" }} aria-label="Riga in editing" />
+        <Edit
+          sx={{ fontSize: 16, color: "primary.main" }}
+          aria-label="Riga in editing"
+        />
       </Box>
     );
   }
@@ -40,7 +43,10 @@ function RowNumberCellRenderer<T extends Record<string, unknown>>(props: ICellRe
           height: "100%",
         }}
       >
-        <Error sx={{ fontSize: 16, color: "error.main" }} aria-label="Errore di validazione" />
+        <Error
+          sx={{ fontSize: 16, color: "error.main" }}
+          aria-label="Errore di validazione"
+        />
       </Box>
     );
   }

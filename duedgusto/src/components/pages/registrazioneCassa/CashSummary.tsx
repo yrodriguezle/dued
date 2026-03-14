@@ -62,10 +62,17 @@ function CashSummary({ openingGridRef, closingGridRef, incomesGridRef, expensesG
 
   const SummaryRow = ({ label, value, bold = false, highlight = false }: { label: string; value: number; bold?: boolean; highlight?: boolean }) => (
     <Box sx={{ display: "flex", justifyContent: "space-between", py: 0.5 }}>
-      <Typography variant={bold ? "subtitle1" : "body2"} fontWeight={bold ? "bold" : "normal"}>
+      <Typography
+        variant={bold ? "subtitle1" : "body2"}
+        fontWeight={bold ? "bold" : "normal"}
+      >
         {label}
       </Typography>
-      <Typography variant={bold ? "subtitle1" : "body2"} fontWeight={bold ? "bold" : "normal"} color={highlight ? (value >= 0 ? "success.main" : "error.main") : "inherit"}>
+      <Typography
+        variant={bold ? "subtitle1" : "body2"}
+        fontWeight={bold ? "bold" : "normal"}
+        color={highlight ? (value >= 0 ? "success.main" : "error.main") : "inherit"}
+      >
         {value >= 0 ? "+" : ""}
         {value.toFixed(2)}€
       </Typography>
@@ -74,35 +81,83 @@ function CashSummary({ openingGridRef, closingGridRef, incomesGridRef, expensesG
 
   return (
     <Box>
-      <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold", mb: 2 }}>
+      <Typography
+        variant="h6"
+        gutterBottom
+        sx={{ fontWeight: "bold", mb: 2 }}
+      >
         Riepilogo Vendite
       </Typography>
-      <Paper variant="outlined" sx={{ p: 2 }}>
-        <SummaryRow label="Totale Cassa" value={closingTotal} bold />
-        <SummaryRow label="(-) Apertura" value={-openingTotal} />
+      <Paper
+        variant="outlined"
+        sx={{ p: 2 }}
+      >
+        <SummaryRow
+          label="Totale Cassa"
+          value={closingTotal}
+          bold
+        />
+        <SummaryRow
+          label="(-) Apertura"
+          value={-openingTotal}
+        />
         <Divider sx={{ my: 1 }} />
-        <SummaryRow label="Incasso Giornaliero" value={dailyIncome} bold />
+        <SummaryRow
+          label="Incasso Giornaliero"
+          value={dailyIncome}
+          bold
+        />
 
         <Box sx={{ mt: 2 }}>
-          <SummaryRow label="Pago in contanti" value={cashInWhite} />
-          <SummaryRow label="Pagamenti Elettronici" value={electronicPayments} />
-          <SummaryRow label="Pagamento con Fattura" value={invoicePayments} />
+          <SummaryRow
+            label="Pago in contanti"
+            value={cashInWhite}
+          />
+          <SummaryRow
+            label="Pagamenti Elettronici"
+            value={electronicPayments}
+          />
+          <SummaryRow
+            label="Pagamento con Fattura"
+            value={invoicePayments}
+          />
           <Divider sx={{ my: 1 }} />
-          <SummaryRow label="Totale Vendite" value={totalSales} bold />
+          <SummaryRow
+            label="Totale Vendite"
+            value={totalSales}
+            bold
+          />
         </Box>
 
         <Box sx={{ mt: 2 }}>
-          <SummaryRow label="Spese Totali" value={-totalExpenses} />
+          <SummaryRow
+            label="Spese Totali"
+            value={-totalExpenses}
+          />
           <Divider sx={{ my: 1 }} />
-          <SummaryRow label="Contante Atteso" value={expectedCash} />
+          <SummaryRow
+            label="Contante Atteso"
+            value={expectedCash}
+          />
         </Box>
 
         <Divider sx={{ my: 2 }} />
-        <SummaryRow label="Differenza (ECC)" value={difference} bold highlight />
-        <SummaryRow label="IVA (10%)" value={vatAmount} />
+        <SummaryRow
+          label="Differenza (ECC)"
+          value={difference}
+          bold
+          highlight
+        />
+        <SummaryRow
+          label="IVA (10%)"
+          value={vatAmount}
+        />
 
         {hasDifference && (
-          <Alert severity={difference > 0 ? "warning" : "error"} sx={{ mt: 2 }}>
+          <Alert
+            severity={difference > 0 ? "warning" : "error"}
+            sx={{ mt: 2 }}
+          >
             Attenzione: la differenza di cassa supera la soglia di 5€
           </Alert>
         )}

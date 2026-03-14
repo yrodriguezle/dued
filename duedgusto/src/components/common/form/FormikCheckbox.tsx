@@ -37,10 +37,20 @@ interface FormikCheckboxProps<Values> extends Omit<CheckboxProps, "onChange" | "
 
 function FormikCheckbox<Values>({ name, label, params, onChange, ...props }: FormikCheckboxProps<Values>) {
   return (
-    <FastField name={name} params={{ params }}>
+    <FastField
+      name={name}
+      params={{ params }}
+    >
       {({ field, form }: FastFieldProps) => (
         <FormControlLabel
-          control={<Checkbox id={field.name} checked={Boolean(field.value)} onChange={(event) => handleChange(event, field, form, onChange)} color="primary" disabled={form.isSubmitting} {...props} />}
+          control={<Checkbox
+            id={field.name}
+            checked={Boolean(field.value)}
+            onChange={(event) => handleChange(event, field, form, onChange)}
+            color="primary"
+            disabled={form.isSubmitting}
+            {...props}
+          />}
           label={<Typography variant="body1">{label}</Typography>}
         />
       )}

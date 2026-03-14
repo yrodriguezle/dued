@@ -248,7 +248,11 @@ function ListaRegistrazioneCassa() {
             RECONCILED: "Riconciliata",
           };
           const status = params.value as string;
-          return <Chip label={statusLabels[status] || status} color={statusColors[status] || "default"} size="small" />;
+          return <Chip
+            label={statusLabels[status] || status}
+            color={statusColors[status] || "default"}
+            size="small"
+          />;
         },
       },
     ],
@@ -257,9 +261,17 @@ function ListaRegistrazioneCassa() {
 
   return (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
-      <ListToolbar onNew={handleNew} onDelete={handleDelete} disabledDelete={selectedRows.length === 0} />
+      <ListToolbar
+        onNew={handleNew}
+        onDelete={handleDelete}
+        disabledDelete={selectedRows.length === 0}
+      />
       <Box sx={{ marginTop: 1, paddingX: 2 }}>
-        <Typography id="view-title" variant="h5" gutterBottom>
+        <Typography
+          id="view-title"
+          variant="h5"
+          gutterBottom
+        >
           {title}
         </Typography>
       </Box>

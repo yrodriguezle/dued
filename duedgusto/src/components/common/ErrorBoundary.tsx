@@ -87,11 +87,20 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
                 }}
               />
 
-              <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: "bold" }}>
+              <Typography
+                variant="h4"
+                component="h1"
+                gutterBottom
+                sx={{ fontWeight: "bold" }}
+              >
                 Oops! Qualcosa è andato storto
               </Typography>
 
-              <Typography variant="body1" color="text.secondary" sx={{ marginY: 2 }}>
+              <Typography
+                variant="body1"
+                color="text.secondary"
+                sx={{ marginY: 2 }}
+              >
                 Ci scusiamo per l'inconveniente. Un errore inatteso ha interrotto l'applicazione.
               </Typography>
 
@@ -107,7 +116,10 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
                     overflow: "auto",
                   }}
                 >
-                  <Typography variant="subtitle2" sx={{ fontWeight: "bold", marginBottom: 1 }}>
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ fontWeight: "bold", marginBottom: 1 }}
+                  >
                     Dettagli errore (solo sviluppo):
                   </Typography>
                   <Typography
@@ -141,10 +153,18 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
               )}
 
               <Box sx={{ display: "flex", gap: 2, justifyContent: "center", marginTop: 3 }}>
-                <Button variant="contained" color="primary" onClick={this.handleReload}>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={this.handleReload}
+                >
                   Ricarica la Pagina
                 </Button>
-                <Button variant="outlined" color="primary" onClick={this.handleReset}>
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  onClick={this.handleReset}
+                >
                   Vai al Dashboard
                 </Button>
               </Box>

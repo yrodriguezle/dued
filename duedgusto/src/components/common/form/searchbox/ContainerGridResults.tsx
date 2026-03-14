@@ -53,7 +53,13 @@ function ContainerGridResults<T extends Record<string, unknown>>({ searchBoxId, 
         height: "30vh",
       }}
     >
-      <GridResults<T> loading={loading} items={items} columnDefs={columnDefs} onSelectedItem={onSelectedItem} onGridReady={onGridReady} />
+      <GridResults<T>
+        loading={loading}
+        items={items}
+        columnDefs={columnDefs}
+        onSelectedItem={onSelectedItem}
+        onGridReady={onGridReady}
+      />
     </Paper>
   );
 }

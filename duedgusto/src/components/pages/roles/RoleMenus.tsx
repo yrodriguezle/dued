@@ -113,7 +113,12 @@ function RoleMenus({ menus, onGridReady, selectedIds }: RoleMenusProps) {
         filter: true,
         sortable: true,
         width: 120,
-        cellRenderer: ({ value }: { value: boolean }) => <Chip label={value ? "Si" : "No"} size="small" color={value ? "success" : "default"} variant="outlined" />,
+        cellRenderer: ({ value }: { value: boolean }) => <Chip
+          label={value ? "Si" : "No"}
+          size="small"
+          color={value ? "success" : "default"}
+          variant="outlined"
+        />,
       },
     ],
     []
@@ -129,17 +134,31 @@ function RoleMenus({ menus, onGridReady, selectedIds }: RoleMenusProps) {
   );
 
   return (
-    <Paper variant="outlined" sx={{ p: 2.5 }}>
+    <Paper
+      variant="outlined"
+      sx={{ p: 2.5 }}
+    >
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
         <Box>
-          <Typography variant="subtitle1" fontWeight={600}>
+          <Typography
+            variant="subtitle1"
+            fontWeight={600}
+          >
             Permessi Menu
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography
+            variant="body2"
+            color="text.secondary"
+          >
             Seleziona i menu accessibili per questo ruolo
           </Typography>
         </Box>
-        {selectedCount > 0 && <Chip label={`${selectedCount} menu selezionat${selectedCount === 1 ? "o" : "i"}`} size="small" color="primary" variant="outlined" />}
+        {selectedCount > 0 && <Chip
+          label={`${selectedCount} menu selezionat${selectedCount === 1 ? "o" : "i"}`}
+          size="small"
+          color="primary"
+          variant="outlined"
+        />}
       </Box>
       <Datagrid<MenuNonNull>
         presentation

@@ -61,7 +61,11 @@ const MenuIconEditor = (props: CustomCellEditorProps) => {
         renderOption={(props, option) => {
           const { key, ...rest } = props;
           return (
-            <li key={key} {...rest} style={{ display: "flex", alignItems: "center" }}>
+            <li
+              key={key}
+              {...rest}
+              style={{ display: "flex", alignItems: "center" }}
+            >
               {option && <IconFactory name={option} />}
               <span style={{ marginLeft: 8 }}>{option}</span>
             </li>
@@ -75,10 +79,18 @@ const MenuIconEditor = (props: CustomCellEditorProps) => {
               sx: { marginX: 1 },
             },
           };
-          return <TextField {...inputProps} inputRef={inputRef} variant="standard" placeholder="Icona" />;
+          return <TextField
+            {...inputProps}
+            inputRef={inputRef}
+            variant="standard"
+            placeholder="Icona"
+          />;
         }}
       />
-      <FloatingPopper anchorEl="#menu-editor-id" open>
+      <FloatingPopper
+        anchorEl="#menu-editor-id"
+        open
+      >
         FloatingPopper
       </FloatingPopper>
     </div>

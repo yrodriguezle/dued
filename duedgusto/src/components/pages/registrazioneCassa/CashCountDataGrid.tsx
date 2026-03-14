@@ -197,7 +197,11 @@ const CashCountDataGrid = memo(
 
     return (
       <Box>
-        <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold", mb: 0 }}>
+        <Typography
+          variant="h6"
+          gutterBottom
+          sx={{ fontWeight: "bold", mb: 0 }}
+        >
           {title}
         </Typography>
         <Box

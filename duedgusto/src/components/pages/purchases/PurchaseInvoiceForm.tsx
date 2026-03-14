@@ -205,8 +205,15 @@ function PurchaseInvoiceForm({ onSelectSupplier, onSelectInvoice, deliveryNotes,
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
       {/* Sezione: Fornitore */}
-      <Paper variant="outlined" sx={{ p: 2.5 }}>
-        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+      <Paper
+        variant="outlined"
+        sx={{ p: 2.5 }}
+      >
+        <Typography
+          variant="subtitle1"
+          fontWeight={600}
+          sx={{ mb: 2 }}
+        >
           Fornitore
         </Typography>
         <div className="grid grid-cols-12 gap-4">
@@ -223,14 +230,25 @@ function PurchaseInvoiceForm({ onSelectSupplier, onSelectInvoice, deliveryNotes,
             />
           </div>
           <div className="col-span-12 md:col-span-4 flex items-center">
-            {isUpdate && values.invoiceStatus && <Chip label={statusLabelMap[values.invoiceStatus] ?? values.invoiceStatus} color={statusColorMap[values.invoiceStatus] ?? "default"} size="medium" />}
+            {isUpdate && values.invoiceStatus && <Chip
+              label={statusLabelMap[values.invoiceStatus] ?? values.invoiceStatus}
+              color={statusColorMap[values.invoiceStatus] ?? "default"}
+              size="medium"
+            />}
           </div>
         </div>
       </Paper>
 
       {/* Sezione: Dati Fattura */}
-      <Paper variant="outlined" sx={{ p: 2.5 }}>
-        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+      <Paper
+        variant="outlined"
+        sx={{ p: 2.5 }}
+      >
+        <Typography
+          variant="subtitle1"
+          fontWeight={600}
+          sx={{ mb: 2 }}
+        >
           Dati Fattura
         </Typography>
         <div className="grid grid-cols-12 gap-4">
@@ -247,51 +265,116 @@ function PurchaseInvoiceForm({ onSelectSupplier, onSelectInvoice, deliveryNotes,
             />
           </div>
           <div className="col-span-12 md:col-span-4">
-            <FormikTextField name="invoiceDate" label="Data Fattura *" type="date" fullWidth slotProps={{ inputLabel: { shrink: true } }} sx={{ "& input": { colorScheme: dateColorScheme } }} />
+            <FormikTextField
+              name="invoiceDate"
+              label="Data Fattura *"
+              type="date"
+              fullWidth
+              slotProps={{ inputLabel: { shrink: true } }}
+              sx={{ "& input": { colorScheme: dateColorScheme } }}
+            />
           </div>
           <div className="col-span-12 md:col-span-4">
-            <FormikTextField name="dueDate" label="Data Scadenza" type="date" fullWidth slotProps={{ inputLabel: { shrink: true } }} sx={{ "& input": { colorScheme: dateColorScheme } }} />
+            <FormikTextField
+              name="dueDate"
+              label="Data Scadenza"
+              type="date"
+              fullWidth
+              slotProps={{ inputLabel: { shrink: true } }}
+              sx={{ "& input": { colorScheme: dateColorScheme } }}
+            />
           </div>
         </div>
       </Paper>
 
       {/* Sezione: Importi */}
-      <Paper variant="outlined" sx={{ p: 2.5 }}>
-        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+      <Paper
+        variant="outlined"
+        sx={{ p: 2.5 }}
+      >
+        <Typography
+          variant="subtitle1"
+          fontWeight={600}
+          sx={{ mb: 2 }}
+        >
           Importi
         </Typography>
         <div className="grid grid-cols-12 gap-4">
           <div className="col-span-12 md:col-span-3">
-            <FormikTextField name="taxableAmount" label="Imponibile *" type="number" fullWidth slotProps={{ htmlInput: { step: "0.01", min: "0" } }} />
+            <FormikTextField
+              name="taxableAmount"
+              label="Imponibile *"
+              type="number"
+              fullWidth
+              slotProps={{ htmlInput: { step: "0.01", min: "0" } }}
+            />
           </div>
           <div className="col-span-12 md:col-span-3">
-            <FormikTextField name="vatRate" label="Aliquota IVA %" type="number" fullWidth slotProps={{ htmlInput: { step: "0.01", min: "0", max: "100" } }} />
+            <FormikTextField
+              name="vatRate"
+              label="Aliquota IVA %"
+              type="number"
+              fullWidth
+              slotProps={{ htmlInput: { step: "0.01", min: "0", max: "100" } }}
+            />
           </div>
           <div className="col-span-12 md:col-span-3">
-            <FormikTextField name="_vatAmount" label="IVA Calcolata" fullWidth disabled value={vatAmount.toFixed(2)} />
+            <FormikTextField
+              name="_vatAmount"
+              label="IVA Calcolata"
+              fullWidth
+              disabled
+              value={vatAmount.toFixed(2)}
+            />
           </div>
           <div className="col-span-12 md:col-span-3">
-            <FormikTextField name="_totalAmount" label="Totale con IVA" fullWidth disabled value={totalAmount.toFixed(2)} />
+            <FormikTextField
+              name="_totalAmount"
+              label="Totale con IVA"
+              fullWidth
+              disabled
+              value={totalAmount.toFixed(2)}
+            />
           </div>
         </div>
       </Paper>
 
       {/* Sezione: Note */}
-      <Paper variant="outlined" sx={{ p: 2.5 }}>
-        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+      <Paper
+        variant="outlined"
+        sx={{ p: 2.5 }}
+      >
+        <Typography
+          variant="subtitle1"
+          fontWeight={600}
+          sx={{ mb: 2 }}
+        >
           Note
         </Typography>
         <div className="grid grid-cols-12 gap-4">
           <div className="col-span-12">
-            <FormikTextField name="notes" label="Note" fullWidth multiline rows={3} />
+            <FormikTextField
+              name="notes"
+              label="Note"
+              fullWidth
+              multiline
+              rows={3}
+            />
           </div>
         </div>
       </Paper>
 
       {/* Sezione: DDT - solo in UPDATE */}
       {isUpdate && values.invoiceId && (
-        <Paper variant="outlined" sx={{ p: 2.5 }}>
-          <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+        <Paper
+          variant="outlined"
+          sx={{ p: 2.5 }}
+        >
+          <Typography
+            variant="subtitle1"
+            fontWeight={600}
+            sx={{ mb: 2 }}
+          >
             Documenti di Trasporto (DDT)
           </Typography>
           <Datagrid<DeliveryNoteRow>
@@ -308,8 +391,15 @@ function PurchaseInvoiceForm({ onSelectSupplier, onSelectInvoice, deliveryNotes,
 
       {/* Sezione: Pagamenti - solo in UPDATE */}
       {isUpdate && values.invoiceId && (
-        <Paper variant="outlined" sx={{ p: 2.5 }}>
-          <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+        <Paper
+          variant="outlined"
+          sx={{ p: 2.5 }}
+        >
+          <Typography
+            variant="subtitle1"
+            fontWeight={600}
+            sx={{ mb: 2 }}
+          >
             Pagamenti
           </Typography>
           <Datagrid<PaymentRow>

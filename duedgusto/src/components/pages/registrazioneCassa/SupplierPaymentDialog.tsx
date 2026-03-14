@@ -88,8 +88,17 @@ function SupplierPaymentDialog({ open, onClose, onConfirm }: SupplierPaymentDial
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth PaperProps={{ sx: { overflow: "visible" } }}>
-      <Formik initialValues={initialValues} onSubmit={handleConfirm}>
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      maxWidth="sm"
+      fullWidth
+      PaperProps={{ sx: { overflow: "visible" } }}
+    >
+      <Formik
+        initialValues={initialValues}
+        onSubmit={handleConfirm}
+      >
         {() => (
           <Form noValidate>
             <DialogTitle>Pagamento Fornitore</DialogTitle>
@@ -125,9 +134,19 @@ function SupplierPaymentDialog({ open, onClose, onConfirm }: SupplierPaymentDial
                   </div>
                   <div className="col-span-12">
                     {documentType === "DDT" ? (
-                      <TextField label="Numero DDT" fullWidth value={ddtNumber} onChange={(e) => setDdtNumber(e.target.value)} />
+                      <TextField
+                        label="Numero DDT"
+                        fullWidth
+                        value={ddtNumber}
+                        onChange={(e) => setDdtNumber(e.target.value)}
+                      />
                     ) : (
-                      <TextField label="Numero Fattura" fullWidth value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} />
+                      <TextField
+                        label="Numero Fattura"
+                        fullWidth
+                        value={invoiceNumber}
+                        onChange={(e) => setInvoiceNumber(e.target.value)}
+                      />
                     )}
                   </div>
                   <div className="col-span-12 md:col-span-6">
@@ -143,7 +162,11 @@ function SupplierPaymentDialog({ open, onClose, onConfirm }: SupplierPaymentDial
                   <div className="col-span-12 md:col-span-6">
                     <FormControl fullWidth>
                       <InputLabel>Metodo Pagamento</InputLabel>
-                      <Select value={paymentMethod} label="Metodo Pagamento" onChange={(e) => setPaymentMethod(e.target.value)}>
+                      <Select
+                        value={paymentMethod}
+                        label="Metodo Pagamento"
+                        onChange={(e) => setPaymentMethod(e.target.value)}
+                      >
                         <MenuItem value="Contanti">Contanti</MenuItem>
                         <MenuItem value="Bonifico">Bonifico</MenuItem>
                       </Select>
@@ -154,7 +177,11 @@ function SupplierPaymentDialog({ open, onClose, onConfirm }: SupplierPaymentDial
             </DialogContent>
             <DialogActions>
               <Button onClick={handleClose}>Annulla</Button>
-              <Button type="submit" variant="contained" disabled={!supplierId || !amount}>
+              <Button
+                type="submit"
+                variant="contained"
+                disabled={!supplierId || !amount}
+              >
                 Conferma
               </Button>
             </DialogActions>

@@ -2,6 +2,7 @@ import js from "@eslint/js";
 import globals from "globals";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
+import reactPlugin from "eslint-plugin-react";
 import tseslint from "typescript-eslint";
 import prettier from "eslint-config-prettier";
 
@@ -23,6 +24,18 @@ export default tseslint.config(
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "no-console": "warn",
       "object-shorthand": ["error", "always"],
+    },
+  },
+  {
+    files: ["**/*.{ts,tsx}"],
+    plugins: {
+      react: reactPlugin,
+    },
+    rules: {
+      "react/jsx-max-props-per-line": ["error", { maximum: 1 }],
+      "react/jsx-first-prop-new-line": ["error", "multiline-multiprop"],
+      "react/jsx-indent-props": ["error", 2],
+      "react/jsx-closing-bracket-location": ["error", "line-aligned"],
     },
   }
 );

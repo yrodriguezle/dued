@@ -61,21 +61,47 @@ const CashRegisterFormDataGrid: React.FC<CashRegisterFormDataGridProps> = ({
   return (
     <Box sx={{ marginTop: 1, paddingX: { xs: 0, sm: 1, md: 2 }, overflow: "hidden", width: "100%", boxSizing: "border-box" }}>
       <div className="grid grid-cols-12 gap-2 sm:gap-5 md:gap-6">
-        {/* Apertura Cassa */}
         <div className="col-span-12 lg:col-span-6">
-          <CashCountDataGrid ref={openingGridRef} rowData={openingRowData} title="APERTURA CASSA" isLocked={isLocked} onCellChange={onCellChange} onCopyFromPrevious={onCopyFromPrevious} onTotalChange={onOpeningTotalChange} />
+          <CashCountDataGrid
+            ref={openingGridRef}
+            rowData={openingRowData}
+            title="APERTURA CASSA"
+            isLocked={isLocked}
+            onCellChange={onCellChange}
+            onCopyFromPrevious={onCopyFromPrevious}
+            onTotalChange={onOpeningTotalChange}
+          />
         </div>
 
         <div className="col-span-12 lg:col-span-6">
-          <CashCountDataGrid ref={closingGridRef} rowData={closingRowData} title="CHIUSURA CASSA" isLocked={isLocked} onCellChange={onCellChange} onTotalChange={onClosingTotalChange} />
+          <CashCountDataGrid
+            ref={closingGridRef}
+            rowData={closingRowData}
+            title="CHIUSURA CASSA"
+            isLocked={isLocked}
+            onCellChange={onCellChange}
+            onTotalChange={onClosingTotalChange}
+          />
         </div>
 
         <div className="col-span-12 md:col-span-6">
-          <IncomesDataGrid ref={incomesGridRef} initialIncomes={initialIncomes} isLocked={isLocked} onCellChange={onCellChange} onIncomesChange={onIncomesChange} />
+          <IncomesDataGrid
+            ref={incomesGridRef}
+            initialIncomes={initialIncomes}
+            isLocked={isLocked}
+            onCellChange={onCellChange}
+            onIncomesChange={onIncomesChange}
+          />
         </div>
 
         <div className="col-span-12 md:col-span-6">
-          <ExpensesDataGrid ref={expensesGridRef} initialExpenses={initialExpenses} isLocked={isLocked} onCellChange={onCellChange} onExpensesChange={onExpensesChange} />
+          <ExpensesDataGrid
+            ref={expensesGridRef}
+            initialExpenses={initialExpenses}
+            isLocked={isLocked}
+            onCellChange={onCellChange}
+            onExpensesChange={onExpensesChange}
+          />
         </div>
 
         <div className="col-span-12">

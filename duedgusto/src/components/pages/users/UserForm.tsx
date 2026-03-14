@@ -17,8 +17,15 @@ function UserForm({ onSelectItem }: UserFormProps) {
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
       {/* Sezione: Ricerca Utente */}
-      <Paper variant="outlined" sx={{ p: 2.5 }}>
-        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+      <Paper
+        variant="outlined"
+        sx={{ p: 2.5 }}
+      >
+        <Typography
+          variant="subtitle1"
+          fontWeight={600}
+          sx={{ mb: 2 }}
+        >
           Ricerca Utente
         </Typography>
         <div className="grid grid-cols-12 gap-4">
@@ -39,26 +46,60 @@ function UserForm({ onSelectItem }: UserFormProps) {
       </Paper>
 
       {/* Sezione: Dati Personali */}
-      <Paper variant="outlined" sx={{ p: 2.5 }}>
-        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+      <Paper
+        variant="outlined"
+        sx={{ p: 2.5 }}
+      >
+        <Typography
+          variant="subtitle1"
+          fontWeight={600}
+          sx={{ mb: 2 }}
+        >
           Dati Personali
         </Typography>
         <div className="grid grid-cols-12 gap-4">
           <div className="col-span-12 md:col-span-6">
-            <FormikTextField label="Nome *" placeholder="Nome" name="nome" autoComplete="off" required fullWidth />
+            <FormikTextField
+              label="Nome *"
+              placeholder="Nome"
+              name="nome"
+              autoComplete="off"
+              required
+              fullWidth
+            />
           </div>
           <div className="col-span-12 md:col-span-6">
-            <FormikTextField label="Cognome *" placeholder="Cognome" name="cognome" autoComplete="off" required fullWidth />
+            <FormikTextField
+              label="Cognome *"
+              placeholder="Cognome"
+              name="cognome"
+              autoComplete="off"
+              required
+              fullWidth
+            />
           </div>
           <div className="col-span-12">
-            <FormikTextField label="Descrizione" placeholder="Descrizione" name="descrizione" autoComplete="off" fullWidth />
+            <FormikTextField
+              label="Descrizione"
+              placeholder="Descrizione"
+              name="descrizione"
+              autoComplete="off"
+              fullWidth
+            />
           </div>
         </div>
       </Paper>
 
       {/* Sezione: Ruolo e Accesso */}
-      <Paper variant="outlined" sx={{ p: 2.5 }}>
-        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+      <Paper
+        variant="outlined"
+        sx={{ p: 2.5 }}
+      >
+        <Typography
+          variant="subtitle1"
+          fontWeight={600}
+          sx={{ mb: 2 }}
+        >
           Ruolo e Accesso
         </Typography>
         <div className="grid grid-cols-12 gap-4">
@@ -78,18 +119,32 @@ function UserForm({ onSelectItem }: UserFormProps) {
             />
           </div>
           <div className="col-span-12 md:col-span-6 flex items-center">
-            <FormikCheckbox<FormikUtenteValues> name="disabilitato" label="Disabilitato" />
+            <FormikCheckbox<FormikUtenteValues>
+              name="disabilitato"
+              label="Disabilitato"
+            />
           </div>
         </div>
       </Paper>
 
       {/* Sezione: Sicurezza */}
-      <Paper variant="outlined" sx={{ p: 2.5 }}>
-        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+      <Paper
+        variant="outlined"
+        sx={{ p: 2.5 }}
+      >
+        <Typography
+          variant="subtitle1"
+          fontWeight={600}
+          sx={{ mb: 2 }}
+        >
           Sicurezza
         </Typography>
         {formik.values.id !== 0 && (
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ mb: 2 }}
+          >
             Lascia i campi vuoti per mantenere la password attuale.
           </Typography>
         )}

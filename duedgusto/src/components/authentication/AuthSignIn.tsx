@@ -65,7 +65,10 @@ function AuthSignIn() {
         </Box>
 
         {message && (
-          <Alert severity="error" sx={{ mb: 2 }}>
+          <Alert
+            severity="error"
+            sx={{ mb: 2 }}
+          >
             {message}
           </Alert>
         )}

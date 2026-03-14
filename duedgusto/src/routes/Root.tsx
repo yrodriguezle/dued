@@ -31,7 +31,10 @@ function Root() {
           <Outlet />
           <ToastContainer theme={userTheme.theme} />
           <Confirm />
-          <Backdrop open={isLoading} sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.drawer + 1 }}>
+          <Backdrop
+            open={isLoading}
+            sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.drawer + 1 }}
+          >
             <CircularProgress color="inherit" />
           </Backdrop>
         </ThemeProvider>

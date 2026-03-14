@@ -44,21 +44,44 @@ function KPICard({ title, value, subtitle, trend, color = "primary", icon }: KPI
       <CardContent>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <Box>
-            <Typography color="text.secondary" gutterBottom variant="overline">
+            <Typography
+              color="text.secondary"
+              gutterBottom
+              variant="overline"
+            >
               {title}
             </Typography>
-            <Typography variant="h4" component="div" color={`${color}.main`} fontWeight="bold">
+            <Typography
+              variant="h4"
+              component="div"
+              color={`${color}.main`}
+              fontWeight="bold"
+            >
               {value}
             </Typography>
             {subtitle && (
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mt: 1 }}
+              >
                 {subtitle}
               </Typography>
             )}
             {trend !== undefined && (
               <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
-                {trend >= 0 ? <TrendingUpIcon color="success" fontSize="small" /> : <TrendingDownIcon color="error" fontSize="small" />}
-                <Typography variant="body2" color={trend >= 0 ? "success.main" : "error.main"} sx={{ ml: 0.5 }}>
+                {trend >= 0 ? <TrendingUpIcon
+                  color="success"
+                  fontSize="small"
+                /> : <TrendingDownIcon
+                  color="error"
+                  fontSize="small"
+                />}
+                <Typography
+                  variant="body2"
+                  color={trend >= 0 ? "success.main" : "error.main"}
+                  sx={{ ml: 0.5 }}
+                >
                   {trend >= 0 ? "+" : ""}
                   {trend.toFixed(1)}%
                 </Typography>
@@ -175,14 +198,27 @@ function RegistrazioneCassDashboard() {
       {/* Header con selettore anno e azioni */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3, flexWrap: "wrap", gap: 2 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <Typography variant="h4" fontWeight="bold">
+          <Typography
+            variant="h4"
+            fontWeight="bold"
+          >
             Dashboard Cassa
           </Typography>
-          <FormControl size="small" sx={{ minWidth: 120 }}>
+          <FormControl
+            size="small"
+            sx={{ minWidth: 120 }}
+          >
             <InputLabel>Anno</InputLabel>
-            <Select value={selectedYear} label="Anno" onChange={(e) => setSelectedYear(Number(e.target.value))}>
+            <Select
+              value={selectedYear}
+              label="Anno"
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+            >
               {availableYears.map((year) => (
-                <MenuItem key={year} value={year}>
+                <MenuItem
+                  key={year}
+                  value={year}
+                >
                   {year}
                 </MenuItem>
               ))}
@@ -202,10 +238,18 @@ function RegistrazioneCassDashboard() {
           >
             Nuova Cassa
           </Button>
-          <Button variant="outlined" startIcon={<ListIcon />} onClick={() => navigate("/gestionale/cassa/list")}>
+          <Button
+            variant="outlined"
+            startIcon={<ListIcon />}
+            onClick={() => navigate("/gestionale/cassa/list")}
+          >
             Lista Casse
           </Button>
-          <Button variant="outlined" startIcon={<CalendarMonthIcon />} onClick={() => navigate("/gestionale/cassa/monthly")}>
+          <Button
+            variant="outlined"
+            startIcon={<CalendarMonthIcon />}
+            onClick={() => navigate("/gestionale/cassa/monthly")}
+          >
             Vista Mensile
           </Button>
         </Box>
@@ -214,7 +258,11 @@ function RegistrazioneCassDashboard() {
       <div className="grid grid-cols-12 gap-6">
         {/* KPI Mese Visualizzato */}
         <div className="col-span-12">
-          <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
+          <Typography
+            variant="h6"
+            gutterBottom
+            sx={{ mb: 2 }}
+          >
             {selectedYear === currentYear
               ? `Statistiche ${MONTH_NAMES[displayMonthData.month - 1]} ${selectedYear}`
               : `Statistiche ${MONTH_NAMES[displayMonthData.month - 1]} ${selectedYear} (Mese Migliore)`}
@@ -231,10 +279,20 @@ function RegistrazioneCassDashboard() {
           />
         </div>
         <div className="col-span-12 sm:col-span-6 md:col-span-3">
-          <KPICard title="Pago in contanti Mese" value={`€ ${displayMonthData.totalCash?.toFixed(2) || "0.00"}`} icon={<AccountBalanceWalletIcon sx={{ fontSize: 48 }} />} color="success" />
+          <KPICard
+            title="Pago in contanti Mese"
+            value={`€ ${displayMonthData.totalCash?.toFixed(2) || "0.00"}`}
+            icon={<AccountBalanceWalletIcon sx={{ fontSize: 48 }} />}
+            color="success"
+          />
         </div>
         <div className="col-span-12 sm:col-span-6 md:col-span-3">
-          <KPICard title="Pagamenti Elettronici Mese" value={`€ ${displayMonthData.totalElectronic?.toFixed(2) || "0.00"}`} icon={<CreditCardIcon sx={{ fontSize: 48 }} />} color="info" />
+          <KPICard
+            title="Pagamenti Elettronici Mese"
+            value={`€ ${displayMonthData.totalElectronic?.toFixed(2) || "0.00"}`}
+            icon={<CreditCardIcon sx={{ fontSize: 48 }} />}
+            color="info"
+          />
         </div>
         <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <KPICard
@@ -248,7 +306,11 @@ function RegistrazioneCassDashboard() {
 
         {/* KPI Annuali */}
         <div className="col-span-12">
-          <Typography variant="h6" gutterBottom sx={{ mt: 2, mb: 2 }}>
+          <Typography
+            variant="h6"
+            gutterBottom
+            sx={{ mt: 2, mb: 2 }}
+          >
             Statistiche Anno {selectedYear}
           </Typography>
         </div>
@@ -262,10 +324,20 @@ function RegistrazioneCassDashboard() {
           />
         </div>
         <div className="col-span-12 sm:col-span-6 md:col-span-3">
-          <KPICard title="Pago in contanti Anno" value={`€ ${yearlyData.yearlyTotals.totalCash?.toFixed(2) || "0.00"}`} icon={<AccountBalanceWalletIcon sx={{ fontSize: 48 }} />} color="success" />
+          <KPICard
+            title="Pago in contanti Anno"
+            value={`€ ${yearlyData.yearlyTotals.totalCash?.toFixed(2) || "0.00"}`}
+            icon={<AccountBalanceWalletIcon sx={{ fontSize: 48 }} />}
+            color="success"
+          />
         </div>
         <div className="col-span-12 sm:col-span-6 md:col-span-3">
-          <KPICard title="Pagamenti Elettronici Anno" value={`€ ${yearlyData.yearlyTotals.totalElectronic?.toFixed(2) || "0.00"}`} icon={<CreditCardIcon sx={{ fontSize: 48 }} />} color="info" />
+          <KPICard
+            title="Pagamenti Elettronici Anno"
+            value={`€ ${yearlyData.yearlyTotals.totalElectronic?.toFixed(2) || "0.00"}`}
+            icon={<CreditCardIcon sx={{ fontSize: 48 }} />}
+            color="info"
+          />
         </div>
         <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <KPICard
@@ -281,19 +353,37 @@ function RegistrazioneCassDashboard() {
         <div className="col-span-12 lg:col-span-8">
           <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
+              <Typography
+                variant="h6"
+                gutterBottom
+              >
                 Trend Ricavi Mensili {selectedYear}
               </Typography>
-              <ResponsiveContainer width="100%" height={350}>
+              <ResponsiveContainer
+                width="100%"
+                height={350}
+              >
                 <BarChart data={monthlyChartData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis />
                   <Tooltip formatter={(value) => `€ ${Number(value).toFixed(2)}`} />
                   <Legend />
-                  <Bar dataKey="ricavo" name="Ricavo Totale" fill={CHART_COLORS.primary} />
-                  <Bar dataKey="contanti" name="Pago in contanti" fill={CHART_COLORS.cash} />
-                  <Bar dataKey="elettronici" name="Pagamenti Elettronici" fill={CHART_COLORS.electronic} />
+                  <Bar
+                    dataKey="ricavo"
+                    name="Ricavo Totale"
+                    fill={CHART_COLORS.primary}
+                  />
+                  <Bar
+                    dataKey="contanti"
+                    name="Pago in contanti"
+                    fill={CHART_COLORS.cash}
+                  />
+                  <Bar
+                    dataKey="elettronici"
+                    name="Pagamenti Elettronici"
+                    fill={CHART_COLORS.electronic}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -304,10 +394,16 @@ function RegistrazioneCassDashboard() {
         <div className="col-span-12 lg:col-span-4">
           <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
+              <Typography
+                variant="h6"
+                gutterBottom
+              >
                 Distribuzione Pagamenti {selectedYear}
               </Typography>
-              <ResponsiveContainer width="100%" height={350}>
+              <ResponsiveContainer
+                width="100%"
+                height={350}
+              >
                 <PieChart>
                   <Pie
                     data={paymentBreakdownData}
@@ -320,20 +416,32 @@ function RegistrazioneCassDashboard() {
                     dataKey="value"
                   >
                     {paymentBreakdownData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={entry.color}
+                      />
                     ))}
                   </Pie>
                   <Tooltip formatter={(value) => `€ ${Number(value).toFixed(2)}`} />
                 </PieChart>
               </ResponsiveContainer>
               <Box sx={{ mt: 2 }}>
-                <Typography variant="body2" color="text.secondary">
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                >
                   <strong>Ricavo Totale:</strong> € {yearlyData.yearlyTotals.totalRevenue?.toFixed(2) || "0.00"}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                >
                   <strong>Giorni con differenze:</strong> {yearlyData.yearlyTotals.totalDaysWithDifferences}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                >
                   <strong>IVA totale:</strong> € {yearlyData.yearlyTotals.totalVat?.toFixed(2) || "0.00"}
                 </Typography>
               </Box>
@@ -345,19 +453,46 @@ function RegistrazioneCassDashboard() {
         <div className="col-span-12">
           <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
+              <Typography
+                variant="h6"
+                gutterBottom
+              >
                 Andamento Ricavi {selectedYear}
               </Typography>
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer
+                width="100%"
+                height={300}
+              >
                 <LineChart data={monthlyChartData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis />
                   <Tooltip formatter={(value) => `€ ${Number(value).toFixed(2)}`} />
                   <Legend />
-                  <Line type="monotone" dataKey="ricavo" name="Ricavo Totale" stroke={CHART_COLORS.primary} strokeWidth={2} fill="none" />
-                  <Line type="monotone" dataKey="contanti" name="Pago in contanti" stroke={CHART_COLORS.cash} strokeWidth={2} fill="none" />
-                  <Line type="monotone" dataKey="elettronici" name="Pagamenti Elettronici" stroke={CHART_COLORS.electronic} strokeWidth={2} fill="none" />
+                  <Line
+                    type="monotone"
+                    dataKey="ricavo"
+                    name="Ricavo Totale"
+                    stroke={CHART_COLORS.primary}
+                    strokeWidth={2}
+                    fill="none"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="contanti"
+                    name="Pago in contanti"
+                    stroke={CHART_COLORS.cash}
+                    strokeWidth={2}
+                    fill="none"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="elettronici"
+                    name="Pagamenti Elettronici"
+                    stroke={CHART_COLORS.electronic}
+                    strokeWidth={2}
+                    fill="none"
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>

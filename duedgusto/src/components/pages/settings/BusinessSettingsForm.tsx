@@ -27,18 +27,37 @@ function BusinessSettingsForm({ periodi }: BusinessSettingsFormProps) {
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
       {/* Sezione: Attività */}
-      <Paper variant="outlined" sx={{ p: 2.5 }}>
-        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+      <Paper
+        variant="outlined"
+        sx={{ p: 2.5 }}
+      >
+        <Typography
+          variant="subtitle1"
+          fontWeight={600}
+          sx={{ mb: 2 }}
+        >
           Attività
         </Typography>
         <div className="grid grid-cols-12 gap-4">
           <div className="col-span-12 sm:col-span-8">
-            <FormikTextField name="businessName" label="Nome Attività" fullWidth />
+            <FormikTextField
+              name="businessName"
+              label="Nome Attività"
+              fullWidth
+            />
           </div>
           <div className="col-span-12 sm:col-span-4">
-            <FormikTextField name="currency" label="Valuta" select fullWidth>
+            <FormikTextField
+              name="currency"
+              label="Valuta"
+              select
+              fullWidth
+            >
               {CURRENCIES.map((c) => (
-                <MenuItem key={c.value} value={c.value}>
+                <MenuItem
+                  key={c.value}
+                  value={c.value}
+                >
                   {c.label}
                 </MenuItem>
               ))}
@@ -48,15 +67,30 @@ function BusinessSettingsForm({ periodi }: BusinessSettingsFormProps) {
       </Paper>
 
       {/* Sezione: Programmazione */}
-      <Paper variant="outlined" sx={{ p: 2.5 }}>
-        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+      <Paper
+        variant="outlined"
+        sx={{ p: 2.5 }}
+      >
+        <Typography
+          variant="subtitle1"
+          fontWeight={600}
+          sx={{ mb: 2 }}
+        >
           Programmazione
         </Typography>
         <div className="grid grid-cols-12 gap-4">
           <div className="col-span-12 sm:col-span-6">
-            <FormikTextField name="timezone" label="Fuso Orario" select fullWidth>
+            <FormikTextField
+              name="timezone"
+              label="Fuso Orario"
+              select
+              fullWidth
+            >
               {TIMEZONES.map((tz) => (
-                <MenuItem key={tz.value} value={tz.value}>
+                <MenuItem
+                  key={tz.value}
+                  value={tz.value}
+                >
                   {tz.label}
                 </MenuItem>
               ))}
@@ -69,8 +103,15 @@ function BusinessSettingsForm({ periodi }: BusinessSettingsFormProps) {
       <PeriodoProgrammazioneSection periodi={periodi} />
 
       {/* Sezione: Impostazioni Fiscali */}
-      <Paper variant="outlined" sx={{ p: 2.5 }}>
-        <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+      <Paper
+        variant="outlined"
+        sx={{ p: 2.5 }}
+      >
+        <Typography
+          variant="subtitle1"
+          fontWeight={600}
+          sx={{ mb: 2 }}
+        >
           Impostazioni Fiscali
         </Typography>
         <div className="grid grid-cols-12 gap-4">

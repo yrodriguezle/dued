@@ -52,9 +52,19 @@ const NestedList: React.FC<NestedListProps> = ({ drawerOpen, items, onListItemCl
   };
 
   return (
-    <List component="nav" sx={{ p: 0, m: 1 }}>
+    <List
+      component="nav"
+      sx={{ p: 0, m: 1 }}
+    >
       {items.map((item, index) => (
-        <NestedListItem key={index} drawerOpen={drawerOpen} item={item} onListItemClick={onListItemClick} isOpen={openIndex === index} onToggle={() => handleToggle(index)} />
+        <NestedListItem
+          key={index}
+          drawerOpen={drawerOpen}
+          item={item}
+          onListItemClick={onListItemClick}
+          isOpen={openIndex === index}
+          onToggle={() => handleToggle(index)}
+        />
       ))}
     </List>
   );
@@ -127,7 +137,11 @@ const NestedListItem: React.FC<NestedListItemProps> = ({ item, drawerOpen, onLis
         {item.children && drawerOpen ? isOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" /> : null}
       </ListItemButton>
       {item.children && (
-        <Collapse in={isOpen && drawerOpen} timeout="auto" unmountOnExit>
+        <Collapse
+          in={isOpen && drawerOpen}
+          timeout="auto"
+          unmountOnExit
+        >
           <List
             component="div"
             disablePadding
@@ -140,7 +154,14 @@ const NestedListItem: React.FC<NestedListItemProps> = ({ item, drawerOpen, onLis
             }}
           >
             {item.children.map((child, index) => (
-              <NestedListItem key={index} drawerOpen={drawerOpen} item={child} onListItemClick={onListItemClick} isOpen={false} onToggle={() => {}} />
+              <NestedListItem
+                key={index}
+                drawerOpen={drawerOpen}
+                item={child}
+                onListItemClick={onListItemClick}
+                isOpen={false}
+                onToggle={() => {}}
+              />
             ))}
           </List>
         </Collapse>

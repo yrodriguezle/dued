@@ -73,14 +73,23 @@ function OverflowToolbar({ actions }: OverflowToolbarProps) {
   const overflowActions = actions.slice(visibleCount);
 
   return (
-    <Box ref={containerRef} sx={{ display: "flex", alignItems: "center", width: "100%", minWidth: 0, overflow: "hidden" }}>
+    <Box
+      ref={containerRef}
+      sx={{ display: "flex", alignItems: "center", width: "100%", minWidth: 0, overflow: "hidden" }}
+    >
       {/* Div nascosto fuori schermo per misurare la larghezza reale di ogni bottone */}
       <Box
         ref={measureRef}
         sx={{ position: "fixed", left: -9999, top: -9999, visibility: "hidden", pointerEvents: "none", display: "flex", gap: `${BUTTON_GAP}px`, whiteSpace: "nowrap" }}
       >
         {actions.map((action) => (
-          <Button key={action.key} size="small" variant="text" startIcon={action.icon} sx={{ minHeight: 0, height: 32, paddingY: 0.5, paddingX: 1.5, flexShrink: 0 }}>
+          <Button
+            key={action.key}
+            size="small"
+            variant="text"
+            startIcon={action.icon}
+            sx={{ minHeight: 0, height: 32, paddingY: 0.5, paddingX: 1.5, flexShrink: 0 }}
+          >
             {action.label}
           </Button>
         ))}
@@ -106,10 +115,18 @@ function OverflowToolbar({ actions }: OverflowToolbarProps) {
       {/* Menu overflow */}
       {overflowActions.length > 0 && (
         <>
-          <IconButton size="small" onClick={(e) => setMenuAnchor(e.currentTarget)} sx={{ ml: "auto", flexShrink: 0 }}>
+          <IconButton
+            size="small"
+            onClick={(e) => setMenuAnchor(e.currentTarget)}
+            sx={{ ml: "auto", flexShrink: 0 }}
+          >
             <MoreVertIcon fontSize="small" />
           </IconButton>
-          <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
+          <Menu
+            anchorEl={menuAnchor}
+            open={Boolean(menuAnchor)}
+            onClose={() => setMenuAnchor(null)}
+          >
             {overflowActions.map((action) => (
               <MenuItem
                 key={action.key}

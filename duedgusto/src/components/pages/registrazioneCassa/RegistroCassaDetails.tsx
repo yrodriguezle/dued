@@ -1,4 +1,4 @@
- 
+
 
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Form, Formik, FormikProps } from "formik";
@@ -509,7 +509,10 @@ function RegistroCassaDetails() {
         const disableSave = status?.isFormLocked || isSubmitting || !isValid;
 
         return (
-          <Form noValidate style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
+          <Form
+            noValidate
+            style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}
+          >
             <FormikToolbar
               hideUnlockButton
               hideNewButton
@@ -517,26 +520,47 @@ function RegistroCassaDetails() {
               disabledSave={disableSave}
               rightContent={
                 <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0, sm: 0.5 }, pr: { xs: 0.5, sm: 2 } }}>
-                  <IconButton size="small" onClick={handlePreviousDay} title="Giorno precedente">
+                  <IconButton
+                    size="small"
+                    onClick={handlePreviousDay}
+                    title="Giorno precedente"
+                  >
                     <ArrowBack fontSize="small" />
                   </IconButton>
-                  <Typography variant="body2" sx={{ textAlign: "center", whiteSpace: "nowrap", fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
+                  <Typography
+                    variant="body2"
+                    sx={{ textAlign: "center", whiteSpace: "nowrap", fontSize: { xs: "0.75rem", sm: "0.875rem" } }}
+                  >
                     {isMobile
                       ? getFormattedDate(currentDate, "DD/MM")
                       : `${getWeekdayName(currentDate, "it-IT", true)} - ${getFormattedDate(currentDate, "DD/MM/YYYY")}`
                     }
                   </Typography>
-                  <IconButton size="small" onClick={handleNextDay} title="Giorno successivo">
+                  <IconButton
+                    size="small"
+                    onClick={handleNextDay}
+                    title="Giorno successivo"
+                  >
                     <ArrowForward fontSize="small" />
                   </IconButton>
-                  <IconButton size="small" onClick={handleOpenMonthlyCalendar} title="Vista mensile" color="primary">
+                  <IconButton
+                    size="small"
+                    onClick={handleOpenMonthlyCalendar}
+                    title="Vista mensile"
+                    color="primary"
+                  >
                     <CalendarMonthIcon fontSize="small" />
                   </IconButton>
                 </Box>
               }
             >
               {status?.formStatus === formStatuses.UPDATE && status?.isFormLocked === false && (
-                <FormikToolbarButton startIcon={<LockIcon />} onClick={handleCloseCashRegister} disabled={closing} color="warning">
+                <FormikToolbarButton
+                  startIcon={<LockIcon />}
+                  onClick={handleCloseCashRegister}
+                  disabled={closing}
+                  color="warning"
+                >
                   Chiudi Cassa
                 </FormikToolbarButton>
               )}

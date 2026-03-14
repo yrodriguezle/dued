@@ -112,9 +112,16 @@ function MenuDetails() {
       >
         {() => (
           <Form noValidate>
-            <FormikToolbar onFormReset={handleResetForm} hideNewButton hideDeleteButton />
+            <FormikToolbar
+              onFormReset={handleResetForm}
+              hideNewButton
+              hideDeleteButton
+            />
             <Box sx={{ marginTop: 1, paddingX: 2 }}>
-              <Typography variant="h5" gutterBottom>
+              <Typography
+                variant="h5"
+                gutterBottom
+              >
                 {title}
               </Typography>
             </Box>

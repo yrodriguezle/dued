@@ -26,7 +26,10 @@ const currencies = [
 function OperatingHoursSection({ errors, touched }: OperatingHoursSectionProps) {
   return (
     <Paper sx={{ padding: 1 }}>
-      <Typography variant="h6" sx={{ marginBottom: 2, fontWeight: "bold" }}>
+      <Typography
+        variant="h6"
+        sx={{ marginBottom: 2, fontWeight: "bold" }}
+      >
         Orari di Apertura
       </Typography>
 
@@ -68,7 +71,10 @@ function OperatingHoursSection({ errors, touched }: OperatingHoursSectionProps) 
             fullWidth
           >
             {timezones.map((tz) => (
-              <option key={tz.value} value={tz.value}>
+              <option
+                key={tz.value}
+                value={tz.value}
+              >
                 {tz.label}
               </option>
             ))}
@@ -88,7 +94,10 @@ function OperatingHoursSection({ errors, touched }: OperatingHoursSectionProps) 
             fullWidth
           >
             {currencies.map((curr) => (
-              <option key={curr.value} value={curr.value}>
+              <option
+                key={curr.value}
+                value={curr.value}
+              >
                 {curr.label}
               </option>
             ))}
@@ -108,7 +117,13 @@ function OperatingHoursSection({ errors, touched }: OperatingHoursSectionProps) 
         </div>
 
         <div className="col-span-12">
-          <FormikTextField name="businessName" label="Nome Attività" error={touched.businessName && !!errors.businessName} helperText={touched.businessName && errors.businessName} fullWidth />
+          <FormikTextField
+            name="businessName"
+            label="Nome Attività"
+            error={touched.businessName && !!errors.businessName}
+            helperText={touched.businessName && errors.businessName}
+            fullWidth
+          />
         </div>
       </div>
     </Paper>

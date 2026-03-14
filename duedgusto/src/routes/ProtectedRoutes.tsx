@@ -19,7 +19,10 @@ function ProtectedRoutes() {
   const menuRoutes = useMemo(() => utente?.menus || [], [utente?.menus]);
 
   if (!isAuthenticated()) {
-    return <Navigate to={"/signin"} replace />;
+    return <Navigate
+      to={"/signin"}
+      replace
+    />;
   }
 
   // Wait for utente data and settings to load before rendering routes
@@ -41,8 +44,20 @@ function ProtectedRoutes() {
             </Suspense>
           }
         />
-        <Route index element={<Navigate to="dashboard" replace />} />
-        <Route path="cassa/details" element={<Navigate to={cassaRedirectPath} replace />} />
+        <Route
+          index
+          element={<Navigate
+            to="dashboard"
+            replace
+          />}
+        />
+        <Route
+          path="cassa/details"
+          element={<Navigate
+            to={cassaRedirectPath}
+            replace
+          />}
+        />
         <Route
           path="cassa/monthly"
           element={
@@ -97,7 +112,13 @@ function ProtectedRoutes() {
               />
             );
           })}
-        <Route path="*" element={<Navigate to="/gestionale/dashboard" replace />} />
+        <Route
+          path="*"
+          element={<Navigate
+            to="/gestionale/dashboard"
+            replace
+          />}
+        />
       </Route>
     </Routes>
   );

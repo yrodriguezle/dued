@@ -59,7 +59,11 @@ export const createMockApolloProvider = ({
   const testCache = cache ?? createTestCache();
 
   const Wrapper = ({ children }: { children: ReactNode }) => (
-    <MockedProvider mocks={mocks} addTypename={addTypename} cache={testCache}>
+    <MockedProvider
+      mocks={mocks}
+      addTypename={addTypename}
+      cache={testCache}
+    >
       {children}
     </MockedProvider>
   );
