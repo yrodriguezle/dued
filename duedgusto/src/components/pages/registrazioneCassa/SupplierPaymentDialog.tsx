@@ -1,15 +1,16 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Box, ToggleButtonGroup, ToggleButton, FormControl, InputLabel, Select, MenuItem } from "@mui/material";
 import FormikSearchbox from "../../common/form/searchbox/FormikSearchbox";
 import supplierSearchboxOption, { SupplierSearchbox } from "../../common/form/searchbox/searchboxOptions/supplierSearchboxOptions";
 import showToast from "../../../common/toast/showToast";
 import { Formik, Form } from "formik";
-import { Expense } from "./RegistroCassaDetails";
 
 interface SupplierPaymentDialogProps {
   open: boolean;
   onClose: () => void;
   onConfirm: (expense: Expense) => void;
+  /** Dati della spesa da modificare; se assente il dialog è in modalità aggiunta */
+  initialData?: Expense;
 }
 
 interface PaymentFormValues {
@@ -20,7 +21,7 @@ interface PaymentFormValues {
   paymentMethod: string;
 }
 
-function SupplierPaymentDialog({ open, onClose, onConfirm }: SupplierPaymentDialogProps) {
+function SupplierPaymentDialog({ open, onClose, onConfirm, initialData }: SupplierPaymentDialogProps) {
   const [supplierName, setSupplierName] = useState("");
   const [supplierId, setSupplierId] = useState<number>(0);
   const [documentType, setDocumentType] = useState<"FA" | "DDT">("DDT");
@@ -28,6 +29,19 @@ function SupplierPaymentDialog({ open, onClose, onConfirm }: SupplierPaymentDial
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [amount, setAmount] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState("Contanti");
+
+  // Pre-riempie tutti i campi quando il dialog si apre in modalità modifica
+  useEffect(() => {
+    if (initialData) {
+      setSupplierName(initialData.description?.split(" - ")[0]?.replace("Pagamento ", "") ?? "");
+      setSupplierId(initialData.supplierId ?? 0);
+      setDocumentType(initialData.documentType ?? "DDT");
+      setDdtNumber(initialData.ddtNumber ?? "");
+      setInvoiceNumber(initialData.invoiceNumber ?? "");
+      setAmount(initialData.amount ?? 0);
+      setPaymentMethod(initialData.paymentMethod ?? "Contanti");
+    }
+  }, [initialData]);
 
   const resetForm = useCallback(() => {
     setSupplierName("");
@@ -79,12 +93,15 @@ function SupplierPaymentDialog({ open, onClose, onConfirm }: SupplierPaymentDial
     onClose();
   }, [supplierId, amount, ddtNumber, invoiceNumber, supplierName, paymentMethod, documentType, onConfirm, resetForm, onClose]);
 
+  // initialValues calcolati da initialData per pre-riempire FormikSearchbox (enableReinitialize)
   const initialValues: PaymentFormValues = {
-    supplierName: "",
-    supplierId: 0,
-    ddtNumber: "",
-    amount: 0,
-    paymentMethod: "Contanti",
+    supplierName: initialData
+      ? (initialData.description?.split(" - ")[0]?.replace("Pagamento ", "") ?? "")
+      : "",
+    supplierId: initialData?.supplierId ?? 0,
+    ddtNumber: initialData?.ddtNumber ?? "",
+    amount: initialData?.amount ?? 0,
+    paymentMethod: initialData?.paymentMethod ?? "Contanti",
   };
 
   return (
@@ -97,11 +114,13 @@ function SupplierPaymentDialog({ open, onClose, onConfirm }: SupplierPaymentDial
     >
       <Formik
         initialValues={initialValues}
+        enableReinitialize
         onSubmit={handleConfirm}
       >
         {() => (
           <Form noValidate>
-            <DialogTitle>Pagamento Fornitore</DialogTitle>
+            {/* Titolo differenziato tra modalità aggiunta e modifica */}
+            <DialogTitle>{initialData ? "Modifica Pagamento Fornitore" : "Pagamento Fornitore"}</DialogTitle>
             <DialogContent sx={{ overflow: "visible" }}>
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
                 <div className="grid grid-cols-12 gap-4">
@@ -177,12 +196,13 @@ function SupplierPaymentDialog({ open, onClose, onConfirm }: SupplierPaymentDial
             </DialogContent>
             <DialogActions>
               <Button onClick={handleClose}>Annulla</Button>
+              {/* Testo bottone differenziato tra modalità aggiunta e modifica */}
               <Button
                 type="submit"
                 variant="contained"
                 disabled={!supplierId || !amount}
               >
-                Conferma
+                {initialData ? "Aggiorna" : "Conferma"}
               </Button>
             </DialogActions>
           </Form>

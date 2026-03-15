@@ -13,6 +13,18 @@ public class RegistroCassaType : ObjectGraphType<RegistroCassa>
         Field(x => x.Id);
         Field(x => x.Data, type: typeof(DateTimeGraphType));
         Field(x => x.UtenteId);
+        Field<UtenteType, Utente>("utente")
+            .Resolve(context => context.Source.Utente);
+        Field<ListGraphType<ConteggioMonetaType>, IEnumerable<ConteggioMoneta>>("conteggiApertura")
+            .Resolve(context => context.Source.ConteggiMoneta.Where(c => c.IsApertura));
+        Field<ListGraphType<ConteggioMonetaType>, IEnumerable<ConteggioMoneta>>("conteggiChiusura")
+            .Resolve(context => context.Source.ConteggiMoneta.Where(c => !c.IsApertura));
+        Field<ListGraphType<IncassoCassaType>, IEnumerable<IncassoCassa>>("incassi")
+            .Resolve(context => context.Source.IncassiCassa);
+        Field<ListGraphType<SpesaCassaType>, IEnumerable<SpesaCassa>>("spese")
+            .Resolve(context => context.Source.SpeseCassa);
+        Field<ListGraphType<SupplierPaymentType>, IEnumerable<PagamentoFornitore>>("pagamentiFornitori")
+            .Resolve(context => context.Source.PagamentiFornitori);
         Field(x => x.TotaleApertura);
         Field(x => x.TotaleChiusura);
         Field(x => x.VenditeContanti);
@@ -30,23 +42,5 @@ public class RegistroCassaType : ObjectGraphType<RegistroCassa>
         Field(x => x.Stato);
         Field(x => x.CreatoIl, type: typeof(DateTimeGraphType));
         Field(x => x.AggiornatoIl, type: typeof(DateTimeGraphType));
-
-        Field<UtenteType, Utente>("utente")
-            .Resolve(context => context.Source.Utente);
-
-        Field<ListGraphType<ConteggioMonetaType>, IEnumerable<ConteggioMoneta>>("conteggiApertura")
-            .Resolve(context => context.Source.ConteggiMoneta.Where(c => c.IsApertura));
-
-        Field<ListGraphType<ConteggioMonetaType>, IEnumerable<ConteggioMoneta>>("conteggiChiusura")
-            .Resolve(context => context.Source.ConteggiMoneta.Where(c => !c.IsApertura));
-
-        Field<ListGraphType<IncassoCassaType>, IEnumerable<IncassoCassa>>("incassi")
-            .Resolve(context => context.Source.IncassiCassa);
-
-        Field<ListGraphType<SpesaCassaType>, IEnumerable<SpesaCassa>>("spese")
-            .Resolve(context => context.Source.SpeseCassa);
-
-        Field<ListGraphType<SupplierPaymentType>, IEnumerable<PagamentoFornitore>>("pagamentiFornitori")
-            .Resolve(context => context.Source.PagamentiFornitori);
     }
 }

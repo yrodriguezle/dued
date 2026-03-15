@@ -1,7 +1,7 @@
 
 import { TextField, Box } from "@mui/material";
 import { useFormikContext } from "formik";
-import { FormikCashRegisterValues, Income, Expense } from "./RegistroCassaDetails";
+import { FormikCashRegisterValues } from "./RegistroCassaDetails";
 import CashCountDataGrid from "./CashCountDataGrid";
 import SummaryDataGrid from "./SummaryDataGrid";
 import IncomesDataGrid from "./IncomesDataGrid";

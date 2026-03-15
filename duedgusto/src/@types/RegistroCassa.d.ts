@@ -163,3 +163,44 @@ type RegistroCassaConnection = {
   infoPaginazione: PaginazioneCassaInfo;
   elementi: RegistroCassa[];
 };
+
+// === Tipi per le griglie del Registro Cassa ===
+
+interface CashCount {
+  denominazioneMonetaId: number;
+  quantita: number;
+}
+
+interface Income extends Record<string, unknown> {
+  type: string;
+  amount: number;
+}
+
+interface Expense extends Record<string, unknown> {
+  description: string;
+  amount: number;
+  isSupplierPayment?: boolean;
+  supplierId?: number;
+  ddtNumber?: string;
+  paymentMethod?: string;
+  documentType?: "FA" | "DDT";
+  invoiceNumber?: string;
+}
+
+interface CashCountRow extends Record<string, unknown> {
+  denominationId: number;
+  type: "COIN" | "BANKNOTE";
+  value: number;
+  quantity: number;
+  total: number;
+}
+
+interface IncomeRow extends Record<string, unknown> {
+  type: string;
+  amount: number;
+}
+
+interface ExpenseRow extends Record<string, unknown> {
+  description: string;
+  amount: number;
+}

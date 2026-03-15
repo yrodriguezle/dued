@@ -5,10 +5,9 @@ import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import PaymentIcon from "@mui/icons-material/Payment";
 import { z } from "zod";
-import { Expense } from "./RegistroCassaDetails";
 import Datagrid from "../../common/datagrid/Datagrid";
 import { DatagridColDef, ValidationError, DatagridCellValueChangedEvent, DatagridData } from "../../common/datagrid/@types/Datagrid";
-import { GridReadyEvent } from "ag-grid-community";
+import { GridReadyEvent, RowDoubleClickedEvent } from "ag-grid-community";
 import formatCurrency from "../../../common/bones/formatCurrency";
 import SupplierPaymentDialog from "./SupplierPaymentDialog";
 import OverflowToolbar, { OverflowAction } from "../../common/toolbar/OverflowToolbar";
@@ -30,6 +29,8 @@ const ExpensesDataGrid = memo(
   forwardRef<GridReadyEvent<DatagridData<Expense>>, ExpensesDataGridProps>(({ initialExpenses, isLocked, onCellChange, onExpensesChange }, ref) => {
     const [validationErrors, setValidationErrors] = useState<Map<number, ValidationError[]>>(new Map());
     const [dialogOpen, setDialogOpen] = useState(false);
+    // Spesa in fase di modifica (null = modalità aggiunta)
+    const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
     const gridEventRef = useRef<GridReadyEvent<DatagridData<Expense>> | null>(null);
 
     const reportExpenses = useCallback(
@@ -53,13 +54,33 @@ const ExpensesDataGrid = memo(
     const handlePaymentConfirm = useCallback(
       (expense: Expense) => {
         if (gridEventRef.current) {
-          gridEventRef.current.api.applyTransaction({ add: [expense as DatagridData<Expense>] });
+          if (editingExpense) {
+            // Modalità modifica: rimuove la riga vecchia e aggiunge quella aggiornata
+            gridEventRef.current.api.applyTransaction({
+              remove: [editingExpense as DatagridData<Expense>],
+              add: [expense as DatagridData<Expense>],
+            });
+          } else {
+            // Modalità aggiunta: inserisce la nuova riga
+            gridEventRef.current.api.applyTransaction({ add: [expense as DatagridData<Expense>] });
+          }
           reportExpenses(gridEventRef.current.api);
         }
+        setEditingExpense(null);
         setDialogOpen(false);
         onCellChange?.();
       },
-      [onCellChange, reportExpenses]
+      [editingExpense, onCellChange, reportExpenses]
+    );
+
+    // Apre il dialog in modalità modifica al doppio click su una riga fornitore
+    const handleRowDoubleClicked = useCallback(
+      (event: RowDoubleClickedEvent<DatagridData<Expense>>) => {
+        if (isLocked || !event.data?.isSupplierPayment) return;
+        setEditingExpense(event.data as Expense);
+        setDialogOpen(true);
+      },
+      [isLocked]
     );
 
     // Usa i dati iniziali passati come prop
@@ -182,8 +203,9 @@ const ExpensesDataGrid = memo(
         </Typography>
         <SupplierPaymentDialog
           open={dialogOpen}
-          onClose={() => setDialogOpen(false)}
+          onClose={() => { setDialogOpen(false); setEditingExpense(null); }}
           onConfirm={handlePaymentConfirm}
+          initialData={editingExpense ?? undefined}
         />
         <Box
           sx={{
@@ -200,6 +222,7 @@ const ExpensesDataGrid = memo(
             items={items}
             columnDefs={columnDefs}
             readOnly={isLocked}
+            rowSelection={{ mode: "multiRow" }}
             getNewRow={getNewExpense}
             additionalToolbarButtons={<OverflowToolbar actions={toolbarActions} />}
             hideToolbar={true}
@@ -208,6 +231,7 @@ const ExpensesDataGrid = memo(
             showRowNumbers={true}
             onCellValueChanged={handleCellValueChanged}
             onGridReady={handleGridReady}
+            onRowDoubleClicked={handleRowDoubleClicked}
             suppressRowHoverHighlight={false}
             defaultColDef={{ sortable: false, suppressMovable: true, resizable: true, minWidth: 50 }}
           />

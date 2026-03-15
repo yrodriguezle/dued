@@ -242,7 +242,7 @@ public class GestioneCassaMutations : ObjectGraphType
                     dbContext.FattureAcquisto.RemoveRange(orphanFatture);
                 }
 
-                // 2. Create new documents + PagamentoFornitore + SpesaCassa for each input
+                // 2. Create new documents + PagamentoFornitore for each input
                 decimal totalePagamentiFornitori = 0;
                 foreach (var pagInput in input.PagamentiFornitori)
                 {
@@ -250,7 +250,6 @@ public class GestioneCassaMutations : ObjectGraphType
                         .FirstOrDefaultAsync(f => f.FornitoreId == pagInput.FornitoreId)
                         ?? throw new ExecutionError($"Fornitore con ID {pagInput.FornitoreId} non trovato");
 
-                    string descrizione;
                     PagamentoFornitore pagamento;
 
                     if (pagInput.TipoDocumento == "FA")
@@ -278,7 +277,6 @@ public class GestioneCassaMutations : ObjectGraphType
                             RegistroCassaId = registroCassa.Id,
                         };
 
-                        descrizione = $"Pagamento {fornitore.RagioneSociale} - FA {pagInput.NumeroFattura}";
                     }
                     else
                     {
@@ -305,15 +303,9 @@ public class GestioneCassaMutations : ObjectGraphType
                             RegistroCassaId = registroCassa.Id,
                         };
 
-                        descrizione = $"Pagamento {fornitore.RagioneSociale} - DDT {pagInput.NumeroDdt}";
                     }
 
                     dbContext.PagamentiFornitori.Add(pagamento);
-                    registroCassa.SpeseCassa.Add(new SpesaCassa
-                    {
-                        Descrizione = descrizione,
-                        Importo = pagInput.Importo,
-                    });
                     totalePagamentiFornitori += pagInput.Importo;
                 }
 

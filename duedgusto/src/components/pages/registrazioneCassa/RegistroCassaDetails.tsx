@@ -43,46 +43,6 @@ const Schema = z.object({
 
 export type FormikCashRegisterValues = z.infer<typeof Schema>;
 
-// Types per i dati delle griglie (gestiti separatamente da Formik)
-export interface CashCount {
-  denominazioneMonetaId: number;
-  quantita: number;
-}
-
-export interface Income extends Record<string, unknown> {
-  type: string;
-  amount: number;
-}
-
-export interface Expense extends Record<string, unknown> {
-  description: string;
-  amount: number;
-  isSupplierPayment?: boolean;
-  supplierId?: number;
-  ddtNumber?: string;
-  paymentMethod?: string;
-  documentType?: "FA" | "DDT";
-  invoiceNumber?: string;
-}
-
-interface CashCountRow extends Record<string, unknown> {
-  denominationId: number;
-  type: "COIN" | "BANKNOTE";
-  value: number;
-  quantity: number;
-  total: number;
-}
-
-interface IncomeRow extends Record<string, unknown> {
-  type: string;
-  amount: number;
-}
-
-interface ExpenseRow extends Record<string, unknown> {
-  description: string;
-  amount: number;
-}
-
 function RegistroCassaDetails() {
   const { date: dateParam } = useParams<{ date?: string }>();
   const navigate = useNavigate();

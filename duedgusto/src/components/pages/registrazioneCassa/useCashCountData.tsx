@@ -9,8 +9,6 @@ interface CashCountRowData extends Record<string, unknown> {
   total: number;
 }
 
-// Tipo per i conteggi (importato da CashRegisterDetails)
-import type { CashCount } from "./RegistroCassaDetails";
 
 interface UseCashCountDataProps {
   denominations: DenominazioneMoneta[];
