@@ -49,7 +49,7 @@ function Searchbox<T extends Record<string, unknown>>({ id, name, value, orderBy
   const { items, loading } = useFetchData({
     query,
     variables,
-    skip: (innerValue || "").toString().trim().length === 0,
+    skip: (innerValue || "").toString().trim().length < 3,
   });
 
   // Modal query - loads all items
@@ -171,8 +171,8 @@ function Searchbox<T extends Record<string, unknown>>({ id, name, value, orderBy
         name={name}
         variant="outlined"
         fullWidth
-        autoComplete="off"
         {...props}
+        autoComplete="one-time-code"
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
         slotProps={{
@@ -194,6 +194,15 @@ function Searchbox<T extends Record<string, unknown>>({ id, name, value, orderBy
                 )}
               </InputAdornment>
             ),
+          },
+          htmlInput: {
+            autoComplete: "one-time-code",
+            autoCorrect: "off",
+            autoCapitalize: "off",
+            spellCheck: false,
+            "data-form-type": "other",
+            "data-lpignore": "true",
+            "data-1p-ignore": "true",
           },
           inputLabel: {
             shrink: !!innerValue,

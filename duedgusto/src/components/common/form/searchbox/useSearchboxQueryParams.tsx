@@ -22,7 +22,7 @@ function useSearchboxQueryParams<T extends Record<string, unknown>, K extends ke
   }, [props.modal, props.options.items, props.options.modal.items]);
 
   const where = useMemo(() => {
-    const values = (props.value ? props.value.toString().trim().split(" ") : []).map((value) => `"%${value}%"`);
+    const values = (props.value ? props.value.toString().trim().split(" ").filter(Boolean) : []).map((value) => `"%${value}%"`);
     const lookupFieldName = `${props.options.tableName}.${String(props.fieldName)}`;
     const regularWhere = values.length ? `${lookupFieldName} LIKE ${values.join(` AND ${lookupFieldName} LIKE `)}` : "";
 
@@ -30,7 +30,7 @@ function useSearchboxQueryParams<T extends Record<string, unknown>, K extends ke
     return [regularWhere, additionalWhere]
       .filter(Boolean)
       .map((statement, _, array) => (array.length > 1 ? `(${statement})` : statement))
-      .join(" OR ");
+      .join(" AND ");
   }, [props.fieldName, props.options.additionalWhere, props.options.tableName, props.value]);
 
   return useQueryParams<T>({
