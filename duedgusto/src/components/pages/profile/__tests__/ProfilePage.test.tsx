@@ -103,11 +103,13 @@ function setupStore(utente: Utente = mockUtente) {
 
 function setupMutation(onCompletedCallback?: (data: unknown) => void) {
   mockUseMutation.mockImplementation((_, options) => {
+    const mutateResult = { data: { authentication: { mutateUtente: mockUtente } } };
     const mutate = vi.fn(async () => {
       if (onCompletedCallback) {
-        onCompletedCallback({ authentication: { mutateUtente: mockUtente } });
+        onCompletedCallback(mutateResult.data);
       }
-      options?.onCompleted?.({ authentication: { mutateUtente: mockUtente } } as never);
+      options?.onCompleted?.(mutateResult.data as never);
+      return mutateResult;
     });
     return [mutate, { loading: false, data: undefined, error: undefined } as never];
   });
@@ -251,7 +253,7 @@ describe("ProfilePage", () => {
 
   it("deve chiamare la mutation al submit con i valori corretti", async () => {
     const user = userEvent.setup();
-    const mutate = vi.fn(async () => ({}));
+    const mutate = vi.fn(async () => ({ data: null }));
     mockUseMutation.mockImplementation(() => [mutate, { loading: false, data: undefined, error: undefined } as never]);
 
     renderProfilePage();
