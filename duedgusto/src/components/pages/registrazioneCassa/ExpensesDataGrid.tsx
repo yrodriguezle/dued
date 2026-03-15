@@ -4,10 +4,11 @@ import { Box, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import PaymentIcon from "@mui/icons-material/Payment";
+import EditIcon from "@mui/icons-material/Edit";
 import { z } from "zod";
 import Datagrid from "../../common/datagrid/Datagrid";
 import { DatagridColDef, ValidationError, DatagridCellValueChangedEvent, DatagridData } from "../../common/datagrid/@types/Datagrid";
-import { GridReadyEvent, RowDoubleClickedEvent } from "ag-grid-community";
+import { GridReadyEvent, RowDoubleClickedEvent, ICellRendererParams } from "ag-grid-community";
 import formatCurrency from "../../../common/bones/formatCurrency";
 import SupplierPaymentDialog from "./SupplierPaymentDialog";
 import OverflowToolbar, { OverflowAction } from "../../common/toolbar/OverflowToolbar";
@@ -73,14 +74,23 @@ const ExpensesDataGrid = memo(
       [editingExpense, onCellChange, reportExpenses]
     );
 
-    // Apre il dialog in modalità modifica al doppio click su una riga fornitore
-    const handleRowDoubleClicked = useCallback(
-      (event: RowDoubleClickedEvent<DatagridData<Expense>>) => {
-        if (isLocked || !event.data?.isSupplierPayment) return;
-        setEditingExpense(event.data as Expense);
+    // Apre il dialog in modalità modifica per una riga fornitore
+    const openEditDialog = useCallback(
+      (data: Expense) => {
+        if (isLocked) return;
+        setEditingExpense(data);
         setDialogOpen(true);
       },
       [isLocked]
+    );
+
+    // Doppio click su riga fornitore (fallback desktop)
+    const handleRowDoubleClicked = useCallback(
+      (event: RowDoubleClickedEvent<DatagridData<Expense>>) => {
+        if (!event.data?.isSupplierPayment) return;
+        openEditDialog(event.data as Expense);
+      },
+      [openEditDialog]
     );
 
     // Usa i dati iniziali passati come prop
@@ -93,14 +103,27 @@ const ExpensesDataGrid = memo(
         {
           headerName: "Tipo",
           field: "documentType",
-          width: 70,
-          minWidth: 50,
+          width: 85,
+          minWidth: 60,
           editable: false,
           valueGetter: (params) => {
             if (params.data?.isSupplierPayment) {
               return params.data.documentType === "FA" ? "FA" : "DDT";
             }
             return "RIC";
+          },
+          cellRenderer: (params: ICellRendererParams<DatagridData<Expense>>) => {
+            const label = params.valueFormatted ?? params.value;
+            if (!params.data?.isSupplierPayment || isLocked) return label;
+            return (
+              <Box
+                sx={{ display: "flex", alignItems: "center", gap: 0.5, cursor: "pointer" }}
+                onClick={() => openEditDialog(params.data as Expense)}
+              >
+                <EditIcon sx={{ fontSize: 14, color: "primary.main" }} />
+                {label}
+              </Box>
+            );
           },
         },
         {
@@ -128,7 +151,7 @@ const ExpensesDataGrid = memo(
           },
         },
       ],
-      [isLocked]
+      [isLocked, openEditDialog]
     );
 
     const handleCellValueChanged = useCallback(
