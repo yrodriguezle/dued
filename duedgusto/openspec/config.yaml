@@ -1,0 +1,33 @@
+schema: spec-driven
+
+context: |
+  Tech stack: React 19 + TypeScript 5.7 + Vite 6 + MUI 6 + Apollo Client 3 + AG Grid Enterprise 33
+  Architecture: SPA con routing dinamico, GraphQL, Formik + Zod, Zustand
+  Testing: Vitest (unit) + Playwright (e2e, visual regression)
+  Style: ESLint + Prettier, no for-loops, .tsx per tutti i file
+  State: Apollo cache per dati server, Zustand per stato globale
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+    - Identify affected modules/packages
+  specs:
+    - Use Given/When/Then format for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for complex flows
+    - Document architecture decisions with rationale
+  tasks:
+    - Group tasks by phase (infrastructure, implementation, testing)
+    - Use hierarchical numbering (1.1, 1.2, etc.)
+    - Keep tasks small enough to complete in one session
+  apply:
+    - Follow existing code patterns and conventions
+    - Use .tsx extension for all files
+    - No for-loops, use functional methods (.map, .filter, .reduce)
+    - Use bones/ utilities instead of lodash
+  verify:
+    - Run ts:check and lint before considering complete
+    - Compare implementation against every spec scenario
+  archive:
+    - Warn before merging destructive deltas (large removals)
