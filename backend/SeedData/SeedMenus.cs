@@ -609,12 +609,12 @@ public static class SeedMenus
             fornitoriChild1 = new Menu
             {
                 Titolo = "Lista Fornitori",
-                Percorso = "/gestionale/suppliers-list",
+                Percorso = "/gestionale/fornitori-list",
                 Icona = "List",
                 Visibile = true,
                 Posizione = 1,
-                NomeVista = "SupplierList",
-                PercorsoFile = "suppliers/SupplierList.tsx",
+                NomeVista = "FornitoreList",
+                PercorsoFile = "fornitori/FornitoreList.tsx",
                 MenuPadreId = fornitoriMenu.Id
             };
             fornitoriChild1.Ruoli.Add(superAdminRuolo);
@@ -623,8 +623,8 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(fornitoriChild1, "Lista Fornitori", "/gestionale/suppliers-list", "List", true, 1,
-                "SupplierList", "suppliers/SupplierList.tsx", superAdminRuolo, fornitoriMenu, ref needsUpdate);
+            UpdateMenuIfNeeded(fornitoriChild1, "Lista Fornitori", "/gestionale/fornitori-list", "List", true, 1,
+                "FornitoreList", "fornitori/FornitoreList.tsx", superAdminRuolo, fornitoriMenu, ref needsUpdate);
             if (needsUpdate)
             {
                 dbContext.Menus.Update(fornitoriChild1);
@@ -641,12 +641,12 @@ public static class SeedMenus
             fornitoriChild2 = new Menu
             {
                 Titolo = "Gestione Fornitori",
-                Percorso = "/gestionale/suppliers-details",
+                Percorso = "/gestionale/fornitori-details",
                 Icona = "Person3",
                 Visibile = true,
                 Posizione = 2,
-                NomeVista = "SupplierDetails",
-                PercorsoFile = "suppliers/SupplierDetails.tsx",
+                NomeVista = "FornitoreDetails",
+                PercorsoFile = "fornitori/FornitoreDetails.tsx",
                 MenuPadreId = fornitoriMenu.Id
             };
             fornitoriChild2.Ruoli.Add(superAdminRuolo);
@@ -655,8 +655,8 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(fornitoriChild2, "Gestione Fornitori", "/gestionale/suppliers-details", "Person3", true, 2,
-                "SupplierDetails", "suppliers/SupplierDetails.tsx", superAdminRuolo, fornitoriMenu, ref needsUpdate);
+            UpdateMenuIfNeeded(fornitoriChild2, "Gestione Fornitori", "/gestionale/fornitori-details", "Person3", true, 2,
+                "FornitoreDetails", "fornitori/FornitoreDetails.tsx", superAdminRuolo, fornitoriMenu, ref needsUpdate);
             if (needsUpdate)
             {
                 dbContext.Menus.Update(fornitoriChild2);
@@ -673,12 +673,12 @@ public static class SeedMenus
             fornitoriChild3 = new Menu
             {
                 Titolo = "Fatture Acquisto",
-                Percorso = "/gestionale/purchase-invoices-list",
+                Percorso = "/gestionale/fatture-acquisto-list",
                 Icona = "Receipt",
                 Visibile = true,
                 Posizione = 3,
-                NomeVista = "PurchaseInvoiceList",
-                PercorsoFile = "purchases/PurchaseInvoiceList.tsx",
+                NomeVista = "FatturaAcquistoList",
+                PercorsoFile = "fattureAcquisto/FatturaAcquistoList.tsx",
                 MenuPadreId = fornitoriMenu.Id
             };
             fornitoriChild3.Ruoli.Add(superAdminRuolo);
@@ -687,8 +687,8 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(fornitoriChild3, "Fatture Acquisto", "/gestionale/purchase-invoices-list", "Receipt", true, 3,
-                "PurchaseInvoiceList", "purchases/PurchaseInvoiceList.tsx", superAdminRuolo, fornitoriMenu, ref needsUpdate);
+            UpdateMenuIfNeeded(fornitoriChild3, "Fatture Acquisto", "/gestionale/fatture-acquisto-list", "Receipt", true, 3,
+                "FatturaAcquistoList", "fattureAcquisto/FatturaAcquistoList.tsx", superAdminRuolo, fornitoriMenu, ref needsUpdate);
             if (needsUpdate)
             {
                 dbContext.Menus.Update(fornitoriChild3);
@@ -705,12 +705,12 @@ public static class SeedMenus
             fornitoriChild4 = new Menu
             {
                 Titolo = "Gestione Fatture Acquisto",
-                Percorso = "/gestionale/purchase-invoices-details",
+                Percorso = "/gestionale/fatture-acquisto-details",
                 Icona = "Edit",
                 Visibile = true,
                 Posizione = 4,
-                NomeVista = "PurchaseInvoiceDetails",
-                PercorsoFile = "purchases/PurchaseInvoiceDetails.tsx",
+                NomeVista = "FatturaAcquistoDetails",
+                PercorsoFile = "fattureAcquisto/FatturaAcquistoDetails.tsx",
                 MenuPadreId = fornitoriMenu.Id
             };
             fornitoriChild4.Ruoli.Add(superAdminRuolo);
@@ -719,8 +719,8 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(fornitoriChild4, "Gestione Fatture Acquisto", "/gestionale/purchase-invoices-details", "Edit", true, 4,
-                "PurchaseInvoiceDetails", "purchases/PurchaseInvoiceDetails.tsx", superAdminRuolo, fornitoriMenu, ref needsUpdate);
+            UpdateMenuIfNeeded(fornitoriChild4, "Gestione Fatture Acquisto", "/gestionale/fatture-acquisto-details", "Edit", true, 4,
+                "FatturaAcquistoDetails", "fattureAcquisto/FatturaAcquistoDetails.tsx", superAdminRuolo, fornitoriMenu, ref needsUpdate);
             if (needsUpdate)
             {
                 dbContext.Menus.Update(fornitoriChild4);
@@ -730,19 +730,19 @@ public static class SeedMenus
         // Menu figlio: DDT
         var fornitoriChild5 = await dbContext.Menus
             .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/delivery-notes-list");
+            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/documenti-trasporto-list");
 
         if (fornitoriChild5 == null)
         {
             fornitoriChild5 = new Menu
             {
                 Titolo = "DDT",
-                Percorso = "/gestionale/delivery-notes-list",
+                Percorso = "/gestionale/documenti-trasporto-list",
                 Icona = "LocalShipping",
                 Visibile = true,
                 Posizione = 5,
-                NomeVista = "DeliveryNoteList",
-                PercorsoFile = "deliveryNotes/DeliveryNoteList.tsx",
+                NomeVista = "DocumentoTrasportoList",
+                PercorsoFile = "documentiTrasporto/DocumentoTrasportoList.tsx",
                 MenuPadreId = fornitoriMenu.Id
             };
             fornitoriChild5.Ruoli.Add(superAdminRuolo);
@@ -751,8 +751,8 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(fornitoriChild5, "DDT", "/gestionale/delivery-notes-list", "LocalShipping", true, 5,
-                "DeliveryNoteList", "deliveryNotes/DeliveryNoteList.tsx", superAdminRuolo, fornitoriMenu, ref needsUpdate);
+            UpdateMenuIfNeeded(fornitoriChild5, "DDT", "/gestionale/documenti-trasporto-list", "LocalShipping", true, 5,
+                "DocumentoTrasportoList", "documentiTrasporto/DocumentoTrasportoList.tsx", superAdminRuolo, fornitoriMenu, ref needsUpdate);
             if (needsUpdate)
             {
                 dbContext.Menus.Update(fornitoriChild5);
@@ -762,19 +762,19 @@ public static class SeedMenus
         // Menu figlio: Gestione DDT (nascosto nella sidebar)
         var fornitoriChild6 = await dbContext.Menus
             .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/delivery-notes-details");
+            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/documenti-trasporto-details");
 
         if (fornitoriChild6 == null)
         {
             fornitoriChild6 = new Menu
             {
                 Titolo = "Gestione DDT",
-                Percorso = "/gestionale/delivery-notes-details",
+                Percorso = "/gestionale/documenti-trasporto-details",
                 Icona = "Edit",
                 Visibile = false,
                 Posizione = 6,
-                NomeVista = "DeliveryNoteDetails",
-                PercorsoFile = "deliveryNotes/DeliveryNoteDetails.tsx",
+                NomeVista = "DocumentoTrasportoDetails",
+                PercorsoFile = "documentiTrasporto/DocumentoTrasportoDetails.tsx",
                 MenuPadreId = fornitoriMenu.Id
             };
             fornitoriChild6.Ruoli.Add(superAdminRuolo);
@@ -783,8 +783,8 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(fornitoriChild6, "Gestione DDT", "/gestionale/delivery-notes-details", "Edit", false, 6,
-                "DeliveryNoteDetails", "deliveryNotes/DeliveryNoteDetails.tsx", superAdminRuolo, fornitoriMenu, ref needsUpdate);
+            UpdateMenuIfNeeded(fornitoriChild6, "Gestione DDT", "/gestionale/documenti-trasporto-details", "Edit", false, 6,
+                "DocumentoTrasportoDetails", "documentiTrasporto/DocumentoTrasportoDetails.tsx", superAdminRuolo, fornitoriMenu, ref needsUpdate);
             if (needsUpdate)
             {
                 dbContext.Menus.Update(fornitoriChild6);

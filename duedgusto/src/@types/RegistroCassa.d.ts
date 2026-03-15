@@ -58,22 +58,22 @@ type SpesaCassa = {
 
 // PagamentoFornitoreRegistro
 type PagamentoFornitoreRegistro = {
-  paymentId: number;
-  amount: number;
-  paymentMethod?: string;
+  pagamentoId: number;
+  importo: number;
+  metodoPagamento?: string;
   ddt?: {
-    ddtNumber: string;
-    supplier: {
-      supplierId: number;
-      businessName: string;
+    numeroDdt: string;
+    fornitore: {
+      fornitoreId: number;
+      ragioneSociale: string;
     };
   };
-  invoice?: {
-    invoiceId: number;
-    invoiceNumber: string;
-    supplier: {
-      supplierId: number;
-      businessName: string;
+  fattura?: {
+    fatturaId: number;
+    numeroFattura: string;
+    fornitore: {
+      fornitoreId: number;
+      ragioneSociale: string;
     };
   };
 };
@@ -179,8 +179,8 @@ interface Income extends Record<string, unknown> {
 interface Expense extends Record<string, unknown> {
   description: string;
   amount: number;
-  isSupplierPayment?: boolean;
-  supplierId?: number;
+  isPagamentoFornitore?: boolean;
+  fornitoreId?: number;
   ddtNumber?: string;
   paymentMethod?: string;
   documentType?: "FA" | "DDT";

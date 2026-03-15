@@ -7,7 +7,7 @@ import { visualTest, navigateAndWait, takeScreenshot, AUTH_STATE_PATH } from "./
  * Covers:
  * - UserForm (via UserDetails at /gestionale/users/new or users list)
  * - RoleForm (via RoleDetails at /gestionale/roles/new or roles list)
- * - SupplierForm (via SupplierDetails at /gestionale/suppliers/new)
+ * - FornitoreForm (via FornitoreDetails at /gestionale/fornitori/new)
  * - DeliveryNoteForm (via DeliveryNoteDetails at /gestionale/delivery-notes/new)
  * - PurchaseInvoiceForm (via PurchaseInvoiceDetails at /gestionale/purchases/new)
  *
@@ -43,15 +43,15 @@ test.describe("Role Pages", () => {
   });
 });
 
-// --- Supplier pages ---
-test.describe("Supplier Pages", () => {
-  test("supplier list page", async ({ page }) => {
-    await visualTest(page, "suppliers-list", "supplier-list");
+// --- Fornitore pages ---
+test.describe("Fornitore Pages", () => {
+  test("fornitore list page", async ({ page }) => {
+    await visualTest(page, "fornitori-list", "fornitore-list");
   });
 
-  test("supplier form — new supplier", async ({ page }) => {
-    await navigateAndWait(page, "suppliers/new");
-    await takeScreenshot(page, "supplier-form-new");
+  test("fornitore form — new fornitore", async ({ page }) => {
+    await navigateAndWait(page, "fornitori/new");
+    await takeScreenshot(page, "fornitore-form-new");
   });
 });
 

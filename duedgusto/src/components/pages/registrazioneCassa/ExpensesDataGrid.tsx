@@ -10,7 +10,7 @@ import Datagrid from "../../common/datagrid/Datagrid";
 import { DatagridColDef, ValidationError, DatagridCellValueChangedEvent, DatagridData } from "../../common/datagrid/@types/Datagrid";
 import { GridReadyEvent, RowDoubleClickedEvent, ICellRendererParams } from "ag-grid-community";
 import formatCurrency from "../../../common/bones/formatCurrency";
-import SupplierPaymentDialog from "./SupplierPaymentDialog";
+import PagamentoFornitoreDialog from "./PagamentoFornitoreDialog";
 import OverflowToolbar, { OverflowAction } from "../../common/toolbar/OverflowToolbar";
 
 interface ExpensesDataGridProps {
@@ -42,7 +42,7 @@ const ExpensesDataGrid = memo(
         api.forEachNode((node) => {
           if (node.data) {
             total += node.data.amount || 0;
-            if (!node.data.isSupplierPayment) {
+            if (!node.data.isPagamentoFornitore) {
               receiptTotal += node.data.amount || 0;
             }
           }
@@ -87,7 +87,7 @@ const ExpensesDataGrid = memo(
     // Doppio click su riga fornitore (fallback desktop)
     const handleRowDoubleClicked = useCallback(
       (event: RowDoubleClickedEvent<DatagridData<Expense>>) => {
-        if (!event.data?.isSupplierPayment) return;
+        if (!event.data?.isPagamentoFornitore) return;
         openEditDialog(event.data as Expense);
       },
       [openEditDialog]
@@ -107,14 +107,14 @@ const ExpensesDataGrid = memo(
           minWidth: 60,
           editable: false,
           valueGetter: (params) => {
-            if (params.data?.isSupplierPayment) {
+            if (params.data?.isPagamentoFornitore) {
               return params.data.documentType === "FA" ? "FA" : "DDT";
             }
             return "RIC";
           },
           cellRenderer: (params: ICellRendererParams<DatagridData<Expense>>) => {
             const label = params.valueFormatted ?? params.value;
-            if (!params.data?.isSupplierPayment || isLocked) return label;
+            if (!params.data?.isPagamentoFornitore || isLocked) return label;
             return (
               <Box
                 sx={{ display: "flex", alignItems: "center", gap: 0.5, cursor: "pointer" }}
@@ -131,14 +131,14 @@ const ExpensesDataGrid = memo(
           field: "description",
           flex: 2,
           minWidth: 80,
-          editable: (params) => !isLocked && !params.data?.isSupplierPayment,
+          editable: (params) => !isLocked && !params.data?.isPagamentoFornitore,
         },
         {
           headerName: "Importo",
           field: "amount",
           flex: 1,
           minWidth: 70,
-          editable: (params) => !isLocked && !params.data?.isSupplierPayment,
+          editable: (params) => !isLocked && !params.data?.isPagamentoFornitore,
           cellEditor: "agNumberCellEditor",
           cellEditorParams: {
             min: 0,
@@ -210,7 +210,7 @@ const ExpensesDataGrid = memo(
       () => [
         { key: "add", label: "Nuova riga", icon: <AddIcon fontSize="small" />, onClick: handleAddRow, disabled: isLocked },
         { key: "delete", label: "Cancella riga", icon: <RemoveIcon fontSize="small" />, onClick: handleDeleteSelected, disabled: isLocked },
-        { key: "supplier", label: "Pagamento fornitore", icon: <PaymentIcon fontSize="small" />, onClick: () => setDialogOpen(true), disabled: isLocked },
+        { key: "fornitore", label: "Pagamento fornitore", icon: <PaymentIcon fontSize="small" />, onClick: () => setDialogOpen(true), disabled: isLocked },
       ],
       [handleAddRow, handleDeleteSelected, isLocked]
     );
@@ -224,7 +224,7 @@ const ExpensesDataGrid = memo(
         >
           SPESE
         </Typography>
-        <SupplierPaymentDialog
+        <PagamentoFornitoreDialog
           open={dialogOpen}
           onClose={() => { setDialogOpen(false); setEditingExpense(null); }}
           onConfirm={handlePaymentConfirm}

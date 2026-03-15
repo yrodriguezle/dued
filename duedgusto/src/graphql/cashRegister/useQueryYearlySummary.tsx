@@ -95,14 +95,14 @@ export function useQueryYearlySummary({ year, skip = false }: UseQueryYearlySumm
         const closingTotal = cr.totaleChiusura ?? 0;
         const invoicePayments = cr.incassiFattura ?? 0;
         const openingTotal = cr.totaleApertura ?? 0;
-        const supplierExpenses = cr.speseFornitori ?? 0;
+        const speseFornitore = cr.speseFornitori ?? 0;
         const dailyExpenses = cr.speseGiornaliere ?? 0;
         const cashInWhite = cr.incassoContanteTracciato ?? 0;
         const electronicPayments = cr.incassiElettronici ?? 0;
         const difference = cr.differenza ?? 0;
         const vatAmount = cr.importoIva ?? 0;
 
-        const dailyRevenue = closingTotal + invoicePayments - openingTotal - supplierExpenses - dailyExpenses;
+        const dailyRevenue = closingTotal + invoicePayments - openingTotal - speseFornitore - dailyExpenses;
 
         monthData.totalRevenue += dailyRevenue;
         monthData.totalCash += cashInWhite;

@@ -93,6 +93,18 @@ function configureClient() {
     link: from([errorLink, authLink, httpLink]),
     cache: new InMemoryCache({
       typePolicies: {
+        Fornitore: {
+          keyFields: ["fornitoreId"],
+        },
+        FatturaAcquisto: {
+          keyFields: ["fatturaId"],
+        },
+        DocumentoTrasporto: {
+          keyFields: ["ddtId"],
+        },
+        PagamentoFornitore: {
+          keyFields: ["pagamentoId"],
+        },
         Query: {
           fields: {
             connection: {

@@ -61,22 +61,22 @@ export const registroCassaFragment = `
     incassi { ...IncassoCassaFragment }
     spese { ...SpesaCassaFragment }
     pagamentiFornitori {
-      paymentId
-      amount
-      paymentMethod
+      pagamentoId
+      importo
+      metodoPagamento
       ddt {
-        ddtNumber
-        supplier {
-          supplierId
-          businessName
+        numeroDdt
+        fornitore {
+          fornitoreId
+          ragioneSociale
         }
       }
-      invoice {
-        invoiceId
-        invoiceNumber
-        supplier {
-          supplierId
-          businessName
+      fattura {
+        fatturaId
+        numeroFattura
+        fornitore {
+          fornitoreId
+          ragioneSociale
         }
       }
     }

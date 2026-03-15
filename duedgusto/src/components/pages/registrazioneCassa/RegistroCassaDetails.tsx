@@ -262,26 +262,26 @@ function RegistroCassaDetails() {
           description: e.descrizione,
           amount: e.importo,
         })) || [];
-      const supplierPaymentExpenses: Expense[] =
+      const pagamentoFornitoreExpenses: Expense[] =
         cashRegister.pagamentiFornitori?.map((p: PagamentoFornitoreRegistro) => {
-          const hasInvoice = !!p.invoice;
-          const supplierName = hasInvoice ? p.invoice?.supplier?.businessName || "Fornitore" : p.ddt?.supplier?.businessName || "Fornitore";
-          const supplierId = hasInvoice ? p.invoice?.supplier?.supplierId : p.ddt?.supplier?.supplierId;
+          const hasInvoice = !!p.fattura;
+          const nomeFornitore = hasInvoice ? p.fattura?.fornitore?.ragioneSociale || "Fornitore" : p.ddt?.fornitore?.ragioneSociale || "Fornitore";
+          const fornitoreIdVal = hasInvoice ? p.fattura?.fornitore?.fornitoreId : p.ddt?.fornitore?.fornitoreId;
           const docType: "FA" | "DDT" = hasInvoice ? "FA" : "DDT";
-          const docLabel = hasInvoice ? `FA ${p.invoice?.invoiceNumber || ""}` : `DDT ${p.ddt?.ddtNumber || ""}`;
+          const docLabel = hasInvoice ? `FA ${p.fattura?.numeroFattura || ""}` : `DDT ${p.ddt?.numeroDdt || ""}`;
 
           return {
-            description: `Pagamento ${supplierName} - ${docLabel}`,
-            amount: p.amount,
-            isSupplierPayment: true,
-            supplierId,
-            ddtNumber: p.ddt?.ddtNumber,
-            paymentMethod: p.paymentMethod,
+            description: `Pagamento ${nomeFornitore} - ${docLabel}`,
+            amount: p.importo,
+            isPagamentoFornitore: true,
+            fornitoreId: fornitoreIdVal,
+            ddtNumber: p.ddt?.numeroDdt,
+            paymentMethod: p.metodoPagamento,
             documentType: docType,
-            invoiceNumber: p.invoice?.invoiceNumber,
+            invoiceNumber: p.fattura?.numeroFattura,
           };
         }) || [];
-      setInitialExpenses([...supplierPaymentExpenses, ...normalExpenses]);
+      setInitialExpenses([...pagamentoFornitoreExpenses, ...normalExpenses]);
 
       setTimeout(() => {
         formRef.current?.setStatus({
@@ -340,11 +340,11 @@ function RegistroCassaDetails() {
       }
 
       // Separa spese normali da pagamenti fornitore
-      const normalExpenses = expenses.filter((row: Expense) => !row.isSupplierPayment);
-      const supplierPayments: PagamentoFornitoreRegistroInput[] = expenses
-        .filter((row: Expense) => row.isSupplierPayment && row.supplierId)
+      const normalExpenses = expenses.filter((row: Expense) => !row.isPagamentoFornitore);
+      const pagamentiFornitore: PagamentoFornitoreRegistroInput[] = expenses
+        .filter((row: Expense) => row.isPagamentoFornitore && row.fornitoreId)
         .map((row: Expense) => ({
-          fornitoreId: row.supplierId!,
+          fornitoreId: row.fornitoreId!,
           numeroDdt: row.ddtNumber || "",
           importo: row.amount,
           metodoPagamento: row.paymentMethod || undefined,
@@ -373,7 +373,7 @@ function RegistroCassaDetails() {
           descrizione: row.description,
           importo: row.amount,
         })),
-        pagamentiFornitori: supplierPayments,
+        pagamentiFornitori: pagamentiFornitore,
         incassoContanteTracciato: incomes.find((i: IncomeRow) => i.type === "Pago in contanti")?.amount || 0,
         incassiElettronici: incomes.find((i: IncomeRow) => i.type === "Pagamenti Elettronici")?.amount || 0,
         incassiFattura: incomes.find((i: IncomeRow) => i.type === "Pagamento con Fattura")?.amount || 0,

@@ -9,7 +9,7 @@ using duedgusto.Models;
 using duedgusto.Services.GraphQL;
 using duedgusto.GraphQL.Authentication;
 using duedgusto.GraphQL.GestioneCassa.Types;
-using duedgusto.GraphQL.Suppliers.Types;
+using duedgusto.GraphQL.Fornitori.Types;
 using duedgusto.GraphQL.ChiusureMensili.Types;
 
 namespace duedgusto.GraphQL.Connection;
@@ -125,7 +125,7 @@ public class ConnectionQueries : ObjectGraphType
                 return connection;
             });
 
-        Field<ConnectionType<SupplierType>>("fornitori")
+        Field<ConnectionType<FornitoreType>>("fornitori")
             .Argument<IntGraphType>("first", "Number of items to return")
             .Argument<IntGraphType>("cursor", "Offset for pagination (deprecated, use after)")
             .Argument<StringGraphType>("after", "Cursor after which to return items")
@@ -144,7 +144,7 @@ public class ConnectionQueries : ObjectGraphType
                 return connection;
             });
 
-        Field<ConnectionType<PurchaseInvoiceType>>("fattureAcquisto")
+        Field<ConnectionType<FatturaAcquistoType>>("fattureAcquisto")
             .Argument<IntGraphType>("first", "Number of items to return")
             .Argument<IntGraphType>("cursor", "Offset for pagination (deprecated, use after)")
             .Argument<StringGraphType>("after", "Cursor after which to return items")
@@ -170,7 +170,7 @@ public class ConnectionQueries : ObjectGraphType
                 return connection;
             });
 
-        Field<ConnectionType<DeliveryNoteType>>("documentiTrasporto")
+        Field<ConnectionType<DocumentoTrasportoType>>("documentiTrasporto")
             .Argument<IntGraphType>("first", "Number of items to return")
             .Argument<IntGraphType>("cursor", "Offset for pagination (deprecated, use after)")
             .Argument<StringGraphType>("after", "Cursor after which to return items")
@@ -196,7 +196,7 @@ public class ConnectionQueries : ObjectGraphType
                 return connection;
             });
 
-        Field<ConnectionType<SupplierPaymentType>>("pagamentiFornitori")
+        Field<ConnectionType<PagamentoFornitoreType>>("pagamentiFornitori")
             .Argument<IntGraphType>("first", "Number of items to return")
             .Argument<IntGraphType>("cursor", "Offset for pagination (deprecated, use after)")
             .Argument<StringGraphType>("after", "Cursor after which to return items")
