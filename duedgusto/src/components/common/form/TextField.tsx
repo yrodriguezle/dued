@@ -47,7 +47,8 @@ const TextField = forwardRef<TextFieldRef, TextFieldProps>(({ value = "", name, 
 
   // Ripristina la posizione del cursore dopo che innerValue è stato aggiornato
   useLayoutEffect(() => {
-    if (caretSelection.current && inputRef.current && inputRef.current.type !== "number") {
+    const unsupportedTypes = ["number", "email", "date", "month", "week", "time"];
+    if (caretSelection.current && inputRef.current && !unsupportedTypes.includes(inputRef.current.type)) {
       inputRef.current.setSelectionRange(caretSelection.current.start, caretSelection.current.end);
       caretSelection.current = null;
     }

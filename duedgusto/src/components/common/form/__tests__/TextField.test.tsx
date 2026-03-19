@@ -149,6 +149,36 @@ describe("TextField - comportamento controllato vs non controllato", () => {
   });
 });
 
+describe("TextField - tipi che non supportano setSelectionRange", () => {
+  it("non dovrebbe lanciare errore con type=email", () => {
+    function EmailWrapper() {
+      const [value, setValue] = useState("");
+      return (
+        <TextField
+          name="email"
+          value={value}
+          onChange={(_name, val) => setValue(val)}
+          label="Email"
+          type="email"
+        />
+      );
+    }
+
+    render(<EmailWrapper />);
+    const input = screen.getByRole("textbox") as HTMLInputElement;
+
+    // Simula digitazione — non deve lanciare InvalidStateError
+    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+    nativeInputValueSetter?.call(input, "test@example.com");
+    act(() => {
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+
+    expect(input.value).toBe("test@example.com");
+  });
+});
+
 describe("TextField - passthrough delle props", () => {
   it("dovrebbe applicare la prop disabled", () => {
     render(<TextField
