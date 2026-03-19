@@ -1,18 +1,50 @@
 import { useCallback, useMemo } from "react";
 import Box from "@mui/material/Box";
 import * as MuiIcons from "@mui/icons-material";
+import { GridApi } from "ag-grid-community";
 
 import { MenuNonNull, MenuWithStatus } from "../../common/form/searchbox/searchboxOptions/menuSearchboxOptions";
 import Datagrid from "../../common/datagrid/Datagrid";
 import { useFormikContext } from "formik";
 import MenuIconRenderer from "../../common/datagrid/cellRenderers/MenuIconRenderer";
 import { IconName } from "../../common/icon/IconFactory";
-import { DatagridCellValueChangedEvent, DatagridColDef, DatagridData, DatagridRowDataUpdatedEvent } from "../../common/datagrid/@types/Datagrid";
+import { DatagridCellValueChangedEvent, DatagridColDef, DatagridData, DatagridRowDragEndEvent, DatagridRowDataUpdatedEvent } from "../../common/datagrid/@types/Datagrid";
 import { FormikMenuValues } from "./MenuDetails";
 import { DatagridStatus } from "../../../common/globals/constants";
 import useDebouncedCallback from "../../common/debounced/useDebouncedCallback";
+import showToast from "../../../common/toast/showToast";
 
 const iconNames = Object.keys(MuiIcons) as IconName[];
+
+function buildNodesMap(api: GridApi): Map<number, MenuNonNull> {
+  const map = new Map<number, MenuNonNull>();
+  api.forEachNode((node) => {
+    if (node.data) {
+      map.set(node.data.id, node.data as MenuNonNull);
+    }
+  });
+  return map;
+}
+
+function isDescendantOf(
+  nodeId: number,
+  potentialParentId: number,
+  nodesMap: Map<number, MenuNonNull>,
+  visited: Set<number> = new Set()
+): boolean {
+  if (potentialParentId === nodeId) {
+    return true;
+  }
+  if (visited.has(potentialParentId)) {
+    return false;
+  }
+  const node = nodesMap.get(potentialParentId);
+  const parentId = node?.menuPadreId ?? null;
+  if (parentId === null || parentId === undefined) {
+    return false;
+  }
+  return isDescendantOf(nodeId, parentId, nodesMap, new Set([...visited, potentialParentId]));
+}
 
 interface MenuFormProps {
   menus: MenuNonNull[];
@@ -41,23 +73,75 @@ const MenuForm: React.FC<MenuFormProps> = ({ menus }) => {
 
   const getNewRowOrUndefined = useMemo(() => (readOnly ? undefined : getNewRow), [readOnly, getNewRow]);
 
+  const sortedMenus = useMemo(() => [...menus].sort((a, b) => (a.posizione ?? 0) - (b.posizione ?? 0)), [menus]);
+
+  const isGridDirty = useCallback(
+    (gridData: DatagridData<MenuWithStatus>[]) => {
+      const hasModifiedOrAdded = gridData.some(({ status }) => status === DatagridStatus.Modified || status === DatagridStatus.Added);
+      const hasDeletedRows = gridData.length !== menus.length;
+      return hasModifiedOrAdded || hasDeletedRows;
+    },
+    [menus.length]
+  );
+
   const handleRowDataUpdated = useCallback(
     (event: DatagridRowDataUpdatedEvent<MenuWithStatus>) => {
       const gridData: DatagridData<MenuWithStatus>[] = event.context.getGridData();
-      const dirty = gridData.some(({ status }) => status === DatagridStatus.Modified);
-      setFieldValue("gridDirty", dirty);
+      setFieldValue("gridDirty", isGridDirty(gridData));
     },
-    [setFieldValue]
+    [setFieldValue, isGridDirty]
   );
 
   const handleCellValueChanged = useDebouncedCallback(
     (event: DatagridCellValueChangedEvent<MenuWithStatus>) => {
       const gridData: DatagridData<MenuWithStatus>[] = event.context.getGridData();
-      const dirty = gridData.some(({ status }) => status === DatagridStatus.Modified);
-      setFieldValue("gridDirty", dirty);
+      setFieldValue("gridDirty", isGridDirty(gridData));
     },
-    [],
+    [isGridDirty],
     1
+  );
+
+  const handleRowDragEnd = useCallback(
+    (event: DatagridRowDragEndEvent<MenuWithStatus>) => {
+      const { node, overNode, api } = event;
+      if (!node.data) {
+        return;
+      }
+
+      const draggedData = node.data;
+      const overData = overNode?.data ?? null;
+
+      // Early return: drop su se stesso
+      if (overData && draggedData.id === overData.id) {
+        return;
+      }
+
+      const newParentId = overData ? overData.id : null;
+
+      // Early return: menuPadreId non cambia
+      if (draggedData.menuPadreId === newParentId) {
+        return;
+      }
+
+      // Validazione anti-ciclo (solo se il nuovo parent non e null)
+      if (newParentId !== null) {
+        const nodesMap = buildNodesMap(api);
+        if (isDescendantOf(draggedData.id, newParentId, nodesMap)) {
+          showToast({
+            type: "warn",
+            message: "Impossibile spostare un elemento sotto un proprio discendente.",
+          });
+          return;
+        }
+      }
+
+      // Aggiorna menuPadreId e marca come modificato
+      draggedData.menuPadreId = newParentId;
+      draggedData.status = DatagridStatus.Modified;
+      api.applyTransaction({ update: [draggedData] });
+      setFieldValue("gridDirty", true);
+    },
+    [setFieldValue]
   );
 
   const getRowId = useCallback(({ data }: { data: MenuNonNull }) => data.id.toString(), []);
@@ -70,8 +154,9 @@ const MenuForm: React.FC<MenuFormProps> = ({ menus }) => {
       filter: false,
       sortable: false,
       width: 200,
+      rowDrag: !readOnly,
     }),
-    []
+    [readOnly]
   );
 
   const columnDefs = useMemo<DatagridColDef<MenuNonNull>[]>(
@@ -143,6 +228,10 @@ const MenuForm: React.FC<MenuFormProps> = ({ menus }) => {
         headerName: "Visibile",
         field: "visibile",
         width: 90,
+        editable: !readOnly,
+        cellDataType: "boolean",
+        cellRenderer: "agCheckboxCellRenderer",
+        cellEditor: "agCheckboxCellEditor",
       },
       {
         headerName: "Padre",
@@ -159,15 +248,17 @@ const MenuForm: React.FC<MenuFormProps> = ({ menus }) => {
     <Box sx={{ marginTop: 1, paddingX: 1, height: "80vh" }}>
       <Datagrid<MenuNonNull>
         height="100%"
-        items={menus}
+        items={sortedMenus}
         getRowId={getRowId}
         singleClickEdit
-        treeData={readOnly}
+        treeData
         treeDataParentIdField="menuPadreId"
         readOnly={readOnly}
         getNewRow={getNewRowOrUndefined}
         groupDefaultExpanded={-1}
         autoGroupColumnDef={autoGroupColumnDef}
+        rowDragManaged={!readOnly}
+        onRowDragEnd={handleRowDragEnd}
         onRowDataUpdated={handleRowDataUpdated}
         onCellValueChanged={handleCellValueChanged}
         columnDefs={columnDefs}

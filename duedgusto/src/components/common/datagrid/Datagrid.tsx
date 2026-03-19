@@ -23,6 +23,7 @@ interface BaseDatagridProps<T extends Record<string, unknown>> extends Omit<Data
   additionalToolbarButtons?: ReactNode;
   validationSchema?: z.ZodSchema<T>;
   onValidationErrors?: (errors: Map<number, ValidationError[]>) => void;
+  onRowsDeleted?: (deletedRows: DatagridData<T>[]) => void;
 }
 
 interface NormalModeProps<T extends Record<string, unknown>> extends BaseDatagridProps<T> {
@@ -63,6 +64,7 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
     additionalToolbarButtons,
     validationSchema,
     onValidationErrors,
+    onRowsDeleted,
     columnDefs,
     onGridReady: onGridReadyProp,
     getRowId,
@@ -245,7 +247,8 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
     const selected = gridRef.current.api.getSelectedRows() as DatagridData<T>[];
     if (selected.length === 0) return;
     gridRef.current.api.applyTransaction({ remove: selected });
-  }, [isPresentation]);
+    onRowsDeleted?.(selected);
+  }, [isPresentation, onRowsDeleted]);
 
   const handleCellValueChanged = useCallback(
     (event: CellValueChangedEvent<DatagridData<T>>) => {
