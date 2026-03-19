@@ -17,14 +17,18 @@ vi.mock("../useSearchboxQueryParams", () => ({
 
 // ─── Mock di ContainerGridResults (dipende da AG Grid) ───────────────────────
 vi.mock("../ContainerGridResults", () => ({
-  default: ({ onSelectedItem }: { onSelectedItem: (item: Record<string, unknown>) => void }) => (
+  default: ({ onSelectedItem, items, showNoRowsOverlay }: { onSelectedItem: (item: Record<string, unknown>) => void; items: Record<string, unknown>[]; showNoRowsOverlay?: boolean }) => (
     <div data-testid="grid-results">
-      <button
-        onClick={() => onSelectedItem({ id: 1, nome: "Mario Rossi" })}
-        data-testid="select-item-btn"
-      >
-        Mario Rossi
-      </button>
+      {showNoRowsOverlay && (!items || items.length === 0) ? (
+        <div>Nessun risultato trovato</div>
+      ) : (
+        <button
+          onClick={() => onSelectedItem({ id: 1, nome: "Mario Rossi" })}
+          data-testid="select-item-btn"
+        >
+          Mario Rossi
+        </button>
+      )}
     </div>
   ),
 }));
