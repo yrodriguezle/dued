@@ -388,16 +388,19 @@ function RegistroCassaDetails() {
       if (result) {
         toast.success("Cassa salvata con successo!", { position: "bottom-right" });
 
-        // Aggiorna il form con l'ID ritornato dal server
-        // Questo assicura che i successivi salvataggi siano update
-        if (result.id && !formRef.current?.values.registerId) {
-          formRef.current?.setFieldValue("registerId", result.id);
-        }
-
-        // Dopo il salvataggio, aggiorna lo stato del form
-        formRef.current?.setStatus({
-          formStatus: formStatuses.UPDATE,
-          isFormLocked: false,
+        // Aggiorna l'ID e resetta dirty: resetForm con i valori correnti
+        // rende i valori correnti i nuovi initialValues, azzerando dirty
+        const updatedValues = {
+          ...values,
+          registerId: result.id || values.registerId,
+          gridDirty: false,
+        };
+        formRef.current?.resetForm({
+          values: updatedValues,
+          status: {
+            formStatus: formStatuses.UPDATE,
+            isFormLocked: false,
+          },
         });
       }
     } catch (error) {
