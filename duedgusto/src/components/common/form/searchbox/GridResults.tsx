@@ -3,16 +3,19 @@ import type { ColDef, RowDoubleClickedEvent, CellKeyDownEvent, GridReadyEvent, R
 import AgGrid from "../../datagrid/AgGrid";
 import { DatagridData, DatagridRowSelectedEvent, DatagridRowDoubleClickedEvent, DatagridCellKeyDownEvent, DatagridCellFocusedEvent, DatagridGridReadyEvent } from "../../datagrid/@types/Datagrid";
 import { DatagridStatus } from "../../../../common/globals/constants";
+import { SearchboxColDef } from "../../../../@types/searchbox";
 
 export interface GridResultsProps<T extends Record<string, unknown>> {
   loading: boolean;
   items: T[];
-  columnDefs: ColDef<T>[];
+  columnDefs: SearchboxColDef<T>[];
   onSelectedItem: (item: T, event: RowDoubleClickedEvent<T> | CellKeyDownEvent<T>) => void;
   onGridReady: (event: GridReadyEvent<T>) => void;
+  onNavigateBack?: () => void;
+  showNoRowsOverlay?: boolean;
 }
 
-function GridResults<T extends Record<string, unknown>>({ loading, items, columnDefs, onSelectedItem, onGridReady }: GridResultsProps<T>) {
+function GridResults<T extends Record<string, unknown>>({ loading, items, columnDefs, onSelectedItem, onGridReady, onNavigateBack, showNoRowsOverlay }: GridResultsProps<T>) {
   const gridRef = useRef<DatagridGridReadyEvent<T> | null>(null);
 
   // Wrapper i dati con DatagridData
@@ -28,14 +31,19 @@ function GridResults<T extends Record<string, unknown>>({ loading, items, column
     [items]
   );
 
-  // Converte ColDef<T> in ColDef<DatagridData<T>> mappando i field
-  const wrappedColumnDefs = useMemo(
+  // Converte SearchboxColDef<T> in ColDef<DatagridData<T>> per AgGrid.
+  // graphField e action sono campi searchbox-specifici non presenti in ColDef — vengono omessi.
+  // Il cast via unknown è necessario al boundary T → DatagridData<T>: tutte le callback di AG Grid
+  // (valueGetter, cellRenderer, ecc.) sono parametrizzate in T, ma DatagridData<T> = T & DatagridAuxData
+  // è compatibile a runtime. Non è possibile esprimere questa covarianza strutturalmente in TypeScript
+  // senza un'asserzione esplicita a questo boundary.
+  const wrappedColumnDefs = useMemo<ColDef<DatagridData<T>>[]>(
     () =>
-      columnDefs.map((col) => ({
-        ...col,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        field: col.field as any, // Cast necessario per compatibilità tipi ColDef<T> -> ColDef<DatagridData<T>>
-      })),
+      columnDefs.map((col) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { graphField: _g, action: _a, ...rest } = col;
+        return rest as unknown as ColDef<DatagridData<T>>;
+      }),
     [columnDefs]
   );
 
@@ -80,6 +88,11 @@ function GridResults<T extends Record<string, unknown>>({ loading, items, column
         return;
       }
       const keyboardEvent = params.event as KeyboardEvent;
+      if (keyboardEvent.key === "ArrowUp" && params.rowIndex === 0 && onNavigateBack) {
+        keyboardEvent.preventDefault();
+        onNavigateBack();
+        return;
+      }
       if (keyboardEvent.key === "Enter" && params.data) {
         // Estrai dati originali rimuovendo il campo status
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -87,7 +100,7 @@ function GridResults<T extends Record<string, unknown>>({ loading, items, column
         onSelectedItem(originalData as unknown as T, params as unknown as CellKeyDownEvent<T>);
       }
     },
-    [onSelectedItem]
+    [onNavigateBack, onSelectedItem]
   );
 
   const handleCellFocused = useCallback((params: DatagridCellFocusedEvent<T>) => {
@@ -110,8 +123,7 @@ function GridResults<T extends Record<string, unknown>>({ loading, items, column
   return (
     <AgGrid
       rowData={wrappedItems}
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      columnDefs={wrappedColumnDefs as any} // Cast necessario per compatibilità tipi
+      columnDefs={wrappedColumnDefs}
       onRowSelected={handleRowSelected}
       onRowDoubleClicked={handleRowDoubleClicked}
       onCellKeyDown={handleCellKeyDown}
@@ -123,6 +135,7 @@ function GridResults<T extends Record<string, unknown>>({ loading, items, column
         sortable: false,
         suppressMovable: true,
       }}
+      overlayNoRowsTemplate={showNoRowsOverlay ? "Nessun risultato trovato" : undefined}
     />
   );
 }

@@ -1,9 +1,9 @@
-import { DatagridColDef, SearchboxOptions } from "../../../../../@types/searchbox";
+import { SearchboxColDef, SearchboxOptions } from "../../../../../@types/searchbox";
 import { hiddenColumnProperties } from "../../../datagrid/datagridUtils";
 
 export type RuoloNonNull = Exclude<Ruolo, null>;
 
-const items: DatagridColDef<RuoloNonNull>[] = [
+const items: SearchboxColDef<RuoloNonNull>[] = [
   {
     headerName: "ID",
     field: "id",

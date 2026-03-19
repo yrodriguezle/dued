@@ -1,8 +1,8 @@
-import { DatagridColDef, SearchboxOptions } from "../../../../../@types/searchbox";
+import { SearchboxColDef, SearchboxOptions } from "../../../../../@types/searchbox";
 
 export type FornitoreSearchbox = Exclude<Fornitore, null>;
 
-const items: DatagridColDef<FornitoreSearchbox>[] = [
+const items: SearchboxColDef<FornitoreSearchbox>[] = [
   {
     headerName: "ID",
     field: "fornitoreId",

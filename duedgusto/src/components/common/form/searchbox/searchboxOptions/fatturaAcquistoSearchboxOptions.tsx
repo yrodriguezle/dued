@@ -1,4 +1,4 @@
-import { DatagridColDef, SearchboxOptions } from "../../../../../@types/searchbox";
+import { SearchboxColDef, SearchboxOptions } from "../../../../../@types/searchbox";
 
 export type FatturaAcquistoSearchbox = {
   fatturaId: number;
@@ -7,7 +7,7 @@ export type FatturaAcquistoSearchbox = {
   imponibile: number;
 };
 
-const items: DatagridColDef<FatturaAcquistoSearchbox>[] = [
+const items: SearchboxColDef<FatturaAcquistoSearchbox>[] = [
   {
     headerName: "ID",
     field: "fatturaId",

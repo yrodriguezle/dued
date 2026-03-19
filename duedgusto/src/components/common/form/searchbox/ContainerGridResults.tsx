@@ -10,7 +10,7 @@ interface ContainerGridResultsProps<T extends Record<string, unknown>> extends G
   searchBoxId: string;
 }
 
-function ContainerGridResults<T extends Record<string, unknown>>({ searchBoxId, loading, items, columnDefs, onSelectedItem, onGridReady }: ContainerGridResultsProps<T>) {
+function ContainerGridResults<T extends Record<string, unknown>>({ searchBoxId, loading, items, columnDefs, onSelectedItem, onGridReady, onNavigateBack, showNoRowsOverlay }: ContainerGridResultsProps<T>) {
   const mounted = useRef(false);
   useEffect(() => {
     mounted.current = true;
@@ -59,6 +59,8 @@ function ContainerGridResults<T extends Record<string, unknown>>({ searchBoxId, 
         columnDefs={columnDefs}
         onSelectedItem={onSelectedItem}
         onGridReady={onGridReady}
+        onNavigateBack={onNavigateBack}
+        showNoRowsOverlay={showNoRowsOverlay}
       />
     </Paper>
   );

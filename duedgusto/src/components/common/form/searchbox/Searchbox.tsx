@@ -2,8 +2,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import TextField, { TextFieldProps } from "@mui/material/TextField";
 import InputAdornment from "@mui/material/InputAdornment";
 import IconButton from "@mui/material/IconButton";
-import Paper from "@mui/material/Paper";
-import Typography from "@mui/material/Typography";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import CircularProgress from "@mui/material/CircularProgress";
 import { GridReadyEvent } from "ag-grid-community";
@@ -74,6 +72,13 @@ function Searchbox<T extends Record<string, unknown>>({ id, name, value, orderBy
     },
     [resultListRef]
   );
+
+  const handleNavigateBack = useCallback(() => {
+    if (resultListRef.current?.api.isDestroyed() === false) {
+      resultListRef.current.api.deselectAll();
+    }
+    inputRef.current?.focus();
+  }, []);
 
   const handleSelectedItem = useCallback(
     (item: T) => {
@@ -210,46 +215,22 @@ function Searchbox<T extends Record<string, unknown>>({ id, name, value, orderBy
         }}
       />
       {resultsVisible && (
-        <>
-          {!loading && (innerValue || "").toString().trim().length > 2 && (!items || items.length === 0) ? (
-            <Paper
-              elevation={8}
-              sx={{
-                position: "absolute",
-                top: "100%",
-                left: 0,
-                right: 0,
-                marginTop: "-6px",
-                zIndex: 10,
-                p: 2,
-                textAlign: "center",
-              }}
-            >
-              <Typography
-                variant="body2"
-                color="text.secondary"
-              >
-                Nessun risultato trovato
-              </Typography>
-            </Paper>
-          ) : (
-            <ContainerGridResults<T>
-              searchBoxId={searchBoxId}
-              loading={loading}
-              items={items}
-              columnDefs={options.items}
-              onGridReady={handleResultGridReady}
-              onSelectedItem={handleSelectedItem}
-            />
-          )}
-        </>
+        <ContainerGridResults<T>
+          searchBoxId={searchBoxId}
+          loading={loading}
+          items={items}
+          columnDefs={options.items}
+          onGridReady={handleResultGridReady}
+          onSelectedItem={handleSelectedItem}
+          onNavigateBack={handleNavigateBack}
+          showNoRowsOverlay={!loading && (innerValue || "").toString().trim().length >= 3}
+        />
       )}
       <SearchboxModal<T>
         open={modalOpen}
         title={options.modal.title}
         items={modalItems || []}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        columnDefs={options.modal.items as any}
+        columnDefs={options.modal.items}
         loading={modalLoading}
         onClose={handleCloseModal}
         onSelectItem={handleModalSelectItem}

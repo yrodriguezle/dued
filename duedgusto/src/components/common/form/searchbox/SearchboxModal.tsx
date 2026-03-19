@@ -1,15 +1,16 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Modal, Box, Typography, IconButton } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 
 import Datagrid from "../../datagrid/Datagrid";
 import { DatagridColDef, DatagridGridReadyEvent, DatagridCellFocusedEvent, DatagridRowDoubleClickedEvent, DatagridRowClickedEvent } from "../../datagrid/@types/Datagrid";
+import { SearchboxColDef } from "../../../../@types/searchbox";
 
-interface SearchboxModalProps<T> {
+interface SearchboxModalProps<T extends Record<string, unknown>> {
   open: boolean;
   title: string;
   items: T[];
-  columnDefs: DatagridColDef<T>[];
+  columnDefs: SearchboxColDef<T>[];
   loading: boolean;
   onClose: () => void;
   onSelectItem: (item: T) => void;
@@ -34,6 +35,22 @@ const modalStyle = {
 function SearchboxModal<T extends Record<string, unknown>>({ open, title, items, columnDefs, loading, onClose, onSelectItem }: SearchboxModalProps<T>) {
   const [gridReady, setGridReady] = useState<DatagridGridReadyEvent<T> | null>(null);
   const lastTapRef = useRef<{ rowId: string | undefined; time: number }>({ rowId: undefined, time: 0 });
+
+  // Converte SearchboxColDef<T>[] in DatagridColDef<T>[] (ColDef<DatagridData<T>>[]) per Datagrid.
+  // graphField e action sono campi searchbox-specifici — vengono omessi.
+  // Il cast via unknown è necessario al boundary T → DatagridData<T>: tutte le callback di AG Grid
+  // (valueGetter, cellRenderer, ecc.) sono parametrizzate in T, ma DatagridData<T> = T & DatagridAuxData
+  // è compatibile a runtime. Non è possibile esprimere questa covarianza strutturalmente in TypeScript
+  // senza un'asserzione esplicita a questo boundary.
+  const datagridColumnDefs = useMemo<DatagridColDef<T>[]>(
+    () =>
+      columnDefs.map((col) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { graphField: _g, action: _a, ...rest } = col;
+        return rest as unknown as DatagridColDef<T>;
+      }),
+    [columnDefs]
+  );
 
   const handleGridReady = useCallback((event: DatagridGridReadyEvent<T>) => {
     setGridReady(event);
@@ -141,7 +158,7 @@ function SearchboxModal<T extends Record<string, unknown>>({ open, title, items,
         <Box sx={{ flex: 1, p: 2, overflow: "hidden" }}>
           <Datagrid
             items={items || []}
-            columnDefs={columnDefs}
+            columnDefs={datagridColumnDefs}
             height="100%"
             loading={loading}
             onGridReady={handleGridReady}
