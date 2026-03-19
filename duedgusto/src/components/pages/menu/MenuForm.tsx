@@ -259,6 +259,8 @@ const MenuForm: React.FC<MenuFormProps> = ({ menus, deletedRowIdsRef, gridApiRef
         width: 120,
         editable: !readOnly,
         hide: readOnly,
+        cellEditor: "agNumberCellEditor",
+        cellEditorParams: { allowNullValue: true },
       },
     ],
     [readOnly]

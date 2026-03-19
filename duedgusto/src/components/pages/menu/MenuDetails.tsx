@@ -105,10 +105,15 @@ function MenuDetails() {
         (row) => row.status === DatagridStatus.Modified || row.status === DatagridStatus.Added
       );
 
-      // Mappare a MenuInput rimuovendo __typename e status
+      // Mappare a MenuInput rimuovendo __typename e status, convertendo i tipi numerici
       const menusToSubmit: MenuInput[] = modifiedOrAdded.map((row) => {
         const cleaned = omitDeep(row, ["__typename", "status"]);
-        return cleaned as MenuInput;
+        return {
+          ...cleaned,
+          id: Number(cleaned.id),
+          posizione: Number(cleaned.posizione),
+          menuPadreId: cleaned.menuPadreId != null ? Number(cleaned.menuPadreId) : null,
+        } as MenuInput;
       });
 
       // Leggere gli ID cancellati
