@@ -1,9 +1,10 @@
 import { Form, Formik, FormikProps } from "formik";
 import { useCallback, useContext, useEffect, useRef } from "react";
 import { z } from "zod";
+import { GridReadyEvent } from "ag-grid-community";
 import useInitializeValues from "./useInitializeValues";
 import useConfirm from "../../common/confirm/useConfirm";
-import { formStatuses } from "../../../common/globals/constants";
+import { DatagridStatus, formStatuses } from "../../../common/globals/constants";
 import sleep from "../../../common/bones/sleep";
 import setInitialFocus from "./setInitialFocus";
 import FormikToolbar from "../../common/form/toolbar/FormikToolbar";
@@ -12,9 +13,14 @@ import showToast from "../../../common/toast/showToast";
 import MenuForm from "./MenuForm";
 import { menuFragment } from "../../../graphql/menus/fragments";
 import useGetAll from "../../../graphql/common/useGetAll";
-import { MenuNonNull } from "../../common/form/searchbox/searchboxOptions/menuSearchboxOptions";
+import { MenuNonNull, MenuWithStatus } from "../../common/form/searchbox/searchboxOptions/menuSearchboxOptions";
 import useStore from "../../../store/useStore";
 import PageTitleContext from "../../layout/headerBar/PageTitleContext";
+import useSubmitMenu from "../../../graphql/menus/useSubmitMenu";
+import useDeleteMenus from "../../../graphql/menus/useDeleteMenus";
+import omitDeep from "../../../common/bones/omitDeep";
+import { MenuInput } from "../../../graphql/menus/mutations";
+import { DatagridData } from "../../common/datagrid/@types/Datagrid";
 
 const Schema = z.object({
   gridDirty: z.boolean(),
@@ -24,6 +30,9 @@ export type FormikMenuValues = z.infer<typeof Schema>;
 
 function MenuDetails() {
   const formRef = useRef<FormikProps<FormikMenuValues>>(null);
+  const deletedRowIdsRef = useRef<number[]>([]);
+  const gridApiRef = useRef<GridReadyEvent | null>(null);
+
   const { initialValues, handleInitializeValues } = useInitializeValues();
   const onInProgress = useStore((store) => store.onInProgress);
   const offInProgress = useStore((store) => store.offInProgress);
@@ -33,7 +42,7 @@ function MenuDetails() {
     setTitle("Gestione voci di menù");
   }, [setTitle]);
 
-  const { loading, data } = useGetAll<MenuNonNull>({
+  const { loading, data, refetch } = useGetAll<MenuNonNull>({
     fragment: menuFragment,
     queryName: "menus",
     fragmentBody: "...MenuFragment",
@@ -47,6 +56,9 @@ function MenuDetails() {
       offInProgress("menuDetails");
     }
   }, [loading, onInProgress, offInProgress]);
+
+  const { submitMenus } = useSubmitMenu();
+  const { deleteMenus } = useDeleteMenus();
 
   const onConfirm = useConfirm();
 
@@ -76,6 +88,53 @@ function MenuDetails() {
 
   const onSubmit = async () => {
     try {
+      onInProgress("menuDetailsSave");
+
+      // Raccogliere i dati della griglia
+      const gridData: DatagridData<MenuWithStatus>[] = [];
+      if (gridApiRef.current) {
+        gridApiRef.current.api.forEachNode((node) => {
+          if (node.data) {
+            gridData.push(node.data);
+          }
+        });
+      }
+
+      // Filtrare le righe modificate/aggiunte
+      const modifiedOrAdded = gridData.filter(
+        (row) => row.status === DatagridStatus.Modified || row.status === DatagridStatus.Added
+      );
+
+      // Mappare a MenuInput rimuovendo __typename e status
+      const menusToSubmit: MenuInput[] = modifiedOrAdded.map((row) => {
+        const cleaned = omitDeep(row, ["__typename", "status"]);
+        return cleaned as MenuInput;
+      });
+
+      // Leggere gli ID cancellati
+      const idsToDelete = [...deletedRowIdsRef.current];
+
+      // Se non ci sono modifiche, non fare nulla
+      if (menusToSubmit.length === 0 && idsToDelete.length === 0) {
+        return;
+      }
+
+      // Eseguire prima le delete, poi le upsert
+      if (idsToDelete.length > 0) {
+        await deleteMenus(idsToDelete);
+      }
+
+      if (menusToSubmit.length > 0) {
+        await submitMenus({ menus: menusToSubmit });
+      }
+
+      // Refetch dei dati aggiornati
+      refetch();
+
+      // Reset stato
+      deletedRowIdsRef.current = [];
+      formRef.current?.setFieldValue("gridDirty", false);
+
       showToast({
         type: "success",
         position: "bottom-right",
@@ -91,6 +150,8 @@ function MenuDetails() {
         message: error?.message || "Errore nella risposta del server",
         toastId: "error",
       });
+    } finally {
+      offInProgress("menuDetailsSave");
     }
   };
 
@@ -127,7 +188,11 @@ function MenuDetails() {
             </Box>
             {!loading && (
               <Box sx={{ marginTop: 1, paddingX: 1 }}>
-                <MenuForm menus={data || []} />
+                <MenuForm
+                  menus={data || []}
+                  deletedRowIdsRef={deletedRowIdsRef}
+                  gridApiRef={gridApiRef}
+                />
               </Box>
             )}
           </Form>

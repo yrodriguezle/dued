@@ -1,16 +1,25 @@
-import { useCallback } from "react";
+import { useMutation } from "@apollo/client";
+import { mutationSubmitMenus, SubmitMenusValues } from "./mutations";
 
-const useSubmitMenu = () => {
-  const submitMenu = useCallback(async ({ menu }: { menu: { menuId: number; menuName: string; menuDescription: string } }) => {
-    // Simulate API call
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(menu);
-      }, 1000);
+function useSubmitMenu() {
+  const [mutate, { data, error, loading }] = useMutation(mutationSubmitMenus);
+
+  const submitMenus = async (variables: SubmitMenusValues) => {
+    const result = await mutate({
+      variables,
     });
-  }, []);
+    if (result.data?.authentication?.mutateMenus) {
+      return result.data.authentication.mutateMenus;
+    }
+    return null;
+  };
 
-  return { submitMenu };
-};
+  return {
+    submitMenus,
+    data,
+    error,
+    loading,
+  };
+}
 
 export default useSubmitMenu;

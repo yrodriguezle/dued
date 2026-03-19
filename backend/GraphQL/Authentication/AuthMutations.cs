@@ -80,6 +80,61 @@ public class AuthMutations : ObjectGraphType
                 return true;
             });
 
+        Field<ListGraphType<MenuType>, IEnumerable<Menu>>("mutateMenus")
+            .Argument<NonNullGraphType<ListGraphType<NonNullGraphType<MenuInputType>>>>("menus", "Lista di menu da creare o aggiornare")
+            .ResolveAsync(async context =>
+            {
+                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                List<Menu> inputs = context.GetArgument<List<Menu>>("menus");
+                List<Menu> result = [];
+
+                foreach (var input in inputs)
+                {
+                    Menu? menu = input.Id > 0
+                        ? await dbContext.Menus.FirstOrDefaultAsync(m => m.Id == input.Id)
+                        : null;
+
+                    if (menu == null)
+                    {
+                        menu = new Menu();
+                        dbContext.Menus.Add(menu);
+                    }
+
+                    menu.Titolo = input.Titolo;
+                    menu.Percorso = input.Percorso;
+                    menu.Icona = input.Icona;
+                    menu.Visibile = input.Visibile;
+                    menu.Posizione = input.Posizione;
+                    menu.PercorsoFile = input.PercorsoFile;
+                    menu.NomeVista = input.NomeVista;
+                    menu.MenuPadreId = input.MenuPadreId;
+
+                    result.Add(menu);
+                }
+
+                await dbContext.SaveChangesAsync();
+                return result;
+            });
+
+        Field<BooleanGraphType, bool>("deleteMenus")
+            .Argument<NonNullGraphType<ListGraphType<NonNullGraphType<IntGraphType>>>>("ids", "Lista di ID dei menu da eliminare")
+            .ResolveAsync(async context =>
+            {
+                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                List<int> ids = context.GetArgument<List<int>>("ids");
+
+                List<Menu> menus = await dbContext.Menus
+                    .Where(m => ids.Contains(m.Id))
+                    .ToListAsync();
+
+                if (menus.Count == 0)
+                    throw new ExecutionError("Nessun menu trovato con gli ID forniti");
+
+                dbContext.Menus.RemoveRange(menus);
+                await dbContext.SaveChangesAsync();
+                return true;
+            });
+
         Field<UtenteType, Utente>("mutateUtente")
             .Argument<NonNullGraphType<UtenteInputType>>("utente", "Dati dell'utente da creare o aggiornare")
             .ResolveAsync(async context =>

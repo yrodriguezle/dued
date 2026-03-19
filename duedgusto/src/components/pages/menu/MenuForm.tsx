@@ -1,14 +1,14 @@
 import { useCallback, useMemo } from "react";
 import Box from "@mui/material/Box";
 import * as MuiIcons from "@mui/icons-material";
-import { GridApi } from "ag-grid-community";
+import { GridApi, GridReadyEvent } from "ag-grid-community";
 
 import { MenuNonNull, MenuWithStatus } from "../../common/form/searchbox/searchboxOptions/menuSearchboxOptions";
 import Datagrid from "../../common/datagrid/Datagrid";
 import { useFormikContext } from "formik";
 import MenuIconRenderer from "../../common/datagrid/cellRenderers/MenuIconRenderer";
 import { IconName } from "../../common/icon/IconFactory";
-import { DatagridCellValueChangedEvent, DatagridColDef, DatagridData, DatagridRowDragEndEvent, DatagridRowDataUpdatedEvent } from "../../common/datagrid/@types/Datagrid";
+import { DatagridCellValueChangedEvent, DatagridColDef, DatagridData, DatagridGridReadyEvent, DatagridRowDragEndEvent, DatagridRowDataUpdatedEvent } from "../../common/datagrid/@types/Datagrid";
 import { FormikMenuValues } from "./MenuDetails";
 import { DatagridStatus } from "../../../common/globals/constants";
 import useDebouncedCallback from "../../common/debounced/useDebouncedCallback";
@@ -48,9 +48,11 @@ function isDescendantOf(
 
 interface MenuFormProps {
   menus: MenuNonNull[];
+  deletedRowIdsRef: React.MutableRefObject<number[]>;
+  gridApiRef: React.MutableRefObject<GridReadyEvent | null>;
 }
 
-const MenuForm: React.FC<MenuFormProps> = ({ menus }) => {
+const MenuForm: React.FC<MenuFormProps> = ({ menus, deletedRowIdsRef, gridApiRef }) => {
   const { status, setFieldValue } = useFormikContext<FormikMenuValues>();
   const readOnly = useMemo(() => status.isFormLocked as boolean, [status.isFormLocked]);
 
@@ -82,6 +84,24 @@ const MenuForm: React.FC<MenuFormProps> = ({ menus }) => {
       return hasModifiedOrAdded || hasDeletedRows;
     },
     [menus.length]
+  );
+
+  const handleGridReady = useCallback(
+    (event: DatagridGridReadyEvent<MenuWithStatus>) => {
+      gridApiRef.current = event;
+    },
+    [gridApiRef]
+  );
+
+  const handleRowsDeleted = useCallback(
+    (deletedRows: DatagridData<MenuWithStatus>[]) => {
+      deletedRows.forEach((row) => {
+        if (row.id > 0) {
+          deletedRowIdsRef.current.push(row.id);
+        }
+      });
+    },
+    [deletedRowIdsRef]
   );
 
   const handleRowDataUpdated = useCallback(
@@ -258,9 +278,11 @@ const MenuForm: React.FC<MenuFormProps> = ({ menus }) => {
         groupDefaultExpanded={-1}
         autoGroupColumnDef={autoGroupColumnDef}
         rowDragManaged={!readOnly}
+        onGridReady={handleGridReady}
         onRowDragEnd={handleRowDragEnd}
         onRowDataUpdated={handleRowDataUpdated}
         onCellValueChanged={handleCellValueChanged}
+        onRowsDeleted={handleRowsDeleted}
         columnDefs={columnDefs}
       />
     </Box>

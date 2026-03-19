@@ -190,8 +190,6 @@ test.describe("Menu Tree - Aggiunta nuove righe", () => {
    * S-12: Aggiungere una nuova riga la inserisce a root level.
    */
   test("nuova riga viene aggiunta e abilita il tasto Salva", async ({ page }) => {
-    const saveButton = page.getByRole("button", { name: "Salva" });
-
     // Conta le righe prima
     const rowsBefore = await page.locator(".ag-row:not(.ag-row-loading)").count();
 
