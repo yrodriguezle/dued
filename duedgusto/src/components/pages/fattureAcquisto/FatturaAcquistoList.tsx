@@ -209,6 +209,7 @@ function FatturaAcquistoList() {
         </Typography>
         <Paper sx={{ padding: 1, height: "calc(100% - 50px)" }}>
           <Datagrid<FatturaAcquistoNonNull>
+            gridId="fattura-acquisto-list"
             presentation
             height="100%"
             items={invoices}

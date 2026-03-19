@@ -241,6 +241,7 @@ const ExpensesDataGrid = memo(
           }}
         >
           <Datagrid<Expense>
+            gridId="expenses"
             height="300px"
             items={items}
             columnDefs={columnDefs}

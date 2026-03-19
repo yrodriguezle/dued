@@ -63,6 +63,7 @@ const CashRegisterFormDataGrid: React.FC<CashRegisterFormDataGridProps> = ({
       <div className="grid grid-cols-12 gap-2 sm:gap-5 md:gap-6">
         <div className="col-span-12 lg:col-span-6">
           <CashCountDataGrid
+            gridId="cash-count-opening"
             ref={openingGridRef}
             rowData={openingRowData}
             title="APERTURA CASSA"
@@ -75,6 +76,7 @@ const CashRegisterFormDataGrid: React.FC<CashRegisterFormDataGridProps> = ({
 
         <div className="col-span-12 lg:col-span-6">
           <CashCountDataGrid
+            gridId="cash-count-closing"
             ref={closingGridRef}
             rowData={closingRowData}
             title="CHIUSURA CASSA"

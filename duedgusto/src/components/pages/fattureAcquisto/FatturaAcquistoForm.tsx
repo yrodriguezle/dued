@@ -378,6 +378,7 @@ function FatturaAcquistoForm({ onSelectFornitore, onSelectInvoice, documentiTras
             Documenti di Trasporto (DDT)
           </Typography>
           <Datagrid<DocumentoTrasportoRow>
+            gridId="fattura-acquisto-ddt"
             height="250px"
             items={ddtItems}
             columnDefs={ddtColumnDefs}
@@ -403,6 +404,7 @@ function FatturaAcquistoForm({ onSelectFornitore, onSelectInvoice, documentiTras
             Pagamenti
           </Typography>
           <Datagrid<PaymentRow>
+            gridId="fattura-acquisto-payments"
             height="250px"
             items={paymentItems}
             columnDefs={paymentColumnDefs}

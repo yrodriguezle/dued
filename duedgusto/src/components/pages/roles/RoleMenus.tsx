@@ -161,6 +161,7 @@ function RoleMenus({ menus, onGridReady, selectedIds }: RoleMenusProps) {
         />}
       </Box>
       <Datagrid<MenuNonNull>
+        gridId="role-menus"
         presentation
         height="60vh"
         items={menus}

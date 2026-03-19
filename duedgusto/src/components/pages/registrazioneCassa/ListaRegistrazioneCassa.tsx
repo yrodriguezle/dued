@@ -277,6 +277,7 @@ function ListaRegistrazioneCassa() {
       </Box>
       <Box sx={{ flex: 1, paddingX: 2, paddingBottom: 2 }}>
         <Datagrid
+          gridId="registro-cassa-list"
           items={(cashRegisters as unknown as RegistroCassaWithStatus[]) || []}
           columnDefs={columnDefs}
           height="100%"

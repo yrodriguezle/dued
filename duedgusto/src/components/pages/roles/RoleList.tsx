@@ -149,6 +149,7 @@ function RoleList() {
             <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>Caricamento...</Box>
           ) : (
             <Datagrid<RuoloNonNull>
+              gridId="role-list"
               presentation
               height="100%"
               items={ruoli}

@@ -179,6 +179,7 @@ function UserList() {
             <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>Caricamento...</Box>
           ) : (
             <Datagrid<UtenteNonNull>
+              gridId="user-list"
               presentation
               height="100%"
               items={utenti}

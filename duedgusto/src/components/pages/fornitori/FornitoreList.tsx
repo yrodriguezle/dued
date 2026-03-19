@@ -190,6 +190,7 @@ function FornitoreList() {
         </Typography>
         <Paper sx={{ padding: 1, height: "calc(100% - 50px)" }}>
           <Datagrid<FornitoreNonNull>
+            gridId="fornitore-list"
             presentation
             height="100%"
             items={fornitori}

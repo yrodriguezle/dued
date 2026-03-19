@@ -12,11 +12,14 @@ import useEditingState from "./editing/useEditingState";
 import useZodValidation from "./validation/useZodValidation";
 import useTabNavigation from "./navigation/useTabNavigation";
 import createRowNumberColumn from "./columns/createRowNumberColumn";
+import useGridStatePersistence from "./persistence/useGridStatePersistence";
+import { getGridColumnState } from "../../../common/ui/gridStateStorage";
 
 interface BaseDatagridProps<T extends Record<string, unknown>> extends Omit<DatagridAgGridProps<DatagridData<T>>, "rowData" | "columnDefs"> {
   height: string;
   items: T[];
   columnDefs: DatagridColDef<T>[];
+  gridId?: string;
   addNewRowAt?: "top" | "bottom";
   showRowNumbers?: boolean;
   hideToolbar?: boolean;
@@ -59,6 +62,7 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
     getNewRow: getNewRowProp,
     items,
     height,
+    gridId,
     showRowNumbers = true,
     hideToolbar = false,
     additionalToolbarButtons,
@@ -87,12 +91,28 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
 
   const { validateRow } = useZodValidation<T>({ schema: validationSchema });
 
+  // Traccia la GridApi per l'hook di persistenza
+  const [gridApi, setGridApi] = useState<GridReadyEvent<DatagridData<T>>["api"] | null>(null);
+
+  // Hook per persistenza stato colonne (registra event listener quando api è disponibile)
+  useGridStatePersistence({ gridId, api: gridApi });
+
   const handleGridReady = useCallback(
     (event: GridReadyEvent<DatagridData<T>>) => {
       gridRef.current = event;
+      setGridApi(event.api);
+
+      // Ripristina lo stato colonne salvato dopo che la griglia è pronta
+      if (gridId) {
+        const savedState = getGridColumnState(gridId);
+        if (savedState) {
+          event.api.applyColumnState({ state: savedState, applyOrder: true });
+        }
+      }
+
       onGridReadyProp?.(event);
     },
-    [onGridReadyProp]
+    [onGridReadyProp, gridId]
   );
 
   const gotoEditCell = useCallback(

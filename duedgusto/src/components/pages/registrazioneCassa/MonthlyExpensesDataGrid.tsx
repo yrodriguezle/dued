@@ -90,6 +90,7 @@ const MonthlyExpensesDataGrid = forwardRef<GridReadyEvent<DatagridData<SpesaRow>
         Spese Mensili Libere
       </Typography>
       <Datagrid<SpesaRow>
+        gridId="monthly-expenses"
         height="300px"
         items={items}
         columnDefs={columnDefs}

@@ -8,6 +8,7 @@ import { CashCountRowData } from "./useCashCountData";
 import formatCurrency from "../../../common/bones/formatCurrency";
 
 interface CashCountDataGridProps {
+  gridId: string;
   rowData: CashCountRowData[];
   title: string;
   isLocked: boolean;
@@ -17,7 +18,7 @@ interface CashCountDataGridProps {
 }
 
 const CashCountDataGrid = memo(
-  forwardRef<GridReadyEvent<DatagridData<CashCountRowData>>, CashCountDataGridProps>(({ rowData, title, isLocked, onCellChange, onCopyFromPrevious, onTotalChange }, ref) => {
+  forwardRef<GridReadyEvent<DatagridData<CashCountRowData>>, CashCountDataGridProps>(({ gridId, rowData, title, isLocked, onCellChange, onCopyFromPrevious, onTotalChange }, ref) => {
     const theme = useTheme();
 
     const calculateTotal = useCallback((): number => {
@@ -217,6 +218,7 @@ const CashCountDataGrid = memo(
           }}
         >
           <Datagrid
+            gridId={gridId}
             height="480px"
             items={rowData}
             columnDefs={columnDefs}

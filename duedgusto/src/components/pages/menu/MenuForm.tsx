@@ -267,6 +267,7 @@ const MenuForm: React.FC<MenuFormProps> = ({ menus, deletedRowIdsRef, gridApiRef
   return (
     <Box sx={{ marginTop: 1, paddingX: 1, height: "80vh" }}>
       <Datagrid<MenuNonNull>
+        gridId="menu-form-tree"
         height="100%"
         items={sortedMenus}
         getRowId={getRowId}

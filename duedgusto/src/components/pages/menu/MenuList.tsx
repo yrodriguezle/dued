@@ -169,6 +169,7 @@ function MenuList() {
             <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>Caricamento...</Box>
           ) : (
             <Datagrid<MenuNonNull>
+              gridId="menu-list"
               presentation
               height="100%"
               items={menus}

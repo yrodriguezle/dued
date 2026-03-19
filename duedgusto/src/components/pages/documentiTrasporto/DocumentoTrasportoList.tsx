@@ -197,6 +197,7 @@ function DocumentoTrasportoList() {
         </Box>
         <Paper sx={{ padding: 1, height: "calc(100% - 50px)" }}>
           <Datagrid<DocumentoTrasportoNonNull>
+            gridId="documento-trasporto-list"
             presentation
             height="100%"
             items={filteredItems}
