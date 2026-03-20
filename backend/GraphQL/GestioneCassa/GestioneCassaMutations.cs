@@ -225,6 +225,12 @@ public class GestioneCassaMutations : ObjectGraphType
                     .Select(p => p.FatturaId!.Value)
                     .ToList();
                 dbContext.PagamentiFornitori.RemoveRange(previousPayments);
+
+                // Commit deletions of old payments BEFORE deleting orphan documents
+                // to avoid FK constraint violations with cascade deletes
+                if (previousPayments.Count > 0)
+                    await dbContext.SaveChangesAsync();
+
                 if (previousDdtIds.Count > 0)
                 {
                     var orphanDdts = await dbContext.DocumentiTrasporto
@@ -237,10 +243,13 @@ public class GestioneCassaMutations : ObjectGraphType
                     // Remove orphan invoices created from cash register (no other payments referencing them)
                     var orphanFatture = await dbContext.FattureAcquisto
                         .Where(f => previousFatturaIds.Contains(f.FatturaId))
-                        .Where(f => !dbContext.PagamentiFornitori.Any(p => p.FatturaId == f.FatturaId && p.RegistroCassaId != registroCassa.Id))
+                        .Where(f => !dbContext.PagamentiFornitori.Any(p => p.FatturaId == f.FatturaId))
                         .ToListAsync();
                     dbContext.FattureAcquisto.RemoveRange(orphanFatture);
                 }
+
+                if (previousDdtIds.Count > 0 || previousFatturaIds.Count > 0)
+                    await dbContext.SaveChangesAsync();
 
                 // 2. Create new documents + PagamentoFornitore for each input
                 decimal totalePagamentiFornitori = 0;

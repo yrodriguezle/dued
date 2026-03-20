@@ -405,7 +405,8 @@ function RegistroCassaDetails() {
       }
     } catch (error) {
       logger.error("Errore durante il salvataggio:", error);
-      toast.error("Errore durante il salvataggio della cassa");
+      const graphQLMessage = (error as { graphQLErrors?: { message: string }[] })?.graphQLErrors?.[0]?.message;
+      toast.error(graphQLMessage || "Errore durante il salvataggio della cassa");
     }
   };
 
@@ -468,8 +469,9 @@ function RegistroCassaDetails() {
       }}
       onSubmit={onSubmit}
     >
-      {({ status, isSubmitting, isValid }) => {
-        const disableSave = status?.isFormLocked || isSubmitting || !isValid;
+      {({ status, isSubmitting, isValid, dirty, values }) => {
+        const hasChanges = dirty || values.gridDirty;
+        const disableSave = status?.isFormLocked || isSubmitting || !isValid || !hasChanges;
 
         return (
           <Form

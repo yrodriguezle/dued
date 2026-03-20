@@ -65,6 +65,7 @@ export const registroCassaFragment = `
       importo
       metodoPagamento
       ddt {
+        ddtId
         numeroDdt
         fornitore {
           fornitoreId
