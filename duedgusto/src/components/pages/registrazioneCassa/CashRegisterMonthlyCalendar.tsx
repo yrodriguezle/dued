@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { Dialog, DialogTitle, DialogContent, DialogActions, Box, Paper, Typography, IconButton, Button, CircularProgress } from "@mui/material";
+import { Dialog, DialogTitle, DialogContent, DialogActions, Box, Paper, Typography, IconButton, Button, CircularProgress, useTheme } from "@mui/material";
 import { ChevronLeft, ChevronRight, CheckCircle } from "@mui/icons-material";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
@@ -16,6 +16,7 @@ interface CashRegisterMonthlyCalendarProps {
 }
 
 function CashRegisterMonthlyCalendar({ open, onClose, onSelectDate, currentDate, cashRegisters, loading }: CashRegisterMonthlyCalendarProps) {
+  const theme = useTheme();
   const [displayMonth, setDisplayMonth] = useState<dayjs.Dayjs>(dayjs(currentDate));
 
   // Map of dates that have saved cash registers
@@ -124,9 +125,10 @@ function CashRegisterMonthlyCalendar({ open, onClose, onSelectDate, currentDate,
                         p: 1,
                         textAlign: "center",
                         cursor: isCurrentMonth ? "pointer" : "default",
-                        backgroundColor: isCurrentMonth ? "#fff" : "#f5f5f5",
-                        border: isCurrentDay ? "2px solid #1976d2" : "1px solid #e0e0e0",
-                        color: isCurrentMonth ? "#000" : "#ccc",
+                        backgroundColor: isCurrentMonth ? "background.paper" : "grey.100",
+                        border: isCurrentDay ? `2px solid ${theme.palette.info.main}` : 1,
+                        borderColor: isCurrentDay ? "info.main" : "grey.300",
+                        color: isCurrentMonth ? "text.primary" : "text.disabled",
                         transition: "all 0.2s",
                         position: "relative",
                         minHeight: "60px",
@@ -136,8 +138,8 @@ function CashRegisterMonthlyCalendar({ open, onClose, onSelectDate, currentDate,
                         flexDirection: "column",
                         "&:hover": isCurrentMonth
                           ? {
-                              backgroundColor: "#f0f0f0",
-                              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                              backgroundColor: "action.hover",
+                              boxShadow: 2,
                             }
                           : {},
                       }}
@@ -154,7 +156,7 @@ function CashRegisterMonthlyCalendar({ open, onClose, onSelectDate, currentDate,
                             <CheckCircle
                               sx={{
                                 fontSize: "1.2rem",
-                                color: "#4caf50",
+                                color: "success.light",
                                 mt: 0.5,
                               }}
                             />

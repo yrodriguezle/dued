@@ -5,7 +5,7 @@ export const Fallback = () => {
   return (
     <Backdrop
       open={true}
-      sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.drawer + 1 }}
+      sx={{ color: "common.white", zIndex: (theme) => theme.zIndex.drawer + 1 }}
     >
       <CircularProgress color="inherit" />
     </Backdrop>

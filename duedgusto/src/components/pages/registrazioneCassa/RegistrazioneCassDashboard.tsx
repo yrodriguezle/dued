@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState, useMemo } from "react";
-import { Box, Card, CardContent, Typography, Button, Select, MenuItem, FormControl, InputLabel, CircularProgress } from "@mui/material";
+import { Box, Card, CardContent, Typography, Button, Select, MenuItem, FormControl, InputLabel, CircularProgress, useTheme } from "@mui/material";
 import { useNavigate } from "react-router";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import TrendingDownIcon from "@mui/icons-material/TrendingDown";
@@ -15,17 +15,6 @@ import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Cart
 import PageTitleContext from "../../layout/headerBar/PageTitleContext";
 import useQueryYearlySummary from "../../../graphql/cashRegister/useQueryYearlySummary";
 import useStore from "../../../store/useStore";
-
-const CHART_COLORS = {
-  primary: "#1976d2",
-  secondary: "#9c27b0",
-  success: "#2e7d32",
-  warning: "#ed6c02",
-  error: "#d32f2f",
-  info: "#0288d1",
-  cash: "#4caf50",
-  electronic: "#2196f3",
-};
 
 const MONTH_NAMES = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"];
 
@@ -96,7 +85,19 @@ function KPICard({ title, value, subtitle, trend, color = "primary", icon }: KPI
 }
 
 function RegistrazioneCassDashboard() {
+  const muiTheme = useTheme();
   const navigate = useNavigate();
+
+  const CHART_COLORS = useMemo(() => ({
+    primary: muiTheme.palette.info.main,
+    secondary: muiTheme.palette.secondary.main,
+    success: muiTheme.palette.success.main,
+    warning: muiTheme.palette.warning.main,
+    error: muiTheme.palette.error.main,
+    info: muiTheme.palette.info.main,
+    cash: muiTheme.palette.success.light,
+    electronic: muiTheme.palette.info.light,
+  }), [muiTheme.palette]);
   const { setTitle } = useContext(PageTitleContext);
   const getNextOperatingDate = useStore((state) => state.getNextOperatingDate);
 
@@ -171,7 +172,7 @@ function RegistrazioneCassDashboard() {
       { name: "Contanti", value: yearlyData.yearlyTotals.totalCash, color: CHART_COLORS.cash },
       { name: "Elettronici", value: yearlyData.yearlyTotals.totalElectronic, color: CHART_COLORS.electronic },
     ];
-  }, [yearlyData.yearlyTotals]);
+  }, [yearlyData.yearlyTotals, CHART_COLORS.cash, CHART_COLORS.electronic]);
 
   // Calcola trend mese visualizzato vs mese precedente
   const monthTrend = useMemo(() => {
@@ -413,7 +414,7 @@ function RegistrazioneCassDashboard() {
                     labelLine={false}
                     label={({ name, percent }) => `${name} ${percent !== undefined ? (percent * 100).toFixed(0) : "0"}%`}
                     outerRadius={100}
-                    fill="#8884d8"
+                    fill={CHART_COLORS.primary}
                     dataKey="value"
                   >
                     {paymentBreakdownData.map((entry, index) => (

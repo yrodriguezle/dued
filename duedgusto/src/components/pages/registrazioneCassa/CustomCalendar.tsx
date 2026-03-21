@@ -6,9 +6,9 @@ import useStore from "../../../store/useStore";
 import type { CashEvent } from "./CashRegisterMonthlyPage";
 
 const STATO_CONFIG: Record<string, { label: string; color: string }> = {
-  DRAFT: { label: "Bozza", color: "#ed6c02" },
-  CLOSED: { label: "Chiuso", color: "#2e7d32" },
-  RECONCILED: { label: "Riconciliato", color: "#0288d1" },
+  DRAFT: { label: "Bozza", color: "warning.main" },
+  CLOSED: { label: "Chiuso", color: "success.main" },
+  RECONCILED: { label: "Riconciliato", color: "info.main" },
 };
 
 const WEEKDAYS = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
@@ -144,7 +144,7 @@ export function CustomCalendar({ events, onSelectEvent, onSelectSlot, currentDat
                       : alpha(muiTheme.palette.primary.main, 0.06)
                     : isDark
                       ? "background.paper"
-                      : "#fff",
+                      : "background.paper",
                 cursor: isDisabled ? "default" : !isDayOpen && !event ? "default" : "pointer",
                 opacity: isDisabled ? 0.4 : 1,
                 display: "flex",

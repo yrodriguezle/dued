@@ -16,6 +16,20 @@ const theme = (mode: PaletteMode | undefined) =>
       secondary: {
         main: "#bf360c",
       },
+      success: {
+        main: "#2e7d32",
+        light: "#4caf50",
+      },
+      warning: {
+        main: "#ed6c02",
+      },
+      error: {
+        main: "#d32f2f",
+      },
+      info: {
+        main: "#0288d1",
+        light: "#2196f3",
+      },
     },
     components: {
       MuiTextField: {
@@ -36,7 +50,7 @@ const theme = (mode: PaletteMode | undefined) =>
         },
         styleOverrides: {
           root: {
-            lineHeight: 1,
+            lineHeight: 1.5,
           },
         },
       },

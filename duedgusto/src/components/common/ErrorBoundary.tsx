@@ -66,7 +66,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
             justifyContent: "center",
             alignItems: "center",
             minHeight: "100vh",
-            backgroundColor: "#f5f5f5",
+            backgroundColor: "grey.100",
             padding: 2,
           }}
         >
@@ -76,13 +76,14 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
               sx={{
                 padding: 4,
                 textAlign: "center",
-                borderTop: "4px solid #d32f2f",
+                borderTop: "4px solid",
+                borderTopColor: "error.main",
               }}
             >
               <ErrorOutlineIcon
                 sx={{
                   fontSize: 64,
-                  color: "#d32f2f",
+                  color: "error.main",
                   marginBottom: 2,
                 }}
               />
@@ -110,7 +111,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
                   sx={{
                     padding: 2,
                     marginY: 2,
-                    backgroundColor: "#f5f5f5",
+                    backgroundColor: "grey.100",
                     textAlign: "left",
                     maxHeight: "200px",
                     overflow: "auto",
@@ -129,7 +130,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
                       fontFamily: "monospace",
                       whiteSpace: "pre-wrap",
                       wordBreak: "break-word",
-                      color: "#d32f2f",
+                      color: "error.main",
                     }}
                   >
                     {this.state.error.toString()}

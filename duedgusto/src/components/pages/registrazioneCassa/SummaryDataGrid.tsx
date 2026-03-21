@@ -22,7 +22,7 @@ function KPICard({ label, value, highlight, negative }: KPICardProps) {
         textAlign: "center",
         flex: "1 1 auto",
         minWidth: "100px",
-        ...(highlight && { borderColor: "#ffab40", borderWidth: 2 }),
+        ...(highlight && { borderColor: "primary.main", borderWidth: 2 }),
       }}
     >
       <Typography

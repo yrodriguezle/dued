@@ -82,7 +82,7 @@ function AuthSignIn() {
           py: 1.5,
           borderTop: 1,
           borderColor: "divider",
-          bgcolor: theme.palette.mode === "dark" ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)",
+          bgcolor: theme.palette.mode === "dark" ? "rgba(255, 255, 255, 0.02)" : "action.hover",
           borderRadius: "0 0 12px 12px",
           textAlign: "center",
         }}
