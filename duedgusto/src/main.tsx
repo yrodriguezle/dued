@@ -50,7 +50,10 @@ import "./assets/css/app.css";
 
   createRoot(document.getElementById("root")!).render(
     <StrictMode>
-      <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="it">
+      <LocalizationProvider
+        dateAdapter={AdapterDayjs}
+        adapterLocale="it"
+      >
         <ApolloProvider client={client}>
           <RouterProvider router={router} />
         </ApolloProvider>

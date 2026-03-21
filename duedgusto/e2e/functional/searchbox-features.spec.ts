@@ -446,6 +446,7 @@ test.describe("Searchbox - Loading spinner (REQ-E2E-006)", () => {
     // Questo SHOULD: lo spinner potrebbe non essere visibile su connessioni molto veloci
     // Registriamo il risultato ma non facciamo fallire il test se non visibile
     if (!spinnerVisible) {
+      // eslint-disable-next-line no-console
       console.warn("Spinner non rilevato — la connessione al backend e' molto veloce o il route intercept non ha funzionato");
     }
 
