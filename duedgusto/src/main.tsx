@@ -3,6 +3,9 @@ import { createRoot } from "react-dom/client";
 import { RouterProvider } from "react-router";
 import { ApolloProvider } from "@apollo/client";
 
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import "dayjs/locale/it";
 import "./tailwind.css";
 
 import "@fontsource/roboto/300.css";
@@ -47,9 +50,11 @@ import "./assets/css/app.css";
 
   createRoot(document.getElementById("root")!).render(
     <StrictMode>
-      <ApolloProvider client={client}>
-        <RouterProvider router={router} />
-      </ApolloProvider>
+      <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="it">
+        <ApolloProvider client={client}>
+          <RouterProvider router={router} />
+        </ApolloProvider>
+      </LocalizationProvider>
     </StrictMode>
   );
 })();

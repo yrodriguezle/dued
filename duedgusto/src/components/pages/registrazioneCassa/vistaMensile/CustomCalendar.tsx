@@ -2,8 +2,8 @@ import { useMemo, useCallback } from "react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek } from "date-fns";
 import dayjs from "dayjs";
 import { Box, Typography, useTheme, useMediaQuery, alpha } from "@mui/material";
-import useStore from "../../../store/useStore";
-import type { CashEvent } from "./CashRegisterMonthlyPage";
+import useStore from "../../../../store/useStore";
+import type { CashEvent } from "./RegistroCassaVistaMensile";
 
 const STATO_CONFIG: Record<string, { label: string; color: string }> = {
   DRAFT: { label: "Bozza", color: "warning.main" },

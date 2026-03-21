@@ -35,7 +35,7 @@ Pattern concreti estratti dal codice del progetto. Ogni sezione include il patte
 
 **64px**: altezza della HeaderBar. Per pagine con toolbar Formik (41px), non serve sottrarla — la toolbar e dentro il flex column.
 
-**Usato in**: MonthlyClosureDetails, CashRegisterMonthlyPage, SettingsDetails.
+**Usato in**: MonthlyClosureDetails, RegistroCassaVistaMensile, SettingsDetails.
 
 ---
 

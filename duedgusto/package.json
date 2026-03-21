@@ -30,6 +30,7 @@
     "@fontsource/roboto": "^5.2.5",
     "@mui/icons-material": "^6.4.8",
     "@mui/material": "^6.4.8",
+    "@mui/x-date-pickers": "^8.27.2",
     "@tailwindcss/vite": "^4.2.1",
     "ag-grid-community": "^33.2.4",
     "ag-grid-enterprise": "^33.2.4",
