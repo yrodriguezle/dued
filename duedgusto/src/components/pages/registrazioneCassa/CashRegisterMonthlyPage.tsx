@@ -1,4 +1,4 @@
-import { useCallback, useContext, useMemo, useEffect, useState } from "react";
+import { useCallback, useContext, useMemo, useEffect, useState, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { Box, Typography, Toolbar, IconButton, CircularProgress, Divider, Chip, useMediaQuery, useTheme } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -9,6 +9,7 @@ import dayjs from "dayjs";
 import "dayjs/locale/it";
 import PageTitleContext from "../../layout/headerBar/PageTitleContext";
 import useQueryCashRegistersByMonth from "../../../graphql/cashRegister/useQueryCashRegistersByMonth";
+import useRegistroCassaSubscription from "../../../graphql/subscriptions/useRegistroCassaSubscription";
 import FormikToolbarButton from "../../common/form/toolbar/FormikToolbarButton";
 import CustomCalendar from "./CustomCalendar";
 
@@ -59,11 +60,22 @@ function CashRegisterMonthlyPage() {
   const currentMonth = dayjs(currentDate).month() + 1;
   const monthLabel = dayjs(currentDate).format("MMMM YYYY");
 
-  const { cashRegisters, loading } = useQueryCashRegistersByMonth({
+  const { cashRegisters, loading, refresh } = useQueryCashRegistersByMonth({
     year: currentYear,
     month: currentMonth,
     skip: false,
   });
+
+  // Subscription: aggiorna la vista quando un registro cassa viene modificato/chiuso
+  const { data: subscriptionData } = useRegistroCassaSubscription();
+  const lastEventRef = useRef(subscriptionData);
+
+  useEffect(() => {
+    if (subscriptionData && subscriptionData !== lastEventRef.current) {
+      lastEventRef.current = subscriptionData;
+      refresh();
+    }
+  }, [subscriptionData, refresh]);
 
   useEffect(() => {
     setTitle("Cassa - Vista Mensile");
