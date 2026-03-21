@@ -27,6 +27,9 @@ import { PagamentoFornitoreRegistroInput, RegistroCassaInput } from "../../../gr
 import useCloseCashRegister from "../../../graphql/cashRegister/useCloseCashRegister";
 import { getRegistroCassa } from "../../../graphql/cashRegister/queries";
 import useStore from "../../../store/useStore";
+import useRegistroCassaSubscription from "../../../graphql/subscriptions/useRegistroCassaSubscription";
+import useVenditaCreatedSubscription from "../../../graphql/subscriptions/useVenditaCreatedSubscription";
+import useChiusuraCassaSubscription from "../../../graphql/subscriptions/useChiusuraCassaSubscription";
 import { toast } from "react-toastify";
 import { getCurrentDate, getFormattedDate, getWeekdayName, parseDateForGraphQL } from "../../../common/date/date";
 import useCashCountData from "./useCashCountData";
@@ -120,10 +123,51 @@ function RegistroCassaDetails() {
 
   const { denominazioni, loading: loadingDenominations } = useQueryDenominations();
 
-  const { cashRegister, loading: loadingCashRegister } = useQueryCashRegister({
+  const { cashRegister, loading: loadingCashRegister, refetch: refetchCashRegister } = useQueryCashRegister({
     data: parseDateForGraphQL(currentDate) ?? "",
     skip: !currentDate,
   });
+
+  // Subscription: aggiorna i dati quando il registro cassa corrente viene modificato
+  const { data: registroUpdatedData } = useRegistroCassaSubscription();
+
+  useEffect(() => {
+    if (registroUpdatedData?.onRegistroCassaUpdated && cashRegister) {
+      const event = registroUpdatedData.onRegistroCassaUpdated;
+      if (event.registroCassaId === cashRegister.id) {
+        refetchCashRegister();
+      }
+    }
+  }, [registroUpdatedData, cashRegister, refetchCashRegister]);
+
+  // Subscription: aggiorna i dati quando viene creata una nuova vendita per il registro corrente
+  const { data: venditaCreatedData } = useVenditaCreatedSubscription();
+
+  useEffect(() => {
+    if (venditaCreatedData?.onVenditaCreated && cashRegister) {
+      const event = venditaCreatedData.onVenditaCreated;
+      if (event.registroCassaId === cashRegister.id) {
+        refetchCashRegister();
+      }
+    }
+  }, [venditaCreatedData, cashRegister, refetchCashRegister]);
+
+  // Subscription: aggiorna lo stato quando la cassa viene chiusa
+  const { data: chiusuraData } = useChiusuraCassaSubscription();
+
+  useEffect(() => {
+    if (chiusuraData?.onChiusuraCassaCompleted && cashRegister) {
+      const event = chiusuraData.onChiusuraCassaCompleted;
+      if (event.registroCassaId === cashRegister.id) {
+        refetchCashRegister();
+        toast.info("La cassa e' stata chiusa", { position: "bottom-right" });
+        formRef.current?.setStatus({
+          formStatus: formStatuses.UPDATE,
+          isFormLocked: true,
+        });
+      }
+    }
+  }, [chiusuraData, cashRegister, refetchCashRegister]);
 
   // Prepara i dati per le griglie di apertura e chiusura
   const { openingRowData, closingRowData } = useCashCountData({

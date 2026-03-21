@@ -4,7 +4,9 @@ using Microsoft.EntityFrameworkCore;
 using duedgusto.DataAccess;
 using duedgusto.Models;
 using duedgusto.Services.ChiusureMensili;
+using duedgusto.Services.Events;
 using duedgusto.Services.GraphQL;
+using duedgusto.GraphQL.Subscriptions.Types;
 
 namespace duedgusto.GraphQL.Vendite;
 
@@ -86,6 +88,18 @@ public class VenditeMutations : ObjectGraphType
         register.AggiornatoIl = DateTime.UtcNow;
 
         await dbContext.SaveChangesAsync();
+
+        // Publish event for real-time subscriptions
+        var eventBus = GraphQLService.GetService<IEventBus>(context);
+        eventBus.Publish(new VenditaCreatedEvent
+        {
+            VenditaId = sale.VenditaId,
+            RegistroCassaId = sale.RegistroCassaId,
+            NomeProdotto = product.Nome,
+            Quantita = (int)sale.Quantita,
+            PrezzoTotale = sale.PrezzoTotale,
+            DataOra = sale.DataOra
+        });
 
         // Reload product for response
         sale.Prodotto = product;

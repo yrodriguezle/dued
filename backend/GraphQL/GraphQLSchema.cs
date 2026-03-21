@@ -1,4 +1,5 @@
 ﻿using GraphQL.Types;
+using duedgusto.GraphQL.Subscriptions;
 
 namespace duedgusto.GraphQL;
 
@@ -8,5 +9,6 @@ public class GraphQLSchema : Schema
     {
         Query = provider.GetRequiredService<GraphQLQueries>();
         Mutation = provider.GetRequiredService<GraphQLMutations>();
+        Subscription = provider.GetRequiredService<GraphQLSubscriptions>();
     }
 }

@@ -1,7 +1,7 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Box, Chip, Typography, useTheme } from "@mui/material";
 import { useNavigate } from "react-router";
-import { useMutation } from "@apollo/client";
+import { useApolloClient, useMutation } from "@apollo/client";
 import { GridReadyEvent, ICellRendererParams, ValueFormatterParams, ValueGetterParams } from "ag-grid-community";
 import { toast } from "react-toastify";
 import { getFormattedDate } from "../../../common/date/date";
@@ -13,6 +13,7 @@ import PageTitleContext from "../../layout/headerBar/PageTitleContext";
 import useFetchData from "../../../graphql/common/useFetchData";
 import { getRegistriCassa } from "../../../graphql/cashRegister/queries";
 import { mutationEliminaRegistroCassa } from "../../../graphql/cashRegister/mutations";
+import useRegistroCassaSubscription from "../../../graphql/subscriptions/useRegistroCassaSubscription";
 import { DatagridColDef, DatagridData, DatagridRowDoubleClickedEvent } from "../../common/datagrid/@types/Datagrid";
 import useConfirm from "../../common/confirm/useConfirm";
 import { DatagridStatus } from "../../../common/globals/constants";
@@ -51,6 +52,17 @@ function ListaRegistrazioneCassa() {
     variables,
     fetchPolicy: "network-only",
   });
+
+  // Subscription: aggiorna la lista quando un registro cassa viene modificato
+  const apolloClient = useApolloClient();
+  const { data: registroUpdatedData } = useRegistroCassaSubscription();
+
+  useEffect(() => {
+    if (registroUpdatedData?.onRegistroCassaUpdated) {
+      // Refetch la lista registri cassa per riflettere le modifiche
+      apolloClient.refetchQueries({ include: ["GetRegistriCassa"] });
+    }
+  }, [registroUpdatedData, apolloClient]);
 
   const handleGridReady = useCallback((event: GridReadyEvent<DatagridData<RegistroCassaWithStatus>>) => {
     gridRef.current = event;

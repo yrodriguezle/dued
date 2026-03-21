@@ -9,6 +9,8 @@ using duedgusto.Services.GraphQL;
 using duedgusto.DataAccess;
 using duedgusto.GraphQL.GestioneCassa.Types;
 using duedgusto.Services.ChiusureMensili;
+using duedgusto.Services.Events;
+using duedgusto.GraphQL.Subscriptions.Types;
 
 namespace duedgusto.GraphQL.GestioneCassa;
 
@@ -340,6 +342,19 @@ public class GestioneCassaMutations : ObjectGraphType
 
                 await dbContext.SaveChangesAsync();
 
+                // Publish event for real-time subscriptions
+                var eventBus = GraphQLService.GetService<IEventBus>(context);
+                eventBus.Publish(new RegistroCassaUpdatedEvent
+                {
+                    RegistroCassaId = registroCassa.Id,
+                    Data = registroCassa.Data,
+                    Stato = registroCassa.Stato ?? string.Empty,
+                    TotaleVendite = registroCassa.TotaleVendite,
+                    TotaleApertura = registroCassa.TotaleApertura,
+                    TotaleChiusura = registroCassa.TotaleChiusura,
+                    Azione = "UPDATED"
+                });
+
                 // Reload with navigation properties
                 return await dbContext.RegistriCassa
                     .Include(r => r.Utente)
@@ -407,6 +422,28 @@ public class GestioneCassaMutations : ObjectGraphType
                 registroCassa.AggiornatoIl = DateTime.UtcNow;
 
                 await dbContext.SaveChangesAsync();
+
+                // Publish chiusura event for real-time subscriptions
+                var eventBusClose = GraphQLService.GetService<IEventBus>(context);
+                eventBusClose.Publish(new ChiusuraCassaCompletedEvent
+                {
+                    RegistroCassaId = registroCassa.Id,
+                    Data = registroCassa.Data,
+                    TotaleChiusura = registroCassa.TotaleChiusura,
+                    Differenza = registroCassa.Differenza
+                });
+
+                // Also publish as a general registro update
+                eventBusClose.Publish(new RegistroCassaUpdatedEvent
+                {
+                    RegistroCassaId = registroCassa.Id,
+                    Data = registroCassa.Data,
+                    Stato = registroCassa.Stato,
+                    TotaleVendite = registroCassa.TotaleVendite,
+                    TotaleApertura = registroCassa.TotaleApertura,
+                    TotaleChiusura = registroCassa.TotaleChiusura,
+                    Azione = "CLOSED"
+                });
 
                 return registroCassa;
             });

@@ -17,8 +17,11 @@ using duedgusto.GraphQL.Authentication;
 using duedgusto.Services.Jwt;
 using duedgusto.Services.HashPassword;
 using duedgusto.Services.ChiusureMensili;
+using duedgusto.Services.Events;
 using duedgusto.Middleware;
 using duedgusto.SeedData;
+
+using GraphQL.Server.Transports.AspNetCore.WebSockets;
 
 Env.Load();
 
@@ -32,6 +35,10 @@ builder.Services.AddTransient<PasswordService>();
 // ChiusureMensili Services (modello referenziale puro)
 builder.Services.AddScoped<ChiusuraMensileService>();
 builder.Services.AddScoped<MigrazioneChiusureMensiliService>();
+
+// Event Bus per GraphQL Subscriptions
+builder.Services.AddSingleton<IEventBus, EventBus>();
+builder.Services.AddTransient<IWebSocketAuthenticationService, duedgusto.Services.WebSocket.WebSocketAuthenticationService>();
 
 builder.Services.AddSingleton<ISchema, GraphQLSchema>(services => new GraphQLSchema(new SelfActivatingServiceProvider(services)));
 
@@ -188,6 +195,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.UseWebSockets();
 
 app.UseGraphQL<GraphQLSchema>("/graphql", opt =>
 {

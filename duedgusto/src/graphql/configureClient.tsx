@@ -1,7 +1,10 @@
-import { ApolloClient, ApolloLink, from, HttpLink, InMemoryCache, NormalizedCacheObject } from "@apollo/client";
+import { ApolloClient, ApolloLink, from, HttpLink, InMemoryCache, NormalizedCacheObject, split } from "@apollo/client";
 import { onError } from "@apollo/client/link/error";
 import { fromPromise } from "@apollo/client/link/utils";
-import { getAuthHeaders } from "../common/authentication/auth";
+import { getMainDefinition } from "@apollo/client/utilities";
+import { GraphQLWsLink } from "@apollo/client/link/subscriptions";
+import { createClient } from "graphql-ws";
+import { getAuthHeaders, getAuthToken, decodeJwtPayload } from "../common/authentication/auth";
 import { executeTokenRefresh } from "../common/authentication/tokenRefreshManager";
 import onRefreshFails from "../common/authentication/onRefreshFails";
 import logger from "../common/logger/logger";
@@ -89,8 +92,55 @@ function configureClient() {
     }
   });
 
+  const wsUrl = (window as Global).GRAPHQL_WEBSOCKET
+    || (window as Global).GRAPHQL_ENDPOINT?.replace(/^https:\/\//, "wss://").replace(/^http:\/\//, "ws://")
+    || "";
+
+  const wsLink = new GraphQLWsLink(
+    createClient({
+      url: wsUrl,
+      connectionParams: async () => {
+        const authToken = getAuthToken();
+        if (!authToken?.token) return {};
+
+        const payload = decodeJwtPayload(authToken.token);
+        const now = Math.floor(Date.now() / 1000);
+        if (payload && typeof payload.exp === "number" && payload.exp < now) {
+          const success = await executeTokenRefresh();
+          if (success) {
+            const refreshedToken = getAuthToken();
+            return { authToken: refreshedToken?.token };
+          }
+          return {};
+        }
+
+        return { authToken: authToken.token };
+      },
+      shouldRetry: () => true,
+      retryAttempts: Infinity,
+      retryWait: async (retries) => {
+        const delay = Math.min(1000 * Math.pow(2, retries), 30000);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      },
+    })
+  );
+
+  const httpChain = from([errorLink, authLink, httpLink]);
+
+  const splitLink = split(
+    ({ query }) => {
+      const definition = getMainDefinition(query);
+      return (
+        definition.kind === "OperationDefinition" &&
+        definition.operation === "subscription"
+      );
+    },
+    wsLink,
+    httpChain,
+  );
+
   apolloClient = new ApolloClient({
-    link: from([errorLink, authLink, httpLink]),
+    link: splitLink,
     cache: new InMemoryCache({
       typePolicies: {
         Fornitore: {
