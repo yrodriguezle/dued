@@ -53,6 +53,7 @@ export function SummaryDataGrid({ summaryData }: SummaryDataGridProps) {
     cashIncome,
     electronicIncome,
     totalSales,
+    supplierExpenses,
     resto,
     ecc,
     restoFinale,
@@ -69,8 +70,11 @@ export function SummaryDataGrid({ summaryData }: SummaryDataGridProps) {
     // AB: Totale Vendite = Movimento + Elettronico
     const sales = movement + electronic;
 
-    // AD: Resto = Contanti - Spese totali
-    const restoValue = cash - expensesTotalAmount;
+    // Spese solo fornitori = totale spese - spese scontrino
+    const supplierExpenses = expensesTotalAmount - receiptExpensesAmount;
+
+    // AD: Resto fornitore = Contanti - Spese fornitori
+    const restoValue = cash - supplierExpenses;
 
     // AE: ECC = Movimento - Contanti
     const eccValue = movement - cash;
@@ -83,6 +87,7 @@ export function SummaryDataGrid({ summaryData }: SummaryDataGridProps) {
       cashIncome: cash,
       electronicIncome: electronic,
       totalSales: sales,
+      supplierExpenses,
       resto: restoValue,
       ecc: eccValue,
       restoFinale: restoFinaleValue,
@@ -109,12 +114,12 @@ export function SummaryDataGrid({ summaryData }: SummaryDataGridProps) {
         highlight
       />
       <KPICard
-        label="Fornitori / Spese gg"
-        value={expensesTotalAmount}
+        label="Spese fornitori"
+        value={supplierExpenses}
         negative
       />
       <KPICard
-        label="Resto"
+        label="Resto fornitore"
         value={resto}
       />
       <KPICard
@@ -122,7 +127,7 @@ export function SummaryDataGrid({ summaryData }: SummaryDataGridProps) {
         value={ecc}
       />
       <KPICard
-        label="NC ecc"
+        label="Spese ecc"
         value={receiptExpensesAmount}
       />
       <KPICard

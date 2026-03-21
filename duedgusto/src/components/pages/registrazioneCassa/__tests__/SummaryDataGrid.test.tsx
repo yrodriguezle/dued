@@ -28,9 +28,9 @@ describe("SummaryDataGrid", () => {
     expect(screen.getByText("Pagato Contanti")).toBeInTheDocument();
     expect(screen.getByText("Elett")).toBeInTheDocument();
     expect(screen.getByText("Totale Vendite")).toBeInTheDocument();
-    expect(screen.getByText("Fornitori / Spese gg")).toBeInTheDocument();
+    expect(screen.getByText("Spese fornitori")).toBeInTheDocument();
     expect(screen.getByText("ECC")).toBeInTheDocument();
-    expect(screen.getByText("NC ecc")).toBeInTheDocument();
+    expect(screen.getByText("Spese ecc")).toBeInTheDocument();
   });
 
   it("deve calcolare correttamente il Totale Vendite", () => {
@@ -55,7 +55,7 @@ describe("SummaryDataGrid", () => {
     expect(screen.getByText("ECC")).toBeInTheDocument();
   });
 
-  it("deve mostrare NC ecc per spese scontrino", () => {
+  it("deve mostrare Spese ecc per spese scontrino", () => {
     const summary: SummaryData = {
       openingTotal: 0,
       closingTotal: 0,
@@ -64,8 +64,8 @@ describe("SummaryDataGrid", () => {
       receiptExpensesAmount: 50,
     };
     renderWithTheme(summary);
-    expect(screen.getByText("NC ecc")).toBeInTheDocument();
-    expect(screen.getByText("Fornitori / Spese gg")).toBeInTheDocument();
+    expect(screen.getByText("Spese ecc")).toBeInTheDocument();
+    expect(screen.getByText("Spese fornitori")).toBeInTheDocument();
   });
 
   it("non deve mostrare il titolo RIEPILOGO VENDITE", () => {
