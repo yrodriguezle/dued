@@ -57,6 +57,7 @@ const CashRegisterFormDataGrid: React.FC<CashRegisterFormDataGridProps> = ({
 }) => {
   const formik = useFormikContext<FormikCashRegisterValues>();
   const isLocked = formik.status?.isFormLocked || false;
+  const isClosed = formik.values.status === "CLOSED";
 
   return (
     <Box sx={{ marginTop: 1, paddingX: { xs: 0, sm: 1, md: 2 }, overflow: "hidden", width: "100%", boxSizing: "border-box" }}>
@@ -100,7 +101,7 @@ const CashRegisterFormDataGrid: React.FC<CashRegisterFormDataGridProps> = ({
           <ExpensesDataGrid
             ref={expensesGridRef}
             initialExpenses={initialExpenses}
-            isLocked={isLocked}
+            isLocked={isLocked && !isClosed}
             onCellChange={onCellChange}
             onExpensesChange={onExpensesChange}
           />

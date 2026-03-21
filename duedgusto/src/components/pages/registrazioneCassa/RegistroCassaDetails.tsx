@@ -515,7 +515,8 @@ function RegistroCassaDetails() {
     >
       {({ status, isSubmitting, isValid, dirty, values }) => {
         const hasChanges = dirty || values.gridDirty;
-        const disableSave = status?.isFormLocked || isSubmitting || !isValid || !hasChanges;
+        const isClosed = values.status === "CLOSED";
+        const disableSave = (status?.isFormLocked && !isClosed) || isSubmitting || !isValid || !hasChanges;
 
         return (
           <Form
