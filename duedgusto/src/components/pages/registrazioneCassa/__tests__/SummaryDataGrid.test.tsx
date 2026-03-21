@@ -34,7 +34,7 @@ describe("SummaryDataGrid", () => {
   });
 
   it("deve calcolare correttamente il Totale Vendite", () => {
-    // movimento = 400 - 100 = 300; elettronico = 200; totalSales = 300 + 200 = 500
+    // movimento = 400 - 100 = 300; elettronico = 200; fattura = 30; totalSales = 300 + 200 + 30 = 530
     const summary: SummaryData = {
       openingTotal: 100,
       closingTotal: 400,

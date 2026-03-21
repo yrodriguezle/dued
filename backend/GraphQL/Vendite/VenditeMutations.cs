@@ -84,7 +84,7 @@ public class VenditeMutations : ObjectGraphType
 
         // Update register VenditeContanti total
         register.VenditeContanti += sale.PrezzoTotale;
-        register.TotaleVendite = register.VenditeContanti + register.IncassiElettronici;
+        register.TotaleVendite = register.VenditeContanti + register.IncassiElettronici + register.IncassoContanteTracciato + register.IncassiFattura;
         register.AggiornatoIl = DateTime.UtcNow;
 
         await dbContext.SaveChangesAsync();
@@ -192,7 +192,7 @@ public class VenditeMutations : ObjectGraphType
         if (register != null)
         {
             register.VenditeContanti -= sale.PrezzoTotale;
-            register.TotaleVendite = register.VenditeContanti + register.IncassiElettronici;
+            register.TotaleVendite = register.VenditeContanti + register.IncassiElettronici + register.IncassoContanteTracciato + register.IncassiFattura;
             register.AggiornatoIl = DateTime.UtcNow;
         }
 

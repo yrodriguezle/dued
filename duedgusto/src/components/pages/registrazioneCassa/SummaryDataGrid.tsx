@@ -67,8 +67,11 @@ export function SummaryDataGrid({ summaryData }: SummaryDataGridProps) {
     // AA: Elettronico
     const electronic = incomes.find((i) => i.type === "Pagamenti Elettronici")?.amount ?? 0;
 
-    // AB: Totale Vendite = Movimento + Elettronico
-    const sales = movement + electronic;
+    // Fattura
+    const invoice = incomes.find((i) => i.type === "Pagamento con Fattura")?.amount ?? 0;
+
+    // AB: Totale Vendite = Movimento + Elettronico + Fattura
+    const sales = movement + electronic + invoice;
 
     // Spese solo fornitori = totale spese - spese scontrino
     const supplierExpenses = expensesTotalAmount - receiptExpensesAmount;

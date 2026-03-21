@@ -87,7 +87,7 @@ function RegistroCassaVistaMensile() {
         return {
           contanti: acc.contanti + contantiDichiarati,
           elettronici: acc.elettronici + elettronici,
-          totaleVendite: acc.totaleVendite + movimento + elettronici,
+          totaleVendite: acc.totaleVendite + movimento + elettronici + fatture,
           fatture: acc.fatture + fatture,
           spese: acc.spese + (cr.speseFornitori || 0) + (cr.speseGiornaliere || 0),
           registri: acc.registri + 1,

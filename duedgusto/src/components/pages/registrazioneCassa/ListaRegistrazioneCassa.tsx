@@ -167,51 +167,69 @@ function ListaRegistrazioneCassa() {
         valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => formatCurrency(params.value),
       },
       {
-        field: "incassoContanteTracciato",
-        headerName: "Pago in contanti",
+        colId: "pagatoContanti",
+        headerName: "Pagato Contanti",
         width: 140,
         cellStyle: { backgroundColor: theme.palette.success.light, color: theme.palette.success.contrastText },
+        valueGetter: (params: ValueGetterParams<RegistroCassaWithStatus>) => {
+          const cr = params.data;
+          if (!cr) return 0;
+          return cr.incassi?.find((i: IncassoCassa) => i.tipo === "Pago in contanti")?.importo ?? cr.incassoContanteTracciato ?? 0;
+        },
         type: "rightAligned",
         valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => formatCurrency(params.value),
       },
       {
-        field: "incassiElettronici",
-        headerName: "Elettronico",
+        colId: "elett",
+        headerName: "Elett",
         width: 120,
         cellStyle: { backgroundColor: theme.palette.success.light, color: theme.palette.success.contrastText },
+        valueGetter: (params: ValueGetterParams<RegistroCassaWithStatus>) => {
+          const cr = params.data;
+          if (!cr) return 0;
+          return cr.incassi?.find((i: IncassoCassa) => i.tipo === "Pagamenti Elettronici")?.importo ?? cr.incassiElettronici ?? 0;
+        },
         type: "rightAligned",
         valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => formatCurrency(params.value),
       },
       {
-        field: "totaleVendite",
+        colId: "totaleVendite",
         headerName: "Totale Vendite",
         width: 140,
         cellStyle: { backgroundColor: theme.palette.warning.light, color: theme.palette.warning.contrastText },
         valueGetter: (params: ValueGetterParams<RegistroCassaWithStatus>) => {
           const cr = params.data;
           if (!cr) return 0;
-          // Totale Vendite = (Totale Cassa - Apertura) + Elettronico
-          return (cr.totaleChiusura || 0) - (cr.totaleApertura || 0) + (cr.incassiElettronici || 0);
+          const movement = (cr.totaleChiusura || 0) - (cr.totaleApertura || 0);
+          const electronic = cr.incassi?.find((i: IncassoCassa) => i.tipo === "Pagamenti Elettronici")?.importo ?? cr.incassiElettronici ?? 0;
+          const invoice = cr.incassi?.find((i: IncassoCassa) => i.tipo === "Pagamento con Fattura")?.importo ?? cr.incassiFattura ?? 0;
+          return movement + electronic + invoice;
         },
         type: "rightAligned",
         valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => formatCurrency(params.value),
       },
       {
-        field: "incassiFattura",
-        headerName: "Pagamenti Fattura",
-        width: 150,
-        type: "rightAligned",
-        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => formatCurrency(params.value),
-      },
-      {
-        colId: "speseTotali",
-        headerName: "Spese Totali",
+        colId: "speseFornitori",
+        headerName: "Spese fornitori",
         width: 130,
         cellStyle: { backgroundColor: theme.palette.error.light, color: theme.palette.error.contrastText },
         valueGetter: (params: ValueGetterParams<RegistroCassaWithStatus>) => {
           const cr = params.data;
           if (!cr) return 0;
-          return (cr.speseFornitori || 0) + (cr.speseGiornaliere || 0);
+          return cr.speseFornitori || 0;
+        },
+        type: "rightAligned",
+        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => formatCurrency(params.value),
+      },
+      {
+        colId: "restoFornitore",
+        headerName: "Resto fornitore",
+        width: 130,
+        valueGetter: (params: ValueGetterParams<RegistroCassaWithStatus>) => {
+          const cr = params.data;
+          if (!cr) return 0;
+          const cash = cr.incassi?.find((i: IncassoCassa) => i.tipo === "Pago in contanti")?.importo ?? cr.incassoContanteTracciato ?? 0;
+          return cash - (cr.speseFornitori || 0);
         },
         type: "rightAligned",
         valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => formatCurrency(params.value),
@@ -223,9 +241,36 @@ function ListaRegistrazioneCassa() {
         valueGetter: (params: ValueGetterParams<RegistroCassaWithStatus>) => {
           const cr = params.data;
           if (!cr) return 0;
-          // ECC = Totale Vendite - Pago in contanti - Elettronico
-          const totalSales = (cr.totaleChiusura || 0) - (cr.totaleApertura || 0) + (cr.incassiElettronici || 0);
-          return totalSales - (cr.incassoContanteTracciato || 0) - (cr.incassiElettronici || 0);
+          const movement = (cr.totaleChiusura || 0) - (cr.totaleApertura || 0);
+          const cash = cr.incassi?.find((i: IncassoCassa) => i.tipo === "Pago in contanti")?.importo ?? cr.incassoContanteTracciato ?? 0;
+          return movement - cash;
+        },
+        type: "rightAligned",
+        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => formatCurrency(params.value),
+      },
+      {
+        colId: "speseEcc",
+        headerName: "Spese ecc",
+        width: 120,
+        valueGetter: (params: ValueGetterParams<RegistroCassaWithStatus>) => {
+          const cr = params.data;
+          if (!cr) return 0;
+          return cr.speseGiornaliere || 0;
+        },
+        type: "rightAligned",
+        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => formatCurrency(params.value),
+      },
+      {
+        colId: "resto",
+        headerName: "Resto",
+        width: 120,
+        valueGetter: (params: ValueGetterParams<RegistroCassaWithStatus>) => {
+          const cr = params.data;
+          if (!cr) return 0;
+          const movement = (cr.totaleChiusura || 0) - (cr.totaleApertura || 0);
+          const cash = cr.incassi?.find((i: IncassoCassa) => i.tipo === "Pago in contanti")?.importo ?? cr.incassoContanteTracciato ?? 0;
+          const ecc = movement - cash;
+          return ecc - (cr.speseGiornaliere || 0);
         },
         type: "rightAligned",
         valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => formatCurrency(params.value),
