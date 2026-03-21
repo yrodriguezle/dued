@@ -55,8 +55,16 @@ function Confirm() {
       <DialogTitle>{title}</DialogTitle>
       <DialogContent>{content}</DialogContent>
       <DialogActions>
-        {cancelLabel ? <Button onClick={handleCancel}>{cancelLabel}</Button> : null}
+        {cancelLabel ? (
+          <Button
+            variant="outlined"
+            onClick={handleCancel}
+          >
+            {cancelLabel}
+          </Button>
+        ) : null}
         <Button
+          variant="contained"
           onClick={handleAccept}
           color="primary"
           ref={acceptButtonRef}
