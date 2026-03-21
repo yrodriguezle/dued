@@ -17,7 +17,6 @@ export interface CashEvent {
   title: string;
   start: Date;
   end: Date;
-  registerId?: number;
   date: string;
   stato: string;
   revenue: number;
@@ -110,7 +109,6 @@ function RegistroCassaVistaMensile() {
         title: `\u20AC ${revenue.toFixed(2)}`,
         start: date,
         end: date,
-        registerId: cr.id,
         date: cr.data,
         stato: cr.stato,
         revenue,

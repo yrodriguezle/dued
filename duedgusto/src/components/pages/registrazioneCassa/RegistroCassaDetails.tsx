@@ -36,7 +36,7 @@ import useCashCountData from "./useCashCountData";
 
 // Schema per Formik - solo campi del form, NON include dati delle griglie
 const Schema = z.object({
-  registerId: z.number().optional(),
+  id: z.number().optional(),
   date: z.string().nonempty("La data è obbligatoria"),
   utenteId: z.number(),
   notes: z.string(),
@@ -266,7 +266,7 @@ function RegistroCassaDetails() {
 
       // Popola i valori del form (solo campi non-griglia)
       const formikValues: FormikCashRegisterValues = {
-        registerId: cashRegister.id,
+        id: cashRegister.id,
         date: dateStr,
         utenteId: cashRegister.utenteId,
         notes: cashRegister.note || "",
@@ -398,7 +398,7 @@ function RegistroCassaDetails() {
 
       // Converti gli array in campi per il backend (nomi italiani)
       const input: RegistroCassaInput = {
-        id: values.registerId,
+        id: values.id,
         data: parsedDate,
         utenteId: values.utenteId,
         conteggiApertura: openingCounts.map((row: CashCountRow) => ({
@@ -436,7 +436,7 @@ function RegistroCassaDetails() {
         // rende i valori correnti i nuovi initialValues, azzerando dirty
         const updatedValues = {
           ...values,
-          registerId: result.id || values.registerId,
+          id: result.id || values.id,
           gridDirty: false,
         };
         formRef.current?.resetForm({
@@ -462,12 +462,12 @@ function RegistroCassaDetails() {
       cancelLabel: "Annulla",
     });
 
-    if (!confirmed || !formRef.current?.values.registerId) {
+    if (!confirmed || !formRef.current?.values.id) {
       return;
     }
 
     try {
-      await closeCashRegister(formRef.current.values.registerId);
+      await closeCashRegister(formRef.current.values.id);
       toast.success("Cassa chiusa con successo!", { position: "bottom-right" });
       formRef.current?.setStatus({
         formStatus: formStatuses.UPDATE,

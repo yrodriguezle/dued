@@ -14,6 +14,7 @@ function useInitializeValues({ skipInitialize, utenteId, currentDate }: UseIniti
 
   const getDefaultInitialValues = useCallback(() => {
     const initialValues: FormikCashRegisterValues = {
+      id: undefined,
       date: currentDate,
       utenteId,
       notes: "",
