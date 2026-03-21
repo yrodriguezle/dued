@@ -160,11 +160,6 @@ function RegistroCassaDetails() {
       const event = chiusuraData.onChiusuraCassaCompleted;
       if (event.registroCassaId === cashRegister.id) {
         refetchCashRegister();
-        toast.info("La cassa e' stata chiusa", { position: "bottom-right" });
-        formRef.current?.setStatus({
-          formStatus: formStatuses.UPDATE,
-          isFormLocked: true,
-        });
       }
     }
   }, [chiusuraData, cashRegister, refetchCashRegister]);
@@ -326,13 +321,6 @@ function RegistroCassaDetails() {
           };
         }) || [];
       setInitialExpenses([...pagamentoFornitoreExpenses, ...normalExpenses]);
-
-      setTimeout(() => {
-        formRef.current?.setStatus({
-          formStatus: formStatuses.UPDATE,
-          isFormLocked: cashRegister.stato !== "DRAFT",
-        });
-      }, 0);
     } else {
       // Initialize with current date for new entry
       const newFormikValues: FormikCashRegisterValues = {
@@ -353,13 +341,6 @@ function RegistroCassaDetails() {
         { type: "Pagamento con Fattura", amount: 0 },
       ]);
       setInitialExpenses([]);
-
-      setTimeout(() => {
-        formRef.current?.setStatus({
-          formStatus: formStatuses.INSERT,
-          isFormLocked: false,
-        });
-      }, 0);
     }
   }, [cashRegister, handleInitializeValues, currentDate, utente?.id]);
 
@@ -503,7 +484,10 @@ function RegistroCassaDetails() {
       innerRef={formRef}
       enableReinitialize
       initialValues={initialValues}
-      initialStatus={{ formStatus: formStatuses.INSERT, isFormLocked: false }}
+      initialStatus={{
+        formStatus: cashRegister ? formStatuses.UPDATE : formStatuses.INSERT,
+        isFormLocked: cashRegister ? cashRegister.stato !== "DRAFT" : false,
+      }}
       validate={(values: FormikCashRegisterValues) => {
         const result = Schema.safeParse(values);
         if (result.success) {
