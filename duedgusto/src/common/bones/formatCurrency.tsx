@@ -4,5 +4,5 @@
  */
 export default function formatCurrency(value: number | null | undefined): string {
   if (value == null) return "0,00";
-  return Number(value).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return Number(value).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true });
 }

@@ -15,6 +15,7 @@ import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Cart
 import PageTitleContext from "../../layout/headerBar/PageTitleContext";
 import useQueryYearlySummary from "../../../graphql/cashRegister/useQueryYearlySummary";
 import useStore from "../../../store/useStore";
+import formatCurrency from "../../../common/bones/formatCurrency";
 
 const MONTH_NAMES = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"];
 
@@ -97,6 +98,12 @@ function RegistrazioneCassDashboard() {
     info: muiTheme.palette.info.main,
     cash: muiTheme.palette.success.light,
     electronic: muiTheme.palette.info.light,
+  }), [muiTheme.palette]);
+
+  const tooltipStyle = useMemo(() => ({
+    backgroundColor: muiTheme.palette.background.paper,
+    border: `1px solid ${muiTheme.palette.divider}`,
+    color: muiTheme.palette.text.primary,
   }), [muiTheme.palette]);
   const { setTitle } = useContext(PageTitleContext);
   const getNextOperatingDate = useStore((state) => state.getNextOperatingDate);
@@ -274,7 +281,7 @@ function RegistrazioneCassDashboard() {
         <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <KPICard
             title={`Ricavo ${MONTH_NAMES[displayMonthData.month - 1]}`}
-            value={`€ ${displayMonthData.totalRevenue?.toFixed(2) || "0.00"}`}
+            value={`€ ${formatCurrency(displayMonthData.totalRevenue)}`}
             subtitle={`${displayMonthData.count} registrazioni`}
             trend={monthTrend}
             icon={<PointOfSaleIcon sx={{ fontSize: 48 }} />}
@@ -284,7 +291,7 @@ function RegistrazioneCassDashboard() {
         <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <KPICard
             title="Pago in contanti Mese"
-            value={`€ ${displayMonthData.totalCash?.toFixed(2) || "0.00"}`}
+            value={`€ ${formatCurrency(displayMonthData.totalCash)}`}
             icon={<AccountBalanceWalletIcon sx={{ fontSize: 48 }} />}
             color="success"
           />
@@ -292,7 +299,7 @@ function RegistrazioneCassDashboard() {
         <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <KPICard
             title="Pagamenti Elettronici Mese"
-            value={`€ ${displayMonthData.totalElectronic?.toFixed(2) || "0.00"}`}
+            value={`€ ${formatCurrency(displayMonthData.totalElectronic)}`}
             icon={<CreditCardIcon sx={{ fontSize: 48 }} />}
             color="info"
           />
@@ -300,7 +307,7 @@ function RegistrazioneCassDashboard() {
         <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <KPICard
             title="Media Giornaliera Mese"
-            value={`€ ${(displayMonthData.count > 0 ? displayMonthData.totalRevenue / displayMonthData.count : 0)?.toFixed(2) || "0.00"}`}
+            value={`€ ${formatCurrency(displayMonthData.count > 0 ? displayMonthData.totalRevenue / displayMonthData.count : 0)}`}
             subtitle={`${displayMonthData.count} giorni registrati`}
             icon={<TrendingUpIcon sx={{ fontSize: 48 }} />}
             color="secondary"
@@ -319,7 +326,7 @@ function RegistrazioneCassDashboard() {
         <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <KPICard
             title={`Ricavo Totale ${selectedYear}`}
-            value={`€ ${yearlyData.yearlyTotals.totalRevenue?.toFixed(2) || "0.00"}`}
+            value={`€ ${formatCurrency(yearlyData.yearlyTotals.totalRevenue)}`}
             subtitle={`${yearlyData.yearlyTotals.count} registrazioni`}
             icon={<EuroIcon sx={{ fontSize: 48 }} />}
             color="primary"
@@ -328,7 +335,7 @@ function RegistrazioneCassDashboard() {
         <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <KPICard
             title="Pago in contanti Anno"
-            value={`€ ${yearlyData.yearlyTotals.totalCash?.toFixed(2) || "0.00"}`}
+            value={`€ ${formatCurrency(yearlyData.yearlyTotals.totalCash)}`}
             icon={<AccountBalanceWalletIcon sx={{ fontSize: 48 }} />}
             color="success"
           />
@@ -336,7 +343,7 @@ function RegistrazioneCassDashboard() {
         <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <KPICard
             title="Pagamenti Elettronici Anno"
-            value={`€ ${yearlyData.yearlyTotals.totalElectronic?.toFixed(2) || "0.00"}`}
+            value={`€ ${formatCurrency(yearlyData.yearlyTotals.totalElectronic)}`}
             icon={<CreditCardIcon sx={{ fontSize: 48 }} />}
             color="info"
           />
@@ -344,7 +351,7 @@ function RegistrazioneCassDashboard() {
         <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <KPICard
             title="Media Giornaliera Anno"
-            value={`€ ${yearlyData.yearlyTotals.averageDaily?.toFixed(2) || "0.00"}`}
+            value={`€ ${formatCurrency(yearlyData.yearlyTotals.averageDaily)}`}
             subtitle={`${yearlyData.yearlyTotals.count} giorni lavorati`}
             icon={<TrendingUpIcon sx={{ fontSize: 48 }} />}
             color="secondary"
@@ -369,7 +376,10 @@ function RegistrazioneCassDashboard() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis />
-                  <Tooltip formatter={(value) => `€ ${Number(value).toFixed(2)}`} />
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    formatter={(value) => `€ ${formatCurrency(Number(value))}`}
+                  />
                   <Legend />
                   <Bar
                     dataKey="ricavo"
@@ -424,7 +434,10 @@ function RegistrazioneCassDashboard() {
                       />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value) => `€ ${Number(value).toFixed(2)}`} />
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    formatter={(value) => `€ ${formatCurrency(Number(value))}`}
+                  />
                 </PieChart>
               </ResponsiveContainer>
               <Box sx={{ mt: 2 }}>
@@ -432,7 +445,7 @@ function RegistrazioneCassDashboard() {
                   variant="body2"
                   color="text.secondary"
                 >
-                  <strong>Ricavo Totale:</strong> € {yearlyData.yearlyTotals.totalRevenue?.toFixed(2) || "0.00"}
+                  <strong>Ricavo Totale:</strong> € {formatCurrency(yearlyData.yearlyTotals.totalRevenue)}
                 </Typography>
                 <Typography
                   variant="body2"
@@ -444,7 +457,7 @@ function RegistrazioneCassDashboard() {
                   variant="body2"
                   color="text.secondary"
                 >
-                  <strong>IVA totale:</strong> € {yearlyData.yearlyTotals.totalVat?.toFixed(2) || "0.00"}
+                  <strong>IVA totale:</strong> € {formatCurrency(yearlyData.yearlyTotals.totalVat)}
                 </Typography>
               </Box>
             </CardContent>
@@ -469,7 +482,10 @@ function RegistrazioneCassDashboard() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis />
-                  <Tooltip formatter={(value) => `€ ${Number(value).toFixed(2)}`} />
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    formatter={(value) => `€ ${formatCurrency(Number(value))}`}
+                  />
                   <Legend />
                   <Line
                     type="monotone"
