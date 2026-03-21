@@ -565,6 +565,7 @@ function RegistroCassaDetails() {
             >
               {status?.formStatus === formStatuses.UPDATE && status?.isFormLocked === false && (
                 <FormikToolbarButton
+                  type="button"
                   startIcon={<LockIcon />}
                   onClick={handleCloseCashRegister}
                   disabled={closing}
