@@ -461,18 +461,45 @@ public class ChiusuraMensileService
             .OrderBy(p => p.DataInizio)
             .ToListAsync();
 
+        List<DateTime> giorniMancanti;
+
         if (periodi.Count > 0)
         {
             // Usa i periodi di programmazione per determinare i giorni operativi per ogni giorno
-            return ElencoGiorniMancantiPerPeriodo(registriMese, primoGiorno, ultimoGiorno, periodi);
+            giorniMancanti = ElencoGiorniMancantiPerPeriodo(registriMese, primoGiorno, ultimoGiorno, periodi);
         }
         else
         {
             // Fallback: usa il campo globale OperatingDays di BusinessSettings
             var settings = await _dbContext.BusinessSettings.FirstAsync();
             var operatingDays = JsonSerializer.Deserialize<bool[]>(settings.OperatingDays)!;
-            return ElencoGiorniMancanti(registriMese, primoGiorno, ultimoGiorno, operatingDays);
+            giorniMancanti = ElencoGiorniMancanti(registriMese, primoGiorno, ultimoGiorno, operatingDays);
         }
+
+        // Escludi i giorni non lavorativi configurati
+        var giorniNonLavorativi = await _dbContext.GiorniNonLavorativi.ToListAsync();
+        if (giorniNonLavorativi.Count > 0)
+        {
+            giorniMancanti = giorniMancanti.Where(data =>
+            {
+                var dataOnly = DateOnly.FromDateTime(data);
+                return !giorniNonLavorativi.Any(gnl =>
+                {
+                    if (gnl.Ricorrente)
+                    {
+                        // Per i ricorrenti, confronta solo mese e giorno
+                        return gnl.Data.Month == dataOnly.Month && gnl.Data.Day == dataOnly.Day;
+                    }
+                    else
+                    {
+                        // Per i non ricorrenti, confronta la data esatta
+                        return gnl.Data == dataOnly;
+                    }
+                });
+            }).ToList();
+        }
+
+        return giorniMancanti;
     }
 
     /// <summary>

@@ -5,6 +5,7 @@ import { GET_BUSINESS_SETTINGS } from "./queries";
 interface UseGetBusinessSettingsResult {
   settings: BusinessSettings | undefined;
   periodi: PeriodoProgrammazione[];
+  giorniNonLavorativi: GiornoNonLavorativo[];
   loading: boolean;
   error: Error | undefined;
   refetch: () => Promise<unknown>;
@@ -38,9 +39,16 @@ export function useGetBusinessSettings(skip = false): UseGetBusinessSettingsResu
     })) as PeriodoProgrammazione[];
   }, [data?.settings?.periodiProgrammazione]);
 
+  const giorniNonLavorativi = useMemo(() => {
+    const rawGiorni = data?.settings?.giorniNonLavorativi;
+    if (!rawGiorni || !Array.isArray(rawGiorni)) return [];
+    return rawGiorni as GiornoNonLavorativo[];
+  }, [data?.settings?.giorniNonLavorativi]);
+
   return {
     settings,
     periodi,
+    giorniNonLavorativi,
     loading,
     error,
     refetch,

@@ -6,11 +6,15 @@ import { useTheme } from "@mui/material";
 import HeaderBar from "./headerBar/HeaderBar";
 import Sidebar from "./sideBar/Sidebar";
 import useSideBar from "./sideBar/useSideBar";
+import useSettingsSync from "../../graphql/subscriptions/useSettingsSync";
 
 function Layout() {
   const [headerHeight, setHeaderHeight] = useState(64);
   const theme = useTheme();
   const { drawerOpen, drawerSwipeable, mobileDrawerOpen, toggleDrawer, setMobileDrawerOpen, onCloseSwipeable, onListItemClick } = useSideBar();
+
+  // Sincronizza lo store globale quando le impostazioni vengono modificate da altri client
+  useSettingsSync();
 
   return (
     <Box sx={{ height: "100dvh", overflow: "hidden" }}>

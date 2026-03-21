@@ -60,4 +60,9 @@ public class BusinessSettings
     /// Periodi di programmazione associati a questa configurazione
     /// </summary>
     public List<PeriodoProgrammazione> Periodi { get; set; } = new();
+
+    /// <summary>
+    /// Giorni non lavorativi associati a questa configurazione
+    /// </summary>
+    public List<GiornoNonLavorativo> GiorniNonLavorativi { get; set; } = new();
 }

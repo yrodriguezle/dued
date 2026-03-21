@@ -36,11 +36,13 @@ const validationSchema = z.object({
 
 function SettingsDetails() {
   const { setTitle } = useContext(PageTitleContext);
-  const { settings, periodi, loading, error } = useGetBusinessSettings();
+  const { settings, periodi, giorniNonLavorativi, loading, error } = useGetBusinessSettings();
   const formRef = useRef<FormikProps<BusinessSettings>>(null);
   const { initialValues, handleInitializeValues } = useInitializeValues({ skipInitialize: false });
   const onConfirm = useConfirm();
   const setSettings = useStore((state) => state.setSettings);
+  const setPeriodi = useStore((state) => state.setPeriodi);
+  const setGiorniNonLavorativi = useStore((state) => state.setGiorniNonLavorativi);
 
   const [updateMutation] = useMutation(UPDATE_BUSINESS_SETTINGS, {
     onCompleted: (data) => {
@@ -83,6 +85,15 @@ function SettingsDetails() {
       });
     }
   }, [settings, handleInitializeValues]);
+
+  // Sincronizza periodi e giorni non lavorativi da Apollo → Zustand store
+  useEffect(() => {
+    setPeriodi(periodi);
+  }, [periodi, setPeriodi]);
+
+  useEffect(() => {
+    setGiorniNonLavorativi(giorniNonLavorativi);
+  }, [giorniNonLavorativi, setGiorniNonLavorativi]);
 
   const handleResetForm = useCallback(
     async (hasChanges: boolean) => {
@@ -189,7 +200,7 @@ function SettingsDetails() {
           />
           <Box sx={{ flex: 1, overflow: "auto", minHeight: 0, px: 2, py: 2 }}>
             <Box sx={{ maxWidth: 720 }}>
-              <BusinessSettingsForm periodi={periodi} />
+              <BusinessSettingsForm periodi={periodi} giorniNonLavorativi={giorniNonLavorativi} />
             </Box>
           </Box>
         </Form>

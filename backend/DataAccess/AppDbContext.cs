@@ -30,6 +30,7 @@ public class AppDbContext : DbContext
     // Business Settings
     public DbSet<BusinessSettings> BusinessSettings { get; set; }
     public DbSet<PeriodoProgrammazione> PeriodiProgrammazione { get; set; }
+    public DbSet<GiornoNonLavorativo> GiorniNonLavorativi { get; set; }
 
     // Supplier Management
     public DbSet<Fornitore> Fornitori { get; set; }
@@ -471,6 +472,52 @@ public class AppDbContext : DbContext
 
             // Indice su SettingsId + DataInizio per ricerca periodo per data
             entity.HasIndex(x => new { x.SettingsId, x.DataInizio });
+        });
+
+        // Giorno Non Lavorativo Configuration
+        modelBuilder.Entity<GiornoNonLavorativo>(entity =>
+        {
+            entity
+                .ToTable("GiorniNonLavorativi")
+                .HasCharSet("utf8mb4")
+                .UseCollation("utf8mb4_unicode_ci")
+                .HasKey(x => x.GiornoId);
+
+            entity.Property(x => x.GiornoId)
+                .ValueGeneratedOnAdd();
+
+            entity.Property(x => x.Data)
+                .HasColumnType("date")
+                .IsRequired();
+
+            entity.Property(x => x.Descrizione)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            entity.Property(x => x.CodiceMotivo)
+                .HasMaxLength(50)
+                .IsRequired()
+                .HasDefaultValue("FESTIVITA_NAZIONALE");
+
+            entity.Property(x => x.Ricorrente)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.CreatoIl)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.Property(x => x.AggiornatoIl)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+
+            entity.HasOne(x => x.Settings)
+                .WithMany(s => s.GiorniNonLavorativi)
+                .HasForeignKey(x => x.SettingsId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Indice univoco su SettingsId + Data (un solo record per data per settings)
+            entity.HasIndex(x => new { x.SettingsId, x.Data })
+                .IsUnique();
         });
 
         // Sale Configuration (Vendita)

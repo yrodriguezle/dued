@@ -1,6 +1,7 @@
 import { Paper, Typography, Box, MenuItem } from "@mui/material";
 import FormikTextField from "../../common/form/FormikTextField";
 import PeriodoProgrammazioneSection from "./PeriodoProgrammazioneSection";
+import GiorniNonLavorativiSection from "./GiorniNonLavorativiSection";
 
 const TIMEZONES = [
   { value: "Europe/Rome", label: "Roma (CEST/CET)" },
@@ -21,9 +22,10 @@ const CURRENCIES = [
 
 interface BusinessSettingsFormProps {
   periodi: PeriodoProgrammazione[];
+  giorniNonLavorativi: GiornoNonLavorativo[];
 }
 
-function BusinessSettingsForm({ periodi }: BusinessSettingsFormProps) {
+function BusinessSettingsForm({ periodi, giorniNonLavorativi }: BusinessSettingsFormProps) {
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
       {/* Sezione: Attività */}
@@ -101,6 +103,9 @@ function BusinessSettingsForm({ periodi }: BusinessSettingsFormProps) {
 
       {/* Sezione: Periodi di apertura (include orari) */}
       <PeriodoProgrammazioneSection periodi={periodi} />
+
+      {/* Sezione: Giorni Non Lavorativi */}
+      <GiorniNonLavorativiSection giorniNonLavorativi={giorniNonLavorativi} />
 
       {/* Sezione: Impostazioni Fiscali */}
       <Paper

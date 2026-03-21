@@ -32,3 +32,22 @@ type PeriodoProgrammazione = {
   creatoIl?: string;
   aggiornatoIl?: string;
 };
+
+type GiornoNonLavorativo = {
+  giornoId: number;
+  data: string; // yyyy-MM-dd
+  descrizione: string;
+  codiceMotivo: string; // FESTIVITA_NAZIONALE | CHIUSURA_STRAORDINARIA | FERIE
+  ricorrente: boolean;
+  settingsId: number;
+  creatoIl: string;
+  aggiornatoIl: string;
+};
+
+type GiornoNonLavorativoInput = {
+  giornoId?: number;
+  data: string;
+  descrizione: string;
+  codiceMotivo: string;
+  ricorrente?: boolean;
+};

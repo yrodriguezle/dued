@@ -60,3 +60,45 @@ export const ELIMINA_PERIODO_PROGRAMMAZIONE = gql`
     }
   }
 `;
+
+export const CREA_GIORNO_NON_LAVORATIVO = gql`
+  mutation CreaGiornoNonLavorativo($input: GiornoNonLavorativoInput!) {
+    settings {
+      creaGiornoNonLavorativo(input: $input) {
+        giornoId
+        data
+        descrizione
+        codiceMotivo
+        ricorrente
+        settingsId
+        creatoIl
+        aggiornatoIl
+      }
+    }
+  }
+`;
+
+export const AGGIORNA_GIORNO_NON_LAVORATIVO = gql`
+  mutation AggiornaGiornoNonLavorativo($input: GiornoNonLavorativoInput!) {
+    settings {
+      aggiornaGiornoNonLavorativo(input: $input) {
+        giornoId
+        data
+        descrizione
+        codiceMotivo
+        ricorrente
+        settingsId
+        creatoIl
+        aggiornatoIl
+      }
+    }
+  }
+`;
+
+export const ELIMINA_GIORNO_NON_LAVORATIVO = gql`
+  mutation EliminaGiornoNonLavorativo($giornoId: Int!) {
+    settings {
+      eliminaGiornoNonLavorativo(giornoId: $giornoId)
+    }
+  }
+`;

@@ -7,6 +7,8 @@ using duedgusto.Services.GraphQL;
 using duedgusto.DataAccess;
 
 using duedgusto.GraphQL.Settings.Types;
+using duedgusto.GraphQL.Subscriptions.Types;
+using duedgusto.Services.Events;
 
 namespace duedgusto.GraphQL.Settings;
 
@@ -326,6 +328,159 @@ public class SettingsMutations : ObjectGraphType
 
                 await dbContext.SaveChangesAsync();
                 return periodo;
+            });
+
+        // Create a new non-working day
+        Field<GiornoNonLavorativoType, GiornoNonLavorativo>("creaGiornoNonLavorativo")
+            .Argument<NonNullGraphType<GiornoNonLavorativoInputType>>("input", "Non-working day data")
+            .ResolveAsync(async context =>
+            {
+                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                var input = context.GetArgument<GiornoNonLavorativoInput>("input");
+
+                // Validazione data
+                if (string.IsNullOrEmpty(input.Data))
+                    throw new ExecutionError("data è obbligatoria");
+
+                if (!DateOnly.TryParse(input.Data, out var data))
+                    throw new ExecutionError("data deve essere una data valida (formato: yyyy-MM-dd)");
+
+                // Validazione descrizione
+                if (string.IsNullOrWhiteSpace(input.Descrizione))
+                    throw new ExecutionError("descrizione è obbligatoria");
+
+                // Validazione codice motivo
+                var codiceMotivo = input.CodiceMotivo ?? "FESTIVITA_NAZIONALE";
+                var codiciValidi = new[] { "FESTIVITA_NAZIONALE", "CHIUSURA_STRAORDINARIA", "FERIE" };
+                if (!codiciValidi.Contains(codiceMotivo))
+                    throw new ExecutionError($"codiceMotivo deve essere uno tra: {string.Join(", ", codiciValidi)}");
+
+                var settings = await dbContext.BusinessSettings.FirstAsync();
+
+                // Verifica unicità su data + settingsId
+                var esistente = await dbContext.GiorniNonLavorativi
+                    .AnyAsync(g => g.SettingsId == settings.SettingsId && g.Data == data);
+
+                if (esistente)
+                    throw new ExecutionError($"Esiste già un giorno non lavorativo per la data {data:yyyy-MM-dd}");
+
+                var nuovo = new GiornoNonLavorativo
+                {
+                    Data = data,
+                    Descrizione = input.Descrizione.Trim(),
+                    CodiceMotivo = codiceMotivo,
+                    Ricorrente = input.Ricorrente ?? false,
+                    SettingsId = settings.SettingsId,
+                    CreatoIl = DateTime.UtcNow,
+                    AggiornatoIl = DateTime.UtcNow
+                };
+
+                dbContext.GiorniNonLavorativi.Add(nuovo);
+                await dbContext.SaveChangesAsync();
+
+                // Pubblica evento per subscription real-time
+                var eventBus = GraphQLService.GetService<IEventBus>(context);
+                eventBus.Publish(new SettingsUpdatedEvent
+                {
+                    Azione = "CREATO",
+                    Timestamp = DateTime.UtcNow
+                });
+
+                return nuovo;
+            });
+
+        // Update an existing non-working day
+        Field<GiornoNonLavorativoType, GiornoNonLavorativo>("aggiornaGiornoNonLavorativo")
+            .Argument<NonNullGraphType<GiornoNonLavorativoInputType>>("input", "Non-working day data")
+            .ResolveAsync(async context =>
+            {
+                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                var input = context.GetArgument<GiornoNonLavorativoInput>("input");
+
+                if (input.GiornoId == null)
+                    throw new ExecutionError("giornoId è obbligatorio per l'aggiornamento");
+
+                var giorno = await dbContext.GiorniNonLavorativi
+                    .FirstOrDefaultAsync(g => g.GiornoId == input.GiornoId.Value);
+
+                if (giorno == null)
+                    throw new ExecutionError($"Giorno non lavorativo con ID {input.GiornoId} non trovato");
+
+                // Aggiorna data se fornita
+                if (!string.IsNullOrEmpty(input.Data))
+                {
+                    if (!DateOnly.TryParse(input.Data, out var data))
+                        throw new ExecutionError("data deve essere una data valida (formato: yyyy-MM-dd)");
+
+                    // Verifica unicità escludendo se stesso
+                    var esistente = await dbContext.GiorniNonLavorativi
+                        .AnyAsync(g => g.SettingsId == giorno.SettingsId && g.Data == data && g.GiornoId != giorno.GiornoId);
+
+                    if (esistente)
+                        throw new ExecutionError($"Esiste già un giorno non lavorativo per la data {data:yyyy-MM-dd}");
+
+                    giorno.Data = data;
+                }
+
+                // Aggiorna descrizione se fornita
+                if (!string.IsNullOrEmpty(input.Descrizione))
+                    giorno.Descrizione = input.Descrizione.Trim();
+
+                // Aggiorna codice motivo se fornito
+                if (!string.IsNullOrEmpty(input.CodiceMotivo))
+                {
+                    var codiciValidi = new[] { "FESTIVITA_NAZIONALE", "CHIUSURA_STRAORDINARIA", "FERIE" };
+                    if (!codiciValidi.Contains(input.CodiceMotivo))
+                        throw new ExecutionError($"codiceMotivo deve essere uno tra: {string.Join(", ", codiciValidi)}");
+
+                    giorno.CodiceMotivo = input.CodiceMotivo;
+                }
+
+                // Aggiorna ricorrente se fornito
+                if (input.Ricorrente.HasValue)
+                    giorno.Ricorrente = input.Ricorrente.Value;
+
+                giorno.AggiornatoIl = DateTime.UtcNow;
+
+                await dbContext.SaveChangesAsync();
+
+                // Pubblica evento per subscription real-time
+                var eventBus = GraphQLService.GetService<IEventBus>(context);
+                eventBus.Publish(new SettingsUpdatedEvent
+                {
+                    Azione = "AGGIORNATO",
+                    Timestamp = DateTime.UtcNow
+                });
+
+                return giorno;
+            });
+
+        // Delete a non-working day
+        Field<BooleanGraphType, bool>("eliminaGiornoNonLavorativo")
+            .Argument<NonNullGraphType<IntGraphType>>("giornoId", "Non-working day ID to delete")
+            .ResolveAsync(async context =>
+            {
+                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                var giornoId = context.GetArgument<int>("giornoId");
+
+                var giorno = await dbContext.GiorniNonLavorativi
+                    .FirstOrDefaultAsync(g => g.GiornoId == giornoId);
+
+                if (giorno == null)
+                    throw new ExecutionError($"Giorno non lavorativo con ID {giornoId} non trovato");
+
+                dbContext.GiorniNonLavorativi.Remove(giorno);
+                await dbContext.SaveChangesAsync();
+
+                // Pubblica evento per subscription real-time
+                var eventBus = GraphQLService.GetService<IEventBus>(context);
+                eventBus.Publish(new SettingsUpdatedEvent
+                {
+                    Azione = "ELIMINATO",
+                    Timestamp = DateTime.UtcNow
+                });
+
+                return true;
             });
 
         // Delete a programming period

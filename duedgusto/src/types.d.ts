@@ -87,6 +87,8 @@ interface Store {
   setSettingsError: (error: string | null) => void;
   periodi: PeriodoProgrammazione[];
   setPeriodi: (periodi: PeriodoProgrammazione[]) => void;
+  giorniNonLavorativi: GiornoNonLavorativo[];
+  setGiorniNonLavorativi: (giorni: GiornoNonLavorativo[]) => void;
   isOpen: (date: Date) => boolean;
   isOpenNow: () => boolean;
   getNextOperatingDate: (from?: Date) => Date;

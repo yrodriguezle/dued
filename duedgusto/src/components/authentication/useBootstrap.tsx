@@ -42,6 +42,7 @@ function useBootstrap() {
   const setSettingsLoaded = useStore((store) => store.setSettingsLoaded);
   const setSettingsError = useStore((store) => store.setSettingsError);
   const setPeriodi = useStore((store) => store.setPeriodi);
+  const setGiorniNonLavorativi = useStore((store) => store.setGiorniNonLavorativi);
   const onInProgress = useStore((store) => store.onInProgress);
   const offInProgress = useStore((store) => store.offInProgress);
   const promiseLock = useRef<Promise<void> | null>(null);
@@ -117,6 +118,12 @@ function useBootstrap() {
                 setPeriodi(periodi);
               }
 
+              // Estrai i giorni non lavorativi
+              const rawGiorni = settingsData?.settings?.giorniNonLavorativi;
+              if (Array.isArray(rawGiorni)) {
+                setGiorniNonLavorativi(rawGiorni as GiornoNonLavorativo[]);
+              }
+
               settingsSuccess = true;
             } catch (settingsError) {
               lastError = settingsError;
@@ -155,7 +162,7 @@ function useBootstrap() {
     }
     bootstrap();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [confirm, offInProgress, onInProgress, receiveUtente, setSettings, setSettingsLoaded, setSettingsError, setPeriodi, serverStatus, settingsLoaded, utente]);
+  }, [confirm, offInProgress, onInProgress, receiveUtente, setSettings, setSettingsLoaded, setSettingsError, setPeriodi, setGiorniNonLavorativi, serverStatus, settingsLoaded, utente]);
 }
 
 export default useBootstrap;

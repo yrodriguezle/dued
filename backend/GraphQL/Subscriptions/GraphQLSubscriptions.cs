@@ -47,5 +47,17 @@ public class GraphQLSubscriptions : ObjectGraphType
                 context => context.Source as ChiusuraCassaCompletedEvent
             )
         });
+
+        AddField(new FieldType
+        {
+            Name = "onSettingsUpdated",
+            Type = typeof(SettingsUpdatedEventType),
+            StreamResolver = new SourceStreamResolver<SettingsUpdatedEvent>(
+                _ => eventBus.Subscribe<SettingsUpdatedEvent>()
+            ),
+            Resolver = new FuncFieldResolver<SettingsUpdatedEvent>(
+                context => context.Source as SettingsUpdatedEvent
+            )
+        });
     }
 }

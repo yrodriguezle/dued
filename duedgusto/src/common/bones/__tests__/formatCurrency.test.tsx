@@ -4,9 +4,8 @@ import formatCurrency from "../formatCurrency";
 describe("formatCurrency", () => {
   it("should format a number with two decimal places", () => {
     const result = formatCurrency(1234.5);
-    // In jsdom, toLocaleString("it-IT") may not add thousands separator
-    expect(result).toContain("1234");
-    expect(result).toContain("50");
+    // toLocaleString("it-IT") usa il punto come separatore migliaia
+    expect(result).toBe("1.234,50");
   });
 
   it("should format zero", () => {
@@ -23,8 +22,7 @@ describe("formatCurrency", () => {
 
   it("should format negative numbers", () => {
     const result = formatCurrency(-1234.56);
-    expect(result).toContain("1234");
-    expect(result).toContain("56");
+    expect(result).toBe("-1.234,56");
   });
 
   it("should format integers with two decimal places", () => {

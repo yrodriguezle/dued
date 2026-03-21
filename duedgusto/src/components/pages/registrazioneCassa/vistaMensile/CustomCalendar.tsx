@@ -1,7 +1,7 @@
 import { useMemo, useCallback } from "react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek } from "date-fns";
 import dayjs from "dayjs";
-import { Box, Typography, useTheme, useMediaQuery, alpha } from "@mui/material";
+import { Box, Typography, useTheme, useMediaQuery, alpha, Tooltip } from "@mui/material";
 import useStore from "../../../../store/useStore";
 import type { CashEvent } from "./RegistroCassaVistaMensile";
 
@@ -25,6 +25,7 @@ export function CustomCalendar({ events, onSelectEvent, onSelectSlot, currentDat
   const isDark = muiTheme.palette.mode === "dark";
   const isMobile = useMediaQuery(muiTheme.breakpoints.down("sm"));
   const isOpen = useStore((store) => store.isOpen);
+  const giorniNonLavorativi = useStore((store) => store.giorniNonLavorativi);
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(monthStart);
@@ -52,6 +53,21 @@ export function CustomCalendar({ events, onSelectEvent, onSelectSlot, currentDat
     });
     return map;
   }, [events]);
+
+  // Funzione per trovare un giorno non lavorativo corrispondente a una data
+  const getGiornoNonLavorativo = useCallback(
+    (dateKey: string): GiornoNonLavorativo | undefined => {
+      if (!giorniNonLavorativi || giorniNonLavorativi.length === 0) return undefined;
+      const mmdd = dateKey.substring(5); // "MM-DD"
+      return giorniNonLavorativi.find((g) => {
+        if (g.ricorrente) {
+          return g.data.substring(5) === mmdd;
+        }
+        return g.data === dateKey;
+      });
+    },
+    [giorniNonLavorativi],
+  );
 
   const handleDayClick = useCallback(
     (date: Date) => {
@@ -117,6 +133,7 @@ export function CustomCalendar({ events, onSelectEvent, onSelectSlot, currentDat
           const isCurrentMonth = format(date, "M") === currentMonthStr;
           const isDayOpen = isOpen(date);
           const isDisabled = !isCurrentMonth;
+          const giornoNonLav = getGiornoNonLavorativo(dateKey);
 
           // Il primo evento del giorno (normalmente uno solo)
           const event = dayEvents[0];
@@ -138,13 +155,17 @@ export function CustomCalendar({ events, onSelectEvent, onSelectSlot, currentDat
                   ? isDark
                     ? alpha(muiTheme.palette.background.paper, 0.3)
                     : "grey.100"
-                  : isToday
+                  : giornoNonLav
                     ? isDark
-                      ? alpha(muiTheme.palette.primary.main, 0.08)
-                      : alpha(muiTheme.palette.primary.main, 0.06)
-                    : isDark
-                      ? "background.paper"
-                      : "background.paper",
+                      ? alpha(muiTheme.palette.error.main, 0.12)
+                      : alpha(muiTheme.palette.error.main, 0.06)
+                    : isToday
+                      ? isDark
+                        ? alpha(muiTheme.palette.primary.main, 0.08)
+                        : alpha(muiTheme.palette.primary.main, 0.06)
+                      : isDark
+                        ? "background.paper"
+                        : "background.paper",
                 cursor: isDisabled ? "default" : !isDayOpen && !event ? "default" : "pointer",
                 opacity: isDisabled ? 0.4 : 1,
                 display: "flex",
@@ -242,7 +263,15 @@ export function CustomCalendar({ events, onSelectEvent, onSelectSlot, currentDat
                 isCurrentMonth &&
                 !isDayOpen && (
                   <Box sx={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Typography sx={{ fontSize: "0.65rem", color: "text.disabled", fontWeight: 500 }}>CHIUSO</Typography>
+                    {giornoNonLav ? (
+                      <Tooltip title={giornoNonLav.descrizione}>
+                        <Typography sx={{ fontSize: "0.6rem", color: "error.main", fontWeight: 600, textAlign: "center", lineHeight: 1.2, px: 0.25 }}>
+                          {isMobile ? giornoNonLav.descrizione.substring(0, 3).toUpperCase() : giornoNonLav.descrizione}
+                        </Typography>
+                      </Tooltip>
+                    ) : (
+                      <Typography sx={{ fontSize: "0.65rem", color: "text.disabled", fontWeight: 500 }}>CHIUSO</Typography>
+                    )}
                   </Box>
                 )
               )}
