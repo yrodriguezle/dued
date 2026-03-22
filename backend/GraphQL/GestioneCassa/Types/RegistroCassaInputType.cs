@@ -15,6 +15,7 @@ public class PagamentoFornitoreRegistroInput
     public int? DdtId { get; set; }
     public DateTime? DataFattura { get; set; }
     public DateTime? DataDdt { get; set; }
+    public decimal? AliquotaIva { get; set; }
 }
 
 public class PagamentoFornitoreRegistroInputType : InputObjectGraphType<PagamentoFornitoreRegistroInput>
@@ -33,6 +34,7 @@ public class PagamentoFornitoreRegistroInputType : InputObjectGraphType<Pagament
         Field(x => x.DdtId, nullable: true);
         Field(x => x.DataFattura, nullable: true, type: typeof(DateTimeGraphType));
         Field(x => x.DataDdt, nullable: true, type: typeof(DateTimeGraphType));
+        Field(x => x.AliquotaIva, nullable: true);
     }
 }
 

@@ -309,6 +309,11 @@ function RegistroCassaDetails() {
           const docType: "FA" | "DDT" = hasInvoice ? "FA" : "DDT";
           const docLabel = hasInvoice ? `FA ${p.fattura?.numeroFattura || ""}` : `DDT ${p.ddt?.numeroDdt || ""}`;
 
+          // Ripristina aliquotaIva dal fornitore collegato
+          const fornitoreAliquota = hasInvoice
+            ? p.fattura?.fornitore?.aliquotaIva
+            : p.ddt?.fornitore?.aliquotaIva;
+
           return {
             description: `Pagamento ${nomeFornitore} - ${docLabel}`,
             amount: p.importo,
@@ -323,6 +328,7 @@ function RegistroCassaDetails() {
             ddtId: p.ddt?.ddtId,
             dataFattura: p.fattura?.dataFattura,
             dataDdt: p.ddt?.dataDdt,
+            aliquotaIva: fornitoreAliquota ?? undefined,
           };
         }) || [];
       setInitialExpenses([...pagamentoFornitoreExpenses, ...normalExpenses]);
@@ -385,6 +391,7 @@ function RegistroCassaDetails() {
           ddtId: row.ddtId,
           dataFattura: row.dataFattura,
           dataDdt: row.dataDdt,
+          aliquotaIva: row.aliquotaIva ?? undefined,
         }));
 
       // Converti gli array in campi per il backend (nomi italiani)

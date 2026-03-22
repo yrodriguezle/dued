@@ -121,6 +121,7 @@ interface FatturaNonPagata {
   numeroFattura: string;
   dataFattura: string;
   imponibile: number;
+  totaleConIva?: number | null;
   stato: string;
   pagamenti: {
     pagamentoId: number;
@@ -146,6 +147,7 @@ export const getFattureNonPagatePerFornitore: TypedDocumentNode<GetFattureNonPag
         numeroFattura
         dataFattura
         imponibile
+        totaleConIva
         stato
         pagamenti {
           pagamentoId

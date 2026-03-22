@@ -12,6 +12,7 @@ export const fornitoreFragment = `fragment FornitoreFragment on Fornitore {
   paese
   note
   attivo
+  aliquotaIva
   creatoIl
   aggiornatoIl
 }`;
@@ -46,6 +47,13 @@ export const documentoTrasportoFragment = `
     dataDdt
     importo
     note
+    pagamenti {
+      pagamentoId
+      importo
+      dataPagamento
+      metodoPagamento
+      note
+    }
     creatoIl
     aggiornatoIl
   }`;

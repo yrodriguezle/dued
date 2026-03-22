@@ -45,6 +45,9 @@ namespace duedgusto.Models
 
         public bool Attivo { get; set; } = true;
 
+        [Column(TypeName = "decimal(5,2)")]
+        public decimal? AliquotaIva { get; set; } = 22m;
+
         public DateTime CreatoIl { get; set; } = DateTime.UtcNow;
 
         public DateTime AggiornatoIl { get; set; } = DateTime.UtcNow;

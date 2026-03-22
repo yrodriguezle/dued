@@ -1,5 +1,6 @@
 import { Paper, Typography, Box } from "@mui/material";
 import FormikTextField from "../../common/form/FormikTextField";
+import FormikNumberField from "../../common/form/FormikNumberField";
 import FormikCheckbox from "../../common/form/FormikCheckbox";
 import FormikSearchbox from "../../common/form/searchbox/FormikSearchbox";
 import fornitoreSearchboxOption, { FornitoreSearchbox } from "../../common/form/searchbox/searchboxOptions/fornitoreSearchboxOptions";
@@ -56,6 +57,14 @@ function FornitoreForm({ onSelectItem }: FornitoreFormProps) {
               name="codiceFiscale"
               label="Codice Fiscale"
               fullWidth
+            />
+          </div>
+          <div className="col-span-12 md:col-span-4">
+            <FormikNumberField
+              name="aliquotaIva"
+              label="Aliquota IVA %"
+              fullWidth
+              decimals={2}
             />
           </div>
         </div>

@@ -274,15 +274,40 @@ public class GestioneCassaMutations : ObjectGraphType
                 if (orphanFatturaIds.Count > 0 || orphanDdtIds.Count > 0)
                     await dbContext.SaveChangesAsync();
 
-                // STEP 5: UPDATE existing payments
-                toUpdate.ForEach(existing =>
+                // STEP 5: UPDATE existing payments (and recalculate IVA on linked invoices)
+                foreach (var existing in toUpdate)
                 {
                     var inp = inputById[existing.PagamentoId];
                     existing.Importo = inp.Importo;
                     existing.MetodoPagamento = inp.MetodoPagamento;
                     existing.AggiornatoIl = DateTime.UtcNow;
                     // Do NOT change FatturaId/DdtId — preserve original document link
-                });
+
+                    // Recalculate IVA fields on linked FatturaAcquisto if the amount changed
+                    if (existing.FatturaId.HasValue)
+                    {
+                        var linkedFattura = await dbContext.FattureAcquisto.FindAsync(existing.FatturaId.Value);
+                        if (linkedFattura != null)
+                        {
+                            decimal aliquotaUpd = inp.AliquotaIva ?? 22m;
+                            if (inp.AliquotaIva == null)
+                            {
+                                var fornitoreUpd = await dbContext.Set<Fornitore>().FindAsync(inp.FornitoreId);
+                                if (fornitoreUpd?.AliquotaIva != null)
+                                {
+                                    aliquotaUpd = fornitoreUpd.AliquotaIva.Value;
+                                }
+                            }
+
+                            decimal totaleConIvaUpd = inp.Importo;
+                            decimal imponibileUpd = Math.Round(totaleConIvaUpd / (1 + aliquotaUpd / 100m), 2);
+                            linkedFattura.Imponibile = imponibileUpd;
+                            linkedFattura.ImportoIva = totaleConIvaUpd - imponibileUpd;
+                            linkedFattura.TotaleConIva = totaleConIvaUpd;
+                            linkedFattura.AggiornatoIl = DateTime.UtcNow;
+                        }
+                    }
+                }
 
                 // STEP 6: CREATE new payments (sequential — DbContext is not thread-safe)
                 foreach (var pagInput in inputNew)
@@ -297,13 +322,30 @@ public class GestioneCassaMutations : ObjectGraphType
                     }
                     else if (pagInput.TipoDocumento == "FA")
                     {
-                        // Priority 2: Create new FatturaAcquisto
+                        // Priority 2: Create new FatturaAcquisto with IVA calculation
+                        // Determine VAT rate: input > supplier default > 22%
+                        decimal aliquota = pagInput.AliquotaIva ?? 22m;
+                        if (pagInput.AliquotaIva == null)
+                        {
+                            var fornitore = await dbContext.Set<Fornitore>().FindAsync(pagInput.FornitoreId);
+                            if (fornitore?.AliquotaIva != null)
+                            {
+                                aliquota = fornitore.AliquotaIva.Value;
+                            }
+                        }
+
+                        decimal totaleConIva = pagInput.Importo;
+                        decimal imponibile = Math.Round(totaleConIva / (1 + aliquota / 100m), 2);
+                        decimal importoIva = totaleConIva - imponibile;
+
                         var fattura = new FatturaAcquisto
                         {
                             FornitoreId = pagInput.FornitoreId,
                             NumeroFattura = pagInput.NumeroFattura ?? "",
                             DataFattura = pagInput.DataFattura ?? input.Data,
-                            Imponibile = pagInput.Importo,
+                            Imponibile = imponibile,
+                            ImportoIva = importoIva,
+                            TotaleConIva = totaleConIva,
                             Stato = "PAGATA",
                         };
                         dbContext.FattureAcquisto.Add(fattura);
@@ -384,20 +426,8 @@ public class GestioneCassaMutations : ObjectGraphType
                     Azione = "UPDATED"
                 });
 
-                // Reload with navigation properties
+                // Reload — subfield ora usano DataLoader
                 return await dbContext.RegistriCassa
-                    .Include(r => r.Utente)
-                        .ThenInclude(u => u.Ruolo)
-                    .Include(r => r.ConteggiMoneta)
-                        .ThenInclude(c => c.Denominazione)
-                    .Include(r => r.IncassiCassa)
-                    .Include(r => r.SpeseCassa)
-                    .Include(r => r.PagamentiFornitori)
-                        .ThenInclude(p => p.Ddt)
-                            .ThenInclude(d => d!.Fornitore)
-                    .Include(r => r.PagamentiFornitori)
-                        .ThenInclude(p => p.Fattura)
-                            .ThenInclude(f => f!.Fornitore)
                     .FirstOrDefaultAsync(r => r.Id == registroCassa.Id);
             });
 
@@ -410,12 +440,6 @@ public class GestioneCassaMutations : ObjectGraphType
                 int registroCassaId = context.GetArgument<int>("registroCassaId");
 
                 var registroCassa = await dbContext.RegistriCassa
-                    .Include(r => r.Utente)
-                        .ThenInclude(u => u.Ruolo)
-                    .Include(r => r.ConteggiMoneta)
-                        .ThenInclude(c => c.Denominazione)
-                    .Include(r => r.IncassiCassa)
-                    .Include(r => r.SpeseCassa)
                     .FirstOrDefaultAsync(r => r.Id == registroCassaId);
 
                 if (registroCassa == null)

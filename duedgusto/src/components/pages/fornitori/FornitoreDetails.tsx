@@ -33,6 +33,7 @@ const Schema = z.object({
   paese: z.string().default("IT"),
   note: z.string().optional(),
   attivo: z.boolean().default(true),
+  aliquotaIva: z.number().min(0).max(100).optional(),
 });
 
 export type FormikFornitoreValues = z.infer<typeof Schema>;
@@ -51,6 +52,7 @@ const mapFornitoreToFormValues = (fornitore: Fornitore): Partial<FormikFornitore
   paese: fornitore.paese || "IT",
   note: fornitore.note || "",
   attivo: fornitore.attivo,
+  aliquotaIva: fornitore.aliquotaIva ?? 22,
 });
 
 function FornitoreDetails() {
@@ -161,6 +163,7 @@ function FornitoreDetails() {
               paese: values.paese || "IT",
               note: values.note || undefined,
               attivo: values.attivo,
+              aliquotaIva: values.aliquotaIva ?? 22,
             },
           },
         });

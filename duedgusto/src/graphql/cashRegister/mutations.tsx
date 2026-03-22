@@ -35,6 +35,7 @@ export interface PagamentoFornitoreRegistroInput {
   ddtId?: number;
   dataFattura?: string;
   dataDdt?: string;
+  aliquotaIva?: number;
 }
 
 export interface RegistroCassaInput {

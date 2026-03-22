@@ -25,6 +25,7 @@ function useInitializeValues({ skipInitialize }: UseInitializeValuesProps) {
       paese: "IT",
       note: "",
       attivo: true,
+      aliquotaIva: 22,
     };
     return initialValues;
   }, []);

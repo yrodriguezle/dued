@@ -17,6 +17,7 @@ public class FornitoreInput
     public string? Paese { get; set; }
     public string? Note { get; set; }
     public bool Attivo { get; set; } = true;
+    public decimal? AliquotaIva { get; set; } = 22m;
 }
 
 public class FornitoreInputType : InputObjectGraphType<FornitoreInput>
@@ -38,5 +39,6 @@ public class FornitoreInputType : InputObjectGraphType<FornitoreInput>
         Field(x => x.Paese, nullable: true);
         Field(x => x.Note, nullable: true);
         Field(x => x.Attivo);
+        Field(x => x.AliquotaIva, nullable: true);
     }
 }

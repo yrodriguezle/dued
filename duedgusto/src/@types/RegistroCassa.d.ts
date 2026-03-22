@@ -71,6 +71,7 @@ type PagamentoFornitoreRegistro = {
     fornitore: {
       fornitoreId: number;
       ragioneSociale: string;
+      aliquotaIva?: number | null;
     };
   };
   fattura?: {
@@ -78,10 +79,12 @@ type PagamentoFornitoreRegistro = {
     numeroFattura: string;
     dataFattura?: string;
     imponibile?: number;
+    totaleConIva?: number | null;
     stato?: string;
     fornitore: {
       fornitoreId: number;
       ragioneSociale: string;
+      aliquotaIva?: number | null;
     };
   };
 };
@@ -198,6 +201,7 @@ interface Expense extends Record<string, unknown> {
   ddtId?: number;
   dataFattura?: string;
   dataDdt?: string;
+  aliquotaIva?: number | null;
 }
 
 interface CashCountRow extends Record<string, unknown> {

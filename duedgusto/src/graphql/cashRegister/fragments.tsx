@@ -74,6 +74,7 @@ export const registroCassaFragment = `
         fornitore {
           fornitoreId
           ragioneSociale
+          aliquotaIva
         }
       }
       fattura {
@@ -81,10 +82,12 @@ export const registroCassaFragment = `
         numeroFattura
         dataFattura
         imponibile
+        totaleConIva
         stato
         fornitore {
           fornitoreId
           ragioneSociale
+          aliquotaIva
         }
       }
     }

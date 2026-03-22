@@ -53,6 +53,7 @@ public class FornitoriMutations : ObjectGraphType
                 fornitore.Paese = input.Paese ?? "IT";
                 fornitore.Note = input.Note;
                 fornitore.Attivo = input.Attivo;
+                fornitore.AliquotaIva = input.AliquotaIva;
                 fornitore.AggiornatoIl = DateTime.UtcNow;
 
                 await dbContext.SaveChangesAsync();

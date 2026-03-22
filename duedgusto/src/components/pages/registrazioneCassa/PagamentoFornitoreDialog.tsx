@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Box, ToggleButtonGroup, ToggleButton, FormControl, InputLabel, Select, MenuItem, Autocomplete, CircularProgress } from "@mui/material";
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Box, ToggleButtonGroup, ToggleButton, FormControl, InputLabel, Select, MenuItem, Autocomplete, CircularProgress, Typography } from "@mui/material";
 import { useLazyQuery } from "@apollo/client";
 import NumberField from "../../common/form/NumberField";
 import DateField from "../../common/form/DateField";
@@ -8,6 +8,8 @@ import fornitoreSearchboxOption, { FornitoreSearchbox } from "../../common/form/
 import showToast from "../../../common/toast/showToast";
 import { Formik, Form } from "formik";
 import { getFattureNonPagatePerFornitore, getDdtNonPagatiPerFornitore } from "../../../graphql/cashRegister/queries";
+
+const DEFAULT_ALIQUOTA_IVA = 22;
 
 interface PagamentoFornitoreDialogProps {
   open: boolean;
@@ -30,6 +32,7 @@ interface FatturaOption {
   numeroFattura: string;
   dataFattura: string;
   imponibile: number;
+  totaleConIva?: number | null;
   stato: string;
   residuo: number;
 }
@@ -50,6 +53,9 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
   const [amount, setAmount] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState("Contanti");
 
+  // Aliquota IVA (solo per fatture)
+  const [aliquotaIva, setAliquotaIva] = useState<number>(DEFAULT_ALIQUOTA_IVA);
+
   // Nuovi campi per collegamento fatture/DDT
   const [fatturaId, setFatturaId] = useState<number | undefined>(undefined);
   const [ddtId, setDdtId] = useState<number | undefined>(undefined);
@@ -62,16 +68,18 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
   const [fetchFatture, { data: fattureData, loading: fattureLoading }] = useLazyQuery(getFattureNonPagatePerFornitore, { fetchPolicy: "network-only" });
   const [fetchDdt, { data: ddtData, loading: ddtLoading }] = useLazyQuery(getDdtNonPagatiPerFornitore, { fetchPolicy: "network-only" });
 
-  // Calcola opzioni fatture con residuo
+  // Calcola opzioni fatture con residuo (usa totaleConIva se disponibile, altrimenti imponibile per fatture vecchie)
   const fattureOptions: FatturaOption[] = (fattureData?.gestioneCassa?.fattureNonPagatePerFornitore ?? []).map((f) => {
     const totalePagato = f.pagamenti?.reduce((sum, p) => sum + p.importo, 0) ?? 0;
+    const totaleFattura = f.totaleConIva ?? f.imponibile;
     return {
       fatturaId: f.fatturaId,
       numeroFattura: f.numeroFattura,
       dataFattura: f.dataFattura,
       imponibile: f.imponibile,
+      totaleConIva: f.totaleConIva,
       stato: f.stato,
-      residuo: f.imponibile - totalePagato,
+      residuo: totaleFattura - totalePagato,
     };
   });
 
@@ -98,6 +106,7 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
       setInvoiceNumber(initialData.invoiceNumber ?? "");
       setAmount(initialData.amount ?? 0);
       setPaymentMethod(initialData.paymentMethod ?? "Contanti");
+      setAliquotaIva(initialData.aliquotaIva ?? DEFAULT_ALIQUOTA_IVA);
       setFatturaId(initialData.fatturaId);
       setDdtId(initialData.ddtId);
       setDataFattura(initialData.dataFattura);
@@ -117,6 +126,7 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
     setInvoiceNumber("");
     setAmount(0);
     setPaymentMethod("Contanti");
+    setAliquotaIva(DEFAULT_ALIQUOTA_IVA);
     setFatturaId(undefined);
     setDdtId(undefined);
     setDataFattura(undefined);
@@ -133,6 +143,8 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
   const handleSelectFornitore = useCallback((item: FornitoreSearchbox) => {
     setFornitoreId(item.fornitoreId);
     setNomeFornitore(item.ragioneSociale);
+    // Pre-compila aliquota IVA dal fornitore selezionato (se disponibile)
+    setAliquotaIva(item.aliquotaIva ?? DEFAULT_ALIQUOTA_IVA);
     // Reset selezione documento quando cambia fornitore
     setSelectedFattura(null);
     setSelectedDdt(null);
@@ -206,10 +218,11 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
       ddtId: documentType === "DDT" ? ddtId : undefined,
       dataFattura: documentType === "FA" ? dataFattura : undefined,
       dataDdt: documentType === "DDT" ? dataDdt : undefined,
+      aliquotaIva: documentType === "FA" ? aliquotaIva : undefined,
     });
     resetForm();
     onClose();
-  }, [fornitoreId, amount, ddtNumber, invoiceNumber, nomeFornitore, paymentMethod, documentType, onConfirm, resetForm, onClose, initialData?.pagamentoId, fatturaId, ddtId, dataFattura, dataDdt]);
+  }, [fornitoreId, amount, ddtNumber, invoiceNumber, nomeFornitore, paymentMethod, documentType, onConfirm, resetForm, onClose, initialData?.pagamentoId, fatturaId, ddtId, dataFattura, dataDdt, aliquotaIva]);
 
   // initialValues calcolati da initialData per pre-riempire FormikSearchbox (enableReinitialize)
   const initialValues: PaymentFormValues = {
@@ -297,9 +310,10 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
                         value={selectedFattura}
                         onChange={handleSelectFattura}
                         loading={fattureLoading}
-                        getOptionLabel={(option) =>
-                          `FA ${option.numeroFattura} - ${formatDateLabel(option.dataFattura)} - €${option.imponibile.toFixed(2)} (Residuo: €${option.residuo.toFixed(2)}, Stato: ${option.stato})`
-                        }
+                        getOptionLabel={(option) => {
+                          const totale = option.totaleConIva ?? option.imponibile;
+                          return `FA ${option.numeroFattura} - ${formatDateLabel(option.dataFattura)} - €${totale.toFixed(2)} (Residuo: €${option.residuo.toFixed(2)}, Stato: ${option.stato})`;
+                        }}
                         isOptionEqualToValue={(option, value) => option.fatturaId === value.fatturaId}
                         renderInput={(params) => (
                           <TextField
@@ -436,6 +450,34 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
                       decimals={2}
                     />
                   </div>
+
+                  {/* Aliquota IVA - solo per fatture */}
+                  {documentType === "FA" && (
+                    <div className="col-span-12 md:col-span-6">
+                      <NumberField
+                        name="aliquotaIva"
+                        label="Aliquota IVA %"
+                        fullWidth
+                        value={aliquotaIva}
+                        onChange={(_name, value) => setAliquotaIva(value)}
+                        decimals={0}
+                      />
+                    </div>
+                  )}
+
+                  {/* Preview calcolo IVA - solo per fatture con importo > 0 */}
+                  {documentType === "FA" && amount > 0 && aliquotaIva > 0 && (
+                    <div className="col-span-12">
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: -1 }}>
+                        {(() => {
+                          const imponibile = amount / (1 + aliquotaIva / 100);
+                          const ivaAmount = amount - imponibile;
+                          return `Imponibile: €${imponibile.toFixed(2)} | IVA: €${ivaAmount.toFixed(2)}`;
+                        })()}
+                      </Typography>
+                    </div>
+                  )}
+
                   <div className="col-span-12 md:col-span-6">
                     <FormControl fullWidth>
                       <InputLabel>Metodo Pagamento</InputLabel>

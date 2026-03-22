@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useRef } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Form, Formik, FormikProps } from "formik";
 import { z } from "zod";
 import { toast } from "react-toastify";
@@ -64,6 +64,7 @@ function DocumentoTrasportoDetails() {
   const [mutateDocumentoTrasporto] = useMutation(mutationMutateDocumentoTrasporto);
   const onConfirm = useConfirm();
   const { initialValues, handleInitializeValues } = useInitializeValues({ skipInitialize: false });
+  const [payments, setPayments] = useState<PagamentoFornitore[]>([]);
 
   useEffect(() => {
     setTitle("Dettaglio DDT");
@@ -76,6 +77,7 @@ function DocumentoTrasportoDetails() {
         const ddt = result.data.fornitori.documentoTrasporto;
         const ddtValues = mapDdtToFormValues(ddt);
         await handleInitializeValues(ddtValues);
+        setPayments(ddt.pagamenti ?? []);
         setTimeout(() => {
           formRef.current?.setStatus({
             formStatus: formStatuses.UPDATE,
@@ -86,6 +88,17 @@ function DocumentoTrasportoDetails() {
     },
     [loadDocumentoTrasporto, handleInitializeValues]
   );
+
+  const handleRefreshPayments = useCallback(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const ddtIdParam = searchParams.get("ddtId");
+    if (ddtIdParam) {
+      const ddtId = parseInt(ddtIdParam, 10);
+      if (!isNaN(ddtId)) {
+        loadDdtData(ddtId);
+      }
+    }
+  }, [location.search, loadDdtData]);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
@@ -205,6 +218,8 @@ function DocumentoTrasportoDetails() {
             <DocumentoTrasportoForm
               onSelectFornitore={handleSelectFornitore}
               onSelectInvoice={handleSelectInvoice}
+              payments={payments}
+              onRefresh={handleRefreshPayments}
             />
           </Box>
         </Form>

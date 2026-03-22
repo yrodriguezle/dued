@@ -13,6 +13,7 @@ type Fornitore = {
   paese: string;
   note?: string | null;
   attivo: boolean;
+  aliquotaIva?: number | null;
   creatoIl: string;
   aggiornatoIl: string;
   fattureAcquisto?: FatturaAcquisto[];
@@ -33,4 +34,5 @@ type FornitoreInput = {
   paese?: string;
   note?: string;
   attivo?: boolean;
+  aliquotaIva?: number | null;
 };
