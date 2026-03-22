@@ -1,5 +1,6 @@
 using GraphQL.Types;
 using duedgusto.Models;
+using duedgusto.GraphQL.DataLoaders;
 
 namespace duedgusto.GraphQL.Fornitori.Types;
 
@@ -22,13 +23,20 @@ public class FornitoreType : ObjectGraphType<Fornitore>
         Field("paese", x => x.Paese);
         Field("note", x => x.Note, nullable: true);
         Field("attivo", x => x.Attivo);
+        Field("aliquotaIva", x => x.AliquotaIva, nullable: true);
         Field("creatoIl", x => x.CreatoIl, type: typeof(DateTimeGraphType));
         Field("aggiornatoIl", x => x.AggiornatoIl, type: typeof(DateTimeGraphType));
 
-        Field<ListGraphType<FatturaAcquistoType>, IEnumerable<FatturaAcquisto>>("fattureAcquisto")
-            .Resolve(context => context.Source.FattureAcquisto);
+        Field<ListGraphType<FatturaAcquistoType>>("fattureAcquisto")
+            .ResolveAsync(async context =>
+            {
+                return await context.GetFattureByFornitoreId(context.Source.FornitoreId).GetResultAsync();
+            });
 
-        Field<ListGraphType<DocumentoTrasportoType>, IEnumerable<DocumentoTrasporto>>("documentiTrasporto")
-            .Resolve(context => context.Source.DocumentiTrasporto);
+        Field<ListGraphType<DocumentoTrasportoType>>("documentiTrasporto")
+            .ResolveAsync(async context =>
+            {
+                return await context.GetDdtByFornitoreId(context.Source.FornitoreId).GetResultAsync();
+            });
     }
 }

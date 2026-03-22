@@ -1,5 +1,6 @@
 using GraphQL.Types;
 using duedgusto.Models;
+using duedgusto.GraphQL.DataLoaders;
 
 namespace duedgusto.GraphQL.Vendite.Types;
 
@@ -20,6 +21,9 @@ public class VenditaType : ObjectGraphType<Vendita>
 
         // Navigation property
         Field<ProdottoType>("prodotto")
-            .Resolve(context => context.Source.Prodotto);
+            .ResolveAsync(async context =>
+            {
+                return await context.GetProdottoById(context.Source.ProdottoId).GetResultAsync();
+            });
     }
 }

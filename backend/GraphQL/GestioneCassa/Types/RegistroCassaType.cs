@@ -2,6 +2,7 @@ using GraphQL.Types;
 using duedgusto.Models;
 using duedgusto.GraphQL.Authentication;
 using duedgusto.GraphQL.Fornitori.Types;
+using duedgusto.GraphQL.DataLoaders;
 
 namespace duedgusto.GraphQL.GestioneCassa.Types;
 
@@ -13,18 +14,36 @@ public class RegistroCassaType : ObjectGraphType<RegistroCassa>
         Field(x => x.Id);
         Field(x => x.Data, type: typeof(DateTimeGraphType));
         Field(x => x.UtenteId);
-        Field<UtenteType, Utente>("utente")
-            .Resolve(context => context.Source.Utente);
-        Field<ListGraphType<ConteggioMonetaType>, IEnumerable<ConteggioMoneta>>("conteggiApertura")
-            .Resolve(context => context.Source.ConteggiMoneta.Where(c => c.IsApertura));
-        Field<ListGraphType<ConteggioMonetaType>, IEnumerable<ConteggioMoneta>>("conteggiChiusura")
-            .Resolve(context => context.Source.ConteggiMoneta.Where(c => !c.IsApertura));
-        Field<ListGraphType<IncassoCassaType>, IEnumerable<IncassoCassa>>("incassi")
-            .Resolve(context => context.Source.IncassiCassa);
-        Field<ListGraphType<SpesaCassaType>, IEnumerable<SpesaCassa>>("spese")
-            .Resolve(context => context.Source.SpeseCassa);
-        Field<ListGraphType<PagamentoFornitoreType>, IEnumerable<PagamentoFornitore>>("pagamentiFornitori")
-            .Resolve(context => context.Source.PagamentiFornitori);
+        Field<UtenteType>("utente")
+            .ResolveAsync(async context =>
+            {
+                return await context.GetUtenteById(context.Source.UtenteId).GetResultAsync();
+            });
+        Field<ListGraphType<ConteggioMonetaType>>("conteggiApertura")
+            .ResolveAsync(async context =>
+            {
+                return await context.GetConteggiAperturaByRegistroId(context.Source.Id).GetResultAsync();
+            });
+        Field<ListGraphType<ConteggioMonetaType>>("conteggiChiusura")
+            .ResolveAsync(async context =>
+            {
+                return await context.GetConteggiChiusuraByRegistroId(context.Source.Id).GetResultAsync();
+            });
+        Field<ListGraphType<IncassoCassaType>>("incassi")
+            .ResolveAsync(async context =>
+            {
+                return await context.GetIncassiByRegistroId(context.Source.Id).GetResultAsync();
+            });
+        Field<ListGraphType<SpesaCassaType>>("spese")
+            .ResolveAsync(async context =>
+            {
+                return await context.GetSpeseByRegistroId(context.Source.Id).GetResultAsync();
+            });
+        Field<ListGraphType<PagamentoFornitoreType>>("pagamentiFornitori")
+            .ResolveAsync(async context =>
+            {
+                return await context.GetPagamentiFornitoriByRegistroId(context.Source.Id).GetResultAsync();
+            });
         Field(x => x.TotaleApertura);
         Field(x => x.TotaleChiusura);
         Field(x => x.VenditeContanti);

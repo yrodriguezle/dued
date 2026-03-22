@@ -114,7 +114,6 @@ public class VenditeMutations : ObjectGraphType
         var input = context.GetArgument<AggiornaVenditaInput>("input");
 
         var sale = await dbContext.Vendite
-            .Include(s => s.Prodotto)
             .FirstOrDefaultAsync(s => s.VenditaId == id);
 
         if (sale == null)

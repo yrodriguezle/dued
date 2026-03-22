@@ -94,15 +94,6 @@ public class ConnectionQueries : ObjectGraphType
                     },
                     query =>
                     {
-                        // Include related entities
-                        query = query
-                            .Include(r => r.Utente)
-                                .ThenInclude(u => u.Ruolo)
-                            .Include(r => r.ConteggiMoneta)
-                                .ThenInclude(c => c.Denominazione)
-                            .Include(r => r.IncassiCassa)
-                            .Include(r => r.SpeseCassa);
-
                         // Parse and apply WHERE clause safely using LINQ
                         if (!string.IsNullOrEmpty(whereClause))
                         {
@@ -162,10 +153,7 @@ public class ConnectionQueries : ObjectGraphType
                     },
                     query =>
                     {
-                        return query
-                            .Include(i => i.Fornitore)
-                            .Include(i => i.DocumentiTrasporto)
-                            .Include(i => i.Pagamenti);
+                        return query;
                     });
                 return connection;
             });
@@ -188,10 +176,7 @@ public class ConnectionQueries : ObjectGraphType
                     },
                     query =>
                     {
-                        return query
-                            .Include(d => d.Fornitore)
-                            .Include(d => d.Fattura)
-                            .Include(d => d.Pagamenti);
+                        return query;
                     });
                 return connection;
             });
@@ -215,10 +200,6 @@ public class ConnectionQueries : ObjectGraphType
                     query =>
                     {
                         return query
-                            .Include(p => p.Fattura!)
-                                .ThenInclude(f => f.Fornitore)
-                            .Include(p => p.Ddt!)
-                                .ThenInclude(d => d.Fornitore)
                             .Include(p => p.SpeseMensili);
                     });
                 return connection;

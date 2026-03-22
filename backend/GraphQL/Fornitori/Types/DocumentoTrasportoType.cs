@@ -1,5 +1,6 @@
 using GraphQL.Types;
 using duedgusto.Models;
+using duedgusto.GraphQL.DataLoaders;
 
 namespace duedgusto.GraphQL.Fornitori.Types;
 
@@ -19,13 +20,24 @@ public class DocumentoTrasportoType : ObjectGraphType<DocumentoTrasporto>
         Field("creatoIl", x => x.CreatoIl, type: typeof(DateTimeGraphType));
         Field("aggiornatoIl", x => x.AggiornatoIl, type: typeof(DateTimeGraphType));
 
-        Field<FornitoreType, Fornitore>("fornitore")
-            .Resolve(context => context.Source.Fornitore);
+        Field<FornitoreType>("fornitore")
+            .ResolveAsync(async context =>
+            {
+                return await context.GetFornitoreById(context.Source.FornitoreId).GetResultAsync();
+            });
 
-        Field<FatturaAcquistoType, FatturaAcquisto>("fattura")
-            .Resolve(context => context.Source.Fattura);
+        Field<FatturaAcquistoType>("fattura")
+            .ResolveAsync(async context =>
+            {
+                var fk = context.Source.FatturaId;
+                if (fk == null) return null;
+                return await context.GetFatturaById(fk.Value).GetResultAsync();
+            });
 
-        Field<ListGraphType<PagamentoFornitoreType>, IEnumerable<PagamentoFornitore>>("pagamenti")
-            .Resolve(context => context.Source.Pagamenti);
+        Field<ListGraphType<PagamentoFornitoreType>>("pagamenti")
+            .ResolveAsync(async context =>
+            {
+                return await context.GetPagamentiByDdtId(context.Source.DdtId).GetResultAsync();
+            });
     }
 }

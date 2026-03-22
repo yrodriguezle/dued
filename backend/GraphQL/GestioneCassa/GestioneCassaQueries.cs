@@ -36,15 +36,6 @@ public class GestioneCassaQueries : ObjectGraphType
                 DateTime? data = context.GetArgument<DateTime?>("data");
 
                 var result = await dbContext.RegistriCassa
-                    .Include(r => r.Utente)
-                        .ThenInclude(u => u.Ruolo)
-                    .Include(r => r.ConteggiMoneta)
-                        .ThenInclude(c => c.Denominazione)
-                    .Include(r => r.IncassiCassa)
-                    .Include(r => r.SpeseCassa)
-                    .Include(r => r.PagamentiFornitori)
-                        .ThenInclude(p => p.Ddt)
-                            .ThenInclude(d => d!.Fornitore)
                     .Where(r => r.Data == data)
                     .FirstOrDefaultAsync();
                 return result;
@@ -111,10 +102,6 @@ public class GestioneCassaQueries : ObjectGraphType
                 DateTime data = context.GetArgument<DateTime>("data");
 
                 return await dbContext.PagamentiFornitori
-                    .Include(p => p.Fattura)
-                        .ThenInclude(f => f!.Fornitore)
-                    .Include(p => p.Ddt)
-                        .ThenInclude(d => d!.Fornitore)
                     .Where(p => p.DataPagamento.Date == data.Date)
                     .ToListAsync();
             });
@@ -128,8 +115,6 @@ public class GestioneCassaQueries : ObjectGraphType
                 int fornitoreId = context.GetArgument<int>("fornitoreId");
 
                 return await dbContext.FattureAcquisto
-                    .Include(f => f.Fornitore)
-                    .Include(f => f.Pagamenti)
                     .Where(f => f.FornitoreId == fornitoreId)
                     .Where(f => f.Stato == "DA_PAGARE" || f.Stato == "PARZIALMENTE_PAGATA")
                     .ToListAsync();
@@ -144,8 +129,6 @@ public class GestioneCassaQueries : ObjectGraphType
                 int fornitoreId = context.GetArgument<int>("fornitoreId");
 
                 return await dbContext.DocumentiTrasporto
-                    .Include(d => d.Fornitore)
-                    .Include(d => d.Pagamenti)
                     .Where(d => d.FornitoreId == fornitoreId)
                     .Where(d => !d.Pagamenti.Any() ||
                         d.Pagamenti.Sum(p => p.Importo) < (d.Importo ?? 0))

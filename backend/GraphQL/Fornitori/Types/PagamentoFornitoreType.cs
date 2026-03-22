@@ -1,6 +1,7 @@
 using GraphQL.Types;
 using duedgusto.Models;
 using duedgusto.GraphQL.ChiusureMensili.Types;
+using duedgusto.GraphQL.DataLoaders;
 
 namespace duedgusto.GraphQL.Fornitori.Types;
 
@@ -20,11 +21,21 @@ public class PagamentoFornitoreType : ObjectGraphType<PagamentoFornitore>
         Field("creatoIl", x => x.CreatoIl, type: typeof(DateTimeGraphType));
         Field("aggiornatoIl", x => x.AggiornatoIl, type: typeof(DateTimeGraphType));
 
-        Field<FatturaAcquistoType, FatturaAcquisto>("fattura")
-            .Resolve(context => context.Source.Fattura);
+        Field<FatturaAcquistoType>("fattura")
+            .ResolveAsync(async context =>
+            {
+                var fk = context.Source.FatturaId;
+                if (fk == null) return null;
+                return await context.GetFatturaById(fk.Value).GetResultAsync();
+            });
 
-        Field<DocumentoTrasportoType, DocumentoTrasporto>("ddt")
-            .Resolve(context => context.Source.Ddt);
+        Field<DocumentoTrasportoType>("ddt")
+            .ResolveAsync(async context =>
+            {
+                var fk = context.Source.DdtId;
+                if (fk == null) return null;
+                return await context.GetDdtById(fk.Value).GetResultAsync();
+            });
 
         Field<ListGraphType<SpesaMensileType>, IEnumerable<SpesaMensile>>("speseMensili")
             .Resolve(context => context.Source.SpeseMensili);

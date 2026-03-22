@@ -80,7 +80,6 @@ public class VenditeQueries : ObjectGraphType
 
                 var query = dbContext.Vendite
                     .Where(s => s.RegistroCassaId == registerId)
-                    .Include(s => s.Prodotto)
                     .AsQueryable();
 
                 if (dateFrom.HasValue)
@@ -108,7 +107,6 @@ public class VenditeQueries : ObjectGraphType
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
                 var id = context.GetArgument<int>("id");
                 return await dbContext.Vendite
-                    .Include(s => s.Prodotto)
                     .FirstOrDefaultAsync(s => s.VenditaId == id);
             });
 

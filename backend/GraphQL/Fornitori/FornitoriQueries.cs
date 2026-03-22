@@ -37,8 +37,6 @@ public class FornitoriQueries : ObjectGraphType
                 int fornitoreId = context.GetArgument<int>("fornitoreId");
 
                 var result = await dbContext.Fornitori
-                    .Include(s => s.FattureAcquisto)
-                    .Include(s => s.DocumentiTrasporto)
                     .FirstOrDefaultAsync(s => s.FornitoreId == fornitoreId);
 
                 return result;
@@ -53,9 +51,6 @@ public class FornitoriQueries : ObjectGraphType
                 int fatturaId = context.GetArgument<int>("fatturaId");
 
                 var result = await dbContext.FattureAcquisto
-                    .Include(i => i.Fornitore)
-                    .Include(i => i.DocumentiTrasporto)
-                    .Include(i => i.Pagamenti)
                     .FirstOrDefaultAsync(i => i.FatturaId == fatturaId);
 
                 return result;
@@ -70,9 +65,6 @@ public class FornitoriQueries : ObjectGraphType
                 int ddtId = context.GetArgument<int>("ddtId");
 
                 var result = await dbContext.DocumentiTrasporto
-                    .Include(d => d.Fornitore)
-                    .Include(d => d.Fattura)
-                    .Include(d => d.Pagamenti)
                     .FirstOrDefaultAsync(d => d.DdtId == ddtId);
 
                 return result;

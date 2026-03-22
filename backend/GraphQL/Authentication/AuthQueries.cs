@@ -36,7 +36,6 @@ public class AuthQueries : ObjectGraphType
                 int userId = context.GetArgument<int>("id");
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
                 return await dbContext.Utenti
-                    .Include(u => u.Ruolo)
                     .FirstOrDefaultAsync((x) => x.Id == userId);
             });
 
