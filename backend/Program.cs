@@ -18,6 +18,7 @@ using duedgusto.Services.Jwt;
 using duedgusto.Services.HashPassword;
 using duedgusto.Services.ChiusureMensili;
 using duedgusto.Services.Events;
+using duedgusto.Services.Fornitori;
 using duedgusto.Middleware;
 using duedgusto.SeedData;
 
@@ -35,6 +36,9 @@ builder.Services.AddTransient<PasswordService>();
 // ChiusureMensili Services (modello referenziale puro)
 builder.Services.AddScoped<ChiusuraMensileService>();
 builder.Services.AddScoped<MigrazioneChiusureMensiliService>();
+
+// Fornitori Services
+builder.Services.AddScoped<RegistroCassaSyncService>();
 
 // Event Bus per GraphQL Subscriptions
 builder.Services.AddSingleton<IEventBus, EventBus>();

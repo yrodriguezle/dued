@@ -10,6 +10,7 @@ using duedgusto.DataAccess;
 using duedgusto.GraphQL.GestioneCassa.Types;
 using duedgusto.Services.ChiusureMensili;
 using duedgusto.Services.Events;
+using duedgusto.Services.Fornitori;
 using duedgusto.GraphQL.Subscriptions.Types;
 
 namespace duedgusto.GraphQL.GestioneCassa;
@@ -214,23 +215,32 @@ public class GestioneCassaMutations : ObjectGraphType
                 // Save first to ensure registroCassa.Id is available for new registers
                 await dbContext.SaveChangesAsync();
 
-                // 1. Remove previous supplier payments linked to this register (and their orphan DDTs/invoices)
+                // 1. Separa pagamenti precedenti: creati dal registro vs esterni (dalla pagina fatture)
                 var previousPayments = await dbContext.PagamentiFornitori
                     .Where(p => p.RegistroCassaId == registroCassa.Id)
                     .ToListAsync();
-                var previousDdtIds = previousPayments
+
+                var registerCreatedPayments = previousPayments
+                    .Where(RegistroCassaSyncService.IsRegisterCreatedPayment)
+                    .ToList();
+                var externalPayments = previousPayments
+                    .Where(p => !RegistroCassaSyncService.IsRegisterCreatedPayment(p))
+                    .ToList();
+
+                // Elimina solo i pagamenti creati dal registro (e i loro documenti orfani)
+                var previousDdtIds = registerCreatedPayments
                     .Where(p => p.DdtId.HasValue)
                     .Select(p => p.DdtId!.Value)
                     .ToList();
-                var previousFatturaIds = previousPayments
+                var previousFatturaIds = registerCreatedPayments
                     .Where(p => p.FatturaId.HasValue)
                     .Select(p => p.FatturaId!.Value)
                     .ToList();
-                dbContext.PagamentiFornitori.RemoveRange(previousPayments);
+                dbContext.PagamentiFornitori.RemoveRange(registerCreatedPayments);
 
                 // Commit deletions of old payments BEFORE deleting orphan documents
                 // to avoid FK constraint violations with cascade deletes
-                if (previousPayments.Count > 0)
+                if (registerCreatedPayments.Count > 0)
                     await dbContext.SaveChangesAsync();
 
                 if (previousDdtIds.Count > 0)
@@ -255,6 +265,10 @@ public class GestioneCassaMutations : ObjectGraphType
 
                 // 2. Create new documents + PagamentoFornitore for each input
                 decimal totalePagamentiFornitori = 0;
+
+                // Includi gli importi dei pagamenti esterni preservati
+                totalePagamentiFornitori += externalPayments.Sum(p => p.Importo);
+
                 foreach (var pagInput in input.PagamentiFornitori)
                 {
                     var fornitore = await dbContext.Fornitori
@@ -320,7 +334,7 @@ public class GestioneCassaMutations : ObjectGraphType
                     totalePagamentiFornitori += pagInput.Importo;
                 }
 
-                // Update legacy expense fields
+                // Update legacy expense fields (include both register-created and external payments)
                 registroCassa.SpeseFornitori = totalePagamentiFornitori;
                 registroCassa.SpeseGiornaliere = totaleSpese;
 

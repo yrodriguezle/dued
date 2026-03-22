@@ -7,6 +7,7 @@ using duedgusto.Models;
 using duedgusto.Services.GraphQL;
 using duedgusto.DataAccess;
 using duedgusto.GraphQL.Fornitori.Types;
+using duedgusto.Services.Fornitori;
 
 namespace duedgusto.GraphQL.Fornitori;
 
@@ -223,7 +224,10 @@ public class FornitoriMutations : ObjectGraphType
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
                 PagamentoFornitoreInput input = context.GetArgument<PagamentoFornitoreInput>("pagamento");
 
+                var syncService = GraphQLService.GetService<RegistroCassaSyncService>(context);
+
                 PagamentoFornitore? payment = null;
+                int? oldRegistroCassaId = null;
 
                 if (input.PagamentoId.HasValue)
                 {
@@ -234,6 +238,12 @@ public class FornitoriMutations : ObjectGraphType
                     if (payment == null)
                     {
                         throw new ExecutionError($"Pagamento fornitore con ID {input.PagamentoId} non trovato");
+                    }
+
+                    // Cattura il vecchio registro per ricalcolo se la data cambia
+                    if (payment.DataPagamento.Date != input.DataPagamento.Date)
+                    {
+                        oldRegistroCassaId = payment.RegistroCassaId;
                     }
                 }
                 else
@@ -281,6 +291,22 @@ public class FornitoriMutations : ObjectGraphType
                     }
                 }
 
+                // Sincronizza con il registro cassa
+                // Recupera l'utenteId dal pagamento collegato alla fattura o usa un default
+                var utenteId = 1; // Default: verrà sovrascritto dal registro esistente se presente
+                var registro = await syncService.FindOrCreateRegistroCassaAsync(input.DataPagamento, utenteId);
+                payment.RegistroCassaId = registro.Id;
+                await dbContext.SaveChangesAsync();
+
+                // Ricalcola SpeseFornitori sul nuovo registro
+                await syncService.RecalculateSpeseFornitoriAsync(registro.Id);
+
+                // Se la data è cambiata, ricalcola anche il vecchio registro
+                if (oldRegistroCassaId.HasValue)
+                {
+                    await syncService.RecalculateSpeseFornitoriAsync(oldRegistroCassaId.Value);
+                }
+
                 return payment;
             });
 
@@ -301,6 +327,7 @@ public class FornitoriMutations : ObjectGraphType
                 }
 
                 var fatturaId = payment.FatturaId;
+                var registroCassaId = payment.RegistroCassaId;
 
                 dbContext.PagamentiFornitori.Remove(payment);
                 await dbContext.SaveChangesAsync();
@@ -330,6 +357,13 @@ public class FornitoriMutations : ObjectGraphType
                         }
                         await dbContext.SaveChangesAsync();
                     }
+                }
+
+                // Ricalcola SpeseFornitori sul registro cassa se era linkato
+                if (registroCassaId.HasValue)
+                {
+                    var syncService = GraphQLService.GetService<RegistroCassaSyncService>(context);
+                    await syncService.RecalculateSpeseFornitoriAsync(registroCassaId.Value);
                 }
 
                 return true;
