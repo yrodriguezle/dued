@@ -7,6 +7,7 @@ using duedgusto.Models;
 using duedgusto.Services.GraphQL;
 using duedgusto.DataAccess;
 using duedgusto.GraphQL.GestioneCassa.Types;
+using duedgusto.GraphQL.Fornitori.Types;
 
 namespace duedgusto.GraphQL.GestioneCassa;
 
@@ -99,6 +100,56 @@ public class GestioneCassaQueries : ObjectGraphType
                     MediaMese = monthAverage,
                     TrendSettimana = weekTrend
                 };
+            });
+
+        // Get supplier payments for a specific date
+        Field<ListGraphType<PagamentoFornitoreType>, List<PagamentoFornitore>>("pagamentiFornitoriPerData")
+            .Argument<NonNullGraphType<DateTimeGraphType>>("data", "Data per cui cercare i pagamenti")
+            .ResolveAsync(async context =>
+            {
+                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                DateTime data = context.GetArgument<DateTime>("data");
+
+                return await dbContext.PagamentiFornitori
+                    .Include(p => p.Fattura)
+                        .ThenInclude(f => f!.Fornitore)
+                    .Include(p => p.Ddt)
+                        .ThenInclude(d => d!.Fornitore)
+                    .Where(p => p.DataPagamento.Date == data.Date)
+                    .ToListAsync();
+            });
+
+        // Get unpaid invoices for a specific supplier
+        Field<ListGraphType<FatturaAcquistoType>, List<FatturaAcquisto>>("fattureNonPagatePerFornitore")
+            .Argument<NonNullGraphType<IntGraphType>>("fornitoreId", "ID del fornitore")
+            .ResolveAsync(async context =>
+            {
+                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                int fornitoreId = context.GetArgument<int>("fornitoreId");
+
+                return await dbContext.FattureAcquisto
+                    .Include(f => f.Fornitore)
+                    .Include(f => f.Pagamenti)
+                    .Where(f => f.FornitoreId == fornitoreId)
+                    .Where(f => f.Stato == "DA_PAGARE" || f.Stato == "PARZIALMENTE_PAGATA")
+                    .ToListAsync();
+            });
+
+        // Get DDTs without complete payment coverage for a specific supplier
+        Field<ListGraphType<DocumentoTrasportoType>, List<DocumentoTrasporto>>("ddtNonPagatiPerFornitore")
+            .Argument<NonNullGraphType<IntGraphType>>("fornitoreId", "ID del fornitore")
+            .ResolveAsync(async context =>
+            {
+                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                int fornitoreId = context.GetArgument<int>("fornitoreId");
+
+                return await dbContext.DocumentiTrasporto
+                    .Include(d => d.Fornitore)
+                    .Include(d => d.Pagamenti)
+                    .Where(d => d.FornitoreId == fornitoreId)
+                    .Where(d => !d.Pagamenti.Any() ||
+                        d.Pagamenti.Sum(p => p.Importo) < (d.Importo ?? 0))
+                    .ToListAsync();
             });
     }
 }

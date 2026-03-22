@@ -4,12 +4,17 @@ namespace duedgusto.GraphQL.GestioneCassa.Types;
 
 public class PagamentoFornitoreRegistroInput
 {
+    public int? PagamentoId { get; set; }
     public int FornitoreId { get; set; }
     public string NumeroDdt { get; set; } = string.Empty;
     public decimal Importo { get; set; }
     public string? MetodoPagamento { get; set; }
     public string TipoDocumento { get; set; } = "DDT"; // "FA" o "DDT"
     public string? NumeroFattura { get; set; }
+    public int? FatturaId { get; set; }
+    public int? DdtId { get; set; }
+    public DateTime? DataFattura { get; set; }
+    public DateTime? DataDdt { get; set; }
 }
 
 public class PagamentoFornitoreRegistroInputType : InputObjectGraphType<PagamentoFornitoreRegistroInput>
@@ -17,12 +22,17 @@ public class PagamentoFornitoreRegistroInputType : InputObjectGraphType<Pagament
     public PagamentoFornitoreRegistroInputType()
     {
         Name = "PagamentoFornitoreRegistroInput";
+        Field(x => x.PagamentoId, nullable: true);
         Field(x => x.FornitoreId);
         Field(x => x.NumeroDdt);
         Field(x => x.Importo);
         Field(x => x.MetodoPagamento, nullable: true);
         Field(x => x.TipoDocumento);
         Field(x => x.NumeroFattura, nullable: true);
+        Field(x => x.FatturaId, nullable: true);
+        Field(x => x.DdtId, nullable: true);
+        Field(x => x.DataFattura, nullable: true, type: typeof(DateTimeGraphType));
+        Field(x => x.DataDdt, nullable: true, type: typeof(DateTimeGraphType));
     }
 }
 

@@ -318,6 +318,11 @@ function RegistroCassaDetails() {
             paymentMethod: p.metodoPagamento,
             documentType: docType,
             invoiceNumber: p.fattura?.numeroFattura,
+            pagamentoId: p.pagamentoId,
+            fatturaId: p.fattura?.fatturaId,
+            ddtId: p.ddt?.ddtId,
+            dataFattura: p.fattura?.dataFattura,
+            dataDdt: p.ddt?.dataDdt,
           };
         }) || [];
       setInitialExpenses([...pagamentoFornitoreExpenses, ...normalExpenses]);
@@ -375,6 +380,11 @@ function RegistroCassaDetails() {
           metodoPagamento: row.paymentMethod || undefined,
           tipoDocumento: row.documentType || "DDT",
           numeroFattura: row.invoiceNumber || undefined,
+          pagamentoId: row.pagamentoId,
+          fatturaId: row.fatturaId,
+          ddtId: row.ddtId,
+          dataFattura: row.dataFattura,
+          dataDdt: row.dataDdt,
         }));
 
       // Converti gli array in campi per il backend (nomi italiani)

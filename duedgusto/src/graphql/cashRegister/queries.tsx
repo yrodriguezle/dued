@@ -114,3 +114,73 @@ export const getRiepilogoMensile: TypedDocumentNode<GetRiepilogoMensileData, Get
 
 // Legacy alias
 export const getMonthlySummary = getRiepilogoMensile;
+
+// Get unpaid invoices for a supplier
+interface FatturaNonPagata {
+  fatturaId: number;
+  numeroFattura: string;
+  dataFattura: string;
+  imponibile: number;
+  stato: string;
+  pagamenti: {
+    pagamentoId: number;
+    importo: number;
+  }[];
+}
+
+interface GetFattureNonPagateData {
+  gestioneCassa: {
+    fattureNonPagatePerFornitore: FatturaNonPagata[];
+  };
+}
+
+interface GetFattureNonPagateVariables {
+  fornitoreId: number;
+}
+
+export const getFattureNonPagatePerFornitore: TypedDocumentNode<GetFattureNonPagateData, GetFattureNonPagateVariables> = gql(`
+  query GetFattureNonPagatePerFornitore($fornitoreId: Int!) {
+    gestioneCassa {
+      fattureNonPagatePerFornitore(fornitoreId: $fornitoreId) {
+        fatturaId
+        numeroFattura
+        dataFattura
+        imponibile
+        stato
+        pagamenti {
+          pagamentoId
+          importo
+        }
+      }
+    }
+  }`);
+
+// Get unpaid DDTs for a supplier
+interface DdtNonPagato {
+  ddtId: number;
+  numeroDdt: string;
+  dataDdt: string;
+  importo: number;
+}
+
+interface GetDdtNonPagatiData {
+  gestioneCassa: {
+    ddtNonPagatiPerFornitore: DdtNonPagato[];
+  };
+}
+
+interface GetDdtNonPagatiVariables {
+  fornitoreId: number;
+}
+
+export const getDdtNonPagatiPerFornitore: TypedDocumentNode<GetDdtNonPagatiData, GetDdtNonPagatiVariables> = gql(`
+  query GetDdtNonPagatiPerFornitore($fornitoreId: Int!) {
+    gestioneCassa {
+      ddtNonPagatiPerFornitore(fornitoreId: $fornitoreId) {
+        ddtId
+        numeroDdt
+        dataDdt
+        importo
+      }
+    }
+  }`);

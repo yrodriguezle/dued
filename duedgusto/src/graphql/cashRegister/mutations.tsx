@@ -24,12 +24,17 @@ export interface SpesaCassaInput {
 }
 
 export interface PagamentoFornitoreRegistroInput {
+  pagamentoId?: number;
   fornitoreId: number;
   numeroDdt: string;
   importo: number;
   metodoPagamento?: string;
   tipoDocumento: "FA" | "DDT";
   numeroFattura?: string;
+  fatturaId?: number;
+  ddtId?: number;
+  dataFattura?: string;
+  dataDdt?: string;
 }
 
 export interface RegistroCassaInput {

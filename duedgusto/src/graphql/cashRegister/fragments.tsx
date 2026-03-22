@@ -64,9 +64,13 @@ export const registroCassaFragment = `
       pagamentoId
       importo
       metodoPagamento
+      dataPagamento
+      note
       ddt {
         ddtId
         numeroDdt
+        dataDdt
+        importo
         fornitore {
           fornitoreId
           ragioneSociale
@@ -75,6 +79,9 @@ export const registroCassaFragment = `
       fattura {
         fatturaId
         numeroFattura
+        dataFattura
+        imponibile
+        stato
         fornitore {
           fornitoreId
           ragioneSociale

@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Box, ToggleButtonGroup, ToggleButton, FormControl, InputLabel, Select, MenuItem } from "@mui/material";
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Box, ToggleButtonGroup, ToggleButton, FormControl, InputLabel, Select, MenuItem, Autocomplete, CircularProgress } from "@mui/material";
+import { useLazyQuery } from "@apollo/client";
 import FormikSearchbox from "../../common/form/searchbox/FormikSearchbox";
 import fornitoreSearchboxOption, { FornitoreSearchbox } from "../../common/form/searchbox/searchboxOptions/fornitoreSearchboxOptions";
 import showToast from "../../../common/toast/showToast";
 import { Formik, Form } from "formik";
+import { getFattureNonPagatePerFornitore, getDdtNonPagatiPerFornitore } from "../../../graphql/cashRegister/queries";
 
 interface PagamentoFornitoreDialogProps {
   open: boolean;
@@ -21,6 +23,22 @@ interface PaymentFormValues {
   paymentMethod: string;
 }
 
+interface FatturaOption {
+  fatturaId: number;
+  numeroFattura: string;
+  dataFattura: string;
+  imponibile: number;
+  stato: string;
+  residuo: number;
+}
+
+interface DdtOption {
+  ddtId: number;
+  numeroDdt: string;
+  dataDdt: string;
+  importo: number;
+}
+
 function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: PagamentoFornitoreDialogProps) {
   const [nomeFornitore, setNomeFornitore] = useState("");
   const [fornitoreId, setFornitoreId] = useState<number>(0);
@@ -29,6 +47,44 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [amount, setAmount] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState("Contanti");
+
+  // Nuovi campi per collegamento fatture/DDT
+  const [fatturaId, setFatturaId] = useState<number | undefined>(undefined);
+  const [ddtId, setDdtId] = useState<number | undefined>(undefined);
+  const [dataFattura, setDataFattura] = useState<string | undefined>(undefined);
+  const [dataDdt, setDataDdt] = useState<string | undefined>(undefined);
+  const [selectedFattura, setSelectedFattura] = useState<FatturaOption | null>(null);
+  const [selectedDdt, setSelectedDdt] = useState<DdtOption | null>(null);
+
+  // Lazy queries per fatture e DDT non pagati
+  const [fetchFatture, { data: fattureData, loading: fattureLoading }] = useLazyQuery(getFattureNonPagatePerFornitore, { fetchPolicy: "network-only" });
+  const [fetchDdt, { data: ddtData, loading: ddtLoading }] = useLazyQuery(getDdtNonPagatiPerFornitore, { fetchPolicy: "network-only" });
+
+  // Calcola opzioni fatture con residuo
+  const fattureOptions: FatturaOption[] = (fattureData?.gestioneCassa?.fattureNonPagatePerFornitore ?? []).map((f) => {
+    const totalePagato = f.pagamenti?.reduce((sum, p) => sum + p.importo, 0) ?? 0;
+    return {
+      fatturaId: f.fatturaId,
+      numeroFattura: f.numeroFattura,
+      dataFattura: f.dataFattura,
+      imponibile: f.imponibile,
+      stato: f.stato,
+      residuo: f.imponibile - totalePagato,
+    };
+  });
+
+  const ddtOptions: DdtOption[] = ddtData?.gestioneCassa?.ddtNonPagatiPerFornitore ?? [];
+
+  // Quando cambia il fornitore, carica fatture/DDT
+  useEffect(() => {
+    if (fornitoreId > 0) {
+      if (documentType === "FA") {
+        fetchFatture({ variables: { fornitoreId } });
+      } else {
+        fetchDdt({ variables: { fornitoreId } });
+      }
+    }
+  }, [fornitoreId, documentType, fetchFatture, fetchDdt]);
 
   // Pre-riempie tutti i campi quando il dialog si apre in modalità modifica
   useEffect(() => {
@@ -40,6 +96,14 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
       setInvoiceNumber(initialData.invoiceNumber ?? "");
       setAmount(initialData.amount ?? 0);
       setPaymentMethod(initialData.paymentMethod ?? "Contanti");
+      setFatturaId(initialData.fatturaId);
+      setDdtId(initialData.ddtId);
+      setDataFattura(initialData.dataFattura);
+      setDataDdt(initialData.dataDdt);
+      // Non possiamo pre-selezionare l'Autocomplete finché la query non ritorna,
+      // ma i campi saranno già compilati
+      setSelectedFattura(null);
+      setSelectedDdt(null);
     }
   }, [initialData]);
 
@@ -51,6 +115,12 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
     setInvoiceNumber("");
     setAmount(0);
     setPaymentMethod("Contanti");
+    setFatturaId(undefined);
+    setDdtId(undefined);
+    setDataFattura(undefined);
+    setDataDdt(undefined);
+    setSelectedFattura(null);
+    setSelectedDdt(null);
   }, []);
 
   const handleClose = useCallback(() => {
@@ -61,7 +131,48 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
   const handleSelectFornitore = useCallback((item: FornitoreSearchbox) => {
     setFornitoreId(item.fornitoreId);
     setNomeFornitore(item.ragioneSociale);
+    // Reset selezione documento quando cambia fornitore
+    setSelectedFattura(null);
+    setSelectedDdt(null);
+    setFatturaId(undefined);
+    setDdtId(undefined);
+    setDataFattura(undefined);
+    setDataDdt(undefined);
   }, []);
+
+  const handleSelectFattura = useCallback((_event: unknown, value: FatturaOption | null) => {
+    setSelectedFattura(value);
+    if (value) {
+      setFatturaId(value.fatturaId);
+      setInvoiceNumber(value.numeroFattura);
+      setDataFattura(value.dataFattura);
+      // Suggerisci il residuo come importo predefinito
+      if (!amount || amount === 0) {
+        setAmount(value.residuo);
+      }
+    } else {
+      setFatturaId(undefined);
+      setInvoiceNumber("");
+      setDataFattura(undefined);
+    }
+  }, [amount]);
+
+  const handleSelectDdt = useCallback((_event: unknown, value: DdtOption | null) => {
+    setSelectedDdt(value);
+    if (value) {
+      setDdtId(value.ddtId);
+      setDdtNumber(value.numeroDdt);
+      setDataDdt(value.dataDdt);
+      // Suggerisci l'importo del DDT come predefinito
+      if (!amount || amount === 0) {
+        setAmount(value.importo);
+      }
+    } else {
+      setDdtId(undefined);
+      setDdtNumber("");
+      setDataDdt(undefined);
+    }
+  }, [amount]);
 
   const handleConfirm = useCallback(() => {
     if (!fornitoreId || !amount) {
@@ -88,10 +199,15 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
       paymentMethod: paymentMethod || undefined,
       documentType,
       invoiceNumber: documentType === "FA" ? invoiceNumber : undefined,
+      pagamentoId: initialData?.pagamentoId,
+      fatturaId: documentType === "FA" ? fatturaId : undefined,
+      ddtId: documentType === "DDT" ? ddtId : undefined,
+      dataFattura: documentType === "FA" ? dataFattura : undefined,
+      dataDdt: documentType === "DDT" ? dataDdt : undefined,
     });
     resetForm();
     onClose();
-  }, [fornitoreId, amount, ddtNumber, invoiceNumber, nomeFornitore, paymentMethod, documentType, onConfirm, resetForm, onClose]);
+  }, [fornitoreId, amount, ddtNumber, invoiceNumber, nomeFornitore, paymentMethod, documentType, onConfirm, resetForm, onClose, initialData?.pagamentoId, fatturaId, ddtId, dataFattura, dataDdt]);
 
   // initialValues calcolati da initialData per pre-riempire FormikSearchbox (enableReinitialize)
   const initialValues: PaymentFormValues = {
@@ -102,6 +218,14 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
     ddtNumber: initialData?.ddtNumber ?? "",
     amount: initialData?.amount ?? 0,
     paymentMethod: initialData?.paymentMethod ?? "Contanti",
+  };
+
+  // Formatta data ISO in formato italiano (dd/mm/yyyy)
+  const formatDateLabel = (isoDate?: string): string => {
+    if (!isoDate) return "";
+    const d = new Date(isoDate);
+    if (isNaN(d.getTime())) return isoDate;
+    return d.toLocaleDateString("it-IT");
   };
 
   return (
@@ -142,7 +266,18 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
                         value={documentType}
                         exclusive
                         onChange={(_e, value) => {
-                          if (value) setDocumentType(value);
+                          if (value) {
+                            setDocumentType(value);
+                            // Reset selezione quando cambia tipo documento
+                            setSelectedFattura(null);
+                            setSelectedDdt(null);
+                            setFatturaId(undefined);
+                            setDdtId(undefined);
+                            setDataFattura(undefined);
+                            setDataDdt(undefined);
+                            setInvoiceNumber("");
+                            setDdtNumber("");
+                          }
                         }}
                         size="small"
                       >
@@ -151,6 +286,78 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
                       </ToggleButtonGroup>
                     </Box>
                   </div>
+
+                  {/* Ricerca documenti esistenti */}
+                  {fornitoreId > 0 && documentType === "FA" && (
+                    <div className="col-span-12">
+                      <Autocomplete
+                        options={fattureOptions}
+                        value={selectedFattura}
+                        onChange={handleSelectFattura}
+                        loading={fattureLoading}
+                        getOptionLabel={(option) =>
+                          `FA ${option.numeroFattura} - ${formatDateLabel(option.dataFattura)} - €${option.imponibile.toFixed(2)} (Residuo: €${option.residuo.toFixed(2)}, Stato: ${option.stato})`
+                        }
+                        isOptionEqualToValue={(option, value) => option.fatturaId === value.fatturaId}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Cerca fattura non pagata"
+                            placeholder="Seleziona una fattura esistente..."
+                            size="small"
+                            slotProps={{
+                              input: {
+                                ...params.InputProps,
+                                endAdornment: (
+                                  <>
+                                    {fattureLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                                    {params.InputProps.endAdornment}
+                                  </>
+                                ),
+                              },
+                            }}
+                          />
+                        )}
+                        noOptionsText="Nessuna fattura non pagata"
+                      />
+                    </div>
+                  )}
+
+                  {fornitoreId > 0 && documentType === "DDT" && (
+                    <div className="col-span-12">
+                      <Autocomplete
+                        options={ddtOptions}
+                        value={selectedDdt}
+                        onChange={handleSelectDdt}
+                        loading={ddtLoading}
+                        getOptionLabel={(option) =>
+                          `DDT ${option.numeroDdt} - ${formatDateLabel(option.dataDdt)} - €${option.importo.toFixed(2)}`
+                        }
+                        isOptionEqualToValue={(option, value) => option.ddtId === value.ddtId}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Cerca DDT non pagato"
+                            placeholder="Seleziona un DDT esistente..."
+                            size="small"
+                            slotProps={{
+                              input: {
+                                ...params.InputProps,
+                                endAdornment: (
+                                  <>
+                                    {ddtLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                                    {params.InputProps.endAdornment}
+                                  </>
+                                ),
+                              },
+                            }}
+                          />
+                        )}
+                        noOptionsText="Nessun DDT non pagato"
+                      />
+                    </div>
+                  )}
+
                   <div className="col-span-12">
                     {documentType === "DDT" ? (
                       <TextField
@@ -158,6 +365,7 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
                         fullWidth
                         value={ddtNumber}
                         onChange={(e) => setDdtNumber(e.target.value)}
+                        disabled={!!selectedDdt}
                       />
                     ) : (
                       <TextField
@@ -165,9 +373,57 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
                         fullWidth
                         value={invoiceNumber}
                         onChange={(e) => setInvoiceNumber(e.target.value)}
+                        disabled={!!selectedFattura}
                       />
                     )}
                   </div>
+
+                  {/* Data documento (manuale se nessun documento selezionato) */}
+                  {documentType === "FA" && !selectedFattura && (
+                    <div className="col-span-12">
+                      <TextField
+                        label="Data Fattura"
+                        type="date"
+                        fullWidth
+                        value={dataFattura ?? ""}
+                        onChange={(e) => setDataFattura(e.target.value || undefined)}
+                        slotProps={{ inputLabel: { shrink: true } }}
+                      />
+                    </div>
+                  )}
+                  {documentType === "FA" && selectedFattura && (
+                    <div className="col-span-12">
+                      <TextField
+                        label="Data Fattura"
+                        fullWidth
+                        value={formatDateLabel(dataFattura)}
+                        disabled
+                      />
+                    </div>
+                  )}
+                  {documentType === "DDT" && !selectedDdt && (
+                    <div className="col-span-12">
+                      <TextField
+                        label="Data DDT"
+                        type="date"
+                        fullWidth
+                        value={dataDdt ?? ""}
+                        onChange={(e) => setDataDdt(e.target.value || undefined)}
+                        slotProps={{ inputLabel: { shrink: true } }}
+                      />
+                    </div>
+                  )}
+                  {documentType === "DDT" && selectedDdt && (
+                    <div className="col-span-12">
+                      <TextField
+                        label="Data DDT"
+                        fullWidth
+                        value={formatDateLabel(dataDdt)}
+                        disabled
+                      />
+                    </div>
+                  )}
+
                   <div className="col-span-12 md:col-span-6">
                     <TextField
                       label="Importo *"

@@ -58,6 +58,7 @@ const mapFormValuesToInput = (
   imponibile: values.taxableAmount,
   aliquotaIva: values.vatRate,
   note: values.notes || undefined,
+  stato: values.invoiceStatus || "DA_PAGARE",
 });
 
 function FatturaAcquistoDetails() {

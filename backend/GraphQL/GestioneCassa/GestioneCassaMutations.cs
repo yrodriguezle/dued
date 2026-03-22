@@ -10,7 +10,6 @@ using duedgusto.DataAccess;
 using duedgusto.GraphQL.GestioneCassa.Types;
 using duedgusto.Services.ChiusureMensili;
 using duedgusto.Services.Events;
-using duedgusto.Services.Fornitori;
 using duedgusto.GraphQL.Subscriptions.Types;
 
 namespace duedgusto.GraphQL.GestioneCassa;
@@ -211,130 +210,146 @@ public class GestioneCassaMutations : ObjectGraphType
                     totaleSpese += spesaInput.Importo;
                 }
 
-                // Process supplier payments from cash register
+                // Process supplier payments from cash register (7-step upsert algorithm)
                 // Save first to ensure registroCassa.Id is available for new registers
                 await dbContext.SaveChangesAsync();
 
-                // 1. Separa pagamenti precedenti: creati dal registro vs esterni (dalla pagina fatture)
-                var previousPayments = await dbContext.PagamentiFornitori
+                var pagamentiInput = input.PagamentiFornitori;
+
+                // STEP 1: Load existing payments for this register
+                var existingPayments = await dbContext.PagamentiFornitori
                     .Where(p => p.RegistroCassaId == registroCassa.Id)
                     .ToListAsync();
 
-                var registerCreatedPayments = previousPayments
-                    .Where(RegistroCassaSyncService.IsRegisterCreatedPayment)
+                // STEP 2: Build maps
+                var inputById = pagamentiInput
+                    .Where(p => p.PagamentoId != null)
+                    .ToDictionary(p => p.PagamentoId!.Value);
+                var inputNew = pagamentiInput
+                    .Where(p => p.PagamentoId == null)
                     .ToList();
-                var externalPayments = previousPayments
-                    .Where(p => !RegistroCassaSyncService.IsRegisterCreatedPayment(p))
+                var inputIds = inputById.Keys.ToHashSet();
+
+                // STEP 3: Determine operations
+                var toDelete = existingPayments
+                    .Where(p => !inputIds.Contains(p.PagamentoId))
+                    .ToList();
+                var toUpdate = existingPayments
+                    .Where(p => inputIds.Contains(p.PagamentoId))
                     .ToList();
 
-                // Elimina solo i pagamenti creati dal registro (e i loro documenti orfani)
-                var previousDdtIds = registerCreatedPayments
-                    .Where(p => p.DdtId.HasValue)
-                    .Select(p => p.DdtId!.Value)
-                    .ToList();
-                var previousFatturaIds = registerCreatedPayments
+                // STEP 4: DELETE removed payments
+                var orphanFatturaIds = toDelete
                     .Where(p => p.FatturaId.HasValue)
                     .Select(p => p.FatturaId!.Value)
                     .ToList();
-                dbContext.PagamentiFornitori.RemoveRange(registerCreatedPayments);
+                var orphanDdtIds = toDelete
+                    .Where(p => p.DdtId.HasValue)
+                    .Select(p => p.DdtId!.Value)
+                    .ToList();
 
-                // Commit deletions of old payments BEFORE deleting orphan documents
-                // to avoid FK constraint violations with cascade deletes
-                if (registerCreatedPayments.Count > 0)
+                dbContext.PagamentiFornitori.RemoveRange(toDelete);
+
+                if (toDelete.Count > 0)
                     await dbContext.SaveChangesAsync();
 
-                if (previousDdtIds.Count > 0)
+                // Clean up orphan documents (no remaining pagamenti referencing them)
+                if (orphanFatturaIds.Count > 0)
                 {
-                    var orphanDdts = await dbContext.DocumentiTrasporto
-                        .Where(d => previousDdtIds.Contains(d.DdtId) && d.FatturaId == null)
-                        .ToListAsync();
-                    dbContext.DocumentiTrasporto.RemoveRange(orphanDdts);
-                }
-                if (previousFatturaIds.Count > 0)
-                {
-                    // Remove orphan invoices created from cash register (no other payments referencing them)
                     var orphanFatture = await dbContext.FattureAcquisto
-                        .Where(f => previousFatturaIds.Contains(f.FatturaId))
+                        .Where(f => orphanFatturaIds.Contains(f.FatturaId))
                         .Where(f => !dbContext.PagamentiFornitori.Any(p => p.FatturaId == f.FatturaId))
                         .ToListAsync();
                     dbContext.FattureAcquisto.RemoveRange(orphanFatture);
                 }
+                if (orphanDdtIds.Count > 0)
+                {
+                    var orphanDdts = await dbContext.DocumentiTrasporto
+                        .Where(d => orphanDdtIds.Contains(d.DdtId) && d.FatturaId == null)
+                        .Where(d => !dbContext.PagamentiFornitori.Any(p => p.DdtId == d.DdtId))
+                        .ToListAsync();
+                    dbContext.DocumentiTrasporto.RemoveRange(orphanDdts);
+                }
 
-                if (previousDdtIds.Count > 0 || previousFatturaIds.Count > 0)
+                if (orphanFatturaIds.Count > 0 || orphanDdtIds.Count > 0)
                     await dbContext.SaveChangesAsync();
 
-                // 2. Create new documents + PagamentoFornitore for each input
-                decimal totalePagamentiFornitori = 0;
-
-                // Includi gli importi dei pagamenti esterni preservati
-                totalePagamentiFornitori += externalPayments.Sum(p => p.Importo);
-
-                foreach (var pagInput in input.PagamentiFornitori)
+                // STEP 5: UPDATE existing payments
+                toUpdate.ForEach(existing =>
                 {
-                    var fornitore = await dbContext.Fornitori
-                        .FirstOrDefaultAsync(f => f.FornitoreId == pagInput.FornitoreId)
-                        ?? throw new ExecutionError($"Fornitore con ID {pagInput.FornitoreId} non trovato");
+                    var inp = inputById[existing.PagamentoId];
+                    existing.Importo = inp.Importo;
+                    existing.MetodoPagamento = inp.MetodoPagamento;
+                    existing.AggiornatoIl = DateTime.UtcNow;
+                    // Do NOT change FatturaId/DdtId — preserve original document link
+                });
 
-                    PagamentoFornitore pagamento;
+                // STEP 6: CREATE new payments (sequential — DbContext is not thread-safe)
+                foreach (var pagInput in inputNew)
+                {
+                    int? fatturaId = null;
+                    int? ddtId = null;
 
-                    if (pagInput.TipoDocumento == "FA")
+                    if (pagInput.FatturaId != null)
                     {
-                        // Create FatturaAcquisto
+                        // Priority 1: Link to existing FatturaAcquisto
+                        fatturaId = pagInput.FatturaId;
+                    }
+                    else if (pagInput.TipoDocumento == "FA")
+                    {
+                        // Priority 2: Create new FatturaAcquisto
                         var fattura = new FatturaAcquisto
                         {
                             FornitoreId = pagInput.FornitoreId,
                             NumeroFattura = pagInput.NumeroFattura ?? "",
-                            DataFattura = input.Data,
+                            DataFattura = pagInput.DataFattura ?? input.Data,
                             Imponibile = pagInput.Importo,
                             Stato = "PAGATA",
                         };
                         dbContext.FattureAcquisto.Add(fattura);
-                        await dbContext.SaveChangesAsync(); // flush to get FatturaId
-
-                        pagamento = new PagamentoFornitore
-                        {
-                            FatturaId = fattura.FatturaId,
-                            DdtId = null,
-                            DataPagamento = input.Data,
-                            Importo = pagInput.Importo,
-                            MetodoPagamento = pagInput.MetodoPagamento,
-                            Note = $"Pagamento da registro cassa del {input.Data:dd/MM/yyyy}",
-                            RegistroCassaId = registroCassa.Id,
-                        };
-
+                        await dbContext.SaveChangesAsync();
+                        fatturaId = fattura.FatturaId;
+                    }
+                    else if (pagInput.DdtId != null)
+                    {
+                        // Priority 3: Link to existing DocumentoTrasporto
+                        ddtId = pagInput.DdtId;
                     }
                     else
                     {
-                        // Create orphan DDT (existing behavior)
+                        // Priority 4: Create new DocumentoTrasporto
                         var ddt = new DocumentoTrasporto
                         {
                             FornitoreId = pagInput.FornitoreId,
                             NumeroDdt = pagInput.NumeroDdt,
-                            DataDdt = input.Data,
+                            DataDdt = pagInput.DataDdt ?? input.Data,
                             Importo = pagInput.Importo,
                             FatturaId = null,
                         };
                         dbContext.DocumentiTrasporto.Add(ddt);
-                        await dbContext.SaveChangesAsync(); // flush to get DdtId
-
-                        pagamento = new PagamentoFornitore
-                        {
-                            DdtId = ddt.DdtId,
-                            FatturaId = null,
-                            DataPagamento = input.Data,
-                            Importo = pagInput.Importo,
-                            MetodoPagamento = pagInput.MetodoPagamento,
-                            Note = $"Pagamento da registro cassa del {input.Data:dd/MM/yyyy}",
-                            RegistroCassaId = registroCassa.Id,
-                        };
-
+                        await dbContext.SaveChangesAsync();
+                        ddtId = ddt.DdtId;
                     }
 
-                    dbContext.PagamentiFornitori.Add(pagamento);
-                    totalePagamentiFornitori += pagInput.Importo;
+                    dbContext.PagamentiFornitori.Add(new PagamentoFornitore
+                    {
+                        FatturaId = fatturaId,
+                        DdtId = ddtId,
+                        DataPagamento = input.Data,
+                        Importo = pagInput.Importo,
+                        MetodoPagamento = pagInput.MetodoPagamento,
+                        Note = $"Pagamento da registro cassa del {input.Data:dd/MM/yyyy}",
+                        RegistroCassaId = registroCassa.Id,
+                    });
                 }
 
-                // Update legacy expense fields (include both register-created and external payments)
+                // STEP 7: SaveChanges and recalculate SpeseFornitori
+                await dbContext.SaveChangesAsync();
+
+                var totalePagamentiFornitori = await dbContext.PagamentiFornitori
+                    .Where(p => p.RegistroCassaId == registroCassa.Id)
+                    .SumAsync(p => p.Importo);
+
                 registroCassa.SpeseFornitori = totalePagamentiFornitori;
                 registroCassa.SpeseGiornaliere = totaleSpese;
 

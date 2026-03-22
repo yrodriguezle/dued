@@ -61,8 +61,13 @@ type PagamentoFornitoreRegistro = {
   pagamentoId: number;
   importo: number;
   metodoPagamento?: string;
+  dataPagamento?: string;
+  note?: string;
   ddt?: {
+    ddtId: number;
     numeroDdt: string;
+    dataDdt?: string;
+    importo?: number;
     fornitore: {
       fornitoreId: number;
       ragioneSociale: string;
@@ -71,6 +76,9 @@ type PagamentoFornitoreRegistro = {
   fattura?: {
     fatturaId: number;
     numeroFattura: string;
+    dataFattura?: string;
+    imponibile?: number;
+    stato?: string;
     fornitore: {
       fornitoreId: number;
       ragioneSociale: string;
@@ -185,6 +193,11 @@ interface Expense extends Record<string, unknown> {
   paymentMethod?: string;
   documentType?: "FA" | "DDT";
   invoiceNumber?: string;
+  pagamentoId?: number;
+  fatturaId?: number;
+  ddtId?: number;
+  dataFattura?: string;
+  dataDdt?: string;
 }
 
 interface CashCountRow extends Record<string, unknown> {
