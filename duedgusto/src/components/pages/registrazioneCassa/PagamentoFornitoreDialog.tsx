@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Box, ToggleButtonGroup, ToggleButton, FormControl, InputLabel, Select, MenuItem, Autocomplete, CircularProgress } from "@mui/material";
 import { useLazyQuery } from "@apollo/client";
+import NumberField from "../../common/form/NumberField";
+import DateField from "../../common/form/DateField";
 import FormikSearchbox from "../../common/form/searchbox/FormikSearchbox";
 import fornitoreSearchboxOption, { FornitoreSearchbox } from "../../common/form/searchbox/searchboxOptions/fornitoreSearchboxOptions";
 import showToast from "../../../common/toast/showToast";
@@ -381,12 +383,12 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
                   {/* Data documento (manuale se nessun documento selezionato) */}
                   {documentType === "FA" && !selectedFattura && (
                     <div className="col-span-12">
-                      <TextField
+                      <DateField
+                        name="dataFattura"
                         label="Data Fattura"
-                        type="date"
                         fullWidth
                         value={dataFattura ?? ""}
-                        onChange={(e) => setDataFattura(e.target.value || undefined)}
+                        onChange={(_name, value) => setDataFattura(value || undefined)}
                         slotProps={{ inputLabel: { shrink: true } }}
                       />
                     </div>
@@ -403,12 +405,12 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
                   )}
                   {documentType === "DDT" && !selectedDdt && (
                     <div className="col-span-12">
-                      <TextField
+                      <DateField
+                        name="dataDdt"
                         label="Data DDT"
-                        type="date"
                         fullWidth
                         value={dataDdt ?? ""}
-                        onChange={(e) => setDataDdt(e.target.value || undefined)}
+                        onChange={(_name, value) => setDataDdt(value || undefined)}
                         slotProps={{ inputLabel: { shrink: true } }}
                       />
                     </div>
@@ -425,13 +427,13 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
                   )}
 
                   <div className="col-span-12 md:col-span-6">
-                    <TextField
+                    <NumberField
+                      name="amount"
                       label="Importo *"
-                      type="number"
                       fullWidth
-                      value={amount || ""}
-                      onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
-                      slotProps={{ htmlInput: { step: "0.01", min: "0" } }}
+                      value={amount}
+                      onChange={(_name, value) => setAmount(value)}
+                      decimals={2}
                     />
                   </div>
                   <div className="col-span-12 md:col-span-6">

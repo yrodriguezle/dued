@@ -1,4 +1,6 @@
 import { Paper, Typography, Box, useTheme } from "@mui/material";
+import FormikDateField from "../../common/form/FormikDateField";
+import FormikNumberField from "../../common/form/FormikNumberField";
 import FormikTextField from "../../common/form/FormikTextField";
 import FormikSearchbox from "../../common/form/searchbox/FormikSearchbox";
 import fornitoreSearchboxOption, { FornitoreSearchbox } from "../../common/form/searchbox/searchboxOptions/fornitoreSearchboxOptions";
@@ -49,10 +51,9 @@ function DocumentoTrasportoForm({ onSelectFornitore, onSelectInvoice }: Document
             />
           </div>
           <div className="col-span-12 md:col-span-3">
-            <FormikTextField
+            <FormikDateField
               name="ddtDate"
               label="Data DDT *"
-              type="date"
               fullWidth
               slotProps={{ inputLabel: { shrink: true } }}
               sx={{ "& input": { colorScheme: dateColorScheme } }}
@@ -75,12 +76,11 @@ function DocumentoTrasportoForm({ onSelectFornitore, onSelectInvoice }: Document
         </Typography>
         <div className="grid grid-cols-12 gap-4">
           <div className="col-span-12 md:col-span-3">
-            <FormikTextField
+            <FormikNumberField
               name="amount"
               label="Importo"
-              type="number"
               fullWidth
-              slotProps={{ htmlInput: { step: "0.01", min: "0" } }}
+              decimals={2}
             />
           </div>
           <div className="col-span-12 md:col-span-9">

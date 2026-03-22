@@ -16,6 +16,7 @@ import {
   Divider,
 } from "@mui/material";
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
+import DateField from "../../common/form/DateField";
 import { useMutation } from "@apollo/client";
 import { toast } from "react-toastify";
 import dayjs from "dayjs";
@@ -321,11 +322,11 @@ function PeriodoProgrammazioneSection({ periodi }: PeriodoProgrammazioneSectionP
         <Divider />
         <DialogContent sx={{ pt: 2 }}>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
-            <TextField
+            <DateField
+              name="dataInizio"
               label="Data Inizio"
-              type="date"
               value={dialogState.dataInizio}
-              onChange={(e) => handleCambiaDataInizio(e.target.value)}
+              onChange={(_name, value) => handleCambiaDataInizio(value)}
               slotProps={{ inputLabel: { shrink: true } }}
               sx={{ colorScheme: (theme) => theme.palette.mode }}
               fullWidth

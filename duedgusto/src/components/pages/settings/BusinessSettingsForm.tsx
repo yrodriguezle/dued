@@ -1,4 +1,5 @@
 import { Paper, Typography, Box, MenuItem } from "@mui/material";
+import FormikNumberField from "../../common/form/FormikNumberField";
 import FormikTextField from "../../common/form/FormikTextField";
 import PeriodoProgrammazioneSection from "./PeriodoProgrammazioneSection";
 import GiorniNonLavorativiSection from "./GiorniNonLavorativiSection";
@@ -121,15 +122,11 @@ function BusinessSettingsForm({ periodi, giorniNonLavorativi }: BusinessSettings
         </Typography>
         <div className="grid grid-cols-12 gap-4">
           <div className="col-span-12 sm:col-span-4">
-            <FormikTextField
+            <FormikNumberField
               name="vatRate"
               label="Aliquota IVA (%)"
-              type="number"
-              inputProps={{ step: "0.01", min: "0", max: "100" }}
-              onChange={(_name, value, field, form) => {
-                form.setFieldValue(field.name, value === "" ? 0 : Number(value));
-              }}
               fullWidth
+              decimals={2}
             />
           </div>
         </div>

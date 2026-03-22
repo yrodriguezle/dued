@@ -28,6 +28,7 @@ import {
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
 } from "@mui/icons-material";
+import DateField from "../../common/form/DateField";
 import { useMutation, useApolloClient } from "@apollo/client";
 import { toast } from "react-toastify";
 import dayjs from "dayjs";
@@ -311,11 +312,11 @@ function GiorniNonLavorativiSection({ giorniNonLavorativi }: GiorniNonLavorativi
         <Divider />
         <DialogContent sx={{ pt: 2 }}>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
-            <TextField
+            <DateField
+              name="giornoData"
               label="Data"
-              type="date"
               value={dialogState.data}
-              onChange={(e) => setDialogState((prev) => ({ ...prev, data: e.target.value }))}
+              onChange={(_name, value) => setDialogState((prev) => ({ ...prev, data: value }))}
               slotProps={{ inputLabel: { shrink: true } }}
               sx={{ colorScheme: (theme) => theme.palette.mode }}
               fullWidth

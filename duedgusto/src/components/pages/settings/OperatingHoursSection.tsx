@@ -1,4 +1,5 @@
 import { Paper, Typography } from "@mui/material";
+import FormikNumberField from "../../common/form/FormikNumberField";
 import FormikTextField from "../../common/form/FormikTextField";
 
 interface OperatingHoursSectionProps {
@@ -105,14 +106,11 @@ function OperatingHoursSection({ errors, touched }: OperatingHoursSectionProps) 
         </div>
 
         <div className="col-span-12">
-          <FormikTextField
+          <FormikNumberField
             name="vatRate"
             label="Aliquota IVA (%)"
-            type="number"
-            inputProps={{ step: "0.01", min: "0", max: "100" }}
-            error={touched.vatRate && !!errors.vatRate}
-            helperText={touched.vatRate && errors.vatRate}
             fullWidth
+            decimals={2}
           />
         </div>
 
