@@ -5,6 +5,9 @@ import { useMutation } from "@apollo/client";
 import { CellValueChangedEvent } from "ag-grid-community";
 
 import FormikTextField from "../../common/form/FormikTextField";
+import FormikDateField from "../../common/form/FormikDateField";
+import FormikNumberField from "../../common/form/FormikNumberField";
+import NumberField from "../../common/form/NumberField";
 import FormikSearchbox from "../../common/form/searchbox/FormikSearchbox";
 import fornitoreSearchboxOption, { FornitoreSearchbox } from "../../common/form/searchbox/searchboxOptions/fornitoreSearchboxOptions";
 import fatturaAcquistoSearchboxOption, { FatturaAcquistoSearchbox } from "../../common/form/searchbox/searchboxOptions/fatturaAcquistoSearchboxOptions";
@@ -203,7 +206,14 @@ function FatturaAcquistoForm({ onSelectFornitore, onSelectInvoice, documentiTras
   );
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
+    <Box
+      sx={{ 
+        display: "flex", 
+        flexDirection: "column", 
+        maxWidth: 900,
+        gap: 2.5,
+      }}
+    >
       {/* Sezione: Fornitore */}
       <Paper
         variant="outlined"
@@ -265,20 +275,18 @@ function FatturaAcquistoForm({ onSelectFornitore, onSelectInvoice, documentiTras
             />
           </div>
           <div className="col-span-12 md:col-span-4">
-            <FormikTextField
+            <FormikDateField
               name="invoiceDate"
               label="Data Fattura *"
-              type="date"
               fullWidth
               slotProps={{ inputLabel: { shrink: true } }}
               sx={{ "& input": { colorScheme: dateColorScheme } }}
             />
           </div>
           <div className="col-span-12 md:col-span-4">
-            <FormikTextField
+            <FormikDateField
               name="dueDate"
               label="Data Scadenza"
-              type="date"
               fullWidth
               slotProps={{ inputLabel: { shrink: true } }}
               sx={{ "& input": { colorScheme: dateColorScheme } }}
@@ -301,39 +309,39 @@ function FatturaAcquistoForm({ onSelectFornitore, onSelectInvoice, documentiTras
         </Typography>
         <div className="grid grid-cols-12 gap-4">
           <div className="col-span-12 md:col-span-3">
-            <FormikTextField
+            <FormikNumberField
               name="taxableAmount"
               label="Imponibile *"
-              type="number"
               fullWidth
               slotProps={{ htmlInput: { step: "0.01", min: "0" } }}
             />
           </div>
           <div className="col-span-12 md:col-span-3">
-            <FormikTextField
+            <FormikNumberField
               name="vatRate"
               label="Aliquota IVA %"
-              type="number"
               fullWidth
               slotProps={{ htmlInput: { step: "0.01", min: "0", max: "100" } }}
             />
           </div>
           <div className="col-span-12 md:col-span-3">
-            <FormikTextField
+            <NumberField
               name="_vatAmount"
               label="IVA Calcolata"
               fullWidth
               disabled
-              value={vatAmount.toFixed(2)}
+              value={vatAmount}
+              decimals={2}
             />
           </div>
           <div className="col-span-12 md:col-span-3">
-            <FormikTextField
+            <NumberField
               name="_totalAmount"
               label="Totale con IVA"
               fullWidth
               disabled
-              value={totalAmount.toFixed(2)}
+              value={totalAmount}
+              decimals={2}
             />
           </div>
         </div>
