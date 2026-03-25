@@ -21,6 +21,9 @@ using duedgusto.Services.Events;
 using duedgusto.Services.Fornitori;
 using duedgusto.Middleware;
 using duedgusto.SeedData;
+using duedgusto.Repositories.Interfaces;
+using duedgusto.Repositories.Implementations;
+using duedgusto.Repositories.Implementations.Domain;
 
 using GraphQL.Server.Transports.AspNetCore.WebSockets;
 
@@ -61,6 +64,19 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         ?? string.Empty;
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
 });
+
+// Repository Pattern — UnitOfWork + Domain Repositories
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<IRegistroCassaRepository, RegistroCassaRepository>();
+builder.Services.AddScoped<IFornitoreRepository, FornitoreRepository>();
+builder.Services.AddScoped<IFatturaAcquistoRepository, FatturaAcquistoRepository>();
+builder.Services.AddScoped<IVenditaRepository, VenditaRepository>();
+builder.Services.AddScoped<IProdottoRepository, ProdottoRepository>();
+builder.Services.AddScoped<IUtenteRepository, UtenteRepository>();
+builder.Services.AddScoped<IChiusuraMensileRepository, ChiusuraMensileRepository>();
+builder.Services.AddScoped<IRuoloRepository, RuoloRepository>();
+builder.Services.AddScoped<IMenuRepository, MenuRepository>();
+builder.Services.AddScoped<IBusinessSettingsRepository, BusinessSettingsRepository>();
 
 builder.Services.AddCors(options =>
 {
