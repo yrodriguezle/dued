@@ -28,6 +28,9 @@ public class UnitOfWork : IUnitOfWork
         _context = context;
     }
 
+    // === Accesso al DbContext ===
+    public AppDbContext Context => _context;
+
     // === Repository di Dominio (lazy-initialized) ===
 
     public IRegistroCassaRepository RegistriCassa =>

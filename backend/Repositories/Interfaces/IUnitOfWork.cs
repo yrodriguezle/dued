@@ -1,7 +1,14 @@
+using duedgusto.DataAccess;
+
 namespace duedgusto.Repositories.Interfaces;
 
 public interface IUnitOfWork : IDisposable
 {
+    // === Accesso al DbContext ===
+    // Per entity satellite senza repository dedicato (es. PagamentiFornitori, DenominazioniMoneta).
+    // Usare con parsimonia — preferire i repository tipizzati quando disponibili.
+    AppDbContext Context { get; }
+
     // === Repository di Dominio (lazy-initialized) ===
     // Vedi ADR-2 per la motivazione delle proprieta tipizzate.
 

@@ -24,6 +24,7 @@ using duedgusto.SeedData;
 using duedgusto.Repositories.Interfaces;
 using duedgusto.Repositories.Implementations;
 using duedgusto.Repositories.Implementations.Domain;
+using duedgusto.GraphQL.GestioneCassa;
 
 using GraphQL.Server.Transports.AspNetCore.WebSockets;
 
@@ -42,6 +43,11 @@ builder.Services.AddScoped<MigrazioneChiusureMensiliService>();
 
 // Fornitori Services
 builder.Services.AddScoped<RegistroCassaSyncService>();
+
+// GestioneCassa Orchestrators
+builder.Services.AddScoped<MutateRegistroCassaOrchestrator>();
+builder.Services.AddScoped<ChiudiRegistroCassaOrchestrator>();
+builder.Services.AddScoped<EliminaRegistroCassaOrchestrator>();
 
 // Event Bus per GraphQL Subscriptions
 builder.Services.AddSingleton<IEventBus, EventBus>();

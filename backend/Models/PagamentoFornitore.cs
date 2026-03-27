@@ -42,6 +42,6 @@ namespace duedgusto.Models
         [ForeignKey("RegistroCassaId")]
         public virtual RegistroCassa? RegistroCassa { get; set; }
 
-        public virtual ICollection<SpesaMensile> SpeseMensili { get; set; } = new List<SpesaMensile>();
+        public virtual ICollection<SpesaMensile> SpeseMensili { get; set; } = [];
     }
 }

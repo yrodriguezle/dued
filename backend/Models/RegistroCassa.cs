@@ -37,8 +37,8 @@ public class RegistroCassa
 
     // Navigation properties
     public Utente Utente { get; set; } = null!;
-    public ICollection<ConteggioMoneta> ConteggiMoneta { get; set; } = new List<ConteggioMoneta>();
-    public ICollection<IncassoCassa> IncassiCassa { get; set; } = new List<IncassoCassa>();
-    public ICollection<SpesaCassa> SpeseCassa { get; set; } = new List<SpesaCassa>();
+    public ICollection<ConteggioMoneta> ConteggiMoneta { get; set; } = [];
+    public ICollection<IncassoCassa> IncassiCassa { get; set; } = [];
+    public ICollection<SpesaCassa> SpeseCassa { get; set; } = [];
     public ICollection<PagamentoFornitore> PagamentiFornitori { get; set; } = [];
 }
