@@ -15,6 +15,8 @@ public class UnitOfWork : IUnitOfWork
     private IRegistroCassaRepository? _registriCassa;
     private IFornitoreRepository? _fornitori;
     private IFatturaAcquistoRepository? _fattureAcquisto;
+    private IDocumentoTrasportoRepository? _documentiTrasporto;
+    private IPagamentoFornitoreRepository? _pagamentiFornitori;
     private IVenditaRepository? _vendite;
     private IProdottoRepository? _prodotti;
     private IUtenteRepository? _utenti;
@@ -41,6 +43,12 @@ public class UnitOfWork : IUnitOfWork
 
     public IFatturaAcquistoRepository FattureAcquisto =>
         _fattureAcquisto ??= new FatturaAcquistoRepository(_context);
+
+    public IDocumentoTrasportoRepository DocumentiTrasporto =>
+        _documentiTrasporto ??= new DocumentoTrasportoRepository(_context);
+
+    public IPagamentoFornitoreRepository PagamentiFornitori =>
+        _pagamentiFornitori ??= new PagamentoFornitoreRepository(_context);
 
     public IVenditaRepository Vendite =>
         _vendite ??= new VenditaRepository(_context);

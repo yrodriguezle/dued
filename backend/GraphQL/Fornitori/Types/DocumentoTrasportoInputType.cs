@@ -11,6 +11,7 @@ public class DocumentoTrasportoInput
     public DateTime DataDdt { get; set; }
     public decimal? Importo { get; set; }
     public string? Note { get; set; }
+    public List<PagamentoFornitoreInput>? Pagamenti { get; set; }
 }
 
 public class DocumentoTrasportoInputType : InputObjectGraphType<DocumentoTrasportoInput>
@@ -26,5 +27,6 @@ public class DocumentoTrasportoInputType : InputObjectGraphType<DocumentoTraspor
         Field(x => x.DataDdt, type: typeof(DateGraphType));
         Field(x => x.Importo, nullable: true);
         Field(x => x.Note, nullable: true);
+        Field<ListGraphType<PagamentoFornitoreInputType>>("pagamenti");
     }
 }

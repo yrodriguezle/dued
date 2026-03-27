@@ -4,6 +4,7 @@ using duedgusto.Models;
 using duedgusto.Repositories.Interfaces;
 using duedgusto.Services.ChiusureMensili;
 using duedgusto.Services.Events;
+using duedgusto.GraphQL.Fornitori;
 using duedgusto.GraphQL.GestioneCassa.Types;
 using duedgusto.GraphQL.Subscriptions.Types;
 
@@ -193,8 +194,8 @@ public class MutateRegistroCassaOrchestrator
             .Where(p => inputIds.Contains(p.PagamentoId))
             .ToList();
 
-        // STEP 4: DELETE removed payments + cleanup orphan documents
-        await DeletePagamentiAndOrphans(db, toDelete);
+        // STEP 4: DELETE removed payments + update invoice status
+        await DeletePagamenti(db, toDelete);
 
         // STEP 5: UPDATE existing payments
         await UpdatePagamentiEsistenti(db, toUpdate, inputById);
@@ -212,43 +213,35 @@ public class MutateRegistroCassaOrchestrator
         registroCassa.SpeseFornitori = totalePagamentiFornitori;
     }
 
-    private static async Task DeletePagamentiAndOrphans(
+    private static async Task DeletePagamenti(
         DataAccess.AppDbContext db,
         List<PagamentoFornitore> toDelete)
     {
-        var orphanFatturaIds = toDelete
+        if (toDelete.Count == 0) return;
+
+        var affectedFatturaIds = toDelete
             .Where(p => p.FatturaId.HasValue)
             .Select(p => p.FatturaId!.Value)
-            .ToList();
-        var orphanDdtIds = toDelete
-            .Where(p => p.DdtId.HasValue)
-            .Select(p => p.DdtId!.Value)
+            .Distinct()
             .ToList();
 
         db.PagamentiFornitori.RemoveRange(toDelete);
+        await db.SaveChangesAsync();
 
-        if (toDelete.Count > 0)
-            await db.SaveChangesAsync();
-
-        if (orphanFatturaIds.Count > 0)
+        // Aggiorna stato fatture collegate (i documenti NON vengono cancellati)
+        if (affectedFatturaIds.Count > 0)
         {
-            var orphanFatture = await db.FattureAcquisto
-                .Where(f => orphanFatturaIds.Contains(f.FatturaId))
-                .Where(f => !db.PagamentiFornitori.Any(p => p.FatturaId == f.FatturaId))
+            var fatture = await db.FattureAcquisto
+                .Include(f => f.Pagamenti)
+                .Where(f => affectedFatturaIds.Contains(f.FatturaId))
                 .ToListAsync();
-            db.FattureAcquisto.RemoveRange(orphanFatture);
-        }
-        if (orphanDdtIds.Count > 0)
-        {
-            var orphanDdts = await db.DocumentiTrasporto
-                .Where(d => orphanDdtIds.Contains(d.DdtId) && d.FatturaId == null)
-                .Where(d => !db.PagamentiFornitori.Any(p => p.DdtId == d.DdtId))
-                .ToListAsync();
-            db.DocumentiTrasporto.RemoveRange(orphanDdts);
-        }
 
-        if (orphanFatturaIds.Count > 0 || orphanDdtIds.Count > 0)
+            foreach (var fattura in fatture)
+            {
+                FatturaAcquistoStatusHelper.RecalculateStato(fattura);
+            }
             await db.SaveChangesAsync();
+        }
     }
 
     private static async Task UpdatePagamentiEsistenti(

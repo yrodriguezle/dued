@@ -22,4 +22,5 @@ type DocumentoTrasportoInput = {
   dataDdt: string;
   importo?: number;
   note?: string;
+  pagamenti?: PagamentoFornitoreInput[];
 };

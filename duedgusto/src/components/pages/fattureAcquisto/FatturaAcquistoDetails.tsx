@@ -6,7 +6,7 @@ import { useLocation, useNavigate } from "react-router";
 import { useLazyQuery, useMutation } from "@apollo/client";
 import { Box, Typography } from "@mui/material";
 
-import FatturaAcquistoForm from "./FatturaAcquistoForm";
+import FatturaAcquistoForm, { PaymentRow } from "./FatturaAcquistoForm";
 import FormikToolbar from "../../common/form/toolbar/FormikToolbar";
 import { formStatuses } from "../../../common/globals/constants";
 import useConfirm from "../../common/confirm/useConfirm";
@@ -73,6 +73,7 @@ function FatturaAcquistoDetails() {
 
   const [documentiTrasporto, setDocumentiTrasporto] = useState<DocumentoTrasporto[]>([]);
   const [pagamentiFornitore, setPagamentiFornitore] = useState<PagamentoFornitore[]>([]);
+  const getPaymentRowsRef = useRef<(() => PaymentRow[]) | null>(null);
 
   useEffect(() => {
     setTitle("Dettaglio Fattura Acquisto");
@@ -170,10 +171,22 @@ function FatturaAcquistoDetails() {
   const handleSubmit = useCallback(
     async (values: FormikFatturaAcquistoValues) => {
       try {
+        // In INSERT mode, includi i pagamenti dalla griglia
+        const input = mapFormValuesToInput(values);
+        if (!values.invoiceId) {
+          const pendingRows = getPaymentRowsRef.current?.() ?? [];
+          if (pendingRows.length > 0) {
+            input.pagamenti = pendingRows.map((row) => ({
+              dataPagamento: row.paymentDate,
+              importo: row.amount,
+              metodoPagamento: row.paymentMethod || undefined,
+              note: row.notes || undefined,
+            }));
+          }
+        }
+
         const result = await mutateInvoice({
-          variables: {
-            fattura: mapFormValuesToInput(values),
-          },
+          variables: { fattura: input },
         });
 
         if (result.data?.fornitori?.mutateFatturaAcquisto) {
@@ -241,6 +254,7 @@ function FatturaAcquistoDetails() {
               documentiTrasporto={documentiTrasporto}
               payments={pagamentiFornitore}
               onRefresh={handleRefresh}
+              onRegisterGetPaymentRows={(getter) => { getPaymentRowsRef.current = getter; }}
             />
           </Box>
         </Form>

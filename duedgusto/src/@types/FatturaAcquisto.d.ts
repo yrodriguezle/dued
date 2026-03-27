@@ -27,4 +27,5 @@ type FatturaAcquistoInput = {
   aliquotaIva: number;
   stato?: string;
   note?: string;
+  pagamenti?: PagamentoFornitoreInput[];
 };

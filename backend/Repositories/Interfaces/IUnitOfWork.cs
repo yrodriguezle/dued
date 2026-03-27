@@ -15,6 +15,8 @@ public interface IUnitOfWork : IDisposable
     IRegistroCassaRepository RegistriCassa { get; }
     IFornitoreRepository Fornitori { get; }
     IFatturaAcquistoRepository FattureAcquisto { get; }
+    IDocumentoTrasportoRepository DocumentiTrasporto { get; }
+    IPagamentoFornitoreRepository PagamentiFornitori { get; }
     IVenditaRepository Vendite { get; }
     IProdottoRepository Prodotti { get; }
     IUtenteRepository Utenti { get; }

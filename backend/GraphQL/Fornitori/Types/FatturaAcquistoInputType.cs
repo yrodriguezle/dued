@@ -13,6 +13,7 @@ public class FatturaAcquistoInput
     public DateTime? DataScadenza { get; set; }
     public string? Note { get; set; }
     public string Stato { get; set; } = "DA_PAGARE";
+    public List<PagamentoFornitoreInput>? Pagamenti { get; set; }
 }
 
 public class FatturaAcquistoInputType : InputObjectGraphType<FatturaAcquistoInput>
@@ -30,5 +31,6 @@ public class FatturaAcquistoInputType : InputObjectGraphType<FatturaAcquistoInpu
         Field(x => x.DataScadenza, type: typeof(DateGraphType));
         Field(x => x.Note, nullable: true);
         Field(x => x.Stato);
+        Field<ListGraphType<PagamentoFornitoreInputType>>("pagamenti");
     }
 }

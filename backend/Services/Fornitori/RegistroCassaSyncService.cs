@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using duedgusto.Models;
-using duedgusto.DataAccess;
+using duedgusto.Repositories.Interfaces;
 
 namespace duedgusto.Services.Fornitori;
 
@@ -12,11 +12,11 @@ namespace duedgusto.Services.Fornitori;
 /// </summary>
 public class RegistroCassaSyncService
 {
-    private readonly AppDbContext _dbContext;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public RegistroCassaSyncService(AppDbContext dbContext)
+    public RegistroCassaSyncService(IUnitOfWork unitOfWork)
     {
-        _dbContext = dbContext;
+        _unitOfWork = unitOfWork;
     }
 
     /// <summary>
@@ -24,7 +24,7 @@ public class RegistroCassaSyncService
     /// </summary>
     public async Task<RegistroCassa> FindOrCreateRegistroCassaAsync(DateTime dataPagamento, int utenteId)
     {
-        var registro = await _dbContext.RegistriCassa
+        var registro = await _unitOfWork.RegistriCassa.Query()
             .FirstOrDefaultAsync(r => r.Data.Date == dataPagamento.Date);
 
         if (registro != null)
@@ -36,8 +36,8 @@ public class RegistroCassaSyncService
             UtenteId = utenteId,
             Stato = "DRAFT",
         };
-        _dbContext.RegistriCassa.Add(registro);
-        await _dbContext.SaveChangesAsync();
+        _unitOfWork.RegistriCassa.Add(registro);
+        await _unitOfWork.SaveChangesAsync();
 
         return registro;
     }
@@ -48,13 +48,12 @@ public class RegistroCassaSyncService
     /// </summary>
     public async Task RecalculateSpeseFornitoriAsync(int registroCassaId)
     {
-        var registro = await _dbContext.RegistriCassa
-            .FirstOrDefaultAsync(r => r.Id == registroCassaId);
+        var registro = await _unitOfWork.RegistriCassa.GetByIdAsync(registroCassaId);
 
         if (registro == null)
             return;
 
-        var totaleSpeseFornitori = await _dbContext.PagamentiFornitori
+        var totaleSpeseFornitori = await _unitOfWork.PagamentiFornitori.Query()
             .Where(p => p.RegistroCassaId == registroCassaId)
             .SumAsync(p => p.Importo);
 
@@ -64,7 +63,7 @@ public class RegistroCassaSyncService
         registro.Differenza = incassoGiornaliero - registro.ContanteAtteso;
         registro.AggiornatoIl = DateTime.UtcNow;
 
-        await _dbContext.SaveChangesAsync();
+        await _unitOfWork.SaveChangesAsync();
     }
 
     /// <summary>

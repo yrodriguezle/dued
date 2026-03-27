@@ -25,6 +25,7 @@ using duedgusto.Repositories.Interfaces;
 using duedgusto.Repositories.Implementations;
 using duedgusto.Repositories.Implementations.Domain;
 using duedgusto.GraphQL.GestioneCassa;
+using duedgusto.GraphQL.Fornitori;
 
 using GraphQL.Server.Transports.AspNetCore.WebSockets;
 
@@ -43,6 +44,12 @@ builder.Services.AddScoped<MigrazioneChiusureMensiliService>();
 
 // Fornitori Services
 builder.Services.AddScoped<RegistroCassaSyncService>();
+
+// Fornitori Orchestrators
+builder.Services.AddScoped<FornitoreOrchestrator>();
+builder.Services.AddScoped<FatturaAcquistoOrchestrator>();
+builder.Services.AddScoped<DocumentoTrasportoOrchestrator>();
+builder.Services.AddScoped<PagamentoFornitoreOrchestrator>();
 
 // GestioneCassa Orchestrators
 builder.Services.AddScoped<MutateRegistroCassaOrchestrator>();
@@ -76,6 +83,8 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IRegistroCassaRepository, RegistroCassaRepository>();
 builder.Services.AddScoped<IFornitoreRepository, FornitoreRepository>();
 builder.Services.AddScoped<IFatturaAcquistoRepository, FatturaAcquistoRepository>();
+builder.Services.AddScoped<IDocumentoTrasportoRepository, DocumentoTrasportoRepository>();
+builder.Services.AddScoped<IPagamentoFornitoreRepository, PagamentoFornitoreRepository>();
 builder.Services.AddScoped<IVenditaRepository, VenditaRepository>();
 builder.Services.AddScoped<IProdottoRepository, ProdottoRepository>();
 builder.Services.AddScoped<IUtenteRepository, UtenteRepository>();

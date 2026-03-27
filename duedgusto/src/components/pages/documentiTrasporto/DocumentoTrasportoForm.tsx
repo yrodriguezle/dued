@@ -1,8 +1,8 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { Paper, Typography, Box, useTheme } from "@mui/material";
 import { useFormikContext } from "formik";
 import { useMutation } from "@apollo/client";
-import { CellValueChangedEvent } from "ag-grid-community";
+import { CellValueChangedEvent, GridReadyEvent } from "ag-grid-community";
 
 import FormikDateField from "../../common/form/FormikDateField";
 import FormikNumberField from "../../common/form/FormikNumberField";
@@ -17,7 +17,7 @@ import showToast from "../../../common/toast/showToast";
 import { mutationMutatePagamentoFornitore } from "../../../graphql/fornitori/mutations";
 import { FormikDocumentoTrasportoValues } from "./DocumentoTrasportoDetails";
 
-type PaymentRow = {
+export type PaymentRow = {
   paymentId: number;
   paymentDate: string;
   amount: number;
@@ -30,15 +30,44 @@ interface DocumentoTrasportoFormProps {
   onSelectInvoice: (item: FatturaAcquistoSearchbox) => void;
   payments: PagamentoFornitore[];
   onRefresh: () => void;
+  onRegisterGetPaymentRows?: (getter: () => PaymentRow[]) => void;
 }
 
-function DocumentoTrasportoForm({ onSelectFornitore, onSelectInvoice, payments, onRefresh }: DocumentoTrasportoFormProps) {
+function DocumentoTrasportoForm({ onSelectFornitore, onSelectInvoice, payments, onRefresh, onRegisterGetPaymentRows }: DocumentoTrasportoFormProps) {
   const { values, status: formStatus } = useFormikContext<FormikDocumentoTrasportoValues>();
   const isUpdate = formStatus?.formStatus === formStatuses.UPDATE;
   const theme = useTheme();
   const dateColorScheme = theme.palette.mode === "dark" ? "dark" : "light";
 
   const [mutatePayment] = useMutation(mutationMutatePagamentoFornitore);
+
+  // Ref alla grid API dei pagamenti per leggere i dati in INSERT mode
+  const paymentGridApiRef = useRef<GridReadyEvent<DatagridData<PaymentRow>>["api"] | null>(null);
+
+  const handlePaymentGridReady = useCallback((event: GridReadyEvent<DatagridData<PaymentRow>>) => {
+    paymentGridApiRef.current = event.api;
+  }, []);
+
+  // Registra getter per leggere le righe pagamenti dalla griglia (usato dal Details in INSERT)
+  useEffect(() => {
+    if (!onRegisterGetPaymentRows) return;
+    onRegisterGetPaymentRows(() => {
+      if (!paymentGridApiRef.current) return [];
+      const rows: PaymentRow[] = [];
+      paymentGridApiRef.current.forEachNode((node) => {
+        if (node.data && node.data.amount > 0) {
+          rows.push({
+            paymentId: node.data.paymentId,
+            paymentDate: node.data.paymentDate,
+            amount: Number(node.data.amount),
+            paymentMethod: node.data.paymentMethod,
+            notes: node.data.notes,
+          });
+        }
+      });
+      return rows;
+    });
+  }, [onRegisterGetPaymentRows]);
 
   // === Payments Grid ===
   const paymentItems = useMemo<PaymentRow[]>(
@@ -88,6 +117,10 @@ function DocumentoTrasportoForm({ onSelectFornitore, onSelectInvoice, payments, 
       const row = event.data;
       if (!row || !row.amount) return;
 
+      // In INSERT mode i pagamenti restano solo nella griglia locale,
+      // saranno inviati insieme al DDT dal Details al submit
+      if (!isUpdate || !values.ddtId) return;
+
       try {
         await mutatePayment({
           variables: {
@@ -106,7 +139,7 @@ function DocumentoTrasportoForm({ onSelectFornitore, onSelectInvoice, payments, 
         showToast({ type: "error", position: "bottom-right", message: "Errore durante il salvataggio del pagamento", autoClose: 2000 });
       }
     },
-    [mutatePayment, values.ddtId, onRefresh]
+    [isUpdate, mutatePayment, values.ddtId, onRefresh]
   );
 
   return (
@@ -215,31 +248,30 @@ function DocumentoTrasportoForm({ onSelectFornitore, onSelectInvoice, payments, 
         </div>
       </Paper>
 
-      {/* Sezione: Pagamenti - solo in UPDATE */}
-      {isUpdate && values.ddtId && (
-        <Paper
-          variant="outlined"
-          sx={{ p: 2.5 }}
+      {/* Sezione: Pagamenti */}
+      <Paper
+        variant="outlined"
+        sx={{ p: 2.5 }}
+      >
+        <Typography
+          variant="subtitle1"
+          fontWeight={600}
+          sx={{ mb: 2 }}
         >
-          <Typography
-            variant="subtitle1"
-            fontWeight={600}
-            sx={{ mb: 2 }}
-          >
-            Pagamenti
-          </Typography>
-          <Datagrid<PaymentRow>
-            gridId="documento-trasporto-payments"
-            height="250px"
-            items={paymentItems}
-            columnDefs={paymentColumnDefs}
-            readOnly={false}
-            getNewRow={getNewPaymentRow}
-            getRowId={({ data }) => (data.paymentId ? data.paymentId.toString() : `new-${Math.random()}`)}
-            onCellValueChanged={handlePaymentCellValueChanged}
-          />
-        </Paper>
-      )}
+          Pagamenti
+        </Typography>
+        <Datagrid<PaymentRow>
+          gridId="documento-trasporto-payments"
+          height="250px"
+          items={paymentItems}
+          columnDefs={paymentColumnDefs}
+          readOnly={false}
+          getNewRow={getNewPaymentRow}
+          getRowId={({ data }) => (data.paymentId ? data.paymentId.toString() : `new-${Math.random()}`)}
+          onCellValueChanged={handlePaymentCellValueChanged}
+          onGridReady={handlePaymentGridReady}
+        />
+      </Paper>
     </Box>
   );
 }

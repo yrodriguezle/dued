@@ -1,8 +1,8 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { Paper, Typography, Box, Chip, useTheme } from "@mui/material";
 import { useFormikContext } from "formik";
 import { useMutation } from "@apollo/client";
-import { CellValueChangedEvent } from "ag-grid-community";
+import { CellValueChangedEvent, GridReadyEvent } from "ag-grid-community";
 
 import FormikTextField from "../../common/form/FormikTextField";
 import FormikDateField from "../../common/form/FormikDateField";
@@ -26,7 +26,7 @@ type DocumentoTrasportoRow = {
   notes: string;
 };
 
-type PaymentRow = {
+export type PaymentRow = {
   paymentId: number;
   paymentDate: string;
   amount: number;
@@ -40,6 +40,7 @@ interface FatturaAcquistoFormProps {
   documentiTrasporto: DocumentoTrasporto[];
   payments: PagamentoFornitore[];
   onRefresh: () => void;
+  onRegisterGetPaymentRows?: (getter: () => PaymentRow[]) => void;
 }
 
 const statusColorMap: Record<string, "error" | "warning" | "success"> = {
@@ -54,7 +55,7 @@ const statusLabelMap: Record<string, string> = {
   PAGATA: "Pagata",
 };
 
-function FatturaAcquistoForm({ onSelectFornitore, onSelectInvoice, documentiTrasporto, payments, onRefresh }: FatturaAcquistoFormProps) {
+function FatturaAcquistoForm({ onSelectFornitore, onSelectInvoice, documentiTrasporto, payments, onRefresh, onRegisterGetPaymentRows }: FatturaAcquistoFormProps) {
   const { values, status: formStatus } = useFormikContext<FormikFatturaAcquistoValues>();
   const isUpdate = formStatus?.formStatus === formStatuses.UPDATE;
   const theme = useTheme();
@@ -62,6 +63,34 @@ function FatturaAcquistoForm({ onSelectFornitore, onSelectInvoice, documentiTras
 
   const [mutateDocumentoTrasporto] = useMutation(mutationMutateDocumentoTrasporto);
   const [mutatePayment] = useMutation(mutationMutatePagamentoFornitore);
+
+  // Ref alla grid API dei pagamenti per leggere i dati in INSERT mode
+  const paymentGridApiRef = useRef<GridReadyEvent<DatagridData<PaymentRow>>["api"] | null>(null);
+
+  const handlePaymentGridReady = useCallback((event: GridReadyEvent<DatagridData<PaymentRow>>) => {
+    paymentGridApiRef.current = event.api;
+  }, []);
+
+  // Registra getter per leggere le righe pagamenti dalla griglia (usato dal Details in INSERT)
+  useEffect(() => {
+    if (!onRegisterGetPaymentRows) return;
+    onRegisterGetPaymentRows(() => {
+      if (!paymentGridApiRef.current) return [];
+      const rows: PaymentRow[] = [];
+      paymentGridApiRef.current.forEachNode((node) => {
+        if (node.data && node.data.amount > 0) {
+          rows.push({
+            paymentId: node.data.paymentId,
+            paymentDate: node.data.paymentDate,
+            amount: Number(node.data.amount),
+            paymentMethod: node.data.paymentMethod,
+            notes: node.data.notes,
+          });
+        }
+      });
+      return rows;
+    });
+  }, [onRegisterGetPaymentRows]);
 
   const vatAmount = (values.taxableAmount * values.vatRate) / 100;
   const totalAmount = values.taxableAmount + vatAmount;
@@ -184,6 +213,10 @@ function FatturaAcquistoForm({ onSelectFornitore, onSelectInvoice, documentiTras
       const row = event.data;
       if (!row || !row.amount) return;
 
+      // In INSERT mode i pagamenti restano solo nella griglia locale,
+      // saranno inviati insieme alla fattura dal Details al submit
+      if (!isUpdate || !values.invoiceId) return;
+
       try {
         await mutatePayment({
           variables: {
@@ -202,7 +235,7 @@ function FatturaAcquistoForm({ onSelectFornitore, onSelectInvoice, documentiTras
         showToast({ type: "error", position: "bottom-right", message: "Errore durante il salvataggio del pagamento", autoClose: 2000 });
       }
     },
-    [mutatePayment, values.invoiceId, onRefresh]
+    [isUpdate, mutatePayment, values.invoiceId, onRefresh]
   );
 
   return (
@@ -398,31 +431,30 @@ function FatturaAcquistoForm({ onSelectFornitore, onSelectInvoice, documentiTras
         </Paper>
       )}
 
-      {/* Sezione: Pagamenti - solo in UPDATE */}
-      {isUpdate && values.invoiceId && (
-        <Paper
-          variant="outlined"
-          sx={{ p: 2.5 }}
+      {/* Sezione: Pagamenti */}
+      <Paper
+        variant="outlined"
+        sx={{ p: 2.5 }}
+      >
+        <Typography
+          variant="subtitle1"
+          fontWeight={600}
+          sx={{ mb: 2 }}
         >
-          <Typography
-            variant="subtitle1"
-            fontWeight={600}
-            sx={{ mb: 2 }}
-          >
-            Pagamenti
-          </Typography>
-          <Datagrid<PaymentRow>
-            gridId="fattura-acquisto-payments"
-            height="250px"
-            items={paymentItems}
-            columnDefs={paymentColumnDefs}
-            readOnly={false}
-            getNewRow={getNewPaymentRow}
-            getRowId={({ data }) => (data.paymentId ? data.paymentId.toString() : `new-${Math.random()}`)}
-            onCellValueChanged={handlePaymentCellValueChanged}
-          />
-        </Paper>
-      )}
+          Pagamenti
+        </Typography>
+        <Datagrid<PaymentRow>
+          gridId="fattura-acquisto-payments"
+          height="250px"
+          items={paymentItems}
+          columnDefs={paymentColumnDefs}
+          readOnly={false}
+          getNewRow={getNewPaymentRow}
+          getRowId={({ data }) => (data.paymentId ? data.paymentId.toString() : `new-${Math.random()}`)}
+          onCellValueChanged={handlePaymentCellValueChanged}
+          onGridReady={handlePaymentGridReady}
+        />
+      </Paper>
     </Box>
   );
 }
