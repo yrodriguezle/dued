@@ -24,7 +24,6 @@ public class AppDbContext : DbContext
     public DbSet<DenominazioneMoneta> DenominazioniMoneta { get; set; }
     public DbSet<RegistroCassa> RegistriCassa { get; set; }
     public DbSet<ConteggioMoneta> ConteggiMoneta { get; set; }
-    public DbSet<IncassoCassa> IncassiCassa { get; set; }
     public DbSet<SpesaCassa> SpeseCassa { get; set; }
 
     // Business Settings
@@ -220,11 +219,6 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.RegistroCassaId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasMany(x => x.IncassiCassa)
-                .WithOne(x => x.RegistroCassa)
-                .HasForeignKey(x => x.RegistroCassaId)
-                .OnDelete(DeleteBehavior.Cascade);
-
             entity.HasMany(x => x.SpeseCassa)
                 .WithOne(x => x.RegistroCassa)
                 .HasForeignKey(x => x.RegistroCassaId)
@@ -261,31 +255,6 @@ public class AppDbContext : DbContext
                 .WithMany(x => x.ConteggiMoneta)
                 .HasForeignKey(x => x.DenominazioneMonetaId)
                 .OnDelete(DeleteBehavior.Restrict);
-        });
-
-        modelBuilder.Entity<IncassoCassa>(entity =>
-        {
-            entity
-                .ToTable("IncassiCassa")
-                .HasCharSet("utf8mb4")
-                .UseCollation("utf8mb4_unicode_ci")
-                .HasKey(x => x.Id);
-
-            entity.Property(x => x.Id)
-                .ValueGeneratedOnAdd();
-
-            entity.Property(x => x.Tipo)
-                .HasMaxLength(100)
-                .IsRequired();
-
-            entity.Property(x => x.Importo)
-                .HasColumnType("decimal(10,2)")
-                .IsRequired();
-
-            entity.HasOne(x => x.RegistroCassa)
-                .WithMany(x => x.IncassiCassa)
-                .HasForeignKey(x => x.RegistroCassaId)
-                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<SpesaCassa>(entity =>

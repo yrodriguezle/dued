@@ -55,28 +55,6 @@ public static class GestioneCassaDataLoaders
         return loader.LoadAsync(registroId);
     }
 
-    public static IDataLoaderResult<IEnumerable<IncassoCassa>> GetIncassiByRegistroId(
-        this IResolveFieldContext context, int registroId)
-    {
-        var loader = context.RequestServices!
-            .GetRequiredService<IDataLoaderContextAccessor>()
-            .Context!
-            .GetOrAddCollectionBatchLoader<int, IncassoCassa>(
-                "IncassiByRegistroId",
-                async (IEnumerable<int> ids, CancellationToken ct) =>
-                {
-                    using var scope = context.RequestServices!
-                        .GetRequiredService<IServiceScopeFactory>()
-                        .CreateScope();
-                    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                    var items = await db.IncassiCassa
-                        .Where(i => ids.Contains(i.RegistroCassaId))
-                        .ToListAsync(ct);
-                    return items.ToLookup(i => i.RegistroCassaId);
-                });
-        return loader.LoadAsync(registroId);
-    }
-
     public static IDataLoaderResult<IEnumerable<SpesaCassa>> GetSpeseByRegistroId(
         this IResolveFieldContext context, int registroId)
     {

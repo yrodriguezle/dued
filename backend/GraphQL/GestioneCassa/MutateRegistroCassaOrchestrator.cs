@@ -48,9 +48,6 @@ public class MutateRegistroCassaOrchestrator
             registroCassa.TotaleApertura = totaleApertura;
             registroCassa.TotaleChiusura = totaleChiusura;
 
-            // === Incassi ===
-            AggiungiIncassi(registroCassa, input);
-
             // === Spese giornaliere ===
             decimal totaleSpese = AggiungiSpese(registroCassa, input.Spese);
 
@@ -97,14 +94,12 @@ public class MutateRegistroCassaOrchestrator
     {
         var registroCassa = await db.RegistriCassa
             .Include(r => r.ConteggiMoneta)
-            .Include(r => r.IncassiCassa)
             .Include(r => r.SpeseCassa)
             .FirstOrDefaultAsync(r => r.Data.Date == input.Data.Date);
 
         if (registroCassa != null)
         {
             db.ConteggiMoneta.RemoveRange(registroCassa.ConteggiMoneta);
-            db.IncassiCassa.RemoveRange(registroCassa.IncassiCassa);
             db.SpeseCassa.RemoveRange(registroCassa.SpeseCassa);
         }
         else
@@ -152,42 +147,6 @@ public class MutateRegistroCassaOrchestrator
             }
         }
         return totale;
-    }
-
-    private static void AggiungiIncassi(RegistroCassa registroCassa, RegistroCassaInput input)
-    {
-        decimal incassoContanteTracciatoDaIncassi = 0;
-        decimal incassiElettroniciDaIncassi = 0;
-        decimal incassiFatturaDaIncassi = 0;
-
-        foreach (var incassoInput in input.Incassi)
-        {
-            registroCassa.IncassiCassa.Add(new IncassoCassa
-            {
-                Tipo = incassoInput.Tipo,
-                Importo = incassoInput.Importo
-            });
-
-            if (incassoInput.Tipo == "Pago in Bianco (Contante)")
-                incassoContanteTracciatoDaIncassi = incassoInput.Importo;
-            else if (incassoInput.Tipo == "Pagamenti Elettronici")
-                incassiElettroniciDaIncassi = incassoInput.Importo;
-            else if (incassoInput.Tipo == "Pagamento con Fattura")
-                incassiFatturaDaIncassi = incassoInput.Importo;
-        }
-
-        if (input.Incassi.Count > 0)
-        {
-            registroCassa.IncassoContanteTracciato = incassoContanteTracciatoDaIncassi;
-            registroCassa.IncassiElettronici = incassiElettroniciDaIncassi;
-            registroCassa.IncassiFattura = incassiFatturaDaIncassi;
-        }
-        else
-        {
-            registroCassa.IncassoContanteTracciato = input.IncassoContanteTracciato;
-            registroCassa.IncassiElettronici = input.IncassiElettronici;
-            registroCassa.IncassiFattura = input.IncassiFattura;
-        }
     }
 
     private static decimal AggiungiSpese(RegistroCassa registroCassa, List<SpesaCassaInput> speseInput)

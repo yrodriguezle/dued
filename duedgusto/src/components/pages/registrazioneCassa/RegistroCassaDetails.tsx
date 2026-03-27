@@ -285,15 +285,11 @@ function RegistroCassaDetails() {
         })) || []
       );
 
-      setInitialIncomes(
-        cashRegister.incassi && cashRegister.incassi.length > 0
-          ? cashRegister.incassi.map((i: IncassoCassa) => ({ type: i.tipo, amount: i.importo }))
-          : [
-            { type: "Pago in contanti", amount: cashRegister.incassoContanteTracciato || 0 },
-            { type: "Pagamenti Elettronici", amount: cashRegister.incassiElettronici || 0 },
-            { type: "Pagamento con Fattura", amount: cashRegister.incassiFattura || 0 },
-          ]
-      );
+      setInitialIncomes([
+        { type: "Pago in contanti", amount: cashRegister.incassoContanteTracciato || 0 },
+        { type: "Pagamenti Elettronici", amount: cashRegister.incassiElettronici || 0 },
+        { type: "Pagamento con Fattura", amount: cashRegister.incassiFattura || 0 },
+      ]);
 
       // Ricostruisci le spese: spese normali + pagamenti fornitore
       const normalExpenses: Expense[] =
@@ -406,10 +402,6 @@ function RegistroCassaDetails() {
         conteggiChiusura: closingCounts.map((row: CashCountRow) => ({
           denominazioneMonetaId: row.denominationId,
           quantita: row.quantity,
-        })),
-        incassi: incomes.map((row: IncomeRow) => ({
-          tipo: row.type,
-          importo: row.amount,
         })),
         spese: normalExpenses.map((row: ExpenseRow) => ({
           descrizione: row.description,

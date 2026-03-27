@@ -16,7 +16,6 @@ const mockInput: SubmitRegistroCassaValues = {
     utenteId: 1,
     conteggiApertura: [],
     conteggiChiusura: [],
-    incassi: [],
     spese: [],
     pagamentiFornitori: [],
     incassoContanteTracciato: 200,

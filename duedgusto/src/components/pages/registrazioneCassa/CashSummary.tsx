@@ -45,16 +45,16 @@ function CashSummary({ openingGridRef, closingGridRef, incomesGridRef, expensesG
   const dailyIncome = closingTotal - openingTotal;
 
   // Calcola i valori dalle entrate
-  const cashInWhite = (incomes as IncomeRow[]).find((i) => i.type === "Pago in contanti")?.amount || 0;
-  const electronicPayments = (incomes as IncomeRow[]).find((i) => i.type === "Pagamenti Elettronici")?.amount || 0;
-  const invoicePayments = (incomes as IncomeRow[]).find((i) => i.type === "Pagamento con Fattura")?.amount || 0;
-  const totalSales = cashInWhite + electronicPayments + invoicePayments;
+  const incassoContanteTracciato = (incomes as IncomeRow[]).find((i) => i.type === "Pago in contanti")?.amount || 0;
+  const incassiElettronici = (incomes as IncomeRow[]).find((i) => i.type === "Pagamenti Elettronici")?.amount || 0;
+  const incassiFattura = (incomes as IncomeRow[]).find((i) => i.type === "Pagamento con Fattura")?.amount || 0;
+  const totalSales = incassoContanteTracciato + incassiElettronici + incassiFattura;
 
   // Calcola le spese
   const totalExpenses = (expenses as ExpenseRow[]).reduce((sum, expense) => sum + (expense.amount || 0), 0);
 
   // Calcoli
-  const expectedCash = cashInWhite - totalExpenses;
+  const expectedCash = incassoContanteTracciato - totalExpenses;
   const difference = dailyIncome - expectedCash;
   const vatAmount = totalSales * 0.1; // 10% IVA (configurabile)
 
@@ -111,15 +111,15 @@ function CashSummary({ openingGridRef, closingGridRef, incomesGridRef, expensesG
         <Box sx={{ mt: 2 }}>
           <SummaryRow
             label="Pago in contanti"
-            value={cashInWhite}
+            value={incassoContanteTracciato}
           />
           <SummaryRow
             label="Pagamenti Elettronici"
-            value={electronicPayments}
+            value={incassiElettronici}
           />
           <SummaryRow
             label="Pagamento con Fattura"
-            value={invoicePayments}
+            value={incassiFattura}
           />
           <Divider sx={{ my: 1 }} />
           <SummaryRow

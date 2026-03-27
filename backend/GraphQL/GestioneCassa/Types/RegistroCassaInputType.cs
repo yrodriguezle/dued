@@ -45,7 +45,6 @@ public class RegistroCassaInput
     public int UtenteId { get; set; }
     public List<ConteggioMonetaInput> ConteggiApertura { get; set; } = new();
     public List<ConteggioMonetaInput> ConteggiChiusura { get; set; } = new();
-    public List<IncassoCassaInput> Incassi { get; set; } = new();
     public List<SpesaCassaInput> Spese { get; set; } = new();
     public List<PagamentoFornitoreRegistroInput> PagamentiFornitori { get; set; } = new();
     public decimal IncassoContanteTracciato { get; set; }
@@ -67,7 +66,6 @@ public class RegistroCassaInputType : InputObjectGraphType<RegistroCassaInput>
         Field(x => x.UtenteId);
         Field<ListGraphType<ConteggioMonetaInputType>>("conteggiApertura");
         Field<ListGraphType<ConteggioMonetaInputType>>("conteggiChiusura");
-        Field<ListGraphType<IncassoCassaInputType>>("incassi");
         Field<ListGraphType<SpesaCassaInputType>>("spese");
         Field<ListGraphType<PagamentoFornitoreRegistroInputType>>("pagamentiFornitori");
         Field(x => x.IncassoContanteTracciato);

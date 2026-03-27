@@ -16,7 +16,7 @@ public class RegistroCassaRepository : Repository<RegistroCassa>, IRegistroCassa
     {
         return await _context.RegistriCassa
             .Include(r => r.ConteggiMoneta)
-            .Include(r => r.IncassiCassa)
+
             .Include(r => r.SpeseCassa)
             .FirstOrDefaultAsync(r => r.Data.Date == data.Date);
     }
@@ -31,7 +31,7 @@ public class RegistroCassaRepository : Repository<RegistroCassa>, IRegistroCassa
     {
         return await _context.RegistriCassa
             .Include(r => r.ConteggiMoneta)
-            .Include(r => r.IncassiCassa)
+
             .Include(r => r.SpeseCassa)
             .FirstOrDefaultAsync(r => r.Id == id);
     }

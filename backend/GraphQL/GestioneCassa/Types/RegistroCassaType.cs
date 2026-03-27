@@ -29,11 +29,6 @@ public class RegistroCassaType : ObjectGraphType<RegistroCassa>
             {
                 return await context.GetConteggiChiusuraByRegistroId(context.Source.Id).GetResultAsync();
             });
-        Field<ListGraphType<IncassoCassaType>>("incassi")
-            .ResolveAsync(async context =>
-            {
-                return await context.GetIncassiByRegistroId(context.Source.Id).GetResultAsync();
-            });
         Field<ListGraphType<SpesaCassaType>>("spese")
             .ResolveAsync(async context =>
             {

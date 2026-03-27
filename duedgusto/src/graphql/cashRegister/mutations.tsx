@@ -13,11 +13,6 @@ export interface ConteggioMonetaInput {
   quantita: number;
 }
 
-export interface IncassoCassaInput {
-  tipo: string;
-  importo: number;
-}
-
 export interface SpesaCassaInput {
   descrizione: string;
   importo: number;
@@ -44,7 +39,6 @@ export interface RegistroCassaInput {
   utenteId: number;
   conteggiApertura: ConteggioMonetaInput[];
   conteggiChiusura: ConteggioMonetaInput[];
-  incassi: IncassoCassaInput[];
   spese: SpesaCassaInput[];
   pagamentiFornitori: PagamentoFornitoreRegistroInput[];
   incassoContanteTracciato: number;

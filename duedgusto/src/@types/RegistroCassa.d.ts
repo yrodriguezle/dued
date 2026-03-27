@@ -38,15 +38,6 @@ type ConteggioMoneta = {
   isApertura: boolean;
 };
 
-// IncassoCassa
-type IncassoCassa = {
-  __typename: "IncassoCassa";
-  id: number;
-  registroCassaId: number;
-  tipo: string;
-  importo: number;
-};
-
 // SpesaCassa
 type SpesaCassa = {
   __typename: "SpesaCassa";
@@ -98,7 +89,6 @@ type RegistroCassa = {
   utente: Utente;
   conteggiApertura: ConteggioMoneta[];
   conteggiChiusura: ConteggioMoneta[];
-  incassi: IncassoCassa[];
   spese: SpesaCassa[];
   pagamentiFornitori: PagamentoFornitoreRegistro[];
   totaleApertura: number;

@@ -24,7 +24,6 @@ public class EliminaRegistroCassaOrchestrator
 
         var registroCassa = await db.RegistriCassa
             .Include(r => r.ConteggiMoneta)
-            .Include(r => r.IncassiCassa)
             .Include(r => r.SpeseCassa)
             .FirstOrDefaultAsync(r => r.Id == registroCassaId)
             ?? throw new Exception($"Registro cassa con ID {registroCassaId} non trovato");

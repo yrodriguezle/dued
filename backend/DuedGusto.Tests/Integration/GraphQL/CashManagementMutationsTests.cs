@@ -133,23 +133,13 @@ public class CashManagementMutationsTests : IDisposable
         {
             Data = new DateTime(2026, 3, 12),
             UtenteId = utente.Id,
-            Stato = "DRAFT"
+            Stato = "DRAFT",
+            IncassoContanteTracciato = 100m,
+            IncassiElettronici = 50m
         };
         _dbContext.RegistriCassa.Add(registro);
         await _dbContext.SaveChangesAsync();
 
-        registro.IncassiCassa.Add(new IncassoCassa
-        {
-            RegistroCassaId = registro.Id,
-            Tipo = "Pago in Bianco (Contante)",
-            Importo = 100m
-        });
-        registro.IncassiCassa.Add(new IncassoCassa
-        {
-            RegistroCassaId = registro.Id,
-            Tipo = "Pagamenti Elettronici",
-            Importo = 50m
-        });
         registro.SpeseCassa.Add(new SpesaCassa
         {
             RegistroCassaId = registro.Id,
@@ -160,11 +150,11 @@ public class CashManagementMutationsTests : IDisposable
 
         // Assert
         var loaded = await _dbContext.RegistriCassa
-            .Include(r => r.IncassiCassa)
             .Include(r => r.SpeseCassa)
             .FirstAsync(r => r.Id == registro.Id);
 
-        loaded.IncassiCassa.Should().HaveCount(2);
+        loaded.IncassoContanteTracciato.Should().Be(100m);
+        loaded.IncassiElettronici.Should().Be(50m);
         loaded.SpeseCassa.Should().HaveCount(1);
     }
 
@@ -315,7 +305,6 @@ public class CashManagementMutationsTests : IDisposable
         // Act — replicate delete mutation logic
         var loaded = await _dbContext.RegistriCassa
             .Include(r => r.ConteggiMoneta)
-            .Include(r => r.IncassiCassa)
             .Include(r => r.SpeseCassa)
             .FirstAsync(r => r.Id == registro.Id);
 
@@ -351,14 +340,9 @@ public class CashManagementMutationsTests : IDisposable
     {
         // Arrange
         var utente = SeedUtente();
-        var registro = SeedRegistroCassa(utente, new DateTime(2026, 3, 12));
+        var registro = SeedRegistroCassa(utente, new DateTime(2026, 3, 12),
+            incassiElettronici: 100m);
 
-        _dbContext.IncassiCassa.Add(new IncassoCassa
-        {
-            RegistroCassaId = registro.Id,
-            Tipo = "Pagamenti Elettronici",
-            Importo = 100m
-        });
         _dbContext.SpeseCassa.Add(new SpesaCassa
         {
             RegistroCassaId = registro.Id,
@@ -367,20 +351,15 @@ public class CashManagementMutationsTests : IDisposable
         });
         await _dbContext.SaveChangesAsync();
 
-        // Act — replicate the update mutation pattern: remove old, add new
+        // Act — replicate the update mutation pattern: update flat fields, remove old spese, add new
         var loaded = await _dbContext.RegistriCassa
-            .Include(r => r.IncassiCassa)
             .Include(r => r.SpeseCassa)
             .FirstAsync(r => r.Id == registro.Id);
 
-        _dbContext.IncassiCassa.RemoveRange(loaded.IncassiCassa);
         _dbContext.SpeseCassa.RemoveRange(loaded.SpeseCassa);
 
-        loaded.IncassiCassa.Add(new IncassoCassa
-        {
-            Tipo = "Pago in Bianco (Contante)",
-            Importo = 200m
-        });
+        loaded.IncassoContanteTracciato = 200m;
+        loaded.IncassiElettronici = 0m;
         loaded.SpeseCassa.Add(new SpesaCassa
         {
             Descrizione = "New expense 1",
@@ -395,12 +374,11 @@ public class CashManagementMutationsTests : IDisposable
 
         // Assert
         var result = await _dbContext.RegistriCassa
-            .Include(r => r.IncassiCassa)
             .Include(r => r.SpeseCassa)
             .FirstAsync(r => r.Id == registro.Id);
 
-        result.IncassiCassa.Should().HaveCount(1);
-        result.IncassiCassa.First().Importo.Should().Be(200m);
+        result.IncassoContanteTracciato.Should().Be(200m);
+        result.IncassiElettronici.Should().Be(0m);
         result.SpeseCassa.Should().HaveCount(2);
         result.SpeseCassa.Sum(s => s.Importo).Should().Be(100m);
     }

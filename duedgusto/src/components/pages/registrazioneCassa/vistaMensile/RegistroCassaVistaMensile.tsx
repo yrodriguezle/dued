@@ -80,9 +80,9 @@ function RegistroCassaVistaMensile() {
     return cashRegisters.reduce(
       (acc, cr: RegistroCassa) => {
         const movimento = (cr.totaleChiusura || 0) - (cr.totaleApertura || 0);
-        const contantiDichiarati = cr.incassi?.find((i: IncassoCassa) => i.tipo === "Pago in contanti")?.importo ?? 0;
-        const elettronici = cr.incassi?.find((i: IncassoCassa) => i.tipo === "Pagamenti Elettronici")?.importo ?? 0;
-        const fatture = cr.incassi?.find((i: IncassoCassa) => i.tipo === "Pagamento con Fattura")?.importo ?? 0;
+        const contantiDichiarati = cr.incassoContanteTracciato ?? 0;
+        const elettronici = cr.incassiElettronici ?? 0;
+        const fatture = cr.incassiFattura ?? 0;
         return {
           contanti: acc.contanti + contantiDichiarati,
           elettronici: acc.elettronici + elettronici,

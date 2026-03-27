@@ -174,7 +174,7 @@ function ListaRegistrazioneCassa() {
         valueGetter: (params: ValueGetterParams<RegistroCassaWithStatus>) => {
           const cr = params.data;
           if (!cr) return 0;
-          return cr.incassi?.find((i: IncassoCassa) => i.tipo === "Pago in contanti")?.importo ?? cr.incassoContanteTracciato ?? 0;
+          return cr.incassoContanteTracciato ?? 0;
         },
         type: "rightAligned",
         valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => formatCurrency(params.value),
@@ -187,7 +187,7 @@ function ListaRegistrazioneCassa() {
         valueGetter: (params: ValueGetterParams<RegistroCassaWithStatus>) => {
           const cr = params.data;
           if (!cr) return 0;
-          return cr.incassi?.find((i: IncassoCassa) => i.tipo === "Pagamenti Elettronici")?.importo ?? cr.incassiElettronici ?? 0;
+          return cr.incassiElettronici ?? 0;
         },
         type: "rightAligned",
         valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => formatCurrency(params.value),
@@ -201,8 +201,8 @@ function ListaRegistrazioneCassa() {
           const cr = params.data;
           if (!cr) return 0;
           const movement = (cr.totaleChiusura || 0) - (cr.totaleApertura || 0);
-          const electronic = cr.incassi?.find((i: IncassoCassa) => i.tipo === "Pagamenti Elettronici")?.importo ?? cr.incassiElettronici ?? 0;
-          const invoice = cr.incassi?.find((i: IncassoCassa) => i.tipo === "Pagamento con Fattura")?.importo ?? cr.incassiFattura ?? 0;
+          const electronic = cr.incassiElettronici ?? 0;
+          const invoice = cr.incassiFattura ?? 0;
           return movement + electronic + invoice;
         },
         type: "rightAligned",
@@ -228,7 +228,7 @@ function ListaRegistrazioneCassa() {
         valueGetter: (params: ValueGetterParams<RegistroCassaWithStatus>) => {
           const cr = params.data;
           if (!cr) return 0;
-          const cash = cr.incassi?.find((i: IncassoCassa) => i.tipo === "Pago in contanti")?.importo ?? cr.incassoContanteTracciato ?? 0;
+          const cash = cr.incassoContanteTracciato ?? 0;
           return cash - (cr.speseFornitori || 0);
         },
         type: "rightAligned",
@@ -242,7 +242,7 @@ function ListaRegistrazioneCassa() {
           const cr = params.data;
           if (!cr) return 0;
           const movement = (cr.totaleChiusura || 0) - (cr.totaleApertura || 0);
-          const cash = cr.incassi?.find((i: IncassoCassa) => i.tipo === "Pago in contanti")?.importo ?? cr.incassoContanteTracciato ?? 0;
+          const cash = cr.incassoContanteTracciato ?? 0;
           return movement - cash;
         },
         type: "rightAligned",
@@ -268,7 +268,7 @@ function ListaRegistrazioneCassa() {
           const cr = params.data;
           if (!cr) return 0;
           const movement = (cr.totaleChiusura || 0) - (cr.totaleApertura || 0);
-          const cash = cr.incassi?.find((i: IncassoCassa) => i.tipo === "Pago in contanti")?.importo ?? cr.incassoContanteTracciato ?? 0;
+          const cash = cr.incassoContanteTracciato ?? 0;
           const ecc = movement - cash;
           return ecc - (cr.speseGiornaliere || 0);
         },

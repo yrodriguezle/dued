@@ -11,15 +11,6 @@ export const conteggioMonetaFragment = `
   }
 `;
 
-export const incassoCassaFragment = `
-  fragment IncassoCassaFragment on IncassoCassa {
-    id
-    registroCassaId
-    tipo
-    importo
-  }
-`;
-
 export const spesaCassaFragment = `
   fragment SpesaCassaFragment on SpesaCassa {
     id
@@ -32,7 +23,6 @@ export const spesaCassaFragment = `
 export const registroCassaFragment = `
   ${utenteFragment}
   ${conteggioMonetaFragment}
-  ${incassoCassaFragment}
   ${spesaCassaFragment}
   fragment RegistroCassaFragment on RegistroCassa {
     id
@@ -58,7 +48,6 @@ export const registroCassaFragment = `
     aggiornatoIl
     conteggiApertura { ...ConteggioMonetaFragment }
     conteggiChiusura { ...ConteggioMonetaFragment }
-    incassi { ...IncassoCassaFragment }
     spese { ...SpesaCassaFragment }
     pagamentiFornitori {
       pagamentoId

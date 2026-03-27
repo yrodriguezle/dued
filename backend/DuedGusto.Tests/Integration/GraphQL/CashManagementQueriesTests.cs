@@ -95,7 +95,6 @@ public class CashManagementQueriesTests : IDisposable
         var result = await _dbContext.RegistriCassa
             .Include(r => r.Utente)
             .Include(r => r.ConteggiMoneta)
-            .Include(r => r.IncassiCassa)
             .Include(r => r.SpeseCassa)
             .Where(r => r.Data == targetDate)
             .FirstOrDefaultAsync();
@@ -188,14 +187,9 @@ public class CashManagementQueriesTests : IDisposable
     {
         // Arrange
         var utente = SeedUtente();
-        var registro = SeedRegistroCassa(utente, new DateTime(2026, 3, 12));
+        var registro = SeedRegistroCassa(utente, new DateTime(2026, 3, 12),
+            incassiElettronici: 150m);
 
-        _dbContext.IncassiCassa.Add(new IncassoCassa
-        {
-            RegistroCassaId = registro.Id,
-            Tipo = "Pagamenti Elettronici",
-            Importo = 150m
-        });
         _dbContext.SpeseCassa.Add(new SpesaCassa
         {
             RegistroCassaId = registro.Id,
@@ -206,14 +200,12 @@ public class CashManagementQueriesTests : IDisposable
 
         // Act
         var result = await _dbContext.RegistriCassa
-            .Include(r => r.IncassiCassa)
             .Include(r => r.SpeseCassa)
             .FirstOrDefaultAsync(r => r.Id == registro.Id);
 
         // Assert
         result.Should().NotBeNull();
-        result!.IncassiCassa.Should().HaveCount(1);
-        result.IncassiCassa.First().Importo.Should().Be(150m);
+        result!.IncassiElettronici.Should().Be(150m);
         result.SpeseCassa.Should().HaveCount(1);
         result.SpeseCassa.First().Importo.Should().Be(50m);
     }
