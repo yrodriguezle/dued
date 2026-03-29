@@ -1,4 +1,5 @@
 import { Box, Typography, Divider, Chip, useMediaQuery, useTheme } from "@mui/material";
+import formatCurrency from "../../../../common/bones/formatCurrency";
 
 interface MonthlyStats {
   totaleVendite: number;
@@ -36,7 +37,7 @@ function RiepilogoIncassiMensile({ stats }: RiepilogoIncassiMensileProps) {
             color="primary.main"
             sx={{ lineHeight: 1.3 }}
           >
-            {`\u20AC ${stats.totaleVendite.toFixed(2)}`}
+            {`\u20AC ${formatCurrency(stats.totaleVendite)}`}
           </Typography>
         </Box>
         {!isMobile && <Divider
@@ -57,7 +58,7 @@ function RiepilogoIncassiMensile({ stats }: RiepilogoIncassiMensileProps) {
             color="success.main"
             sx={{ lineHeight: 1.3 }}
           >
-            {`\u20AC ${stats.contanti.toFixed(2)}`}
+            {`\u20AC ${formatCurrency(stats.contanti)}`}
           </Typography>
         </Box>
         {!isMobile && <Divider
@@ -78,7 +79,7 @@ function RiepilogoIncassiMensile({ stats }: RiepilogoIncassiMensileProps) {
             color="warning.main"
             sx={{ lineHeight: 1.3 }}
           >
-            {`\u20AC ${stats.elettronici.toFixed(2)}`}
+            {`\u20AC ${formatCurrency(stats.elettronici)}`}
           </Typography>
         </Box>
         {!isMobile && <Divider
@@ -98,7 +99,7 @@ function RiepilogoIncassiMensile({ stats }: RiepilogoIncassiMensileProps) {
             fontWeight="bold"
             sx={{ lineHeight: 1.3 }}
           >
-            {`\u20AC ${stats.fatture.toFixed(2)}`}
+            {`\u20AC ${formatCurrency(stats.fatture)}`}
           </Typography>
         </Box>
         {!isMobile && <Divider
@@ -119,7 +120,7 @@ function RiepilogoIncassiMensile({ stats }: RiepilogoIncassiMensileProps) {
             color="error.main"
             sx={{ lineHeight: 1.3 }}
           >
-            {stats.spese > 0 ? `-\u20AC ${stats.spese.toFixed(2)}` : `\u20AC 0.00`}
+            {stats.spese > 0 ? `-\u20AC ${formatCurrency(stats.spese)}` : `\u20AC ${formatCurrency(0)}`}
           </Typography>
         </Box>
         {!isMobile && <Divider
@@ -140,7 +141,7 @@ function RiepilogoIncassiMensile({ stats }: RiepilogoIncassiMensileProps) {
             color="primary.main"
             sx={{ lineHeight: 1.3 }}
           >
-            {`\u20AC ${(stats.totaleVendite - stats.spese).toFixed(2)}`}
+            {`\u20AC ${formatCurrency(stats.totaleVendite - stats.spese)}`}
           </Typography>
         </Box>
         {!isMobile && <Divider
