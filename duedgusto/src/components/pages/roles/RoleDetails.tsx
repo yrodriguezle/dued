@@ -223,7 +223,7 @@ function RoleDetails() {
             >
               {title}
             </Typography>
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5, maxWidth: 900 }}>
               <RoleForm onSelectItem={handleSelectedItem} />
               <RoleMenus
                 menus={data}

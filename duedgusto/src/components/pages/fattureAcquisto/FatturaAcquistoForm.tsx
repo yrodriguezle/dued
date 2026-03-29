@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { Paper, Typography, Box, Chip, useTheme } from "@mui/material";
+import { Paper, Box, Chip, useTheme } from "@mui/material";
 import { useFormikContext } from "formik";
 import { useMutation } from "@apollo/client";
 import { CellValueChangedEvent, GridReadyEvent } from "ag-grid-community";
@@ -240,25 +240,18 @@ function FatturaAcquistoForm({ onSelectFornitore, onSelectInvoice, documentiTras
 
   return (
     <Box
-      sx={{ 
-        display: "flex", 
-        flexDirection: "column", 
+      sx={{
+        display: "flex",
+        flexDirection: "column",
         maxWidth: 900,
         gap: 2.5,
       }}
     >
-      {/* Sezione: Fornitore */}
+      {/* Controlli */}
       <Paper
         variant="outlined"
         sx={{ p: 2.5 }}
       >
-        <Typography
-          variant="subtitle1"
-          fontWeight={600}
-          sx={{ mb: 2 }}
-        >
-          Fornitore
-        </Typography>
         <div className="grid grid-cols-12 gap-4">
           <div className="col-span-12 md:col-span-8">
             <FormikSearchbox<FormikFatturaAcquistoValues, FornitoreSearchbox>
@@ -279,22 +272,6 @@ function FatturaAcquistoForm({ onSelectFornitore, onSelectInvoice, documentiTras
               size="medium"
             />}
           </div>
-        </div>
-      </Paper>
-
-      {/* Sezione: Dati Fattura */}
-      <Paper
-        variant="outlined"
-        sx={{ p: 2.5 }}
-      >
-        <Typography
-          variant="subtitle1"
-          fontWeight={600}
-          sx={{ mb: 2 }}
-        >
-          Dati Fattura
-        </Typography>
-        <div className="grid grid-cols-12 gap-4">
           <div className="col-span-12 md:col-span-4">
             <FormikSearchbox<FormikFatturaAcquistoValues, FatturaAcquistoSearchbox>
               label="Numero Fattura *"
@@ -325,22 +302,6 @@ function FatturaAcquistoForm({ onSelectFornitore, onSelectInvoice, documentiTras
               sx={{ "& input": { colorScheme: dateColorScheme } }}
             />
           </div>
-        </div>
-      </Paper>
-
-      {/* Sezione: Importi */}
-      <Paper
-        variant="outlined"
-        sx={{ p: 2.5 }}
-      >
-        <Typography
-          variant="subtitle1"
-          fontWeight={600}
-          sx={{ mb: 2 }}
-        >
-          Importi
-        </Typography>
-        <div className="grid grid-cols-12 gap-4">
           <div className="col-span-12 md:col-span-3">
             <FormikNumberField
               name="taxableAmount"
@@ -377,22 +338,6 @@ function FatturaAcquistoForm({ onSelectFornitore, onSelectInvoice, documentiTras
               decimals={2}
             />
           </div>
-        </div>
-      </Paper>
-
-      {/* Sezione: Note */}
-      <Paper
-        variant="outlined"
-        sx={{ p: 2.5 }}
-      >
-        <Typography
-          variant="subtitle1"
-          fontWeight={600}
-          sx={{ mb: 2 }}
-        >
-          Note
-        </Typography>
-        <div className="grid grid-cols-12 gap-4">
           <div className="col-span-12">
             <FormikTextField
               name="notes"
@@ -405,19 +350,12 @@ function FatturaAcquistoForm({ onSelectFornitore, onSelectInvoice, documentiTras
         </div>
       </Paper>
 
-      {/* Sezione: DDT - solo in UPDATE */}
+      {/* DDT - solo in UPDATE */}
       {isUpdate && values.invoiceId && (
         <Paper
           variant="outlined"
           sx={{ p: 2.5 }}
         >
-          <Typography
-            variant="subtitle1"
-            fontWeight={600}
-            sx={{ mb: 2 }}
-          >
-            Documenti di Trasporto (DDT)
-          </Typography>
           <Datagrid<DocumentoTrasportoRow>
             gridId="fattura-acquisto-ddt"
             height="250px"
@@ -431,18 +369,11 @@ function FatturaAcquistoForm({ onSelectFornitore, onSelectInvoice, documentiTras
         </Paper>
       )}
 
-      {/* Sezione: Pagamenti */}
+      {/* Pagamenti */}
       <Paper
         variant="outlined"
         sx={{ p: 2.5 }}
       >
-        <Typography
-          variant="subtitle1"
-          fontWeight={600}
-          sx={{ mb: 2 }}
-        >
-          Pagamenti
-        </Typography>
         <Datagrid<PaymentRow>
           gridId="fattura-acquisto-payments"
           height="250px"

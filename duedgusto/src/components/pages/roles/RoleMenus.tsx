@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFormikContext } from "formik";
-import { Box, Chip, Paper, Typography } from "@mui/material";
+import { Box, Chip, Paper } from "@mui/material";
 import { GridApi, GridReadyEvent } from "ag-grid-community";
 import Datagrid from "../../common/datagrid/Datagrid";
 import { MenuNonNull } from "../../common/form/searchbox/searchboxOptions/menuSearchboxOptions";
@@ -136,34 +136,20 @@ function RoleMenus({ menus, onGridReady, selectedIds }: RoleMenusProps) {
   return (
     <Paper
       variant="outlined"
-      sx={{ p: 2.5 }}
+      sx={{ p: 1.5 }}
     >
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
-        <Box>
-          <Typography
-            variant="subtitle1"
-            fontWeight={600}
-          >
-            Permessi Menu
-          </Typography>
-          <Typography
-            variant="body2"
-            color="text.secondary"
-          >
-            Seleziona i menu accessibili per questo ruolo
-          </Typography>
-        </Box>
-        {selectedCount > 0 && <Chip
+      {selectedCount > 0 && <Box sx={{ mb: 1 }}>
+        <Chip
           label={`${selectedCount} menu selezionat${selectedCount === 1 ? "o" : "i"}`}
           size="small"
           color="primary"
           variant="outlined"
-        />}
-      </Box>
+        />
+      </Box>}
       <Datagrid<MenuNonNull>
         gridId="role-menus"
         presentation
-        height="60vh"
+        height="65vh"
         items={menus}
         getRowId={({ data }) => data.id.toString()}
         treeData

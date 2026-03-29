@@ -1,7 +1,7 @@
 import { useCallback, useContext, useEffect, useRef } from "react";
 import { Form, Formik, FormikProps } from "formik";
 import { z } from "zod";
-import Paper from "@mui/material/Paper";
+
 import { toast } from "react-toastify";
 import { useLocation, useNavigate } from "react-router";
 import { useLazyQuery, useMutation } from "@apollo/client";
@@ -232,9 +232,9 @@ function FornitoreDetails() {
             >
               {title}
             </Typography>
-            <Paper sx={{ padding: 1 }}>
+            <Box sx={{ maxWidth: 900 }}>
               <FornitoreForm onSelectItem={handleSelectedItem} />
-            </Paper>
+            </Box>
           </Box>
         </Form>
       )}

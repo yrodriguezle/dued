@@ -236,7 +236,9 @@ function UserDetails() {
             >
               {title}
             </Typography>
-            <UserForm onSelectItem={handleSelectedItem} />
+            <Box sx={{ maxWidth: 900 }}>
+              <UserForm onSelectItem={handleSelectedItem} />
+            </Box>
           </Box>
         </Form>
       )}

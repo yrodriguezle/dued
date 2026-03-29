@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { Paper, Typography, Box, useTheme } from "@mui/material";
+import { Paper, Box, useTheme } from "@mui/material";
 import { useFormikContext } from "formik";
 import { useMutation } from "@apollo/client";
 import { CellValueChangedEvent, GridReadyEvent } from "ag-grid-community";
@@ -144,18 +144,11 @@ function DocumentoTrasportoForm({ onSelectFornitore, onSelectInvoice, payments, 
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5, maxWidth: 900 }}>
-      {/* Sezione: Fornitore e DDT */}
+      {/* Controlli */}
       <Paper
         variant="outlined"
         sx={{ p: 2.5 }}
       >
-        <Typography
-          variant="subtitle1"
-          fontWeight={600}
-          sx={{ mb: 2 }}
-        >
-          Fornitore e DDT
-        </Typography>
         <div className="grid grid-cols-12 gap-4">
           <div className="col-span-12 md:col-span-6">
             <FormikSearchbox<FormikDocumentoTrasportoValues, FornitoreSearchbox>
@@ -185,22 +178,6 @@ function DocumentoTrasportoForm({ onSelectFornitore, onSelectInvoice, payments, 
               sx={{ "& input": { colorScheme: dateColorScheme } }}
             />
           </div>
-        </div>
-      </Paper>
-
-      {/* Sezione: Importo e Fattura Collegata */}
-      <Paper
-        variant="outlined"
-        sx={{ p: 2.5 }}
-      >
-        <Typography
-          variant="subtitle1"
-          fontWeight={600}
-          sx={{ mb: 2 }}
-        >
-          Importo e Fattura Collegata
-        </Typography>
-        <div className="grid grid-cols-12 gap-4">
           <div className="col-span-12 md:col-span-3">
             <FormikNumberField
               name="amount"
@@ -220,22 +197,6 @@ function DocumentoTrasportoForm({ onSelectFornitore, onSelectInvoice, payments, 
               onSelectItem={onSelectInvoice}
             />
           </div>
-        </div>
-      </Paper>
-
-      {/* Sezione: Note */}
-      <Paper
-        variant="outlined"
-        sx={{ p: 2.5 }}
-      >
-        <Typography
-          variant="subtitle1"
-          fontWeight={600}
-          sx={{ mb: 2 }}
-        >
-          Note
-        </Typography>
-        <div className="grid grid-cols-12 gap-4">
           <div className="col-span-12">
             <FormikTextField
               name="notes"
@@ -248,18 +209,11 @@ function DocumentoTrasportoForm({ onSelectFornitore, onSelectInvoice, payments, 
         </div>
       </Paper>
 
-      {/* Sezione: Pagamenti */}
+      {/* Pagamenti */}
       <Paper
         variant="outlined"
         sx={{ p: 2.5 }}
       >
-        <Typography
-          variant="subtitle1"
-          fontWeight={600}
-          sx={{ mb: 2 }}
-        >
-          Pagamenti
-        </Typography>
         <Datagrid<PaymentRow>
           gridId="documento-trasporto-payments"
           height="250px"
