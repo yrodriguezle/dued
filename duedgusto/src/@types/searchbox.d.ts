@@ -1,4 +1,5 @@
 import { ColDef } from "ag-grid-community";
+import { ReactNode } from "react";
 
 type ColumnAction = "update" | "remove";
 
@@ -20,4 +21,5 @@ interface SearchboxOptions<T extends Record<string, unknown>> {
     fragment?: string;
     items: SearchboxColDef<T>[];
   };
+  renderCreateForm?: (props: { onSaved: (item: T) => void; onCancel: () => void }) => ReactNode;
 }

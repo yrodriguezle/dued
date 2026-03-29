@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FormikFornitoreValues } from "./FornitoreDetails";
+import { FormikFornitoreValues } from "./fornitoreFormSchema";
 import setInitialFocus from "./setInitialFocus";
 import mergeWithDefaults from "../../../common/form/mergeWithDefaults";
 

@@ -1,6 +1,9 @@
+import React from "react";
 import { SearchboxColDef, SearchboxOptions } from "../../../../../@types/searchbox";
 
 export type FornitoreSearchbox = Exclude<Fornitore, null>;
+
+const FornitoreFormContainer = React.lazy(() => import("../../../../components/pages/fornitori/FornitoreFormContainer"));
 
 const items: SearchboxColDef<FornitoreSearchbox>[] = [
   {
@@ -40,6 +43,15 @@ const fornitoreSearchboxOption: SearchboxOptions<FornitoreSearchbox> = {
     title: "Seleziona un fornitore",
     items,
   },
+  renderCreateForm: ({ onSaved, onCancel }) => (
+    <React.Suspense fallback={null}>
+      <FornitoreFormContainer
+        mode="modal"
+        onSaved={onSaved}
+        onCancel={onCancel}
+      />
+    </React.Suspense>
+  ),
 };
 
 export default fornitoreSearchboxOption;

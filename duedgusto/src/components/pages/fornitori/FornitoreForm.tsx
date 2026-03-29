@@ -4,13 +4,14 @@ import FormikNumberField from "../../common/form/FormikNumberField";
 import FormikCheckbox from "../../common/form/FormikCheckbox";
 import FormikSearchbox from "../../common/form/searchbox/FormikSearchbox";
 import fornitoreSearchboxOption, { FornitoreSearchbox } from "../../common/form/searchbox/searchboxOptions/fornitoreSearchboxOptions";
-import { FormikFornitoreValues } from "./FornitoreDetails";
+import { FormikFornitoreValues } from "./fornitoreFormSchema";
 
 interface FornitoreFormProps {
   onSelectItem: (item: FornitoreSearchbox) => void;
+  createMode?: boolean;
 }
 
-function FornitoreForm({ onSelectItem }: FornitoreFormProps) {
+function FornitoreForm({ onSelectItem, createMode }: FornitoreFormProps) {
   return (
     <Paper
       variant="outlined"
@@ -18,17 +19,28 @@ function FornitoreForm({ onSelectItem }: FornitoreFormProps) {
     >
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-12 md:col-span-6">
-          <FormikSearchbox<FormikFornitoreValues, FornitoreSearchbox>
-            label="Ragione Sociale *"
-            placeholder="Ragione Sociale"
-            name="ragioneSociale"
-            autoFocus
-            required
-            fullWidth
-            fieldName="ragioneSociale"
-            options={fornitoreSearchboxOption}
-            onSelectItem={onSelectItem}
-          />
+          {createMode ? (
+            <FormikTextField
+              name="ragioneSociale"
+              label="Ragione Sociale *"
+              placeholder="Ragione Sociale"
+              autoFocus
+              required
+              fullWidth
+            />
+          ) : (
+            <FormikSearchbox<FormikFornitoreValues, FornitoreSearchbox>
+              label="Ragione Sociale *"
+              placeholder="Ragione Sociale"
+              name="ragioneSociale"
+              autoFocus
+              required
+              fullWidth
+              fieldName="ragioneSociale"
+              options={fornitoreSearchboxOption}
+              onSelectItem={onSelectItem}
+            />
+          )}
         </div>
         <div className="col-span-12 md:col-span-6">
           <FormikTextField

@@ -1,9 +1,11 @@
-import { useCallback, useMemo, useRef, useState } from "react";
-import { Modal, Box, Typography, IconButton } from "@mui/material";
+import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { Modal, Box, Typography, IconButton, Button, Stack, Dialog, DialogTitle } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import CheckIcon from "@mui/icons-material/Check";
+import AddIcon from "@mui/icons-material/Add";
 
 import Datagrid from "../../datagrid/Datagrid";
-import { DatagridColDef, DatagridGridReadyEvent, DatagridCellFocusedEvent, DatagridRowDoubleClickedEvent, DatagridRowClickedEvent } from "../../datagrid/@types/Datagrid";
+import { DatagridColDef, DatagridCellFocusedEvent, DatagridRowDoubleClickedEvent, DatagridRowClickedEvent } from "../../datagrid/@types/Datagrid";
 import { SearchboxColDef } from "../../../../@types/searchbox";
 
 interface SearchboxModalProps<T extends Record<string, unknown>> {
@@ -14,6 +16,9 @@ interface SearchboxModalProps<T extends Record<string, unknown>> {
   loading: boolean;
   onClose: () => void;
   onSelectItem: (item: T) => void;
+  renderCreateForm?: (props: { onSaved: (item: T) => void; onCancel: () => void }) => ReactNode;
+  onItemCreated?: (item: T) => void;
+  preSelectedItem?: T | null;
 }
 
 const modalStyle = {
@@ -32,16 +37,17 @@ const modalStyle = {
   overflow: "hidden",
 };
 
-function SearchboxModal<T extends Record<string, unknown>>({ open, title, items, columnDefs, loading, onClose, onSelectItem }: SearchboxModalProps<T>) {
-  const [gridReady, setGridReady] = useState<DatagridGridReadyEvent<T> | null>(null);
-  const lastTapRef = useRef<{ rowId: string | undefined; time: number }>({ rowId: undefined, time: 0 });
+function SearchboxModal<T extends Record<string, unknown>>({ open, title, items, columnDefs, loading, onClose, onSelectItem, renderCreateForm, onItemCreated, preSelectedItem }: SearchboxModalProps<T>) {
+  const [selectedItem, setSelectedItem] = useState<T | null>(null);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
-  // Converte SearchboxColDef<T>[] in DatagridColDef<T>[] (ColDef<DatagridData<T>>[]) per Datagrid.
-  // graphField e action sono campi searchbox-specifici — vengono omessi.
-  // Il cast via unknown è necessario al boundary T → DatagridData<T>: tutte le callback di AG Grid
-  // (valueGetter, cellRenderer, ecc.) sono parametrizzate in T, ma DatagridData<T> = T & DatagridAuxData
-  // è compatibile a runtime. Non è possibile esprimere questa covarianza strutturalmente in TypeScript
-  // senza un'asserzione esplicita a questo boundary.
+  // Auto-select item received from parent (e.g., after inline creation)
+  useEffect(() => {
+    if (preSelectedItem) {
+      setSelectedItem(preSelectedItem);
+    }
+  }, [preSelectedItem]);
+
   const datagridColumnDefs = useMemo<DatagridColDef<T>[]>(
     () =>
       columnDefs.map((col) => {
@@ -52,75 +58,83 @@ function SearchboxModal<T extends Record<string, unknown>>({ open, title, items,
     [columnDefs]
   );
 
-  const handleGridReady = useCallback((event: DatagridGridReadyEvent<T>) => {
-    setGridReady(event);
+  const extractOriginalData = useCallback((data: Record<string, unknown>): T => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { status, ...originalData } = data;
+    return originalData as unknown as T;
   }, []);
+
+  const handleConfirmSelection = useCallback(() => {
+    if (selectedItem) {
+      onSelectItem(selectedItem);
+      onClose();
+    }
+  }, [selectedItem, onSelectItem, onClose]);
 
   const handleRowDoubleClicked = useCallback(
     (event: DatagridRowDoubleClickedEvent<T>) => {
-      const data = event.data;
-      if (data) {
-        // Estrai i dati originali rimuovendo i campi ausiliari
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { status, ...originalData } = data;
-        onSelectItem(originalData as unknown as T);
+      if (event.data) {
+        onSelectItem(extractOriginalData(event.data));
         onClose();
       }
     },
-    [onSelectItem, onClose]
+    [onSelectItem, onClose, extractOriginalData]
   );
 
   const handleRowClicked = useCallback(
     (event: DatagridRowClickedEvent<T>) => {
-      const data = event.data;
-      if (!data) return;
-
-      const rowId = event.node.id;
-      const now = Date.now();
-      const last = lastTapRef.current;
-
-      if (last.rowId === rowId && now - last.time < 500) {
-        // Double tap detected - select the row
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { status, ...originalData } = data;
-        onSelectItem(originalData as unknown as T);
-        onClose();
-        lastTapRef.current = { rowId: undefined, time: 0 };
-      } else {
-        lastTapRef.current = { rowId, time: now };
+      if (event.data) {
+        setSelectedItem(extractOriginalData(event.data));
       }
     },
-    [onSelectItem, onClose]
+    [extractOriginalData]
   );
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
-      if (event.key === "Enter" && gridReady) {
-        const selectedRows = gridReady.api.getSelectedRows();
-        if (selectedRows.length > 0) {
-          // Estrai i dati originali rimuovendo i campi ausiliari
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { status, ...originalData } = selectedRows[0];
-          onSelectItem(originalData as unknown as T);
-          onClose();
-        }
+      if (event.key === "Enter") {
+        event.preventDefault();
+        handleConfirmSelection();
       } else if (event.key === "Escape") {
         onClose();
       }
     },
-    [gridReady, onSelectItem, onClose]
+    [handleConfirmSelection, onClose]
   );
 
-  const handleCellFocused = useCallback((params: DatagridCellFocusedEvent<T>) => {
-    if (params.rowIndex !== null && params.rowIndex !== undefined) {
-      const node = params.api.getDisplayedRowAtIndex(params.rowIndex);
-      if (node) {
-        node.setSelected(true);
+  const handleCellFocused = useCallback(
+    (params: DatagridCellFocusedEvent<T>) => {
+      if (params.rowIndex !== null && params.rowIndex !== undefined) {
+        const node = params.api.getDisplayedRowAtIndex(params.rowIndex);
+        if (node) {
+          node.setSelected(true);
+          if (node.data) {
+            setSelectedItem(extractOriginalData(node.data));
+          }
+        }
       }
-    }
+    },
+    [extractOriginalData]
+  );
+
+  const handleOpenCreateDialog = useCallback(() => {
+    setCreateDialogOpen(true);
   }, []);
 
+  const handleCloseCreateDialog = useCallback(() => {
+    setCreateDialogOpen(false);
+  }, []);
+
+  const handleItemCreated = useCallback(
+    (item: T) => {
+      setCreateDialogOpen(false);
+      onItemCreated?.(item);
+    },
+    [onItemCreated]
+  );
+
   return (
+    <>
     <Modal
       open={open}
       onClose={onClose}
@@ -161,7 +175,6 @@ function SearchboxModal<T extends Record<string, unknown>>({ open, title, items,
             columnDefs={datagridColumnDefs}
             height="100%"
             loading={loading}
-            onGridReady={handleGridReady}
             onRowDoubleClicked={handleRowDoubleClicked}
             onRowClicked={handleRowClicked}
             onCellFocused={handleCellFocused}
@@ -169,24 +182,82 @@ function SearchboxModal<T extends Record<string, unknown>>({ open, title, items,
           />
         </Box>
 
-        {/* Footer with hint */}
+        {/* Footer */}
         <Box
           sx={{
-            p: 2,
+            px: 2,
+            py: 1.5,
             borderTop: 1,
             borderColor: "divider",
             bgcolor: "action.hover",
           }}
         >
-          <Typography
-            variant="caption"
-            color="text.secondary"
+          <Stack
+            direction="row"
+            spacing={1}
+            justifyContent="space-between"
+            alignItems="center"
           >
-            Doppio click su una riga o premi Invio per selezionare
-          </Typography>
+            <Box>
+              {renderCreateForm && (
+                <Button
+                  variant="text"
+                  size="small"
+                  startIcon={<AddIcon />}
+                  onClick={handleOpenCreateDialog}
+                >
+                  Aggiungi
+                </Button>
+              )}
+            </Box>
+            <Stack
+              direction="row"
+              spacing={1}
+            >
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={onClose}
+              >
+                Annulla
+              </Button>
+              <Button
+                variant="contained"
+                size="small"
+                disabled={!selectedItem}
+                startIcon={<CheckIcon />}
+                onClick={handleConfirmSelection}
+              >
+                Seleziona
+              </Button>
+            </Stack>
+          </Stack>
         </Box>
       </Box>
     </Modal>
+
+    {/* Dialog annidato per creazione nuovo record */}
+    {renderCreateForm && (
+      <Dialog
+        open={createDialogOpen}
+        onClose={handleCloseCreateDialog}
+        fullWidth
+        maxWidth="md"
+      >
+        <DialogTitle>
+          Nuovo record
+          <IconButton
+            onClick={handleCloseCreateDialog}
+            size="small"
+            sx={{ position: "absolute", right: 8, top: 8 }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        {createDialogOpen && renderCreateForm({ onSaved: handleItemCreated, onCancel: handleCloseCreateDialog })}
+      </Dialog>
+    )}
+    </>
   );
 }
 
