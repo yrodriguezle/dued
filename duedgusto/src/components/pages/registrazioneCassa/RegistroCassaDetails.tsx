@@ -245,7 +245,7 @@ function RegistroCassaDetails() {
     }
   }, [currentDate, isOpen, client, denominazioni, handleCellChange]);
 
-  const { submitCashRegister } = useSubmitCashRegister();
+  const { submitRegistroCassa } = useSubmitCashRegister();
   const { closeCashRegister, loading: closing } = useCloseCashRegister();
   const onConfirm = useConfirm();
 
@@ -417,7 +417,7 @@ function RegistroCassaDetails() {
         stato: values.status as StatoRegistroCassa,
       };
 
-      const result = await submitCashRegister({ registroCassa: input });
+      const result = await submitRegistroCassa({ registroCassa: input });
 
       if (result) {
         toast.success("Cassa salvata con successo!", { position: "bottom-right" });

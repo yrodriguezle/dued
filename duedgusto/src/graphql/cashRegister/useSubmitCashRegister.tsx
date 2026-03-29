@@ -20,18 +20,15 @@ function useSubmitCashRegister() {
       ],
       awaitRefetchQueries: false,
     });
+
     if (result.data?.gestioneCassa?.mutateRegistroCassa) {
       return result.data.gestioneCassa.mutateRegistroCassa;
     }
     return null;
   };
 
-  // Legacy alias
-  const submitCashRegister = submitRegistroCassa;
-
   return {
     submitRegistroCassa,
-    submitCashRegister,
     data,
     error,
     loading,

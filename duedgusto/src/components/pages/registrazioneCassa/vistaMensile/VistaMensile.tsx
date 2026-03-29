@@ -25,7 +25,7 @@ export interface CashEvent {
   fatture: number;
 }
 
-function RegistroCassaVistaMensile() {
+function VistaMensile() {
   const navigate = useNavigate();
   const { setTitle } = useContext(PageTitleContext);
   const [searchParams] = useSearchParams();
@@ -200,4 +200,4 @@ function RegistroCassaVistaMensile() {
   );
 }
 
-export default RegistroCassaVistaMensile;
+export default VistaMensile;

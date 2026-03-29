@@ -326,7 +326,10 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
                                 ...params.InputProps,
                                 endAdornment: (
                                   <>
-                                    {fattureLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                                    {fattureLoading ? <CircularProgress
+                                      color="inherit"
+                                      size={20}
+                                    /> : null}
                                     {params.InputProps.endAdornment}
                                   </>
                                 ),
@@ -361,7 +364,10 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
                                 ...params.InputProps,
                                 endAdornment: (
                                   <>
-                                    {ddtLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                                    {ddtLoading ? <CircularProgress
+                                      color="inherit"
+                                      size={20}
+                                    /> : null}
                                     {params.InputProps.endAdornment}
                                   </>
                                 ),
@@ -468,7 +474,11 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
                   {/* Preview calcolo IVA - solo per fatture con importo > 0 */}
                   {documentType === "FA" && amount > 0 && aliquotaIva > 0 && (
                     <div className="col-span-12">
-                      <Typography variant="body2" color="text.secondary" sx={{ mt: -1 }}>
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ mt: -1 }}
+                      >
                         {(() => {
                           const imponibile = amount / (1 + aliquotaIva / 100);
                           const ivaAmount = amount - imponibile;

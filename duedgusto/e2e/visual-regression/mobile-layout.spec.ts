@@ -50,7 +50,7 @@ test.describe("Mobile layout — no horizontal overflow", () => {
     await context.close();
   });
 
-  test("nessun overflow su RegistroCassaVistaMensile (375px)", async ({ browser }) => {
+  test("nessun overflow su VistaMensile (375px)", async ({ browser }) => {
     const context = await browser.newContext({
       storageState: AUTH_STATE_PATH,
       viewport: { width: 375, height: 667 },
@@ -72,7 +72,7 @@ test.describe("Mobile layout — no horizontal overflow", () => {
     await context.close();
   });
 
-  test("nessun overflow su RegistroCassaVistaMensile (430px)", async ({ browser }) => {
+  test("nessun overflow su VistaMensile (430px)", async ({ browser }) => {
     const context = await browser.newContext({
       storageState: AUTH_STATE_PATH,
       viewport: { width: 430, height: 932 },
@@ -85,7 +85,7 @@ test.describe("Mobile layout — no horizontal overflow", () => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SUITE 2 — Toolbar responsive (RegistroCassaVistaMensile)
+// SUITE 2 — Toolbar responsive (VistaMensile)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 test.describe("Mobile layout — toolbar responsive", () => {

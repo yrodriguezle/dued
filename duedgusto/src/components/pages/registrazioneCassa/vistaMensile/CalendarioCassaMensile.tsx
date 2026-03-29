@@ -1,6 +1,6 @@
 import { Box } from "@mui/material";
 import CustomCalendar from "./CustomCalendar";
-import type { CashEvent } from "./RegistroCassaVistaMensile";
+import type { CashEvent } from "./VistaMensile";
 
 interface CalendarioCassaMensileProps {
   events: CashEvent[];

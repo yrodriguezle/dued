@@ -11,7 +11,7 @@ import { visualTest, navigateAndWait, takeScreenshot, AUTH_STATE_PATH } from "./
  * 4. IncomesDataGrid — incomes section
  * 5. ExpensesDataGrid — expenses section
  * 6. SummaryDataGrid — summary section
- * 7. RegistroCassaVistaMensile — monthly overview (/gestionale/cassa/monthly)
+ * 7. VistaMensile — monthly overview (/gestionale/cassa/monthly)
  * 8. MonthlyClosureDetails — monthly closure form (/gestionale/cassa/monthly-closure/new)
  *
  * NOTE: Components 2-6 are sub-components rendered within RegistroCassaDetails.

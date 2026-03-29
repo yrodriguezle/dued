@@ -114,13 +114,13 @@ describe("useSubmitCashRegister", () => {
     expect((submitResult as typeof mockResultData).id).toBe(1);
   });
 
-  it("dovrebbe esporre l'alias legacy submitCashRegister", () => {
+  it("dovrebbe esporre submitRegistroCassa", () => {
     const wrapper = createWrapper([]);
 
     const { result } = renderHook(() => useSubmitCashRegister(), { wrapper });
 
-    expect(result.current.submitCashRegister).toBeDefined();
-    expect(result.current.submitCashRegister).toBe(result.current.submitRegistroCassa);
+    expect(result.current.submitRegistroCassa).toBeDefined();
+    expect(result.current.submitRegistroCassa).toBe(result.current.submitRegistroCassa);
   });
 
   it("dovrebbe restituire null quando la mutation non restituisce dati", async () => {

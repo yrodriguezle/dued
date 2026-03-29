@@ -8,7 +8,7 @@ import { loadDynamicComponent } from "./dynamicComponentLoader";
 
 const HomePage = React.lazy(() => import("../components/pages/dashboard/HomePage.tsx"));
 const MonthlyClosureDetails = React.lazy(() => import("../components/pages/registrazioneCassa/MonthlyClosureDetails.tsx"));
-const RegistroCassaVistaMensile = React.lazy(() => import("../components/pages/registrazioneCassa/vistaMensile/RegistroCassaVistaMensile.tsx"));
+const VistaMensile = React.lazy(() => import("../components/pages/registrazioneCassa/vistaMensile/VistaMensile.tsx"));
 const CashRegisterDetails = React.lazy(() => import("../components/pages/registrazioneCassa/RegistroCassaDetails.tsx"));
 const ProfilePage = React.lazy(() => import("../components/pages/profile/ProfilePage.tsx"));
 
@@ -63,7 +63,7 @@ function ProtectedRoutes() {
           path="cassa/monthly"
           element={
             <Suspense fallback={<Fallback />}>
-              <RegistroCassaVistaMensile />
+              <VistaMensile />
             </Suspense>
           }
         />

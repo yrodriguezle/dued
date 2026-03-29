@@ -34,7 +34,7 @@ vi.mock("../../components/pages/registrazioneCassa/MonthlyClosureDetails.tsx", (
   default: () => <div>Monthly Closure</div>,
 }));
 
-vi.mock("../../components/pages/registrazioneCassa/vistaMensile/RegistroCassaVistaMensile.tsx", () => ({
+vi.mock("../../components/pages/registrazioneCassa/vistaMensile/VistaMensile.tsx", () => ({
   default: () => <div>Monthly Page</div>,
 }));
 

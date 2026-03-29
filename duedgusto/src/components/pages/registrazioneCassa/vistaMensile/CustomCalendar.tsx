@@ -3,7 +3,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek } from
 import dayjs from "dayjs";
 import { Box, Typography, useTheme, useMediaQuery, alpha, Tooltip } from "@mui/material";
 import useStore from "../../../../store/useStore";
-import type { CashEvent } from "./RegistroCassaVistaMensile";
+import type { CashEvent } from "./VistaMensile";
 
 const STATO_CONFIG: Record<string, { label: string; color: string }> = {
   DRAFT: { label: "Bozza", color: "warning.main" },
@@ -20,7 +20,7 @@ interface CustomCalendarProps {
   currentDate?: Date;
 }
 
-export function CustomCalendar({ events, onSelectEvent, onSelectSlot, currentDate = new Date() }: CustomCalendarProps) {
+function CustomCalendar({ events, onSelectEvent, onSelectSlot, currentDate = new Date() }: CustomCalendarProps) {
   const muiTheme = useTheme();
   const isDark = muiTheme.palette.mode === "dark";
   const isMobile = useMediaQuery(muiTheme.breakpoints.down("sm"));
