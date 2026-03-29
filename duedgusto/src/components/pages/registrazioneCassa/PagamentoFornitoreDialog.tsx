@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from "react";
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Box, ToggleButtonGroup, ToggleButton, FormControl, InputLabel, Select, MenuItem, Autocomplete, CircularProgress, Typography } from "@mui/material";
 import { useLazyQuery } from "@apollo/client";
 import NumberField from "../../common/form/NumberField";
-import DateField from "../../common/form/DateField";
 import FormikSearchbox from "../../common/form/searchbox/FormikSearchbox";
 import fornitoreSearchboxOption, { FornitoreSearchbox } from "../../common/form/searchbox/searchboxOptions/fornitoreSearchboxOptions";
 import showToast from "../../../common/toast/showToast";
@@ -399,52 +398,6 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
                       />
                     )}
                   </div>
-
-                  {/* Data documento (manuale se nessun documento selezionato) */}
-                  {documentType === "FA" && !selectedFattura && (
-                    <div className="col-span-12">
-                      <DateField
-                        name="dataFattura"
-                        label="Data Fattura"
-                        fullWidth
-                        value={dataFattura ?? ""}
-                        onChange={(_name, value) => setDataFattura(value || undefined)}
-                        slotProps={{ inputLabel: { shrink: true } }}
-                      />
-                    </div>
-                  )}
-                  {documentType === "FA" && selectedFattura && (
-                    <div className="col-span-12">
-                      <TextField
-                        label="Data Fattura"
-                        fullWidth
-                        value={formatDateLabel(dataFattura)}
-                        disabled
-                      />
-                    </div>
-                  )}
-                  {documentType === "DDT" && !selectedDdt && (
-                    <div className="col-span-12">
-                      <DateField
-                        name="dataDdt"
-                        label="Data DDT"
-                        fullWidth
-                        value={dataDdt ?? ""}
-                        onChange={(_name, value) => setDataDdt(value || undefined)}
-                        slotProps={{ inputLabel: { shrink: true } }}
-                      />
-                    </div>
-                  )}
-                  {documentType === "DDT" && selectedDdt && (
-                    <div className="col-span-12">
-                      <TextField
-                        label="Data DDT"
-                        fullWidth
-                        value={formatDateLabel(dataDdt)}
-                        disabled
-                      />
-                    </div>
-                  )}
 
                   <div className="col-span-12 md:col-span-6">
                     <NumberField
