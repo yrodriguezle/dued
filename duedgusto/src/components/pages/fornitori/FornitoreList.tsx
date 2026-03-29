@@ -1,5 +1,5 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { Box, Chip, Paper, Typography } from "@mui/material";
+import { Box, Chip, Typography } from "@mui/material";
 import { useNavigate } from "react-router";
 import { GridReadyEvent } from "ag-grid-community";
 
@@ -119,6 +119,12 @@ function FornitoreList() {
         filter: "agTextColumnFilter",
       },
       {
+        headerName: "Ragione Sociale 2",
+        field: "ragioneSociale2",
+        width: 200,
+        filter: "agTextColumnFilter",
+      },
+      {
         headerName: "P.IVA",
         field: "partitaIva",
         width: 150,
@@ -188,22 +194,20 @@ function FornitoreList() {
         >
           Fornitori
         </Typography>
-        <Paper sx={{ padding: 1, height: "calc(100% - 50px)" }}>
-          <Datagrid<FornitoreNonNull>
-            gridId="fornitore-list"
-            presentation
-            height="100%"
-            items={fornitori}
-            columnDefs={columnDefs}
-            getRowId={({ data }) => data.fornitoreId.toString()}
-            rowSelection={{
-              mode: "multiRow",
-              headerCheckbox: true,
-            }}
-            onGridReady={handleGridReady}
-            onRowDoubleClicked={handleRowDoubleClick}
-          />
-        </Paper>
+        <Datagrid<FornitoreNonNull>
+          gridId="fornitore-list"
+          presentation
+          height="calc(100% - 50px)"
+          items={fornitori}
+          columnDefs={columnDefs}
+          getRowId={({ data }) => data.fornitoreId.toString()}
+          rowSelection={{
+            mode: "multiRow",
+            headerCheckbox: true,
+          }}
+          onGridReady={handleGridReady}
+          onRowDoubleClicked={handleRowDoubleClick}
+        />
       </Box>
     </>
   );

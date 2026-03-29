@@ -1,5 +1,5 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { Box, Paper, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { useNavigate } from "react-router";
 import { GridReadyEvent } from "ag-grid-community";
 
@@ -164,37 +164,35 @@ function MenuList() {
         >
           Lista menu
         </Typography>
-        <Paper sx={{ padding: 1, height: "calc(100% - 50px)" }}>
-          {loading ? (
-            <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>Caricamento...</Box>
-          ) : (
-            <Datagrid<MenuNonNull>
-              gridId="menu-list"
-              presentation
-              height="100%"
-              items={menus}
-              columnDefs={columnDefs}
-              getRowId={({ data }) => data.id.toString()}
-              treeData
-              treeDataParentIdField="menuPadreId"
-              groupDefaultExpanded={-1}
-              autoGroupColumnDef={{
-                headerName: "Titolo",
-                field: "titolo",
-                cellRenderer: "agGroupCellRenderer",
-                filter: true,
-                sortable: true,
-                width: 250,
-              }}
-              rowSelection={{
-                mode: "multiRow",
-                headerCheckbox: true,
-              }}
-              onGridReady={handleGridReady}
-              onRowDoubleClicked={handleRowDoubleClick}
-            />
-          )}
-        </Paper>
+        {loading ? (
+          <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "calc(100% - 50px)" }}>Caricamento...</Box>
+        ) : (
+          <Datagrid<MenuNonNull>
+            gridId="menu-list"
+            presentation
+            height="calc(100% - 50px)"
+            items={menus}
+            columnDefs={columnDefs}
+            getRowId={({ data }) => data.id.toString()}
+            treeData
+            treeDataParentIdField="menuPadreId"
+            groupDefaultExpanded={-1}
+            autoGroupColumnDef={{
+              headerName: "Titolo",
+              field: "titolo",
+              cellRenderer: "agGroupCellRenderer",
+              filter: true,
+              sortable: true,
+              width: 250,
+            }}
+            rowSelection={{
+              mode: "multiRow",
+              headerCheckbox: true,
+            }}
+            onGridReady={handleGridReady}
+            onRowDoubleClicked={handleRowDoubleClick}
+          />
+        )}
       </Box>
     </>
   );

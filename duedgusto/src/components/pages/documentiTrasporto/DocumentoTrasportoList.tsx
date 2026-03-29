@@ -1,5 +1,5 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { Box, Chip, Paper, Typography } from "@mui/material";
+import { Box, Chip, Typography } from "@mui/material";
 import { useNavigate } from "react-router";
 import { GridReadyEvent } from "ag-grid-community";
 
@@ -195,22 +195,20 @@ function DocumentoTrasportoList() {
             sx={{ cursor: "pointer" }}
           />
         </Box>
-        <Paper sx={{ padding: 1, height: "calc(100% - 50px)" }}>
-          <Datagrid<DocumentoTrasportoNonNull>
-            gridId="documento-trasporto-list"
-            presentation
-            height="100%"
-            items={filteredItems}
-            columnDefs={columnDefs}
-            getRowId={({ data }) => data.ddtId.toString()}
-            rowSelection={{
-              mode: "multiRow",
-              headerCheckbox: true,
-            }}
-            onGridReady={handleGridReady}
-            onRowDoubleClicked={handleRowDoubleClick}
-          />
-        </Paper>
+        <Datagrid<DocumentoTrasportoNonNull>
+          gridId="documento-trasporto-list"
+          presentation
+          height="calc(100% - 50px)"
+          items={filteredItems}
+          columnDefs={columnDefs}
+          getRowId={({ data }) => data.ddtId.toString()}
+          rowSelection={{
+            mode: "multiRow",
+            headerCheckbox: true,
+          }}
+          onGridReady={handleGridReady}
+          onRowDoubleClicked={handleRowDoubleClick}
+        />
       </Box>
     </>
   );

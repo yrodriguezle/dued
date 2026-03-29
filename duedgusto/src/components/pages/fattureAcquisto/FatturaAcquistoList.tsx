@@ -1,5 +1,5 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { Box, Chip, Paper, Typography } from "@mui/material";
+import { Box, Chip, Typography } from "@mui/material";
 import { useNavigate } from "react-router";
 import { GridReadyEvent } from "ag-grid-community";
 
@@ -207,22 +207,20 @@ function FatturaAcquistoList() {
         >
           Fatture Acquisto
         </Typography>
-        <Paper sx={{ padding: 1, height: "calc(100% - 50px)" }}>
-          <Datagrid<FatturaAcquistoNonNull>
-            gridId="fattura-acquisto-list"
-            presentation
-            height="100%"
-            items={invoices}
-            columnDefs={columnDefs}
-            getRowId={({ data }) => data.fatturaId.toString()}
-            rowSelection={{
-              mode: "multiRow",
-              headerCheckbox: true,
-            }}
-            onGridReady={handleGridReady}
-            onRowDoubleClicked={handleRowDoubleClick}
-          />
-        </Paper>
+        <Datagrid<FatturaAcquistoNonNull>
+          gridId="fattura-acquisto-list"
+          presentation
+          height="calc(100% - 50px)"
+          items={invoices}
+          columnDefs={columnDefs}
+          getRowId={({ data }) => data.fatturaId.toString()}
+          rowSelection={{
+            mode: "multiRow",
+            headerCheckbox: true,
+          }}
+          onGridReady={handleGridReady}
+          onRowDoubleClicked={handleRowDoubleClick}
+        />
       </Box>
     </>
   );

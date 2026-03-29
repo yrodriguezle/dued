@@ -1,5 +1,5 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { Box, Paper, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { useNavigate } from "react-router";
 import { GridReadyEvent } from "ag-grid-community";
 
@@ -174,26 +174,24 @@ function UserList() {
         >
           Lista utenti
         </Typography>
-        <Paper sx={{ padding: 1, height: "calc(100% - 50px)" }}>
-          {loading ? (
-            <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>Caricamento...</Box>
-          ) : (
-            <Datagrid<UtenteNonNull>
-              gridId="user-list"
-              presentation
-              height="100%"
-              items={utenti}
-              columnDefs={columnDefs}
-              getRowId={({ data }) => data.id.toString()}
-              rowSelection={{
-                mode: "multiRow",
-                headerCheckbox: true,
-              }}
-              onGridReady={handleGridReady}
-              onRowDoubleClicked={handleRowDoubleClick}
-            />
-          )}
-        </Paper>
+        {loading ? (
+          <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "calc(100% - 50px)" }}>Caricamento...</Box>
+        ) : (
+          <Datagrid<UtenteNonNull>
+            gridId="user-list"
+            presentation
+            height="calc(100% - 50px)"
+            items={utenti}
+            columnDefs={columnDefs}
+            getRowId={({ data }) => data.id.toString()}
+            rowSelection={{
+              mode: "multiRow",
+              headerCheckbox: true,
+            }}
+            onGridReady={handleGridReady}
+            onRowDoubleClicked={handleRowDoubleClick}
+          />
+        )}
       </Box>
     </>
   );
