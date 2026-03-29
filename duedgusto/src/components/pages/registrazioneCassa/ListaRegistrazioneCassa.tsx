@@ -76,7 +76,7 @@ function ListaRegistrazioneCassa() {
   const handleNew = useCallback(() => {
     const date = getNextOperatingDate();
     const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-    navigate(`/gestionale/cassa/${dateStr}`);
+    navigate(`/gestionale/cassa/details/${dateStr}`);
   }, [getNextOperatingDate, navigate]);
 
   const handleDelete = useCallback(async () => {
@@ -114,7 +114,7 @@ function ListaRegistrazioneCassa() {
       if (data?.data) {
         // Extract date in YYYY-MM-DD format
         const dateStr = data.data.split("T")[0];
-        navigate(`/gestionale/cassa/${dateStr}`);
+        navigate(`/gestionale/cassa/details/${dateStr}`);
       }
     },
     [navigate]

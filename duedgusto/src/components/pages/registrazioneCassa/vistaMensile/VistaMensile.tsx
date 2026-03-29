@@ -122,7 +122,7 @@ function VistaMensile() {
   const handleSelectEvent = useCallback(
     (event: CashEvent) => {
       const eventDate = dayjs(event.start).format("YYYY-MM-DD");
-      navigate(`/gestionale/cassa/${eventDate}`);
+      navigate(`/gestionale/cassa/details/${eventDate}`);
     },
     [navigate]
   );
@@ -130,7 +130,7 @@ function VistaMensile() {
   const handleSelectSlot = useCallback(
     (slotInfo: { start: Date }) => {
       const selectedDate = dayjs(slotInfo.start).format("YYYY-MM-DD");
-      navigate(`/gestionale/cassa/${selectedDate}`);
+      navigate(`/gestionale/cassa/details/${selectedDate}`);
     },
     [navigate]
   );

@@ -241,7 +241,7 @@ function RegistrazioneCassDashboard() {
             onClick={() => {
               const date = getNextOperatingDate();
               const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-              navigate(`/gestionale/cassa/${dateStr}`);
+              navigate(`/gestionale/cassa/details/${dateStr}`);
             }}
           >
             Nuova Cassa

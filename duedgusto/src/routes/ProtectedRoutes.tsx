@@ -32,7 +32,7 @@ function ProtectedRoutes() {
   }
 
   const cassaRedirectDate = getNextOperatingDate();
-  const cassaRedirectPath = `/gestionale/cassa/${cassaRedirectDate.getFullYear()}-${String(cassaRedirectDate.getMonth() + 1).padStart(2, "0")}-${String(cassaRedirectDate.getDate()).padStart(2, "0")}`;
+  const cassaRedirectPath = `/gestionale/cassa/details/${cassaRedirectDate.getFullYear()}-${String(cassaRedirectDate.getMonth() + 1).padStart(2, "0")}-${String(cassaRedirectDate.getDate()).padStart(2, "0")}`;
 
   return (
     <Routes>
@@ -84,7 +84,7 @@ function ProtectedRoutes() {
           }
         />
         <Route
-          path="cassa/:date"
+          path="cassa/details/:date"
           element={
             <Suspense fallback={<Fallback />}>
               <CashRegisterDetails />

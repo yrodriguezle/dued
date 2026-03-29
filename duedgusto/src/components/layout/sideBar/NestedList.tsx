@@ -38,7 +38,7 @@ const NestedList: React.FC<NestedListProps> = ({ drawerOpen, items, onListItemCl
   useEffect(() => {
     const activeIndex = items.findIndex((item) => {
       if (item.children) {
-        return item.children.some((child) => child.path === location.pathname);
+        return item.children.some((child) => child.path && location.pathname.startsWith(child.path));
       }
       return false;
     });
@@ -74,7 +74,7 @@ const NestedListItem: React.FC<NestedListItemProps> = ({ item, drawerOpen, onLis
   const location = useLocation();
 
   const isItemActive = (item: MenuItem): boolean => {
-    if (item.path && item.path === location.pathname) {
+    if (item.path && location.pathname.startsWith(item.path)) {
       return true;
     }
     if (item.children) {

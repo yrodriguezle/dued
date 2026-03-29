@@ -180,7 +180,7 @@ function RegistroCassaDetails() {
       if (isOpen(date)) break;
     }
     const newDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-    navigate(`/gestionale/cassa/${newDate}`);
+    navigate(`/gestionale/cassa/details/${newDate}`);
   }, [currentDate, isOpen, navigate]);
 
   const handleNextDay = useCallback(() => {
@@ -191,7 +191,7 @@ function RegistroCassaDetails() {
       if (isOpen(date)) break;
     }
     const newDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-    navigate(`/gestionale/cassa/${newDate}`);
+    navigate(`/gestionale/cassa/details/${newDate}`);
   }, [currentDate, isOpen, navigate]);
 
   const handleOpenMonthlyCalendar = useCallback(() => {
@@ -476,7 +476,7 @@ function RegistroCassaDetails() {
     if (!isOpen(date)) {
       const next = getNextOperatingDate(date);
       const nextStr = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}-${String(next.getDate()).padStart(2, "0")}`;
-      navigate(`/gestionale/cassa/${nextStr}`, { replace: true });
+      navigate(`/gestionale/cassa/details/${nextStr}`, { replace: true });
     }
   }, [currentDate, isOpen, getNextOperatingDate, navigate]);
 
