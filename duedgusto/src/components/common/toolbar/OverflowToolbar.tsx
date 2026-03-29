@@ -1,5 +1,5 @@
 import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
-import { Box, Button, IconButton, ListItemIcon, ListItemText, Menu, MenuItem } from "@mui/material";
+import { Box, Button, IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Tooltip } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 
 export interface OverflowAction {
@@ -12,13 +12,14 @@ export interface OverflowAction {
 
 interface OverflowToolbarProps {
   actions: OverflowAction[];
+  iconOnly?: boolean;
 }
 
 /**
  * Toolbar che mostra i bottoni che ci stanno nello spazio disponibile
  * e collassa quelli che non ci stanno in un menu a tendina (⋮).
  */
-function OverflowToolbar({ actions }: OverflowToolbarProps) {
+function OverflowToolbar({ actions, iconOnly = false }: OverflowToolbarProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
   const [visibleCount, setVisibleCount] = useState(0);
@@ -82,34 +83,55 @@ function OverflowToolbar({ actions }: OverflowToolbarProps) {
         ref={measureRef}
         sx={{ position: "fixed", left: -9999, top: -9999, visibility: "hidden", pointerEvents: "none", display: "flex", gap: `${BUTTON_GAP}px`, whiteSpace: "nowrap" }}
       >
-        {actions.map((action) => (
-          <Button
-            key={action.key}
-            size="small"
-            variant="text"
-            startIcon={action.icon}
-            sx={{ minHeight: 0, height: 32, paddingY: 0.5, paddingX: 1.5, flexShrink: 0 }}
-          >
-            {action.label}
-          </Button>
-        ))}
+        {actions.map((action) =>
+          iconOnly ? (
+            <IconButton key={action.key} size="small" sx={{ flexShrink: 0 }}>
+              {action.icon}
+            </IconButton>
+          ) : (
+            <Button
+              key={action.key}
+              size="small"
+              variant="text"
+              startIcon={action.icon}
+              sx={{ minHeight: 0, height: 32, paddingY: 0.5, paddingX: 1.5, flexShrink: 0 }}
+            >
+              {action.label}
+            </Button>
+          )
+        )}
       </Box>
 
       {/* Bottoni visibili */}
       <Box sx={{ display: "flex", alignItems: "center", gap: `${BUTTON_GAP}px`, overflow: "hidden", flexShrink: 1 }}>
-        {visibleActions.map((action) => (
-          <Button
-            key={action.key}
-            size="small"
-            variant="text"
-            startIcon={action.icon}
-            onClick={action.onClick}
-            disabled={action.disabled}
-            sx={{ minHeight: 0, height: 32, paddingY: 0.5, paddingX: 1.5, flexShrink: 0, whiteSpace: "nowrap" }}
-          >
-            {action.label}
-          </Button>
-        ))}
+        {visibleActions.map((action) =>
+          iconOnly ? (
+            <Tooltip key={action.key} title={action.label}>
+              <span>
+                <IconButton
+                  size="small"
+                  onClick={action.onClick}
+                  disabled={action.disabled}
+                  sx={{ flexShrink: 0 }}
+                >
+                  {action.icon}
+                </IconButton>
+              </span>
+            </Tooltip>
+          ) : (
+            <Button
+              key={action.key}
+              size="small"
+              variant="text"
+              startIcon={action.icon}
+              onClick={action.onClick}
+              disabled={action.disabled}
+              sx={{ minHeight: 0, height: 32, paddingY: 0.5, paddingX: 1.5, flexShrink: 0, whiteSpace: "nowrap" }}
+            >
+              {action.label}
+            </Button>
+          )
+        )}
       </Box>
 
       {/* Menu overflow */}

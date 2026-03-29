@@ -1,6 +1,6 @@
 
 import { useMemo, useState, forwardRef, useCallback, useRef, memo } from "react";
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, useMediaQuery, useTheme } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import PaymentIcon from "@mui/icons-material/Payment";
@@ -28,6 +28,10 @@ const expenseSchema = z.object({
 
 const ExpensesDataGrid = memo(
   forwardRef<GridReadyEvent<DatagridData<Expense>>, ExpensesDataGridProps>(({ initialExpenses, isLocked, onCellChange, onExpensesChange }, ref) => {
+    const muiTheme = useTheme();
+    const isSmallScreen = useMediaQuery(muiTheme.breakpoints.down("sm"));
+    const isMobile = isSmallScreen && navigator.maxTouchPoints > 0;
+
     const [validationErrors, setValidationErrors] = useState<Map<number, ValidationError[]>>(new Map());
     const [dialogOpen, setDialogOpen] = useState(false);
     // Spesa in fase di modifica (null = modalità aggiunta)
@@ -189,8 +193,21 @@ const ExpensesDataGrid = memo(
 
     const handleAddRow = useCallback(() => {
       if (gridEventRef.current) {
-        gridEventRef.current.api.applyTransaction({ add: [{ description: "", amount: 0 } as DatagridData<Expense>] });
+        const result = gridEventRef.current.api.applyTransaction({ add: [{ description: "", amount: 0 } as DatagridData<Expense>] });
         reportExpenses(gridEventRef.current.api);
+
+        // Avvia editing sulla prima cella editabile della nuova riga
+        const newNode = result?.add?.[0];
+        if (newNode?.rowIndex != null) {
+          const rowIndex = newNode.rowIndex;
+          gridEventRef.current.api.ensureIndexVisible(rowIndex);
+          setTimeout(() => {
+            if (gridEventRef.current) {
+              gridEventRef.current.api.setFocusedCell(rowIndex, "description");
+              gridEventRef.current.api.startEditingCell({ rowIndex, colKey: "description" });
+            }
+          }, 1);
+        }
       }
       onCellChange?.();
     }, [onCellChange, reportExpenses]);
@@ -248,7 +265,7 @@ const ExpensesDataGrid = memo(
             readOnly={isLocked}
             rowSelection={{ mode: "multiRow" }}
             getNewRow={getNewExpense}
-            additionalToolbarButtons={<OverflowToolbar actions={toolbarActions} />}
+            additionalToolbarButtons={<OverflowToolbar actions={toolbarActions} iconOnly={isMobile} />}
             hideToolbar={true}
             validationSchema={expenseSchema}
             onValidationErrors={setValidationErrors}
