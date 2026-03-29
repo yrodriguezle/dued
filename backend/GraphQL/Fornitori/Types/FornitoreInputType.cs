@@ -6,6 +6,7 @@ public class FornitoreInput
 {
     public int? FornitoreId { get; set; }
     public string RagioneSociale { get; set; } = string.Empty;
+    public string? RagioneSociale2 { get; set; }
     public string? PartitaIva { get; set; }
     public string? CodiceFiscale { get; set; }
     public string? Email { get; set; }
@@ -28,6 +29,7 @@ public class FornitoreInputType : InputObjectGraphType<FornitoreInput>
 
         Field(x => x.FornitoreId, nullable: true);
         Field(x => x.RagioneSociale);
+        Field(x => x.RagioneSociale2, nullable: true);
         Field(x => x.PartitaIva, nullable: true);
         Field(x => x.CodiceFiscale, nullable: true);
         Field(x => x.Email, nullable: true);

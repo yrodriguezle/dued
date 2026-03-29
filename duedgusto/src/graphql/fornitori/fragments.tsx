@@ -1,6 +1,7 @@
 export const fornitoreFragment = `fragment FornitoreFragment on Fornitore {
   fornitoreId
   ragioneSociale
+  ragioneSociale2
   partitaIva
   codiceFiscale
   email

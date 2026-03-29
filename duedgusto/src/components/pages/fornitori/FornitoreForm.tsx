@@ -26,7 +26,7 @@ function FornitoreForm({ onSelectItem }: FornitoreFormProps) {
           Dati Generali
         </Typography>
         <div className="grid grid-cols-12 gap-4">
-          <div className="col-span-12 md:col-span-8">
+          <div className="col-span-12 md:col-span-6">
             <FormikSearchbox<FormikFornitoreValues, FornitoreSearchbox>
               label="Ragione Sociale *"
               placeholder="Ragione Sociale"
@@ -37,6 +37,13 @@ function FornitoreForm({ onSelectItem }: FornitoreFormProps) {
               fieldName="ragioneSociale"
               options={fornitoreSearchboxOption}
               onSelectItem={onSelectItem}
+            />
+          </div>
+          <div className="col-span-12 md:col-span-6">
+            <FormikTextField
+              name="ragioneSociale2"
+              label="Ragione Sociale 2"
+              fullWidth
             />
           </div>
           <div className="col-span-12 md:col-span-4">

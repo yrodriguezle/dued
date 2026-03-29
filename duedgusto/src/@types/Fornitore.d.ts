@@ -2,6 +2,7 @@ type Fornitore = {
   __typename: "Fornitore";
   fornitoreId: number;
   ragioneSociale: string;
+  ragioneSociale2?: string | null;
   partitaIva?: string | null;
   codiceFiscale?: string | null;
   email?: string | null;
@@ -23,6 +24,7 @@ type Fornitore = {
 type FornitoreInput = {
   fornitoreId?: number;
   ragioneSociale: string;
+  ragioneSociale2?: string;
   partitaIva?: string;
   codiceFiscale?: string;
   email?: string;

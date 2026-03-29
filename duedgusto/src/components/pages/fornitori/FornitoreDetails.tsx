@@ -22,6 +22,7 @@ import { FornitoreSearchbox } from "../../common/form/searchbox/searchboxOptions
 const Schema = z.object({
   fornitoreId: z.number().optional(),
   ragioneSociale: z.string().nonempty("Ragione sociale è obbligatoria"),
+  ragioneSociale2: z.string().optional(),
   partitaIva: z.string().optional(),
   codiceFiscale: z.string().optional(),
   email: z.string().email("Email non valida").optional().or(z.literal("")),
@@ -41,6 +42,7 @@ export type FormikFornitoreValues = z.infer<typeof Schema>;
 const mapFornitoreToFormValues = (fornitore: Fornitore): Partial<FormikFornitoreValues> => ({
   fornitoreId: fornitore.fornitoreId,
   ragioneSociale: fornitore.ragioneSociale,
+  ragioneSociale2: fornitore.ragioneSociale2 || "",
   partitaIva: fornitore.partitaIva || "",
   codiceFiscale: fornitore.codiceFiscale || "",
   email: fornitore.email || "",
@@ -152,6 +154,7 @@ function FornitoreDetails() {
             fornitore: {
               fornitoreId: values.fornitoreId,
               ragioneSociale: values.ragioneSociale,
+              ragioneSociale2: values.ragioneSociale2 || undefined,
               partitaIva: values.partitaIva || undefined,
               codiceFiscale: values.codiceFiscale || undefined,
               email: values.email || undefined,

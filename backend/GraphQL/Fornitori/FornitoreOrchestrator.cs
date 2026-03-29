@@ -31,6 +31,7 @@ public class FornitoreOrchestrator
         }
 
         fornitore.RagioneSociale = input.RagioneSociale;
+        fornitore.RagioneSociale2 = input.RagioneSociale2;
         fornitore.PartitaIva = input.PartitaIva;
         fornitore.CodiceFiscale = input.CodiceFiscale;
         fornitore.Email = input.Email;

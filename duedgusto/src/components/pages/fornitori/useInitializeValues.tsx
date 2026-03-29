@@ -14,6 +14,7 @@ function useInitializeValues({ skipInitialize }: UseInitializeValuesProps) {
     const initialValues: FormikFornitoreValues = {
       fornitoreId: undefined,
       ragioneSociale: "",
+      ragioneSociale2: "",
       partitaIva: "",
       codiceFiscale: "",
       email: "",

@@ -12,6 +12,7 @@ public class FornitoreType : ObjectGraphType<Fornitore>
 
         Field("fornitoreId", x => x.FornitoreId);
         Field("ragioneSociale", x => x.RagioneSociale);
+        Field("ragioneSociale2", x => x.RagioneSociale2, nullable: true);
         Field("partitaIva", x => x.PartitaIva, nullable: true);
         Field("codiceFiscale", x => x.CodiceFiscale, nullable: true);
         Field("email", x => x.Email, nullable: true);

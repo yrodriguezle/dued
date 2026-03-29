@@ -15,6 +15,9 @@ namespace duedgusto.Models
         [MaxLength(255)]
         public string RagioneSociale { get; set; } = string.Empty;
 
+        [MaxLength(255)]
+        public string? RagioneSociale2 { get; set; }
+
         [MaxLength(20)]
         public string? PartitaIva { get; set; }
 
