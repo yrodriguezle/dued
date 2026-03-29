@@ -42,6 +42,27 @@ public class FornitoriQueries : ObjectGraphType
                 return result;
             });
 
+        // Verifica se una partita IVA è già in uso da un altro fornitore
+        Field<BooleanGraphType, bool>("existsPartitaIva")
+            .Argument<NonNullGraphType<StringGraphType>>("partitaIva")
+            .Argument<IntGraphType>("excludeFornitoreId")
+            .ResolveAsync(async context =>
+            {
+                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                string partitaIva = context.GetArgument<string>("partitaIva");
+                int? excludeId = context.GetArgument<int?>("excludeFornitoreId");
+
+                var query = dbContext.Fornitori
+                    .Where(f => f.PartitaIva == partitaIva && f.Attivo);
+
+                if (excludeId.HasValue)
+                {
+                    query = query.Where(f => f.FornitoreId != excludeId.Value);
+                }
+
+                return await query.AnyAsync();
+            });
+
         // Fattura acquisto per ID
         Field<FatturaAcquistoType, FatturaAcquisto>("fatturaAcquisto")
             .Argument<NonNullGraphType<IntGraphType>>("fatturaId")

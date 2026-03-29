@@ -12,7 +12,7 @@ import FormikToolbar from "../../common/form/toolbar/FormikToolbar";
 import { formStatuses } from "../../../common/globals/constants";
 import useConfirm from "../../common/confirm/useConfirm";
 import PageTitleContext from "../../layout/headerBar/PageTitleContext";
-import { getFornitore } from "../../../graphql/fornitori/queries";
+import { getFornitore, existsPartitaIva } from "../../../graphql/fornitori/queries";
 import { mutationMutateFornitore } from "../../../graphql/fornitori/mutations";
 import useInitializeValues from "./useInitializeValues";
 import setInitialFocus from "./setInitialFocus";
@@ -63,6 +63,7 @@ function FornitoreDetails() {
   const location = useLocation();
   const navigate = useNavigate();
   const [loadFornitore] = useLazyQuery(getFornitore);
+  const [checkPartitaIva] = useLazyQuery(existsPartitaIva, { fetchPolicy: "network-only" });
   const [mutateFornitore] = useMutation(mutationMutateFornitore);
   const onConfirm = useConfirm();
   const { initialValues, handleInitializeValues } = useInitializeValues({ skipInitialize: false });
@@ -149,6 +150,23 @@ function FornitoreDetails() {
   const handleSubmit = useCallback(
     async (values: FormikFornitoreValues) => {
       try {
+        // Verifica unicità partita IVA prima di salvare
+        if (values.partitaIva) {
+          const pivaCheck = await checkPartitaIva({
+            variables: {
+              partitaIva: values.partitaIva,
+              excludeFornitoreId: values.fornitoreId,
+            },
+          });
+          if (pivaCheck.data?.fornitori?.existsPartitaIva) {
+            toast.warning("Esiste già un fornitore con questa Partita IVA", {
+              position: "bottom-right",
+              autoClose: 3000,
+            });
+            return;
+          }
+        }
+
         const result = await mutateFornitore({
           variables: {
             fornitore: {
@@ -200,7 +218,7 @@ function FornitoreDetails() {
         });
       }
     },
-    [mutateFornitore, navigate, handleInitializeValues]
+    [checkPartitaIva, mutateFornitore, navigate, handleInitializeValues]
   );
 
   return (

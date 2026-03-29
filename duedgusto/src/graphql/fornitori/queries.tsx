@@ -62,6 +62,25 @@ export const getFornitore: TypedDocumentNode<GetFornitoreData, GetFornitoreVaria
     }
   }`);
 
+// Check if partita IVA already exists
+interface ExistsPartitaIvaData {
+  fornitori: {
+    existsPartitaIva: boolean;
+  };
+}
+
+interface ExistsPartitaIvaVariables {
+  partitaIva: string;
+  excludeFornitoreId?: number;
+}
+
+export const existsPartitaIva: TypedDocumentNode<ExistsPartitaIvaData, ExistsPartitaIvaVariables> = gql(`
+  query ExistsPartitaIva($partitaIva: String!, $excludeFornitoreId: Int) {
+    fornitori {
+      existsPartitaIva(partitaIva: $partitaIva, excludeFornitoreId: $excludeFornitoreId)
+    }
+  }`);
+
 // Get fatture acquisto with pagination
 export const getFattureAcquistoConnection = gql(`
   ${fatturaAcquistoFragment}
