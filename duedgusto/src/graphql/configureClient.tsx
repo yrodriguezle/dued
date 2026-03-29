@@ -118,7 +118,7 @@ function configureClient() {
       },
       shouldRetry: () => true,
       retryAttempts: Infinity,
-      retryWait: async (retries) => {
+      retryWait: async (retries: number) => {
         const delay = Math.min(1000 * Math.pow(2, retries), 30000);
         await new Promise((resolve) => setTimeout(resolve, delay));
       },

@@ -16,6 +16,15 @@ permessi utente e un'architettura modulare per la gestione di utenti, ruoli e me
 - `npm run preview` - Anteprima della build di produzione
 - `npm run ts:check` - Esegue il controllo dei tipi TypeScript senza emettere file
 
+### Testing
+
+- `npm run test` - Esegue i test unitari (Vitest + Testing Library)
+- `npm run test:watch` - Esegue i test in modalità watch
+- `npm run test:e2e` - Esegue i test end-to-end (Playwright)
+- `npm run test:e2e:update` - Aggiorna snapshot E2E
+- `npm run test:visual` - Esegue i test di visual regression (Playwright)
+- `npm run test:visual:update` - Aggiorna snapshot visual regression
+
 ### Linting
 
 - `npm run lint` - Esegue ESLint sulla codebase
@@ -183,6 +192,8 @@ Regole ESLint personalizzate applicate (`eslint.config.js`):
 
 **Strumento Build**: Vite 6 con plugin SWC per fast refresh
 
+**Testing**: Vitest 4 (test unitari), Testing Library (React testing), Playwright (E2E e visual regression)
+
 **Altri**: dayjs (date), react-toastify (notifiche), patch-package (patch dipendenze)
 
 ## Problemi Comuni
@@ -223,6 +234,10 @@ Per aggiungere una nuova pagina/funzionalità:
 
 ### Testing e Validazione
 
+- Esegui `npm run test` per lanciare i test unitari (Vitest + Testing Library)
+- Esegui `npm run test:watch` per lanciare i test in modalità watch
+- Esegui `npm run test:e2e` per i test end-to-end (Playwright)
+- Esegui `npm run test:visual` per i test di visual regression (Playwright)
 - Esegui `npm run ts:check` prima di committare per verificare errori di tipo
 - Esegui `npm run lint` per verificare problemi di stile
 - Testa sempre con il server di sviluppo (`npm run dev`) dopo modifiche

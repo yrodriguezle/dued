@@ -84,6 +84,10 @@ dued/
 | Build frontend | `cd duedgusto && npm run build` |
 | Lint frontend | `cd duedgusto && npm run lint` |
 | Controllo TypeScript | `cd duedgusto && npm run ts:check` |
+| Test unitari | `cd duedgusto && npm run test` |
+| Test unitari (watch) | `cd duedgusto && npm run test:watch` |
+| Test E2E | `cd duedgusto && npm run test:e2e` |
+| Test visual regression | `cd duedgusto && npm run test:visual` |
 | Creare migrazione | `cd backend && dotnet ef migrations add <Nome>` |
 
 ## Database
@@ -94,7 +98,7 @@ Connessione: `server=localhost;database=duedgusto;user=root;password=root`
 
 ## Note
 
-- Nessun test unitario nel codebase
+- Test unitari con Vitest + Testing Library, test E2E e visual regression con Playwright
 - AG Grid Enterprise richiede licenza valida
 - Il frontend usa una libreria utility personalizzata in `src/common/bones/` invece di lodash
 - HTTPS richiesto per il backend; la configurazione frontend usa URL HTTPS di default
