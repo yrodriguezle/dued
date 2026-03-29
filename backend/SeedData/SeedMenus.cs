@@ -475,6 +475,38 @@ public static class SeedMenus
             }
         }
 
+        // Child: Vista Mensile
+        var cassaChildMonthly = await dbContext.Menus
+            .Include(m => m.Ruoli)
+            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/cassa/monthly");
+
+        if (cassaChildMonthly == null)
+        {
+            cassaChildMonthly = new Menu
+            {
+                Titolo = "Vista Mensile",
+                Percorso = "/gestionale/cassa/monthly",
+                Icona = "DateRange",
+                Visibile = true,
+                Posizione = 3,
+                NomeVista = "VistaMensile",
+                PercorsoFile = "registrazioneCassa/vistaMensile/VistaMensile.tsx",
+                MenuPadre = cassaMenu,
+                Ruoli = [superAdminRuolo]
+            };
+            dbContext.Menus.Add(cassaChildMonthly);
+        }
+        else
+        {
+            bool needsUpdate = false;
+            UpdateMenuIfNeeded(cassaChildMonthly, "Vista Mensile", "/gestionale/cassa/monthly", "DateRange", true, 3,
+                "VistaMensile", "registrazioneCassa/vistaMensile/VistaMensile.tsx", superAdminRuolo, cassaMenu, ref needsUpdate);
+            if (needsUpdate)
+            {
+                dbContext.Menus.Update(cassaChildMonthly);
+            }
+        }
+
         // Child: Chiusura Mensile
         var cassaChild2 = await dbContext.Menus
             .Include(m => m.Ruoli)
@@ -503,7 +535,7 @@ public static class SeedMenus
                 Percorso = "/gestionale/cassa/monthly-closure",
                 Icona = "CalendarMonth",
                 Visibile = true,
-                Posizione = 3,
+                Posizione = 4,
                 NomeVista = "MonthlyClosureList",
                 PercorsoFile = "registrazioneCassa/MonthlyClosureList.tsx",
                 MenuPadre = cassaMenu,
@@ -514,7 +546,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(cassaChild2, "Chiusura Mensile", "/gestionale/cassa/monthly-closure", "CalendarMonth", true, 3,
+            UpdateMenuIfNeeded(cassaChild2, "Chiusura Mensile", "/gestionale/cassa/monthly-closure", "CalendarMonth", true, 4,
                 "MonthlyClosureList", "registrazioneCassa/MonthlyClosureList.tsx", superAdminRuolo, cassaMenu, ref needsUpdate);
             if (needsUpdate)
             {
@@ -544,7 +576,7 @@ public static class SeedMenus
                 Percorso = "/gestionale/cassa/details",
                 Icona = "Edit",
                 Visibile = true,
-                Posizione = 4,
+                Posizione = 5,
                 NomeVista = "RegistroCassaDetails",
                 PercorsoFile = "registrazioneCassa/RegistroCassaDetails.tsx",
                 MenuPadre = cassaMenu,
@@ -555,7 +587,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(cassaChild4, "Gestione Cassa", "/gestionale/cassa/details", "Edit", true, 4,
+            UpdateMenuIfNeeded(cassaChild4, "Gestione Cassa", "/gestionale/cassa/details", "Edit", true, 5,
                 "RegistroCassaDetails", "registrazioneCassa/RegistroCassaDetails.tsx", superAdminRuolo, cassaMenu, ref needsUpdate);
             if (needsUpdate)
             {

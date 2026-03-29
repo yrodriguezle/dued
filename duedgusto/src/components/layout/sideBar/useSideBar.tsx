@@ -44,6 +44,10 @@ function useSideBar() {
   useEffect(() => {
     if (isMobile) {
       setDrawerSwipeable(true);
+    } else {
+      setDrawerSwipeable(false);
+      setOpen(true);
+      setTimeout(() => setDrawerOpen(true), 0);
     }
   }, [isMobile]);
 
