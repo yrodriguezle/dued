@@ -1,4 +1,4 @@
-import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { ReactNode, useCallback, useMemo, useState } from "react";
 import { Modal, Box, Typography, IconButton, Button, Stack, Dialog, DialogTitle } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import CheckIcon from "@mui/icons-material/Check";
@@ -20,7 +20,6 @@ interface SearchboxModalProps<T extends Record<string, unknown>> {
   renderCreateForm?: (props: { onSaved: (item: T) => void; onCancel: () => void }) => ReactNode;
   createFormTitle?: string;
   onItemCreated?: (item: T) => void;
-  preSelectedItem?: T | null;
 }
 
 const modalStyle = {
@@ -39,16 +38,9 @@ const modalStyle = {
   overflow: "hidden",
 };
 
-function SearchboxModal<T extends Record<string, unknown>>({ open, title, items, columnDefs, loading, onClose, onSelectItem, renderCreateForm, createFormTitle, onItemCreated, preSelectedItem }: SearchboxModalProps<T>) {
+function SearchboxModal<T extends Record<string, unknown>>({ open, title, items, columnDefs, loading, onClose, onSelectItem, renderCreateForm, createFormTitle, onItemCreated }: SearchboxModalProps<T>) {
   const [selectedItem, setSelectedItem] = useState<T | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-
-  // Auto-select item received from parent (e.g., after inline creation)
-  useEffect(() => {
-    if (preSelectedItem) {
-      setSelectedItem(preSelectedItem);
-    }
-  }, [preSelectedItem]);
 
   const rowSelection = useMemo<RowSelectionOptions>(() => ({
     mode: "singleRow",

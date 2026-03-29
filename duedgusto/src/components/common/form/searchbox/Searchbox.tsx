@@ -27,9 +27,6 @@ function Searchbox<T extends Record<string, unknown>>({ id, name, value, orderBy
   const [innerValue, setInnerValue] = useState(value);
   const [resultsVisible, setResultsVisible] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [preSelectedItem, setPreSelectedItem] = useState<T | null>(null);
-  const pendingCreatedItemRef = useRef<T | null>(null);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const resultListRef = useRef<GridReadyEvent<T>>(null);
@@ -63,14 +60,9 @@ function Searchbox<T extends Record<string, unknown>>({ id, name, value, orderBy
     pageSize: 100,
   });
 
-  const modalVariablesWithRefresh = useMemo(
-    () => ({ ...modalVariables, _refresh: refreshKey }),
-    [modalVariables, refreshKey]
-  );
-
   const { items: modalItems, loading: modalLoading } = useFetchData({
     query: modalQuery,
-    variables: modalVariablesWithRefresh,
+    variables: modalVariables,
     skip: !modalOpen,
   });
 
@@ -172,24 +164,10 @@ function Searchbox<T extends Record<string, unknown>>({ id, name, value, orderBy
 
   const handleItemCreated = useCallback(
     (item: T) => {
-      pendingCreatedItemRef.current = item;
-      setRefreshKey((prev) => prev + 1);
+      handleModalSelectItem(item);
     },
-    []
+    [handleModalSelectItem]
   );
-
-  // Auto-select the newly created item once modal data refreshes
-  useEffect(() => {
-    if (pendingCreatedItemRef.current && modalItems && !modalLoading) {
-      const createdItem = pendingCreatedItemRef.current;
-      const idField = options.id;
-      const found = modalItems.find((item) => item[idField] === createdItem[idField]);
-      if (found) {
-        pendingCreatedItemRef.current = null;
-        setPreSelectedItem(found);
-      }
-    }
-  }, [modalItems, modalLoading, options.id]);
 
   return (
     <div
@@ -266,7 +244,6 @@ function Searchbox<T extends Record<string, unknown>>({ id, name, value, orderBy
         renderCreateForm={options.renderCreateForm}
         createFormTitle={options.createFormTitle}
         onItemCreated={handleItemCreated}
-        preSelectedItem={preSelectedItem}
       />
     </div>
   );
