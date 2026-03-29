@@ -3,7 +3,7 @@ import { SearchboxColDef, SearchboxOptions } from "../../../../../@types/searchb
 
 export type FornitoreSearchbox = Exclude<Fornitore, null>;
 
-const FornitoreFormContainer = React.lazy(() => import("../../../../components/pages/fornitori/FornitoreFormContainer"));
+const FornitoreFormContainer = React.lazy(() => import("../../../../pages/fornitori/FornitoreFormContainer"));
 
 const items: SearchboxColDef<FornitoreSearchbox>[] = [
   {
