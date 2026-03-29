@@ -265,7 +265,10 @@ const ExpensesDataGrid = memo(
             readOnly={isLocked}
             rowSelection={{ mode: "multiRow" }}
             getNewRow={getNewExpense}
-            additionalToolbarButtons={<OverflowToolbar actions={toolbarActions} iconOnly={isMobile} />}
+            additionalToolbarButtons={<OverflowToolbar
+              actions={toolbarActions}
+              iconOnly={isMobile}
+            />}
             hideToolbar={true}
             validationSchema={expenseSchema}
             onValidationErrors={setValidationErrors}

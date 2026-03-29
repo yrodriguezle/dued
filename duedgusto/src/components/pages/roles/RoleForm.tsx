@@ -1,4 +1,4 @@
-import { Paper, Typography } from "@mui/material";
+import Paper from "@mui/material/Paper";
 import ruoloSearchboxOptions, { RuoloNonNull } from "../../common/form/searchbox/searchboxOptions/ruoloSearchboxOptions";
 import FormikSearchbox from "../../common/form/searchbox/FormikSearchbox";
 import { FormikRuoloValues } from "./RoleDetails";

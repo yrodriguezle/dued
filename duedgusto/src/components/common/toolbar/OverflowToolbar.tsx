@@ -85,7 +85,11 @@ function OverflowToolbar({ actions, iconOnly = false }: OverflowToolbarProps) {
       >
         {actions.map((action) =>
           iconOnly ? (
-            <IconButton key={action.key} size="small" sx={{ flexShrink: 0 }}>
+            <IconButton
+              key={action.key}
+              size="small"
+              sx={{ flexShrink: 0 }}
+            >
               {action.icon}
             </IconButton>
           ) : (
@@ -106,7 +110,10 @@ function OverflowToolbar({ actions, iconOnly = false }: OverflowToolbarProps) {
       <Box sx={{ display: "flex", alignItems: "center", gap: `${BUTTON_GAP}px`, overflow: "hidden", flexShrink: 1 }}>
         {visibleActions.map((action) =>
           iconOnly ? (
-            <Tooltip key={action.key} title={action.label}>
+            <Tooltip
+              key={action.key}
+              title={action.label}
+            >
               <span>
                 <IconButton
                   size="small"
