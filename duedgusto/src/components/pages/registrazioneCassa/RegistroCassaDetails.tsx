@@ -515,6 +515,7 @@ function RegistroCassaDetails() {
           <Form
             noValidate
             style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}
+            onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
           >
             <FormikToolbar
               hideUnlockButton

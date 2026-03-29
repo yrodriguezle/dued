@@ -51,7 +51,8 @@ const initialStatus: DatagridAuxData = {
 
 function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
   const muiTheme = useTheme();
-  const isMobile = useMediaQuery(muiTheme.breakpoints.down("sm"));
+  const isSmallScreen = useMediaQuery(muiTheme.breakpoints.down("sm"));
+  const isMobile = isSmallScreen && navigator.maxTouchPoints > 0;
 
   const [canAddNewRow, setCanAddNewRow] = useState(true);
   const [hasSelectedRow, setHasSelectedRow] = useState(false);
