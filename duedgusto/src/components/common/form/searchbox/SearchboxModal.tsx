@@ -3,6 +3,7 @@ import { Modal, Box, Typography, IconButton, Button, Stack, Dialog, DialogTitle 
 import CloseIcon from "@mui/icons-material/Close";
 import CheckIcon from "@mui/icons-material/Check";
 import AddIcon from "@mui/icons-material/Add";
+import { RowSelectionOptions } from "ag-grid-community";
 
 import Datagrid from "../../datagrid/Datagrid";
 import { DatagridColDef, DatagridCellFocusedEvent, DatagridRowDoubleClickedEvent, DatagridRowClickedEvent } from "../../datagrid/@types/Datagrid";
@@ -48,6 +49,12 @@ function SearchboxModal<T extends Record<string, unknown>>({ open, title, items,
       setSelectedItem(preSelectedItem);
     }
   }, [preSelectedItem]);
+
+  const rowSelection = useMemo<RowSelectionOptions>(() => ({
+    mode: "singleRow",
+    checkboxes: false,
+    enableClickSelection: true,
+  }), []);
 
   const datagridColumnDefs = useMemo<DatagridColDef<T>[]>(
     () =>
@@ -176,6 +183,7 @@ function SearchboxModal<T extends Record<string, unknown>>({ open, title, items,
             columnDefs={datagridColumnDefs}
             height="100%"
             loading={loading}
+            rowSelection={rowSelection}
             onRowDoubleClicked={handleRowDoubleClicked}
             onRowClicked={handleRowClicked}
             onCellFocused={handleCellFocused}
