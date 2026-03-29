@@ -1,6 +1,7 @@
 import { ReactNode, useCallback, useMemo, useRef, useState, useEffect } from "react";
 import { CellValueChangedEvent, Column, GridReadyEvent, IRowNode, RowPinnedType, RowSelectionOptions, SelectionChangedEvent } from "ag-grid-community";
 import Box from "@mui/material/Box";
+import { useMediaQuery, useTheme } from "@mui/material";
 import { z } from "zod";
 
 import AgGrid from "./AgGrid";
@@ -11,6 +12,7 @@ import { DatagridStatus } from "../../../common/globals/constants";
 import useEditingState from "./editing/useEditingState";
 import useZodValidation from "./validation/useZodValidation";
 import useTabNavigation from "./navigation/useTabNavigation";
+import useEnterNavigation from "./navigation/useEnterNavigation";
 import createRowNumberColumn from "./columns/createRowNumberColumn";
 import useGridStatePersistence from "./persistence/useGridStatePersistence";
 import { getGridColumnState } from "../../../common/ui/gridStateStorage";
@@ -48,6 +50,9 @@ const initialStatus: DatagridAuxData = {
 };
 
 function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
+  const muiTheme = useTheme();
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down("sm"));
+
   const [canAddNewRow, setCanAddNewRow] = useState(true);
   const [hasSelectedRow, setHasSelectedRow] = useState(false);
   const gridRef = useRef<GridReadyEvent<DatagridData<T>> | null>(null);
@@ -183,6 +188,15 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
     autoAddRowOnTab: enableAutoAddRowOnTab,
   });
 
+  // Hook per navigazione Enter su mobile (Enter → prossima cella editabile)
+  const { handleEnterNavigation } = useEnterNavigation<T>({
+    isMobile,
+    getNewRow,
+    onAddRow: handleAddNewRowAt,
+    gotoEditCell,
+    autoAddRowOnTab: enableAutoAddRowOnTab,
+  });
+
   // Verifica se una riga è uguale a newRow (non modificata)
   const isRowPristine = useCallback(
     (rowData: DatagridData<T> | undefined): boolean => {
@@ -205,9 +219,10 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
   // Handler per keydown esteso: gestisce Tab navigation + ESC per cancellare righe pristine
   const handleCellKeyDown = useCallback(
     (event: Parameters<NonNullable<DatagridAgGridProps<DatagridData<T>>["onCellKeyDown"]>>[0]) => {
-      // Prima gestisce la navigazione Tab (solo per CellKeyDownEvent)
+      // Prima gestisce la navigazione Tab e Enter (solo per CellKeyDownEvent)
       if (event.type === "cellKeyDown" && "column" in event) {
         handleTabNavigation(event as Parameters<typeof handleTabNavigation>[0]);
+        handleEnterNavigation(event as Parameters<typeof handleEnterNavigation>[0]);
       }
 
       const keyboardEvent = event.event as KeyboardEvent | undefined;
@@ -255,7 +270,7 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
         }
       }
     },
-    [handleTabNavigation, isEditingRef, readOnly, getNewRow, isRowPristine]
+    [handleTabNavigation, handleEnterNavigation, isEditingRef, readOnly, getNewRow, isRowPristine]
   );
 
   const handleSelectionChanged = useCallback((event: SelectionChangedEvent<DatagridData<T>>) => {
@@ -371,15 +386,24 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
   }, []);
 
   const enhancedColumnDefs = useMemo<DatagridColDef<T>[]>(() => {
-    // Wrappa le colonne con agNumberCellEditor per sopprimere ArrowUp/ArrowDown durante editing
+    type SuppressParams = Parameters<NonNullable<DatagridColDef<T>["suppressKeyboardEvent"]>>[0];
+
     const cols = columnDefs.map((col) => {
-      if (col.cellEditor === "agNumberCellEditor") {
-        const originalSuppress = col.suppressKeyboardEvent;
+      const originalSuppress = col.suppressKeyboardEvent;
+      const isNumberEditor = col.cellEditor === "agNumberCellEditor";
+
+      // Sopprime ArrowUp/ArrowDown per agNumberCellEditor + Enter su mobile per tutte le celle editabili
+      if (isNumberEditor || isMobile) {
         return {
           ...col,
-          suppressKeyboardEvent: (params: Parameters<NonNullable<DatagridColDef<T>["suppressKeyboardEvent"]>>[0]) => {
-            if (params.editing && (params.event.key === "ArrowUp" || params.event.key === "ArrowDown")) {
+          suppressKeyboardEvent: (params: SuppressParams) => {
+            // ArrowUp/ArrowDown durante editing in agNumberCellEditor → gestito da handleCellKeyDown
+            if (isNumberEditor && params.editing && (params.event.key === "ArrowUp" || params.event.key === "ArrowDown")) {
               params.event.preventDefault();
+              return true;
+            }
+            // Enter su mobile durante editing → gestito da useEnterNavigation
+            if (isMobile && params.editing && params.event.key === "Enter") {
               return true;
             }
             return originalSuppress ? originalSuppress(params) : false;
@@ -393,7 +417,7 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
       return cols;
     }
     return [createRowNumberColumn<T>(), ...cols];
-  }, [columnDefs, isPresentation, showRowNumbers]);
+  }, [columnDefs, isPresentation, showRowNumbers, isMobile]);
 
   const context = useRef({
     getGridData,
