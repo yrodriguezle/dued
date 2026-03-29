@@ -17,6 +17,7 @@ interface SearchboxModalProps<T extends Record<string, unknown>> {
   onClose: () => void;
   onSelectItem: (item: T) => void;
   renderCreateForm?: (props: { onSaved: (item: T) => void; onCancel: () => void }) => ReactNode;
+  createFormTitle?: string;
   onItemCreated?: (item: T) => void;
   preSelectedItem?: T | null;
 }
@@ -37,7 +38,7 @@ const modalStyle = {
   overflow: "hidden",
 };
 
-function SearchboxModal<T extends Record<string, unknown>>({ open, title, items, columnDefs, loading, onClose, onSelectItem, renderCreateForm, onItemCreated, preSelectedItem }: SearchboxModalProps<T>) {
+function SearchboxModal<T extends Record<string, unknown>>({ open, title, items, columnDefs, loading, onClose, onSelectItem, renderCreateForm, createFormTitle, onItemCreated, preSelectedItem }: SearchboxModalProps<T>) {
   const [selectedItem, setSelectedItem] = useState<T | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
@@ -245,7 +246,7 @@ function SearchboxModal<T extends Record<string, unknown>>({ open, title, items,
         maxWidth="md"
       >
         <DialogTitle>
-          Nuovo record
+          {createFormTitle || "Nuovo record"}
           <IconButton
             onClick={handleCloseCreateDialog}
             size="small"

@@ -264,6 +264,7 @@ function Searchbox<T extends Record<string, unknown>>({ id, name, value, orderBy
         onClose={handleCloseModal}
         onSelectItem={handleModalSelectItem}
         renderCreateForm={options.renderCreateForm}
+        createFormTitle={options.createFormTitle}
         onItemCreated={handleItemCreated}
         preSelectedItem={preSelectedItem}
       />

@@ -43,6 +43,7 @@ const fornitoreSearchboxOption: SearchboxOptions<FornitoreSearchbox> = {
     title: "Seleziona un fornitore",
     items,
   },
+  createFormTitle: "Dettaglio Fornitore",
   renderCreateForm: ({ onSaved, onCancel }) => (
     <React.Suspense fallback={null}>
       <FornitoreFormContainer

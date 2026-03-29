@@ -22,4 +22,5 @@ interface SearchboxOptions<T extends Record<string, unknown>> {
     items: SearchboxColDef<T>[];
   };
   renderCreateForm?: (props: { onSaved: (item: T) => void; onCancel: () => void }) => ReactNode;
+  createFormTitle?: string;
 }
