@@ -139,7 +139,7 @@ function VistaMensile() {
     (date: Date) => {
       const year = date.getFullYear();
       const month = date.getMonth() + 1;
-      navigate(`/gestionale/cassa/monthly?year=${year}&month=${month}`, { replace: true });
+      navigate(`/gestionale/cassa/vista-mensile?year=${year}&month=${month}`, { replace: true });
     },
     [navigate]
   );
@@ -172,7 +172,7 @@ function VistaMensile() {
   }, [navigate]);
 
   const handleChiusuraMensile = useCallback(() => {
-    navigate(`/gestionale/cassa/monthly-closure/new?anno=${currentYear}&mese=${currentMonth}`);
+    navigate(`/gestionale/cassa/chiusura-mensile/new?anno=${currentYear}&mese=${currentMonth}`);
   }, [navigate, currentYear, currentMonth]);
 
   return (

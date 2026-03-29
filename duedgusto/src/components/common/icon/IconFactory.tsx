@@ -1,31 +1,30 @@
-import * as MuiIcons from "@mui/icons-material";
+import { iconMapping } from "../../layout/sideBar/iconMapping";
 import logger from "../../../common/logger/logger";
 
-type IconProps = React.ComponentType<{
-  fontSize?: "inherit" | "default" | "small" | "large";
-  color?: "inherit" | "primary" | "secondary" | "action" | "error" | "disabled";
-}>;
+export type IconName = keyof typeof iconMapping;
 
-export type IconName = keyof typeof MuiIcons;
+const sizeMap = {
+  inherit: 16,
+  default: 24,
+  small: 20,
+  large: 32,
+} as const;
 
 interface IconFactoryProps {
-  name: IconName;
+  name: string;
   fontSize?: "inherit" | "default" | "small" | "large";
-  color?: "inherit" | "primary" | "secondary" | "action" | "error" | "disabled";
+  color?: string;
 }
 
-const IconFactory: React.FC<IconFactoryProps> = ({ name, fontSize = "default", color = "inherit" }) => {
-  const IconComponent = (MuiIcons as Record<string, IconProps>)[name];
+const IconFactory: React.FC<IconFactoryProps> = ({ name, fontSize = "default", color = "currentColor" }) => {
+  const IconComponent = iconMapping[name];
 
   if (!IconComponent) {
     logger.warn(`IconFactory: icona non trovata per nome "${name}"`);
     return null;
   }
 
-  return <IconComponent
-    fontSize={fontSize}
-    color={color}
-  />;
+  return <IconComponent size={sizeMap[fontSize]} color={color} />;
 };
 
 export default IconFactory;

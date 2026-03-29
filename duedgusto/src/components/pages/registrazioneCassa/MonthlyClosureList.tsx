@@ -57,9 +57,9 @@ const MonthlyClosureList: React.FC = () => {
   const handleMonthClick = (month: number) => {
     const closure = closureByMonth.get(month);
     if (closure) {
-      navigate(`/gestionale/cassa/monthly-closure/${closure.chiusuraId}`);
+      navigate(`/gestionale/cassa/chiusura-mensile/${closure.chiusuraId}`);
     } else {
-      navigate(`/gestionale/cassa/monthly-closure/new?anno=${year}&mese=${month}`);
+      navigate(`/gestionale/cassa/chiusura-mensile/new?anno=${year}&mese=${month}`);
     }
   };
 

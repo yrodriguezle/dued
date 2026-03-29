@@ -172,7 +172,7 @@ const MonthlyClosureDetails = () => {
         .then((result) => {
           const nuovaChiusura = result.data?.chiusureMensili.creaChiusuraMensile;
           if (nuovaChiusura) {
-            navigate(`/gestionale/cassa/monthly-closure/${nuovaChiusura.chiusuraId}`, { replace: true });
+            navigate(`/gestionale/cassa/chiusura-mensile/${nuovaChiusura.chiusuraId}`, { replace: true });
           } else {
             setAutoCreateError("La creazione non ha restituito dati.");
           }
@@ -181,7 +181,7 @@ const MonthlyClosureDetails = () => {
           const message = err instanceof Error ? err.message : "";
           const existingIdMatch = message.match(/ID:\s*(\d+)/);
           if (existingIdMatch) {
-            navigate(`/gestionale/cassa/monthly-closure/${existingIdMatch[1]}`, { replace: true });
+            navigate(`/gestionale/cassa/chiusura-mensile/${existingIdMatch[1]}`, { replace: true });
             return;
           }
           setAutoCreateError(message || "Errore nella creazione della chiusura");
@@ -282,7 +282,7 @@ const MonthlyClosureDetails = () => {
         }
 
         showToast({ type: "success", position: "bottom-right", message: "Chiusura creata con successo", autoClose: 2000, toastId: "save-success" });
-        navigate(`/gestionale/cassa/monthly-closure/${nuovaChiusura.chiusuraId}`, { replace: true });
+        navigate(`/gestionale/cassa/chiusura-mensile/${nuovaChiusura.chiusuraId}`, { replace: true });
         return;
       }
 
@@ -361,7 +361,7 @@ const MonthlyClosureDetails = () => {
     try {
       await eliminaChiusura({ variables: { chiusuraId: chiusuraMensile.chiusuraId } });
       showToast({ type: "success", position: "bottom-right", message: "Chiusura eliminata", autoClose: 2000, toastId: "delete-success" });
-      navigate("/gestionale/cassa/monthly-closure");
+      navigate("/gestionale/cassa/chiusura-mensile");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Errore nell'eliminazione";
       showToast({ type: "error", position: "bottom-right", message, toastId: "delete-error" });
@@ -369,7 +369,7 @@ const MonthlyClosureDetails = () => {
   }, [chiusuraMensile, onConfirm, eliminaChiusura, navigate]);
 
   const handleBack = useCallback(() => {
-    navigate("/gestionale/cassa/monthly-closure");
+    navigate("/gestionale/cassa/chiusura-mensile");
   }, [navigate]);
 
   // Modalità nuova: loading durante auto-creazione o errore

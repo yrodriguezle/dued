@@ -197,7 +197,7 @@ function RegistroCassaDetails() {
   const handleOpenMonthlyCalendar = useCallback(() => {
     // Estrai anno e mese dalla data corrente nell'URL
     const [year, month] = currentDate.split("-").map(Number);
-    navigate(`/gestionale/cassa/monthly?year=${year}&month=${month}`);
+    navigate(`/gestionale/cassa/vista-mensile?year=${year}&month=${month}`);
   }, [currentDate, navigate]);
 
   // Copia i conteggi chiusura del giorno operativo precedente come apertura

@@ -74,7 +74,7 @@ public static class SeedMenus
             {
                 Titolo = "Dashboard",
                 Percorso = "/gestionale/dashboard",
-                Icona = "Dashboard",
+                Icona = "LayoutDashboard",
                 Visibile = true,
                 Posizione = 1,
                 NomeVista = "HomePage",
@@ -86,7 +86,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(dashboardMenu, "Dashboard", "/gestionale/dashboard", "Dashboard", true, 1,
+            UpdateMenuIfNeeded(dashboardMenu, "Dashboard", "/gestionale/dashboard", "LayoutDashboard", true, 1,
                 "HomePage", "dashboard/HomePage.tsx", superAdminRuolo, null, ref needsUpdate);
 
             if (needsUpdate)
@@ -106,7 +106,7 @@ public static class SeedMenus
             {
                 Titolo = "Utenti",
                 Percorso = string.Empty,
-                Icona = "Group",
+                Icona = "Users",
                 Visibile = true,
                 Posizione = 4,
                 Ruoli = [superAdminRuolo]
@@ -117,7 +117,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(utentiMenu, "Utenti", null, "Group", true, 4, null, null, superAdminRuolo, null, ref needsUpdate);
+            UpdateMenuIfNeeded(utentiMenu, "Utenti", null, "Users", true, 4, null, null, superAdminRuolo, null, ref needsUpdate);
             if (needsUpdate)
             {
                 dbContext.Menus.Update(utentiMenu);
@@ -199,7 +199,7 @@ public static class SeedMenus
             {
                 Titolo = "Ruoli",
                 Percorso = string.Empty,
-                Icona = "Engineering",
+                Icona = "Shield",
                 Visibile = true,
                 Posizione = 5,
                 Ruoli = [superAdminRuolo]
@@ -210,7 +210,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(ruoliMenu, "Ruoli", null, "Engineering", true, 5, null, null, superAdminRuolo, null, ref needsUpdate);
+            UpdateMenuIfNeeded(ruoliMenu, "Ruoli", null, "Shield", true, 5, null, null, superAdminRuolo, null, ref needsUpdate);
             if (needsUpdate)
             {
                 dbContext.Menus.Update(ruoliMenu);
@@ -292,7 +292,7 @@ public static class SeedMenus
             {
                 Titolo = "Menù",
                 Percorso = string.Empty,
-                Icona = "List",
+                Icona = "Menu",
                 Visibile = true,
                 Posizione = 6,
                 Ruoli = [superAdminRuolo]
@@ -303,7 +303,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(menusMenu, "Menù", null, "List", true, 6, null, null, superAdminRuolo, null, ref needsUpdate);
+            UpdateMenuIfNeeded(menusMenu, "Menù", null, "Menu", true, 6, null, null, superAdminRuolo, null, ref needsUpdate);
             if (needsUpdate)
             {
                 dbContext.Menus.Update(menusMenu);
@@ -425,7 +425,7 @@ public static class SeedMenus
             {
                 Titolo = "Cassa",
                 Percorso = string.Empty,
-                Icona = "PointOfSale",
+                Icona = "ShoppingCart",
                 Visibile = true,
                 Posizione = 2,
                 Ruoli = [superAdminRuolo]
@@ -436,7 +436,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(cassaMenu, "Cassa", null, "PointOfSale", true, 2, null, null, superAdminRuolo, null, ref needsUpdate);
+            UpdateMenuIfNeeded(cassaMenu, "Cassa", null, "ShoppingCart", true, 2, null, null, superAdminRuolo, null, ref needsUpdate);
             if (needsUpdate)
             {
                 dbContext.Menus.Update(cassaMenu);
@@ -454,7 +454,7 @@ public static class SeedMenus
             {
                 Titolo = "Lista Cassa",
                 Percorso = "/gestionale/cassa/list",
-                Icona = "List",
+                Icona = "ClipboardList",
                 Visibile = true,
                 Posizione = 2,
                 NomeVista = "ListaRegistrazioneCassa",
@@ -467,7 +467,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(cassaChild1, "Lista Cassa", "/gestionale/cassa/list", "List", true, 2,
+            UpdateMenuIfNeeded(cassaChild1, "Lista Cassa", "/gestionale/cassa/list", "ClipboardList", true, 2,
                 "ListaRegistrazioneCassa", "registrazioneCassa/ListaRegistrazioneCassa.tsx", superAdminRuolo, cassaMenu, ref needsUpdate);
             if (needsUpdate)
             {
@@ -478,6 +478,11 @@ public static class SeedMenus
         // Child: Vista Mensile
         var cassaChildMonthly = await dbContext.Menus
             .Include(m => m.Ruoli)
+            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/cassa/vista-mensile");
+
+        // Backwards compatibility: find old path
+        cassaChildMonthly ??= await dbContext.Menus
+            .Include(m => m.Ruoli)
             .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/cassa/monthly");
 
         if (cassaChildMonthly == null)
@@ -485,8 +490,8 @@ public static class SeedMenus
             cassaChildMonthly = new Menu
             {
                 Titolo = "Vista Mensile",
-                Percorso = "/gestionale/cassa/monthly",
-                Icona = "DateRange",
+                Percorso = "/gestionale/cassa/vista-mensile",
+                Icona = "CalendarRange",
                 Visibile = true,
                 Posizione = 3,
                 NomeVista = "VistaMensile",
@@ -499,7 +504,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(cassaChildMonthly, "Vista Mensile", "/gestionale/cassa/monthly", "DateRange", true, 3,
+            UpdateMenuIfNeeded(cassaChildMonthly, "Vista Mensile", "/gestionale/cassa/vista-mensile", "CalendarRange", true, 3,
                 "VistaMensile", "registrazioneCassa/vistaMensile/VistaMensile.tsx", superAdminRuolo, cassaMenu, ref needsUpdate);
             if (needsUpdate)
             {
@@ -510,30 +515,20 @@ public static class SeedMenus
         // Child: Chiusura Mensile
         var cassaChild2 = await dbContext.Menus
             .Include(m => m.Ruoli)
+            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/cassa/chiusura-mensile");
+
+        // Backwards compatibility: find old path
+        cassaChild2 ??= await dbContext.Menus
+            .Include(m => m.Ruoli)
             .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/cassa/monthly-closure");
-
-        if (cassaChild2 == null)
-        {
-            // Backwards compatibility: find and update old "Vista Mensile" menu
-            cassaChild2 = await dbContext.Menus
-                .Include(m => m.Ruoli)
-                .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/cassa/monthly");
-
-            if (cassaChild2 != null)
-            {
-                // Path is changing, so we update it
-                cassaChild2.Percorso = "/gestionale/cassa/monthly-closure";
-            }
-        }
-
 
         if (cassaChild2 == null)
         {
             cassaChild2 = new Menu
             {
                 Titolo = "Chiusura Mensile",
-                Percorso = "/gestionale/cassa/monthly-closure",
-                Icona = "CalendarMonth",
+                Percorso = "/gestionale/cassa/chiusura-mensile",
+                Icona = "CalendarCheck",
                 Visibile = true,
                 Posizione = 4,
                 NomeVista = "MonthlyClosureList",
@@ -546,7 +541,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(cassaChild2, "Chiusura Mensile", "/gestionale/cassa/monthly-closure", "CalendarMonth", true, 4,
+            UpdateMenuIfNeeded(cassaChild2, "Chiusura Mensile", "/gestionale/cassa/chiusura-mensile", "CalendarCheck", true, 4,
                 "MonthlyClosureList", "registrazioneCassa/MonthlyClosureList.tsx", superAdminRuolo, cassaMenu, ref needsUpdate);
             if (needsUpdate)
             {
@@ -574,7 +569,7 @@ public static class SeedMenus
             {
                 Titolo = "Gestione Cassa",
                 Percorso = "/gestionale/cassa/details",
-                Icona = "Edit",
+                Icona = "Pencil",
                 Visibile = true,
                 Posizione = 5,
                 NomeVista = "RegistroCassaDetails",
@@ -587,7 +582,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(cassaChild4, "Gestione Cassa", "/gestionale/cassa/details", "Edit", true, 5,
+            UpdateMenuIfNeeded(cassaChild4, "Gestione Cassa", "/gestionale/cassa/details", "Pencil", true, 5,
                 "RegistroCassaDetails", "registrazioneCassa/RegistroCassaDetails.tsx", superAdminRuolo, cassaMenu, ref needsUpdate);
             if (needsUpdate)
             {
@@ -608,7 +603,7 @@ public static class SeedMenus
             {
                 Titolo = "Fornitori",
                 Percorso = string.Empty,
-                Icona = "Store",
+                Icona = "Warehouse",
                 Visibile = true,
                 Posizione = 3,
                 NomeVista = string.Empty,
@@ -622,7 +617,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(fornitoriMenu, "Fornitori", string.Empty, "Store", true, 3,
+            UpdateMenuIfNeeded(fornitoriMenu, "Fornitori", string.Empty, "Warehouse", true, 3,
                 string.Empty, string.Empty, superAdminRuolo, null, ref needsUpdate);
             if (needsUpdate)
             {
@@ -631,18 +626,18 @@ public static class SeedMenus
             }
         }
 
-        // Menu figlio: Lista Fornitori
+        // Menu figlio: Lista fornitori
         var fornitoriChild1 = await dbContext.Menus
             .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Titolo == "Lista Fornitori" && m.MenuPadreId == fornitoriMenu.Id);
+            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/fornitori-list");
 
         if (fornitoriChild1 == null)
         {
             fornitoriChild1 = new Menu
             {
-                Titolo = "Lista Fornitori",
+                Titolo = "Lista fornitori",
                 Percorso = "/gestionale/fornitori-list",
-                Icona = "List",
+                Icona = "PackageSearch",
                 Visibile = true,
                 Posizione = 1,
                 NomeVista = "FornitoreList",
@@ -655,7 +650,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(fornitoriChild1, "Lista Fornitori", "/gestionale/fornitori-list", "List", true, 1,
+            UpdateMenuIfNeeded(fornitoriChild1, "Lista fornitori", "/gestionale/fornitori-list", "PackageSearch", true, 1,
                 "FornitoreList", "fornitori/FornitoreList.tsx", superAdminRuolo, fornitoriMenu, ref needsUpdate);
             if (needsUpdate)
             {
@@ -663,18 +658,18 @@ public static class SeedMenus
             }
         }
 
-        // Menu figlio: Gestione Fornitori
+        // Menu figlio: Gestione fornitore
         var fornitoriChild2 = await dbContext.Menus
             .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Titolo == "Gestione Fornitori" && m.MenuPadreId == fornitoriMenu.Id);
+            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/fornitori-details");
 
         if (fornitoriChild2 == null)
         {
             fornitoriChild2 = new Menu
             {
-                Titolo = "Gestione Fornitori",
+                Titolo = "Gestione fornitore",
                 Percorso = "/gestionale/fornitori-details",
-                Icona = "Person3",
+                Icona = "UserRound",
                 Visibile = true,
                 Posizione = 2,
                 NomeVista = "FornitoreDetails",
@@ -687,7 +682,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(fornitoriChild2, "Gestione Fornitori", "/gestionale/fornitori-details", "Person3", true, 2,
+            UpdateMenuIfNeeded(fornitoriChild2, "Gestione fornitore", "/gestionale/fornitori-details", "UserRound", true, 2,
                 "FornitoreDetails", "fornitori/FornitoreDetails.tsx", superAdminRuolo, fornitoriMenu, ref needsUpdate);
             if (needsUpdate)
             {
@@ -695,16 +690,16 @@ public static class SeedMenus
             }
         }
 
-        // Menu figlio: Fatture Acquisto
+        // Menu figlio: Lista fatture acq.
         var fornitoriChild3 = await dbContext.Menus
             .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Titolo == "Fatture Acquisto" && m.MenuPadreId == fornitoriMenu.Id);
+            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/fatture-acquisto-list");
 
         if (fornitoriChild3 == null)
         {
             fornitoriChild3 = new Menu
             {
-                Titolo = "Fatture Acquisto",
+                Titolo = "Lista fatture acq.",
                 Percorso = "/gestionale/fatture-acquisto-list",
                 Icona = "Receipt",
                 Visibile = true,
@@ -719,7 +714,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(fornitoriChild3, "Fatture Acquisto", "/gestionale/fatture-acquisto-list", "Receipt", true, 3,
+            UpdateMenuIfNeeded(fornitoriChild3, "Lista fatture acq.", "/gestionale/fatture-acquisto-list", "Receipt", true, 3,
                 "FatturaAcquistoList", "fattureAcquisto/FatturaAcquistoList.tsx", superAdminRuolo, fornitoriMenu, ref needsUpdate);
             if (needsUpdate)
             {
@@ -727,18 +722,18 @@ public static class SeedMenus
             }
         }
 
-        // Menu figlio: Gestione Fatture Acquisto
+        // Menu figlio: Gestione fattura acq.
         var fornitoriChild4 = await dbContext.Menus
             .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Titolo == "Gestione Fatture Acquisto" && m.MenuPadreId == fornitoriMenu.Id);
+            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/fatture-acquisto-details");
 
         if (fornitoriChild4 == null)
         {
             fornitoriChild4 = new Menu
             {
-                Titolo = "Gestione Fatture Acquisto",
+                Titolo = "Gestione fattura acq.",
                 Percorso = "/gestionale/fatture-acquisto-details",
-                Icona = "Edit",
+                Icona = "FilePenLine",
                 Visibile = true,
                 Posizione = 4,
                 NomeVista = "FatturaAcquistoDetails",
@@ -751,7 +746,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(fornitoriChild4, "Gestione Fatture Acquisto", "/gestionale/fatture-acquisto-details", "Edit", true, 4,
+            UpdateMenuIfNeeded(fornitoriChild4, "Gestione fattura acq.", "/gestionale/fatture-acquisto-details", "FilePenLine", true, 4,
                 "FatturaAcquistoDetails", "fattureAcquisto/FatturaAcquistoDetails.tsx", superAdminRuolo, fornitoriMenu, ref needsUpdate);
             if (needsUpdate)
             {
@@ -759,7 +754,7 @@ public static class SeedMenus
             }
         }
 
-        // Menu figlio: DDT
+        // Menu figlio: Lista ddt
         var fornitoriChild5 = await dbContext.Menus
             .Include(m => m.Ruoli)
             .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/documenti-trasporto-list");
@@ -768,9 +763,9 @@ public static class SeedMenus
         {
             fornitoriChild5 = new Menu
             {
-                Titolo = "DDT",
+                Titolo = "Lista ddt",
                 Percorso = "/gestionale/documenti-trasporto-list",
-                Icona = "LocalShipping",
+                Icona = "Truck",
                 Visibile = true,
                 Posizione = 5,
                 NomeVista = "DocumentoTrasportoList",
@@ -783,7 +778,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(fornitoriChild5, "DDT", "/gestionale/documenti-trasporto-list", "LocalShipping", true, 5,
+            UpdateMenuIfNeeded(fornitoriChild5, "Lista ddt", "/gestionale/documenti-trasporto-list", "Truck", true, 5,
                 "DocumentoTrasportoList", "documentiTrasporto/DocumentoTrasportoList.tsx", superAdminRuolo, fornitoriMenu, ref needsUpdate);
             if (needsUpdate)
             {
@@ -791,7 +786,7 @@ public static class SeedMenus
             }
         }
 
-        // Menu figlio: Gestione DDT (nascosto nella sidebar)
+        // Menu figlio: Gestione ddt (nascosto nella sidebar)
         var fornitoriChild6 = await dbContext.Menus
             .Include(m => m.Ruoli)
             .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/documenti-trasporto-details");
@@ -800,9 +795,9 @@ public static class SeedMenus
         {
             fornitoriChild6 = new Menu
             {
-                Titolo = "Gestione DDT",
+                Titolo = "Gestione ddt",
                 Percorso = "/gestionale/documenti-trasporto-details",
-                Icona = "Edit",
+                Icona = "FileEdit",
                 Visibile = false,
                 Posizione = 6,
                 NomeVista = "DocumentoTrasportoDetails",
@@ -815,7 +810,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(fornitoriChild6, "Gestione DDT", "/gestionale/documenti-trasporto-details", "Edit", false, 6,
+            UpdateMenuIfNeeded(fornitoriChild6, "Gestione ddt", "/gestionale/documenti-trasporto-details", "FileEdit", false, 6,
                 "DocumentoTrasportoDetails", "documentiTrasporto/DocumentoTrasportoDetails.tsx", superAdminRuolo, fornitoriMenu, ref needsUpdate);
             if (needsUpdate)
             {

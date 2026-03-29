@@ -1,20 +1,19 @@
 import { useCallback, useMemo } from "react";
 import Box from "@mui/material/Box";
-import * as MuiIcons from "@mui/icons-material";
 import { GridApi, GridReadyEvent } from "ag-grid-community";
 
 import { MenuNonNull, MenuWithStatus } from "../../common/form/searchbox/searchboxOptions/menuSearchboxOptions";
 import Datagrid from "../../common/datagrid/Datagrid";
 import { useFormikContext } from "formik";
 import MenuIconRenderer from "../../common/datagrid/cellRenderers/MenuIconRenderer";
-import { IconName } from "../../common/icon/IconFactory";
+import { iconMapping } from "../../layout/sideBar/iconMapping";
 import { DatagridCellValueChangedEvent, DatagridColDef, DatagridData, DatagridGridReadyEvent, DatagridRowDragEndEvent, DatagridRowDataUpdatedEvent } from "../../common/datagrid/@types/Datagrid";
 import { FormikMenuValues } from "./MenuDetails";
 import { DatagridStatus } from "../../../common/globals/constants";
 import useDebouncedCallback from "../../common/debounced/useDebouncedCallback";
 import showToast from "../../../common/toast/showToast";
 
-const iconNames = Object.keys(MuiIcons) as IconName[];
+const iconNames = Object.keys(iconMapping);
 
 function buildNodesMap(api: GridApi): Map<number, MenuNonNull> {
   const map = new Map<number, MenuNonNull>();

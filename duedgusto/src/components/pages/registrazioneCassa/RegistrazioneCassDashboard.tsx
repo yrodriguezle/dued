@@ -258,7 +258,7 @@ function RegistrazioneCassDashboard() {
             variant="outlined"
             color="secondary"
             startIcon={<CalendarMonthIcon />}
-            onClick={() => navigate("/gestionale/cassa/monthly")}
+            onClick={() => navigate("/gestionale/cassa/vista-mensile")}
           >
             Vista Mensile
           </Button>

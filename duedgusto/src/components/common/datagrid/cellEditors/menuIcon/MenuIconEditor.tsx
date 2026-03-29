@@ -1,18 +1,17 @@
 import { useRef, useState, useEffect, useId } from "react";
 import type { CustomCellEditorProps } from "ag-grid-react";
-import * as MuiIcons from "@mui/icons-material";
-
-import IconFactory, { IconName } from "../../../icon/IconFactory";
+import IconFactory from "../../../icon/IconFactory";
+import { iconMapping } from "../../../../layout/sideBar/iconMapping";
 import TextField from "@mui/material/TextField";
 import Autocomplete from "@mui/material/Autocomplete";
 import FloatingPopper from "./FloatingPopper";
 
-const iconNames = Object.keys(MuiIcons) as IconName[];
+const iconNames = Object.keys(iconMapping);
 
 const MenuIconEditor = (props: CustomCellEditorProps) => {
   const editorId = useId();
-  const [value, setValue] = useState<IconName | "">(props.value);
-  const [iconOptions, setIconOptions] = useState<IconName[]>(iconNames.filter((_, index) => index < 11));
+  const [value, setValue] = useState<string>(props.value);
+  const [iconOptions, setIconOptions] = useState<string[]>(iconNames.filter((_, index) => index < 11));
   const [inputValue, setInputValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const anchorRef = useRef<HTMLElement | null>(null);
@@ -45,7 +44,7 @@ const MenuIconEditor = (props: CustomCellEditorProps) => {
         inputValue={inputValue}
         onChange={(_, newValue) => {
           if (newValue) {
-            setValue(newValue as IconName);
+            setValue(newValue as string);
             props.onValueChange(newValue);
           }
         }}

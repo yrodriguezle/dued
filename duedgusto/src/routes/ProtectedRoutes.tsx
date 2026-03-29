@@ -60,7 +60,7 @@ function ProtectedRoutes() {
           />}
         />
         <Route
-          path="cassa/monthly"
+          path="cassa/vista-mensile"
           element={
             <Suspense fallback={<Fallback />}>
               <VistaMensile />
@@ -68,7 +68,7 @@ function ProtectedRoutes() {
           }
         />
         <Route
-          path="cassa/monthly-closure/new"
+          path="cassa/chiusura-mensile/new"
           element={
             <Suspense fallback={<Fallback />}>
               <MonthlyClosureDetails />
@@ -76,7 +76,7 @@ function ProtectedRoutes() {
           }
         />
         <Route
-          path="cassa/monthly-closure/:id"
+          path="cassa/chiusura-mensile/:id"
           element={
             <Suspense fallback={<Fallback />}>
               <MonthlyClosureDetails />
