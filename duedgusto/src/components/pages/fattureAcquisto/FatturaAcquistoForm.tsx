@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { Paper, Box, Chip, useTheme } from "@mui/material";
+import { Paper, Box, Chip, IconButton, useTheme } from "@mui/material";
+import LinkOffIcon from "@mui/icons-material/LinkOff";
 import { useFormikContext } from "formik";
 import { useMutation } from "@apollo/client";
 import { CellValueChangedEvent, GridReadyEvent } from "ag-grid-community";
@@ -17,6 +18,7 @@ import { formStatuses } from "../../../common/globals/constants";
 import showToast from "../../../common/toast/showToast";
 import { mutationMutateDocumentoTrasporto, mutationMutatePagamentoFornitore } from "../../../graphql/fornitori/mutations";
 import { FormikFatturaAcquistoValues } from "./FatturaAcquistoDetails";
+import { PrelevaDdtItem } from "./PrelevaDdtDialog";
 
 type DocumentoTrasportoRow = {
   ddtId: number;
@@ -38,9 +40,12 @@ interface FatturaAcquistoFormProps {
   onSelectFornitore: (item: FornitoreSearchbox) => void;
   onSelectInvoice: (item: FatturaAcquistoSearchbox) => void;
   documentiTrasporto: DocumentoTrasporto[];
+  pendingDdt?: PrelevaDdtItem[];
   payments: PagamentoFornitore[];
   onRefresh: () => void;
   onRegisterGetPaymentRows?: (getter: () => PaymentRow[]) => void;
+  onDisassociaDdt?: (ddtId: number) => Promise<void>;
+  onRemovePendingDdt?: (ddtId: number) => void;
 }
 
 const statusColorMap: Record<string, "error" | "warning" | "success"> = {
@@ -55,7 +60,7 @@ const statusLabelMap: Record<string, string> = {
   PAGATA: "Pagata",
 };
 
-function FatturaAcquistoForm({ onSelectFornitore, onSelectInvoice, documentiTrasporto, payments, onRefresh, onRegisterGetPaymentRows }: FatturaAcquistoFormProps) {
+function FatturaAcquistoForm({ onSelectFornitore, onSelectInvoice, documentiTrasporto, pendingDdt, payments, onRefresh, onRegisterGetPaymentRows, onDisassociaDdt, onRemovePendingDdt }: FatturaAcquistoFormProps) {
   const { values, status: formStatus } = useFormikContext<FormikFatturaAcquistoValues>();
   const isUpdate = formStatus?.formStatus === formStatuses.UPDATE;
   const theme = useTheme();
@@ -92,38 +97,77 @@ function FatturaAcquistoForm({ onSelectFornitore, onSelectInvoice, documentiTras
     });
   }, [onRegisterGetPaymentRows]);
 
-  const vatAmount = (values.taxableAmount * values.vatRate) / 100;
-  const totalAmount = values.taxableAmount + vatAmount;
+  const taxableAmount = values.totalAmount / (1 + values.vatRate / 100);
+  const vatAmount = values.totalAmount - taxableAmount;
 
   // === DDT Grid ===
-  const ddtItems = useMemo<DocumentoTrasportoRow[]>(
-    () =>
-      documentiTrasporto.map((d) => ({
+  const hasPendingDdt = (pendingDdt?.length ?? 0) > 0;
+  const showDdtGrid = (isUpdate && values.invoiceId) || hasPendingDdt;
+
+  const ddtItems = useMemo<DocumentoTrasportoRow[]>(() => {
+    if (isUpdate) {
+      return documentiTrasporto.map((d) => ({
         ddtId: d.ddtId,
         ddtNumber: d.numeroDdt,
         ddtDate: d.dataDdt ? d.dataDdt.split("T")[0] : "",
         amount: d.importo ?? 0,
         notes: d.note ?? "",
-      })),
-    [documentiTrasporto]
+      }));
+    }
+    // INSERT: mostra DDT pendenti
+    return (pendingDdt ?? []).map((d) => ({
+      ddtId: d.ddtId,
+      ddtNumber: d.numeroDdt,
+      ddtDate: d.dataDdt ? d.dataDdt.split("T")[0] : "",
+      amount: d.importo,
+      notes: d.note,
+    }));
+  }, [isUpdate, documentiTrasporto, pendingDdt]);
+
+  const handleRemoveDdt = useCallback(
+    (ddtId: number) => {
+      if (isUpdate && onDisassociaDdt) {
+        onDisassociaDdt(ddtId);
+      } else if (onRemovePendingDdt) {
+        onRemovePendingDdt(ddtId);
+      }
+    },
+    [isUpdate, onDisassociaDdt, onRemovePendingDdt]
   );
 
   const ddtColumnDefs = useMemo<DatagridColDef<DocumentoTrasportoRow>[]>(
     () => [
-      { headerName: "Numero DDT", field: "ddtNumber", editable: true, flex: 1 },
-      { headerName: "Data DDT", field: "ddtDate", editable: true, flex: 1, cellEditor: "agDateStringCellEditor" },
+      { headerName: "Numero DDT", field: "ddtNumber", editable: isUpdate, flex: 1 },
+      { headerName: "Data DDT", field: "ddtDate", editable: isUpdate, flex: 1, ...(isUpdate ? { cellEditor: "agDateStringCellEditor" } : {}) },
       {
         headerName: "Importo",
         field: "amount",
-        editable: true,
+        editable: isUpdate,
         width: 130,
-        cellEditor: "agNumberCellEditor",
-        cellEditorParams: { precision: 2 },
+        ...(isUpdate ? { cellEditor: "agNumberCellEditor", cellEditorParams: { precision: 2 } } : {}),
         valueFormatter: (params) => (params.value != null ? Number(params.value).toFixed(2) : ""),
       },
-      { headerName: "Note", field: "notes", editable: true, flex: 1 },
+      { headerName: "Note", field: "notes", editable: isUpdate, flex: 1 },
+      {
+        headerName: "",
+        field: "ddtId" as const,
+        width: 50,
+        editable: false,
+        sortable: false,
+        filter: false,
+        cellRenderer: (params: { data: DatagridData<DocumentoTrasportoRow> }) =>
+          params.data.ddtId ? (
+            <IconButton
+              size="small"
+              onClick={() => handleRemoveDdt(params.data.ddtId)}
+              title="Rimuovi DDT"
+            >
+              <LinkOffIcon fontSize="small" />
+            </IconButton>
+          ) : null,
+      },
     ],
-    []
+    [isUpdate, handleRemoveDdt]
   );
 
   const getNewDdtRow = useCallback(
@@ -304,8 +348,8 @@ function FatturaAcquistoForm({ onSelectFornitore, onSelectInvoice, documentiTras
           </div>
           <div className="col-span-12 md:col-span-3">
             <FormikNumberField
-              name="taxableAmount"
-              label="Imponibile *"
+              name="totalAmount"
+              label="Totale *"
               fullWidth
               slotProps={{ htmlInput: { step: "0.01", min: "0" } }}
             />
@@ -320,21 +364,21 @@ function FatturaAcquistoForm({ onSelectFornitore, onSelectInvoice, documentiTras
           </div>
           <div className="col-span-12 md:col-span-3">
             <NumberField
-              name="_vatAmount"
-              label="IVA Calcolata"
+              name="_taxableAmount"
+              label="Imponibile"
               fullWidth
               disabled
-              value={vatAmount}
+              value={taxableAmount}
               decimals={2}
             />
           </div>
           <div className="col-span-12 md:col-span-3">
             <NumberField
-              name="_totalAmount"
-              label="Totale con IVA"
+              name="_vatAmount"
+              label="IVA"
               fullWidth
               disabled
-              value={totalAmount}
+              value={vatAmount}
               decimals={2}
             />
           </div>
@@ -350,22 +394,33 @@ function FatturaAcquistoForm({ onSelectFornitore, onSelectInvoice, documentiTras
         </div>
       </Paper>
 
-      {/* DDT - solo in UPDATE */}
-      {isUpdate && values.invoiceId && (
+      {/* DDT */}
+      {showDdtGrid && (
         <Paper
           variant="outlined"
           sx={{ p: 2.5 }}
         >
-          <Datagrid<DocumentoTrasportoRow>
-            gridId="fattura-acquisto-ddt"
-            height="250px"
-            items={ddtItems}
-            columnDefs={ddtColumnDefs}
-            readOnly={false}
-            getNewRow={getNewDdtRow}
-            getRowId={({ data }) => (data.ddtId ? data.ddtId.toString() : `new-${Math.random()}`)}
-            onCellValueChanged={handleDdtCellValueChanged}
-          />
+          {isUpdate ? (
+            <Datagrid<DocumentoTrasportoRow>
+              gridId="fattura-acquisto-ddt"
+              height="250px"
+              items={ddtItems}
+              columnDefs={ddtColumnDefs}
+              readOnly={false}
+              getNewRow={getNewDdtRow}
+              getRowId={({ data }) => (data.ddtId ? data.ddtId.toString() : `new-${Math.random()}`)}
+              onCellValueChanged={handleDdtCellValueChanged}
+            />
+          ) : (
+            <Datagrid<DocumentoTrasportoRow>
+              gridId="fattura-acquisto-ddt-pending"
+              height="250px"
+              items={ddtItems}
+              columnDefs={ddtColumnDefs}
+              presentation
+              getRowId={({ data }) => data.ddtId.toString()}
+            />
+          )}
         </Paper>
       )}
 

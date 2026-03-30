@@ -77,6 +77,19 @@ public class FornitoriQueries : ObjectGraphType
                 return result;
             });
 
+        // DDT aperti (senza fattura) per fornitore
+        Field<ListGraphType<DocumentoTrasportoType>, List<DocumentoTrasporto>>("documentiTrasportoAperti")
+            .Argument<NonNullGraphType<IntGraphType>>("fornitoreId")
+            .ResolveAsync(async context =>
+            {
+                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                int fornitoreId = context.GetArgument<int>("fornitoreId");
+                return await dbContext.DocumentiTrasporto
+                    .Where(d => d.FornitoreId == fornitoreId && d.FatturaId == null)
+                    .OrderByDescending(d => d.DataDdt)
+                    .ToListAsync();
+            });
+
         // Documento di trasporto per ID
         Field<DocumentoTrasportoType, DocumentoTrasporto>("documentoTrasporto")
             .Argument<NonNullGraphType<IntGraphType>>("ddtId")

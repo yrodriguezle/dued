@@ -54,6 +54,30 @@ public class FornitoriMutations : ObjectGraphType
                 return await orchestrator.EliminaAsync(fatturaId);
             });
 
+        // === Associazione DDT ===
+
+        Field<FatturaAcquistoType>("associaDdtAFattura")
+            .Argument<NonNullGraphType<IntGraphType>>("fatturaId", "ID fattura acquisto")
+            .Argument<NonNullGraphType<ListGraphType<NonNullGraphType<IntGraphType>>>>("ddtIds", "Lista ID DDT da associare")
+            .ResolveAsync(async context =>
+            {
+                FatturaAcquistoOrchestrator orchestrator = GraphQLService.GetService<FatturaAcquistoOrchestrator>(context);
+                int fatturaId = context.GetArgument<int>("fatturaId");
+                List<int> ddtIds = context.GetArgument<List<int>>("ddtIds");
+                return await orchestrator.AssociaDdtAsync(fatturaId, ddtIds);
+            });
+
+        Field<FatturaAcquistoType>("disassociaDdtDaFattura")
+            .Argument<NonNullGraphType<IntGraphType>>("fatturaId", "ID fattura acquisto")
+            .Argument<NonNullGraphType<ListGraphType<NonNullGraphType<IntGraphType>>>>("ddtIds", "Lista ID DDT da disassociare")
+            .ResolveAsync(async context =>
+            {
+                FatturaAcquistoOrchestrator orchestrator = GraphQLService.GetService<FatturaAcquistoOrchestrator>(context);
+                int fatturaId = context.GetArgument<int>("fatturaId");
+                List<int> ddtIds = context.GetArgument<List<int>>("ddtIds");
+                return await orchestrator.DisassociaDdtAsync(fatturaId, ddtIds);
+            });
+
         // === Documento di Trasporto ===
 
         Field<DocumentoTrasportoType>("mutateDocumentoTrasporto")

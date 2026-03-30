@@ -18,7 +18,7 @@ function useInitializeValues({ skipInitialize }: UseInitializeValuesProps) {
       invoiceNumber: "",
       invoiceDate: "",
       dueDate: "",
-      taxableAmount: 0,
+      totalAmount: 0,
       vatRate: 22,
       notes: "",
     };

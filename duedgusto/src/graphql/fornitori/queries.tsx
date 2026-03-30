@@ -129,6 +129,30 @@ export const getFatturaAcquisto: TypedDocumentNode<GetFatturaAcquistoData, GetFa
     }
   }`);
 
+// Get DDT aperti (senza fattura) per fornitore
+interface GetDocumentiTrasportoApertiData {
+  fornitori: {
+    documentiTrasportoAperti: DocumentoTrasporto[];
+  };
+}
+
+interface GetDocumentiTrasportoApertiVariables {
+  fornitoreId: number;
+}
+
+export const getDocumentiTrasportoAperti: TypedDocumentNode<GetDocumentiTrasportoApertiData, GetDocumentiTrasportoApertiVariables> = gql(`
+  query GetDocumentiTrasportoAperti($fornitoreId: Int!) {
+    fornitori {
+      documentiTrasportoAperti(fornitoreId: $fornitoreId) {
+        ddtId
+        numeroDdt
+        dataDdt
+        importo
+        note
+      }
+    }
+  }`);
+
 // Get documenti trasporto with pagination
 export const getDocumentiTrasportoConnection = gql(`
   ${documentoTrasportoFragment}

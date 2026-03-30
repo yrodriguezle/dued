@@ -5,14 +5,17 @@ import { toast } from "react-toastify";
 import { useLocation, useNavigate } from "react-router";
 import { useLazyQuery, useMutation } from "@apollo/client";
 import { Box, Typography } from "@mui/material";
+import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 
 import FatturaAcquistoForm, { PaymentRow } from "./FatturaAcquistoForm";
+import PrelevaDdtDialog, { PrelevaDdtItem } from "./PrelevaDdtDialog";
 import FormikToolbar from "../../common/form/toolbar/FormikToolbar";
+import FormikToolbarButton from "../../common/form/toolbar/FormikToolbarButton";
 import { formStatuses } from "../../../common/globals/constants";
 import useConfirm from "../../common/confirm/useConfirm";
 import PageTitleContext from "../../layout/headerBar/PageTitleContext";
 import { getFatturaAcquisto } from "../../../graphql/fornitori/queries";
-import { mutationMutateFatturaAcquisto } from "../../../graphql/fornitori/mutations";
+import { mutationMutateFatturaAcquisto, mutationAssociaDdtAFattura, mutationDisassociaDdtDaFattura } from "../../../graphql/fornitori/mutations";
 import useInitializeValues from "./useInitializeValues";
 import setInitialFocus from "./setInitialFocus";
 import sleep from "../../../common/bones/sleep";
@@ -26,7 +29,7 @@ const Schema = z.object({
   invoiceNumber: z.string().nonempty("Numero fattura obbligatorio"),
   invoiceDate: z.string().nonempty("Data fattura obbligatoria"),
   dueDate: z.string().optional(),
-  taxableAmount: z.number().min(0, "Importo non valido"),
+  totalAmount: z.number().min(0, "Importo non valido"),
   vatRate: z.number().min(0).max(100),
   notes: z.string().optional(),
   invoiceStatus: z.string().optional(),
@@ -41,7 +44,7 @@ const mapFatturaToFormValues = (invoice: FatturaAcquisto): Partial<FormikFattura
   invoiceNumber: invoice.numeroFattura,
   invoiceDate: invoice.dataFattura ? invoice.dataFattura.split("T")[0] : "",
   dueDate: invoice.dataScadenza ? invoice.dataScadenza.split("T")[0] : "",
-  taxableAmount: invoice.imponibile,
+  totalAmount: invoice.imponibile + (invoice.importoIva ?? 0),
   vatRate: invoice.importoIva != null && invoice.imponibile ? Math.round((invoice.importoIva / invoice.imponibile) * 100 * 100) / 100 : 22,
   notes: invoice.note ?? "",
   invoiceStatus: invoice.stato,
@@ -55,7 +58,7 @@ const mapFormValuesToInput = (
   numeroFattura: values.invoiceNumber,
   dataFattura: values.invoiceDate,
   dataScadenza: values.dueDate || undefined,
-  imponibile: values.taxableAmount,
+  imponibile: values.totalAmount / (1 + values.vatRate / 100),
   aliquotaIva: values.vatRate,
   note: values.notes || undefined,
   stato: values.invoiceStatus || "DA_PAGARE",
@@ -68,12 +71,16 @@ function FatturaAcquistoDetails() {
   const navigate = useNavigate();
   const [loadInvoice] = useLazyQuery(getFatturaAcquisto);
   const [mutateInvoice] = useMutation(mutationMutateFatturaAcquisto);
+  const [associaDdt] = useMutation(mutationAssociaDdtAFattura);
+  const [disassociaDdt] = useMutation(mutationDisassociaDdtDaFattura);
   const onConfirm = useConfirm();
   const { initialValues, handleInitializeValues } = useInitializeValues({ skipInitialize: false });
 
   const [documentiTrasporto, setDocumentiTrasporto] = useState<DocumentoTrasporto[]>([]);
+  const [pendingDdt, setPendingDdt] = useState<PrelevaDdtItem[]>([]);
   const [pagamentiFornitore, setPagamentiFornitore] = useState<PagamentoFornitore[]>([]);
   const getPaymentRowsRef = useRef<(() => PaymentRow[]) | null>(null);
+  const [prelevaDdtOpen, setPrelevaDdtOpen] = useState(false);
 
   useEffect(() => {
     setTitle("Dettaglio Fattura Acquisto");
@@ -148,6 +155,7 @@ function FatturaAcquistoDetails() {
         await handleInitializeValues();
         formRef.current?.resetForm();
         setDocumentiTrasporto([]);
+        setPendingDdt([]);
         setPagamentiFornitore([]);
         await sleep(200);
         setInitialFocus();
@@ -166,6 +174,58 @@ function FatturaAcquistoDetails() {
       navigate(`/gestionale/fatture-acquisto-details?invoiceId=${item.fatturaId}`);
     },
     [navigate]
+  );
+
+  const handleAssociaDdt = useCallback(
+    async (selectedItems: PrelevaDdtItem[]) => {
+      const invoiceId = formRef.current?.values.invoiceId;
+      if (invoiceId) {
+        // UPDATE mode: associa subito via mutation
+        try {
+          await associaDdt({ variables: { fatturaId: invoiceId, ddtIds: selectedItems.map((d) => d.ddtId) } });
+          toast.success("DDT prelevati con successo", { position: "bottom-right", autoClose: 2000 });
+          setPrelevaDdtOpen(false);
+          await loadInvoiceData(invoiceId);
+        } catch {
+          toast.error("Errore durante il prelievo dei DDT", { position: "bottom-right", autoClose: 2000 });
+        }
+      } else {
+        // INSERT mode: accumula in stato locale, saranno associati dopo il salvataggio
+        setPendingDdt((prev) => [
+          ...prev,
+          ...selectedItems.filter((item) => !prev.some((p) => p.ddtId === item.ddtId)),
+        ]);
+        // Aggiorna il totale nel form
+        const currentTotal = formRef.current?.values.totalAmount ?? 0;
+        const ddtTotal = selectedItems.reduce((sum, d) => sum + d.importo, 0);
+        formRef.current?.setFieldValue("totalAmount", currentTotal + ddtTotal);
+        setPrelevaDdtOpen(false);
+        toast.success("DDT selezionati per il prelievo", { position: "bottom-right", autoClose: 2000 });
+      }
+    },
+    [associaDdt, loadInvoiceData]
+  );
+
+  const handleDisassociaDdt = useCallback(
+    async (ddtId: number) => {
+      const invoiceId = formRef.current?.values.invoiceId;
+      if (!invoiceId) return;
+      const confirmed = await onConfirm({
+        title: "Rimuovi DDT",
+        content: "Vuoi rimuovere il DDT dalla fattura?",
+        acceptLabel: "Si",
+        cancelLabel: "No",
+      });
+      if (!confirmed) return;
+      try {
+        await disassociaDdt({ variables: { fatturaId: invoiceId, ddtIds: [ddtId] } });
+        toast.success("DDT rimosso con successo", { position: "bottom-right", autoClose: 2000 });
+        await loadInvoiceData(invoiceId);
+      } catch {
+        toast.error("Errore durante la rimozione del DDT", { position: "bottom-right", autoClose: 2000 });
+      }
+    },
+    [disassociaDdt, onConfirm, loadInvoiceData]
   );
 
   const handleSubmit = useCallback(
@@ -192,6 +252,21 @@ function FatturaAcquistoDetails() {
         if (result.data?.fornitori?.mutateFatturaAcquisto) {
           const invoice = result.data.fornitori.mutateFatturaAcquisto;
 
+          // In INSERT, associa i DDT pendenti alla fattura appena creata
+          if (!values.invoiceId && pendingDdt.length > 0) {
+            try {
+              await associaDdt({
+                variables: {
+                  fatturaId: invoice.fatturaId,
+                  ddtIds: pendingDdt.map((d) => d.ddtId),
+                },
+              });
+              setPendingDdt([]);
+            } catch {
+              toast.error("Fattura creata ma errore nel prelievo DDT", { position: "bottom-right", autoClose: 3000 });
+            }
+          }
+
           toast.success("Fattura salvata con successo", {
             position: "bottom-right",
             autoClose: 2000,
@@ -210,7 +285,7 @@ function FatturaAcquistoDetails() {
         });
       }
     },
-    [mutateInvoice, navigate, loadInvoiceData]
+    [mutateInvoice, navigate, loadInvoiceData, associaDdt, pendingDdt]
   );
 
   return (
@@ -228,9 +303,18 @@ function FatturaAcquistoDetails() {
       }}
       onSubmit={handleSubmit}
     >
-      {() => (
+      {({ values, status }) => (
         <Form noValidate>
-          <FormikToolbar onFormReset={handleResetForm} />
+          <FormikToolbar onFormReset={handleResetForm}>
+            {!status?.isFormLocked && values.fornitoreId > 0 && (
+              <FormikToolbarButton
+                startIcon={<LocalShippingIcon />}
+                onClick={() => setPrelevaDdtOpen(true)}
+              >
+                Preleva DDT
+              </FormikToolbarButton>
+            )}
+          </FormikToolbar>
           <Box
             className="scrollable-box"
             sx={{
@@ -252,11 +336,27 @@ function FatturaAcquistoDetails() {
               onSelectFornitore={handleSelectFornitore}
               onSelectInvoice={handleSelectInvoice}
               documentiTrasporto={documentiTrasporto}
+              pendingDdt={pendingDdt}
               payments={pagamentiFornitore}
               onRefresh={handleRefresh}
               onRegisterGetPaymentRows={(getter) => { getPaymentRowsRef.current = getter; }}
+              onDisassociaDdt={handleDisassociaDdt}
+              onRemovePendingDdt={(ddtId: number) => {
+                const removed = pendingDdt.find((d) => d.ddtId === ddtId);
+                setPendingDdt((prev) => prev.filter((d) => d.ddtId !== ddtId));
+                if (removed) {
+                  const currentTotal = formRef.current?.values.totalAmount ?? 0;
+                  formRef.current?.setFieldValue("totalAmount", Math.max(0, currentTotal - removed.importo));
+                }
+              }}
             />
           </Box>
+          <PrelevaDdtDialog
+            open={prelevaDdtOpen}
+            fornitoreId={values.fornitoreId}
+            onConfirm={handleAssociaDdt}
+            onClose={() => setPrelevaDdtOpen(false)}
+          />
         </Form>
       )}
     </Formik>

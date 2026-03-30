@@ -82,6 +82,90 @@ public class FatturaAcquistoOrchestrator
         }
     }
 
+    public async Task<FatturaAcquisto> AssociaDdtAsync(int fatturaId, List<int> ddtIds)
+    {
+        await _unitOfWork.BeginTransactionAsync();
+        try
+        {
+            FatturaAcquisto fattura = await _unitOfWork.FattureAcquisto.GetByIdAsync(fatturaId)
+                ?? throw new ExecutionError($"Fattura acquisto con ID {fatturaId} non trovata");
+
+            List<DocumentoTrasporto> ddtList = (await _unitOfWork.DocumentiTrasporto
+                .FindAsync(d => ddtIds.Contains(d.DdtId))).ToList();
+
+            if (ddtList.Count != ddtIds.Count)
+                throw new ExecutionError("Uno o più DDT non trovati");
+
+            DocumentoTrasporto? ddtGiaAssociato = ddtList.FirstOrDefault(d => d.FatturaId != null);
+            if (ddtGiaAssociato != null)
+                throw new ExecutionError($"Il DDT {ddtGiaAssociato.NumeroDdt} è già associato a un'altra fattura");
+
+            DocumentoTrasporto? ddtAltroFornitore = ddtList.FirstOrDefault(d => d.FornitoreId != fattura.FornitoreId);
+            if (ddtAltroFornitore != null)
+                throw new ExecutionError($"Il DDT {ddtAltroFornitore.NumeroDdt} non appartiene al fornitore della fattura");
+
+            ddtList.ForEach(d => d.FatturaId = fatturaId);
+
+            await RicalcolaTotaliFatturaAsync(fattura);
+
+            fattura.AggiornatoIl = DateTime.UtcNow;
+            await _unitOfWork.SaveChangesAsync();
+            await _unitOfWork.CommitTransactionAsync();
+            return fattura;
+        }
+        catch
+        {
+            await _unitOfWork.RollbackTransactionAsync();
+            throw;
+        }
+    }
+
+    public async Task<FatturaAcquisto> DisassociaDdtAsync(int fatturaId, List<int> ddtIds)
+    {
+        await _unitOfWork.BeginTransactionAsync();
+        try
+        {
+            FatturaAcquisto fattura = await _unitOfWork.FattureAcquisto.GetByIdAsync(fatturaId)
+                ?? throw new ExecutionError($"Fattura acquisto con ID {fatturaId} non trovata");
+
+            List<DocumentoTrasporto> ddtList = (await _unitOfWork.DocumentiTrasporto
+                .FindAsync(d => ddtIds.Contains(d.DdtId) && d.FatturaId == fatturaId)).ToList();
+
+            if (ddtList.Count != ddtIds.Count)
+                throw new ExecutionError("Uno o più DDT non trovati o non associati a questa fattura");
+
+            ddtList.ForEach(d => d.FatturaId = null);
+
+            await RicalcolaTotaliFatturaAsync(fattura);
+
+            fattura.AggiornatoIl = DateTime.UtcNow;
+            await _unitOfWork.SaveChangesAsync();
+            await _unitOfWork.CommitTransactionAsync();
+            return fattura;
+        }
+        catch
+        {
+            await _unitOfWork.RollbackTransactionAsync();
+            throw;
+        }
+    }
+
+    private async Task RicalcolaTotaliFatturaAsync(FatturaAcquisto fattura)
+    {
+        List<DocumentoTrasporto> allDdt = (await _unitOfWork.DocumentiTrasporto
+            .FindAsync(d => d.FatturaId == fattura.FatturaId)).ToList();
+
+        decimal totale = allDdt.Sum(d => d.Importo ?? 0);
+
+        decimal aliquota = fattura.ImportoIva != null && fattura.Imponibile > 0
+            ? Math.Round(fattura.ImportoIva.Value / fattura.Imponibile * 100, 2)
+            : 22m;
+
+        fattura.TotaleConIva = totale;
+        fattura.Imponibile = Math.Round(totale / (1 + aliquota / 100), 2);
+        fattura.ImportoIva = totale - fattura.Imponibile;
+    }
+
     public async Task<bool> EliminaAsync(int fatturaId)
     {
         FatturaAcquisto fattura = await _unitOfWork.FattureAcquisto.GetByIdAsync(fatturaId)

@@ -57,12 +57,19 @@ const DateField = forwardRef<DateFieldRef, DateFieldProps>(({ value = "", name, 
     (event) => {
       setFocus(false);
       // Sincronizza con Formik solo su blur
-      if (onChange && innerValue !== lastExternalValue.current) {
+      const valueChanged = onChange && innerValue !== lastExternalValue.current;
+      if (valueChanged) {
         onChange(name, innerValue);
         lastExternalValue.current = innerValue;
       }
       if (props.onBlur) {
-        props.onBlur(event);
+        if (valueChanged) {
+          // Defer blur per dare tempo a setFieldValue di completare,
+          // altrimenti la validazione scatta col vecchio valore
+          setTimeout(() => props.onBlur!(event), 0);
+        } else {
+          props.onBlur(event);
+        }
       }
     },
     [onChange, name, innerValue, props]

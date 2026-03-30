@@ -83,6 +83,52 @@ export const mutationDeleteFatturaAcquisto: TypedDocumentNode<DeleteFatturaAcqui
   }
 `;
 
+// ============ ASSOCIAZIONE DDT ============
+
+interface AssociaDdtAFatturaData {
+  fornitori: {
+    associaDdtAFattura: FatturaAcquisto;
+  };
+}
+
+interface AssociaDdtAFatturaVariables {
+  fatturaId: number;
+  ddtIds: number[];
+}
+
+export const mutationAssociaDdtAFattura: TypedDocumentNode<AssociaDdtAFatturaData, AssociaDdtAFatturaVariables> = gql`
+  ${fatturaAcquistoFragment}
+  mutation AssociaDdtAFattura($fatturaId: Int!, $ddtIds: [Int!]!) {
+    fornitori {
+      associaDdtAFattura(fatturaId: $fatturaId, ddtIds: $ddtIds) {
+        ...FatturaAcquistoFragment
+      }
+    }
+  }
+`;
+
+interface DisassociaDdtDaFatturaData {
+  fornitori: {
+    disassociaDdtDaFattura: FatturaAcquisto;
+  };
+}
+
+interface DisassociaDdtDaFatturaVariables {
+  fatturaId: number;
+  ddtIds: number[];
+}
+
+export const mutationDisassociaDdtDaFattura: TypedDocumentNode<DisassociaDdtDaFatturaData, DisassociaDdtDaFatturaVariables> = gql`
+  ${fatturaAcquistoFragment}
+  mutation DisassociaDdtDaFattura($fatturaId: Int!, $ddtIds: [Int!]!) {
+    fornitori {
+      disassociaDdtDaFattura(fatturaId: $fatturaId, ddtIds: $ddtIds) {
+        ...FatturaAcquistoFragment
+      }
+    }
+  }
+`;
+
 // ============ DOCUMENTO TRASPORTO MUTATIONS ============
 
 interface MutateDocumentoTrasportoData {
