@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { z } from "zod";
 
 export const Schema = z.object({

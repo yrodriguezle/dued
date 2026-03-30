@@ -148,9 +148,11 @@ function SearchboxModal<T extends Record<string, unknown>>({ open, title, items,
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            p: 2,
+            p: 1,
+            paddingLeft: 2,
             borderBottom: 1,
             borderColor: "divider",
+            bgcolor: "action.hover",
           }}
         >
           <Typography
@@ -169,7 +171,7 @@ function SearchboxModal<T extends Record<string, unknown>>({ open, title, items,
         </Box>
 
         {/* Content - Datagrid */}
-        <Box sx={{ flex: 1, p: 2, overflow: "hidden" }}>
+        <Box sx={{ flex: 1, p: 2, overflow: "hidden", bgcolor: "action.hover" }}>
           <Datagrid
             items={items || []}
             columnDefs={datagridColumnDefs}

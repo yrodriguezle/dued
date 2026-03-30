@@ -16,9 +16,6 @@ import sleep from "../../../common/bones/sleep";
 import { FornitoreSearchbox } from "../../common/form/searchbox/searchboxOptions/fornitoreSearchboxOptions";
 import { Schema, FormikFornitoreValues, mapFornitoreToFormValues } from "./fornitoreFormSchema";
 
-export type { FormikFornitoreValues } from "./fornitoreFormSchema";
-export { mapFornitoreToFormValues } from "./fornitoreFormSchema";
-
 interface PageModeProps {
   mode: "page";
   title?: string;
