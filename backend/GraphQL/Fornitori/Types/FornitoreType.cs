@@ -29,15 +29,9 @@ public class FornitoreType : ObjectGraphType<Fornitore>
         Field("aggiornatoIl", x => x.AggiornatoIl, type: typeof(DateTimeGraphType));
 
         Field<ListGraphType<FatturaAcquistoType>>("fattureAcquisto")
-            .ResolveAsync(async context =>
-            {
-                return await context.GetFattureByFornitoreId(context.Source.FornitoreId).GetResultAsync();
-            });
+            .Resolve(context => context.GetFattureByFornitoreId(context.Source.FornitoreId));
 
         Field<ListGraphType<DocumentoTrasportoType>>("documentiTrasporto")
-            .ResolveAsync(async context =>
-            {
-                return await context.GetDdtByFornitoreId(context.Source.FornitoreId).GetResultAsync();
-            });
+            .Resolve(context => context.GetDdtByFornitoreId(context.Source.FornitoreId));
     }
 }

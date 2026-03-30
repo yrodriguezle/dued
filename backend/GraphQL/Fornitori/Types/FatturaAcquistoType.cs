@@ -24,21 +24,12 @@ public class FatturaAcquistoType : ObjectGraphType<FatturaAcquisto>
         Field<DateTimeGraphType>("aggiornatoIl").Resolve(x => x.Source.AggiornatoIl);
 
         Field<FornitoreType>("fornitore")
-            .ResolveAsync(async context =>
-            {
-                return await context.GetFornitoreById(context.Source.FornitoreId).GetResultAsync();
-            });
+            .Resolve(context => context.GetFornitoreById(context.Source.FornitoreId));
 
         Field<ListGraphType<DocumentoTrasportoType>>("documentiTrasporto")
-            .ResolveAsync(async context =>
-            {
-                return await context.GetDdtByFatturaId(context.Source.FatturaId).GetResultAsync();
-            });
+            .Resolve(context => context.GetDdtByFatturaId(context.Source.FatturaId));
 
         Field<ListGraphType<PagamentoFornitoreType>>("pagamenti")
-            .ResolveAsync(async context =>
-            {
-                return await context.GetPagamentiByFatturaId(context.Source.FatturaId).GetResultAsync();
-            });
+            .Resolve(context => context.GetPagamentiByFatturaId(context.Source.FatturaId));
     }
 }

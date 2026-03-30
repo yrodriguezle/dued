@@ -1,7 +1,6 @@
 using GraphQL;
 using GraphQL.DataLoader;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using duedgusto.DataAccess;
 using duedgusto.Models;
 
@@ -9,26 +8,31 @@ namespace duedgusto.GraphQL.DataLoaders;
 
 public static class AuthenticationDataLoaders
 {
-    public static IDataLoaderResult<Utente?> GetUtenteById(
-        this IResolveFieldContext context, int utenteId)
+    public static IDataLoaderResult<Utente?> GetUtenteById(this IResolveFieldContext context, int utenteId)
     {
-        var loader = context.RequestServices!
+        IServiceProvider services = context.RequestServices!;
+        IDataLoader<int, Utente?> loader = services
             .GetRequiredService<IDataLoaderContextAccessor>()
             .Context!
             .GetOrAddBatchLoader<int, Utente?>(
                 "UtenteById",
-                async (IEnumerable<int> ids, CancellationToken ct) =>
-                {
-                    using var scope = context.RequestServices!
-                        .GetRequiredService<IServiceScopeFactory>()
-                        .CreateScope();
-                    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                    var items = await db.Utenti
-                        .Include(u => u.Ruolo)
-                        .Where(u => ids.Contains(u.Id))
-                        .ToListAsync(ct);
-                    return items.ToDictionary(u => u.Id, u => (Utente?)u);
-                });
+                (ids, ct) => LoadUtentiByIds(services, ids, ct));
         return loader.LoadAsync(utenteId);
+    }
+
+    private static async Task<IDictionary<int, Utente?>> LoadUtentiByIds(IServiceProvider services, IEnumerable<int> ids, CancellationToken ct)
+    {
+        using IServiceScope scope = services.GetRequiredService<IServiceScopeFactory>().CreateScope();
+        AppDbContext db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        List<int> idList = [.. ids];
+        List<Utente> items = await db.Utenti
+            .Include(u => u.Ruolo)
+            .Where(u => idList.Contains(u.Id))
+            .ToListAsync(ct);
+        Dictionary<int, Utente> found = items.ToDictionary(u => u.Id);
+        return idList.ToDictionary(
+            id => id,
+            id => found.TryGetValue(id, out Utente? u) ? u : null
+        );
     }
 }

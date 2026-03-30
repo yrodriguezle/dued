@@ -21,9 +21,6 @@ public class VenditaType : ObjectGraphType<Vendita>
 
         // Navigation property
         Field<ProdottoType>("prodotto")
-            .ResolveAsync(async context =>
-            {
-                return await context.GetProdottoById(context.Source.ProdottoId).GetResultAsync();
-            });
+            .Resolve(context => context.GetProdottoById(context.Source.ProdottoId));
     }
 }
