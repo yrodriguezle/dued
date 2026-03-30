@@ -406,6 +406,93 @@ bgcolor: isDark
 
 ---
 
+## 15. Form Detail: Salvataggio e Dirty State
+
+Pattern per i form di dettaglio con Formik che devono gestire INSERT (nuovo) e UPDATE (modifica), evitando il dialog "Modifiche non salvate" dopo il salvataggio.
+
+### Architettura
+
+Il dirty state attraversa 3 livelli:
+1. **Formik** (`dirty` = values !== initialValues)
+2. **FormikToolbar** (sincronizza `dirty` → `setFormDirty` nello store Zustand via `useEffect`)
+3. **Root.tsx** (`useBlocker` legge `isFormDirty` dallo store per bloccare la navigazione)
+
+### loadData: caricare i dati nel form bloccato
+
+Usare `handleInitializeValues(values)` per aggiornare lo state → `enableReinitialize` aggiorna i valori del form. Poi `setTimeout` per impostare lo status UPDATE/locked (dopo che `enableReinitialize` ha finito il suo reset).
+
+```tsx
+const loadDdtData = useCallback(
+  async (ddtId: number) => {
+    const result = await loadDocumentoTrasporto({ variables: { ddtId }, fetchPolicy: "network-only" });
+    if (result.data?.fornitori?.documentoTrasporto) {
+      const ddt = result.data.fornitori.documentoTrasporto;
+      const ddtValues = mapDdtToFormValues(ddt);
+      setPayments(ddt.pagamenti ?? []);
+      await handleInitializeValues(ddtValues);
+      setTimeout(() => {
+        formRef.current?.setStatus({
+          formStatus: formStatuses.UPDATE,
+          isFormLocked: true,
+        });
+      }, 0);
+    }
+  },
+  [loadDocumentoTrasporto, handleInitializeValues]
+);
+```
+
+**Perche `setTimeout`**: `enableReinitialize` resetta lo status a `initialStatus` (INSERT) quando `initialValues` cambia. Il `setTimeout` sovrascrive lo status DOPO che `enableReinitialize` ha terminato.
+
+**NON usare `resetForm` diretto**: `resetForm({ values, status })` viene sovrascritto da `enableReinitialize` se `handleInitializeValues` aggiorna lo state nello stesso ciclo.
+
+### handleSubmit: INSERT mode — evitare il blocker
+
+In INSERT mode, `navigate()` viene chiamato subito dopo la mutation. A quel punto `isFormDirty` e ancora `true` nello store (il `useEffect` di `FormikToolbar` non ha ancora aggiornato). Bisogna azzerare lo store **prima** di navigare.
+
+```tsx
+const handleSubmit = useCallback(async (values) => {
+  const result = await mutation({ variables: { input } });
+  if (result.data?.entity) {
+    toast.success("Salvato con successo", { position: "bottom-right", autoClose: 2000 });
+
+    if (!values.entityId) {
+      // INSERT: resetta dirty state PRIMA di navigate
+      useStore.getState().setFormDirty(false);
+      navigate(`/gestionale/entity-details?entityId=${result.data.entity.id}`);
+    } else {
+      // UPDATE: ricarica i dati (il form si blocca via loadData)
+      await loadData(result.data.entity.id);
+    }
+  }
+}, [mutation, navigate, loadData]);
+```
+
+### useBlocker: leggere dallo store al momento della navigazione
+
+`useBlocker(isFormDirty)` usa il valore dal **render precedente**. Se `setFormDirty(false)` viene chiamato e `navigate()` subito dopo, il blocker vede ancora `true`.
+
+Soluzione: passare una **funzione** che legge dallo store in tempo reale.
+
+```tsx
+// In Root.tsx
+const isFormDirty = useStore((state) => state.isFormDirty); // per beforeunload
+const blocker = useBlocker(() => useStore.getState().isFormDirty); // per navigazione
+```
+
+### Errori comuni
+
+| Errore | Conseguenza |
+|--------|-------------|
+| `resetForm({ values, status: UPDATE })` senza `handleInitializeValues` | `enableReinitialize` sovrascrive con `initialStatus = INSERT` |
+| `navigate()` senza `setFormDirty(false)` in INSERT | Dialog "Modifiche non salvate" dopo il salvataggio |
+| `useBlocker(isFormDirty)` con booleano | Legge il valore del render, non il valore corrente dello store |
+| `handleInitializeValues()` al mount con nuovo oggetto identico | Re-render inutile che scatena `enableReinitialize` e sovrascrive il `resetForm` di `loadData` |
+
+**Riferimento**: `FatturaAcquistoDetails.tsx`, `DocumentoTrasportoDetails.tsx`, `Root.tsx`
+
+---
+
 ## Checklist Nuova Pagina
 
 1. Layout flex column con `height: calc(100vh - 64px)`
