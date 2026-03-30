@@ -160,6 +160,31 @@ function DocumentoTrasportoList() {
         },
       },
       {
+        headerName: "Stato",
+        colId: "stato",
+        width: 140,
+        filter: "agTextColumnFilter",
+        valueGetter: (params) => {
+          const importo = params.data?.importo ?? 0;
+          const totalePagamenti = (params.data?.pagamenti ?? []).reduce((sum, p) => sum + (p.importo ?? 0), 0);
+          if (importo <= 0) return "Da Pagare";
+          if (totalePagamenti >= importo) return "Pagato";
+          if (totalePagamenti > 0) return "Parziale";
+          return "Da Pagare";
+        },
+        cellRenderer: ({ value }: { value: string }) => {
+          const color = value === "Pagato" ? "success" : value === "Parziale" ? "warning" : "default";
+          return (
+            <Chip
+              label={value}
+              size="small"
+              color={color}
+              variant="outlined"
+            />
+          );
+        },
+      },
+      {
         headerName: "Note",
         field: "note",
         flex: 1,

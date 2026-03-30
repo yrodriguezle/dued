@@ -1,14 +1,14 @@
 import { JSX, ForwardedRef, forwardRef } from "react";
 import { AgGridReact, AgGridReactProps } from "ag-grid-react";
 import { ModuleRegistry, AllCommunityModule } from "ag-grid-community";
-import { SetFilterModule, MultiFilterModule, RichSelectModule, TreeDataModule } from "ag-grid-enterprise";
+import { SetFilterModule, MultiFilterModule, RichSelectModule, TreeDataModule, ColumnMenuModule, ContextMenuModule, ColumnsToolPanelModule } from "ag-grid-enterprise";
 
 import { AG_GRID_LOCALE_IT } from "./i18n/it-IT";
 import useStore from "../../../store/useStore";
 import { themeDark, themeLight } from "./datagridThemes";
 import { DatagridData } from "./@types/Datagrid";
 
-ModuleRegistry.registerModules([AllCommunityModule, SetFilterModule, MultiFilterModule, RichSelectModule, TreeDataModule]);
+ModuleRegistry.registerModules([AllCommunityModule, SetFilterModule, MultiFilterModule, RichSelectModule, TreeDataModule, ColumnMenuModule, ContextMenuModule, ColumnsToolPanelModule]);
 
 function AgGridInner<T extends Record<string, unknown>>(agGridProps: AgGridReactProps<DatagridData<T>>, ref: ForwardedRef<AgGridReact<DatagridData<T>>>) {
   const { userTheme } = useStore((store) => store);

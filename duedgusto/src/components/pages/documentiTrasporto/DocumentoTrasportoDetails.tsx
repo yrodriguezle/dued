@@ -18,6 +18,8 @@ import setInitialFocus from "./setInitialFocus";
 import sleep from "../../../common/bones/sleep";
 import { FornitoreSearchbox } from "../../common/form/searchbox/searchboxOptions/fornitoreSearchboxOptions";
 import { FatturaAcquistoSearchbox } from "../../common/form/searchbox/searchboxOptions/fatturaAcquistoSearchboxOptions";
+import useStore from "../../../store/useStore";
+import mergeWithDefaults from "../../../common/form/mergeWithDefaults";
 
 const Schema = z.object({
   ddtId: z.number().optional(),
@@ -77,17 +79,20 @@ function DocumentoTrasportoDetails() {
       if (result.data?.fornitori?.documentoTrasporto) {
         const ddt = result.data.fornitori.documentoTrasporto;
         const ddtValues = mapDdtToFormValues(ddt);
-        await handleInitializeValues(ddtValues);
         setPayments(ddt.pagamenti ?? []);
-        setTimeout(() => {
-          formRef.current?.setStatus({
-            formStatus: formStatuses.UPDATE,
-            isFormLocked: true,
+
+        // resetForm imposta values, initialValues E status atomicamente in Formik,
+        // azzerando dirty senza dipendere da enableReinitialize (che causerebbe
+        // un secondo reset con initialStatus = INSERT, sovrascrivendo lo status UPDATE).
+        if (formRef.current) {
+          formRef.current.resetForm({
+            values: mergeWithDefaults(ddtValues, formRef.current.values),
+            status: { formStatus: formStatuses.UPDATE, isFormLocked: true },
           });
-        }, 0);
+        }
       }
     },
-    [loadDocumentoTrasporto, handleInitializeValues]
+    [loadDocumentoTrasporto]
   );
 
   const handleRefreshPayments = useCallback(() => {
@@ -184,6 +189,9 @@ function DocumentoTrasportoDetails() {
           });
 
           if (!values.ddtId) {
+            // Resetta dirty state PRIMA di navigate per evitare che
+            // useBlocker blocchi la navigazione post-salvataggio
+            useStore.getState().setFormDirty(false);
             navigate(`/gestionale/documenti-trasporto-details?ddtId=${ddt.ddtId}`);
           } else {
             await loadDdtData(ddt.ddtId);

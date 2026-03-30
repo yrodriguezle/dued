@@ -29,7 +29,10 @@ function Root() {
   // Blocco navigazione globale per form con modifiche non salvate
   const isFormDirty = useStore((state) => state.isFormDirty);
   const onConfirm = useConfirm();
-  const blocker = useBlocker(isFormDirty);
+  // Legge dallo store al momento della navigazione (non al render)
+  // per evitare race condition quando setFormDirty(false) è chiamato
+  // appena prima di navigate() (es. dopo un salvataggio).
+  const blocker = useBlocker(() => useStore.getState().isFormDirty);
 
   useEffect(() => {
     if (blocker.state !== "blocked") return;
