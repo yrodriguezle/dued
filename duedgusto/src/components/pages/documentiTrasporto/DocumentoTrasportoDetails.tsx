@@ -19,7 +19,6 @@ import sleep from "../../../common/bones/sleep";
 import { FornitoreSearchbox } from "../../common/form/searchbox/searchboxOptions/fornitoreSearchboxOptions";
 import { FatturaAcquistoSearchbox } from "../../common/form/searchbox/searchboxOptions/fatturaAcquistoSearchboxOptions";
 import useStore from "../../../store/useStore";
-import mergeWithDefaults from "../../../common/form/mergeWithDefaults";
 
 const Schema = z.object({
   ddtId: z.number().optional(),
@@ -80,19 +79,16 @@ function DocumentoTrasportoDetails() {
         const ddt = result.data.fornitori.documentoTrasporto;
         const ddtValues = mapDdtToFormValues(ddt);
         setPayments(ddt.pagamenti ?? []);
-
-        // resetForm imposta values, initialValues E status atomicamente in Formik,
-        // azzerando dirty senza dipendere da enableReinitialize (che causerebbe
-        // un secondo reset con initialStatus = INSERT, sovrascrivendo lo status UPDATE).
-        if (formRef.current) {
-          formRef.current.resetForm({
-            values: mergeWithDefaults(ddtValues, formRef.current.values),
-            status: { formStatus: formStatuses.UPDATE, isFormLocked: true },
+        await handleInitializeValues(ddtValues);
+        setTimeout(() => {
+          formRef.current?.setStatus({
+            formStatus: formStatuses.UPDATE,
+            isFormLocked: true,
           });
-        }
+        }, 0);
       }
     },
-    [loadDocumentoTrasporto]
+    [loadDocumentoTrasporto, handleInitializeValues]
   );
 
   const handleRefreshPayments = useCallback(() => {

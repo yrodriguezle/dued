@@ -38,15 +38,10 @@ function useInitializeValues({ skipInitialize }: UseInitializeValuesProps) {
 
   useEffect(() => {
     if (!skipInitialize && !initialized.current) {
-      // Non chiamare handleInitializeValues() al mount: lo state è già
-      // inizializzato con useState(getDefaultInitialValues()). Creare un nuovo
-      // oggetto con gli stessi valori causa un re-render inutile che scatena
-      // enableReinitialize in Formik, sovrascrivendo eventuali resetForm
-      // effettuati da loadDdtData (race condition).
-      setInitialFocus();
+      handleInitializeValues();
       initialized.current = true;
     }
-  }, [skipInitialize]);
+  }, [handleInitializeValues, skipInitialize]);
 
   return {
     initialValues,
