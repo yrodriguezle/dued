@@ -57,7 +57,6 @@ test.describe("DDT Save - dirty state bug", () => {
     await expect(page.getByText("DDT salvato con successo")).toBeVisible({ timeout: 10_000 });
     await waitForPageReady(page);
 
-    // eslint-disable-next-line
     await page.waitForTimeout(500);
 
     // Naviga a un'altra pagina via sidebar — se dirty, il blocker scatta
