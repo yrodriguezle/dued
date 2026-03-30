@@ -111,8 +111,13 @@ function DocumentoTrasportoDetails() {
       if (!isNaN(ddtId)) {
         loadDdtData(ddtId);
       }
+    } else {
+      // Nessun ddtId → form nuovo (INSERT)
+      handleInitializeValues();
+      formRef.current?.resetForm();
+      setPayments([]);
     }
-  }, [location.search, loadDdtData]);
+  }, [location.search, loadDdtData, handleInitializeValues]);
 
   const handleResetForm = useCallback(
     async (hasChanges: boolean) => {
@@ -129,12 +134,8 @@ function DocumentoTrasportoDetails() {
       }
 
       if (formRef.current?.status.formStatus === formStatuses.UPDATE) {
-        const searchParams = new URLSearchParams(location.search);
-        const ddtIdParam = searchParams.get("ddtId");
-        if (ddtIdParam) {
-          const ddtId = parseInt(ddtIdParam, 10);
-          await loadDdtData(ddtId);
-        }
+        useStore.getState().setFormDirty(false);
+        navigate("/gestionale/documenti-trasporto-details");
       } else {
         await handleInitializeValues();
         formRef.current?.resetForm();
@@ -142,7 +143,7 @@ function DocumentoTrasportoDetails() {
         setInitialFocus();
       }
     },
-    [onConfirm, location.search, loadDdtData, handleInitializeValues]
+    [onConfirm, navigate, handleInitializeValues]
   );
 
   const handleSelectFornitore = useCallback((item: FornitoreSearchbox) => {
