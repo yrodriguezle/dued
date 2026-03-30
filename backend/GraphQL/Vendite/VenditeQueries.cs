@@ -6,7 +6,9 @@ using duedgusto.Services.GraphQL;
 
 namespace duedgusto.GraphQL.Vendite;
 
+using System.Linq;
 using duedgusto.GraphQL.Vendite.Types;
+using duedgusto.Models;
 
 public class VenditeQueries : ObjectGraphType
 {
@@ -28,7 +30,7 @@ public class VenditeQueries : ObjectGraphType
                 var limit = context.GetArgument<int>("limite");
                 var offset = context.GetArgument<int>("scostamento");
 
-                var query = dbContext.Prodotti.Where(p => p.Attivo);
+                IQueryable<Prodotto> query = dbContext.Prodotti.Where(p => p.Attivo);
 
                 if (!string.IsNullOrWhiteSpace(search))
                 {
@@ -73,14 +75,14 @@ public class VenditeQueries : ObjectGraphType
             {
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
                 var registerId = context.GetArgument<int>("registroCassaId");
-                var dateFrom = context.GetArgument<DateTime?>("dataDa");
-                var dateTo = context.GetArgument<DateTime?>("dataA");
+                DateTime? dateFrom = context.GetArgument<DateTime?>("dataDa");
+                DateTime? dateTo = context.GetArgument<DateTime?>("dataA");
                 var limit = context.GetArgument<int>("limite");
                 var offset = context.GetArgument<int>("scostamento");
 
-                var query = dbContext.Vendite
-                    .Where(s => s.RegistroCassaId == registerId)
-                    .AsQueryable();
+                IQueryable<Vendita> query = dbContext.Vendite
+                      .Where(s => s.RegistroCassaId == registerId)
+                      .AsQueryable();
 
                 if (dateFrom.HasValue)
                 {

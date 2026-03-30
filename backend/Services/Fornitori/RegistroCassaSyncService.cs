@@ -24,8 +24,8 @@ public class RegistroCassaSyncService
     /// </summary>
     public async Task<RegistroCassa> FindOrCreateRegistroCassaAsync(DateTime dataPagamento, int utenteId)
     {
-        var registro = await _unitOfWork.RegistriCassa.Query()
-            .FirstOrDefaultAsync(r => r.Data.Date == dataPagamento.Date);
+        RegistroCassa? registro = await _unitOfWork.RegistriCassa.Query()
+                .FirstOrDefaultAsync(r => r.Data.Date == dataPagamento.Date);
 
         if (registro != null)
             return registro;
@@ -48,7 +48,7 @@ public class RegistroCassaSyncService
     /// </summary>
     public async Task RecalculateSpeseFornitoriAsync(int registroCassaId)
     {
-        var registro = await _unitOfWork.RegistriCassa.GetByIdAsync(registroCassaId);
+        RegistroCassa? registro = await _unitOfWork.RegistriCassa.GetByIdAsync(registroCassaId);
 
         if (registro == null)
             return;

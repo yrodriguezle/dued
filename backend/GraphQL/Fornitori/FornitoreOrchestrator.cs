@@ -53,8 +53,8 @@ public class FornitoreOrchestrator
 
     public async Task<bool> EliminaAsync(int fornitoreId)
     {
-        var fornitore = await _unitOfWork.Fornitori.GetByIdAsync(fornitoreId)
-            ?? throw new ExecutionError($"Fornitore con ID {fornitoreId} non trovato");
+        Fornitore fornitore = await _unitOfWork.Fornitori.GetByIdAsync(fornitoreId)
+                ?? throw new ExecutionError($"Fornitore con ID {fornitoreId} non trovato");
 
         // Soft delete
         fornitore.Attivo = false;

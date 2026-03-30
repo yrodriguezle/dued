@@ -37,17 +37,17 @@ public class ChiusuraMensileService
 
         // 2. Calcolo date del mese
         var primoGiorno = new DateTime(anno, mese, 1);
-        var ultimoGiorno = primoGiorno.AddMonths(1).AddDays(-1);
+        DateTime ultimoGiorno = primoGiorno.AddMonths(1).AddDays(-1);
 
         // 3. Recupera registri chiusi/riconciliati del mese (senza bloccare la creazione)
-        var registriMese = await _dbContext.RegistriCassa
-            .Where(r => r.Data >= primoGiorno && r.Data <= ultimoGiorno)
-            .Where(r => r.Stato == "CLOSED" || r.Stato == "RECONCILED")
-            .ToListAsync();
+        List<RegistroCassa> registriMese = await _dbContext.RegistriCassa
+                .Where(r => r.Data >= primoGiorno && r.Data <= ultimoGiorno)
+                .Where(r => r.Stato == "CLOSED" || r.Stato == "RECONCILED")
+                .ToListAsync();
 
         // 4. Verifica chiusura già esistente
-        var esistente = await _dbContext.ChiusureMensili
-            .FirstOrDefaultAsync(c => c.Anno == anno && c.Mese == mese);
+        ChiusuraMensile? esistente = await _dbContext.ChiusureMensili
+                .FirstOrDefaultAsync(c => c.Anno == anno && c.Mese == mese);
 
         if (esistente != null)
         {
@@ -70,7 +70,7 @@ public class ChiusuraMensileService
         await _dbContext.SaveChangesAsync();
 
         // 6. Associazione registri cassa
-        foreach (var registro in registriMese)
+        foreach (RegistroCassa? registro in registriMese)
         {
             var link = new RegistroCassaMensile
             {
@@ -82,11 +82,11 @@ public class ChiusuraMensileService
         }
 
         // 7. Associazione automatica pagamenti fornitori del mese
-        var pagamentiMese = await _dbContext.PagamentiFornitori
-            .Where(p => p.DataPagamento >= primoGiorno && p.DataPagamento <= ultimoGiorno)
-            .ToListAsync();
+        List<PagamentoFornitore> pagamentiMese = await _dbContext.PagamentiFornitori
+                .Where(p => p.DataPagamento >= primoGiorno && p.DataPagamento <= ultimoGiorno)
+                .ToListAsync();
 
-        foreach (var pagamento in pagamentiMese)
+        foreach (PagamentoFornitore? pagamento in pagamentiMese)
         {
             var linkPagamento = new PagamentoMensileFornitori
             {
@@ -114,7 +114,7 @@ public class ChiusuraMensileService
     /// <exception cref="InvalidOperationException">Se chiusura non trovata, già chiusa o invalida</exception>
     public async Task<bool> ChiudiMensileAsync(int chiusuraId, int? utenteId = null)
     {
-        var chiusura = await GetChiusuraConRelazioniAsync(chiusuraId);
+        ChiusuraMensile? chiusura = await GetChiusuraConRelazioniAsync(chiusuraId);
 
         if (chiusura == null)
             return false;
@@ -127,13 +127,13 @@ public class ChiusuraMensileService
         }
 
         // Validazione completezza registri prima della chiusura definitiva
-        var giorniMancanti = await ValidaCompletezzaRegistriAsync(chiusura.Anno, chiusura.Mese);
+        List<DateTime> giorniMancanti = await ValidaCompletezzaRegistriAsync(chiusura.Anno, chiusura.Mese);
 
         // Sottrai giorni esclusi
-        var esclusi = chiusura.GiorniEsclusi != null
-            ? JsonSerializer.Deserialize<List<GiornoEscluso>>(chiusura.GiorniEsclusi)!
-                .Select(e => e.Data.Date).ToHashSet()
-            : new HashSet<DateTime>();
+        HashSet<DateTime> esclusi = chiusura.GiorniEsclusi != null
+                ? JsonSerializer.Deserialize<List<GiornoEscluso>>(chiusura.GiorniEsclusi)!
+                    .Select(e => e.Data.Date).ToHashSet()
+                : new HashSet<DateTime>();
         var giorniEffettivamenteMancanti = giorniMancanti.Where(d => !esclusi.Contains(d.Date)).ToList();
 
         if (giorniEffettivamenteMancanti.Any())
@@ -186,8 +186,8 @@ public class ChiusuraMensileService
             throw new ArgumentException("Importo deve essere maggiore di zero", nameof(importo));
 
         // Verifica chiusura
-        var chiusura = await _dbContext.ChiusureMensili
-            .FirstOrDefaultAsync(c => c.ChiusuraId == chiusuraId);
+        ChiusuraMensile? chiusura = await _dbContext.ChiusureMensili
+                .FirstOrDefaultAsync(c => c.ChiusuraId == chiusuraId);
 
         if (chiusura == null)
             throw new InvalidOperationException($"Chiusura mensile con ID {chiusuraId} non trovata");
@@ -229,8 +229,8 @@ public class ChiusuraMensileService
     /// <exception cref="InvalidOperationException">Se chiusura/pagamento non trovati o già associati</exception>
     public async Task<bool> IncludiPagamentoFornitoreAsync(int chiusuraId, int pagamentoId)
     {
-        var chiusura = await _dbContext.ChiusureMensili
-            .FirstOrDefaultAsync(c => c.ChiusuraId == chiusuraId);
+        ChiusuraMensile? chiusura = await _dbContext.ChiusureMensili
+                .FirstOrDefaultAsync(c => c.ChiusuraId == chiusuraId);
 
         if (chiusura == null)
             throw new InvalidOperationException($"Chiusura mensile con ID {chiusuraId} non trovata");
@@ -242,15 +242,15 @@ public class ChiusuraMensileService
             );
         }
 
-        var pagamento = await _dbContext.PagamentiFornitori
-            .FirstOrDefaultAsync(p => p.PagamentoId == pagamentoId);
+        PagamentoFornitore? pagamento = await _dbContext.PagamentiFornitori
+                .FirstOrDefaultAsync(p => p.PagamentoId == pagamentoId);
 
         if (pagamento == null)
             throw new InvalidOperationException($"Pagamento fornitore con ID {pagamentoId} non trovato");
 
         // Verifica se già associato
-        var esistente = await _dbContext.PagamentiMensiliFornitori
-            .FirstOrDefaultAsync(pm => pm.ChiusuraId == chiusuraId && pm.PagamentoId == pagamentoId);
+        PagamentoMensileFornitori? esistente = await _dbContext.PagamentiMensiliFornitori
+                .FirstOrDefaultAsync(pm => pm.ChiusuraId == chiusuraId && pm.PagamentoId == pagamentoId);
 
         if (esistente != null)
             throw new InvalidOperationException("Pagamento già incluso in questa chiusura");
@@ -279,9 +279,9 @@ public class ChiusuraMensileService
         decimal? importo,
         CategoriaSpesa? categoria)
     {
-        var spesa = await _dbContext.SpeseMensiliLibere
-            .Include(s => s.Chiusura)
-            .FirstOrDefaultAsync(s => s.SpesaId == spesaId);
+        SpesaMensileLibera? spesa = await _dbContext.SpeseMensiliLibere
+                .Include(s => s.Chiusura)
+                .FirstOrDefaultAsync(s => s.SpesaId == spesaId);
 
         if (spesa == null)
             throw new InvalidOperationException($"Spesa libera con ID {spesaId} non trovata");
@@ -318,9 +318,9 @@ public class ChiusuraMensileService
     /// </summary>
     public async Task<bool> EliminaSpesaLiberaAsync(int spesaId)
     {
-        var spesa = await _dbContext.SpeseMensiliLibere
-            .Include(s => s.Chiusura)
-            .FirstOrDefaultAsync(s => s.SpesaId == spesaId);
+        SpesaMensileLibera? spesa = await _dbContext.SpeseMensiliLibere
+                .Include(s => s.Chiusura)
+                .FirstOrDefaultAsync(s => s.SpesaId == spesaId);
 
         if (spesa == null)
             throw new InvalidOperationException($"Spesa libera con ID {spesaId} non trovata");
@@ -345,8 +345,8 @@ public class ChiusuraMensileService
         int chiusuraId,
         List<GiornoEscluso> giorniEsclusi)
     {
-        var chiusura = await _dbContext.ChiusureMensili
-            .FirstOrDefaultAsync(c => c.ChiusuraId == chiusuraId);
+        ChiusuraMensile? chiusura = await _dbContext.ChiusureMensili
+                .FirstOrDefaultAsync(c => c.ChiusuraId == chiusuraId);
 
         if (chiusura == null)
             throw new InvalidOperationException($"Chiusura mensile con ID {chiusuraId} non trovata");
@@ -359,18 +359,18 @@ public class ChiusuraMensileService
         }
 
         // Carica i periodi di programmazione e i giorni operativi globali come fallback
-        var periodi = await _dbContext.PeriodiProgrammazione
-            .OrderBy(p => p.DataInizio)
-            .ToListAsync();
-        var settings = await _dbContext.BusinessSettings.FirstAsync();
+        List<PeriodoProgrammazione> periodi = await _dbContext.PeriodiProgrammazione
+                .OrderBy(p => p.DataInizio)
+                .ToListAsync();
+        BusinessSettings settings = await _dbContext.BusinessSettings.FirstAsync();
         var operatingDaysGlobali = JsonSerializer.Deserialize<bool[]>(settings.OperatingDays)!;
 
         var primoGiorno = new DateTime(chiusura.Anno, chiusura.Mese, 1);
-        var ultimoGiorno = primoGiorno.AddMonths(1).AddDays(-1);
+        DateTime ultimoGiorno = primoGiorno.AddMonths(1).AddDays(-1);
 
-        foreach (var giorno in giorniEsclusi)
+        foreach (GiornoEscluso giorno in giorniEsclusi)
         {
-            var data = giorno.Data.Date;
+            DateTime data = giorno.Data.Date;
 
             // Deve essere nel mese/anno della chiusura
             if (data < primoGiorno || data > ultimoGiorno)
@@ -387,9 +387,9 @@ public class ChiusuraMensileService
             if (periodi.Count > 0)
             {
                 var dataOnly = DateOnly.FromDateTime(data);
-                var periodo = periodi.FirstOrDefault(p =>
-                    p.DataInizio <= dataOnly &&
-                    (p.DataFine == null || p.DataFine >= dataOnly));
+                PeriodoProgrammazione? periodo = periodi.FirstOrDefault(p =>
+                            p.DataInizio <= dataOnly &&
+                            (p.DataFine == null || p.DataFine >= dataOnly));
 
                 if (periodo == null)
                 {
@@ -449,17 +449,17 @@ public class ChiusuraMensileService
     public async Task<List<DateTime>> ValidaCompletezzaRegistriAsync(int anno, int mese)
     {
         var primoGiorno = new DateTime(anno, mese, 1);
-        var ultimoGiorno = primoGiorno.AddMonths(1).AddDays(-1);
+        DateTime ultimoGiorno = primoGiorno.AddMonths(1).AddDays(-1);
 
-        var registriMese = await _dbContext.RegistriCassa
-            .Where(r => r.Data >= primoGiorno && r.Data <= ultimoGiorno)
-            .Where(r => r.Stato == "CLOSED" || r.Stato == "RECONCILED")
-            .ToListAsync();
+        List<RegistroCassa> registriMese = await _dbContext.RegistriCassa
+                .Where(r => r.Data >= primoGiorno && r.Data <= ultimoGiorno)
+                .Where(r => r.Stato == "CLOSED" || r.Stato == "RECONCILED")
+                .ToListAsync();
 
         // Carica i periodi di programmazione per determinare i giorni operativi per-periodo
-        var periodi = await _dbContext.PeriodiProgrammazione
-            .OrderBy(p => p.DataInizio)
-            .ToListAsync();
+        List<PeriodoProgrammazione> periodi = await _dbContext.PeriodiProgrammazione
+                .OrderBy(p => p.DataInizio)
+                .ToListAsync();
 
         List<DateTime> giorniMancanti;
 
@@ -471,13 +471,13 @@ public class ChiusuraMensileService
         else
         {
             // Fallback: usa il campo globale OperatingDays di BusinessSettings
-            var settings = await _dbContext.BusinessSettings.FirstAsync();
+            BusinessSettings settings = await _dbContext.BusinessSettings.FirstAsync();
             var operatingDays = JsonSerializer.Deserialize<bool[]>(settings.OperatingDays)!;
             giorniMancanti = ElencoGiorniMancanti(registriMese, primoGiorno, ultimoGiorno, operatingDays);
         }
 
         // Escludi i giorni non lavorativi configurati
-        var giorniNonLavorativi = await _dbContext.GiorniNonLavorativi.ToListAsync();
+        List<GiornoNonLavorativo> giorniNonLavorativi = await _dbContext.GiorniNonLavorativi.ToListAsync();
         if (giorniNonLavorativi.Count > 0)
         {
             giorniMancanti = giorniMancanti.Where(data =>
@@ -535,8 +535,8 @@ public class ChiusuraMensileService
     /// </summary>
     public async Task<bool> RegistroAppartieneAMeseChiusoAsync(int registroId)
     {
-        var registro = await _dbContext.RegistriCassa
-            .FirstOrDefaultAsync(r => r.Id == registroId);
+        RegistroCassa? registro = await _dbContext.RegistriCassa
+                .FirstOrDefaultAsync(r => r.Id == registroId);
 
         if (registro == null)
             return false;
@@ -557,7 +557,7 @@ public class ChiusuraMensileService
         var giorniPresenti = registri.Select(r => r.Data.Date).ToHashSet();
         var giorniMancanti = new List<DateTime>();
 
-        for (var data = primoGiorno; data <= ultimoGiorno; data = data.AddDays(1))
+        for (DateTime data = primoGiorno; data <= ultimoGiorno; data = data.AddDays(1))
         {
             // Mappa DayOfWeek (.NET: 0=Sunday) a indice array operatingDays (0=Monday)
             int operatingDayIndex = ((int)data.DayOfWeek + 6) % 7;
@@ -590,14 +590,14 @@ public class ChiusuraMensileService
         var giorniPresenti = registri.Select(r => r.Data.Date).ToHashSet();
         var giorniMancanti = new List<DateTime>();
 
-        for (var data = primoGiorno; data <= ultimoGiorno; data = data.AddDays(1))
+        for (DateTime data = primoGiorno; data <= ultimoGiorno; data = data.AddDays(1))
         {
             var dataOnly = DateOnly.FromDateTime(data);
 
             // Trova il periodo che copre questa data
-            var periodo = periodi.FirstOrDefault(p =>
-                p.DataInizio <= dataOnly &&
-                (p.DataFine == null || p.DataFine >= dataOnly));
+            PeriodoProgrammazione? periodo = periodi.FirstOrDefault(p =>
+                      p.DataInizio <= dataOnly &&
+                      (p.DataFine == null || p.DataFine >= dataOnly));
 
             // Se nessun periodo copre questa data, la consideriamo non operativa
             if (periodo == null)

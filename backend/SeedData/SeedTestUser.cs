@@ -20,7 +20,7 @@ public static class SeedTestUser
         AppDbContext dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         // Recupera il ruolo SuperAdmin (deve già esistere, creato da SeedSuperadmin)
-        var superAdminRole = dbContext.Ruoli.FirstOrDefault(r => r.Nome == "SuperAdmin");
+        Ruolo? superAdminRole = dbContext.Ruoli.FirstOrDefault(r => r.Nome == "SuperAdmin");
         if (superAdminRole == null)
         {
             return; // SeedSuperadmin non è ancora stato eseguito

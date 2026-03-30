@@ -146,7 +146,7 @@ public class JwtHelper
     /// </summary>
     public (string RefreshToken, string Token) CreateSignedToken(params Claim[] claims)
     {
-        var now = DateTime.UtcNow;
+        DateTime now = DateTime.UtcNow;
 
         // create the security token as follows:
         var token = new JwtSecurityToken(
@@ -200,7 +200,7 @@ public class JwtHelper
         try
         {
             var tokenHandler = new JwtSecurityTokenHandler();
-            var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out SecurityToken securityToken);
+            ClaimsPrincipal principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out SecurityToken securityToken);
             return principal;
         }
         catch

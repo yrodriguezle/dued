@@ -35,9 +35,9 @@ public class GestioneCassaQueries : ObjectGraphType
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
                 DateTime? data = context.GetArgument<DateTime?>("data");
 
-                var result = await dbContext.RegistriCassa
-                    .Where(r => r.Data == data)
-                    .FirstOrDefaultAsync();
+                RegistroCassa? result = await dbContext.RegistriCassa
+                      .Where(r => r.Data == data)
+                      .FirstOrDefaultAsync();
                 return result;
             });
 
@@ -46,25 +46,25 @@ public class GestioneCassaQueries : ObjectGraphType
             .ResolveAsync(async context =>
             {
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
-                var today = DateTime.Today;
+                DateTime today = DateTime.Today;
                 var startOfMonth = new DateTime(today.Year, today.Month, 1);
-                var startOfWeek = today.AddDays(-(int)today.DayOfWeek);
-                var startOfLastWeek = startOfWeek.AddDays(-7);
+                DateTime startOfWeek = today.AddDays(-(int)today.DayOfWeek);
+                DateTime startOfLastWeek = startOfWeek.AddDays(-7);
 
-                var todayRegister = await dbContext.RegistriCassa
-                    .Where(r => r.Data == today)
-                    .FirstOrDefaultAsync();
+                RegistroCassa? todayRegister = await dbContext.RegistriCassa
+                      .Where(r => r.Data == today)
+                      .FirstOrDefaultAsync();
 
                 // Carica dati per il mese corrente
-                var monthRegisters = await dbContext.RegistriCassa
-                    .Where(r => r.Data >= startOfMonth && r.Data <= today)
-                    .ToListAsync();
+                List<RegistroCassa> monthRegisters = await dbContext.RegistriCassa
+                      .Where(r => r.Data >= startOfMonth && r.Data <= today)
+                      .ToListAsync();
 
                 // Carica dati per settimana corrente e precedente per il trend
-                var weekRegisters = await dbContext.RegistriCassa
-                    .Where(r => r.Data >= startOfLastWeek && r.Data <= today)
-                    .OrderBy(r => r.Data)
-                    .ToListAsync();
+                List<RegistroCassa> weekRegisters = await dbContext.RegistriCassa
+                      .Where(r => r.Data >= startOfLastWeek && r.Data <= today)
+                      .OrderBy(r => r.Data)
+                      .ToListAsync();
 
                 var todaySales = todayRegister?.TotaleVendite ?? 0;
                 var todayDifference = todayRegister?.Differenza ?? 0;

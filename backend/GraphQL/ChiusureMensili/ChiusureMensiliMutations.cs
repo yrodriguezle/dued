@@ -26,13 +26,13 @@ public class ChiusureMensiliMutations : ObjectGraphType
             .Argument<NonNullGraphType<IntGraphType>>("mese", "Mese della chiusura (1-12)")
             .ResolveAsync(async context =>
             {
-                var service = GraphQLService.GetService<ChiusuraMensileService>(context);
+                ChiusuraMensileService service = GraphQLService.GetService<ChiusuraMensileService>(context);
                 int anno = context.GetArgument<int>("anno");
                 int mese = context.GetArgument<int>("mese");
 
                 try
                 {
-                    var chiusura = await service.CreaChiusuraAsync(anno, mese);
+                    ChiusuraMensile chiusura = await service.CreaChiusuraAsync(anno, mese);
                     return chiusura;
                 }
                 catch (InvalidOperationException ex)
@@ -50,21 +50,21 @@ public class ChiusureMensiliMutations : ObjectGraphType
             .Argument<NonNullGraphType<StringGraphType>>("categoria", "Categoria: Affitto, Utenze, Stipendi, Altro")
             .ResolveAsync(async context =>
             {
-                var service = GraphQLService.GetService<ChiusuraMensileService>(context);
+                ChiusuraMensileService service = GraphQLService.GetService<ChiusuraMensileService>(context);
                 int chiusuraId = context.GetArgument<int>("chiusuraId");
                 string descrizione = context.GetArgument<string>("descrizione");
                 decimal importo = context.GetArgument<decimal>("importo");
                 string categoriaStr = context.GetArgument<string>("categoria");
 
                 // Parse categoria enum
-                if (!Enum.TryParse<CategoriaSpesa>(categoriaStr, ignoreCase: true, out var categoria))
+                if (!Enum.TryParse<CategoriaSpesa>(categoriaStr, ignoreCase: true, out CategoriaSpesa categoria))
                 {
                     throw new ExecutionError($"Categoria non valida: {categoriaStr}. Valori accettati: Affitto, Utenze, Stipendi, Altro");
                 }
 
                 try
                 {
-                    var spesa = await service.AggiungiSpesaLiberaAsync(chiusuraId, descrizione, importo, categoria);
+                    SpesaMensileLibera spesa = await service.AggiungiSpesaLiberaAsync(chiusuraId, descrizione, importo, categoria);
                     return spesa;
                 }
                 catch (Exception ex)
@@ -82,7 +82,7 @@ public class ChiusureMensiliMutations : ObjectGraphType
             .Argument<StringGraphType>("categoria", "Nuova categoria (opzionale)")
             .ResolveAsync(async context =>
             {
-                var service = GraphQLService.GetService<ChiusuraMensileService>(context);
+                ChiusuraMensileService service = GraphQLService.GetService<ChiusuraMensileService>(context);
                 int spesaId = context.GetArgument<int>("spesaId");
                 string? descrizione = context.GetArgument<string?>("descrizione");
                 decimal? importo = context.GetArgument<decimal?>("importo");
@@ -91,7 +91,7 @@ public class ChiusureMensiliMutations : ObjectGraphType
                 CategoriaSpesa? categoria = null;
                 if (categoriaStr != null)
                 {
-                    if (!Enum.TryParse<CategoriaSpesa>(categoriaStr, ignoreCase: true, out var cat))
+                    if (!Enum.TryParse<CategoriaSpesa>(categoriaStr, ignoreCase: true, out CategoriaSpesa cat))
                         throw new ExecutionError($"Categoria non valida: {categoriaStr}. Valori accettati: Affitto, Utenze, Stipendi, Altro");
                     categoria = cat;
                 }
@@ -112,7 +112,7 @@ public class ChiusureMensiliMutations : ObjectGraphType
             .Argument<NonNullGraphType<IntGraphType>>("spesaId", "ID della spesa da eliminare")
             .ResolveAsync(async context =>
             {
-                var service = GraphQLService.GetService<ChiusuraMensileService>(context);
+                ChiusuraMensileService service = GraphQLService.GetService<ChiusuraMensileService>(context);
                 int spesaId = context.GetArgument<int>("spesaId");
 
                 try
@@ -132,7 +132,7 @@ public class ChiusureMensiliMutations : ObjectGraphType
             .Argument<NonNullGraphType<IntGraphType>>("pagamentoId", "ID del pagamento fornitore")
             .ResolveAsync(async context =>
             {
-                var service = GraphQLService.GetService<ChiusuraMensileService>(context);
+                ChiusuraMensileService service = GraphQLService.GetService<ChiusuraMensileService>(context);
                 int chiusuraId = context.GetArgument<int>("chiusuraId");
                 int pagamentoId = context.GetArgument<int>("pagamentoId");
 
@@ -153,11 +153,11 @@ public class ChiusureMensiliMutations : ObjectGraphType
             .Argument<NonNullGraphType<ListGraphType<NonNullGraphType<GiornoEsclusoInputType>>>>("giorniEsclusi", "Lista dei giorni da escludere")
             .ResolveAsync(async context =>
             {
-                var service = GraphQLService.GetService<ChiusuraMensileService>(context);
+                ChiusuraMensileService service = GraphQLService.GetService<ChiusuraMensileService>(context);
                 var userContext = context.UserContext as GraphQLUserContext;
                 JwtHelper jwtHelper = GraphQLService.GetService<JwtHelper>(context);
                 int chiusuraId = context.GetArgument<int>("chiusuraId");
-                var inputGiorni = context.GetArgument<List<Dictionary<string, object>>>("giorniEsclusi");
+                List<Dictionary<string, object>> inputGiorni = context.GetArgument<List<Dictionary<string, object>>>("giorniEsclusi");
 
                 int? utenteId = null;
                 if (userContext?.Principal != null)
@@ -189,11 +189,11 @@ public class ChiusureMensiliMutations : ObjectGraphType
             .Description("Migra tutte le chiusure esistenti dal vecchio modello denormalizzato al nuovo modello referenziale. ATTENZIONE: Eseguire una sola volta!")
             .ResolveAsync(async context =>
             {
-                var migrazioneService = GraphQLService.GetService<MigrazioneChiusureMensiliService>(context);
+                MigrazioneChiusureMensiliService migrazioneService = GraphQLService.GetService<MigrazioneChiusureMensiliService>(context);
 
                 try
                 {
-                    var result = await migrazioneService.MigraDatiAsync();
+                    MigrazioneResult result = await migrazioneService.MigraDatiAsync();
                     var report = migrazioneService.GeneraReportMigrazione(result);
                     return report;
                 }
@@ -209,7 +209,7 @@ public class ChiusureMensiliMutations : ObjectGraphType
             .Argument<NonNullGraphType<IntGraphType>>("chiusuraId")
             .ResolveAsync(async context =>
             {
-                var service = GraphQLService.GetService<ChiusuraMensileService>(context);
+                ChiusuraMensileService service = GraphQLService.GetService<ChiusuraMensileService>(context);
                 var userContext = context.UserContext as GraphQLUserContext;
                 JwtHelper jwtHelper = GraphQLService.GetService<JwtHelper>(context);
                 int chiusuraId = context.GetArgument<int>("chiusuraId");
@@ -229,7 +229,7 @@ public class ChiusureMensiliMutations : ObjectGraphType
                     }
 
                     // Ricarica con relazioni per ritorno
-                    var chiusura = await service.GetChiusuraConRelazioniAsync(chiusuraId);
+                    ChiusuraMensile? chiusura = await service.GetChiusuraConRelazioniAsync(chiusuraId);
                     return chiusura;
                 }
                 catch (InvalidOperationException ex)
@@ -246,11 +246,11 @@ public class ChiusureMensiliMutations : ObjectGraphType
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
                 int chiusuraId = context.GetArgument<int>("chiusuraId");
 
-                var closure = await dbContext.ChiusureMensili
-                    .Include(c => c.SpeseLibere)
-                    .Include(c => c.PagamentiInclusi)
-                    .Include(c => c.RegistriInclusi)
-                    .FirstOrDefaultAsync(c => c.ChiusuraId == chiusuraId);
+                ChiusuraMensile? closure = await dbContext.ChiusureMensili
+                      .Include(c => c.SpeseLibere)
+                      .Include(c => c.PagamentiInclusi)
+                      .Include(c => c.RegistriInclusi)
+                      .FirstOrDefaultAsync(c => c.ChiusuraId == chiusuraId);
 
                 if (closure == null)
                 {

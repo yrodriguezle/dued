@@ -274,7 +274,7 @@ public class ConnectionQueries : ObjectGraphType
         // - data <= 'YYYY-MM-DD'
         // - data >= 'YYYY-MM-DD' AND data <= 'YYYY-MM-DD'
 
-        var parts = whereClause.Split(new[] { " AND ", " and " }, StringSplitOptions.RemoveEmptyEntries);
+        var parts = whereClause.Split([" AND ", " and "], StringSplitOptions.RemoveEmptyEntries);
 
         foreach (var part in parts)
         {

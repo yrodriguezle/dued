@@ -16,8 +16,8 @@ public class GestioneCassaMutations : ObjectGraphType
             .Argument<NonNullGraphType<RegistroCassaInputType>>("registroCassa", "Dati registro cassa")
             .ResolveAsync(async context =>
             {
-                var orchestrator = GraphQLService.GetService<MutateRegistroCassaOrchestrator>(context);
-                var input = context.GetArgument<RegistroCassaInput>("registroCassa");
+                MutateRegistroCassaOrchestrator orchestrator = GraphQLService.GetService<MutateRegistroCassaOrchestrator>(context);
+                RegistroCassaInput input = context.GetArgument<RegistroCassaInput>("registroCassa");
                 return await orchestrator.ExecuteAsync(input);
             });
 
@@ -25,7 +25,7 @@ public class GestioneCassaMutations : ObjectGraphType
             .Argument<NonNullGraphType<IntGraphType>>("registroCassaId")
             .ResolveAsync(async context =>
             {
-                var orchestrator = GraphQLService.GetService<ChiudiRegistroCassaOrchestrator>(context);
+                ChiudiRegistroCassaOrchestrator orchestrator = GraphQLService.GetService<ChiudiRegistroCassaOrchestrator>(context);
                 int registroCassaId = context.GetArgument<int>("registroCassaId");
                 return await orchestrator.ExecuteAsync(registroCassaId);
             });
@@ -34,7 +34,7 @@ public class GestioneCassaMutations : ObjectGraphType
             .Argument<NonNullGraphType<IntGraphType>>("registroCassaId")
             .ResolveAsync(async context =>
             {
-                var orchestrator = GraphQLService.GetService<EliminaRegistroCassaOrchestrator>(context);
+                EliminaRegistroCassaOrchestrator orchestrator = GraphQLService.GetService<EliminaRegistroCassaOrchestrator>(context);
                 int registroCassaId = context.GetArgument<int>("registroCassaId");
                 return await orchestrator.ExecuteAsync(registroCassaId);
             });

@@ -88,7 +88,7 @@ public class AuthMutations : ObjectGraphType
                 List<Menu> inputs = context.GetArgument<List<Menu>>("menus");
                 List<Menu> result = [];
 
-                foreach (var input in inputs)
+                foreach (Menu input in inputs)
                 {
                     Menu? menu = input.Id > 0
                         ? await dbContext.Menus.FirstOrDefaultAsync(m => m.Id == input.Id)
@@ -140,7 +140,7 @@ public class AuthMutations : ObjectGraphType
             .ResolveAsync(async context =>
             {
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
-                var userArg = context.GetArgument<Dictionary<string, object>>("utente");
+                Dictionary<string, object> userArg = context.GetArgument<Dictionary<string, object>>("utente");
 
                 int userId = userArg.ContainsKey("id") ? Convert.ToInt32(userArg["id"]) : 0;
                 string? password = userArg.ContainsKey("password") ? userArg["password"]?.ToString() : null;

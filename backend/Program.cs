@@ -28,10 +28,13 @@ using duedgusto.GraphQL.GestioneCassa;
 using duedgusto.GraphQL.Fornitori;
 
 using GraphQL.Server.Transports.AspNetCore.WebSockets;
+using System.Net;
+using System.Security.Claims;
+using duedgusto.Models;
 
 Env.Load();
 
-var builder = WebApplication.CreateBuilder(args);
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHttpContextAccessor();
 
@@ -99,7 +102,7 @@ builder.Services.AddCors(options =>
     {
         policy.SetIsOriginAllowed(origin =>
         {
-            if (Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+            if (Uri.TryCreate(origin, UriKind.Absolute, out Uri? uri))
             {
                 var host = uri.Host;
 
@@ -108,7 +111,7 @@ builder.Services.AddCors(options =>
                     return true;
 
                 // Allow local network IPs (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
-                if (System.Net.IPAddress.TryParse(host, out var ip))
+                if (System.Net.IPAddress.TryParse(host, out IPAddress? ip))
                 {
                     var bytes = ip.GetAddressBytes();
                     if (bytes.Length == 4)
@@ -166,11 +169,11 @@ builder.Services.AddGraphQL((ctx) => ctx
     })
     .ConfigureExecution(async (options, next) =>
     {
-        var logger = options.RequestServices!.GetRequiredService<ILogger<Program>>();
-        var env = options.RequestServices!.GetRequiredService<IWebHostEnvironment>();
+        ILogger<Program> logger = options.RequestServices!.GetRequiredService<ILogger<Program>>();
+        IWebHostEnvironment env = options.RequestServices!.GetRequiredService<IWebHostEnvironment>();
 
-        var httpContextAccessor = options.RequestServices!.GetRequiredService<IHttpContextAccessor>();
-        var user = httpContextAccessor.HttpContext?.User;
+        IHttpContextAccessor httpContextAccessor = options.RequestServices!.GetRequiredService<IHttpContextAccessor>();
+        ClaimsPrincipal? user = httpContextAccessor.HttpContext?.User;
         logger.LogInformation($"User authenticated: {user?.Identity?.IsAuthenticated}");
 
         options.UnhandledExceptionDelegate = (exception) =>
@@ -182,7 +185,7 @@ builder.Services.AddGraphQL((ctx) => ctx
 
             if (env.IsDevelopment())
             {
-                var ex = exception.OriginalException;
+                Exception ex = exception.OriginalException;
                 var details = $"{ex.GetType().Name}: {ex.Message}";
                 if (ex.InnerException != null)
                     details += $"\n--- Inner: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}";
@@ -194,7 +197,7 @@ builder.Services.AddGraphQL((ctx) => ctx
 
             return Task.CompletedTask;
         };
-        var result = await next(options);
+        ExecutionResult result = await next(options);
         return result;
     })
     .AddSystemTextJson()
@@ -207,7 +210,7 @@ builder.Services.AddGraphQL((ctx) => ctx
     })
     .AddGraphTypes(typeof(GraphQLSchema).Assembly));
 
-var app = builder.Build();
+WebApplication app = builder.Build();
 
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
@@ -238,12 +241,12 @@ app.UseGraphQL<GraphQLSchema>("/graphql", opt =>
     opt.AuthorizationRequired = false;
 });
 
-using (var scope = app.Services.CreateScope())
+using (IServiceScope scope = app.Services.CreateScope())
 {
-    var services = scope.ServiceProvider;
+    IServiceProvider services = scope.ServiceProvider;
 
     // Apply pending migrations automatically
-    var dbContext = services.GetRequiredService<AppDbContext>();
+    AppDbContext dbContext = services.GetRequiredService<AppDbContext>();
     await dbContext.Database.MigrateAsync();
 
     // SeedSuperadmin always runs (needed for first boot, has its own Any() check)
@@ -277,7 +280,7 @@ app.MapGet("/version", () => Results.Ok(new { version = appVersion }));
 
 app.MapGet("/api/public/business-name", async (AppDbContext dbContext) =>
 {
-    var settings = await dbContext.BusinessSettings.FirstOrDefaultAsync();
+    BusinessSettings? settings = await dbContext.BusinessSettings.FirstOrDefaultAsync();
     return Results.Ok(new { businessName = settings?.BusinessName ?? "DuedGusto" });
 });
 

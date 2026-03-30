@@ -5,6 +5,7 @@ using duedgusto.Repositories.Interfaces;
 using duedgusto.Services.ChiusureMensili;
 using duedgusto.Services.Events;
 using duedgusto.GraphQL.Subscriptions.Types;
+using duedgusto.DataAccess;
 
 namespace duedgusto.GraphQL.GestioneCassa;
 
@@ -26,11 +27,11 @@ public class ChiudiRegistroCassaOrchestrator
 
     public async Task<RegistroCassa> ExecuteAsync(int registroCassaId)
     {
-        var db = _unitOfWork.Context;
+        AppDbContext db = _unitOfWork.Context;
 
-        var registroCassa = await db.RegistriCassa
-            .FirstOrDefaultAsync(r => r.Id == registroCassaId)
-            ?? throw new Exception($"Registro cassa con ID {registroCassaId} non trovato");
+        RegistroCassa registroCassa = await db.RegistriCassa
+                .FirstOrDefaultAsync(r => r.Id == registroCassaId)
+                ?? throw new Exception($"Registro cassa con ID {registroCassaId} non trovato");
 
         if (registroCassa.Stato == "CLOSED" || registroCassa.Stato == "RECONCILED")
             throw new Exception("Il registro cassa è già chiuso");

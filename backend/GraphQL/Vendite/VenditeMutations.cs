@@ -38,11 +38,11 @@ public class VenditeMutations : ObjectGraphType
     private static async Task<Vendita> CreaVenditaAsync(IResolveFieldContext<object?> context)
     {
         AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
-        var input = context.GetArgument<CreaVenditaInput>("input");
+        CreaVenditaInput input = context.GetArgument<CreaVenditaInput>("input");
 
         // Verify product exists
-        var product = await dbContext.Prodotti
-            .FirstOrDefaultAsync(p => p.ProdottoId == input.ProdottoId);
+        Prodotto? product = await dbContext.Prodotti
+                .FirstOrDefaultAsync(p => p.ProdottoId == input.ProdottoId);
 
         if (product == null)
         {
@@ -50,8 +50,8 @@ public class VenditeMutations : ObjectGraphType
         }
 
         // Verify register exists
-        var register = await dbContext.RegistriCassa
-            .FirstOrDefaultAsync(r => r.Id == input.RegistroCassaId);
+        RegistroCassa? register = await dbContext.RegistriCassa
+                .FirstOrDefaultAsync(r => r.Id == input.RegistroCassaId);
 
         if (register == null)
         {
@@ -59,7 +59,7 @@ public class VenditeMutations : ObjectGraphType
         }
 
         // Guard: verifica che il registro non appartenga a un mese chiuso
-        var chiusuraService = GraphQLService.GetService<ChiusuraMensileService>(context);
+        ChiusuraMensileService chiusuraService = GraphQLService.GetService<ChiusuraMensileService>(context);
         if (await chiusuraService.DataAppartieneAMeseChiusoAsync(register.Data))
         {
             throw new InvalidOperationException(
@@ -90,7 +90,7 @@ public class VenditeMutations : ObjectGraphType
         await dbContext.SaveChangesAsync();
 
         // Publish event for real-time subscriptions
-        var eventBus = GraphQLService.GetService<IEventBus>(context);
+        IEventBus eventBus = GraphQLService.GetService<IEventBus>(context);
         eventBus.Publish(new VenditaCreatedEvent
         {
             VenditaId = sale.VenditaId,
@@ -111,10 +111,10 @@ public class VenditeMutations : ObjectGraphType
     {
         AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
         var id = context.GetArgument<int>("id");
-        var input = context.GetArgument<AggiornaVenditaInput>("input");
+        AggiornaVenditaInput input = context.GetArgument<AggiornaVenditaInput>("input");
 
-        var sale = await dbContext.Vendite
-            .FirstOrDefaultAsync(s => s.VenditaId == id);
+        Vendita? sale = await dbContext.Vendite
+                .FirstOrDefaultAsync(s => s.VenditaId == id);
 
         if (sale == null)
         {
@@ -122,7 +122,7 @@ public class VenditeMutations : ObjectGraphType
         }
 
         // Guard: verifica che la vendita non appartenga a un mese chiuso
-        var chiusuraService = GraphQLService.GetService<ChiusuraMensileService>(context);
+        ChiusuraMensileService chiusuraService = GraphQLService.GetService<ChiusuraMensileService>(context);
         if (await chiusuraService.RegistroAppartieneAMeseChiusoAsync(sale.RegistroCassaId))
         {
             throw new InvalidOperationException(
@@ -132,8 +132,8 @@ public class VenditeMutations : ObjectGraphType
         // Verify product if changed
         if (input.ProdottoId.HasValue && input.ProdottoId.Value != sale.ProdottoId)
         {
-            var product = await dbContext.Prodotti
-                .FirstOrDefaultAsync(p => p.ProdottoId == input.ProdottoId.Value);
+            Prodotto? product = await dbContext.Prodotti
+                      .FirstOrDefaultAsync(p => p.ProdottoId == input.ProdottoId.Value);
 
             if (product == null)
             {
@@ -168,8 +168,8 @@ public class VenditeMutations : ObjectGraphType
         AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
         var id = context.GetArgument<int>("id");
 
-        var sale = await dbContext.Vendite
-            .FirstOrDefaultAsync(s => s.VenditaId == id);
+        Vendita? sale = await dbContext.Vendite
+                .FirstOrDefaultAsync(s => s.VenditaId == id);
 
         if (sale == null)
         {
@@ -177,7 +177,7 @@ public class VenditeMutations : ObjectGraphType
         }
 
         // Guard: verifica che la vendita non appartenga a un mese chiuso
-        var chiusuraService = GraphQLService.GetService<ChiusuraMensileService>(context);
+        ChiusuraMensileService chiusuraService = GraphQLService.GetService<ChiusuraMensileService>(context);
         if (await chiusuraService.RegistroAppartieneAMeseChiusoAsync(sale.RegistroCassaId))
         {
             throw new InvalidOperationException(
@@ -185,8 +185,8 @@ public class VenditeMutations : ObjectGraphType
         }
 
         // Update register VenditeContanti total
-        var register = await dbContext.RegistriCassa
-            .FirstOrDefaultAsync(r => r.Id == sale.RegistroCassaId);
+        RegistroCassa? register = await dbContext.RegistriCassa
+                .FirstOrDefaultAsync(r => r.Id == sale.RegistroCassaId);
 
         if (register != null)
         {

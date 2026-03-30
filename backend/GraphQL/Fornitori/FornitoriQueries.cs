@@ -36,8 +36,8 @@ public class FornitoriQueries : ObjectGraphType
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
                 int fornitoreId = context.GetArgument<int>("fornitoreId");
 
-                var result = await dbContext.Fornitori
-                    .FirstOrDefaultAsync(s => s.FornitoreId == fornitoreId);
+                Fornitore? result = await dbContext.Fornitori
+                      .FirstOrDefaultAsync(s => s.FornitoreId == fornitoreId);
 
                 return result;
             });
@@ -52,8 +52,8 @@ public class FornitoriQueries : ObjectGraphType
                 string partitaIva = context.GetArgument<string>("partitaIva");
                 int? excludeId = context.GetArgument<int?>("excludeFornitoreId");
 
-                var query = dbContext.Fornitori
-                    .Where(f => f.PartitaIva == partitaIva && f.Attivo);
+                IQueryable<Fornitore> query = dbContext.Fornitori
+                      .Where(f => f.PartitaIva == partitaIva && f.Attivo);
 
                 if (excludeId.HasValue)
                 {
@@ -71,8 +71,8 @@ public class FornitoriQueries : ObjectGraphType
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
                 int fatturaId = context.GetArgument<int>("fatturaId");
 
-                var result = await dbContext.FattureAcquisto
-                    .FirstOrDefaultAsync(i => i.FatturaId == fatturaId);
+                FatturaAcquisto? result = await dbContext.FattureAcquisto
+                      .FirstOrDefaultAsync(i => i.FatturaId == fatturaId);
 
                 return result;
             });
@@ -85,8 +85,8 @@ public class FornitoriQueries : ObjectGraphType
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
                 int ddtId = context.GetArgument<int>("ddtId");
 
-                var result = await dbContext.DocumentiTrasporto
-                    .FirstOrDefaultAsync(d => d.DdtId == ddtId);
+                DocumentoTrasporto? result = await dbContext.DocumentiTrasporto
+                      .FirstOrDefaultAsync(d => d.DdtId == ddtId);
 
                 return result;
             });

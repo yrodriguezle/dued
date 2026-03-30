@@ -49,7 +49,7 @@ public class FatturaAcquistoOrchestrator
             // Crea pagamenti se forniti (INSERT con fattura già pagata)
             if (input.Pagamenti?.Count > 0)
             {
-                foreach (var pagInput in input.Pagamenti)
+                foreach (PagamentoFornitoreInput pagInput in input.Pagamenti)
                 {
                     _unitOfWork.PagamentiFornitori.Add(new PagamentoFornitore
                     {
@@ -84,8 +84,8 @@ public class FatturaAcquistoOrchestrator
 
     public async Task<bool> EliminaAsync(int fatturaId)
     {
-        var fattura = await _unitOfWork.FattureAcquisto.GetByIdAsync(fatturaId)
-            ?? throw new ExecutionError($"Fattura acquisto con ID {fatturaId} non trovata");
+        FatturaAcquisto fattura = await _unitOfWork.FattureAcquisto.GetByIdAsync(fatturaId)
+                ?? throw new ExecutionError($"Fattura acquisto con ID {fatturaId} non trovata");
 
         _unitOfWork.FattureAcquisto.Remove(fattura);
         await _unitOfWork.SaveChangesAsync();

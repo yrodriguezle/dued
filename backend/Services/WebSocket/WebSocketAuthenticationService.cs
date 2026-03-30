@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using GraphQL.Server.Transports.AspNetCore.WebSockets;
 using GraphQL.Transport;
 using duedgusto.Services.Jwt;
+using System.Text.Json;
 
 namespace duedgusto.Services.WebSocket;
 
@@ -23,7 +24,7 @@ public class WebSocketAuthenticationService : IWebSocketAuthenticationService
     {
         var payload = operationMessage.Payload;
         if (payload is System.Text.Json.JsonElement jsonElement
-            && jsonElement.TryGetProperty("authToken", out var tokenElement))
+            && jsonElement.TryGetProperty("authToken", out JsonElement tokenElement))
         {
             var token = tokenElement.GetString();
             if (!string.IsNullOrEmpty(token))
@@ -31,10 +32,10 @@ public class WebSocketAuthenticationService : IWebSocketAuthenticationService
                 try
                 {
                     var tokenHandler = new JwtSecurityTokenHandler();
-                    var principal = tokenHandler.ValidateToken(
-                        token,
-                        _jwtHelper.TokenValidationParameters,
-                        out SecurityToken _);
+                    ClaimsPrincipal principal = tokenHandler.ValidateToken(
+                                  token,
+                                  _jwtHelper.TokenValidationParameters,
+                                  out SecurityToken _);
 
                     connection.HttpContext.User = principal;
                 }

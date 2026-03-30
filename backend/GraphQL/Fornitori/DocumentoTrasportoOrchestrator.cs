@@ -46,7 +46,7 @@ public class DocumentoTrasportoOrchestrator
             // Crea pagamenti se forniti (INSERT con DDT già pagato)
             if (input.Pagamenti?.Count > 0)
             {
-                foreach (var pagInput in input.Pagamenti)
+                foreach (PagamentoFornitoreInput pagInput in input.Pagamenti)
                 {
                     _unitOfWork.PagamentiFornitori.Add(new PagamentoFornitore
                     {
@@ -73,8 +73,8 @@ public class DocumentoTrasportoOrchestrator
 
     public async Task<bool> EliminaAsync(int ddtId)
     {
-        var ddt = await _unitOfWork.DocumentiTrasporto.GetByIdAsync(ddtId)
-            ?? throw new ExecutionError($"Documento di trasporto con ID {ddtId} non trovato");
+        DocumentoTrasporto ddt = await _unitOfWork.DocumentiTrasporto.GetByIdAsync(ddtId)
+                ?? throw new ExecutionError($"Documento di trasporto con ID {ddtId} non trovato");
 
         _unitOfWork.DocumentiTrasporto.Remove(ddt);
         await _unitOfWork.SaveChangesAsync();

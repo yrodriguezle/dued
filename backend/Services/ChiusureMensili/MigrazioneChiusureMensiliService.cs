@@ -79,7 +79,7 @@ public class MigrazioneChiusureMensiliService
             report.AppendLine("DETTAGLIO ERRORI PER CHIUSURA");
             report.AppendLine("========================================");
 
-            foreach (var (chiusuraId, errori) in result.ChiusureConErrori)
+            foreach ((int chiusuraId, List<string>? errori) in result.ChiusureConErrori)
             {
                 report.AppendLine();
                 report.AppendLine($"Chiusura ID {chiusuraId}:");

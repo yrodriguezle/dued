@@ -12,6 +12,7 @@ using GraphQL.Types.Relay.DataObjects;
 
 using duedgusto.DataAccess;
 using duedgusto.Models;
+using System.Reflection;
 
 namespace duedgusto.Services.GraphQL;
 
@@ -192,7 +193,7 @@ public class GraphQLService
             var trimmed = condition.Trim().Trim('(', ')').Trim();
 
             // Match pattern: "tableName.fieldName LIKE "%value%""
-            var likeMatch = Regex.Match(trimmed, @"(\w+)\.(\w+)\s+LIKE\s+""%(.+?)%""", RegexOptions.IgnoreCase);
+            Match likeMatch = Regex.Match(trimmed, @"(\w+)\.(\w+)\s+LIKE\s+""%(.+?)%""", RegexOptions.IgnoreCase);
 
             if (!likeMatch.Success) continue;
 
@@ -200,19 +201,19 @@ public class GraphQLService
             var searchValue = likeMatch.Groups[3].Value;
 
             // Find property on entity (case-insensitive match)
-            var property = typeof(T).GetProperties()
-                .FirstOrDefault(p => string.Equals(p.Name, fieldName, StringComparison.OrdinalIgnoreCase));
+            PropertyInfo? property = typeof(T).GetProperties()
+                      .FirstOrDefault(p => string.Equals(p.Name, fieldName, StringComparison.OrdinalIgnoreCase));
 
             if (property == null || property.PropertyType != typeof(string)) continue;
 
             // Build: entity => entity.Property != null && entity.Property.Contains(searchValue)
-            var parameter = Expression.Parameter(typeof(T), "e");
-            var propertyAccess = Expression.Property(parameter, property);
-            var nullCheck = Expression.NotEqual(propertyAccess, Expression.Constant(null, typeof(string)));
-            var searchConstant = Expression.Constant(searchValue, typeof(string));
-            var containsMethod = typeof(string).GetMethod("Contains", new[] { typeof(string) })!;
-            var containsCall = Expression.Call(propertyAccess, containsMethod, searchConstant);
-            var combined = Expression.AndAlso(nullCheck, containsCall);
+            ParameterExpression parameter = Expression.Parameter(typeof(T), "e");
+            MemberExpression propertyAccess = Expression.Property(parameter, property);
+            BinaryExpression nullCheck = Expression.NotEqual(propertyAccess, Expression.Constant(null, typeof(string)));
+            ConstantExpression searchConstant = Expression.Constant(searchValue, typeof(string));
+            MethodInfo containsMethod = typeof(string).GetMethod("Contains", new[] { typeof(string) })!;
+            MethodCallExpression containsCall = Expression.Call(propertyAccess, containsMethod, searchConstant);
+            BinaryExpression combined = Expression.AndAlso(nullCheck, containsCall);
             var lambda = Expression.Lambda<Func<T, bool>>(combined, parameter);
 
             query = query.Where(lambda);

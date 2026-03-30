@@ -5,6 +5,7 @@ using GraphQL;
 
 using duedgusto.DataAccess;
 using duedgusto.Services.ChiusureMensili;
+using duedgusto.Models;
 
 namespace duedgusto.GraphQL.GestioneCassa;
 
@@ -44,17 +45,17 @@ public static class GestioneCassaGuards
     /// </summary>
     public static async Task GuardGiornoOperativoConPeriodi(AppDbContext dbContext, DateTime data)
     {
-        var settings = await dbContext.BusinessSettings.FirstAsync();
+        BusinessSettings settings = await dbContext.BusinessSettings.FirstAsync();
         int operatingDayIndex = ((int)data.DayOfWeek + 6) % 7;
         var dataOnly = DateOnly.FromDateTime(data);
 
-        var periodi = await dbContext.PeriodiProgrammazione.ToListAsync();
+        List<PeriodoProgrammazione> periodi = await dbContext.PeriodiProgrammazione.ToListAsync();
         bool isOperatingDay;
 
         if (periodi.Count > 0)
         {
-            var periodo = periodi.FirstOrDefault(p =>
-                p.DataInizio <= dataOnly && (p.DataFine == null || p.DataFine >= dataOnly));
+            PeriodoProgrammazione? periodo = periodi.FirstOrDefault(p =>
+                      p.DataInizio <= dataOnly && (p.DataFine == null || p.DataFine >= dataOnly));
 
             if (periodo == null)
             {
@@ -86,7 +87,7 @@ public static class GestioneCassaGuards
     /// </summary>
     public static async Task GuardGiornoOperativoSoloGlobale(AppDbContext dbContext, DateTime data)
     {
-        var settings = await dbContext.BusinessSettings.FirstAsync();
+        BusinessSettings settings = await dbContext.BusinessSettings.FirstAsync();
         var operatingDays = JsonSerializer.Deserialize<bool[]>(settings.OperatingDays)!;
         int operatingDayIndex = ((int)data.DayOfWeek + 6) % 7;
 

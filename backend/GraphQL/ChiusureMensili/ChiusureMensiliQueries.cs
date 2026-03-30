@@ -22,11 +22,11 @@ public class ChiusureMensiliQueries : ObjectGraphType
             .Argument<NonNullGraphType<IntGraphType>>("chiusuraId")
             .ResolveAsync(async context =>
             {
-                var service = GraphQLService.GetService<ChiusuraMensileService>(context);
+                ChiusuraMensileService service = GraphQLService.GetService<ChiusuraMensileService>(context);
                 int closureId = context.GetArgument<int>("chiusuraId");
 
                 // Usa il service che carica tutte le relazioni necessarie
-                var result = await service.GetChiusuraConRelazioniAsync(closureId);
+                ChiusuraMensile? result = await service.GetChiusuraConRelazioniAsync(closureId);
                 return result;
             });
 
@@ -65,11 +65,11 @@ public class ChiusureMensiliQueries : ObjectGraphType
             .Argument<NonNullGraphType<IntGraphType>>("mese", "Mese da validare (1-12)")
             .ResolveAsync(async context =>
             {
-                var service = GraphQLService.GetService<ChiusuraMensileService>(context);
+                ChiusuraMensileService service = GraphQLService.GetService<ChiusuraMensileService>(context);
                 int anno = context.GetArgument<int>("anno");
                 int mese = context.GetArgument<int>("mese");
 
-                var giorniMancanti = await service.ValidaCompletezzaRegistriAsync(anno, mese);
+                List<DateTime> giorniMancanti = await service.ValidaCompletezzaRegistriAsync(anno, mese);
                 return giorniMancanti;
             });
     }

@@ -22,7 +22,7 @@ public static class SeedSuperadmin
             await dbContext.SaveChangesAsync();
         }
 
-        var role = dbContext.Ruoli.FirstOrDefault(r => r.Nome == "SuperAdmin");
+        Ruolo? role = dbContext.Ruoli.FirstOrDefault(r => r.Nome == "SuperAdmin");
 
         if (!dbContext.Utenti.Any(u => u.NomeUtente == "superadmin"))
         {

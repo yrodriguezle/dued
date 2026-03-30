@@ -40,7 +40,7 @@ public class AuthRateLimitMiddleware
         var path = context.Request.Path.Value?.ToLowerInvariant();
 
         // Check if this path needs rate limiting
-        if (path != null && RateLimitedPaths.TryGetValue(path, out var limits))
+        if (path != null && RateLimitedPaths.TryGetValue(path, out (int MaxRequests, int WindowMinutes) limits))
         {
             var clientIp = GetClientIpAddress(context);
             var key = $"{clientIp}:{path}";
@@ -74,11 +74,11 @@ public class AuthRateLimitMiddleware
     /// </summary>
     private static bool IsRequestAllowed(string key, int maxRequests, int windowMinutes)
     {
-        var now = DateTime.UtcNow;
-        var windowStart = now.AddMinutes(-windowMinutes);
+        DateTime now = DateTime.UtcNow;
+        DateTime windowStart = now.AddMinutes(-windowMinutes);
 
         // Get or create request history for this key
-        var history = _requestHistory.GetOrAdd(key, _ => new Queue<DateTime>());
+        Queue<DateTime> history = _requestHistory.GetOrAdd(key, _ => new Queue<DateTime>());
 
         lock (history)
         {
@@ -130,11 +130,11 @@ public class AuthRateLimitMiddleware
     /// </summary>
     public static void CleanupOldEntries()
     {
-        var cutoffTime = DateTime.UtcNow.AddHours(-1); // Remove entries older than 1 hour
+        DateTime cutoffTime = DateTime.UtcNow.AddHours(-1); // Remove entries older than 1 hour
 
-        foreach (var kvp in _requestHistory)
+        foreach (KeyValuePair<string, Queue<DateTime>> kvp in _requestHistory)
         {
-            var history = kvp.Value;
+            Queue<DateTime> history = kvp.Value;
             lock (history)
             {
                 while (history.Count > 0 && history.Peek() < cutoffTime)

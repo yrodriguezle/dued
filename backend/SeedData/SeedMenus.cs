@@ -40,17 +40,17 @@ public static class SeedMenus
         }
 
         // Clean up duplicate Dashboard menus (keep only one with correct path and filePath)
-        var dashboardMenus = await dbContext.Menus
-            .Where(m => m.Titolo == "Dashboard" && m.MenuPadreId == null)
-            .ToListAsync();
+        List<Menu> dashboardMenus = await dbContext.Menus
+                .Where(m => m.Titolo == "Dashboard" && m.MenuPadreId == null)
+                .ToListAsync();
 
         if (dashboardMenus.Count > 1)
         {
             // Keep the one with the correct path, remove others
-            var correctDashboard = dashboardMenus.FirstOrDefault(m => m.Percorso == "/gestionale/dashboard");
+            Menu? correctDashboard = dashboardMenus.FirstOrDefault(m => m.Percorso == "/gestionale/dashboard");
             var toRemove = dashboardMenus.Where(m => m != correctDashboard).ToList();
 
-            foreach (var menu in toRemove)
+            foreach (Menu? menu in toRemove)
             {
                 dbContext.Menus.Remove(menu);
             }
@@ -59,9 +59,9 @@ public static class SeedMenus
         }
 
         // First, try to find existing dashboard menu by path
-        var dashboardMenu = await dbContext.Menus
-            .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/dashboard");
+        Menu? dashboardMenu = await dbContext.Menus
+                .Include(m => m.Ruoli)
+                .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/dashboard");
 
         // If not found, try to find by title (for backwards compatibility with old seed data)
         dashboardMenu ??= await dbContext.Menus
@@ -96,9 +96,9 @@ public static class SeedMenus
         }
 
         // Menu padre Utenti (senza path)
-        var utentiMenu = await dbContext.Menus
-            .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Titolo == "Utenti" && m.Percorso == string.Empty);
+        Menu? utentiMenu = await dbContext.Menus
+                .Include(m => m.Ruoli)
+                .FirstOrDefaultAsync(m => m.Titolo == "Utenti" && m.Percorso == string.Empty);
 
         if (utentiMenu == null)
         {
@@ -125,9 +125,9 @@ public static class SeedMenus
         }
 
         // Child: Lista utenti
-        var utentiChild1 = await dbContext.Menus
-            .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/users-list");
+        Menu? utentiChild1 = await dbContext.Menus
+                .Include(m => m.Ruoli)
+                .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/users-list");
 
         if (utentiChild1 == null)
         {
@@ -157,9 +157,9 @@ public static class SeedMenus
         }
 
         // Child: Gestione utenti
-        var utentiChild2 = await dbContext.Menus
-            .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/users-details");
+        Menu? utentiChild2 = await dbContext.Menus
+                .Include(m => m.Ruoli)
+                .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/users-details");
 
         if (utentiChild2 == null)
         {
@@ -189,9 +189,9 @@ public static class SeedMenus
         }
 
         // Menu padre Ruoli (senza path)
-        var ruoliMenu = await dbContext.Menus
-            .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Titolo == "Ruoli" && m.Percorso == string.Empty);
+        Menu? ruoliMenu = await dbContext.Menus
+                .Include(m => m.Ruoli)
+                .FirstOrDefaultAsync(m => m.Titolo == "Ruoli" && m.Percorso == string.Empty);
 
         if (ruoliMenu == null)
         {
@@ -218,9 +218,9 @@ public static class SeedMenus
         }
 
         // Child: Lista ruoli
-        var ruoliChild1 = await dbContext.Menus
-            .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/roles-list");
+        Menu? ruoliChild1 = await dbContext.Menus
+                .Include(m => m.Ruoli)
+                .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/roles-list");
 
         if (ruoliChild1 == null)
         {
@@ -250,9 +250,9 @@ public static class SeedMenus
         }
 
         // Child: Gestione ruoli
-        var ruoliChild2 = await dbContext.Menus
-            .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/roles-details");
+        Menu? ruoliChild2 = await dbContext.Menus
+                .Include(m => m.Ruoli)
+                .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/roles-details");
 
         if (ruoliChild2 == null)
         {
@@ -282,9 +282,9 @@ public static class SeedMenus
         }
 
         // Menu padre Menù (senza path)
-        var menusMenu = await dbContext.Menus
-            .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Titolo == "Menù" && m.Percorso == string.Empty);
+        Menu? menusMenu = await dbContext.Menus
+                .Include(m => m.Ruoli)
+                .FirstOrDefaultAsync(m => m.Titolo == "Menù" && m.Percorso == string.Empty);
 
         if (menusMenu == null)
         {
@@ -311,9 +311,9 @@ public static class SeedMenus
         }
 
         // Child: Lista menù
-        var menusChild1 = await dbContext.Menus
-            .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/menus-list");
+        Menu? menusChild1 = await dbContext.Menus
+                .Include(m => m.Ruoli)
+                .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/menus-list");
 
         if (menusChild1 == null)
         {
@@ -343,9 +343,9 @@ public static class SeedMenus
         }
 
         // Child: Gestione menù
-        var menusChild2 = await dbContext.Menus
-            .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/menus-details");
+        Menu? menusChild2 = await dbContext.Menus
+                .Include(m => m.Ruoli)
+                .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/menus-details");
 
         if (menusChild2 == null)
         {
@@ -375,9 +375,9 @@ public static class SeedMenus
         }
 
         // Menu Impostazioni
-        var settingsMenu = await dbContext.Menus
-            .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/settings");
+        Menu? settingsMenu = await dbContext.Menus
+                .Include(m => m.Ruoli)
+                .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/settings");
 
         if (settingsMenu == null)
         {
@@ -406,15 +406,15 @@ public static class SeedMenus
         }
 
         // Menu padre Cassa (senza path e FilePath - collapsible menu group)
-        var cassaMenu = await dbContext.Menus
-            .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Titolo == "Cassa" && m.Percorso == string.Empty);
+        Menu? cassaMenu = await dbContext.Menus
+                .Include(m => m.Ruoli)
+                .FirstOrDefaultAsync(m => m.Titolo == "Cassa" && m.Percorso == string.Empty);
 
         if (cassaMenu == null)
         {
             // Try to find old Cassa menu by path and remove it if it exists
-            var oldCassaMenu = await dbContext.Menus
-                .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/cassa");
+            Menu? oldCassaMenu = await dbContext.Menus
+                      .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/cassa");
             if (oldCassaMenu != null)
             {
                 dbContext.Menus.Remove(oldCassaMenu);
@@ -444,9 +444,9 @@ public static class SeedMenus
         }
 
         // Child: Lista Cassa
-        var cassaChild1 = await dbContext.Menus
-            .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/cassa/list");
+        Menu? cassaChild1 = await dbContext.Menus
+                .Include(m => m.Ruoli)
+                .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/cassa/list");
 
         if (cassaChild1 == null)
         {
@@ -476,9 +476,9 @@ public static class SeedMenus
         }
 
         // Child: Vista Mensile
-        var cassaChildMonthly = await dbContext.Menus
-            .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/cassa/vista-mensile");
+        Menu? cassaChildMonthly = await dbContext.Menus
+                .Include(m => m.Ruoli)
+                .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/cassa/vista-mensile");
 
         // Backwards compatibility: find old path
         cassaChildMonthly ??= await dbContext.Menus
@@ -513,9 +513,9 @@ public static class SeedMenus
         }
 
         // Child: Chiusura Mensile
-        var cassaChild2 = await dbContext.Menus
-            .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/cassa/chiusura-mensile");
+        Menu? cassaChild2 = await dbContext.Menus
+                .Include(m => m.Ruoli)
+                .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/cassa/chiusura-mensile");
 
         // Backwards compatibility: find old path
         cassaChild2 ??= await dbContext.Menus
@@ -550,8 +550,8 @@ public static class SeedMenus
         }
 
         // Remove old "Nuova Cassa" route if it exists (consolidated to /cassa/details)
-        var oldNewCassaMenu = await dbContext.Menus
-            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/cassa/new");
+        Menu? oldNewCassaMenu = await dbContext.Menus
+                .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/cassa/new");
         if (oldNewCassaMenu != null)
         {
             dbContext.Menus.Remove(oldNewCassaMenu);
@@ -559,9 +559,9 @@ public static class SeedMenus
         }
 
         // Child: Gestione Cassa (visible, for creating and editing cash registers with day navigation)
-        var cassaChild4 = await dbContext.Menus
-            .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/cassa/details");
+        Menu? cassaChild4 = await dbContext.Menus
+                .Include(m => m.Ruoli)
+                .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/cassa/details");
 
         if (cassaChild4 == null)
         {
@@ -593,9 +593,9 @@ public static class SeedMenus
         // ========================================
         // Menu Fornitori
         // ========================================
-        var fornitoriMenu = await dbContext.Menus
-            .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Titolo == "Fornitori" && m.Percorso == string.Empty);
+        Menu? fornitoriMenu = await dbContext.Menus
+                .Include(m => m.Ruoli)
+                .FirstOrDefaultAsync(m => m.Titolo == "Fornitori" && m.Percorso == string.Empty);
 
         if (fornitoriMenu == null)
         {
@@ -627,9 +627,9 @@ public static class SeedMenus
         }
 
         // Menu figlio: Lista fornitori
-        var fornitoriChild1 = await dbContext.Menus
-            .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/fornitori-list");
+        Menu? fornitoriChild1 = await dbContext.Menus
+                .Include(m => m.Ruoli)
+                .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/fornitori-list");
 
         if (fornitoriChild1 == null)
         {
@@ -659,9 +659,9 @@ public static class SeedMenus
         }
 
         // Menu figlio: Gestione fornitore
-        var fornitoriChild2 = await dbContext.Menus
-            .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/fornitori-details");
+        Menu? fornitoriChild2 = await dbContext.Menus
+                .Include(m => m.Ruoli)
+                .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/fornitori-details");
 
         if (fornitoriChild2 == null)
         {
@@ -691,9 +691,9 @@ public static class SeedMenus
         }
 
         // Menu figlio: Lista fatture acq.
-        var fornitoriChild3 = await dbContext.Menus
-            .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/fatture-acquisto-list");
+        Menu? fornitoriChild3 = await dbContext.Menus
+                .Include(m => m.Ruoli)
+                .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/fatture-acquisto-list");
 
         if (fornitoriChild3 == null)
         {
@@ -723,9 +723,9 @@ public static class SeedMenus
         }
 
         // Menu figlio: Gestione fattura acq.
-        var fornitoriChild4 = await dbContext.Menus
-            .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/fatture-acquisto-details");
+        Menu? fornitoriChild4 = await dbContext.Menus
+                .Include(m => m.Ruoli)
+                .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/fatture-acquisto-details");
 
         if (fornitoriChild4 == null)
         {
@@ -755,9 +755,9 @@ public static class SeedMenus
         }
 
         // Menu figlio: Lista ddt
-        var fornitoriChild5 = await dbContext.Menus
-            .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/documenti-trasporto-list");
+        Menu? fornitoriChild5 = await dbContext.Menus
+                .Include(m => m.Ruoli)
+                .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/documenti-trasporto-list");
 
         if (fornitoriChild5 == null)
         {
@@ -787,9 +787,9 @@ public static class SeedMenus
         }
 
         // Menu figlio: Gestione ddt (nascosto nella sidebar)
-        var fornitoriChild6 = await dbContext.Menus
-            .Include(m => m.Ruoli)
-            .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/documenti-trasporto-details");
+        Menu? fornitoriChild6 = await dbContext.Menus
+                .Include(m => m.Ruoli)
+                .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/documenti-trasporto-details");
 
         if (fornitoriChild6 == null)
         {

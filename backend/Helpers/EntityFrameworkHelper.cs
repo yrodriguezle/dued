@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace duedgusto.Helpers;
+
 public static class EntityFrameworkHelper
 {
   public static object[] GetPrimaryKeyValues<TEntity>(this DbContext context, TEntity entity) where TEntity : class
@@ -216,9 +217,9 @@ public static class EntityFrameworkHelper
       IEnumerable<Expression<Func<TEntity, object>>> includes)
       where TEntity : class
   {
-    var query = context.Set<TEntity>().Where(filter).AsNoTracking();
-    foreach (var inc in includes) query = query.Include(inc);
-    var dbRows = await query.ToListAsync();
+    IQueryable<TEntity> query = context.Set<TEntity>().Where(filter).AsNoTracking();
+    foreach (Expression<Func<TEntity, object>> inc in includes) query = query.Include(inc);
+    List<TEntity> dbRows = await query.ToListAsync();
     return context.UpdateBulk(incomingRows, dbRows);
   }
 

@@ -9,6 +9,7 @@ using duedgusto.DataAccess;
 using duedgusto.GraphQL.Settings.Types;
 using duedgusto.GraphQL.Subscriptions.Types;
 using duedgusto.Services.Events;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace duedgusto.GraphQL.Settings;
 
@@ -26,7 +27,7 @@ public class SettingsMutations : ObjectGraphType
                 try
                 {
                     AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
-                    var input = context.GetArgument<BusinessSettingsInput>("settings");
+                    BusinessSettingsInput input = context.GetArgument<BusinessSettingsInput>("settings");
 
                     BusinessSettings? settings = null;
 
@@ -96,7 +97,7 @@ public class SettingsMutations : ObjectGraphType
             .ResolveAsync(async context =>
             {
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
-                var input = context.GetArgument<PeriodoProgrammazioneInput>("periodo");
+                PeriodoProgrammazioneInput input = context.GetArgument<PeriodoProgrammazioneInput>("periodo");
 
                 if (string.IsNullOrEmpty(input.DataInizio))
                     throw new ExecutionError("dataInizio è obbligatorio");
@@ -104,7 +105,7 @@ public class SettingsMutations : ObjectGraphType
                 if (string.IsNullOrEmpty(input.GiorniOperativi))
                     throw new ExecutionError("giorniOperativi è obbligatorio");
 
-                if (!DateOnly.TryParse(input.DataInizio, out var dataInizio))
+                if (!DateOnly.TryParse(input.DataInizio, out DateOnly dataInizio))
                     throw new ExecutionError("dataInizio deve essere una data valida (formato: yyyy-MM-dd)");
 
                 // Parse orari (default da BusinessSettings se non forniti)
@@ -112,13 +113,13 @@ public class SettingsMutations : ObjectGraphType
                 TimeOnly? orarioChiusura = null;
                 if (!string.IsNullOrEmpty(input.OrarioApertura))
                 {
-                    if (!TimeOnly.TryParse(input.OrarioApertura, out var oa))
+                    if (!TimeOnly.TryParse(input.OrarioApertura, out TimeOnly oa))
                         throw new ExecutionError("orarioApertura deve essere un orario valido (formato: HH:mm)");
                     orarioApertura = oa;
                 }
                 if (!string.IsNullOrEmpty(input.OrarioChiusura))
                 {
-                    if (!TimeOnly.TryParse(input.OrarioChiusura, out var oc))
+                    if (!TimeOnly.TryParse(input.OrarioChiusura, out TimeOnly oc))
                         throw new ExecutionError("orarioChiusura deve essere un orario valido (formato: HH:mm)");
                     orarioChiusura = oc;
                 }
@@ -126,7 +127,7 @@ public class SettingsMutations : ObjectGraphType
                 DateOnly? dataFine = null;
                 if (!string.IsNullOrEmpty(input.DataFine))
                 {
-                    if (!DateOnly.TryParse(input.DataFine, out var df))
+                    if (!DateOnly.TryParse(input.DataFine, out DateOnly df))
                         throw new ExecutionError("dataFine deve essere una data valida (formato: yyyy-MM-dd)");
                     dataFine = df;
                 }
@@ -144,18 +145,18 @@ public class SettingsMutations : ObjectGraphType
                     throw new ExecutionError("giorniOperativi deve essere un array JSON valido di 7 valori booleani");
                 }
 
-                await using var transaction = await dbContext.Database.BeginTransactionAsync();
+                await using IDbContextTransaction transaction = await dbContext.Database.BeginTransactionAsync();
                 try
                 {
-                    var settings = await dbContext.BusinessSettings.FirstAsync();
+                    BusinessSettings settings = await dbContext.BusinessSettings.FirstAsync();
 
                     // Check for overlaps with existing periods
-                    var periodiEsistenti = await dbContext.PeriodiProgrammazione.ToListAsync();
+                    List<PeriodoProgrammazione> periodiEsistenti = await dbContext.PeriodiProgrammazione.ToListAsync();
 
                     // If new period is active (DataFine = null), close the current active period
                     if (dataFine == null)
                     {
-                        var periodoAttivo = periodiEsistenti.FirstOrDefault(p => p.DataFine == null);
+                        PeriodoProgrammazione? periodoAttivo = periodiEsistenti.FirstOrDefault(p => p.DataFine == null);
                         if (periodoAttivo != null)
                         {
                             periodoAttivo.DataFine = dataInizio.AddDays(-1);
@@ -165,9 +166,9 @@ public class SettingsMutations : ObjectGraphType
                     else
                     {
                         // Validate no overlaps for closed period
-                        foreach (var p in periodiEsistenti)
+                        foreach (PeriodoProgrammazione? p in periodiEsistenti)
                         {
-                            var pFine = p.DataFine ?? DateOnly.MaxValue;
+                            DateOnly pFine = p.DataFine ?? DateOnly.MaxValue;
                             if (dataInizio <= pFine && dataFine.Value >= p.DataInizio)
                             {
                                 throw new ExecutionError(
@@ -218,13 +219,13 @@ public class SettingsMutations : ObjectGraphType
             .ResolveAsync(async context =>
             {
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
-                var input = context.GetArgument<PeriodoProgrammazioneInput>("periodo");
+                PeriodoProgrammazioneInput input = context.GetArgument<PeriodoProgrammazioneInput>("periodo");
 
                 if (input.PeriodoId == null)
                     throw new ExecutionError("periodoId è obbligatorio per l'aggiornamento");
 
-                var periodo = await dbContext.PeriodiProgrammazione
-                    .FirstOrDefaultAsync(p => p.PeriodoId == input.PeriodoId.Value);
+                PeriodoProgrammazione? periodo = await dbContext.PeriodiProgrammazione
+                      .FirstOrDefaultAsync(p => p.PeriodoId == input.PeriodoId.Value);
 
                 if (periodo == null)
                     throw new ExecutionError($"Periodo con ID {input.PeriodoId} non trovato");
@@ -248,7 +249,7 @@ public class SettingsMutations : ObjectGraphType
                 DateOnly? parsedDataInizio = null;
                 if (!string.IsNullOrEmpty(input.DataInizio))
                 {
-                    if (!DateOnly.TryParse(input.DataInizio, out var di))
+                    if (!DateOnly.TryParse(input.DataInizio, out DateOnly di))
                         throw new ExecutionError("dataInizio deve essere una data valida (formato: yyyy-MM-dd)");
                     parsedDataInizio = di;
                 }
@@ -256,23 +257,23 @@ public class SettingsMutations : ObjectGraphType
                 DateOnly? parsedDataFine = null;
                 if (!string.IsNullOrEmpty(input.DataFine))
                 {
-                    if (!DateOnly.TryParse(input.DataFine, out var df))
+                    if (!DateOnly.TryParse(input.DataFine, out DateOnly df))
                         throw new ExecutionError("dataFine deve essere una data valida (formato: yyyy-MM-dd)");
                     parsedDataFine = df;
                 }
 
                 // Validate no overlaps (excluding itself)
-                var dataInizio = parsedDataInizio ?? periodo.DataInizio;
-                var dataFine = parsedDataFine ?? periodo.DataFine;
+                DateOnly dataInizio = parsedDataInizio ?? periodo.DataInizio;
+                DateOnly? dataFine = parsedDataFine ?? periodo.DataFine;
 
-                var altriPeriodi = await dbContext.PeriodiProgrammazione
-                    .Where(p => p.PeriodoId != periodo.PeriodoId)
-                    .ToListAsync();
+                List<PeriodoProgrammazione> altriPeriodi = await dbContext.PeriodiProgrammazione
+                      .Where(p => p.PeriodoId != periodo.PeriodoId)
+                      .ToListAsync();
 
-                foreach (var p in altriPeriodi)
+                foreach (PeriodoProgrammazione? p in altriPeriodi)
                 {
-                    var pFine = p.DataFine ?? DateOnly.MaxValue;
-                    var miaFine = dataFine ?? DateOnly.MaxValue;
+                    DateOnly pFine = p.DataFine ?? DateOnly.MaxValue;
+                    DateOnly miaFine = dataFine ?? DateOnly.MaxValue;
                     if (dataInizio <= pFine && miaFine >= p.DataInizio)
                     {
                         throw new ExecutionError(
@@ -285,14 +286,14 @@ public class SettingsMutations : ObjectGraphType
                 TimeOnly? parsedOrarioApertura = null;
                 if (!string.IsNullOrEmpty(input.OrarioApertura))
                 {
-                    if (!TimeOnly.TryParse(input.OrarioApertura, out var oa))
+                    if (!TimeOnly.TryParse(input.OrarioApertura, out TimeOnly oa))
                         throw new ExecutionError("orarioApertura deve essere un orario valido (formato: HH:mm)");
                     parsedOrarioApertura = oa;
                 }
                 TimeOnly? parsedOrarioChiusura = null;
                 if (!string.IsNullOrEmpty(input.OrarioChiusura))
                 {
-                    if (!TimeOnly.TryParse(input.OrarioChiusura, out var oc))
+                    if (!TimeOnly.TryParse(input.OrarioChiusura, out TimeOnly oc))
                         throw new ExecutionError("orarioChiusura deve essere un orario valido (formato: HH:mm)");
                     parsedOrarioChiusura = oc;
                 }
@@ -319,7 +320,7 @@ public class SettingsMutations : ObjectGraphType
                 // Sync BusinessSettings if this is the active period
                 if (periodo.DataFine == null)
                 {
-                    var settings = await dbContext.BusinessSettings.FirstAsync();
+                    BusinessSettings settings = await dbContext.BusinessSettings.FirstAsync();
                     settings.OperatingDays = periodo.GiorniOperativi;
                     settings.OpeningTime = periodo.OrarioApertura.ToString("HH:mm");
                     settings.ClosingTime = periodo.OrarioChiusura.ToString("HH:mm");
@@ -336,13 +337,13 @@ public class SettingsMutations : ObjectGraphType
             .ResolveAsync(async context =>
             {
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
-                var input = context.GetArgument<GiornoNonLavorativoInput>("input");
+                GiornoNonLavorativoInput input = context.GetArgument<GiornoNonLavorativoInput>("input");
 
                 // Validazione data
                 if (string.IsNullOrEmpty(input.Data))
                     throw new ExecutionError("data è obbligatoria");
 
-                if (!DateOnly.TryParse(input.Data, out var data))
+                if (!DateOnly.TryParse(input.Data, out DateOnly data))
                     throw new ExecutionError("data deve essere una data valida (formato: yyyy-MM-dd)");
 
                 // Validazione descrizione
@@ -355,7 +356,7 @@ public class SettingsMutations : ObjectGraphType
                 if (!codiciValidi.Contains(codiceMotivo))
                     throw new ExecutionError($"codiceMotivo deve essere uno tra: {string.Join(", ", codiciValidi)}");
 
-                var settings = await dbContext.BusinessSettings.FirstAsync();
+                BusinessSettings settings = await dbContext.BusinessSettings.FirstAsync();
 
                 // Verifica unicità su data + settingsId
                 var esistente = await dbContext.GiorniNonLavorativi
@@ -379,7 +380,7 @@ public class SettingsMutations : ObjectGraphType
                 await dbContext.SaveChangesAsync();
 
                 // Pubblica evento per subscription real-time
-                var eventBus = GraphQLService.GetService<IEventBus>(context);
+                IEventBus eventBus = GraphQLService.GetService<IEventBus>(context);
                 eventBus.Publish(new SettingsUpdatedEvent
                 {
                     Azione = "CREATO",
@@ -395,13 +396,13 @@ public class SettingsMutations : ObjectGraphType
             .ResolveAsync(async context =>
             {
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
-                var input = context.GetArgument<GiornoNonLavorativoInput>("input");
+                GiornoNonLavorativoInput input = context.GetArgument<GiornoNonLavorativoInput>("input");
 
                 if (input.GiornoId == null)
                     throw new ExecutionError("giornoId è obbligatorio per l'aggiornamento");
 
-                var giorno = await dbContext.GiorniNonLavorativi
-                    .FirstOrDefaultAsync(g => g.GiornoId == input.GiornoId.Value);
+                GiornoNonLavorativo? giorno = await dbContext.GiorniNonLavorativi
+                      .FirstOrDefaultAsync(g => g.GiornoId == input.GiornoId.Value);
 
                 if (giorno == null)
                     throw new ExecutionError($"Giorno non lavorativo con ID {input.GiornoId} non trovato");
@@ -409,7 +410,7 @@ public class SettingsMutations : ObjectGraphType
                 // Aggiorna data se fornita
                 if (!string.IsNullOrEmpty(input.Data))
                 {
-                    if (!DateOnly.TryParse(input.Data, out var data))
+                    if (!DateOnly.TryParse(input.Data, out DateOnly data))
                         throw new ExecutionError("data deve essere una data valida (formato: yyyy-MM-dd)");
 
                     // Verifica unicità escludendo se stesso
@@ -445,7 +446,7 @@ public class SettingsMutations : ObjectGraphType
                 await dbContext.SaveChangesAsync();
 
                 // Pubblica evento per subscription real-time
-                var eventBus = GraphQLService.GetService<IEventBus>(context);
+                IEventBus eventBus = GraphQLService.GetService<IEventBus>(context);
                 eventBus.Publish(new SettingsUpdatedEvent
                 {
                     Azione = "AGGIORNATO",
@@ -463,8 +464,8 @@ public class SettingsMutations : ObjectGraphType
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
                 var giornoId = context.GetArgument<int>("giornoId");
 
-                var giorno = await dbContext.GiorniNonLavorativi
-                    .FirstOrDefaultAsync(g => g.GiornoId == giornoId);
+                GiornoNonLavorativo? giorno = await dbContext.GiorniNonLavorativi
+                      .FirstOrDefaultAsync(g => g.GiornoId == giornoId);
 
                 if (giorno == null)
                     throw new ExecutionError($"Giorno non lavorativo con ID {giornoId} non trovato");
@@ -473,7 +474,7 @@ public class SettingsMutations : ObjectGraphType
                 await dbContext.SaveChangesAsync();
 
                 // Pubblica evento per subscription real-time
-                var eventBus = GraphQLService.GetService<IEventBus>(context);
+                IEventBus eventBus = GraphQLService.GetService<IEventBus>(context);
                 eventBus.Publish(new SettingsUpdatedEvent
                 {
                     Azione = "ELIMINATO",
@@ -491,8 +492,8 @@ public class SettingsMutations : ObjectGraphType
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
                 var periodoId = context.GetArgument<int>("periodoId");
 
-                var periodo = await dbContext.PeriodiProgrammazione
-                    .FirstOrDefaultAsync(p => p.PeriodoId == periodoId);
+                PeriodoProgrammazione? periodo = await dbContext.PeriodiProgrammazione
+                      .FirstOrDefaultAsync(p => p.PeriodoId == periodoId);
 
                 if (periodo == null)
                     throw new ExecutionError($"Periodo con ID {periodoId} non trovato");

@@ -20,8 +20,8 @@ public class FornitoriMutations : ObjectGraphType
             .Argument<NonNullGraphType<FornitoreInputType>>("fornitore", "Dati fornitore")
             .ResolveAsync(async context =>
             {
-                var orchestrator = GraphQLService.GetService<FornitoreOrchestrator>(context);
-                var input = context.GetArgument<FornitoreInput>("fornitore");
+                FornitoreOrchestrator orchestrator = GraphQLService.GetService<FornitoreOrchestrator>(context);
+                FornitoreInput input = context.GetArgument<FornitoreInput>("fornitore");
                 return await orchestrator.MutateAsync(input);
             });
 
@@ -29,7 +29,7 @@ public class FornitoriMutations : ObjectGraphType
             .Argument<NonNullGraphType<IntGraphType>>("fornitoreId")
             .ResolveAsync(async context =>
             {
-                var orchestrator = GraphQLService.GetService<FornitoreOrchestrator>(context);
+                FornitoreOrchestrator orchestrator = GraphQLService.GetService<FornitoreOrchestrator>(context);
                 int fornitoreId = context.GetArgument<int>("fornitoreId");
                 return await orchestrator.EliminaAsync(fornitoreId);
             });
@@ -40,8 +40,8 @@ public class FornitoriMutations : ObjectGraphType
             .Argument<NonNullGraphType<FatturaAcquistoInputType>>("fattura", "Dati fattura acquisto")
             .ResolveAsync(async context =>
             {
-                var orchestrator = GraphQLService.GetService<FatturaAcquistoOrchestrator>(context);
-                var input = context.GetArgument<FatturaAcquistoInput>("fattura");
+                FatturaAcquistoOrchestrator orchestrator = GraphQLService.GetService<FatturaAcquistoOrchestrator>(context);
+                FatturaAcquistoInput input = context.GetArgument<FatturaAcquistoInput>("fattura");
                 return await orchestrator.MutateAsync(input);
             });
 
@@ -49,7 +49,7 @@ public class FornitoriMutations : ObjectGraphType
             .Argument<NonNullGraphType<IntGraphType>>("fatturaId")
             .ResolveAsync(async context =>
             {
-                var orchestrator = GraphQLService.GetService<FatturaAcquistoOrchestrator>(context);
+                FatturaAcquistoOrchestrator orchestrator = GraphQLService.GetService<FatturaAcquistoOrchestrator>(context);
                 int fatturaId = context.GetArgument<int>("fatturaId");
                 return await orchestrator.EliminaAsync(fatturaId);
             });
@@ -60,8 +60,8 @@ public class FornitoriMutations : ObjectGraphType
             .Argument<NonNullGraphType<DocumentoTrasportoInputType>>("documentoTrasporto", "Dati documento di trasporto")
             .ResolveAsync(async context =>
             {
-                var orchestrator = GraphQLService.GetService<DocumentoTrasportoOrchestrator>(context);
-                var input = context.GetArgument<DocumentoTrasportoInput>("documentoTrasporto");
+                DocumentoTrasportoOrchestrator orchestrator = GraphQLService.GetService<DocumentoTrasportoOrchestrator>(context);
+                DocumentoTrasportoInput input = context.GetArgument<DocumentoTrasportoInput>("documentoTrasporto");
                 return await orchestrator.MutateAsync(input);
             });
 
@@ -69,7 +69,7 @@ public class FornitoriMutations : ObjectGraphType
             .Argument<NonNullGraphType<IntGraphType>>("ddtId")
             .ResolveAsync(async context =>
             {
-                var orchestrator = GraphQLService.GetService<DocumentoTrasportoOrchestrator>(context);
+                DocumentoTrasportoOrchestrator orchestrator = GraphQLService.GetService<DocumentoTrasportoOrchestrator>(context);
                 int ddtId = context.GetArgument<int>("ddtId");
                 return await orchestrator.EliminaAsync(ddtId);
             });
@@ -80,9 +80,9 @@ public class FornitoriMutations : ObjectGraphType
             .Argument<NonNullGraphType<PagamentoFornitoreInputType>>("pagamento", "Dati pagamento fornitore")
             .ResolveAsync(async context =>
             {
-                var orchestrator = GraphQLService.GetService<PagamentoFornitoreOrchestrator>(context);
-                var jwtHelper = GraphQLService.GetService<JwtHelper>(context);
-                var input = context.GetArgument<PagamentoFornitoreInput>("pagamento");
+                PagamentoFornitoreOrchestrator orchestrator = GraphQLService.GetService<PagamentoFornitoreOrchestrator>(context);
+                JwtHelper jwtHelper = GraphQLService.GetService<JwtHelper>(context);
+                PagamentoFornitoreInput input = context.GetArgument<PagamentoFornitoreInput>("pagamento");
 
                 var userContext = context.UserContext as GraphQLUserContext;
                 int utenteId = userContext?.Principal != null
@@ -96,7 +96,7 @@ public class FornitoriMutations : ObjectGraphType
             .Argument<NonNullGraphType<IntGraphType>>("pagamentoId")
             .ResolveAsync(async context =>
             {
-                var orchestrator = GraphQLService.GetService<PagamentoFornitoreOrchestrator>(context);
+                PagamentoFornitoreOrchestrator orchestrator = GraphQLService.GetService<PagamentoFornitoreOrchestrator>(context);
                 int pagamentoId = context.GetArgument<int>("pagamentoId");
                 return await orchestrator.EliminaAsync(pagamentoId);
             });

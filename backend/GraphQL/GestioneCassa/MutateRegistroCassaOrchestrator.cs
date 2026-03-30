@@ -7,6 +7,7 @@ using duedgusto.Services.Events;
 using duedgusto.GraphQL.Fornitori;
 using duedgusto.GraphQL.GestioneCassa.Types;
 using duedgusto.GraphQL.Subscriptions.Types;
+using duedgusto.DataAccess;
 
 namespace duedgusto.GraphQL.GestioneCassa;
 
@@ -28,7 +29,7 @@ public class MutateRegistroCassaOrchestrator
 
     public async Task<RegistroCassa> ExecuteAsync(RegistroCassaInput input)
     {
-        var db = _unitOfWork.Context;
+        AppDbContext db = _unitOfWork.Context;
 
         // === Guards ===
         await GestioneCassaGuards.GuardMeseChiuso(_chiusuraService, input.Data);
@@ -43,7 +44,7 @@ public class MutateRegistroCassaOrchestrator
             registroCassa = await UpsertRegistroBase(db, input);
 
             // === Conteggi moneta (apertura + chiusura) ===
-            var denominazioni = await db.DenominazioniMoneta.ToListAsync();
+            List<DenominazioneMoneta> denominazioni = await db.DenominazioniMoneta.ToListAsync();
             decimal totaleApertura = AggiungiConteggi(registroCassa, denominazioni, input.ConteggiApertura, isApertura: true);
             decimal totaleChiusura = AggiungiConteggi(registroCassa, denominazioni, input.ConteggiChiusura, isApertura: false);
             registroCassa.TotaleApertura = totaleApertura;
@@ -58,7 +59,7 @@ public class MutateRegistroCassaOrchestrator
             await ProcessaPagamentiFornitori(db, registroCassa, input);
 
             // === Calcoli finali ===
-            var settings = await db.BusinessSettings.FirstAsync();
+            BusinessSettings settings = await db.BusinessSettings.FirstAsync();
             CalcolaTotali(registroCassa, totaleSpese, settings.VatRate);
 
             await _unitOfWork.SaveChangesAsync();
@@ -93,10 +94,10 @@ public class MutateRegistroCassaOrchestrator
     private static async Task<RegistroCassa> UpsertRegistroBase(
         DataAccess.AppDbContext db, RegistroCassaInput input)
     {
-        var registroCassa = await db.RegistriCassa
-            .Include(r => r.ConteggiMoneta)
-            .Include(r => r.SpeseCassa)
-            .FirstOrDefaultAsync(r => r.Data.Date == input.Data.Date);
+        RegistroCassa? registroCassa = await db.RegistriCassa
+                .Include(r => r.ConteggiMoneta)
+                .Include(r => r.SpeseCassa)
+                .FirstOrDefaultAsync(r => r.Data.Date == input.Data.Date);
 
         if (registroCassa != null)
         {
@@ -130,9 +131,9 @@ public class MutateRegistroCassaOrchestrator
         bool isApertura)
     {
         decimal totale = 0;
-        foreach (var conteggioInput in conteggiInput)
+        foreach (ConteggioMonetaInput conteggioInput in conteggiInput)
         {
-            var denominazione = denominazioni.FirstOrDefault(d => d.Id == conteggioInput.DenominazioneMonetaId);
+            DenominazioneMoneta? denominazione = denominazioni.FirstOrDefault(d => d.Id == conteggioInput.DenominazioneMonetaId);
             if (denominazione != null)
             {
                 decimal subtotale = conteggioInput.Quantita * denominazione.Valore;
@@ -153,7 +154,7 @@ public class MutateRegistroCassaOrchestrator
     private static decimal AggiungiSpese(RegistroCassa registroCassa, List<SpesaCassaInput> speseInput)
     {
         decimal totaleSpese = 0;
-        foreach (var spesaInput in speseInput)
+        foreach (SpesaCassaInput spesaInput in speseInput)
         {
             registroCassa.SpeseCassa.Add(new SpesaCassa
             {
@@ -170,12 +171,12 @@ public class MutateRegistroCassaOrchestrator
         RegistroCassa registroCassa,
         RegistroCassaInput input)
     {
-        var pagamentiInput = input.PagamentiFornitori;
+        List<PagamentoFornitoreRegistroInput> pagamentiInput = input.PagamentiFornitori;
 
         // STEP 1: Load existing payments for this register
-        var existingPayments = await db.PagamentiFornitori
-            .Where(p => p.RegistroCassaId == registroCassa.Id)
-            .ToListAsync();
+        List<PagamentoFornitore> existingPayments = await db.PagamentiFornitori
+                .Where(p => p.RegistroCassaId == registroCassa.Id)
+                .ToListAsync();
 
         // STEP 2: Build maps
         var inputById = pagamentiInput
@@ -231,12 +232,12 @@ public class MutateRegistroCassaOrchestrator
         // Aggiorna stato fatture collegate (i documenti NON vengono cancellati)
         if (affectedFatturaIds.Count > 0)
         {
-            var fatture = await db.FattureAcquisto
-                .Include(f => f.Pagamenti)
-                .Where(f => affectedFatturaIds.Contains(f.FatturaId))
-                .ToListAsync();
+            List<FatturaAcquisto> fatture = await db.FattureAcquisto
+                      .Include(f => f.Pagamenti)
+                      .Where(f => affectedFatturaIds.Contains(f.FatturaId))
+                      .ToListAsync();
 
-            foreach (var fattura in fatture)
+            foreach (FatturaAcquisto? fattura in fatture)
             {
                 FatturaAcquistoStatusHelper.RecalculateStato(fattura);
             }
@@ -249,22 +250,22 @@ public class MutateRegistroCassaOrchestrator
         List<PagamentoFornitore> toUpdate,
         Dictionary<int, PagamentoFornitoreRegistroInput> inputById)
     {
-        foreach (var existing in toUpdate)
+        foreach (PagamentoFornitore existing in toUpdate)
         {
-            var inp = inputById[existing.PagamentoId];
+            PagamentoFornitoreRegistroInput inp = inputById[existing.PagamentoId];
             existing.Importo = inp.Importo;
             existing.MetodoPagamento = inp.MetodoPagamento;
             existing.AggiornatoIl = DateTime.UtcNow;
 
             if (existing.FatturaId.HasValue)
             {
-                var linkedFattura = await db.FattureAcquisto.FindAsync(existing.FatturaId.Value);
+                FatturaAcquisto? linkedFattura = await db.FattureAcquisto.FindAsync(existing.FatturaId.Value);
                 if (linkedFattura != null)
                 {
                     decimal aliquota = inp.AliquotaIva ?? 22m;
                     if (inp.AliquotaIva == null)
                     {
-                        var fornitore = await db.Set<Fornitore>().FindAsync(inp.FornitoreId);
+                        Fornitore? fornitore = await db.Set<Fornitore>().FindAsync(inp.FornitoreId);
                         if (fornitore?.AliquotaIva != null)
                             aliquota = fornitore.AliquotaIva.Value;
                     }
@@ -286,7 +287,7 @@ public class MutateRegistroCassaOrchestrator
         List<PagamentoFornitoreRegistroInput> inputNew,
         DateTime dataRegistro)
     {
-        foreach (var pagInput in inputNew)
+        foreach (PagamentoFornitoreRegistroInput pagInput in inputNew)
         {
             int? fatturaId = null;
             int? ddtId = null;
@@ -329,7 +330,7 @@ public class MutateRegistroCassaOrchestrator
         decimal aliquota = pagInput.AliquotaIva ?? 22m;
         if (pagInput.AliquotaIva == null)
         {
-            var fornitore = await db.Set<Fornitore>().FindAsync(pagInput.FornitoreId);
+            Fornitore? fornitore = await db.Set<Fornitore>().FindAsync(pagInput.FornitoreId);
             if (fornitore?.AliquotaIva != null)
                 aliquota = fornitore.AliquotaIva.Value;
         }

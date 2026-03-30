@@ -71,7 +71,7 @@ public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper, IWebHos
         user.ScadenzaTokenAggiornamento = DateTime.UtcNow.AddDays(7);
 
         await dbContext.SaveChangesAsync();
-        return Ok(new { Token, RefreshToken  });
+        return Ok(new { Token, RefreshToken });
     }
 
     [HttpPost("refresh"), AllowAnonymous]
@@ -105,7 +105,7 @@ public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper, IWebHos
             new Claim("UserId", user.Id.ToString()),
         ];
 
-        var (RefreshToken, Token) = jwtHelper.CreateSignedToken(userClaims);
+        (string? RefreshToken, string? Token) = jwtHelper.CreateSignedToken(userClaims);
         user.TokenAggiornamento = RefreshToken;
         // SECURITY FIX: Update refresh token expiration on rotation
         user.ScadenzaTokenAggiornamento = DateTime.UtcNow.AddDays(7);
@@ -124,7 +124,7 @@ public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper, IWebHos
         // 1. Try from request body
         if (!string.IsNullOrEmpty(request?.Token))
         {
-            var principal = jwtHelper.GetPrincipalFromExpiredToken(request.Token);
+            ClaimsPrincipal? principal = jwtHelper.GetPrincipalFromExpiredToken(request.Token);
             if (principal != null)
             {
                 userId = jwtHelper.GetUserID(principal);
@@ -138,7 +138,7 @@ public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper, IWebHos
             if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
             {
                 string token = authHeader["Bearer ".Length..];
-                var principal = jwtHelper.GetPrincipalFromExpiredToken(token);
+                ClaimsPrincipal? principal = jwtHelper.GetPrincipalFromExpiredToken(token);
                 if (principal != null)
                 {
                     userId = jwtHelper.GetUserID(principal);
@@ -158,7 +158,7 @@ public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper, IWebHos
 
         if (userId > 0)
         {
-            var user = await dbContext.Utenti.FindAsync(userId);
+            Utente? user = await dbContext.Utenti.FindAsync(userId);
             if (user != null)
             {
                 user.TokenAggiornamento = null;

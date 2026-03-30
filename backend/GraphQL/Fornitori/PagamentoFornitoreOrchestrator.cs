@@ -60,9 +60,9 @@ public class PagamentoFornitoreOrchestrator
             // Aggiorna stato fattura se collegata
             if (payment.FatturaId.HasValue)
             {
-                var invoice = await _unitOfWork.FattureAcquisto.Query()
-                    .Include(i => i.Pagamenti)
-                    .FirstOrDefaultAsync(i => i.FatturaId == payment.FatturaId.Value);
+                FatturaAcquisto? invoice = await _unitOfWork.FattureAcquisto.Query()
+                            .Include(i => i.Pagamenti)
+                            .FirstOrDefaultAsync(i => i.FatturaId == payment.FatturaId.Value);
 
                 if (invoice != null)
                 {
@@ -72,7 +72,7 @@ public class PagamentoFornitoreOrchestrator
             }
 
             // Sincronizza con il registro cassa
-            var registro = await _syncService.FindOrCreateRegistroCassaAsync(input.DataPagamento, utenteId);
+            RegistroCassa registro = await _syncService.FindOrCreateRegistroCassaAsync(input.DataPagamento, utenteId);
             payment.RegistroCassaId = registro.Id;
             await _unitOfWork.SaveChangesAsync();
 
@@ -100,8 +100,8 @@ public class PagamentoFornitoreOrchestrator
         await _unitOfWork.BeginTransactionAsync();
         try
         {
-            var payment = await _unitOfWork.PagamentiFornitori.GetByIdAsync(pagamentoId)
-                ?? throw new ExecutionError($"Pagamento fornitore con ID {pagamentoId} non trovato");
+            PagamentoFornitore payment = await _unitOfWork.PagamentiFornitori.GetByIdAsync(pagamentoId)
+                      ?? throw new ExecutionError($"Pagamento fornitore con ID {pagamentoId} non trovato");
 
             var fatturaId = payment.FatturaId;
             var registroCassaId = payment.RegistroCassaId;
@@ -112,9 +112,9 @@ public class PagamentoFornitoreOrchestrator
             // Aggiorna stato fattura se era collegata
             if (fatturaId.HasValue)
             {
-                var invoice = await _unitOfWork.FattureAcquisto.Query()
-                    .Include(i => i.Pagamenti)
-                    .FirstOrDefaultAsync(i => i.FatturaId == fatturaId.Value);
+                FatturaAcquisto? invoice = await _unitOfWork.FattureAcquisto.Query()
+                            .Include(i => i.Pagamenti)
+                            .FirstOrDefaultAsync(i => i.FatturaId == fatturaId.Value);
 
                 if (invoice != null)
                 {

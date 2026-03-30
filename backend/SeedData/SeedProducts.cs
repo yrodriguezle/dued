@@ -13,8 +13,8 @@ public class SeedProducts
     /// </summary>
     public static async Task Initialize(IServiceProvider serviceProvider)
     {
-        using var scope = serviceProvider.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        using IServiceScope scope = serviceProvider.CreateScope();
+        AppDbContext dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         // Check if products already exist
         if (await dbContext.Prodotti.AnyAsync())
@@ -60,7 +60,7 @@ public class SeedProducts
 
             Console.WriteLine($"Reading products from: {csvPath}");
 
-            var products = ReadProductsFromCsv(csvPath);
+            List<Prodotto> products = ReadProductsFromCsv(csvPath);
 
             if (products.Count == 0)
             {
@@ -104,7 +104,7 @@ public class SeedProducts
 
                 try
                 {
-                    var parts = ParseCsvLine(line);
+                    List<string> parts = ParseCsvLine(line);
 
                     if (parts.Count < 5)
                     {
