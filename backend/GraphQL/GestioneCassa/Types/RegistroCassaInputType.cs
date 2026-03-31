@@ -32,8 +32,8 @@ public class PagamentoFornitoreRegistroInputType : InputObjectGraphType<Pagament
         Field(x => x.NumeroFattura, nullable: true);
         Field(x => x.FatturaId, nullable: true);
         Field(x => x.DdtId, nullable: true);
-        Field(x => x.DataFattura, nullable: true, type: typeof(DateTimeGraphType));
-        Field(x => x.DataDdt, nullable: true, type: typeof(DateTimeGraphType));
+        Field(x => x.DataFattura, type: typeof(DateTimeGraphType));
+        Field(x => x.DataDdt, type: typeof(DateTimeGraphType));
         Field(x => x.AliquotaIva, nullable: true);
     }
 }
