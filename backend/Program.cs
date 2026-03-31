@@ -163,8 +163,8 @@ builder.Services.AddGraphQL((ctx) => ctx
     .AddAutoClrMappings()
     .AddErrorInfoProvider(opt =>
     {
-        opt.ExposeExceptionDetails = builder.Environment.IsDevelopment();
-        opt.ExposeData = builder.Environment.IsDevelopment();
+        opt.ExposeExceptionDetails = true;
+        opt.ExposeData = true;
         opt.ExposeExtensions = true;
     })
     .ConfigureExecution(async (options, next) =>
@@ -183,17 +183,15 @@ builder.Services.AddGraphQL((ctx) => ctx
                 exception.FieldContext?.FieldAst?.Name,
                 exception.OriginalException.Message);
 
-            if (env.IsDevelopment())
-            {
-                Exception ex = exception.OriginalException;
-                var details = $"{ex.GetType().Name}: {ex.Message}";
-                if (ex.InnerException != null)
-                    details += $"\n--- Inner: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}";
-                if (ex.InnerException?.InnerException != null)
-                    details += $"\n--- Inner.Inner: {ex.InnerException.InnerException.GetType().Name}: {ex.InnerException.InnerException.Message}";
-                details += $"\n--- StackTrace: {ex.StackTrace}";
-                exception.ErrorMessage = details;
-            }
+            // Esponi dettagli eccezione anche in produzione (fase di test)
+            Exception ex = exception.OriginalException;
+            var details = $"{ex.GetType().Name}: {ex.Message}";
+            if (ex.InnerException != null)
+                details += $"\n--- Inner: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}";
+            if (ex.InnerException?.InnerException != null)
+                details += $"\n--- Inner.Inner: {ex.InnerException.InnerException.GetType().Name}: {ex.InnerException.InnerException.Message}";
+            details += $"\n--- StackTrace: {ex.StackTrace}";
+            exception.ErrorMessage = details;
 
             return Task.CompletedTask;
         };
