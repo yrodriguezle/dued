@@ -3,19 +3,16 @@ using GraphQL;
 using duedgusto.Models;
 using duedgusto.Repositories.Interfaces;
 using duedgusto.GraphQL.Fornitori.Types;
+using duedgusto.Services.Fornitori;
 
 namespace duedgusto.GraphQL.Fornitori;
 
-public class DocumentoTrasportoOrchestrator
+public class DocumentoTrasportoOrchestrator(IUnitOfWork unitOfWork, RegistroCassaSyncService syncService)
 {
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IUnitOfWork _unitOfWork = unitOfWork;
+    private readonly RegistroCassaSyncService _syncService = syncService;
 
-    public DocumentoTrasportoOrchestrator(IUnitOfWork unitOfWork)
-    {
-        _unitOfWork = unitOfWork;
-    }
-
-    public async Task<DocumentoTrasporto> MutateAsync(DocumentoTrasportoInput input)
+    public async Task<DocumentoTrasporto> MutateAsync(DocumentoTrasportoInput input, int utenteId)
     {
         await _unitOfWork.BeginTransactionAsync();
         try
@@ -46,8 +43,18 @@ public class DocumentoTrasportoOrchestrator
             // Crea pagamenti se forniti (INSERT con DDT già pagato)
             if (input.Pagamenti?.Count > 0)
             {
+                // Raggruppa per data per sincronizzare con i registri cassa
+                var registriPerData = new Dictionary<DateTime, RegistroCassa>();
+
                 foreach (PagamentoFornitoreInput pagInput in input.Pagamenti)
                 {
+                    DateTime dataKey = pagInput.DataPagamento.Date;
+                    if (!registriPerData.TryGetValue(dataKey, out RegistroCassa? registro))
+                    {
+                        registro = await _syncService.FindOrCreateRegistroCassaAsync(pagInput.DataPagamento, utenteId);
+                        registriPerData[dataKey] = registro;
+                    }
+
                     _unitOfWork.PagamentiFornitori.Add(new PagamentoFornitore
                     {
                         DdtId = ddt.DdtId,
@@ -55,9 +62,14 @@ public class DocumentoTrasportoOrchestrator
                         Importo = pagInput.Importo,
                         MetodoPagamento = pagInput.MetodoPagamento,
                         Note = pagInput.Note,
+                        RegistroCassaId = registro.Id,
                     });
                 }
                 await _unitOfWork.SaveChangesAsync();
+
+                // Ricalcola SpeseFornitori per ogni registro coinvolto
+                await Task.WhenAll(registriPerData.Values.Select(r =>
+                    _syncService.RecalculateSpeseFornitoriAsync(r.Id)));
             }
 
             await _unitOfWork.CommitTransactionAsync();

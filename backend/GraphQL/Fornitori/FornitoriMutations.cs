@@ -85,8 +85,14 @@ public class FornitoriMutations : ObjectGraphType
             .ResolveAsync(async context =>
             {
                 DocumentoTrasportoOrchestrator orchestrator = GraphQLService.GetService<DocumentoTrasportoOrchestrator>(context);
+                JwtHelper jwtHelper = GraphQLService.GetService<JwtHelper>(context);
                 DocumentoTrasportoInput input = context.GetArgument<DocumentoTrasportoInput>("documentoTrasporto");
-                return await orchestrator.MutateAsync(input);
+
+                var userContext = context.UserContext as GraphQLUserContext
+                    ?? throw new ExecutionError("Utente non autenticato");
+                int utenteId = jwtHelper.GetUserID(userContext.Principal!);
+
+                return await orchestrator.MutateAsync(input, utenteId);
             });
 
         Field<BooleanGraphType>("eliminaDocumentoTrasporto")
@@ -108,10 +114,9 @@ public class FornitoriMutations : ObjectGraphType
                 JwtHelper jwtHelper = GraphQLService.GetService<JwtHelper>(context);
                 PagamentoFornitoreInput input = context.GetArgument<PagamentoFornitoreInput>("pagamento");
 
-                var userContext = context.UserContext as GraphQLUserContext;
-                int utenteId = userContext?.Principal != null
-                    ? jwtHelper.GetUserID(userContext.Principal)
-                    : 1;
+                var userContext = context.UserContext as GraphQLUserContext
+                    ?? throw new ExecutionError("Utente non autenticato");
+                int utenteId = jwtHelper.GetUserID(userContext.Principal!);
 
                 return await orchestrator.MutateAsync(input, utenteId);
             });
