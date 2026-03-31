@@ -30,8 +30,8 @@ export const GET_BUSINESS_SETTINGS = gql`
         codiceMotivo
         ricorrente
         settingsId
-        creatoIl
-        aggiornatoIl
+        createdAt
+        updatedAt
       }
     }
   }
@@ -47,8 +47,8 @@ export const GET_GIORNI_NON_LAVORATIVI = gql`
         codiceMotivo
         ricorrente
         settingsId
-        creatoIl
-        aggiornatoIl
+        createdAt
+        updatedAt
       }
     }
   }

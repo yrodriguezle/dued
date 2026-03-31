@@ -7,8 +7,8 @@ export const spesaMensileLiberaFragment = gql`
     descrizione
     importo
     categoria
-    creatoIl
-    aggiornatoIl
+    createdAt
+    updatedAt
   }
 `;
 
@@ -67,8 +67,8 @@ export const chiusuraMensileFragment = gql`
     note
     chiusaDa
     chiusaIl
-    creatoIl
-    aggiornatoIl
+    createdAt
+    updatedAt
     chiusaDaUtente {
       id
       nomeUtente

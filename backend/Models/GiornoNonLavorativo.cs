@@ -46,10 +46,10 @@ public class GiornoNonLavorativo
     /// <summary>
     /// Data di creazione del record
     /// </summary>
-    public DateTime CreatoIl { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>
     /// Data dell'ultimo aggiornamento
     /// </summary>
-    public DateTime AggiornatoIl { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }

@@ -96,7 +96,7 @@ public class SuppliersTests : IDisposable
         loaded.RagioneSociale = "Nuovo Nome SRL";
         loaded.Email = "nuovo@email.it";
         loaded.Telefono = "+39 02 9876543";
-        loaded.AggiornatoIl = DateTime.UtcNow;
+        loaded.UpdatedAt = DateTime.UtcNow;
         await _dbContext.SaveChangesAsync();
 
         // Assert
@@ -120,7 +120,7 @@ public class SuppliersTests : IDisposable
         // Act — replicate soft-delete mutation logic
         var loaded = await _dbContext.Fornitori.FirstAsync(f => f.FornitoreId == fornitore.FornitoreId);
         loaded.Attivo = false;
-        loaded.AggiornatoIl = DateTime.UtcNow;
+        loaded.UpdatedAt = DateTime.UtcNow;
         await _dbContext.SaveChangesAsync();
 
         // Assert

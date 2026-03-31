@@ -76,8 +76,8 @@ public class VenditeMutations : ObjectGraphType
             PrezzoTotale = input.Quantita * product.Prezzo,
             Note = input.Note,
             DataOra = input.DataOra ?? DateTime.UtcNow,
-            CreatoIl = DateTime.UtcNow,
-            AggiornatoIl = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
         };
 
         dbContext.Vendite.Add(sale);
@@ -85,7 +85,7 @@ public class VenditeMutations : ObjectGraphType
         // Update register VenditeContanti total
         register.VenditeContanti += sale.PrezzoTotale;
         register.TotaleVendite = register.VenditeContanti + register.IncassiElettronici + register.IncassoContanteTracciato + register.IncassiFattura;
-        register.AggiornatoIl = DateTime.UtcNow;
+        register.UpdatedAt = DateTime.UtcNow;
 
         await dbContext.SaveChangesAsync();
 
@@ -156,7 +156,7 @@ public class VenditeMutations : ObjectGraphType
         }
 
         sale.PrezzoTotale = sale.Quantita * sale.PrezzoUnitario;
-        sale.AggiornatoIl = DateTime.UtcNow;
+        sale.UpdatedAt = DateTime.UtcNow;
 
         await dbContext.SaveChangesAsync();
 
@@ -192,7 +192,7 @@ public class VenditeMutations : ObjectGraphType
         {
             register.VenditeContanti -= sale.PrezzoTotale;
             register.TotaleVendite = register.VenditeContanti + register.IncassiElettronici + register.IncassoContanteTracciato + register.IncassiFattura;
-            register.AggiornatoIl = DateTime.UtcNow;
+            register.UpdatedAt = DateTime.UtcNow;
         }
 
         dbContext.Vendite.Remove(sale);

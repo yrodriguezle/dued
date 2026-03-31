@@ -25,8 +25,8 @@ public class FornitoreType : ObjectGraphType<Fornitore>
         Field("note", x => x.Note, nullable: true);
         Field("attivo", x => x.Attivo);
         Field("aliquotaIva", x => x.AliquotaIva, nullable: true);
-        Field("creatoIl", x => x.CreatoIl, type: typeof(DateTimeGraphType));
-        Field("aggiornatoIl", x => x.AggiornatoIl, type: typeof(DateTimeGraphType));
+        Field("createdAt", x => x.CreatedAt, type: typeof(DateTimeGraphType));
+        Field("updatedAt", x => x.UpdatedAt, type: typeof(DateTimeGraphType));
 
         Field<ListGraphType<FatturaAcquistoType>>("fattureAcquisto")
             .Resolve(context => context.GetFattureByFornitoreId(context.Source.FornitoreId));

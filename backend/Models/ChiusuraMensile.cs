@@ -26,9 +26,9 @@ namespace duedgusto.Models
 
         public DateTime? ChiusaIl { get; set; }
 
-        public DateTime CreatoIl { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        public DateTime AggiornatoIl { get; set; } = DateTime.UtcNow;
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         /// <summary>
         /// JSON: lista di giorni esclusi dalla validazione della chiusura mensile.

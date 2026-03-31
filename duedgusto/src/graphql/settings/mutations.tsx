@@ -28,8 +28,8 @@ export const CREA_PERIODO_PROGRAMMAZIONE = gql`
         orarioApertura
         orarioChiusura
         settingsId
-        creatoIl
-        aggiornatoIl
+        createdAt
+        updatedAt
       }
     }
   }
@@ -46,8 +46,8 @@ export const AGGIORNA_PERIODO_PROGRAMMAZIONE = gql`
         orarioApertura
         orarioChiusura
         settingsId
-        creatoIl
-        aggiornatoIl
+        createdAt
+        updatedAt
       }
     }
   }
@@ -71,8 +71,8 @@ export const CREA_GIORNO_NON_LAVORATIVO = gql`
         codiceMotivo
         ricorrente
         settingsId
-        creatoIl
-        aggiornatoIl
+        createdAt
+        updatedAt
       }
     }
   }
@@ -88,8 +88,8 @@ export const AGGIORNA_GIORNO_NON_LAVORATIVO = gql`
         codiceMotivo
         ricorrente
         settingsId
-        creatoIl
-        aggiornatoIl
+        createdAt
+        updatedAt
       }
     }
   }

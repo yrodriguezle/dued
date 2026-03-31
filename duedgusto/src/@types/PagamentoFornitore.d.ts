@@ -9,8 +9,8 @@ type PagamentoFornitore = {
   importo: number;
   metodoPagamento?: string | null;
   note?: string | null;
-  creatoIl: string;
-  aggiornatoIl: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 type PagamentoFornitoreInput = {

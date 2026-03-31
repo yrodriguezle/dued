@@ -12,8 +12,8 @@ public class Prodotto
     public bool Attivo { get; set; } = true; // Prodotto attivo/disattivato
 
     // Metadati
-    public DateTime CreatoIl { get; set; } = DateTime.UtcNow;
-    public DateTime AggiornatoIl { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation properties
     public ICollection<Vendita> Vendite { get; set; } = new List<Vendita>();

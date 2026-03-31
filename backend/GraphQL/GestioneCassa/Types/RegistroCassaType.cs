@@ -39,7 +39,7 @@ public class RegistroCassaType : ObjectGraphType<RegistroCassa>
         Field(x => x.ImportoIva);
         Field(x => x.Note, nullable: true);
         Field(x => x.Stato);
-        Field(x => x.CreatoIl, type: typeof(DateTimeGraphType));
-        Field(x => x.AggiornatoIl, type: typeof(DateTimeGraphType));
+        Field(x => x.CreatedAt, type: typeof(DateTimeGraphType));
+        Field(x => x.UpdatedAt, type: typeof(DateTimeGraphType));
     }
 }

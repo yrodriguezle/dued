@@ -106,8 +106,8 @@ type RegistroCassa = {
   importoIva: number;
   note: string | null;
   stato: StatoRegistroCassa;
-  creatoIl: string;
-  aggiornatoIl: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 // Form values for Formik

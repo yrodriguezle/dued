@@ -10,8 +10,8 @@ type DocumentoTrasporto = {
   importo?: number | null;
   note?: string | null;
   pagamenti?: PagamentoFornitore[];
-  creatoIl: string;
-  aggiornatoIl: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 type DocumentoTrasportoInput = {

@@ -12,8 +12,8 @@ public class Vendita
     public DateTime DataOra { get; set; } = DateTime.UtcNow; // Timestamp della vendita
 
     // Metadati
-    public DateTime CreatoIl { get; set; } = DateTime.UtcNow;
-    public DateTime AggiornatoIl { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation properties
     public RegistroCassa RegistroCassa { get; set; } = null!;

@@ -61,7 +61,7 @@ public class RegistroCassaSyncService
         registro.ContanteAtteso = registro.VenditeContanti - registro.SpeseFornitori - registro.SpeseGiornaliere;
         decimal incassoGiornaliero = registro.TotaleChiusura - registro.TotaleApertura;
         registro.Differenza = incassoGiornaliero - registro.ContanteAtteso;
-        registro.AggiornatoIl = DateTime.UtcNow;
+        registro.UpdatedAt = DateTime.UtcNow;
 
         await _unitOfWork.SaveChangesAsync();
     }

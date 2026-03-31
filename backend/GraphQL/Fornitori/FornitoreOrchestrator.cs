@@ -44,7 +44,7 @@ public class FornitoreOrchestrator
         fornitore.Note = input.Note;
         fornitore.Attivo = input.Attivo;
         fornitore.AliquotaIva = input.AliquotaIva;
-        fornitore.AggiornatoIl = DateTime.UtcNow;
+        fornitore.UpdatedAt = DateTime.UtcNow;
 
         await _unitOfWork.SaveChangesAsync();
 
@@ -58,7 +58,7 @@ public class FornitoreOrchestrator
 
         // Soft delete
         fornitore.Attivo = false;
-        fornitore.AggiornatoIl = DateTime.UtcNow;
+        fornitore.UpdatedAt = DateTime.UtcNow;
 
         await _unitOfWork.SaveChangesAsync();
 

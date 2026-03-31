@@ -18,8 +18,8 @@ public class PagamentoFornitoreType : ObjectGraphType<PagamentoFornitore>
         Field("importo", x => x.Importo);
         Field("metodoPagamento", x => x.MetodoPagamento, nullable: true);
         Field("note", x => x.Note, nullable: true);
-        Field("creatoIl", x => x.CreatoIl, type: typeof(DateTimeGraphType));
-        Field("aggiornatoIl", x => x.AggiornatoIl, type: typeof(DateTimeGraphType));
+        Field("createdAt", x => x.CreatedAt, type: typeof(DateTimeGraphType));
+        Field("updatedAt", x => x.UpdatedAt, type: typeof(DateTimeGraphType));
 
         Field<FatturaAcquistoType>("fattura")
             .Resolve(context => context.Source.FatturaId is { } fk

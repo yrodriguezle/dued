@@ -33,8 +33,8 @@ describe("parseSettingsFromRaw", () => {
       codiceMotivo: "FESTIVITA_NAZIONALE",
       ricorrente: true,
       settingsId: 1,
-      creatoIl: "2026-03-21",
-      aggiornatoIl: "2026-03-21",
+      createdAt: "2026-03-21",
+      updatedAt: "2026-03-21",
     },
   ];
 

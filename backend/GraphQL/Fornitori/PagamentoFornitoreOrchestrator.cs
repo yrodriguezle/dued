@@ -53,7 +53,7 @@ public class PagamentoFornitoreOrchestrator
             payment.Importo = input.Importo;
             payment.MetodoPagamento = input.MetodoPagamento;
             payment.Note = input.Note;
-            payment.AggiornatoIl = DateTime.UtcNow;
+            payment.UpdatedAt = DateTime.UtcNow;
 
             await _unitOfWork.SaveChangesAsync();
 

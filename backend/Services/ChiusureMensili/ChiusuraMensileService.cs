@@ -62,8 +62,8 @@ public class ChiusuraMensileService
             Anno = anno,
             Mese = mese,
             Stato = "BOZZA",
-            CreatoIl = DateTime.UtcNow,
-            AggiornatoIl = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
         };
 
         _dbContext.ChiusureMensili.Add(chiusura);
@@ -156,7 +156,7 @@ public class ChiusuraMensileService
         chiusura.Stato = "CHIUSA";
         chiusura.ChiusaDa = utenteId;
         chiusura.ChiusaIl = DateTime.UtcNow;
-        chiusura.AggiornatoIl = DateTime.UtcNow;
+        chiusura.UpdatedAt = DateTime.UtcNow;
 
         await _dbContext.SaveChangesAsync();
         return true;
@@ -206,14 +206,14 @@ public class ChiusuraMensileService
             Descrizione = descrizione.Trim(),
             Importo = importo,
             Categoria = categoria,
-            CreatoIl = DateTime.UtcNow,
-            AggiornatoIl = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
         };
 
         _dbContext.SpeseMensiliLibere.Add(spesa);
 
         // Aggiorna timestamp chiusura
-        chiusura.AggiornatoIl = DateTime.UtcNow;
+        chiusura.UpdatedAt = DateTime.UtcNow;
 
         await _dbContext.SaveChangesAsync();
         return spesa;
@@ -264,7 +264,7 @@ public class ChiusuraMensileService
         };
 
         _dbContext.PagamentiMensiliFornitori.Add(link);
-        chiusura.AggiornatoIl = DateTime.UtcNow;
+        chiusura.UpdatedAt = DateTime.UtcNow;
 
         await _dbContext.SaveChangesAsync();
         return true;
@@ -306,8 +306,8 @@ public class ChiusuraMensileService
         if (categoria.HasValue)
             spesa.Categoria = categoria.Value;
 
-        spesa.AggiornatoIl = DateTime.UtcNow;
-        spesa.Chiusura.AggiornatoIl = DateTime.UtcNow;
+        spesa.UpdatedAt = DateTime.UtcNow;
+        spesa.Chiusura.UpdatedAt = DateTime.UtcNow;
 
         await _dbContext.SaveChangesAsync();
         return spesa;
@@ -328,7 +328,7 @@ public class ChiusuraMensileService
         if (spesa.Chiusura.Stato != "BOZZA")
             throw new InvalidOperationException("Impossibile eliminare spese: la chiusura non è in stato BOZZA");
 
-        spesa.Chiusura.AggiornatoIl = DateTime.UtcNow;
+        spesa.Chiusura.UpdatedAt = DateTime.UtcNow;
         _dbContext.SpeseMensiliLibere.Remove(spesa);
 
         await _dbContext.SaveChangesAsync();
@@ -429,7 +429,7 @@ public class ChiusuraMensileService
         chiusura.GiorniEsclusi = giorniEsclusi.Count > 0
             ? JsonSerializer.Serialize(giorniEsclusi)
             : null;
-        chiusura.AggiornatoIl = DateTime.UtcNow;
+        chiusura.UpdatedAt = DateTime.UtcNow;
 
         await _dbContext.SaveChangesAsync();
 

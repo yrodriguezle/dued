@@ -17,8 +17,8 @@ public class SpesaMensileType : ObjectGraphType<SpesaMensile>
         Field("descrizione", x => x.Descrizione);
         Field("importo", x => x.Importo);
         Field("categoria", x => x.Categoria, nullable: true);
-        Field("creatoIl", x => x.CreatoIl, type: typeof(DateTimeGraphType));
-        Field("aggiornatoIl", x => x.AggiornatoIl, type: typeof(DateTimeGraphType));
+        Field("createdAt", x => x.CreatedAt, type: typeof(DateTimeGraphType));
+        Field("updatedAt", x => x.UpdatedAt, type: typeof(DateTimeGraphType));
 
         Field<ChiusuraMensileType, ChiusuraMensile>("chiusura")
             .Resolve(context => context.Source.Chiusura);

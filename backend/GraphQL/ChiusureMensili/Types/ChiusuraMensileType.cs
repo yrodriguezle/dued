@@ -60,8 +60,8 @@ public class ChiusuraMensileType : ObjectGraphType<ChiusuraMensile>
         Field("note", x => x.Note, nullable: true);
         Field("chiusaDa", x => x.ChiusaDa, nullable: true);
         Field("chiusaIl", x => x.ChiusaIl, typeof(DateTimeGraphType));
-        Field("creatoIl", x => x.CreatoIl, type: typeof(DateTimeGraphType));
-        Field("aggiornatoIl", x => x.AggiornatoIl, type: typeof(DateTimeGraphType));
+        Field("createdAt", x => x.CreatedAt, type: typeof(DateTimeGraphType));
+        Field("updatedAt", x => x.UpdatedAt, type: typeof(DateTimeGraphType));
 
         // Navigation properties
         Field<UtenteType, Utente>("chiusaDaUtente")

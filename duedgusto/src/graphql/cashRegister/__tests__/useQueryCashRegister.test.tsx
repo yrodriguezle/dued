@@ -29,8 +29,8 @@ const mockRegistroCassa = {
   importoIva: 80,
   note: null,
   stato: "DRAFT",
-  creatoIl: "2026-03-12T08:00:00Z",
-  aggiornatoIl: "2026-03-12T08:00:00Z",
+  createdAt: "2026-03-12T08:00:00Z",
+  updatedAt: "2026-03-12T08:00:00Z",
   utente: {
     __typename: "Utente",
     id: 1,

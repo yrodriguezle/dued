@@ -32,8 +32,8 @@ public class RegistroCassa
     // Metadati
     public string? Note { get; set; }
     public string Stato { get; set; } = "DRAFT"; // "DRAFT", "CLOSED", "RECONCILED"
-    public DateTime CreatoIl { get; set; } = DateTime.UtcNow;
-    public DateTime AggiornatoIl { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation properties
     public Utente Utente { get; set; } = null!;

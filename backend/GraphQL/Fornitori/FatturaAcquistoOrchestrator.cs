@@ -42,7 +42,7 @@ public class FatturaAcquistoOrchestrator
             fattura.DataScadenza = input.DataScadenza;
             fattura.Note = input.Note;
             fattura.Stato = input.Stato;
-            fattura.AggiornatoIl = DateTime.UtcNow;
+            fattura.UpdatedAt = DateTime.UtcNow;
 
             await _unitOfWork.SaveChangesAsync();
 
@@ -108,7 +108,7 @@ public class FatturaAcquistoOrchestrator
 
             await RicalcolaTotaliFatturaAsync(fattura);
 
-            fattura.AggiornatoIl = DateTime.UtcNow;
+            fattura.UpdatedAt = DateTime.UtcNow;
             await _unitOfWork.SaveChangesAsync();
             await _unitOfWork.CommitTransactionAsync();
             return fattura;
@@ -138,7 +138,7 @@ public class FatturaAcquistoOrchestrator
 
             await RicalcolaTotaliFatturaAsync(fattura);
 
-            fattura.AggiornatoIl = DateTime.UtcNow;
+            fattura.UpdatedAt = DateTime.UtcNow;
             await _unitOfWork.SaveChangesAsync();
             await _unitOfWork.CommitTransactionAsync();
             return fattura;

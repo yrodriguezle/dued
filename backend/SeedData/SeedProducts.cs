@@ -133,8 +133,8 @@ public class SeedProducts
                         Categoria = categoria,
                         UnitaDiMisura = "pz",
                         Attivo = true,
-                        CreatoIl = DateTime.UtcNow,
-                        AggiornatoIl = DateTime.UtcNow
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
                     };
 
                     products.Add(product);

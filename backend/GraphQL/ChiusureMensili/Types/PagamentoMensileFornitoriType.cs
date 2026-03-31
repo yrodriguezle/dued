@@ -44,7 +44,7 @@ public class PagamentoFornitoreInfoType : ObjectGraphType<PagamentoFornitore>
         Field(x => x.Importo);
         Field(x => x.MetodoPagamento, nullable: true);
         Field(x => x.Note, nullable: true);
-        Field(x => x.CreatoIl, type: typeof(DateTimeGraphType));
-        Field(x => x.AggiornatoIl, type: typeof(DateTimeGraphType));
+        Field(x => x.CreatedAt, type: typeof(DateTimeGraphType));
+        Field(x => x.UpdatedAt, type: typeof(DateTimeGraphType));
     }
 }

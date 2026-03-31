@@ -160,7 +160,7 @@ public class SettingsMutations : ObjectGraphType
                         if (periodoAttivo != null)
                         {
                             periodoAttivo.DataFine = dataInizio.AddDays(-1);
-                            periodoAttivo.AggiornatoIl = DateTime.UtcNow;
+                            periodoAttivo.UpdatedAt = DateTime.UtcNow;
                         }
                     }
                     else
@@ -186,8 +186,8 @@ public class SettingsMutations : ObjectGraphType
                         OrarioApertura = orarioApertura ?? TimeOnly.Parse(settings.OpeningTime),
                         OrarioChiusura = orarioChiusura ?? TimeOnly.Parse(settings.ClosingTime),
                         SettingsId = settings.SettingsId,
-                        CreatoIl = DateTime.UtcNow,
-                        AggiornatoIl = DateTime.UtcNow
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
                     };
 
                     dbContext.PeriodiProgrammazione.Add(nuovo);
@@ -315,7 +315,7 @@ public class SettingsMutations : ObjectGraphType
                 if (parsedOrarioChiusura != null)
                     periodo.OrarioChiusura = parsedOrarioChiusura.Value;
 
-                periodo.AggiornatoIl = DateTime.UtcNow;
+                periodo.UpdatedAt = DateTime.UtcNow;
 
                 // Sync BusinessSettings if this is the active period
                 if (periodo.DataFine == null)
@@ -372,8 +372,8 @@ public class SettingsMutations : ObjectGraphType
                     CodiceMotivo = codiceMotivo,
                     Ricorrente = input.Ricorrente ?? false,
                     SettingsId = settings.SettingsId,
-                    CreatoIl = DateTime.UtcNow,
-                    AggiornatoIl = DateTime.UtcNow
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 };
 
                 dbContext.GiorniNonLavorativi.Add(nuovo);
@@ -441,7 +441,7 @@ public class SettingsMutations : ObjectGraphType
                 if (input.Ricorrente.HasValue)
                     giorno.Ricorrente = input.Ricorrente.Value;
 
-                giorno.AggiornatoIl = DateTime.UtcNow;
+                giorno.UpdatedAt = DateTime.UtcNow;
 
                 await dbContext.SaveChangesAsync();
 

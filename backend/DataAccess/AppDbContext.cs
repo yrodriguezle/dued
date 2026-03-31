@@ -201,11 +201,11 @@ public class AppDbContext : DbContext
                 .HasMaxLength(20)
                 .HasDefaultValue("DRAFT");
 
-            entity.Property(x => x.CreatoIl)
+            entity.Property(x => x.CreatedAt)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-            entity.Property(x => x.AggiornatoIl)
+            entity.Property(x => x.UpdatedAt)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
 
@@ -319,11 +319,11 @@ public class AppDbContext : DbContext
             entity.Property(x => x.Attivo)
                 .HasDefaultValue(true);
 
-            entity.Property(x => x.CreatoIl)
+            entity.Property(x => x.CreatedAt)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-            entity.Property(x => x.AggiornatoIl)
+            entity.Property(x => x.UpdatedAt)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
 
@@ -426,11 +426,11 @@ public class AppDbContext : DbContext
                 .IsRequired()
                 .HasDefaultValue(new TimeOnly(18, 0));
 
-            entity.Property(x => x.CreatoIl)
+            entity.Property(x => x.CreatedAt)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-            entity.Property(x => x.AggiornatoIl)
+            entity.Property(x => x.UpdatedAt)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
 
@@ -471,11 +471,11 @@ public class AppDbContext : DbContext
             entity.Property(x => x.Ricorrente)
                 .HasDefaultValue(false);
 
-            entity.Property(x => x.CreatoIl)
+            entity.Property(x => x.CreatedAt)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-            entity.Property(x => x.AggiornatoIl)
+            entity.Property(x => x.UpdatedAt)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
 
@@ -520,11 +520,11 @@ public class AppDbContext : DbContext
                 .HasColumnType("datetime")
                 .IsRequired();
 
-            entity.Property(x => x.CreatoIl)
+            entity.Property(x => x.CreatedAt)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-            entity.Property(x => x.AggiornatoIl)
+            entity.Property(x => x.UpdatedAt)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
 
@@ -592,11 +592,11 @@ public class AppDbContext : DbContext
             entity.Property(x => x.Attivo)
                 .HasDefaultValue(true);
 
-            entity.Property(x => x.CreatoIl)
+            entity.Property(x => x.CreatedAt)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-            entity.Property(x => x.AggiornatoIl)
+            entity.Property(x => x.UpdatedAt)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
 
@@ -651,11 +651,11 @@ public class AppDbContext : DbContext
             entity.Property(x => x.Note)
                 .HasColumnType("text");
 
-            entity.Property(x => x.CreatoIl)
+            entity.Property(x => x.CreatedAt)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-            entity.Property(x => x.AggiornatoIl)
+            entity.Property(x => x.UpdatedAt)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
 
@@ -700,11 +700,11 @@ public class AppDbContext : DbContext
             entity.Property(x => x.Note)
                 .HasColumnType("text");
 
-            entity.Property(x => x.CreatoIl)
+            entity.Property(x => x.CreatedAt)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-            entity.Property(x => x.AggiornatoIl)
+            entity.Property(x => x.UpdatedAt)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
 
@@ -754,11 +754,11 @@ public class AppDbContext : DbContext
             entity.Property(x => x.Note)
                 .HasColumnType("text");
 
-            entity.Property(x => x.CreatoIl)
+            entity.Property(x => x.CreatedAt)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-            entity.Property(x => x.AggiornatoIl)
+            entity.Property(x => x.UpdatedAt)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
 
@@ -817,11 +817,11 @@ public class AppDbContext : DbContext
             entity.Property(x => x.ChiusaIl)
                 .HasColumnType("datetime");
 
-            entity.Property(x => x.CreatoIl)
+            entity.Property(x => x.CreatedAt)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-            entity.Property(x => x.AggiornatoIl)
+            entity.Property(x => x.UpdatedAt)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
 
@@ -859,11 +859,11 @@ public class AppDbContext : DbContext
             entity.Property(x => x.Categoria)
                 .HasMaxLength(50);
 
-            entity.Property(x => x.CreatoIl)
+            entity.Property(x => x.CreatedAt)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-            entity.Property(x => x.AggiornatoIl)
+            entity.Property(x => x.UpdatedAt)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
 
@@ -943,11 +943,11 @@ public class AppDbContext : DbContext
                 .HasMaxLength(20)
                 .IsRequired();
 
-            entity.Property(e => e.CreatoIl)
+            entity.Property(e => e.CreatedAt)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-            entity.Property(e => e.AggiornatoIl)
+            entity.Property(e => e.UpdatedAt)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
 

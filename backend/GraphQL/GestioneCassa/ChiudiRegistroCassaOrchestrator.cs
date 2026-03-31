@@ -43,7 +43,7 @@ public class ChiudiRegistroCassaOrchestrator
         try
         {
             registroCassa.Stato = "CLOSED";
-            registroCassa.AggiornatoIl = DateTime.UtcNow;
+            registroCassa.UpdatedAt = DateTime.UtcNow;
 
             await _unitOfWork.SaveChangesAsync();
             await _unitOfWork.CommitTransactionAsync();

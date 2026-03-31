@@ -19,8 +19,8 @@ public class SpesaMensileTyperaType : ObjectGraphType<SpesaMensileLibera>
         Field(x => x.Importo);
         Field<StringGraphType>("categoria")
             .Resolve(context => context.Source.Categoria.ToString());
-        Field(x => x.CreatoIl, type: typeof(DateTimeGraphType));
-        Field(x => x.AggiornatoIl, type: typeof(DateTimeGraphType));
+        Field(x => x.CreatedAt, type: typeof(DateTimeGraphType));
+        Field(x => x.UpdatedAt, type: typeof(DateTimeGraphType));
 
         // Navigation property
         Field<ChiusuraMensileType, ChiusuraMensile>("chiusura")

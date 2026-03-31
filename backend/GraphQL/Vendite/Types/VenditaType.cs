@@ -16,8 +16,8 @@ public class VenditaType : ObjectGraphType<Vendita>
         Field("prezzoTotale", x => x.PrezzoTotale);
         Field("note", x => x.Note, nullable: true);
         Field("dataOra", x => x.DataOra);
-        Field("creatoIl", x => x.CreatoIl);
-        Field("aggiornatoIl", x => x.AggiornatoIl);
+        Field("createdAt", x => x.CreatedAt, type: typeof(DateTimeGraphType));
+        Field("updatedAt", x => x.UpdatedAt, type: typeof(DateTimeGraphType));
 
         // Navigation property
         Field<ProdottoType>("prodotto")

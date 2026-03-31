@@ -20,8 +20,8 @@ public class FatturaAcquistoType : ObjectGraphType<FatturaAcquisto>
         Field("stato", x => x.Stato);
         Field<DateTimeGraphType>("dataScadenza").Resolve(x => x.Source.DataScadenza);
         Field("note", x => x.Note, nullable: true);
-        Field<DateTimeGraphType>("creatoIl").Resolve(x => x.Source.CreatoIl);
-        Field<DateTimeGraphType>("aggiornatoIl").Resolve(x => x.Source.AggiornatoIl);
+        Field<DateTimeGraphType>("createdAt").Resolve(x => x.Source.CreatedAt);
+        Field<DateTimeGraphType>("updatedAt").Resolve(x => x.Source.UpdatedAt);
 
         Field<FornitoreType>("fornitore")
             .Resolve(context => context.GetFornitoreById(context.Source.FornitoreId));

@@ -19,8 +19,8 @@ type SpesaMensileLibera = {
   descrizione: string;
   importo: number;
   categoria: CategoriaSpesa;
-  creatoIl: string;
-  aggiornatoIl: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 type RegistroCassaMensile = {
@@ -74,6 +74,6 @@ type ChiusuraMensile = {
   chiusaDa: number | null;
   chiusaDaUtente: User | null;
   chiusaIl: string | null;
-  creatoIl: string;
-  aggiornatoIl: string;
+  createdAt: string;
+  updatedAt: string;
 };

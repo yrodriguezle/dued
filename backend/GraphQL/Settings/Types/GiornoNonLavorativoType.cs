@@ -14,7 +14,7 @@ public class GiornoNonLavorativoType : ObjectGraphType<GiornoNonLavorativo>
         Field(x => x.CodiceMotivo);
         Field(x => x.Ricorrente);
         Field(x => x.SettingsId);
-        Field(x => x.CreatoIl);
-        Field(x => x.AggiornatoIl);
+        Field(x => x.CreatedAt, type: typeof(DateTimeGraphType));
+        Field(x => x.UpdatedAt, type: typeof(DateTimeGraphType));
     }
 }

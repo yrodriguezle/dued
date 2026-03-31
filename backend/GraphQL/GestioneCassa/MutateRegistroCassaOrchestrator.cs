@@ -119,7 +119,7 @@ public class MutateRegistroCassaOrchestrator
         registroCassa.SpeseGiornaliere = input.SpeseGiornaliere;
         registroCassa.Note = input.Note;
         registroCassa.Stato = input.Stato;
-        registroCassa.AggiornatoIl = DateTime.UtcNow;
+        registroCassa.UpdatedAt = DateTime.UtcNow;
 
         return registroCassa;
     }
@@ -255,7 +255,7 @@ public class MutateRegistroCassaOrchestrator
             PagamentoFornitoreRegistroInput inp = inputById[existing.PagamentoId];
             existing.Importo = inp.Importo;
             existing.MetodoPagamento = inp.MetodoPagamento;
-            existing.AggiornatoIl = DateTime.UtcNow;
+            existing.UpdatedAt = DateTime.UtcNow;
 
             if (existing.FatturaId.HasValue)
             {
@@ -275,7 +275,7 @@ public class MutateRegistroCassaOrchestrator
                     linkedFattura.Imponibile = imponibile;
                     linkedFattura.ImportoIva = totaleConIva - imponibile;
                     linkedFattura.TotaleConIva = totaleConIva;
-                    linkedFattura.AggiornatoIl = DateTime.UtcNow;
+                    linkedFattura.UpdatedAt = DateTime.UtcNow;
                 }
             }
         }

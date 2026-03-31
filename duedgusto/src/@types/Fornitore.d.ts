@@ -15,8 +15,8 @@ type Fornitore = {
   note?: string | null;
   attivo: boolean;
   aliquotaIva?: number | null;
-  creatoIl: string;
-  aggiornatoIl: string;
+  createdAt: string;
+  updatedAt: string;
   fattureAcquisto?: FatturaAcquisto[];
   documentiTrasporto?: DocumentoTrasporto[];
 };

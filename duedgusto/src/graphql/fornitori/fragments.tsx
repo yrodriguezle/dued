@@ -14,8 +14,8 @@ export const fornitoreFragment = `fragment FornitoreFragment on Fornitore {
   note
   attivo
   aliquotaIva
-  creatoIl
-  aggiornatoIl
+  createdAt
+  updatedAt
 }`;
 
 export const fatturaAcquistoFragment = `
@@ -32,8 +32,8 @@ export const fatturaAcquistoFragment = `
     stato
     dataScadenza
     note
-    creatoIl
-    aggiornatoIl
+    createdAt
+    updatedAt
   }`;
 
 export const documentoTrasportoFragment = `
@@ -55,8 +55,8 @@ export const documentoTrasportoFragment = `
       metodoPagamento
       note
     }
-    creatoIl
-    aggiornatoIl
+    createdAt
+    updatedAt
   }`;
 
 export const pagamentoFornitoreFragment = `
@@ -72,6 +72,6 @@ export const pagamentoFornitoreFragment = `
     importo
     metodoPagamento
     note
-    creatoIl
-    aggiornatoIl
+    createdAt
+    updatedAt
   }`;

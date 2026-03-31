@@ -44,8 +44,8 @@ export const registroCassaFragment = `
     importoIva
     note
     stato
-    creatoIl
-    aggiornatoIl
+    createdAt
+    updatedAt
     conteggiApertura { ...ConteggioMonetaFragment }
     conteggiChiusura { ...ConteggioMonetaFragment }
     spese { ...SpesaCassaFragment }

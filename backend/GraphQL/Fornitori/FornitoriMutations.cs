@@ -88,7 +88,7 @@ public class FornitoriMutations : ObjectGraphType
                 JwtHelper jwtHelper = GraphQLService.GetService<JwtHelper>(context);
                 DocumentoTrasportoInput input = context.GetArgument<DocumentoTrasportoInput>("documentoTrasporto");
 
-                var userContext = context.UserContext as GraphQLUserContext
+                GraphQLUserContext userContext = context.UserContext as GraphQLUserContext
                     ?? throw new ExecutionError("Utente non autenticato");
                 int utenteId = jwtHelper.GetUserID(userContext.Principal!);
 

@@ -17,8 +17,8 @@ public class DocumentoTrasportoType : ObjectGraphType<DocumentoTrasporto>
         Field("dataDdt", x => x.DataDdt, type: typeof(DateTimeGraphType));
         Field("importo", x => x.Importo, nullable: true);
         Field("note", x => x.Note, nullable: true);
-        Field("creatoIl", x => x.CreatoIl, type: typeof(DateTimeGraphType));
-        Field("aggiornatoIl", x => x.AggiornatoIl, type: typeof(DateTimeGraphType));
+        Field("createdAt", x => x.CreatedAt, type: typeof(DateTimeGraphType));
+        Field("updatedAt", x => x.UpdatedAt, type: typeof(DateTimeGraphType));
 
         Field<FornitoreType>("fornitore")
             .Resolve(context => context.GetFornitoreById(context.Source.FornitoreId));

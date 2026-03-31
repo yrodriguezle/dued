@@ -13,8 +13,8 @@ type FatturaAcquisto = {
   note?: string | null;
   documentiTrasporto?: DocumentoTrasporto[];
   pagamenti?: PagamentoFornitore[];
-  creatoIl: string;
-  aggiornatoIl: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 type FatturaAcquistoInput = {

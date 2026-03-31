@@ -107,7 +107,7 @@ public class CashManagementMutationsTests : IDisposable
             UtenteId = utente.Id,
             Stato = "DRAFT",
             Note = "Test register",
-            AggiornatoIl = DateTime.UtcNow
+            UpdatedAt = DateTime.UtcNow
         };
         _dbContext.RegistriCassa.Add(registro);
         await _dbContext.SaveChangesAsync();
@@ -255,7 +255,7 @@ public class CashManagementMutationsTests : IDisposable
         loaded.Stato.Should().Be("DRAFT"); // Pre-condition
 
         loaded.Stato = "CLOSED";
-        loaded.AggiornatoIl = DateTime.UtcNow;
+        loaded.UpdatedAt = DateTime.UtcNow;
         await _dbContext.SaveChangesAsync();
 
         // Assert

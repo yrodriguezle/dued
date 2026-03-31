@@ -28,8 +28,8 @@ const makeMockRegistro = (overrides: Record<string, unknown>) => ({
   importoIva: 80,
   note: null,
   stato: "CLOSED",
-  creatoIl: "2026-01-01T08:00:00Z",
-  aggiornatoIl: "2026-01-01T08:00:00Z",
+  createdAt: "2026-01-01T08:00:00Z",
+  updatedAt: "2026-01-01T08:00:00Z",
   utente: {
     __typename: "Utente",
     id: 1,

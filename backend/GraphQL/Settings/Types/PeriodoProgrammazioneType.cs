@@ -18,7 +18,7 @@ public class PeriodoProgrammazioneType : ObjectGraphType<PeriodoProgrammazione>
         Field<StringGraphType>("orarioChiusura")
             .Resolve(ctx => ctx.Source.OrarioChiusura.ToString("HH:mm"));
         Field(x => x.SettingsId);
-        Field(x => x.CreatoIl);
-        Field(x => x.AggiornatoIl);
+        Field(x => x.CreatedAt, type: typeof(DateTimeGraphType));
+        Field(x => x.UpdatedAt, type: typeof(DateTimeGraphType));
     }
 }

@@ -36,7 +36,7 @@ public class DocumentoTrasportoService(IUnitOfWork unitOfWork, RegistroCassaSync
             ddt.DataDdt = input.DataDdt;
             ddt.Importo = input.Importo;
             ddt.Note = input.Note;
-            ddt.AggiornatoIl = DateTime.UtcNow;
+            ddt.UpdatedAt = DateTime.UtcNow;
 
             await _unitOfWork.SaveChangesAsync();
 

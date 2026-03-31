@@ -25,9 +25,9 @@ namespace duedgusto.Models
         [MaxLength(50)]
         public string? Categoria { get; set; } // FORNITORE, AFFITTO, UTENZE, ALTRO
 
-        public DateTime CreatoIl { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        public DateTime AggiornatoIl { get; set; } = DateTime.UtcNow;
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         // Navigation properties
         [ForeignKey("ChiusuraId")]
