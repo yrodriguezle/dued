@@ -22,11 +22,9 @@ import {
   Button,
   IconButton,
   Badge,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
+  Stack,
 } from "@mui/material";
+import AppDialog from "../../common/dialog/AppDialog";
 import SaveIcon from "@mui/icons-material/Save";
 import DeleteIcon from "@mui/icons-material/Delete";
 import LockIcon from "@mui/icons-material/Lock";
@@ -785,14 +783,28 @@ const MonthlyClosureDetails = () => {
       </Box>
 
       {/* Dialog: Gestione Giorni Mancanti ed Esclusi */}
-      <Dialog
+      <AppDialog
         open={giorniMancantiModalOpen}
         onClose={() => setGiorniMancantiModalOpen(false)}
-        maxWidth="md"
-        fullWidth
+        title="Gestione Giorni"
+        maxWidth="900px"
+        width={{ xs: "95%", sm: "90%", md: "900px" }}
+        footer={
+          <Stack
+            direction="row"
+            spacing={1}
+            justifyContent="flex-end"
+          >
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => setGiorniMancantiModalOpen(false)}
+            >
+              Chiudi
+            </Button>
+          </Stack>
+        }
       >
-        <DialogTitle>Gestione Giorni</DialogTitle>
-        <DialogContent dividers>
           {/* Giorni mancanti da escludere */}
           {esclusioniLocali.length > 0 && (
             <Box sx={{ mb: giorniEsclusiParsed.length > 0 ? 3 : 0 }}>
@@ -925,11 +937,7 @@ const MonthlyClosureDetails = () => {
 
           {/* Nessun giorno da gestire */}
           {esclusioniLocali.length === 0 && giorniEsclusiParsed.length === 0 && <Typography color="text.secondary">Nessun giorno mancante o escluso.</Typography>}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setGiorniMancantiModalOpen(false)}>Chiudi</Button>
-        </DialogActions>
-      </Dialog>
+      </AppDialog>
     </Box>
   );
 };

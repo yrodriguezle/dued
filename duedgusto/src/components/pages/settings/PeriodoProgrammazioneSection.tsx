@@ -6,15 +6,12 @@ import {
   Button,
   Checkbox,
   FormControlLabel,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   TextField,
   Chip,
   IconButton,
-  Divider,
+  Stack,
 } from "@mui/material";
+import AppDialog from "../../common/dialog/AppDialog";
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
 import DateField from "../../common/form/DateField";
 import { useMutation } from "@apollo/client";
@@ -312,16 +309,38 @@ function PeriodoProgrammazioneSection({ periodi }: PeriodoProgrammazioneSectionP
       </Box>
 
       {/* Dialog Crea / Modifica Periodo */}
-      <Dialog
+      <AppDialog
         open={dialogState.open}
         onClose={handleChiudiDialog}
-        maxWidth="xs"
-        fullWidth
+        title={dialogState.mode === "crea" ? "Nuovo Periodo" : "Modifica Periodo"}
+        maxWidth="444px"
+        width={{ xs: "95%", sm: "444px" }}
+        footer={
+          <Stack
+            direction="row"
+            spacing={1}
+            justifyContent="flex-end"
+          >
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={handleChiudiDialog}
+              disabled={isLoading}
+            >
+              Annulla
+            </Button>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={handleSubmitDialog}
+              disabled={isLoading || nessunaGiornoSelezionato}
+            >
+              {dialogState.mode === "crea" ? "Crea" : "Salva"}
+            </Button>
+          </Stack>
+        }
       >
-        <DialogTitle>{dialogState.mode === "crea" ? "Nuovo Periodo" : "Modifica Periodo"}</DialogTitle>
-        <Divider />
-        <DialogContent sx={{ pt: 2 }}>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <DateField
               name="dataInizio"
               label="Data Inizio"
@@ -387,23 +406,7 @@ function PeriodoProgrammazioneSection({ periodi }: PeriodoProgrammazioneSectionP
               )}
             </Box>
           </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={handleChiudiDialog}
-            disabled={isLoading}
-          >
-            Annulla
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleSubmitDialog}
-            disabled={isLoading || nessunaGiornoSelezionato}
-          >
-            {dialogState.mode === "crea" ? "Crea" : "Salva"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      </AppDialog>
     </Paper>
   );
 }

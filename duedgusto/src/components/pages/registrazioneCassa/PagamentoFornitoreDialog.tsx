@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Box, ToggleButtonGroup, ToggleButton, FormControl, InputLabel, Select, MenuItem, Autocomplete, CircularProgress, Typography } from "@mui/material";
+import { Button, TextField, Box, ToggleButtonGroup, ToggleButton, FormControl, InputLabel, Select, MenuItem, Autocomplete, CircularProgress, Typography, Stack } from "@mui/material";
 import { useLazyQuery } from "@apollo/client";
 import NumberField from "../../common/form/NumberField";
 import FormikSearchbox from "../../common/form/searchbox/FormikSearchbox";
@@ -7,6 +7,7 @@ import fornitoreSearchboxOption, { FornitoreSearchbox } from "../../common/form/
 import showToast from "../../../common/toast/showToast";
 import { Formik, Form } from "formik";
 import { getFattureNonPagatePerFornitore, getDdtNonPagatiPerFornitore } from "../../../graphql/cashRegister/queries";
+import AppDialog from "../../common/dialog/AppDialog";
 
 const DEFAULT_ALIQUOTA_IVA = 22;
 
@@ -242,13 +243,38 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
     return d.toLocaleDateString("it-IT");
   };
 
+  const footer = (
+    <Stack
+      direction="row"
+      spacing={1}
+      justifyContent="flex-end"
+    >
+      <Button
+        variant="outlined"
+        size="small"
+        onClick={handleClose}
+      >
+        Annulla
+      </Button>
+      <Button
+        variant="contained"
+        size="small"
+        onClick={handleConfirm}
+        disabled={!fornitoreId || !amount}
+      >
+        {initialData ? "Aggiorna" : "Conferma"}
+      </Button>
+    </Stack>
+  );
+
   return (
-    <Dialog
+    <AppDialog
       open={open}
       onClose={handleClose}
-      maxWidth="sm"
-      fullWidth
-      PaperProps={{ sx: { overflow: "visible" } }}
+      title={initialData ? "Modifica Pagamento Fornitore" : "Pagamento Fornitore"}
+      maxWidth="600px"
+      width={{ xs: "95%", sm: "90%", md: "600px" }}
+      footer={footer}
     >
       <Formik
         initialValues={initialValues}
@@ -257,221 +283,206 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
       >
         {() => (
           <Form noValidate>
-            {/* Titolo differenziato tra modalità aggiunta e modifica */}
-            <DialogTitle>{initialData ? "Modifica Pagamento Fornitore" : "Pagamento Fornitore"}</DialogTitle>
-            <DialogContent sx={{ overflow: "visible" }}>
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
-                <div className="grid grid-cols-12 gap-4">
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <div className="grid grid-cols-12 gap-4">
+                <div className="col-span-12">
+                  <FormikSearchbox<PaymentFormValues, FornitoreSearchbox>
+                    label="Fornitore *"
+                    placeholder="Seleziona fornitore"
+                    name="nomeFornitore"
+                    required
+                    fullWidth
+                    fieldName="ragioneSociale"
+                    options={fornitoreSearchboxOption}
+                    onSelectItem={handleSelectFornitore}
+                  />
+                </div>
+                <div className="col-span-12">
+                  <Box sx={{ display: "flex", justifyContent: "center" }}>
+                    <ToggleButtonGroup
+                      value={documentType}
+                      exclusive
+                      onChange={(_e, value) => {
+                        if (value) {
+                          setDocumentType(value);
+                          // Reset selezione quando cambia tipo documento
+                          setSelectedFattura(null);
+                          setSelectedDdt(null);
+                          setFatturaId(undefined);
+                          setDdtId(undefined);
+                          setDataFattura(undefined);
+                          setDataDdt(undefined);
+                          setInvoiceNumber("");
+                          setDdtNumber("");
+                        }
+                      }}
+                      size="small"
+                    >
+                      <ToggleButton value="DDT">DDT</ToggleButton>
+                      <ToggleButton value="FA">Fattura</ToggleButton>
+                    </ToggleButtonGroup>
+                  </Box>
+                </div>
+
+                {/* Ricerca documenti esistenti */}
+                {fornitoreId > 0 && documentType === "FA" && (
                   <div className="col-span-12">
-                    <FormikSearchbox<PaymentFormValues, FornitoreSearchbox>
-                      label="Fornitore *"
-                      placeholder="Seleziona fornitore"
-                      name="nomeFornitore"
-                      required
-                      fullWidth
-                      fieldName="ragioneSociale"
-                      options={fornitoreSearchboxOption}
-                      onSelectItem={handleSelectFornitore}
+                    <Autocomplete
+                      options={fattureOptions}
+                      value={selectedFattura}
+                      onChange={handleSelectFattura}
+                      loading={fattureLoading}
+                      getOptionLabel={(option) => {
+                        const totale = option.totaleConIva ?? option.imponibile;
+                        return `FA ${option.numeroFattura} - ${formatDateLabel(option.dataFattura)} - €${totale.toFixed(2)} (Residuo: €${option.residuo.toFixed(2)}, Stato: ${option.stato})`;
+                      }}
+                      isOptionEqualToValue={(option, value) => option.fatturaId === value.fatturaId}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Cerca fattura non pagata"
+                          placeholder="Seleziona una fattura esistente..."
+                          size="small"
+                          slotProps={{
+                            input: {
+                              ...params.InputProps,
+                              endAdornment: (
+                                <>
+                                  {fattureLoading ? <CircularProgress
+                                    color="inherit"
+                                    size={20}
+                                  /> : null}
+                                  {params.InputProps.endAdornment}
+                                </>
+                              ),
+                            },
+                          }}
+                        />
+                      )}
+                      noOptionsText="Nessuna fattura non pagata"
                     />
                   </div>
+                )}
+
+                {fornitoreId > 0 && documentType === "DDT" && (
                   <div className="col-span-12">
-                    <Box sx={{ display: "flex", justifyContent: "center" }}>
-                      <ToggleButtonGroup
-                        value={documentType}
-                        exclusive
-                        onChange={(_e, value) => {
-                          if (value) {
-                            setDocumentType(value);
-                            // Reset selezione quando cambia tipo documento
-                            setSelectedFattura(null);
-                            setSelectedDdt(null);
-                            setFatturaId(undefined);
-                            setDdtId(undefined);
-                            setDataFattura(undefined);
-                            setDataDdt(undefined);
-                            setInvoiceNumber("");
-                            setDdtNumber("");
-                          }
-                        }}
-                        size="small"
-                      >
-                        <ToggleButton value="DDT">DDT</ToggleButton>
-                        <ToggleButton value="FA">Fattura</ToggleButton>
-                      </ToggleButtonGroup>
-                    </Box>
+                    <Autocomplete
+                      options={ddtOptions}
+                      value={selectedDdt}
+                      onChange={handleSelectDdt}
+                      loading={ddtLoading}
+                      getOptionLabel={(option) =>
+                        `DDT ${option.numeroDdt} - ${formatDateLabel(option.dataDdt)} - €${option.importo.toFixed(2)}`
+                      }
+                      isOptionEqualToValue={(option, value) => option.ddtId === value.ddtId}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Cerca DDT non pagato"
+                          placeholder="Seleziona un DDT esistente..."
+                          size="small"
+                          slotProps={{
+                            input: {
+                              ...params.InputProps,
+                              endAdornment: (
+                                <>
+                                  {ddtLoading ? <CircularProgress
+                                    color="inherit"
+                                    size={20}
+                                  /> : null}
+                                  {params.InputProps.endAdornment}
+                                </>
+                              ),
+                            },
+                          }}
+                        />
+                      )}
+                      noOptionsText="Nessun DDT non pagato"
+                    />
                   </div>
+                )}
 
-                  {/* Ricerca documenti esistenti */}
-                  {fornitoreId > 0 && documentType === "FA" && (
-                    <div className="col-span-12">
-                      <Autocomplete
-                        options={fattureOptions}
-                        value={selectedFattura}
-                        onChange={handleSelectFattura}
-                        loading={fattureLoading}
-                        getOptionLabel={(option) => {
-                          const totale = option.totaleConIva ?? option.imponibile;
-                          return `FA ${option.numeroFattura} - ${formatDateLabel(option.dataFattura)} - €${totale.toFixed(2)} (Residuo: €${option.residuo.toFixed(2)}, Stato: ${option.stato})`;
-                        }}
-                        isOptionEqualToValue={(option, value) => option.fatturaId === value.fatturaId}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label="Cerca fattura non pagata"
-                            placeholder="Seleziona una fattura esistente..."
-                            size="small"
-                            slotProps={{
-                              input: {
-                                ...params.InputProps,
-                                endAdornment: (
-                                  <>
-                                    {fattureLoading ? <CircularProgress
-                                      color="inherit"
-                                      size={20}
-                                    /> : null}
-                                    {params.InputProps.endAdornment}
-                                  </>
-                                ),
-                              },
-                            }}
-                          />
-                        )}
-                        noOptionsText="Nessuna fattura non pagata"
-                      />
-                    </div>
+                <div className="col-span-12">
+                  {documentType === "DDT" ? (
+                    <TextField
+                      label="Numero DDT"
+                      fullWidth
+                      value={ddtNumber}
+                      onChange={(e) => setDdtNumber(e.target.value)}
+                      disabled={!!selectedDdt}
+                    />
+                  ) : (
+                    <TextField
+                      label="Numero Fattura"
+                      fullWidth
+                      value={invoiceNumber}
+                      onChange={(e) => setInvoiceNumber(e.target.value)}
+                      disabled={!!selectedFattura}
+                    />
                   )}
+                </div>
 
-                  {fornitoreId > 0 && documentType === "DDT" && (
-                    <div className="col-span-12">
-                      <Autocomplete
-                        options={ddtOptions}
-                        value={selectedDdt}
-                        onChange={handleSelectDdt}
-                        loading={ddtLoading}
-                        getOptionLabel={(option) =>
-                          `DDT ${option.numeroDdt} - ${formatDateLabel(option.dataDdt)} - €${option.importo.toFixed(2)}`
-                        }
-                        isOptionEqualToValue={(option, value) => option.ddtId === value.ddtId}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label="Cerca DDT non pagato"
-                            placeholder="Seleziona un DDT esistente..."
-                            size="small"
-                            slotProps={{
-                              input: {
-                                ...params.InputProps,
-                                endAdornment: (
-                                  <>
-                                    {ddtLoading ? <CircularProgress
-                                      color="inherit"
-                                      size={20}
-                                    /> : null}
-                                    {params.InputProps.endAdornment}
-                                  </>
-                                ),
-                              },
-                            }}
-                          />
-                        )}
-                        noOptionsText="Nessun DDT non pagato"
-                      />
-                    </div>
-                  )}
+                <div className="col-span-12 md:col-span-6">
+                  <NumberField
+                    name="amount"
+                    label="Importo *"
+                    fullWidth
+                    value={amount}
+                    onChange={(_name, value) => setAmount(value)}
+                    decimals={2}
+                  />
+                </div>
 
-                  <div className="col-span-12">
-                    {documentType === "DDT" ? (
-                      <TextField
-                        label="Numero DDT"
-                        fullWidth
-                        value={ddtNumber}
-                        onChange={(e) => setDdtNumber(e.target.value)}
-                        disabled={!!selectedDdt}
-                      />
-                    ) : (
-                      <TextField
-                        label="Numero Fattura"
-                        fullWidth
-                        value={invoiceNumber}
-                        onChange={(e) => setInvoiceNumber(e.target.value)}
-                        disabled={!!selectedFattura}
-                      />
-                    )}
-                  </div>
-
+                {/* Aliquota IVA - solo per fatture */}
+                {documentType === "FA" && (
                   <div className="col-span-12 md:col-span-6">
                     <NumberField
-                      name="amount"
-                      label="Importo *"
+                      name="aliquotaIva"
+                      label="Aliquota IVA %"
                       fullWidth
-                      value={amount}
-                      onChange={(_name, value) => setAmount(value)}
-                      decimals={2}
+                      value={aliquotaIva}
+                      onChange={(_name, value) => setAliquotaIva(value)}
+                      decimals={0}
                     />
                   </div>
+                )}
 
-                  {/* Aliquota IVA - solo per fatture */}
-                  {documentType === "FA" && (
-                    <div className="col-span-12 md:col-span-6">
-                      <NumberField
-                        name="aliquotaIva"
-                        label="Aliquota IVA %"
-                        fullWidth
-                        value={aliquotaIva}
-                        onChange={(_name, value) => setAliquotaIva(value)}
-                        decimals={0}
-                      />
-                    </div>
-                  )}
-
-                  {/* Preview calcolo IVA - solo per fatture con importo > 0 */}
-                  {documentType === "FA" && amount > 0 && aliquotaIva > 0 && (
-                    <div className="col-span-12">
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{ mt: -1 }}
-                      >
-                        {(() => {
-                          const imponibile = amount / (1 + aliquotaIva / 100);
-                          const ivaAmount = amount - imponibile;
-                          return `Imponibile: €${imponibile.toFixed(2)} | IVA: €${ivaAmount.toFixed(2)}`;
-                        })()}
-                      </Typography>
-                    </div>
-                  )}
-
-                  <div className="col-span-12 md:col-span-6">
-                    <FormControl fullWidth>
-                      <InputLabel>Metodo Pagamento</InputLabel>
-                      <Select
-                        value={paymentMethod}
-                        label="Metodo Pagamento"
-                        onChange={(e) => setPaymentMethod(e.target.value)}
-                      >
-                        <MenuItem value="Contanti">Contanti</MenuItem>
-                        <MenuItem value="Bonifico">Bonifico</MenuItem>
-                      </Select>
-                    </FormControl>
+                {/* Preview calcolo IVA - solo per fatture con importo > 0 */}
+                {documentType === "FA" && amount > 0 && aliquotaIva > 0 && (
+                  <div className="col-span-12">
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ mt: -1 }}
+                    >
+                      {(() => {
+                        const imponibile = amount / (1 + aliquotaIva / 100);
+                        const ivaAmount = amount - imponibile;
+                        return `Imponibile: €${imponibile.toFixed(2)} | IVA: €${ivaAmount.toFixed(2)}`;
+                      })()}
+                    </Typography>
                   </div>
+                )}
+
+                <div className="col-span-12 md:col-span-6">
+                  <FormControl fullWidth>
+                    <InputLabel>Metodo Pagamento</InputLabel>
+                    <Select
+                      value={paymentMethod}
+                      label="Metodo Pagamento"
+                      onChange={(e) => setPaymentMethod(e.target.value)}
+                    >
+                      <MenuItem value="Contanti">Contanti</MenuItem>
+                      <MenuItem value="Bonifico">Bonifico</MenuItem>
+                    </Select>
+                  </FormControl>
                 </div>
-              </Box>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={handleClose}>Annulla</Button>
-              {/* Testo bottone differenziato tra modalità aggiunta e modifica */}
-              <Button
-                type="submit"
-                variant="contained"
-                disabled={!fornitoreId || !amount}
-              >
-                {initialData ? "Aggiorna" : "Conferma"}
-              </Button>
-            </DialogActions>
+              </div>
+            </Box>
           </Form>
         )}
       </Formik>
-    </Dialog>
+    </AppDialog>
   );
 }
 

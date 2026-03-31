@@ -6,14 +6,10 @@ import {
   Button,
   Checkbox,
   FormControlLabel,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   TextField,
   IconButton,
-  Divider,
   MenuItem,
+  Stack,
   Table,
   TableHead,
   TableBody,
@@ -28,6 +24,7 @@ import {
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
 } from "@mui/icons-material";
+import AppDialog from "../../common/dialog/AppDialog";
 import DateField from "../../common/form/DateField";
 import { useMutation, useApolloClient } from "@apollo/client";
 import { toast } from "react-toastify";
@@ -302,16 +299,38 @@ function GiorniNonLavorativiSection({ giorniNonLavorativi }: GiorniNonLavorativi
       )}
 
       {/* Dialog Crea / Modifica Giorno Non Lavorativo */}
-      <Dialog
+      <AppDialog
         open={dialogState.open}
         onClose={handleChiudiDialog}
-        maxWidth="xs"
-        fullWidth
+        title={dialogState.mode === "crea" ? "Nuovo Giorno Non Lavorativo" : "Modifica Giorno Non Lavorativo"}
+        maxWidth="444px"
+        width={{ xs: "95%", sm: "444px" }}
+        footer={
+          <Stack
+            direction="row"
+            spacing={1}
+            justifyContent="flex-end"
+          >
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={handleChiudiDialog}
+              disabled={isLoading}
+            >
+              Annulla
+            </Button>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={handleSubmitDialog}
+              disabled={isLoading || !isFormValido}
+            >
+              {dialogState.mode === "crea" ? "Crea" : "Salva"}
+            </Button>
+          </Stack>
+        }
       >
-        <DialogTitle>{dialogState.mode === "crea" ? "Nuovo Giorno Non Lavorativo" : "Modifica Giorno Non Lavorativo"}</DialogTitle>
-        <Divider />
-        <DialogContent sx={{ pt: 2 }}>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <DateField
               name="giornoData"
               label="Data"
@@ -354,23 +373,7 @@ function GiorniNonLavorativiSection({ giorniNonLavorativi }: GiorniNonLavorativi
               label="Si ripete ogni anno"
             />
           </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={handleChiudiDialog}
-            disabled={isLoading}
-          >
-            Annulla
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleSubmitDialog}
-            disabled={isLoading || !isFormValido}
-          >
-            {dialogState.mode === "crea" ? "Crea" : "Salva"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      </AppDialog>
     </Paper>
   );
 }

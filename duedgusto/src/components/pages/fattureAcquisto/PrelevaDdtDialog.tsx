@@ -1,11 +1,12 @@
-import { useCallback, useMemo, useRef, useState } from "react";
-import { Modal, Box, Typography, IconButton, Button, Stack, CircularProgress } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
+import { useCallback, useMemo, useState } from "react";
+import { Typography, Button, Stack, CircularProgress, Box } from "@mui/material";
 import CheckIcon from "@mui/icons-material/Check";
 import { useQuery } from "@apollo/client";
-import { AgGridReact } from "ag-grid-react";
-import { ColDef, GridReadyEvent, SelectionChangedEvent, RowSelectionOptions } from "ag-grid-community";
+import { RowSelectionOptions } from "ag-grid-community";
 
+import AppDialog from "../../common/dialog/AppDialog";
+import Datagrid from "../../common/datagrid/Datagrid";
+import { DatagridColDef, DatagridRowSelectedEvent } from "../../common/datagrid/@types/Datagrid";
 import { getDocumentiTrasportoAperti } from "../../../graphql/fornitori/queries";
 
 export type PrelevaDdtItem = {
@@ -23,24 +24,7 @@ interface PrelevaDdtDialogProps {
   onClose: () => void;
 }
 
-const modalStyle = {
-  position: "absolute",
-  top: "50%",
-  left: "50%",
-  transform: "translate(-50%, -50%)",
-  width: { xs: "95%", sm: "90%", md: "70%" },
-  maxWidth: "900px",
-  height: { xs: "90%", sm: "80%", md: "70%" },
-  bgcolor: "background.paper",
-  borderRadius: "8px",
-  boxShadow: 24,
-  display: "flex",
-  flexDirection: "column",
-  overflow: "hidden",
-};
-
 function PrelevaDdtDialog({ open, fornitoreId, onConfirm, onClose }: PrelevaDdtDialogProps) {
-  const gridApiRef = useRef<GridReadyEvent<PrelevaDdtItem>["api"] | null>(null);
   const [selectedItems, setSelectedItems] = useState<PrelevaDdtItem[]>([]);
   const [selectedTotal, setSelectedTotal] = useState(0);
   const [submitting, setSubmitting] = useState(false);
@@ -63,7 +47,7 @@ function PrelevaDdtDialog({ open, fornitoreId, onConfirm, onClose }: PrelevaDdtD
     [data]
   );
 
-  const columnDefs = useMemo<ColDef<PrelevaDdtItem>[]>(
+  const columnDefs = useMemo<DatagridColDef<PrelevaDdtItem>[]>(
     () => [
       { headerName: "Numero DDT", field: "numeroDdt", flex: 1 },
       { headerName: "Data DDT", field: "dataDdt", flex: 1 },
@@ -88,14 +72,12 @@ function PrelevaDdtDialog({ open, fornitoreId, onConfirm, onClose }: PrelevaDdtD
     []
   );
 
-  const handleGridReady = useCallback((event: GridReadyEvent<PrelevaDdtItem>) => {
-    gridApiRef.current = event.api;
-  }, []);
-
-  const handleSelectionChanged = useCallback((event: SelectionChangedEvent<PrelevaDdtItem>) => {
+  const handleRowSelected = useCallback((event: DatagridRowSelectedEvent<PrelevaDdtItem>) => {
     const selected = event.api.getSelectedRows();
-    setSelectedItems(selected);
-    setSelectedTotal(selected.reduce((sum, r) => sum + (r.importo ?? 0), 0));
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const cleanSelected = selected.map(({ status, ...rest }) => rest as unknown as PrelevaDdtItem);
+    setSelectedItems(cleanSelected);
+    setSelectedTotal(cleanSelected.reduce((sum, r) => sum + (r.importo ?? 0), 0));
   }, []);
 
   const handleConfirm = useCallback(async () => {
@@ -115,76 +97,74 @@ function PrelevaDdtDialog({ open, fornitoreId, onConfirm, onClose }: PrelevaDdtD
     }
   }, [submitting, onClose]);
 
+  const footer = (
+    <Stack
+      direction="row"
+      spacing={2}
+      justifyContent="space-between"
+      alignItems="center"
+    >
+      <Typography variant="body2">
+        {selectedItems.length > 0 ? `${selectedItems.length} DDT selezionati — Totale: ${selectedTotal.toFixed(2)} \u20AC` : "Nessun DDT selezionato"}
+      </Typography>
+      <Stack
+        direction="row"
+        spacing={1}
+      >
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={handleClose}
+          disabled={submitting}
+        >
+          Annulla
+        </Button>
+        <Button
+          variant="contained"
+          size="small"
+          startIcon={submitting ? <CircularProgress size={16} /> : <CheckIcon />}
+          disabled={selectedItems.length === 0 || submitting}
+          onClick={handleConfirm}
+        >
+          Conferma
+        </Button>
+      </Stack>
+    </Stack>
+  );
+
   return (
-    <Modal
+    <AppDialog
       open={open}
       onClose={handleClose}
+      title="Preleva DDT"
+      maxWidth="900px"
+      height={{ xs: "90%", sm: "80%", md: "70%" }}
+      disableClose={submitting}
+      footer={footer}
     >
-      <Box sx={modalStyle}>
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", p: 2, borderBottom: 1, borderColor: "divider" }}>
-          <Typography variant="h6">Preleva DDT</Typography>
-          <IconButton
-            onClick={handleClose}
-            disabled={submitting}
-          >
-            <CloseIcon />
-          </IconButton>
+      {loading ? (
+        <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
+          <CircularProgress />
         </Box>
-
-        <Box sx={{ flex: 1, overflow: "hidden", p: 2 }}>
-          {loading ? (
-            <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
-              <CircularProgress />
-            </Box>
-          ) : items.length === 0 ? (
-            <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
-              <Typography color="text.secondary">Nessun DDT aperto disponibile per questo fornitore</Typography>
-            </Box>
-          ) : (
-            <div style={{ height: "100%", width: "100%" }}>
-              <AgGridReact<PrelevaDdtItem>
-                rowData={items}
-                columnDefs={columnDefs}
-                rowSelection={rowSelection}
-                onGridReady={handleGridReady}
-                onSelectionChanged={handleSelectionChanged}
-                getRowId={({ data }) => data.ddtId.toString()}
-              />
-            </div>
-          )}
+      ) : items.length === 0 ? (
+        <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
+          <Typography color="text.secondary">Nessun DDT aperto disponibile per questo fornitore</Typography>
         </Box>
-
-        <Stack
-          direction="row"
-          spacing={2}
-          sx={{ p: 2, borderTop: 1, borderColor: "divider", justifyContent: "space-between", alignItems: "center" }}
-        >
-          <Typography variant="body2">
-            {selectedItems.length > 0 ? `${selectedItems.length} DDT selezionati — Totale: ${selectedTotal.toFixed(2)} \u20AC` : "Nessun DDT selezionato"}
-          </Typography>
-          <Stack
-            direction="row"
-            spacing={1}
-          >
-            <Button
-              variant="outlined"
-              onClick={handleClose}
-              disabled={submitting}
-            >
-              Annulla
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={submitting ? <CircularProgress size={16} /> : <CheckIcon />}
-              disabled={selectedItems.length === 0 || submitting}
-              onClick={handleConfirm}
-            >
-              Conferma
-            </Button>
-          </Stack>
-        </Stack>
-      </Box>
-    </Modal>
+      ) : (
+        <Box sx={{ height: "100%", overflow: "hidden" }}>
+          <Datagrid
+            items={items}
+            columnDefs={columnDefs}
+            height="100%"
+            loading={loading}
+            rowSelection={rowSelection}
+            onRowSelected={handleRowSelected}
+            getRowId={({ data }) => data.ddtId.toString()}
+            presentation
+          />
+        </Box>
+      )}
+    </AppDialog>
   );
 }
 

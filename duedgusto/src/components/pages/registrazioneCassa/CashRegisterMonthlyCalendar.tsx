@@ -1,8 +1,10 @@
 import { useCallback, useState } from "react";
-import { Dialog, DialogTitle, DialogContent, DialogActions, Box, Paper, Typography, IconButton, Button, CircularProgress, useTheme } from "@mui/material";
+import { Box, Paper, Typography, IconButton, Button, CircularProgress, Stack, useTheme } from "@mui/material";
 import { ChevronLeft, ChevronRight, CheckCircle } from "@mui/icons-material";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
+
+import AppDialog from "../../common/dialog/AppDialog";
 
 dayjs.extend(utc);
 
@@ -67,115 +69,127 @@ function CashRegisterMonthlyCalendar({ open, onClose, onSelectDate, currentDate,
   const calendarDays = getDaysInCalendar();
   const weekdayHeaders = ["Dom", "Lun", "Mar", "Mer", "Gio", "Ven", "Sab"];
 
+  const calendarTitle = displayMonth.format("MMMM YYYY").charAt(0).toUpperCase() + displayMonth.format("MMMM YYYY").slice(1);
+
+  const footer = (
+    <Stack
+      direction="row"
+      spacing={1}
+      justifyContent="flex-end"
+    >
+      <Button
+        variant="outlined"
+        size="small"
+        onClick={onClose}
+      >
+        Chiudi
+      </Button>
+    </Stack>
+  );
+
   return (
-    <Dialog
+    <AppDialog
       open={open}
       onClose={onClose}
-      maxWidth="sm"
-      fullWidth
+      title={calendarTitle}
+      maxWidth="600px"
+      width={{ xs: "95%", sm: "600px" }}
+      footer={footer}
     >
-      <DialogTitle>
-        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <IconButton
-            size="small"
-            onClick={handlePreviousMonth}
-          >
-            <ChevronLeft />
-          </IconButton>
-          <Typography variant="h6">{displayMonth.format("MMMM YYYY").charAt(0).toUpperCase() + displayMonth.format("MMMM YYYY").slice(1)}</Typography>
-          <IconButton
-            size="small"
-            onClick={handleNextMonth}
-          >
-            <ChevronRight />
-          </IconButton>
+      {/* Navigation arrows above the calendar */}
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+        <IconButton
+          size="small"
+          onClick={handlePreviousMonth}
+        >
+          <ChevronLeft />
+        </IconButton>
+        <IconButton
+          size="small"
+          onClick={handleNextMonth}
+        >
+          <ChevronRight />
+        </IconButton>
+      </Box>
+
+      {loading ? (
+        <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
+          <CircularProgress />
         </Box>
-      </DialogTitle>
+      ) : (
+        <Box>
+          {/* Weekday headers */}
+          <div className="grid grid-cols-7 gap-1 mb-4">
+            {weekdayHeaders.map((day) => (
+              <div key={day}>
+                <Box sx={{ textAlign: "center", fontWeight: "bold", fontSize: "0.85rem" }}>{day}</Box>
+              </div>
+            ))}
+          </div>
 
-      <DialogContent>
-        {loading ? (
-          <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
-            <CircularProgress />
-          </Box>
-        ) : (
-          <Box sx={{ mt: 2 }}>
-            {/* Weekday headers */}
-            <div className="grid grid-cols-7 gap-1 mb-4">
-              {weekdayHeaders.map((day) => (
-                <div key={day}>
-                  <Box sx={{ textAlign: "center", fontWeight: "bold", fontSize: "0.85rem" }}>{day}</Box>
+          {/* Calendar grid */}
+          <div className="grid grid-cols-7 gap-1">
+            {calendarDays.map((day, index) => {
+              const isCurrentMonth = day !== null;
+              const isCurrentDay = isCurrentMonth && displayMonth.month() === dayjs(currentDate).month() ? day === dayjs(currentDate).date() : false;
+
+              const dateString = isCurrentMonth ? displayMonth.date(day).format("YYYY-MM-DD") : "";
+              const hasCashRegister = isCurrentMonth && savedDates.has(dateString);
+
+              return (
+                <div key={`${day}-${index}`}>
+                  <Paper
+                    onClick={() => isCurrentMonth && handleDateSelect(day!)}
+                    sx={{
+                      p: 1,
+                      textAlign: "center",
+                      cursor: isCurrentMonth ? "pointer" : "default",
+                      backgroundColor: isCurrentMonth ? "background.paper" : "grey.100",
+                      border: isCurrentDay ? `2px solid ${theme.palette.info.main}` : 1,
+                      borderColor: isCurrentDay ? "info.main" : "grey.300",
+                      color: isCurrentMonth ? "text.primary" : "text.disabled",
+                      transition: "all 0.2s",
+                      position: "relative",
+                      minHeight: "60px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexDirection: "column",
+                      "&:hover": isCurrentMonth
+                        ? {
+                            backgroundColor: "action.hover",
+                            boxShadow: 2,
+                          }
+                        : {},
+                    }}
+                  >
+                    {isCurrentMonth && (
+                      <>
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: isCurrentDay ? "bold" : "normal" }}
+                        >
+                          {day}
+                        </Typography>
+                        {hasCashRegister && (
+                          <CheckCircle
+                            sx={{
+                              fontSize: "1.2rem",
+                              color: "success.light",
+                              mt: 0.5,
+                            }}
+                          />
+                        )}
+                      </>
+                    )}
+                  </Paper>
                 </div>
-              ))}
-            </div>
-
-            {/* Calendar grid */}
-            <div className="grid grid-cols-7 gap-1">
-              {calendarDays.map((day, index) => {
-                const isCurrentMonth = day !== null;
-                const isCurrentDay = isCurrentMonth && displayMonth.month() === dayjs(currentDate).month() ? day === dayjs(currentDate).date() : false;
-
-                const dateString = isCurrentMonth ? displayMonth.date(day).format("YYYY-MM-DD") : "";
-                const hasCashRegister = isCurrentMonth && savedDates.has(dateString);
-
-                return (
-                  <div key={`${day}-${index}`}>
-                    <Paper
-                      onClick={() => isCurrentMonth && handleDateSelect(day!)}
-                      sx={{
-                        p: 1,
-                        textAlign: "center",
-                        cursor: isCurrentMonth ? "pointer" : "default",
-                        backgroundColor: isCurrentMonth ? "background.paper" : "grey.100",
-                        border: isCurrentDay ? `2px solid ${theme.palette.info.main}` : 1,
-                        borderColor: isCurrentDay ? "info.main" : "grey.300",
-                        color: isCurrentMonth ? "text.primary" : "text.disabled",
-                        transition: "all 0.2s",
-                        position: "relative",
-                        minHeight: "60px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexDirection: "column",
-                        "&:hover": isCurrentMonth
-                          ? {
-                              backgroundColor: "action.hover",
-                              boxShadow: 2,
-                            }
-                          : {},
-                      }}
-                    >
-                      {isCurrentMonth && (
-                        <>
-                          <Typography
-                            variant="body2"
-                            sx={{ fontWeight: isCurrentDay ? "bold" : "normal" }}
-                          >
-                            {day}
-                          </Typography>
-                          {hasCashRegister && (
-                            <CheckCircle
-                              sx={{
-                                fontSize: "1.2rem",
-                                color: "success.light",
-                                mt: 0.5,
-                              }}
-                            />
-                          )}
-                        </>
-                      )}
-                    </Paper>
-                  </div>
-                );
-              })}
-            </div>
-          </Box>
-        )}
-      </DialogContent>
-
-      <DialogActions>
-        <Button onClick={onClose}>Chiudi</Button>
-      </DialogActions>
-    </Dialog>
+              );
+            })}
+          </div>
+        </Box>
+      )}
+    </AppDialog>
   );
 }
 

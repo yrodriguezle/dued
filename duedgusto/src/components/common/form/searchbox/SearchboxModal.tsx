@@ -1,5 +1,6 @@
 import { ReactNode, useCallback, useMemo, useState } from "react";
-import { Modal, Box, Typography, IconButton, Button, Stack, Dialog, DialogTitle } from "@mui/material";
+import { Modal, Box, Typography, IconButton, Button, Stack } from "@mui/material";
+import AppDialog from "../../dialog/AppDialog";
 import CloseIcon from "@mui/icons-material/Close";
 import CheckIcon from "@mui/icons-material/Check";
 import AddIcon from "@mui/icons-material/Add";
@@ -241,24 +242,15 @@ function SearchboxModal<T extends Record<string, unknown>>({ open, title, items,
 
     {/* Dialog annidato per creazione nuovo record */}
     {renderCreateForm && (
-      <Dialog
+      <AppDialog
         open={createDialogOpen}
         onClose={handleCloseCreateDialog}
-        fullWidth
-        maxWidth="md"
+        title={createFormTitle || "Nuovo record"}
+        maxWidth="900px"
+        width={{ xs: "95%", sm: "90%", md: "900px" }}
       >
-        <DialogTitle>
-          {createFormTitle || "Nuovo record"}
-          <IconButton
-            onClick={handleCloseCreateDialog}
-            size="small"
-            sx={{ position: "absolute", right: 8, top: 8 }}
-          >
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
         {createDialogOpen && renderCreateForm({ onSaved: handleItemCreated, onCancel: handleCloseCreateDialog })}
-      </Dialog>
+      </AppDialog>
     )}
     </>
   );
