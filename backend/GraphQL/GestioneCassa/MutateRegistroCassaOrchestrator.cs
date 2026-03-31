@@ -327,6 +327,33 @@ public class MutateRegistroCassaOrchestrator
         PagamentoFornitoreRegistroInput pagInput,
         DateTime dataRegistro)
     {
+        string numeroFattura = pagInput.NumeroFattura ?? "";
+
+        // Controlla se esiste già una fattura con la stessa coppia FornitoreId + NumeroFattura
+        if (!string.IsNullOrEmpty(numeroFattura))
+        {
+            FatturaAcquisto? existing = await db.FattureAcquisto
+                .Include(f => f.Pagamenti)
+                .FirstOrDefaultAsync(f =>
+                    f.FornitoreId == pagInput.FornitoreId &&
+                    f.NumeroFattura == numeroFattura);
+
+            if (existing != null)
+            {
+                // Se ha già pagamenti collegati → errore bloccante (doppia registrazione IVA)
+                if (existing.Pagamenti.Any())
+                {
+                    throw new InvalidOperationException(
+                        $"La fattura n. {numeroFattura} del fornitore (Id: {pagInput.FornitoreId}) " +
+                        $"è già registrata (FatturaId: {existing.FatturaId}). " +
+                        "Non è possibile creare un secondo pagamento sulla stessa fattura.");
+                }
+
+                // Fattura orfana (senza pagamenti) → riutilizza aggiornando i dati
+                return existing.FatturaId;
+            }
+        }
+
         decimal aliquota = pagInput.AliquotaIva ?? 22m;
         if (pagInput.AliquotaIva == null)
         {
@@ -342,7 +369,7 @@ public class MutateRegistroCassaOrchestrator
         var fattura = new FatturaAcquisto
         {
             FornitoreId = pagInput.FornitoreId,
-            NumeroFattura = pagInput.NumeroFattura ?? "",
+            NumeroFattura = numeroFattura,
             DataFattura = pagInput.DataFattura ?? dataRegistro,
             Imponibile = imponibile,
             ImportoIva = importoIva,

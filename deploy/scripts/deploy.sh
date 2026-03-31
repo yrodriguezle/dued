@@ -17,6 +17,7 @@ log "=== Inizio deploy DuedGusto ==="
 # Backup pre-deploy (skip se i container non esistono ancora)
 if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "duedgusto-mysql"; then
     log "Esecuzione backup pre-deploy..."
+    chmod +x "$SCRIPT_DIR/backup.sh"
     "$SCRIPT_DIR/backup.sh" || log "WARN: backup fallito, continuo comunque"
 else
     log "Container MySQL non trovato, skip backup (primo deploy?)."
