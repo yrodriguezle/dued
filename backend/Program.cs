@@ -51,7 +51,7 @@ builder.Services.AddScoped<RegistroCassaSyncService>();
 // Fornitori Orchestrators
 builder.Services.AddScoped<FornitoreOrchestrator>();
 builder.Services.AddScoped<FatturaAcquistoOrchestrator>();
-builder.Services.AddScoped<DocumentoTrasportoOrchestrator>();
+builder.Services.AddScoped<DocumentoTrasportoService>();
 builder.Services.AddScoped<PagamentoFornitoreOrchestrator>();
 
 // GestioneCassa Orchestrators

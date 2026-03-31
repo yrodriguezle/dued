@@ -84,7 +84,7 @@ public class FornitoriMutations : ObjectGraphType
             .Argument<NonNullGraphType<DocumentoTrasportoInputType>>("documentoTrasporto", "Dati documento di trasporto")
             .ResolveAsync(async context =>
             {
-                DocumentoTrasportoOrchestrator orchestrator = GraphQLService.GetService<DocumentoTrasportoOrchestrator>(context);
+                DocumentoTrasportoService service = GraphQLService.GetService<DocumentoTrasportoService>(context);
                 JwtHelper jwtHelper = GraphQLService.GetService<JwtHelper>(context);
                 DocumentoTrasportoInput input = context.GetArgument<DocumentoTrasportoInput>("documentoTrasporto");
 
@@ -92,16 +92,16 @@ public class FornitoriMutations : ObjectGraphType
                     ?? throw new ExecutionError("Utente non autenticato");
                 int utenteId = jwtHelper.GetUserID(userContext.Principal!);
 
-                return await orchestrator.MutateAsync(input, utenteId);
+                return await service.MutateAsync(input, utenteId);
             });
 
         Field<BooleanGraphType>("eliminaDocumentoTrasporto")
             .Argument<NonNullGraphType<IntGraphType>>("ddtId")
             .ResolveAsync(async context =>
             {
-                DocumentoTrasportoOrchestrator orchestrator = GraphQLService.GetService<DocumentoTrasportoOrchestrator>(context);
+                DocumentoTrasportoService service = GraphQLService.GetService<DocumentoTrasportoService>(context);
                 int ddtId = context.GetArgument<int>("ddtId");
-                return await orchestrator.EliminaAsync(ddtId);
+                return await service.EliminaAsync(ddtId);
             });
 
         // === Pagamento Fornitore ===

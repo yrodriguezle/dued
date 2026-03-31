@@ -7,7 +7,7 @@ using duedgusto.Services.Fornitori;
 
 namespace duedgusto.GraphQL.Fornitori;
 
-public class DocumentoTrasportoOrchestrator(IUnitOfWork unitOfWork, RegistroCassaSyncService syncService)
+public class DocumentoTrasportoService(IUnitOfWork unitOfWork, RegistroCassaSyncService syncService)
 {
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly RegistroCassaSyncService _syncService = syncService;

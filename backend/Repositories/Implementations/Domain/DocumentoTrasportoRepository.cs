@@ -4,9 +4,6 @@ using duedgusto.Repositories.Interfaces;
 
 namespace duedgusto.Repositories.Implementations.Domain;
 
-public class DocumentoTrasportoRepository : Repository<DocumentoTrasporto>, IDocumentoTrasportoRepository
+public class DocumentoTrasportoRepository(AppDbContext context) : Repository<DocumentoTrasporto>(context), IDocumentoTrasportoRepository
 {
-    public DocumentoTrasportoRepository(AppDbContext context) : base(context)
-    {
-    }
 }
