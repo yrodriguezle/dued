@@ -1,6 +1,6 @@
 {
   "name": "dued-workspace",
-  "version": "1.0.85",
+  "version": "1.0.86",
   "private": true,
   "type": "module",
   "description": "DuedGusto workspace - Frontend + Backend",
