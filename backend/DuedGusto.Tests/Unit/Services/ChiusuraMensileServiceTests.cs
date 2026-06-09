@@ -203,7 +203,8 @@ public class ChiusuraMensileServiceTests : IDisposable
         var utente = SeedUtente();
         SeedBusinessSettings();
 
-        SeedRegistroCassa(utente, new DateTime(2026, 5, 4), "CLOSED", totaleVendite: 1000m);
+        // speseGiornaliere > 0: il nuovo RicavoNettoCalcolato le sottrae
+        SeedRegistroCassa(utente, new DateTime(2026, 5, 4), "CLOSED", totaleVendite: 1000m, speseGiornaliere: 50m);
 
         var chiusura = await _service.CreaChiusuraAsync(2026, 5);
 
@@ -230,7 +231,36 @@ public class ChiusuraMensileServiceTests : IDisposable
         loaded!.SpeseLibere.Should().HaveCount(1);
         loaded.PagamentiInclusi.Should().HaveCount(1);
         loaded.SpeseAggiuntiveCalcolate.Should().Be(700m); // 500 + 200
-        loaded.RicavoNettoCalcolato.Should().Be(300m); // 1000 - 700
+        loaded.SpeseGiornaliereRegistriCalcolate.Should().Be(50m);
+        loaded.RicavoNettoCalcolato.Should().Be(250m); // 1000 - 700 - 50
+    }
+
+    [Fact]
+    public async Task ComputedProperties_SpeseGiornaliere_RegistroEsclusoNonContribuisce()
+    {
+        // Arrange — due registri con spese giornaliere, uno verrà escluso dalla chiusura
+        var utente = SeedUtente();
+        SeedBusinessSettings();
+
+        SeedRegistroCassa(utente, new DateTime(2026, 9, 7), "CLOSED", totaleVendite: 600m, speseGiornaliere: 40m);
+        var r2 = SeedRegistroCassa(utente, new DateTime(2026, 9, 8), "CLOSED", totaleVendite: 400m, speseGiornaliere: 60m);
+
+        var chiusura = await _service.CreaChiusuraAsync(2026, 9);
+
+        // Escludi R2 dalla chiusura (Incluso = false)
+        var linkR2 = await _dbContext.RegistriCassaMensili
+            .FirstAsync(l => l.ChiusuraId == chiusura.ChiusuraId && l.RegistroId == r2.Id);
+        linkR2.Incluso = false;
+        await _dbContext.SaveChangesAsync();
+
+        // Act
+        var loaded = await _service.GetChiusuraConRelazioniAsync(chiusura.ChiusuraId);
+
+        // Assert — R2 non contribuisce né al ricavo né alle spese giornaliere
+        loaded.Should().NotBeNull();
+        loaded!.RicavoTotaleCalcolato.Should().Be(600m); // solo R1
+        loaded.SpeseGiornaliereRegistriCalcolate.Should().Be(40m); // solo R1, i 60 di R2 esclusi
+        loaded.RicavoNettoCalcolato.Should().Be(560m); // 600 - 0 - 40
     }
 
     [Fact]

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using duedgusto.Models;
 using duedgusto.DataAccess;
 
@@ -56,7 +57,8 @@ public class ChiusuraMensileService
             );
         }
 
-        // 5. Creazione chiusura
+        // 5-7. Creazione chiusura + link registri + link pagamenti in transazione esplicita:
+        // un errore a metà non deve lasciare una chiusura persistita senza link.
         var chiusura = new ChiusuraMensile
         {
             Anno = anno,
@@ -66,38 +68,49 @@ public class ChiusuraMensileService
             UpdatedAt = DateTime.UtcNow
         };
 
-        _dbContext.ChiusureMensili.Add(chiusura);
-        await _dbContext.SaveChangesAsync();
-
-        // 6. Associazione registri cassa
-        foreach (RegistroCassa? registro in registriMese)
+        await using IDbContextTransaction transaction = await _dbContext.Database.BeginTransactionAsync();
+        try
         {
-            var link = new RegistroCassaMensile
+            // 5. Creazione chiusura
+            _dbContext.ChiusureMensili.Add(chiusura);
+            await _dbContext.SaveChangesAsync();
+
+            // 6. Associazione registri cassa
+            foreach (RegistroCassa? registro in registriMese)
             {
-                ChiusuraId = chiusura.ChiusuraId,
-                RegistroId = registro.Id,
-                Incluso = true
-            };
-            _dbContext.RegistriCassaMensili.Add(link);
+                var link = new RegistroCassaMensile
+                {
+                    ChiusuraId = chiusura.ChiusuraId,
+                    RegistroId = registro.Id,
+                    Incluso = true
+                };
+                _dbContext.RegistriCassaMensili.Add(link);
+            }
+
+            // 7. Associazione automatica pagamenti fornitori del mese
+            List<PagamentoFornitore> pagamentiMese = await _dbContext.PagamentiFornitori
+                    .Where(p => p.DataPagamento >= primoGiorno && p.DataPagamento <= ultimoGiorno)
+                    .ToListAsync();
+
+            foreach (PagamentoFornitore? pagamento in pagamentiMese)
+            {
+                var linkPagamento = new PagamentoMensileFornitori
+                {
+                    ChiusuraId = chiusura.ChiusuraId,
+                    PagamentoId = pagamento.PagamentoId,
+                    InclusoInChiusura = true
+                };
+                _dbContext.PagamentiMensiliFornitori.Add(linkPagamento);
+            }
+
+            await _dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
         }
-
-        // 7. Associazione automatica pagamenti fornitori del mese
-        List<PagamentoFornitore> pagamentiMese = await _dbContext.PagamentiFornitori
-                .Where(p => p.DataPagamento >= primoGiorno && p.DataPagamento <= ultimoGiorno)
-                .ToListAsync();
-
-        foreach (PagamentoFornitore? pagamento in pagamentiMese)
+        catch
         {
-            var linkPagamento = new PagamentoMensileFornitori
-            {
-                ChiusuraId = chiusura.ChiusuraId,
-                PagamentoId = pagamento.PagamentoId,
-                InclusoInChiusura = true
-            };
-            _dbContext.PagamentiMensiliFornitori.Add(linkPagamento);
+            await transaction.RollbackAsync();
+            throw;
         }
-
-        await _dbContext.SaveChangesAsync();
 
         // 8. Ricarica con tutte le relazioni per calcolo proprietà calcolate
         return await GetChiusuraConRelazioniAsync(chiusura.ChiusuraId)
@@ -126,39 +139,53 @@ public class ChiusuraMensileService
             );
         }
 
-        // Validazione completezza registri prima della chiusura definitiva
-        List<DateTime> giorniMancanti = await ValidaCompletezzaRegistriAsync(chiusura.Anno, chiusura.Mese);
-
-        // Sottrai giorni esclusi
-        HashSet<DateTime> esclusi = chiusura.GiorniEsclusi != null
-                ? JsonSerializer.Deserialize<List<GiornoEscluso>>(chiusura.GiorniEsclusi)!
-                    .Select(e => e.Data.Date).ToHashSet()
-                : new HashSet<DateTime>();
-        var giorniEffettivamenteMancanti = giorniMancanti.Where(d => !esclusi.Contains(d.Date)).ToList();
-
-        if (giorniEffettivamenteMancanti.Any())
+        // Validazioni + transizione di stato in transazione esplicita (pattern try/commit/
+        // catch/rollback degli orchestrator): un errore a metà lascia la chiusura in BOZZA
+        // e garantisce lettura coerente validazione → write.
+        await using IDbContextTransaction transaction = await _dbContext.Database.BeginTransactionAsync();
+        try
         {
-            var giorniFormattati = string.Join(", ", giorniEffettivamenteMancanti.Select(d => d.ToString("dd/MM/yyyy")));
-            throw new InvalidOperationException(
-                $"Impossibile chiudere: registri giornalieri mancanti per: {giorniFormattati}"
-            );
+            // Validazione completezza registri prima della chiusura definitiva
+            List<DateTime> giorniMancanti = await ValidaCompletezzaRegistriAsync(chiusura.Anno, chiusura.Mese);
+
+            // Sottrai giorni esclusi
+            HashSet<DateTime> esclusi = chiusura.GiorniEsclusi != null
+                    ? JsonSerializer.Deserialize<List<GiornoEscluso>>(chiusura.GiorniEsclusi)!
+                        .Select(e => e.Data.Date).ToHashSet()
+                    : new HashSet<DateTime>();
+            var giorniEffettivamenteMancanti = giorniMancanti.Where(d => !esclusi.Contains(d.Date)).ToList();
+
+            if (giorniEffettivamenteMancanti.Any())
+            {
+                var giorniFormattati = string.Join(", ", giorniEffettivamenteMancanti.Select(d => d.ToString("dd/MM/yyyy")));
+                throw new InvalidOperationException(
+                    $"Impossibile chiudere: registri giornalieri mancanti per: {giorniFormattati}"
+                );
+            }
+
+            // Validazione business rules
+            if (chiusura.RicavoTotaleCalcolato <= 0)
+            {
+                throw new InvalidOperationException(
+                    "Impossibile chiudere: ricavi totali pari a zero. Verificare i registri cassa inclusi."
+                );
+            }
+
+            // Transizione stato
+            chiusura.Stato = "CHIUSA";
+            chiusura.ChiusaDa = utenteId;
+            chiusura.ChiusaIl = DateTime.UtcNow;
+            chiusura.UpdatedAt = DateTime.UtcNow;
+
+            await _dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
         }
 
-        // Validazione business rules
-        if (chiusura.RicavoTotaleCalcolato <= 0)
-        {
-            throw new InvalidOperationException(
-                "Impossibile chiudere: ricavi totali pari a zero. Verificare i registri cassa inclusi."
-            );
-        }
-
-        // Transizione stato
-        chiusura.Stato = "CHIUSA";
-        chiusura.ChiusaDa = utenteId;
-        chiusura.ChiusaIl = DateTime.UtcNow;
-        chiusura.UpdatedAt = DateTime.UtcNow;
-
-        await _dbContext.SaveChangesAsync();
         return true;
     }
 

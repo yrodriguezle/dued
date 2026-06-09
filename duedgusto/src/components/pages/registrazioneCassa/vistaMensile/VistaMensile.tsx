@@ -79,14 +79,17 @@ function VistaMensile() {
   const monthlyStats = useMemo(() => {
     return cashRegisters.reduce(
       (acc, cr: RegistroCassa) => {
-        const movimento = (cr.totaleChiusura || 0) - (cr.totaleApertura || 0);
         const contantiDichiarati = cr.incassoContanteTracciato ?? 0;
         const elettronici = cr.incassiElettronici ?? 0;
         const fatture = cr.incassiFattura ?? 0;
+        // Totale Vendite — usa il valore del server quando disponibile (backend unica
+        // fonte di verità); fallback allineato alla formula backend (somma dei canali
+        // di incasso: contante tracciato + elettronici + fatture), NON il movimento fisico.
+        const venditeRegistro = cr.totaleVendite ?? contantiDichiarati + elettronici + fatture;
         return {
           contanti: acc.contanti + contantiDichiarati,
           elettronici: acc.elettronici + elettronici,
-          totaleVendite: acc.totaleVendite + movimento + elettronici + fatture,
+          totaleVendite: acc.totaleVendite + venditeRegistro,
           fatture: acc.fatture + fatture,
           spese: acc.spese + (cr.speseFornitori || 0) + (cr.speseGiornaliere || 0),
           registri: acc.registri + 1,
@@ -102,7 +105,9 @@ function VistaMensile() {
   const events = useMemo<CashEvent[]>(() => {
     return cashRegisters.map((cr: RegistroCassa, index: number) => {
       const date = new Date(cr.data);
-      const revenue = (cr.totaleChiusura || 0) - (cr.totaleApertura || 0) + (cr.incassiElettronici || 0);
+      // Revenue — valore server con fallback ai canali di incasso (stessa formula
+      // backend di CalcolaTotali), NON il movimento fisico di cassa.
+      const revenue = cr.totaleVendite ?? (cr.incassoContanteTracciato || 0) + (cr.incassiElettronici || 0) + (cr.incassiFattura || 0);
 
       return {
         id: cr.id || index,

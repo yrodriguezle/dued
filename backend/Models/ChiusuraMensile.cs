@@ -98,10 +98,19 @@ namespace duedgusto.Models
             PagamentiInclusi.Where(p => p.InclusoInChiusura).Sum(p => p.Pagamento?.Importo ?? 0);
 
         /// <summary>
-        /// Ricavo netto calcolato (ricavo totale - spese aggiuntive)
+        /// Somma delle spese giornaliere dei registri cassa inclusi nella chiusura
         /// </summary>
         [NotMapped]
-        public decimal RicavoNettoCalcolato => RicavoTotaleCalcolato - SpeseAggiuntiveCalcolate;
+        public decimal SpeseGiornaliereRegistriCalcolate => RegistriInclusi
+            .Where(r => r.Incluso)
+            .Sum(r => r.Registro?.SpeseGiornaliere ?? 0);
+
+        /// <summary>
+        /// Ricavo netto calcolato (ricavo totale - spese aggiuntive - spese giornaliere dei registri inclusi)
+        /// </summary>
+        [NotMapped]
+        public decimal RicavoNettoCalcolato =>
+            RicavoTotaleCalcolato - SpeseAggiuntiveCalcolate - SpeseGiornaliereRegistriCalcolate;
 
         /// <summary>
         /// Totale IVA calcolato dalla somma di ImportoIva dei registri cassa inclusi

@@ -67,7 +67,8 @@ public class MonthlyClosuresQueriesTests : IDisposable
         decimal incassoContante = 0,
         decimal incassiElettronici = 0,
         decimal incassiFattura = 0,
-        decimal importoIva = 0)
+        decimal importoIva = 0,
+        decimal speseGiornaliere = 0)
     {
         var registro = new RegistroCassa
         {
@@ -78,7 +79,8 @@ public class MonthlyClosuresQueriesTests : IDisposable
             IncassoContanteTracciato = incassoContante,
             IncassiElettronici = incassiElettronici,
             IncassiFattura = incassiFattura,
-            ImportoIva = importoIva
+            ImportoIva = importoIva,
+            SpeseGiornaliere = speseGiornaliere
         };
         _dbContext.RegistriCassa.Add(registro);
         _dbContext.SaveChanges();
@@ -93,12 +95,15 @@ public class MonthlyClosuresQueriesTests : IDisposable
         int anno,
         int mese,
         decimal[] venditePerGiorno,
-        string stato = "BOZZA")
+        string stato = "BOZZA",
+        decimal speseGiornalierePerGiorno = 0)
     {
         int day = 1;
         foreach (var vendite in venditePerGiorno)
         {
-            SeedRegistroCassa(utente, new DateTime(anno, mese, day), "CLOSED", totaleVendite: vendite);
+            SeedRegistroCassa(
+                utente, new DateTime(anno, mese, day), "CLOSED",
+                totaleVendite: vendite, speseGiornaliere: speseGiornalierePerGiorno);
             day++;
         }
 
@@ -244,7 +249,8 @@ public class MonthlyClosuresQueriesTests : IDisposable
         var utente = SeedUtente();
         SeedBusinessSettings();
 
-        var chiusura = await SeedChiusuraWithRegisters(utente, 2026, 1, [5000m]);
+        // speseGiornaliere > 0: il nuovo RicavoNettoCalcolato le sottrae
+        var chiusura = await SeedChiusuraWithRegisters(utente, 2026, 1, [5000m], speseGiornalierePerGiorno: 150m);
 
         // Add expenses
         await _service.AggiungiSpesaLiberaAsync(chiusura.ChiusuraId, "Affitto", 1000m, CategoriaSpesa.Affitto);
@@ -262,7 +268,8 @@ public class MonthlyClosuresQueriesTests : IDisposable
         // Assert
         loaded.RicavoTotaleCalcolato.Should().Be(5000m);
         loaded.SpeseAggiuntiveCalcolate.Should().Be(1300m);
-        loaded.RicavoNettoCalcolato.Should().Be(3700m);
+        loaded.SpeseGiornaliereRegistriCalcolate.Should().Be(150m);
+        loaded.RicavoNettoCalcolato.Should().Be(3550m); // 5000 - 1300 - 150
     }
 
     #endregion

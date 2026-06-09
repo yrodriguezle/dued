@@ -1,5 +1,6 @@
 using GraphQL;
 
+using duedgusto.Common;
 using duedgusto.Models;
 using duedgusto.Repositories.Interfaces;
 using duedgusto.GraphQL.Fornitori.Types;
@@ -36,9 +37,11 @@ public class FatturaAcquistoOrchestrator
             fattura.FornitoreId = input.FornitoreId;
             fattura.NumeroFattura = input.NumeroFattura;
             fattura.DataFattura = input.DataFattura;
-            fattura.Imponibile = input.Imponibile;
-            fattura.ImportoIva = Math.Round(input.Imponibile * input.AliquotaIva / 100, 2);
-            fattura.TotaleConIva = input.Imponibile + fattura.ImportoIva;
+            RisultatoIva applicazione = IvaCalculator.ApplicaSuImponibile(
+                input.Imponibile, IvaCalculator.AliquotaDaPercentuale(input.AliquotaIva));
+            fattura.Imponibile = applicazione.Imponibile;
+            fattura.ImportoIva = applicazione.Iva;
+            fattura.TotaleConIva = applicazione.Totale;
             fattura.DataScadenza = input.DataScadenza;
             fattura.Note = input.Note;
             fattura.Stato = input.Stato;
@@ -157,13 +160,16 @@ public class FatturaAcquistoOrchestrator
 
         decimal totale = allDdt.Sum(d => d.Importo ?? 0);
 
+        // Derivazione inversa dell'aliquota dalla fattura (non è una formula IVA: resta invariata)
         decimal aliquota = fattura.ImportoIva != null && fattura.Imponibile > 0
             ? Math.Round(fattura.ImportoIva.Value / fattura.Imponibile * 100, 2)
             : 22m;
 
-        fattura.TotaleConIva = totale;
-        fattura.Imponibile = Math.Round(totale / (1 + aliquota / 100), 2);
-        fattura.ImportoIva = totale - fattura.Imponibile;
+        RisultatoIva scorporo = IvaCalculator.ScorporaDaLordo(
+            totale, IvaCalculator.AliquotaDaPercentuale(aliquota));
+        fattura.TotaleConIva = scorporo.Totale;
+        fattura.Imponibile = scorporo.Imponibile;
+        fattura.ImportoIva = scorporo.Iva;
     }
 
     public async Task<bool> EliminaAsync(int fatturaId)

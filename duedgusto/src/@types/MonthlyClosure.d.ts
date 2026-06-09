@@ -56,6 +56,7 @@ type ChiusuraMensile = {
   totaleElettroniciCalcolato: number;
   totaleFattureCalcolato: number;
   speseAggiuntiveCalcolate: number;
+  speseGiornaliereRegistriCalcolate: number;
   ricavoNettoCalcolato: number;
   totaleIvaCalcolato: number;
   totaleImponibileCalcolato: number;

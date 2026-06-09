@@ -13,6 +13,9 @@ namespace duedgusto.GraphQL.GestioneCassa;
 
 public class GestioneCassaQueries : ObjectGraphType
 {
+    /// <summary>Stati dei registri cassa che concorrono ai KPI contabili (esclude i DRAFT).</summary>
+    private static readonly string[] StatiContabilizzati = ["CLOSED", "RECONCILED"];
+
     public GestioneCassaQueries()
     {
         this.Authorize();
@@ -48,8 +51,11 @@ public class GestioneCassaQueries : ObjectGraphType
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
                 DateTime today = DateTime.Today;
                 var startOfMonth = new DateTime(today.Year, today.Month, 1);
-                DateTime startOfWeek = today.AddDays(-(int)today.DayOfWeek);
+                // Lunedì della settimana corrente — stessa mappatura ((DayOfWeek+6)%7)
+                // di operatingDayIndex usata da guard e chiusure mensili
+                DateTime startOfWeek = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
                 DateTime startOfLastWeek = startOfWeek.AddDays(-7);
+                DateTime sameDayLastWeek = today.AddDays(-7);
 
                 RegistroCassa? todayRegister = await dbContext.RegistriCassa
                       .Where(r => r.Data == today)
@@ -61,27 +67,44 @@ public class GestioneCassaQueries : ObjectGraphType
                       .ToListAsync();
 
                 // Carica dati per settimana corrente e precedente per il trend
+                // (unica query sul range; filtro stato e split delle porzioni in memoria)
                 List<RegistroCassa> weekRegisters = await dbContext.RegistriCassa
                       .Where(r => r.Data >= startOfLastWeek && r.Data <= today)
                       .OrderBy(r => r.Data)
                       .ToListAsync();
 
+                // VenditeOggi/DifferenzaOggi: registro del giorno qualunque sia lo stato
+                // (anche DRAFT: è il dato live di oggi)
                 var todaySales = todayRegister?.TotaleVendite ?? 0;
                 var todayDifference = todayRegister?.Differenza ?? 0;
                 var monthSales = monthRegisters.Sum(r => r.TotaleVendite);
-                var monthAverage = monthRegisters.Any() ? monthRegisters.Average(r => r.TotaleVendite) : 0;
 
-                // Calculate week trend (simple: compare this week to last week)
-                decimal weekTrend = 0;
-                if (weekRegisters.Count > 1)
-                {
-                    var thisWeekTotal = weekRegisters.TakeLast(3).Sum(r => r.TotaleVendite);
-                    var lastWeekTotal = weekRegisters.Take(weekRegisters.Count - 3).Sum(r => r.TotaleVendite);
-                    if (lastWeekTotal > 0)
-                    {
-                        weekTrend = ((thisWeekTotal - lastWeekTotal) / lastWeekTotal) * 100;
-                    }
-                }
+                // MediaMese: solo registri contabilizzati (CLOSED/RECONCILED) —
+                // i DRAFT a 0 € non devono abbassare la media
+                List<RegistroCassa> monthAccounted = monthRegisters
+                    .Where(r => StatiContabilizzati.Contains(r.Stato))
+                    .ToList();
+                var monthAverage = monthAccounted.Count > 0
+                    ? monthAccounted.Average(r => r.TotaleVendite)
+                    : 0;
+
+                // TrendSettimana: settimana corrente (lunedì → oggi) vs porzione equivalente
+                // della settimana precedente (lunedì precedente → stesso giorno −7).
+                // Solo registri CLOSED/RECONCILED.
+                // Formula: trend = (corrente − precedente) / precedente × 100;
+                // se la base (precedente) è 0 il trend vale 0 (guardia divisione per zero);
+                // con corrente 0 e precedente > 0 il risultato è −100%.
+                decimal thisWeekTotal = weekRegisters
+                    .Where(r => StatiContabilizzati.Contains(r.Stato)
+                        && r.Data >= startOfWeek && r.Data <= today)
+                    .Sum(r => r.TotaleVendite);
+                decimal lastWeekTotal = weekRegisters
+                    .Where(r => StatiContabilizzati.Contains(r.Stato)
+                        && r.Data >= startOfLastWeek && r.Data <= sameDayLastWeek)
+                    .Sum(r => r.TotaleVendite);
+                decimal weekTrend = lastWeekTotal == 0
+                    ? 0
+                    : (thisWeekTotal - lastWeekTotal) / lastWeekTotal * 100;
 
                 return new RegistroCassaKPI
                 {

@@ -34,8 +34,12 @@ public class ChiusuraMensileType : ObjectGraphType<ChiusuraMensile>
             .Description("Spese aggiuntive calcolate dalla somma di spese libere + pagamenti fornitori")
             .Resolve(context => context.Source.SpeseAggiuntiveCalcolate);
 
+        Field<DecimalGraphType>("speseGiornaliereRegistriCalcolate")
+            .Description("Somma delle spese giornaliere dei registri cassa inclusi nella chiusura")
+            .Resolve(context => context.Source.SpeseGiornaliereRegistriCalcolate);
+
         Field<DecimalGraphType>("ricavoNettoCalcolato")
-            .Description("Ricavo netto calcolato (ricavo totale - spese aggiuntive)")
+            .Description("Ricavo netto calcolato (ricavo totale - spese aggiuntive - spese giornaliere registri)")
             .Resolve(context => context.Source.RicavoNettoCalcolato);
 
         Field<DecimalGraphType>("totaleIvaCalcolato")

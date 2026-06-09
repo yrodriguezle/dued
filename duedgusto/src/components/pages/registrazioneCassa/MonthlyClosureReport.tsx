@@ -180,6 +180,7 @@ const MonthlyClosureReport: React.FC<MonthlyClosureReportProps> = ({ closure }) 
                     <tr><td>Totale Entrate (Lordo)</td><td class="text-right">€ ${closure.totaleLordoCalcolato.toFixed(2)}</td></tr>
                     <tr><td>Totale IVA</td><td class="text-right">€ ${closure.totaleIvaCalcolato.toFixed(2)}</td></tr>
                     <tr><td>Totale Spese</td><td class="text-right negative">€ ${closure.speseAggiuntiveCalcolate.toFixed(2)}</td></tr>
+                    <tr><td>Spese Giornaliere Registri</td><td class="text-right negative">€ ${closure.speseGiornaliereRegistriCalcolate.toFixed(2)}</td></tr>
                     ${
                       closure.totaleDifferenzeCassaCalcolato !== 0
                         ? `

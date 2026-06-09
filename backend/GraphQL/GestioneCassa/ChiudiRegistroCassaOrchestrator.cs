@@ -37,7 +37,7 @@ public class ChiudiRegistroCassaOrchestrator
             throw new Exception("Il registro cassa è già chiuso");
 
         await GestioneCassaGuards.GuardMeseChiuso(_chiusuraService, registroCassa.Data);
-        await GestioneCassaGuards.GuardGiornoOperativoSoloGlobale(db, registroCassa.Data);
+        await GestioneCassaGuards.GuardGiornoOperativoConPeriodi(db, registroCassa.Data, "chiudere");
 
         await _unitOfWork.BeginTransactionAsync();
         try

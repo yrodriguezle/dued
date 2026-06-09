@@ -55,6 +55,7 @@ export const chiusuraMensileFragment = gql`
     totaleElettroniciCalcolato
     totaleFattureCalcolato
     speseAggiuntiveCalcolate
+    speseGiornaliereRegistriCalcolate
     ricavoNettoCalcolato
     totaleIvaCalcolato
     totaleImponibileCalcolato

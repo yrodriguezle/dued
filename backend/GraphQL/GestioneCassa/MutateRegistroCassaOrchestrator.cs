@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 
 using GraphQL;
 
+using duedgusto.Common;
 using duedgusto.Models;
 using duedgusto.Repositories.Interfaces;
 using duedgusto.Services.ChiusureMensili;
@@ -272,11 +273,11 @@ public class MutateRegistroCassaOrchestrator
                             aliquota = fornitore.AliquotaIva.Value;
                     }
 
-                    decimal totaleConIva = inp.Importo;
-                    decimal imponibile = Math.Round(totaleConIva / (1 + aliquota / 100m), 2);
-                    linkedFattura.Imponibile = imponibile;
-                    linkedFattura.ImportoIva = totaleConIva - imponibile;
-                    linkedFattura.TotaleConIva = totaleConIva;
+                    RisultatoIva scorporo = IvaCalculator.ScorporaDaLordo(
+                        inp.Importo, IvaCalculator.AliquotaDaPercentuale(aliquota));
+                    linkedFattura.Imponibile = scorporo.Imponibile;
+                    linkedFattura.ImportoIva = scorporo.Iva;
+                    linkedFattura.TotaleConIva = scorporo.Totale;
                     linkedFattura.UpdatedAt = DateTime.UtcNow;
                 }
             }
@@ -387,17 +388,16 @@ public class MutateRegistroCassaOrchestrator
                 aliquota = fornitore.AliquotaIva.Value;
         }
 
-        decimal totaleConIva = pagInput.Importo;
-        decimal imponibile = Math.Round(totaleConIva / (1 + aliquota / 100m), 2);
-        decimal importoIva = totaleConIva - imponibile;
+        RisultatoIva scorporo = IvaCalculator.ScorporaDaLordo(
+            pagInput.Importo, IvaCalculator.AliquotaDaPercentuale(aliquota));
 
         if (existing != null)
         {
             // Riuso: aggiorna gli importi con lo stesso scorporo di UpdatePagamentiEsistenti
             existing.DataFattura = pagInput.DataFattura ?? dataRegistro;
-            existing.Imponibile = imponibile;
-            existing.ImportoIva = importoIva;
-            existing.TotaleConIva = totaleConIva;
+            existing.Imponibile = scorporo.Imponibile;
+            existing.ImportoIva = scorporo.Iva;
+            existing.TotaleConIva = scorporo.Totale;
             existing.UpdatedAt = DateTime.UtcNow;
             await db.SaveChangesAsync();
             fattureConsumate.Add(existing.FatturaId);
@@ -409,9 +409,9 @@ public class MutateRegistroCassaOrchestrator
             FornitoreId = pagInput.FornitoreId,
             NumeroFattura = numeroFattura,
             DataFattura = pagInput.DataFattura ?? dataRegistro,
-            Imponibile = imponibile,
-            ImportoIva = importoIva,
-            TotaleConIva = totaleConIva,
+            Imponibile = scorporo.Imponibile,
+            ImportoIva = scorporo.Iva,
+            TotaleConIva = scorporo.Totale,
             Stato = "PAGATA",
         };
         db.FattureAcquisto.Add(fattura);
@@ -529,8 +529,9 @@ public class MutateRegistroCassaOrchestrator
         registroCassa.Differenza = incassoGiornaliero - registroCassa.ContanteAtteso;
         registroCassa.ContanteNetto = incassoGiornaliero;
 
-        // Calcolo IVA con scorporo (prezzi IVA inclusa, normativa italiana)
-        registroCassa.ImportoIva = Math.Round(
-            registroCassa.TotaleVendite * (aliquotaIva / (1 + aliquotaIva)), 2);
+        // Calcolo IVA con scorporo (prezzi IVA inclusa, normativa italiana).
+        // VatRate è già una frazione (es. 0.22): passa diretto al calculator.
+        registroCassa.ImportoIva = IvaCalculator.ScorporaDaLordo(
+            registroCassa.TotaleVendite, aliquotaIva).Iva;
     }
 }

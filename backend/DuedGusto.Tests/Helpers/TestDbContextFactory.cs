@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 
 namespace DuedGusto.Tests.Helpers;
@@ -18,6 +19,10 @@ public static class TestDbContextFactory
 
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(databaseName)
+            // Il provider InMemory non supporta le transazioni: senza questo warning
+            // soppresso, BeginTransactionAsync (usato da ChiusuraMensileService) lancerebbe.
+            // Le transazioni diventano no-op nei test (comportamento standard del provider).
+            .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
 
         // IConfiguration mock minimale — AppDbContext.OnConfiguring ha un guard

@@ -41,9 +41,13 @@ public static class GestioneCassaGuards
 
     /// <summary>
     /// Verifica che la data sia un giorno operativo usando i periodi di programmazione
-    /// con fallback alle impostazioni globali (usata da mutateRegistroCassa).
+    /// con fallback alle impostazioni globali quando non esiste alcun periodo.
+    /// Guard unico e simmetrico per creazione e chiusura del registro: il verbo del
+    /// messaggio d'errore è parametrizzato tramite <paramref name="azione"/>
+    /// ("creare" per mutateRegistroCassa, "chiudere" per chiudiRegistroCassa).
     /// </summary>
-    public static async Task GuardGiornoOperativoConPeriodi(AppDbContext dbContext, DateTime data)
+    public static async Task GuardGiornoOperativoConPeriodi(
+        AppDbContext dbContext, DateTime data, string azione = "creare")
     {
         BusinessSettings settings = await dbContext.BusinessSettings.FirstAsync();
         int operatingDayIndex = ((int)data.DayOfWeek + 6) % 7;
@@ -61,7 +65,7 @@ public static class GestioneCassaGuards
             {
                 var nomeGiorno = data.ToString("dddd", new System.Globalization.CultureInfo("it-IT"));
                 throw new ExecutionError(
-                    $"Impossibile creare un registro cassa: nessun periodo di programmazione copre la data ({nomeGiorno} {data:dd/MM/yyyy}).");
+                    $"Impossibile {azione} un registro cassa: nessun periodo di programmazione copre la data ({nomeGiorno} {data:dd/MM/yyyy}).");
             }
 
             var giorniPeriodo = JsonSerializer.Deserialize<bool[]>(periodo.GiorniOperativi)!;
@@ -77,25 +81,7 @@ public static class GestioneCassaGuards
         {
             var nomeGiorno = data.ToString("dddd", new System.Globalization.CultureInfo("it-IT"));
             throw new ExecutionError(
-                $"Impossibile creare un registro cassa per un giorno di chiusura ({nomeGiorno} {data:dd/MM/yyyy}).");
-        }
-    }
-
-    /// <summary>
-    /// Verifica che la data sia un giorno operativo usando solo BusinessSettings globali
-    /// (usata da chiudiRegistroCassa — asimmetria intenzionale rispetto a mutate).
-    /// </summary>
-    public static async Task GuardGiornoOperativoSoloGlobale(AppDbContext dbContext, DateTime data)
-    {
-        BusinessSettings settings = await dbContext.BusinessSettings.FirstAsync();
-        var operatingDays = JsonSerializer.Deserialize<bool[]>(settings.OperatingDays)!;
-        int operatingDayIndex = ((int)data.DayOfWeek + 6) % 7;
-
-        if (!operatingDays[operatingDayIndex])
-        {
-            var nomeGiorno = data.ToString("dddd", new System.Globalization.CultureInfo("it-IT"));
-            throw new ExecutionError(
-                $"Impossibile chiudere un registro cassa per un giorno di chiusura ({nomeGiorno} {data:dd/MM/yyyy}).");
+                $"Impossibile {azione} un registro cassa per un giorno di chiusura ({nomeGiorno} {data:dd/MM/yyyy}).");
         }
     }
 }
