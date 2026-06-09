@@ -47,7 +47,6 @@ dued/
 - GraphQL.NET come API principale, REST solo per endpoint di autenticazione
 - Entity Framework Core con MySQL 8.0+
 - Autenticazione JWT con refresh token httpOnly
-- Protezione CSRF tramite pattern double-submit cookie
 - Architettura a livelli: Controllers → GraphQL → Services → DataAccess
 
 ### Frontend (`duedgusto/CLAUDE.md`)

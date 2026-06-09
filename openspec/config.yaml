@@ -6,7 +6,7 @@ context: |
   Architecture: Layered backend (Controllers > GraphQL > Services > DataAccess), modular frontend with dynamic routing
   State: Zustand 5 (global), Apollo Client cache (server), Formik 2 + Zod (forms)
   Data grid: AG Grid Enterprise 33
-  Auth: JWT + httpOnly refresh token + CSRF double-submit cookie
+  Auth: JWT + httpOnly refresh token
   Database: MySQL 8.0+ with EF Core migrations (auto-apply at startup)
   Testing: None (no unit tests in codebase)
   Linting: ESLint 9 + Prettier 3 (frontend), no linter configured (backend)
