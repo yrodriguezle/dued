@@ -15,6 +15,7 @@ public class ProdottoType : ObjectGraphType<Prodotto>
         Field("categoria", x => x.Categoria, nullable: true);
         Field("unitaDiMisura", x => x.UnitaDiMisura);
         Field("attivo", x => x.Attivo);
+        Field("aliquotaIva", x => x.AliquotaIva);
         Field("createdAt", x => x.CreatedAt, type: typeof(DateTimeGraphType));
         Field("updatedAt", x => x.UpdatedAt, type: typeof(DateTimeGraphType));
     }

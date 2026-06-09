@@ -40,4 +40,5 @@ public class RegistroCassa
     public ICollection<ConteggioMoneta> ConteggiMoneta { get; set; } = [];
     public ICollection<SpesaCassa> SpeseCassa { get; set; } = [];
     public ICollection<PagamentoFornitore> PagamentiFornitori { get; set; } = [];
+    public ICollection<RegistroCassaIva> BreakdownIva { get; set; } = [];
 }

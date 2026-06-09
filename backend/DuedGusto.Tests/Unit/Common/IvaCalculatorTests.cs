@@ -148,6 +148,33 @@ public class IvaCalculatorTests
 
     #endregion
 
+    #region IsAliquotaAmmessa (iva-multialiquota-fase3)
+
+    [Theory]
+    [InlineData("0", true)]
+    [InlineData("4", true)]
+    [InlineData("5", true)]
+    [InlineData("10", true)]
+    [InlineData("22", true)]
+    [InlineData("7", false)]
+    [InlineData("21", false)]
+    [InlineData("-1", false)]
+    [InlineData("22.5", false)]
+    public void IsAliquotaAmmessa_SoloSetChiuso(string percentualeStr, bool attesa)
+    {
+        decimal percentuale = decimal.Parse(percentualeStr, System.Globalization.CultureInfo.InvariantCulture);
+
+        IvaCalculator.IsAliquotaAmmessa(percentuale).Should().Be(attesa);
+    }
+
+    [Fact]
+    public void AliquoteAmmessePercentuali_SetChiusoCentralizzato()
+    {
+        IvaCalculator.AliquoteAmmessePercentuali.Should().BeEquivalentTo(new[] { 0m, 4m, 5m, 10m, 22m });
+    }
+
+    #endregion
+
     #region Equivalenza con le vecchie formule inline (design, Decisione 2)
 
     [Theory]

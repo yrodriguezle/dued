@@ -25,6 +25,7 @@ public class AppDbContext : DbContext
     public DbSet<RegistroCassa> RegistriCassa { get; set; }
     public DbSet<ConteggioMoneta> ConteggiMoneta { get; set; }
     public DbSet<SpesaCassa> SpeseCassa { get; set; }
+    public DbSet<RegistroCassaIva> RegistriCassaIva { get; set; }
 
     // Business Settings
     public DbSet<BusinessSettings> BusinessSettings { get; set; }
@@ -223,6 +224,48 @@ public class AppDbContext : DbContext
                 .WithOne(x => x.RegistroCassa)
                 .HasForeignKey(x => x.RegistroCassaId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(x => x.BreakdownIva)
+                .WithOne(x => x.RegistroCassa)
+                .HasForeignKey(x => x.RegistroCassaId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Breakdown IVA per aliquota del registro cassa
+        modelBuilder.Entity<RegistroCassaIva>(entity =>
+        {
+            entity
+                .ToTable("RegistriCassaIva")
+                .HasCharSet("utf8mb4")
+                .UseCollation("utf8mb4_unicode_ci")
+                .HasKey(x => x.Id);
+
+            entity.Property(x => x.Id)
+                .ValueGeneratedOnAdd();
+
+            // Aliquota in percentuale (es. 22.00), come Prodotto.AliquotaIva
+            entity.Property(x => x.Aliquota)
+                .HasColumnType("decimal(5,2)")
+                .IsRequired();
+
+            entity.Property(x => x.Imponibile)
+                .HasColumnType("decimal(10,2)")
+                .IsRequired();
+
+            entity.Property(x => x.Imposta)
+                .HasColumnType("decimal(10,2)")
+                .IsRequired();
+
+            entity.Property(x => x.Stimato)
+                .IsRequired();
+
+            // Lookup DataLoader per registro
+            entity.HasIndex(x => x.RegistroCassaId);
+
+            // Un registro può avere al più UNA riga per coppia (Aliquota, Stimato):
+            // guardia contro doppie insert in caso di rigenerazione non pulita
+            entity.HasIndex(x => new { x.RegistroCassaId, x.Aliquota, x.Stimato })
+                .IsUnique();
         });
 
         modelBuilder.Entity<ConteggioMoneta>(entity =>
@@ -318,6 +361,12 @@ public class AppDbContext : DbContext
 
             entity.Property(x => x.Attivo)
                 .HasDefaultValue(true);
+
+            // Aliquota IVA in percentuale (es. 22.00), come Fornitore.AliquotaIva
+            entity.Property(x => x.AliquotaIva)
+                .HasColumnType("decimal(5,2)")
+                .IsRequired()
+                .HasDefaultValue(22.00m);
 
             entity.Property(x => x.CreatedAt)
                 .HasColumnType("datetime")
@@ -512,6 +561,22 @@ public class AppDbContext : DbContext
             entity.Property(x => x.PrezzoTotale)
                 .HasColumnType("decimal(10,2)")
                 .IsRequired();
+
+            // Snapshot IVA di riga (aliquota in percentuale, importi scorporati)
+            entity.Property(x => x.AliquotaIva)
+                .HasColumnType("decimal(5,2)")
+                .IsRequired()
+                .HasDefaultValue(22.00m);
+
+            entity.Property(x => x.Imponibile)
+                .HasColumnType("decimal(10,2)")
+                .IsRequired()
+                .HasDefaultValue(0m);
+
+            entity.Property(x => x.ImportoIva)
+                .HasColumnType("decimal(10,2)")
+                .IsRequired()
+                .HasDefaultValue(0m);
 
             entity.Property(x => x.Note)
                 .HasColumnType("text");

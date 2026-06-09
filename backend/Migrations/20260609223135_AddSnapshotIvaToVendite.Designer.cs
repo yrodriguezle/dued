@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using duedgusto.DataAccess;
 
@@ -11,9 +12,11 @@ using duedgusto.DataAccess;
 namespace duedgusto.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260609223135_AddSnapshotIvaToVendite")]
+    partial class AddSnapshotIvaToVendite
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -822,42 +825,6 @@ namespace duedgusto.Migrations
                     MySqlEntityTypeBuilderExtensions.UseCollation(b, "utf8mb4_unicode_ci");
                 });
 
-            modelBuilder.Entity("duedgusto.Models.RegistroCassaIva", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal>("Aliquota")
-                        .HasColumnType("decimal(5,2)");
-
-                    b.Property<decimal>("Imponibile")
-                        .HasColumnType("decimal(10,2)");
-
-                    b.Property<decimal>("Imposta")
-                        .HasColumnType("decimal(10,2)");
-
-                    b.Property<int>("RegistroCassaId")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("Stimato")
-                        .HasColumnType("tinyint(1)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RegistroCassaId");
-
-                    b.HasIndex("RegistroCassaId", "Aliquota", "Stimato")
-                        .IsUnique();
-
-                    b.ToTable("RegistriCassaIva", (string)null);
-
-                    MySqlEntityTypeBuilderExtensions.HasCharSet(b, "utf8mb4");
-                    MySqlEntityTypeBuilderExtensions.UseCollation(b, "utf8mb4_unicode_ci");
-                });
-
             modelBuilder.Entity("duedgusto.Models.RegistroCassaMensile", b =>
                 {
                     b.Property<int>("ChiusuraId")
@@ -1309,17 +1276,6 @@ namespace duedgusto.Migrations
                     b.Navigation("Utente");
                 });
 
-            modelBuilder.Entity("duedgusto.Models.RegistroCassaIva", b =>
-                {
-                    b.HasOne("duedgusto.Models.RegistroCassa", "RegistroCassa")
-                        .WithMany("BreakdownIva")
-                        .HasForeignKey("RegistroCassaId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("RegistroCassa");
-                });
-
             modelBuilder.Entity("duedgusto.Models.RegistroCassaMensile", b =>
                 {
                     b.HasOne("duedgusto.Models.ChiusuraMensile", "Chiusura")
@@ -1466,8 +1422,6 @@ namespace duedgusto.Migrations
 
             modelBuilder.Entity("duedgusto.Models.RegistroCassa", b =>
                 {
-                    b.Navigation("BreakdownIva");
-
                     b.Navigation("ConteggiMoneta");
 
                     b.Navigation("PagamentiFornitori");

@@ -28,6 +28,9 @@ const mockClosedRegister = {
   differenza: 0,
   contanteNetto: 350,
   importoIva: 80,
+  breakdownIva: [
+    { __typename: "RegistroCassaIva", aliquota: 22, imponibile: 320, imposta: 80, stimato: true },
+  ],
   note: null,
   stato: "CLOSED",
   createdAt: "2026-03-12T08:00:00Z",

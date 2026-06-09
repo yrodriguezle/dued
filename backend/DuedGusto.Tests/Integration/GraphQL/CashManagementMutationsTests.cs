@@ -1,4 +1,7 @@
 using DuedGusto.Tests.Helpers;
+using Microsoft.Extensions.Logging;
+using duedgusto.Common;
+using duedgusto.GraphQL.GestioneCassa;
 
 namespace DuedGusto.Tests.Integration.GraphQL;
 
@@ -476,6 +479,177 @@ public class CashManagementMutationsTests : IDisposable
         // Assert
         importoIva.Should().Be(10.00m); // 110 * (0.10 / 1.10) = 10
     }
+
+    #region Breakdown IVA del registro (iva-multialiquota-fase3)
+
+    private Vendita SeedVendita(RegistroCassa registro, Prodotto prodotto, decimal quantita)
+    {
+        var input = new duedgusto.GraphQL.Vendite.Types.CreaVenditaInput
+        {
+            RegistroCassaId = registro.Id,
+            ProdottoId = prodotto.ProdottoId,
+            Quantita = quantita,
+        };
+        Vendita vendita = duedgusto.GraphQL.Vendite.VenditeMutations.CostruisciVendita(prodotto, input);
+        _dbContext.Vendite.Add(vendita);
+        _dbContext.SaveChanges();
+        return vendita;
+    }
+
+    private Prodotto SeedProdotto(string codice, decimal prezzo, decimal aliquotaIva)
+    {
+        var prodotto = new Prodotto
+        {
+            Codice = codice,
+            Nome = $"Prodotto {codice}",
+            Prezzo = prezzo,
+            AliquotaIva = aliquotaIva,
+            Attivo = true
+        };
+        _dbContext.Prodotti.Add(prodotto);
+        _dbContext.SaveChanges();
+        return prodotto;
+    }
+
+    [Fact]
+    public async Task BreakdownIva_RegistroSenzaVendite_ImportoIvaIdenticoAlCalcoloLegacy()
+    {
+        // Scenario spec "Equivalenza con il calcolo pre-change": 123.45 al 10%
+        SeedBusinessSettings(vatRate: 0.10m);
+        var utente = SeedUtente();
+        var registro = SeedRegistroCassa(utente, new DateTime(2026, 3, 12), incassoContante: 123.45m);
+
+        await BreakdownIvaApplier.ApplicaAsync(_dbContext, registro, 0.10m, Mock.Of<ILogger>());
+        await _dbContext.SaveChangesAsync();
+
+        // ImportoIva identico al centesimo al calcolo single-rate pre-change
+        registro.VenditeContanti.Should().Be(0m);
+        registro.TotaleVendite.Should().Be(123.45m);
+        registro.ImportoIva.Should().Be(IvaCalculator.ScorporaDaLordo(123.45m, 0.10m).Iva);
+
+        // Riga unica stimata che replica l'aggregato
+        var righe = await _dbContext.RegistriCassaIva
+            .Where(r => r.RegistroCassaId == registro.Id).ToListAsync();
+        righe.Should().ContainSingle();
+        righe[0].Stimato.Should().BeTrue();
+        righe[0].Aliquota.Should().Be(10.00m);
+        righe[0].Imposta.Should().Be(registro.ImportoIva);
+        (righe[0].Imponibile + righe[0].Imposta).Should().Be(registro.TotaleVendite);
+    }
+
+    [Fact]
+    public async Task BreakdownIva_VenditeMultialiquota_RigheEsatteEResiduoStimato()
+    {
+        // Scenario spec "Registro con vendite ad aliquote miste" + normalizzazione VenditeContanti
+        SeedBusinessSettings(vatRate: 0.22m);
+        var utente = SeedUtente();
+        var registro = SeedRegistroCassa(utente, new DateTime(2026, 3, 12), incassiElettronici: 41.40m);
+        var prodotto22 = SeedProdotto("P22", 36.60m, 22m);
+        var prodotto10 = SeedProdotto("P10", 22.00m, 10m);
+        SeedVendita(registro, prodotto22, 1);
+        SeedVendita(registro, prodotto10, 1);
+
+        await BreakdownIvaApplier.ApplicaAsync(_dbContext, registro, 0.22m, Mock.Of<ILogger>());
+        await _dbContext.SaveChangesAsync();
+
+        // VenditeContanti = Σ lordi (non più azzerato), TotaleVendite coerente
+        registro.VenditeContanti.Should().Be(58.60m);
+        registro.TotaleVendite.Should().Be(100.00m);
+
+        var righe = await _dbContext.RegistriCassaIva
+            .Where(r => r.RegistroCassaId == registro.Id)
+            .OrderByDescending(r => r.Aliquota).ThenBy(r => r.Stimato)
+            .ToListAsync();
+        righe.Should().HaveCount(3);
+
+        var riga22 = righe.Single(r => r.Aliquota == 22.00m && !r.Stimato);
+        riga22.Imponibile.Should().Be(30.00m);
+        riga22.Imposta.Should().Be(6.60m);
+
+        var riga10 = righe.Single(r => r.Aliquota == 10.00m && !r.Stimato);
+        riga10.Imponibile.Should().Be(20.00m);
+        riga10.Imposta.Should().Be(2.00m);
+
+        // Residuo 41.40 stimato all'aliquota di default
+        var rigaStimata = righe.Single(r => r.Stimato);
+        rigaStimata.Aliquota.Should().Be(22.00m);
+        (rigaStimata.Imponibile + rigaStimata.Imposta).Should().Be(41.40m);
+
+        // ImportoIva = Σ Imposta; Σ (imponibile + imposta) == TotaleVendite
+        registro.ImportoIva.Should().Be(righe.Sum(r => r.Imposta));
+        righe.Sum(r => r.Imponibile + r.Imposta).Should().Be(100.00m);
+    }
+
+    [Fact]
+    public async Task BreakdownIva_Risalvataggio_RigenerazioneIdempotente()
+    {
+        // Scenario spec "Risalvataggio idempotente": stesse N righe, nessun duplicato
+        SeedBusinessSettings(vatRate: 0.22m);
+        var utente = SeedUtente();
+        var registro = SeedRegistroCassa(utente, new DateTime(2026, 3, 12), incassiElettronici: 41.40m);
+        var prodotto22 = SeedProdotto("P22", 36.60m, 22m);
+        SeedVendita(registro, prodotto22, 1);
+
+        await BreakdownIvaApplier.ApplicaAsync(_dbContext, registro, 0.22m, Mock.Of<ILogger>());
+        await _dbContext.SaveChangesAsync();
+        var primaEsecuzione = await _dbContext.RegistriCassaIva
+            .Where(r => r.RegistroCassaId == registro.Id)
+            .Select(r => new { r.Aliquota, r.Imponibile, r.Imposta, r.Stimato })
+            .OrderByDescending(r => r.Aliquota).ThenBy(r => r.Stimato)
+            .ToListAsync();
+
+        await BreakdownIvaApplier.ApplicaAsync(_dbContext, registro, 0.22m, Mock.Of<ILogger>());
+        await _dbContext.SaveChangesAsync();
+        var secondaEsecuzione = await _dbContext.RegistriCassaIva
+            .Where(r => r.RegistroCassaId == registro.Id)
+            .Select(r => new { r.Aliquota, r.Imponibile, r.Imposta, r.Stimato })
+            .OrderByDescending(r => r.Aliquota).ThenBy(r => r.Stimato)
+            .ToListAsync();
+
+        secondaEsecuzione.Should().Equal(primaEsecuzione);
+
+        // Nessun duplicato per coppia (aliquota, stimato)
+        secondaEsecuzione.GroupBy(r => new { r.Aliquota, r.Stimato })
+            .Should().OnlyContain(g => g.Count() == 1);
+    }
+
+    [Fact]
+    public async Task BreakdownIva_ResiduoNegativo_ClampConWarningESalvataggioOk()
+    {
+        // Scenario spec "Residuo negativo da dati storici incoerenti":
+        // canale dichiarato negativo → TotaleVendite < Σ vendite
+        SeedBusinessSettings(vatRate: 0.22m);
+        var utente = SeedUtente();
+        var registro = SeedRegistroCassa(utente, new DateTime(2026, 3, 12), incassiElettronici: -10.00m);
+        var prodotto22 = SeedProdotto("P22", 60.00m, 22m);
+        var vendita = SeedVendita(registro, prodotto22, 1);
+
+        var loggerMock = new Mock<ILogger>();
+        loggerMock.Setup(l => l.IsEnabled(LogLevel.Warning)).Returns(true);
+
+        EsitoBreakdownIva esito = await BreakdownIvaApplier.ApplicaAsync(
+            _dbContext, registro, 0.22m, loggerMock.Object);
+        await _dbContext.SaveChangesAsync(); // il salvataggio NON deve mai essere bloccato
+
+        esito.ResiduoClampato.Should().BeTrue();
+        esito.ResiduoOriginale.Should().Be(-10.00m);
+
+        // Nessuna riga stimata; ImportoIva = Σ imposte esatte
+        var righe = await _dbContext.RegistriCassaIva
+            .Where(r => r.RegistroCassaId == registro.Id).ToListAsync();
+        righe.Should().ContainSingle(r => !r.Stimato);
+        registro.ImportoIva.Should().Be(vendita.ImportoIva);
+
+        // Warning loggato con gli importi coinvolti
+        loggerMock.Verify(l => l.Log(
+            LogLevel.Warning,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((v, t) => true),
+            It.IsAny<Exception?>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
+    #endregion
 
     [Fact]
     public void TotalsComputation_CashDifference_CorrectCalculation()

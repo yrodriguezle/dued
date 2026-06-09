@@ -11,6 +11,21 @@ public class Vendita
     public string? Note { get; set; } // Note sulla vendita
     public DateTime DataOra { get; set; } = DateTime.UtcNow; // Timestamp della vendita
 
+    /// <summary>
+    /// Snapshot IVA al momento della vendita: aliquota in PERCENTUALE (es. 22.00),
+    /// copiata dal prodotto alla creazione (immutabile salvo cambio prodotto).
+    /// </summary>
+    public decimal AliquotaIva { get; set; } = 22m;
+
+    /// <summary>
+    /// Imponibile scorporato da PrezzoTotale via IvaCalculator.ScorporaDaLordo.
+    /// Invariante: Imponibile + ImportoIva == PrezzoTotale al centesimo.
+    /// </summary>
+    public decimal Imponibile { get; set; }
+
+    /// <summary>IVA di riga (PrezzoTotale − Imponibile), parte dello snapshot.</summary>
+    public decimal ImportoIva { get; set; }
+
     // Metadati
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

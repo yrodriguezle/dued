@@ -38,6 +38,20 @@ public readonly record struct RisultatoIva(decimal Imponibile, decimal Iva, deci
 public static class IvaCalculator
 {
     /// <summary>
+    /// Set chiuso delle aliquote IVA ammesse per i prodotti, in PERCENTUALE.
+    /// Costante centralizzata unica (nessuna duplicazione nei call site);
+    /// la configurabilità da BusinessSettings è un'estensione futura.
+    /// </summary>
+    public static readonly IReadOnlyList<decimal> AliquoteAmmessePercentuali = new[] { 0m, 4m, 5m, 10m, 22m };
+
+    /// <summary>
+    /// True se l'aliquota (in percentuale, es. <c>22</c>) appartiene al set
+    /// <see cref="AliquoteAmmessePercentuali"/>.
+    /// </summary>
+    public static bool IsAliquotaAmmessa(decimal percentuale)
+        => AliquoteAmmessePercentuali.Contains(percentuale);
+
+    /// <summary>
     /// Converte un'aliquota percentuale (es. <c>22</c>) nella frazione interna (<c>0.22</c>)
     /// richiesta dal calculator. Da chiamare esplicitamente nei call site che lavorano
     /// con la convenzione percentuale (<c>AliquotaIva</c> di fatture/fornitori).

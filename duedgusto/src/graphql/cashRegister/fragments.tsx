@@ -42,6 +42,12 @@ export const registroCassaFragment = `
     differenza
     contanteNetto
     importoIva
+    breakdownIva {
+      aliquota
+      imponibile
+      imposta
+      stimato
+    }
     note
     stato
     createdAt

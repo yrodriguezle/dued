@@ -19,15 +19,18 @@ public class MutateRegistroCassaOrchestrator
     private readonly IUnitOfWork _unitOfWork;
     private readonly ChiusuraMensileService _chiusuraService;
     private readonly IEventBus _eventBus;
+    private readonly ILogger<MutateRegistroCassaOrchestrator> _logger;
 
     public MutateRegistroCassaOrchestrator(
         IUnitOfWork unitOfWork,
         ChiusuraMensileService chiusuraService,
-        IEventBus eventBus)
+        IEventBus eventBus,
+        ILogger<MutateRegistroCassaOrchestrator> logger)
     {
         _unitOfWork = unitOfWork;
         _chiusuraService = chiusuraService;
         _eventBus = eventBus;
+        _logger = logger;
     }
 
     public async Task<RegistroCassa> ExecuteAsync(RegistroCassaInput input)
@@ -63,7 +66,11 @@ public class MutateRegistroCassaOrchestrator
 
             // === Calcoli finali ===
             BusinessSettings settings = await db.BusinessSettings.FirstAsync();
-            CalcolaTotali(registroCassa, totaleSpese, settings.VatRate);
+            CalcolaTotali(registroCassa, totaleSpese);
+
+            // VenditeContanti/TotaleVendite/ImportoIva + breakdown IVA per aliquota:
+            // punto di calcolo unico condiviso con le mutation Vendite
+            await BreakdownIvaApplier.ApplicaAsync(db, registroCassa, settings.VatRate, _logger);
 
             await _unitOfWork.SaveChangesAsync();
             await _unitOfWork.CommitTransactionAsync();
@@ -100,12 +107,14 @@ public class MutateRegistroCassaOrchestrator
         RegistroCassa? registroCassa = await db.RegistriCassa
                 .Include(r => r.ConteggiMoneta)
                 .Include(r => r.SpeseCassa)
+                .Include(r => r.BreakdownIva)
                 .FirstOrDefaultAsync(r => r.Data.Date == input.Data.Date);
 
         if (registroCassa != null)
         {
             db.ConteggiMoneta.RemoveRange(registroCassa.ConteggiMoneta);
             db.SpeseCassa.RemoveRange(registroCassa.SpeseCassa);
+            db.RegistriCassaIva.RemoveRange(registroCassa.BreakdownIva);
         }
         else
         {
@@ -511,15 +520,11 @@ public class MutateRegistroCassaOrchestrator
         return $"{prefix}{prossimo}";
     }
 
-    private static void CalcolaTotali(RegistroCassa registroCassa, decimal totaleSpese, decimal aliquotaIva)
+    // VenditeContanti, TotaleVendite, ImportoIva e breakdown IVA sono calcolati da
+    // BreakdownIvaApplier (VenditeContanti = Σ Vendite persistite, non più azzerato).
+    private static void CalcolaTotali(RegistroCassa registroCassa, decimal totaleSpese)
     {
         registroCassa.SpeseGiornaliere = totaleSpese;
-
-        registroCassa.VenditeContanti = 0;
-        registroCassa.TotaleVendite = registroCassa.VenditeContanti
-            + registroCassa.IncassiElettronici
-            + registroCassa.IncassoContanteTracciato
-            + registroCassa.IncassiFattura;
 
         registroCassa.ContanteAtteso = registroCassa.IncassoContanteTracciato
             - registroCassa.SpeseFornitori
@@ -528,10 +533,5 @@ public class MutateRegistroCassaOrchestrator
         decimal incassoGiornaliero = registroCassa.TotaleChiusura - registroCassa.TotaleApertura;
         registroCassa.Differenza = incassoGiornaliero - registroCassa.ContanteAtteso;
         registroCassa.ContanteNetto = incassoGiornaliero;
-
-        // Calcolo IVA con scorporo (prezzi IVA inclusa, normativa italiana).
-        // VatRate è già una frazione (es. 0.22): passa diretto al calculator.
-        registroCassa.ImportoIva = IvaCalculator.ScorporaDaLordo(
-            registroCassa.TotaleVendite, aliquotaIva).Iva;
     }
 }

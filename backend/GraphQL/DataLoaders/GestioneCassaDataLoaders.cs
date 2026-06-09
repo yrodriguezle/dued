@@ -47,6 +47,19 @@ public static class GestioneCassaDataLoaders
         return loader.LoadAsync(registroId);
     }
 
+    public static IDataLoaderResult<IEnumerable<RegistroCassaIva>> GetBreakdownIvaByRegistroId(
+        this IResolveFieldContext context, int registroId)
+    {
+        IServiceProvider services = context.RequestServices!;
+        IDataLoader<int, IEnumerable<RegistroCassaIva>> loader = services
+                .GetRequiredService<IDataLoaderContextAccessor>()
+                .Context!
+                .GetOrAddCollectionBatchLoader<int, RegistroCassaIva>(
+                    "BreakdownIvaByRegistroId",
+                    (ids, ct) => LoadBreakdownIva(services, ids, ct));
+        return loader.LoadAsync(registroId);
+    }
+
     public static IDataLoaderResult<IEnumerable<PagamentoFornitore>> GetPagamentiFornitoriByRegistroId(
         this IResolveFieldContext context, int registroId)
     {
@@ -93,6 +106,19 @@ public static class GestioneCassaDataLoaders
                 .Where(s => ids.Contains(s.RegistroCassaId))
                 .ToListAsync(ct);
         return items.ToLookup(s => s.RegistroCassaId);
+    }
+
+    private static async Task<ILookup<int, RegistroCassaIva>> LoadBreakdownIva(
+        IServiceProvider services, IEnumerable<int> ids, CancellationToken ct)
+    {
+        using IServiceScope scope = services.GetRequiredService<IServiceScopeFactory>().CreateScope();
+        AppDbContext db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        List<RegistroCassaIva> items = await db.RegistriCassaIva
+                .Where(r => ids.Contains(r.RegistroCassaId))
+                .OrderByDescending(r => r.Aliquota)
+                .ThenBy(r => r.Stimato)
+                .ToListAsync(ct);
+        return items.ToLookup(r => r.RegistroCassaId);
     }
 
     private static async Task<ILookup<int, PagamentoFornitore>> LoadPagamentiFornitori(

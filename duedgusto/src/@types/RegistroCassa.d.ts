@@ -80,6 +80,15 @@ type PagamentoFornitoreRegistro = {
   };
 };
 
+// RegistroCassaIvaRiga — riga del breakdown IVA per aliquota
+type RegistroCassaIvaRiga = {
+  __typename: "RegistroCassaIva";
+  aliquota: number;
+  imponibile: number;
+  imposta: number;
+  stimato: boolean;
+};
+
 // RegistroCassa
 type RegistroCassa = {
   __typename: "RegistroCassa";
@@ -104,6 +113,7 @@ type RegistroCassa = {
   differenza: number;
   contanteNetto: number;
   importoIva: number;
+  breakdownIva: RegistroCassaIvaRiga[];
   note: string | null;
   stato: StatoRegistroCassa;
   createdAt: string;

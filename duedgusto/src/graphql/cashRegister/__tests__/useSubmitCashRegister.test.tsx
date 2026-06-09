@@ -46,6 +46,7 @@ const mockResultData = {
   differenza: 0,
   contanteNetto: 0,
   importoIva: 0,
+  breakdownIva: [],
   note: "Test",
   stato: "DRAFT",
   createdAt: "2026-03-12T08:00:00Z",

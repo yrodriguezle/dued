@@ -133,6 +133,9 @@ public class SeedProducts
                         Categoria = categoria,
                         UnitaDiMisura = "pz",
                         Attivo = true,
+                        // Il CSV non ha colonna aliquota: default esplicito in percentuale
+                        // (estendibile in futuro con una colonna dedicata)
+                        AliquotaIva = 22m,
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow
                     };

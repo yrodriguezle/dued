@@ -115,4 +115,90 @@ describe("SummaryDataGrid", () => {
     renderWithTheme(emptySummary);
     expect(screen.queryByText("RIEPILOGO VENDITE")).not.toBeInTheDocument();
   });
+
+  describe("breakdown IVA", () => {
+    const makeRiga = (
+      aliquota: number,
+      imponibile: number,
+      imposta: number,
+      stimato: boolean
+    ): RegistroCassaIvaRiga => ({
+      __typename: "RegistroCassaIva",
+      aliquota,
+      imponibile,
+      imposta,
+      stimato,
+    });
+
+    it("deve renderizzare il breakdown misto con una riga per aliquota e il totale IVA", () => {
+      // Scenario "Dettaglio registro con breakdown misto": due righe esatte (22%, 10%)
+      // + una riga stimata per il residuo all'aliquota di default
+      const registroCassa = {
+        totaleVendite: 100,
+        importoIva: 12.36,
+        breakdownIva: [
+          makeRiga(22, 30, 6.6, false),
+          makeRiga(10, 20, 2, false),
+          makeRiga(10, 37.64, 3.76, true),
+        ],
+      } as RegistroCassa;
+      renderWithTheme(emptySummary, registroCassa);
+
+      expect(screen.getByText("IVA (totale € 12,36)")).toBeInTheDocument();
+      expect(screen.getByText("22% — Imponibile € 30,00 · IVA € 6,60")).toBeInTheDocument();
+      expect(screen.getByText("10% — Imponibile € 20,00 · IVA € 2,00")).toBeInTheDocument();
+      expect(screen.getByText("10% — Imponibile € 37,64 · IVA € 3,76")).toBeInTheDocument();
+    });
+
+    it("deve mostrare il Chip 'stimato' SOLO sulla riga stimata", () => {
+      const registroCassa = {
+        totaleVendite: 100,
+        importoIva: 12.36,
+        breakdownIva: [
+          makeRiga(22, 30, 6.6, false),
+          makeRiga(10, 20, 2, false),
+          makeRiga(10, 37.64, 3.76, true),
+        ],
+      } as RegistroCassa;
+      renderWithTheme(emptySummary, registroCassa);
+
+      const chips = screen.getAllByText("stimato");
+      expect(chips).toHaveLength(1);
+      // Il badge appartiene alla riga stimata (37,64 / 3,76), non alle righe esatte
+      const rigaStimata = screen.getByText("10% — Imponibile € 37,64 · IVA € 3,76");
+      expect(rigaStimata.parentElement).toContainElement(chips[0]);
+      const rigaEsatta = screen.getByText("22% — Imponibile € 30,00 · IVA € 6,60");
+      expect(rigaEsatta.parentElement).not.toContainElement(chips[0]);
+    });
+
+    it("deve mostrare un'unica riga marcata 'stimato' per registro storico backfillato", () => {
+      // Scenario "Dettaglio registro storico": sola riga stimata aggregata
+      const registroCassa = {
+        totaleVendite: 80,
+        importoIva: 7.27,
+        breakdownIva: [makeRiga(10, 72.73, 7.27, true)],
+      } as RegistroCassa;
+      renderWithTheme(emptySummary, registroCassa);
+
+      expect(screen.getByText("IVA (totale € 7,27)")).toBeInTheDocument();
+      expect(screen.getByText("10% — Imponibile € 72,73 · IVA € 7,27")).toBeInTheDocument();
+      expect(screen.getAllByText("stimato")).toHaveLength(1);
+    });
+
+    it("non deve mostrare il blocco senza registroCassa", () => {
+      renderWithTheme(emptySummary);
+      expect(screen.queryByText(/IVA \(totale/)).not.toBeInTheDocument();
+      expect(screen.queryByText("stimato")).not.toBeInTheDocument();
+    });
+
+    it("non deve mostrare il blocco con breakdownIva vuoto", () => {
+      const registroCassa = {
+        totaleVendite: 500,
+        importoIva: 0,
+        breakdownIva: [],
+      } as unknown as RegistroCassa;
+      renderWithTheme(emptySummary, registroCassa);
+      expect(screen.queryByText(/IVA \(totale/)).not.toBeInTheDocument();
+    });
+  });
 });

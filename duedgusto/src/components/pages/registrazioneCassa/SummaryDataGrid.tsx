@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Box, Paper, Typography } from "@mui/material";
+import { Box, Chip, Paper, Typography } from "@mui/material";
 import formatCurrency from "../../../common/bones/formatCurrency";
 
 interface SummaryDataGridProps {
@@ -143,6 +143,37 @@ export function SummaryDataGrid({ summaryData, registroCassa }: SummaryDataGridP
         value={restoFinale}
         highlight
       />
+      {registroCassa && (registroCassa.breakdownIva?.length ?? 0) > 0 && (
+        <Paper
+          variant="outlined"
+          sx={{ p: 1, flexBasis: "100%" }}
+        >
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            display="block"
+          >
+            IVA (totale € {formatCurrency(registroCassa.importoIva)})
+          </Typography>
+          {registroCassa.breakdownIva.map((riga) => (
+            <Box
+              key={`${riga.aliquota}-${riga.stimato}`}
+              sx={{ display: "flex", alignItems: "center", gap: 1 }}
+            >
+              <Typography variant="body2">
+                {riga.aliquota}% — Imponibile € {formatCurrency(riga.imponibile)} · IVA € {formatCurrency(riga.imposta)}
+              </Typography>
+              {riga.stimato && (
+                <Chip
+                  size="small"
+                  color="warning"
+                  label="stimato"
+                />
+              )}
+            </Box>
+          ))}
+        </Paper>
+      )}
     </Box>
   );
 }

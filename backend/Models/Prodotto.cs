@@ -11,6 +11,12 @@ public class Prodotto
     public string? UnitaDiMisura { get; set; } = "pz"; // Unità di misura (pz, kg, l, etc.)
     public bool Attivo { get; set; } = true; // Prodotto attivo/disattivato
 
+    /// <summary>
+    /// Aliquota IVA del prodotto in PERCENTUALE (es. 22.00 = 22%), come Fornitore.AliquotaIva.
+    /// La conversione a frazione per i calcoli avviene SOLO via IvaCalculator.AliquotaDaPercentuale.
+    /// </summary>
+    public decimal AliquotaIva { get; set; } = 22m;
+
     // Metadati
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
