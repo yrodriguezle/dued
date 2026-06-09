@@ -1,3 +1,5 @@
+// NOTA: componente dead code — non è importato/montato da nessun componente
+// (il riepilogo renderizzato è SummaryDataGrid). Candidato a rimozione in Fase 4.
 import { Box, Paper, Typography, Divider, Alert } from "@mui/material";
 import { GridReadyEvent } from "ag-grid-community";
 import { DatagridData } from "../../common/datagrid/@types/Datagrid";
@@ -7,6 +9,8 @@ interface CashSummaryProps {
   closingGridRef: React.RefObject<GridReadyEvent<DatagridData<CashCountRow>> | null>;
   incomesGridRef: React.RefObject<GridReadyEvent<DatagridData<IncomeRow>> | null>;
   expensesGridRef: React.RefObject<GridReadyEvent<DatagridData<ExpenseRow>> | null>;
+  /** Registro cassa dal server: fonte di verità per l'IVA (importoIva) */
+  registroCassa?: RegistroCassa | null;
 }
 
 interface CashCountRow extends Record<string, unknown> {
@@ -27,7 +31,7 @@ interface ExpenseRow extends Record<string, unknown> {
   amount: number;
 }
 
-function CashSummary({ openingGridRef, closingGridRef, incomesGridRef, expensesGridRef }: CashSummaryProps) {
+function CashSummary({ openingGridRef, closingGridRef, incomesGridRef, expensesGridRef, registroCassa }: CashSummaryProps) {
   const calculateCountTotal = (counts: CashCountRow[]): number => {
     return counts.reduce((sum, count) => {
       return sum + (count.total || 0);
@@ -56,7 +60,10 @@ function CashSummary({ openingGridRef, closingGridRef, incomesGridRef, expensesG
   // Calcoli
   const expectedCash = incassoContanteTracciato - totalExpenses;
   const difference = dailyIncome - expectedCash;
-  const vatAmount = totalSales * 0.1; // 10% IVA (configurabile)
+  // IVA: solo il valore calcolato dal backend (importoIva); nessun ricalcolo
+  // locale con aliquota hardcoded. 0 (valore neutro) finché il dato server
+  // non è disponibile (registro non ancora salvato).
+  const vatAmount = registroCassa?.importoIva ?? 0;
 
   const hasDifference = Math.abs(difference) > 5; // Soglia 5€
 
@@ -149,7 +156,7 @@ function CashSummary({ openingGridRef, closingGridRef, incomesGridRef, expensesG
           highlight
         />
         <SummaryRow
-          label="IVA (10%)"
+          label="IVA"
           value={vatAmount}
         />
 

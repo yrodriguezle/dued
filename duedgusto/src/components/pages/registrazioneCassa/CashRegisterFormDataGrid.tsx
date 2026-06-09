@@ -32,6 +32,7 @@ interface CashRegisterFormDataGridProps {
   onCellChange: () => void;
   onCopyFromPrevious?: () => void;
   summaryData: SummaryData;
+  registroCassa?: RegistroCassa | null;
   onOpeningTotalChange: (total: number) => void;
   onClosingTotalChange: (total: number) => void;
   onIncomesChange: (incomes: IncomeEntry[]) => void;
@@ -50,6 +51,7 @@ const CashRegisterFormDataGrid: React.FC<CashRegisterFormDataGridProps> = ({
   onCellChange,
   onCopyFromPrevious,
   summaryData,
+  registroCassa,
   onOpeningTotalChange,
   onClosingTotalChange,
   onIncomesChange,
@@ -108,7 +110,10 @@ const CashRegisterFormDataGrid: React.FC<CashRegisterFormDataGridProps> = ({
         </div>
 
         <div className="col-span-12">
-          <SummaryDataGrid summaryData={summaryData} />
+          <SummaryDataGrid
+            summaryData={summaryData}
+            registroCassa={registroCassa}
+          />
         </div>
 
         <div className="col-span-12">

@@ -75,9 +75,14 @@ builder.Services.AddControllers();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
+    // Catena di risoluzione: env var → configuration → fallback SOLO in Development (fail-fast altrove)
     string connectionString = Environment.GetEnvironmentVariable("CONNECTION_STRING")
         ?? builder.Configuration.GetConnectionString("Default")
-        ?? string.Empty;
+        ?? (builder.Environment.IsDevelopment()
+            ? "server=localhost;database=duedgusto;user=root;password=root"
+            : throw new InvalidOperationException(
+                "CONNECTION_STRING non impostata. In ambienti non-Development impostare la variabile " +
+                "d'ambiente CONNECTION_STRING (oppure ConnectionStrings__Default)."));
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
 });
 
@@ -140,13 +145,15 @@ builder.Services.AddCors(options =>
     });
 });
 
-// SECURITY FIX: Read JWT key from environment variable with fallback to appsettings
+// SECURITY: JWT key da env var → configuration → fallback dev (dichiaratamente insicura)
+// SOLO in Development; in ogni altro ambiente l'avvio fallisce se la variabile manca.
 string keyString = Environment.GetEnvironmentVariable("JWT_SECRET_KEY")
     ?? builder.Configuration.GetSection("Jwt")["Key"]
-    ?? throw new InvalidOperationException(
-        "JWT_SECRET_KEY environment variable or Jwt:Key configuration must be set. " +
-        "Set it with: export JWT_SECRET_KEY='YourSecureRandomKey'"
-    );
+    ?? (builder.Environment.IsDevelopment()
+        ? "dev-only-insecure-jwt-key-do-not-use-in-production-2026"
+        : throw new InvalidOperationException(
+            "JWT_SECRET_KEY non impostata. In ambienti non-Development impostare la variabile " +
+            "d'ambiente JWT_SECRET_KEY (es. generata con: openssl rand -base64 32)."));
 
 string validIssuer = builder.Configuration["Jwt:Issuer"] ?? "duedgusto-api";
 string validAudience = builder.Configuration["Jwt:Audience"] ?? "duedgusto-clients";
@@ -163,9 +170,10 @@ builder.Services.AddGraphQL((ctx) => ctx
     .AddAutoClrMappings()
     .AddErrorInfoProvider(opt =>
     {
-        opt.ExposeExceptionDetails = true;
-        opt.ExposeData = true;
-        opt.ExposeExtensions = true;
+        // Dettagli eccezioni esposti al client SOLO in Development
+        opt.ExposeExceptionDetails = builder.Environment.IsDevelopment();
+        opt.ExposeData = builder.Environment.IsDevelopment();
+        opt.ExposeExtensions = builder.Environment.IsDevelopment();
     })
     .ConfigureExecution(async (options, next) =>
     {
@@ -178,20 +186,26 @@ builder.Services.AddGraphQL((ctx) => ctx
 
         options.UnhandledExceptionDelegate = (exception) =>
         {
+            // Logging server-side SEMPRE attivo, in tutti gli ambienti
             logger.LogError(exception.OriginalException,
                 "GraphQL unhandled exception in field '{FieldName}': {Error}",
                 exception.FieldContext?.FieldAst?.Name,
                 exception.OriginalException.Message);
 
-            // Esponi dettagli eccezione anche in produzione (fase di test)
-            Exception ex = exception.OriginalException;
-            var details = $"{ex.GetType().Name}: {ex.Message}";
-            if (ex.InnerException != null)
-                details += $"\n--- Inner: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}";
-            if (ex.InnerException?.InnerException != null)
-                details += $"\n--- Inner.Inner: {ex.InnerException.InnerException.GetType().Name}: {ex.InnerException.InnerException.Message}";
-            details += $"\n--- StackTrace: {ex.StackTrace}";
-            exception.ErrorMessage = details;
+            // Dettagli eccezione (tipo, inner, stack trace) nella risposta SOLO in Development;
+            // in produzione il client riceve il messaggio generico dell'ErrorInfoProvider.
+            // Gli ExecutionError di business non passano da qui e arrivano invariati al client.
+            if (env.IsDevelopment())
+            {
+                Exception ex = exception.OriginalException;
+                var details = $"{ex.GetType().Name}: {ex.Message}";
+                if (ex.InnerException != null)
+                    details += $"\n--- Inner: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}";
+                if (ex.InnerException?.InnerException != null)
+                    details += $"\n--- Inner.Inner: {ex.InnerException.InnerException.GetType().Name}: {ex.InnerException.InnerException.Message}";
+                details += $"\n--- StackTrace: {ex.StackTrace}";
+                exception.ErrorMessage = details;
+            }
 
             return Task.CompletedTask;
         };

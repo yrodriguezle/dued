@@ -4,7 +4,7 @@ Questo file fornisce indicazioni a Claude Code (claude.ai/code) quando lavora co
 
 ## Panoramica del Progetto
 
-DuedGusto è un backend .NET 8.0 ASP.NET Core per un sistema di gestione cassa e punto vendita. Utilizza GraphQL come API principale, con endpoint REST per l'autenticazione. L'architettura combina Entity Framework Core (MySQL 8.0+), autenticazione JWT, protezione CSRF e controllo degli accessi basato sui ruoli.
+DuedGusto è un backend .NET 8.0 ASP.NET Core per un sistema di gestione cassa e punto vendita. Utilizza GraphQL come API principale, con endpoint REST per l'autenticazione. L'architettura combina Entity Framework Core (MySQL 8.0+), autenticazione JWT e controllo degli accessi basato sui ruoli.
 
 ## Comandi di Build e Sviluppo
 
@@ -87,15 +87,12 @@ Il codebase segue un pattern di architettura a livelli senza progetti di test un
 **Services** (`/Services`)
 
 - **Jwt**: Generazione/validazione token, gestione refresh token, estrazione claim
-- **Csrf**: Pattern double-submit cookie (stateless, ruotato al login/refresh)
 - **HashPassword**: Hashing password HMACSHA256 con salt
 - **GraphQL**: Helper service locator per accedere ai servizi nei resolver
 
 **Middleware** (`/Middleware`)
 
-- `CsrfProtectionMiddleware`: Valida i token CSRF sulle richieste che modificano lo stato (POST, PUT, DELETE, PATCH)
-  - Esclude `/api/auth/signin` e `/graphql`
-  - Restituisce 403 Forbidden in caso di fallimento della validazione
+- `AuthRateLimitMiddleware`: Limita la frequenza delle richieste sugli endpoint di autenticazione
 
 **Helpers** (`/Helpers`)
 
@@ -111,26 +108,34 @@ Il codebase segue un pattern di architettura a livelli senza progetti di test un
 
 **Program.cs**
 
-- Registra tutti i servizi: JWT (singleton), CSRF (scoped), Password, DbContext
+- Registra tutti i servizi: JWT (singleton), Password, DbContext
 - Configura GraphQL con tipi Relay, regole di autorizzazione, user context builder
 - Imposta CORS (AllowAllDev: qualsiasi origine, credenziali abilitate)
-- Pipeline middleware: HTTPS → CORS → Authentication → Authorization → CSRF → GraphQL
+- Pipeline middleware: HTTPS → CORS → Authentication → Authorization → GraphQL
 - Seeding del database all'avvio dell'app
 
 **appsettings.json**
 
+Il file versionato NON contiene secrets (né connection string con credenziali né chiave JWT):
+
 ```json
 {
-  "ConnectionStrings": {
-    "Default": "server=localhost;database=duedgusto;user=root;password=root"
-  },
+  "Logging": { "...": "..." },
+  "AllowedHosts": "*",
   "Jwt": {
-    "Key": "====*-o-*-dued-json-web-key-*-o-*====",
     "Issuer": "duedgusto-api",
     "Audience": "duedgusto-clients"
   }
 }
 ```
+
+I secrets vengono letti da variabili d'ambiente (impostabili anche tramite `backend/.env`, caricato da DotNetEnv ed escluso da git — vedi `backend/.env.example`):
+
+- `CONNECTION_STRING` (oppure `ConnectionStrings__Default`): connection string MySQL — **obbligatoria** in ambienti non-Development
+- `JWT_SECRET_KEY`: chiave di firma JWT — **obbligatoria** in ambienti non-Development
+- `SUPERADMIN_PASSWORD`, `SEED_ON_STARTUP`: opzionali
+
+In Development esistono fallback locali hardcoded in `Program.cs` (connection string `localhost` con `root/root` e una chiave JWT dichiaratamente insicura), quindi `dotnet run` funziona senza configurazione aggiuntiva. In ogni altro ambiente, se una variabile obbligatoria manca, l'avvio fallisce subito (fail-fast) con un messaggio che indica la variabile mancante.
 
 **duedgusto.csproj**
 
@@ -145,25 +150,15 @@ Il codebase segue un pattern di architettura a livelli senza progetti di test un
 2. Il server verifica le credenziali tramite `PasswordService` (HMACSHA256 con salt)
 3. `JwtHelper` genera JWT firmato (scadenza 5 minuti) e refresh token (32-byte random)
 4. Refresh token memorizzato nel campo `User.RefreshToken` nel DB
-5. Token CSRF generato in cookie non-httpOnly
-6. La risposta contiene solo l'access token; refresh token in cookie httpOnly
+5. La risposta contiene solo l'access token; refresh token in cookie httpOnly
 
 ### Validazione Token
 
 - JWT: Valida firma, issuer, audience, scadenza (tolleranza clock skew di 6 secondi)
 - Refresh token: Validato sull'endpoint `/api/auth/refresh`
 
-### Protezione CSRF
-
-- Pattern double-submit cookie (nessuno storage lato server)
-- Token in cookie non-httpOnly `csrfToken` (leggibile da JavaScript)
-- Il client include il token nell'header `X-CSRF-Token`
-- Il middleware valida che il token dell'header corrisponda al token del cookie
-- Token ruotato ad ogni chiamata di login/refresh
-
 ### Impostazioni di Sicurezza dei Cookie
 
-- **Token CSRF**: HttpOnly=false, Secure=true, SameSite=Strict, MaxAge=7 giorni
 - **Refresh Token**: HttpOnly=true, Secure=true, SameSite=Strict, Path=/api/auth, MaxAge=7 giorni
 
 ### Autorizzazione in GraphQL
@@ -223,7 +218,6 @@ Il codebase segue un pattern di architettura a livelli senza progetti di test un
 | Servizio           | Scope                | Metodi Chiave                                            |
 | ------------------ | -------------------- | -------------------------------------------------------- |
 | JwtHelper          | Singleton            | GenerateToken(), ValidateToken(), GenerateRefreshToken() |
-| CsrfTokenGenerator | Scoped               | GenerateToken(), ValidateToken()                         |
 | PasswordService    | Transient            | HashPassword(), VerifyPassword()                         |
 | AppDbContext       | Scoped (per-request) | SaveChangesAsync(), DbSets per tutte le entità           |
 | GraphQLService     | Helper               | GetService<T>() per accedere ai servizi nei resolver     |
@@ -258,12 +252,6 @@ Il codebase segue un pattern di architettura a livelli senza progetti di test un
 
 - Hash alla creazione utente: `PasswordService.HashPassword(plaintext)` restituisce (hash, salt)
 - Verifica al login: `PasswordService.VerifyPassword(plaintext, storedHash, storedSalt)`
-
-### Gestione Token CSRF
-
-- Generare al login: `CsrfTokenGenerator.GenerateToken(context)` (HttpContext disponibile)
-- Validare nel middleware: Automatico tramite `CsrfProtectionMiddleware`
-- Ruotare al refresh: Automatico tramite `CsrfTokenGenerator.RotateToken(context)`
 
 ## Note Importanti
 

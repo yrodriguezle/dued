@@ -33,6 +33,7 @@ import useChiusuraCassaSubscription from "../../../graphql/subscriptions/useChiu
 import { toast } from "react-toastify";
 import { getCurrentDate, getFormattedDate, getWeekdayName, parseDateForGraphQL } from "../../../common/date/date";
 import useCashCountData from "./useCashCountData";
+import syncExpenseRowsWithPagamenti from "./syncExpenseRowsWithPagamenti";
 
 // Schema per Formik - solo campi del form, NON include dati delle griglie
 const Schema = z.object({
@@ -422,6 +423,23 @@ function RegistroCassaDetails() {
       if (result) {
         toast.success("Cassa salvata con successo!", { position: "bottom-right" });
 
+        // Sincronizza le righe spese con gli ID restituiti dal server
+        // (pagamentoId/fatturaId/ddtId + numeri documento, placeholder SN-... inclusi):
+        // un risalvataggio immediato prima del refetch invia update, non insert.
+        // Matching per chiave fornitore|tipo|numero, mai per indice.
+        const { updates, mismatch } = syncExpenseRowsWithPagamenti(expenses as DatagridData<Expense>[], result.pagamentiFornitori || []);
+        if (mismatch) {
+          // Nessun aggiornamento parziale: il refetch di getRegistroCassa già
+          // attivato da useSubmitCashRegister riallinea griglia e ID dal server.
+          logger.warn("Sync ID pagamenti fornitori: mismatch tra righe spese e pagamenti restituiti dal server; riallineamento delegato al refetch del registro.");
+        } else if (updates.length > 0 && expensesGridRef.current) {
+          // Le righe restituite da getGridData sono gli stessi oggetti dei nodi
+          // griglia: si aggiornano in place e si notifica AG Grid via transaction
+          // (senza toccare initialExpenses né lo stato dirty).
+          const updatedRows = updates.map(({ row, changes }) => Object.assign(row, changes));
+          expensesGridRef.current.api.applyTransaction({ update: updatedRows });
+        }
+
         // Aggiorna l'ID e resetta dirty: resetForm con i valori correnti
         // rende i valori correnti i nuovi initialValues, azzerando dirty
         const updatedValues = {
@@ -594,6 +612,7 @@ function RegistroCassaDetails() {
                 onCellChange={handleCellChange}
                 onCopyFromPrevious={handleCopyFromPrevious}
                 summaryData={summaryData}
+                registroCassa={cashRegister}
                 onOpeningTotalChange={handleOpeningTotalChange}
                 onClosingTotalChange={handleClosingTotalChange}
                 onIncomesChange={handleIncomesChange}

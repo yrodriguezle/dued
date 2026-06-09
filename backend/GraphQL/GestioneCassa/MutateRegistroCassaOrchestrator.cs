@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 
+using GraphQL;
+
 using duedgusto.Models;
 using duedgusto.Repositories.Interfaces;
 using duedgusto.Services.ChiusureMensili;
@@ -287,6 +289,11 @@ public class MutateRegistroCassaOrchestrator
         List<PagamentoFornitoreRegistroInput> inputNew,
         DateTime dataRegistro)
     {
+        // Documenti riusati/creati in QUESTA richiesta: righe multiple senza numero
+        // non devono consumare lo stesso documento placeholder.
+        HashSet<int> fattureConsumate = [];
+        HashSet<int> ddtConsumati = [];
+
         foreach (PagamentoFornitoreRegistroInput pagInput in inputNew)
         {
             int? fatturaId = null;
@@ -298,7 +305,7 @@ public class MutateRegistroCassaOrchestrator
             }
             else if (pagInput.TipoDocumento == "FA")
             {
-                fatturaId = await CreaFatturaAcquisto(db, pagInput, dataRegistro);
+                fatturaId = await CreaFatturaAcquisto(db, pagInput, dataRegistro, registroCassa.Id, fattureConsumate);
             }
             else if (pagInput.DdtId != null)
             {
@@ -306,7 +313,7 @@ public class MutateRegistroCassaOrchestrator
             }
             else
             {
-                ddtId = await CreaDocumentoTrasporto(db, pagInput, dataRegistro);
+                ddtId = await CreaDocumentoTrasporto(db, pagInput, dataRegistro, registroCassa.Id, ddtConsumati);
             }
 
             db.PagamentiFornitori.Add(new PagamentoFornitore
@@ -325,32 +332,50 @@ public class MutateRegistroCassaOrchestrator
     private static async Task<int> CreaFatturaAcquisto(
         DataAccess.AppDbContext db,
         PagamentoFornitoreRegistroInput pagInput,
-        DateTime dataRegistro)
+        DateTime dataRegistro,
+        int registroCassaId,
+        HashSet<int> fattureConsumate)
     {
-        string numeroFattura = pagInput.NumeroFattura ?? "";
+        string numeroFattura = (pagInput.NumeroFattura ?? "").Trim();
+        FatturaAcquisto? existing = null;
 
-        // Controlla se esiste già una fattura con la stessa coppia FornitoreId + NumeroFattura
-        if (!string.IsNullOrEmpty(numeroFattura))
+        if (numeroFattura.Length > 0)
         {
-            FatturaAcquisto? existing = await db.FattureAcquisto
+            // Lookup sulla stessa chiave dell'indice UNIQUE (FornitoreId, NumeroFattura)
+            existing = await db.FattureAcquisto
                 .Include(f => f.Pagamenti)
                 .FirstOrDefaultAsync(f =>
                     f.FornitoreId == pagInput.FornitoreId &&
                     f.NumeroFattura == numeroFattura);
 
-            if (existing != null)
+            // Pagamenti di un ALTRO registro → vera doppia registrazione (errore bloccante).
+            // Pagamenti solo del registro corrente (riscrittura) o nessun pagamento → riuso.
+            if (existing != null && existing.Pagamenti.Any(p => p.RegistroCassaId != registroCassaId))
             {
-                // Se ha già pagamenti collegati → errore bloccante (doppia registrazione IVA)
-                if (existing.Pagamenti.Any())
-                {
-                    throw new InvalidOperationException(
-                        $"La fattura n. {numeroFattura} del fornitore (Id: {pagInput.FornitoreId}) " +
-                        $"è già registrata (FatturaId: {existing.FatturaId}). " +
-                        "Non è possibile creare un secondo pagamento sulla stessa fattura.");
-                }
+                throw new ExecutionError(
+                    $"La fattura n. {numeroFattura} del fornitore (Id: {pagInput.FornitoreId}) " +
+                    $"è già registrata in un altro registro cassa (FatturaId: {existing.FatturaId}). " +
+                    "Non è possibile registrare due volte la stessa fattura.");
+            }
+        }
+        else
+        {
+            // Numero vuoto → normalizzazione con placeholder deterministico SN-{yyyyMMdd}-{seq}
+            string prefix = PlaceholderPrefix(dataRegistro);
+            List<FatturaAcquisto> candidate = await db.FattureAcquisto
+                .Include(f => f.Pagamenti)
+                .Where(f => f.FornitoreId == pagInput.FornitoreId && f.NumeroFattura.StartsWith(prefix))
+                .ToListAsync();
 
-                // Fattura orfana (senza pagamenti) → riutilizza aggiornando i dati
-                return existing.FatturaId;
+            // Riusa la prima fattura placeholder "libera": non consumata da un'altra riga
+            // della stessa richiesta e senza pagamenti di registri diversi dal corrente.
+            existing = candidate
+                .Where(f => !fattureConsumate.Contains(f.FatturaId))
+                .FirstOrDefault(f => f.Pagamenti.All(p => p.RegistroCassaId == registroCassaId));
+
+            if (existing == null)
+            {
+                numeroFattura = ProssimoNumeroPlaceholder(prefix, candidate.Select(f => f.NumeroFattura));
             }
         }
 
@@ -366,6 +391,19 @@ public class MutateRegistroCassaOrchestrator
         decimal imponibile = Math.Round(totaleConIva / (1 + aliquota / 100m), 2);
         decimal importoIva = totaleConIva - imponibile;
 
+        if (existing != null)
+        {
+            // Riuso: aggiorna gli importi con lo stesso scorporo di UpdatePagamentiEsistenti
+            existing.DataFattura = pagInput.DataFattura ?? dataRegistro;
+            existing.Imponibile = imponibile;
+            existing.ImportoIva = importoIva;
+            existing.TotaleConIva = totaleConIva;
+            existing.UpdatedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync();
+            fattureConsumate.Add(existing.FatturaId);
+            return existing.FatturaId;
+        }
+
         var fattura = new FatturaAcquisto
         {
             FornitoreId = pagInput.FornitoreId,
@@ -378,25 +416,99 @@ public class MutateRegistroCassaOrchestrator
         };
         db.FattureAcquisto.Add(fattura);
         await db.SaveChangesAsync();
+        fattureConsumate.Add(fattura.FatturaId);
         return fattura.FatturaId;
     }
 
     private static async Task<int> CreaDocumentoTrasporto(
         DataAccess.AppDbContext db,
         PagamentoFornitoreRegistroInput pagInput,
-        DateTime dataRegistro)
+        DateTime dataRegistro,
+        int registroCassaId,
+        HashSet<int> ddtConsumati)
     {
+        string numero = (pagInput.NumeroDdt ?? "").Trim();
+
+        if (numero.Length > 0)
+        {
+            // Lookup sulla stessa chiave dell'indice UNIQUE (FornitoreId, NumeroDdt)
+            DocumentoTrasporto? existing = await db.DocumentiTrasporto
+                .FirstOrDefaultAsync(d =>
+                    d.FornitoreId == pagInput.FornitoreId &&
+                    d.NumeroDdt == numero);
+
+            if (existing != null)
+            {
+                existing.DataDdt = pagInput.DataDdt ?? dataRegistro;
+                existing.Importo = pagInput.Importo;
+                existing.UpdatedAt = DateTime.UtcNow;
+                await db.SaveChangesAsync();
+                ddtConsumati.Add(existing.DdtId);
+                return existing.DdtId;
+            }
+        }
+        else
+        {
+            // Numero vuoto → normalizzazione con placeholder deterministico SN-{yyyyMMdd}-{seq}
+            string prefix = PlaceholderPrefix(dataRegistro);
+            List<DocumentoTrasporto> candidati = await db.DocumentiTrasporto
+                .Include(d => d.Pagamenti)
+                .Where(d => d.FornitoreId == pagInput.FornitoreId && d.NumeroDdt.StartsWith(prefix))
+                .ToListAsync();
+
+            // Riusa il primo DDT placeholder "libero": non consumato da un'altra riga
+            // della stessa richiesta e senza pagamenti di registri diversi dal corrente.
+            DocumentoTrasporto? libero = candidati
+                .Where(d => !ddtConsumati.Contains(d.DdtId))
+                .FirstOrDefault(d => d.Pagamenti.All(p => p.RegistroCassaId == registroCassaId));
+
+            if (libero != null)
+            {
+                libero.DataDdt = pagInput.DataDdt ?? dataRegistro;
+                libero.Importo = pagInput.Importo;
+                libero.UpdatedAt = DateTime.UtcNow;
+                await db.SaveChangesAsync();
+                ddtConsumati.Add(libero.DdtId);
+                return libero.DdtId;
+            }
+
+            numero = ProssimoNumeroPlaceholder(prefix, candidati.Select(d => d.NumeroDdt));
+        }
+
         var ddt = new DocumentoTrasporto
         {
             FornitoreId = pagInput.FornitoreId,
-            NumeroDdt = pagInput.NumeroDdt,
+            NumeroDdt = numero,
             DataDdt = pagInput.DataDdt ?? dataRegistro,
             Importo = pagInput.Importo,
             FatturaId = null,
         };
         db.DocumentiTrasporto.Add(ddt);
         await db.SaveChangesAsync();
+        ddtConsumati.Add(ddt.DdtId);
         return ddt.DdtId;
+    }
+
+    /// <summary>
+    /// Prefisso del numero placeholder per documenti senza numero: "SN-{yyyyMMdd}-"
+    /// (SN = senza numero, data del registro cassa).
+    /// </summary>
+    private static string PlaceholderPrefix(DateTime dataRegistro)
+        => $"SN-{dataRegistro:yyyyMMdd}-";
+
+    /// <summary>
+    /// Primo numero placeholder libero per il prefisso dato: "SN-{yyyyMMdd}-{seq}"
+    /// con seq ≥ 1 non ancora usato tra i numeri esistenti (lunghezza ≤ 50, MaxLength dei campi numero).
+    /// </summary>
+    private static string ProssimoNumeroPlaceholder(string prefix, IEnumerable<string> numeriEsistenti)
+    {
+        HashSet<int> occupati = numeriEsistenti
+            .Select(n => int.TryParse(n[prefix.Length..], out int seq) ? seq : 0)
+            .Where(seq => seq > 0)
+            .ToHashSet();
+
+        int prossimo = Enumerable.Range(1, occupati.Count + 1).First(seq => !occupati.Contains(seq));
+        return $"{prefix}{prossimo}";
     }
 
     private static void CalcolaTotali(RegistroCassa registroCassa, decimal totaleSpese, decimal aliquotaIva)
@@ -409,7 +521,7 @@ public class MutateRegistroCassaOrchestrator
             + registroCassa.IncassoContanteTracciato
             + registroCassa.IncassiFattura;
 
-        registroCassa.ContanteAtteso = registroCassa.VenditeContanti
+        registroCassa.ContanteAtteso = registroCassa.IncassoContanteTracciato
             - registroCassa.SpeseFornitori
             - registroCassa.SpeseGiornaliere;
 

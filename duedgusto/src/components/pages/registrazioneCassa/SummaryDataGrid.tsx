@@ -4,6 +4,8 @@ import formatCurrency from "../../../common/bones/formatCurrency";
 
 interface SummaryDataGridProps {
   summaryData: SummaryData;
+  /** Registro cassa dal server: fonte di verità per i totali persistiti (totaleVendite, ...) */
+  registroCassa?: RegistroCassa | null;
 }
 
 interface KPICardProps {
@@ -45,7 +47,7 @@ function KPICard({ label, value, highlight, negative }: KPICardProps) {
   );
 }
 
-export function SummaryDataGrid({ summaryData }: SummaryDataGridProps) {
+export function SummaryDataGrid({ summaryData, registroCassa }: SummaryDataGridProps) {
   const { openingTotal, closingTotal, incomes, expensesTotalAmount, receiptExpensesAmount } = summaryData;
 
   const {
@@ -70,8 +72,11 @@ export function SummaryDataGrid({ summaryData }: SummaryDataGridProps) {
     // Fattura
     const invoice = incomes.find((i) => i.type === "Pagamento con Fattura")?.amount ?? 0;
 
-    // AB: Totale Vendite = Movimento + Elettronico + Fattura
-    const sales = movement + electronic + invoice;
+    // AB: Totale Vendite — usa il valore del server quando disponibile (backend
+    // unica fonte di verità); fallback locale allineato alla formula backend
+    // (somma dei canali di incasso: contante + elettronico + fattura, NON il
+    // movimento fisico di cassa) per registro non ancora salvato.
+    const sales = registroCassa?.totaleVendite ?? cash + electronic + invoice;
 
     // Spese solo fornitori = totale spese - spese scontrino
     const supplierExpenses = expensesTotalAmount - receiptExpensesAmount;
@@ -95,7 +100,7 @@ export function SummaryDataGrid({ summaryData }: SummaryDataGridProps) {
       ecc: eccValue,
       restoFinale: restoFinaleValue,
     };
-  }, [closingTotal, openingTotal, incomes, expensesTotalAmount, receiptExpensesAmount]);
+  }, [closingTotal, openingTotal, incomes, expensesTotalAmount, receiptExpensesAmount, registroCassa?.totaleVendite]);
 
   return (
     <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
