@@ -2,11 +2,16 @@ import React, { ReactNode, ErrorInfo } from "react";
 import { Box, Button, Container, Typography, Paper } from "@mui/material";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import logger from "../../common/logger/logger";
+import { navigateTo } from "../../common/navigator/navigator";
 
 const isDevelopment = () => import.meta.env.MODE === "development";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
+  /** Variante di rendering del fallback: "fullscreen" (default, comportamento attuale) | "inline" (solo area contenuto) */
+  variant?: "fullscreen" | "inline";
+  /** Quando cambia, lo stato di errore viene azzerato (pattern resetKeys di react-error-boundary) */
+  resetKey?: string;
 }
 
 interface ErrorBoundaryState {
@@ -42,6 +47,14 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     }
   }
 
+  componentDidUpdate(prevProps: ErrorBoundaryProps) {
+    // Reset dello stato di errore al cambio di route (resetKey): la nuova
+    // pagina viene renderizzata senza fallback residuo.
+    if (this.state.hasError && prevProps.resetKey !== this.props.resetKey) {
+      this.setState({ hasError: false, error: null, errorInfo: null });
+    }
+  }
+
   handleReset = () => {
     this.setState({
       hasError: false,
@@ -57,16 +70,35 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     window.location.reload();
   };
 
+  handleRetry = () => {
+    // Variante inline: rimonta i children senza alcun reload del documento
+    this.setState({
+      hasError: false,
+      error: null,
+      errorInfo: null,
+    });
+  };
+
+  handleNavigateToDashboard = () => {
+    // Variante inline: navigazione SPA via navigator globale (nessun reload, shell viva)
+    this.setState({
+      hasError: false,
+      error: null,
+      errorInfo: null,
+    });
+    navigateTo("/gestionale/dashboard");
+  };
+
   render() {
     if (this.state.hasError) {
+      const isInline = this.props.variant === "inline";
       return (
         <Box
           sx={{
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
-            minHeight: "100vh",
-            backgroundColor: "grey.100",
+            ...(isInline ? { height: "100%" } : { minHeight: "100vh", backgroundColor: "grey.100" }),
             padding: 2,
           }}
         >
@@ -154,20 +186,41 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
               )}
 
               <Box sx={{ display: "flex", gap: 2, justifyContent: "center", marginTop: 3 }}>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={this.handleReload}
-                >
-                  Ricarica la Pagina
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="primary"
-                  onClick={this.handleReset}
-                >
-                  Vai al Dashboard
-                </Button>
+                {isInline ? (
+                  <>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={this.handleRetry}
+                    >
+                      Riprova
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      color="primary"
+                      onClick={this.handleNavigateToDashboard}
+                    >
+                      Vai al Dashboard
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={this.handleReload}
+                    >
+                      Ricarica la Pagina
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      color="primary"
+                      onClick={this.handleReset}
+                    >
+                      Vai al Dashboard
+                    </Button>
+                  </>
+                )}
               </Box>
             </Paper>
           </Container>

@@ -18,8 +18,7 @@ public class FatturaAcquistoOrchestrator
 
     public async Task<FatturaAcquisto> MutateAsync(FatturaAcquistoInput input)
     {
-        await _unitOfWork.BeginTransactionAsync();
-        try
+        return await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
             FatturaAcquisto? fattura;
 
@@ -74,21 +73,13 @@ public class FatturaAcquistoOrchestrator
                 await _unitOfWork.SaveChangesAsync();
             }
 
-            await _unitOfWork.CommitTransactionAsync();
-
             return fattura;
-        }
-        catch
-        {
-            await _unitOfWork.RollbackTransactionAsync();
-            throw;
-        }
+        });
     }
 
     public async Task<FatturaAcquisto> AssociaDdtAsync(int fatturaId, List<int> ddtIds)
     {
-        await _unitOfWork.BeginTransactionAsync();
-        try
+        return await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
             FatturaAcquisto fattura = await _unitOfWork.FattureAcquisto.GetByIdAsync(fatturaId)
                 ?? throw new ExecutionError($"Fattura acquisto con ID {fatturaId} non trovata");
@@ -113,20 +104,13 @@ public class FatturaAcquistoOrchestrator
 
             fattura.UpdatedAt = DateTime.UtcNow;
             await _unitOfWork.SaveChangesAsync();
-            await _unitOfWork.CommitTransactionAsync();
             return fattura;
-        }
-        catch
-        {
-            await _unitOfWork.RollbackTransactionAsync();
-            throw;
-        }
+        });
     }
 
     public async Task<FatturaAcquisto> DisassociaDdtAsync(int fatturaId, List<int> ddtIds)
     {
-        await _unitOfWork.BeginTransactionAsync();
-        try
+        return await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
             FatturaAcquisto fattura = await _unitOfWork.FattureAcquisto.GetByIdAsync(fatturaId)
                 ?? throw new ExecutionError($"Fattura acquisto con ID {fatturaId} non trovata");
@@ -143,14 +127,8 @@ public class FatturaAcquistoOrchestrator
 
             fattura.UpdatedAt = DateTime.UtcNow;
             await _unitOfWork.SaveChangesAsync();
-            await _unitOfWork.CommitTransactionAsync();
             return fattura;
-        }
-        catch
-        {
-            await _unitOfWork.RollbackTransactionAsync();
-            throw;
-        }
+        });
     }
 
     private async Task RicalcolaTotaliFatturaAsync(FatturaAcquisto fattura)

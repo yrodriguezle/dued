@@ -99,6 +99,32 @@ public class UnitOfWork : IUnitOfWork
         }
     }
 
+    public async Task<T> ExecuteInTransactionAsync<T>(Func<Task<T>> operation)
+    {
+        if (_context.Database.CurrentTransaction is not null)
+        {
+            // Transazione ambient già attiva (es. chiamante già in ExecuteInTransactionAsync
+            // o transazione raw su Database): non annidare, lascia il controllo al chiamante.
+            return await operation();
+        }
+
+        await using IDbContextTransaction transaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            T result = await operation();
+            await transaction.CommitAsync();
+            return result;
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
+
+    public async Task ExecuteInTransactionAsync(Func<Task> operation)
+        => await ExecuteInTransactionAsync(async () => { await operation(); return true; });
+
     // === Dispose ===
 
     public void Dispose()

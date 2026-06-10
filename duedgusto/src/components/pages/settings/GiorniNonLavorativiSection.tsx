@@ -26,7 +26,7 @@ import {
 } from "@mui/icons-material";
 import AppDialog from "../../common/dialog/AppDialog";
 import DateField from "../../common/form/DateField";
-import { useMutation, useApolloClient } from "@apollo/client";
+import { useMutation } from "@apollo/client";
 import { toast } from "react-toastify";
 import dayjs from "dayjs";
 
@@ -37,7 +37,6 @@ import {
 } from "../../../graphql/settings/mutations";
 import { GET_BUSINESS_SETTINGS } from "../../../graphql/settings/queries";
 import useConfirm from "../../common/confirm/useConfirm";
-import useStore from "../../../store/useStore";
 
 const CODICI_MOTIVO = [
   { value: "FESTIVITA_NAZIONALE", label: "Festività Nazionale" },
@@ -77,24 +76,14 @@ interface GiorniNonLavorativiSectionProps {
 function GiorniNonLavorativiSection({ giorniNonLavorativi }: GiorniNonLavorativiSectionProps) {
   const [dialogState, setDialogState] = useState<GiornoDialogState>(initialDialogState);
   const onConfirm = useConfirm();
-  const setGiorniNonLavorativi = useStore((state) => state.setGiorniNonLavorativi);
-  const apolloClient = useApolloClient();
 
-  // Sincronizza lo Zustand store leggendo la cache Apollo aggiornata
-  const syncStoreFromCache = useCallback(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const cached = apolloClient.readQuery({ query: GET_BUSINESS_SETTINGS }) as any;
-    const giorni = cached?.settings?.giorniNonLavorativi;
-    if (Array.isArray(giorni)) {
-      setGiorniNonLavorativi(giorni as GiornoNonLavorativo[]);
-    }
-  }, [apolloClient, setGiorniNonLavorativi]);
-
+  // La sincronizzazione dello store avviene nel padre (SettingsDetails):
+  // il refetch awaited di GET_BUSINESS_SETTINGS aggiorna la query osservata
+  // → effect unico → useSyncSettingsToStore.
   const [creaGiorno, { loading: creando }] = useMutation(CREA_GIORNO_NON_LAVORATIVO, {
     refetchQueries: [{ query: GET_BUSINESS_SETTINGS }],
     awaitRefetchQueries: true,
     onCompleted: () => {
-      syncStoreFromCache();
       toast.success("Giorno non lavorativo creato con successo");
       setDialogState(initialDialogState);
     },
@@ -107,7 +96,6 @@ function GiorniNonLavorativiSection({ giorniNonLavorativi }: GiorniNonLavorativi
     refetchQueries: [{ query: GET_BUSINESS_SETTINGS }],
     awaitRefetchQueries: true,
     onCompleted: () => {
-      syncStoreFromCache();
       toast.success("Giorno non lavorativo aggiornato con successo");
       setDialogState(initialDialogState);
     },
@@ -120,7 +108,6 @@ function GiorniNonLavorativiSection({ giorniNonLavorativi }: GiorniNonLavorativi
     refetchQueries: [{ query: GET_BUSINESS_SETTINGS }],
     awaitRefetchQueries: true,
     onCompleted: () => {
-      syncStoreFromCache();
       toast.success("Giorno non lavorativo eliminato con successo");
     },
     onError: (err) => {

@@ -37,16 +37,15 @@ function useFetchData<T>({ query, variables, skip, reverseGrid, fetchPolicy = "n
       client.query({
         query,
         variables,
-        fetchPolicy: "cache-first",
+        // client.query accetta FetchPolicy (senza "cache-and-network"): narrowing
+        // esplicito per rispettare il parametro del hook senza cambiarne la firma.
+        fetchPolicy: fetchPolicy === "cache-and-network" ? "cache-first" : fetchPolicy,
       }),
-    [client, query, variables]
+    [client, query, variables, fetchPolicy]
   );
 
   useEffect(
     () => () => {
-      if (firstPageSubscription?.current?.unsubscribe) {
-        firstPageSubscription.current.unsubscribe();
-      }
       if (loadMoreSubscription?.current?.unsubscribe) {
         loadMoreSubscription.current.unsubscribe();
       }
@@ -55,10 +54,6 @@ function useFetchData<T>({ query, variables, skip, reverseGrid, fetchPolicy = "n
   );
 
   useEffect(() => {
-    if (firstPageSubscription?.current?.unsubscribe) {
-      setLoading(false);
-      firstPageSubscription.current.unsubscribe();
-    }
     const debouncedFetch = setTimeout(() => {
       if (skip || !query || !variables) {
         return;
@@ -115,7 +110,19 @@ function useFetchData<T>({ query, variables, skip, reverseGrid, fetchPolicy = "n
       });
     }, 300);
 
-    return () => clearTimeout(debouncedFetch);
+    return () => {
+      clearTimeout(debouncedFetch);
+      // Annulla la subscription della run corrente: tra esecuzioni consecutive
+      // dell'effetto (cambio query/variables/fetchPolicy) e all'unmount resta
+      // attiva al piu' una subscription di prima pagina (nessun leak).
+      if (firstPageSubscription.current) {
+        // Preserva il comportamento precedente: se una run era in corso,
+        // loading torna false (es. skip che diventa true a fetch in corso).
+        setLoading(false);
+        firstPageSubscription.current.unsubscribe();
+        firstPageSubscription.current = null;
+      }
+    };
   }, [skip, query, variables, client, fetchPolicy, reverseGrid]);
 
   const subscribeToMore = useCallback(
@@ -173,6 +180,7 @@ function useFetchData<T>({ query, variables, skip, reverseGrid, fetchPolicy = "n
               newCursor = prevCursor + newItems.length;
               return newCursor;
             });
+            setFetchingMore(false);
             resolve({
               totalCount,
               hasMore,
@@ -204,6 +212,7 @@ function useFetchData<T>({ query, variables, skip, reverseGrid, fetchPolicy = "n
     fetchItems,
     subscribeToMore,
     loading,
+    fetchingMore,
   };
 }
 

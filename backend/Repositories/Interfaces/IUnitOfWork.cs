@@ -42,4 +42,19 @@ public interface IUnitOfWork : IDisposable
     Task BeginTransactionAsync();
     Task CommitTransactionAsync();
     Task RollbackTransactionAsync();
+
+    /// <summary>
+    /// Esegue <paramref name="operation"/> dentro una transazione esplicita:
+    /// begin → operation → commit; in caso di eccezione: rollback + rethrow (eccezione originale, non wrappata).
+    /// Se una transazione è già attiva sul DbContext (CurrentTransaction != null),
+    /// esegue l'operazione direttamente senza aprirne una nuova (la transazione esterna governa commit/rollback).
+    /// </summary>
+    Task<T> ExecuteInTransactionAsync<T>(Func<Task<T>> operation);
+
+    /// <summary>
+    /// Overload senza valore di ritorno di <see cref="ExecuteInTransactionAsync{T}"/>:
+    /// stessa semantica (begin → operation → commit; rollback + rethrow su eccezione;
+    /// passthrough se una transazione è già attiva sul DbContext).
+    /// </summary>
+    Task ExecuteInTransactionAsync(Func<Task> operation);
 }

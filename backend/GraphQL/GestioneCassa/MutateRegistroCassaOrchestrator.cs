@@ -41,45 +41,37 @@ public class MutateRegistroCassaOrchestrator
         await GestioneCassaGuards.GuardMeseChiuso(_chiusuraService, input.Data);
         await GestioneCassaGuards.GuardGiornoOperativoConPeriodi(db, input.Data);
 
-        RegistroCassa registroCassa;
-
-        await _unitOfWork.BeginTransactionAsync();
-        try
+        RegistroCassa registroCassa = await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
             // === Upsert registro base ===
-            registroCassa = await UpsertRegistroBase(db, input);
+            RegistroCassa registro = await UpsertRegistroBase(db, input);
 
             // === Conteggi moneta (apertura + chiusura) ===
             List<DenominazioneMoneta> denominazioni = await db.DenominazioniMoneta.ToListAsync();
-            decimal totaleApertura = AggiungiConteggi(registroCassa, denominazioni, input.ConteggiApertura, isApertura: true);
-            decimal totaleChiusura = AggiungiConteggi(registroCassa, denominazioni, input.ConteggiChiusura, isApertura: false);
-            registroCassa.TotaleApertura = totaleApertura;
-            registroCassa.TotaleChiusura = totaleChiusura;
+            decimal totaleApertura = AggiungiConteggi(registro, denominazioni, input.ConteggiApertura, isApertura: true);
+            decimal totaleChiusura = AggiungiConteggi(registro, denominazioni, input.ConteggiChiusura, isApertura: false);
+            registro.TotaleApertura = totaleApertura;
+            registro.TotaleChiusura = totaleChiusura;
 
             // === Spese giornaliere ===
-            decimal totaleSpese = AggiungiSpese(registroCassa, input.Spese);
+            decimal totaleSpese = AggiungiSpese(registro, input.Spese);
 
             // === Pagamenti fornitori (algoritmo 7-step) ===
-            // Save per garantire che registroCassa.Id sia disponibile per registri nuovi
+            // Save per garantire che registro.Id sia disponibile per registri nuovi
             await _unitOfWork.SaveChangesAsync();
-            await ProcessaPagamentiFornitori(db, registroCassa, input);
+            await ProcessaPagamentiFornitori(db, registro, input);
 
             // === Calcoli finali ===
             BusinessSettings settings = await db.BusinessSettings.FirstAsync();
-            CalcolaTotali(registroCassa, totaleSpese);
+            CalcolaTotali(registro, totaleSpese);
 
             // VenditeContanti/TotaleVendite/ImportoIva + breakdown IVA per aliquota:
             // punto di calcolo unico condiviso con le mutation Vendite
-            await BreakdownIvaApplier.ApplicaAsync(db, registroCassa, settings.VatRate, _logger);
+            await BreakdownIvaApplier.ApplicaAsync(db, registro, settings.VatRate, _logger);
 
             await _unitOfWork.SaveChangesAsync();
-            await _unitOfWork.CommitTransactionAsync();
-        }
-        catch
-        {
-            await _unitOfWork.RollbackTransactionAsync();
-            throw;
-        }
+            return registro;
+        });
 
         // Evento pubblicato DOPO il commit della transazione
         _eventBus.Publish(new RegistroCassaUpdatedEvent

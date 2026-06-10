@@ -2,18 +2,18 @@ import { useEffect, useRef } from "react";
 import { useApolloClient } from "@apollo/client";
 
 import useSettingsSubscription from "./useSettingsSubscription";
-import useStore from "../../store/useStore";
 import { GET_BUSINESS_SETTINGS } from "../settings/queries";
-import { parseSettingsFromRaw } from "../settings/parseSettingsFromRaw";
+import useSyncSettingsToStore from "../settings/useSyncSettingsToStore";
 
 /**
  * Hook globale che ascolta la subscription onSettingsUpdated
- * e sincronizza lo Zustand store con i dati freschi dal server.
+ * e sincronizza lo Zustand store con i dati freschi dal server
+ * tramite useSyncSettingsToStore (unico writer Apollo → Zustand).
  * Da usare in un componente always-mounted (es. Layout).
  */
 function useSettingsSync() {
   const apolloClient = useApolloClient();
-  const { setGiorniNonLavorativi, setPeriodi, setSettings } = useStore();
+  const syncToStore = useSyncSettingsToStore();
   const { data: settingsSubscriptionData } = useSettingsSubscription();
   const lastSettingsEventRef = useRef(settingsSubscriptionData);
 
@@ -23,15 +23,10 @@ function useSettingsSync() {
       apolloClient
         .query({ query: GET_BUSINESS_SETTINGS, fetchPolicy: "network-only" })
         .then((result) => {
-          const parsed = parseSettingsFromRaw(result.data?.settings);
-          if (parsed.settings) {
-            setSettings(parsed.settings);
-          }
-          setPeriodi(parsed.periodi);
-          setGiorniNonLavorativi(parsed.giorniNonLavorativi);
+          syncToStore(result.data?.settings);
         });
     }
-  }, [settingsSubscriptionData, apolloClient, setGiorniNonLavorativi, setPeriodi, setSettings]);
+  }, [settingsSubscriptionData, apolloClient, syncToStore]);
 }
 
 export default useSettingsSync;

@@ -112,5 +112,138 @@ describe("configureClient", () => {
       // (non possiamo ispezionare le policies direttamente, ma possiamo verificare che il cache funzioni)
       expect(client.cache).toBeDefined();
     });
+
+    it("gestioneCassa: entry distinte per argomenti diversi sui campi figli (nessun clobbering)", async () => {
+      const { gql } = await import("@apollo/client");
+      const { default: configureClient } = await getModule();
+      const client = configureClient();
+
+      const REGISTRO_QUERY = gql`
+        query RegistroCassa($data: String!) {
+          gestioneCassa {
+            registroCassa(data: $data) {
+              id
+              totale
+            }
+          }
+        }
+      `;
+
+      client.writeQuery({
+        query: REGISTRO_QUERY,
+        variables: { data: "2026-06-01" },
+        data: { gestioneCassa: { registroCassa: { __typename: "RegistroCassa", id: 1, totale: 100 } } },
+      });
+      client.writeQuery({
+        query: REGISTRO_QUERY,
+        variables: { data: "2026-06-02" },
+        data: { gestioneCassa: { registroCassa: { __typename: "RegistroCassa", id: 2, totale: 200 } } },
+      });
+
+      // Le due date NON condividono la stessa entry: rileggere la prima
+      // restituisce ancora i dati della prima (storeFieldName arg-keyed)
+      const giorno1 = client.readQuery<{ gestioneCassa: { registroCassa: { id: number; totale: number } } }>({
+        query: REGISTRO_QUERY,
+        variables: { data: "2026-06-01" },
+      });
+      const giorno2 = client.readQuery<{ gestioneCassa: { registroCassa: { id: number; totale: number } } }>({
+        query: REGISTRO_QUERY,
+        variables: { data: "2026-06-02" },
+      });
+
+      expect(giorno1?.gestioneCassa.registroCassa).toMatchObject({ id: 1, totale: 100 });
+      expect(giorno2?.gestioneCassa.registroCassa).toMatchObject({ id: 2, totale: 200 });
+    });
+
+    it("gestioneCassa: merge non distruttivo — un incoming parziale preserva i sibling arg-keyed", async () => {
+      const { gql } = await import("@apollo/client");
+      const { default: configureClient } = await getModule();
+      const client = configureClient();
+
+      const REGISTRO_QUERY = gql`
+        query RegistroCassa($data: String!) {
+          gestioneCassa {
+            registroCassa(data: $data) {
+              id
+              totale
+            }
+          }
+        }
+      `;
+      const DENOMINAZIONI_QUERY = gql`
+        query Denominazioni {
+          gestioneCassa {
+            denominazioni {
+              id
+              valore
+            }
+          }
+        }
+      `;
+
+      client.writeQuery({
+        query: REGISTRO_QUERY,
+        variables: { data: "2026-06-01" },
+        data: { gestioneCassa: { registroCassa: { __typename: "RegistroCassa", id: 1, totale: 100 } } },
+      });
+
+      // Incoming che seleziona SOLO un sottoinsieme dei figli di gestioneCassa
+      client.writeQuery({
+        query: DENOMINAZIONI_QUERY,
+        data: { gestioneCassa: { denominazioni: [{ __typename: "Denominazione", id: 1, valore: 50 }] } },
+      });
+
+      // Il registro scritto prima NON viene perso dal merge (mergeObjects built-in)
+      const registro = client.readQuery<{ gestioneCassa: { registroCassa: { id: number; totale: number } } }>({
+        query: REGISTRO_QUERY,
+        variables: { data: "2026-06-01" },
+      });
+      const denominazioni = client.readQuery<{ gestioneCassa: { denominazioni: Array<{ id: number; valore: number }> } }>({
+        query: DENOMINAZIONI_QUERY,
+      });
+
+      expect(registro?.gestioneCassa.registroCassa).toMatchObject({ id: 1, totale: 100 });
+      expect(denominazioni?.gestioneCassa.denominazioni).toHaveLength(1);
+    });
+
+    it("chiusureMensili e connection: entry per anno/filtri coesistono dopo la nuova policy", async () => {
+      const { gql } = await import("@apollo/client");
+      const { default: configureClient } = await getModule();
+      const client = configureClient();
+
+      const CHIUSURE_QUERY = gql`
+        query ChiusureMensili($anno: Int!) {
+          chiusureMensili {
+            chiusureMensili(anno: $anno) {
+              id
+              stato
+            }
+          }
+        }
+      `;
+
+      client.writeQuery({
+        query: CHIUSURE_QUERY,
+        variables: { anno: 2025 },
+        data: { chiusureMensili: { chiusureMensili: [{ __typename: "ChiusuraMensile", id: 10, stato: "CHIUSA" }] } },
+      });
+      client.writeQuery({
+        query: CHIUSURE_QUERY,
+        variables: { anno: 2026 },
+        data: { chiusureMensili: { chiusureMensili: [{ __typename: "ChiusuraMensile", id: 20, stato: "BOZZA" }] } },
+      });
+
+      const anno2025 = client.readQuery<{ chiusureMensili: { chiusureMensili: Array<{ id: number }> } }>({
+        query: CHIUSURE_QUERY,
+        variables: { anno: 2025 },
+      });
+      const anno2026 = client.readQuery<{ chiusureMensili: { chiusureMensili: Array<{ id: number }> } }>({
+        query: CHIUSURE_QUERY,
+        variables: { anno: 2026 },
+      });
+
+      expect(anno2025?.chiusureMensili.chiusureMensili[0].id).toBe(10);
+      expect(anno2026?.chiusureMensili.chiusureMensili[0].id).toBe(20);
+    });
   });
 });

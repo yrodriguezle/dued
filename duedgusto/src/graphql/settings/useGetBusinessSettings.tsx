@@ -1,11 +1,13 @@
 import { useMemo } from "react";
 import { useQuery } from "@apollo/client";
 import { GET_BUSINESS_SETTINGS } from "./queries";
+import { parseSettingsFromRaw, RawSettingsData } from "./parseSettingsFromRaw";
 
 interface UseGetBusinessSettingsResult {
   settings: BusinessSettings | undefined;
   periodi: PeriodoProgrammazione[];
   giorniNonLavorativi: GiornoNonLavorativo[];
+  rawSettings: RawSettingsData | undefined;
   loading: boolean;
   error: Error | undefined;
   refetch: () => Promise<unknown>;
@@ -17,38 +19,15 @@ export function useGetBusinessSettings(skip = false): UseGetBusinessSettingsResu
     pollInterval: 0,
   });
 
-  const settings = useMemo(() => {
-    const rawSettings = data?.settings?.businessSettings;
-    if (!rawSettings) return undefined;
+  const rawSettings: RawSettingsData | undefined = data?.settings;
 
-    return {
-      ...rawSettings,
-      openingTime: rawSettings.openingTime?.substring(0, 5) || "",
-      closingTime: rawSettings.closingTime?.substring(0, 5) || "",
-      operatingDays: typeof rawSettings.operatingDays === "string" ? JSON.parse(rawSettings.operatingDays) : rawSettings.operatingDays,
-    } as BusinessSettings;
-  }, [data?.settings?.businessSettings]);
-
-  const periodi = useMemo(() => {
-    const rawPeriodi = data?.settings?.periodiProgrammazione;
-    if (!rawPeriodi || !Array.isArray(rawPeriodi)) return [];
-
-    return rawPeriodi.map((p: { periodoId: number; dataInizio: string; dataFine: string | null; giorniOperativi: string | boolean[] }) => ({
-      ...p,
-      giorniOperativi: typeof p.giorniOperativi === "string" ? JSON.parse(p.giorniOperativi) : p.giorniOperativi,
-    })) as PeriodoProgrammazione[];
-  }, [data?.settings?.periodiProgrammazione]);
-
-  const giorniNonLavorativi = useMemo(() => {
-    const rawGiorni = data?.settings?.giorniNonLavorativi;
-    if (!rawGiorni || !Array.isArray(rawGiorni)) return [];
-    return rawGiorni as GiornoNonLavorativo[];
-  }, [data?.settings?.giorniNonLavorativi]);
+  const parsed = useMemo(() => parseSettingsFromRaw(rawSettings), [rawSettings]);
 
   return {
-    settings,
-    periodi,
-    giorniNonLavorativi,
+    settings: parsed.settings ?? undefined,
+    periodi: parsed.periodi,
+    giorniNonLavorativi: parsed.giorniNonLavorativi,
+    rawSettings,
     loading,
     error,
     refetch,

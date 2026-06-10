@@ -35,19 +35,12 @@ public class EliminaRegistroCassaOrchestrator
 
         await GestioneCassaGuards.GuardMeseChiusoPerEliminazione(_chiusuraService, registroCassa.Data);
 
-        await _unitOfWork.BeginTransactionAsync();
-        try
+        return await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
             db.RegistriCassa.Remove(registroCassa);
             await _unitOfWork.SaveChangesAsync();
-            await _unitOfWork.CommitTransactionAsync();
 
             return true;
-        }
-        catch
-        {
-            await _unitOfWork.RollbackTransactionAsync();
-            throw;
-        }
+        });
     }
 }

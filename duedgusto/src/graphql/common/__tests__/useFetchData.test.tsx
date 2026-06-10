@@ -63,7 +63,18 @@ const createSpyClient = (onQuery: (call: QueryCall) => Record<string, unknown>) 
 
   return new ApolloClient({
     link: mockLink,
-    cache: new InMemoryCache({ addTypename: false }),
+    cache: new InMemoryCache({
+      addTypename: false,
+      // Stessa policy namespace di produzione (configureClient.tsx): merge
+      // non distruttivo dei campi figli arg-keyed dentro Query.connection.
+      typePolicies: {
+        Query: {
+          fields: {
+            connection: { merge: true },
+          },
+        },
+      },
+    }),
   });
 };
 
@@ -448,3 +459,249 @@ describe("useFetchData — debounce (300ms)", () => {
     }, { timeout: 2000 });
   });
 });
+
+// ─── fetchPolicy, fetchingMore e lifecycle subscription (Fase 4 P0) ─────────
+
+const connectionPage = (items: Array<{ id: number; name: string }>, hasNextPage = false) => ({
+  connection: {
+    testItems: {
+      totalCount: 30,
+      pageInfo: { hasNextPage, endCursor: null, hasPreviousPage: false, startCursor: null },
+      items,
+    },
+  },
+});
+
+describe("useFetchData — fetchPolicy rispettata da fetchItems", () => {
+  it("fetchItems usa la policy di default network-only (nessun cache-first hardcodato)", async () => {
+    const client = createSpyClient(() => connectionPage(mockItems));
+    const querySpy = vi.spyOn(client, "query");
+    const wrapper = createSpyWrapper(client);
+
+    const { result } = renderHook(
+      () => useFetchData({ query: TEST_QUERY, variables: defaultVariables, skip: true }),
+      { wrapper }
+    );
+
+    await act(async () => {
+      await result.current.fetchItems();
+    });
+
+    expect(querySpy).toHaveBeenCalledTimes(1);
+    expect(querySpy).toHaveBeenCalledWith(
+      expect.objectContaining({ fetchPolicy: "network-only" })
+    );
+  });
+
+  it("fetchItems usa cache-first quando passato esplicitamente", async () => {
+    const client = createSpyClient(() => connectionPage(mockItems));
+    const querySpy = vi.spyOn(client, "query");
+    const wrapper = createSpyWrapper(client);
+
+    const { result } = renderHook(
+      () =>
+        useFetchData({
+          query: TEST_QUERY,
+          variables: defaultVariables,
+          skip: true,
+          fetchPolicy: "cache-first",
+        }),
+      { wrapper }
+    );
+
+    await act(async () => {
+      await result.current.fetchItems();
+    });
+
+    expect(querySpy).toHaveBeenCalledWith(
+      expect.objectContaining({ fetchPolicy: "cache-first" })
+    );
+  });
+
+  it("cache-and-network viene ristretta a cache-first per client.query", async () => {
+    const client = createSpyClient(() => connectionPage(mockItems));
+    const querySpy = vi.spyOn(client, "query");
+    const wrapper = createSpyWrapper(client);
+
+    const { result } = renderHook(
+      () =>
+        useFetchData({
+          query: TEST_QUERY,
+          variables: defaultVariables,
+          skip: true,
+          fetchPolicy: "cache-and-network",
+        }),
+      { wrapper }
+    );
+
+    await act(async () => {
+      await result.current.fetchItems();
+    });
+
+    expect(querySpy).toHaveBeenCalledWith(
+      expect.objectContaining({ fetchPolicy: "cache-first" })
+    );
+  });
+});
+
+describe("useFetchData — fetchingMore", () => {
+  it("fetchingMore torna false dopo il success di subscribeToMore e gli item vengono accodati", async () => {
+    const client = createSpyClient(({ variables }) =>
+      variables.after
+        ? connectionPage([{ id: 4, name: "Item 4" }], false)
+        : connectionPage(mockItems, true)
+    );
+    const wrapper = createSpyWrapper(client);
+
+    const { result } = renderHook(
+      () => useFetchData({ query: TEST_QUERY, variables: defaultVariables }),
+      { wrapper }
+    );
+
+    await waitFor(
+      () => {
+        expect(result.current.items).toHaveLength(3);
+      },
+      { timeout: 2000 }
+    );
+    expect(result.current.hasMore).toBe(true);
+    expect(result.current.fetchingMore).toBe(false);
+
+    await act(async () => {
+      await result.current.subscribeToMore();
+    });
+
+    expect(result.current.items).toHaveLength(4);
+    expect(result.current.fetchingMore).toBe(false);
+  });
+});
+
+describe("useFetchData — lifecycle subscription (no leak)", () => {
+  // Avvolge client.watchQuery per intercettare le subscription create e
+  // spiare le relative unsubscribe.
+  const trackSubscriptions = (client: ApolloClient<unknown>) => {
+    const unsubscribeSpies: Array<ReturnType<typeof vi.fn>> = [];
+    const originalWatchQuery = client.watchQuery.bind(client);
+    const patched: typeof client.watchQuery = (options) => {
+      const observable = originalWatchQuery(options);
+      const originalSubscribe = observable.subscribe.bind(observable) as (
+        ...args: unknown[]
+      ) => ReturnType<typeof observable.subscribe>;
+      const subscribePatched = (...args: unknown[]) => {
+        const subscription = originalSubscribe(...args);
+        const originalUnsubscribe = subscription.unsubscribe.bind(subscription);
+        const spy = vi.fn(originalUnsubscribe);
+        subscription.unsubscribe = spy;
+        unsubscribeSpies.push(spy);
+        return subscription;
+      };
+      observable.subscribe = subscribePatched as typeof observable.subscribe;
+      return observable;
+    };
+    client.watchQuery = patched;
+    return unsubscribeSpies;
+  };
+
+  it("al cambio di variables la subscription precedente viene annullata (nessuna orfana)", async () => {
+    const client = createSpyClient(() => connectionPage(mockItems));
+    const unsubscribeSpies = trackSubscriptions(client);
+    const wrapper = createSpyWrapper(client);
+
+    const { result, rerender } = renderHook(
+      ({ vars }: { vars: typeof defaultVariables }) =>
+        useFetchData({ query: TEST_QUERY, variables: vars }),
+      { wrapper, initialProps: { vars: defaultVariables } }
+    );
+
+    await waitFor(
+      () => {
+        expect(result.current.items).toHaveLength(3);
+      },
+      { timeout: 2000 }
+    );
+    expect(unsubscribeSpies).toHaveLength(1);
+    expect(unsubscribeSpies[0]).not.toHaveBeenCalled();
+
+    // Cambio variables: il cleanup dell'effetto annulla SUBITO la subscription
+    // della run precedente (prima ancora che il nuovo debounce scada).
+    rerender({ vars: { ...defaultVariables, where: "filtro" } });
+    expect(unsubscribeSpies[0]).toHaveBeenCalled();
+
+    await waitFor(
+      () => {
+        expect(unsubscribeSpies).toHaveLength(2);
+      },
+      { timeout: 2000 }
+    );
+    // Solo la subscription dell'ultima esecuzione resta attiva
+    expect(unsubscribeSpies[1]).not.toHaveBeenCalled();
+  });
+
+  it("all'unmount la subscription attiva viene annullata (nessun update post-unmount)", async () => {
+    const client = createSpyClient(() => connectionPage(mockItems));
+    const unsubscribeSpies = trackSubscriptions(client);
+    const wrapper = createSpyWrapper(client);
+
+    const { result, unmount } = renderHook(
+      () => useFetchData({ query: TEST_QUERY, variables: defaultVariables }),
+      { wrapper }
+    );
+
+    await waitFor(
+      () => {
+        expect(result.current.items).toHaveLength(3);
+      },
+      { timeout: 2000 }
+    );
+    expect(unsubscribeSpies).toHaveLength(1);
+
+    unmount();
+
+    // Tutte le subscription risultano annullate: nessun aggiornamento di stato possibile
+    unsubscribeSpies.forEach((spy) => {
+      expect(spy).toHaveBeenCalled();
+    });
+  });
+
+  it("smontare durante un fetch in corso annulla la subscription prima della risposta", async () => {
+    let resolveResponse: (() => void) | undefined;
+    const slowLink = new ApolloLink((operation) => {
+      return new Observable((observer) => {
+        resolveResponse = () => {
+          observer.next({ data: connectionPage(mockItems) });
+          observer.complete();
+        };
+        void operation;
+      });
+    });
+    const client = new ApolloClient({
+      link: slowLink,
+      cache: new InMemoryCache({ addTypename: false }),
+    });
+    const unsubscribeSpies = trackSubscriptions(client);
+    const wrapper = createSpyWrapper(client);
+
+    const { result, unmount } = renderHook(
+      () => useFetchData({ query: TEST_QUERY, variables: defaultVariables }),
+      { wrapper }
+    );
+
+    // Aspetta che il debounce scada e la subscription parta (risposta MAI arrivata)
+    await waitFor(
+      () => {
+        expect(unsubscribeSpies).toHaveLength(1);
+      },
+      { timeout: 2000 }
+    );
+    expect(result.current.loading).toBe(true);
+
+    unmount();
+    expect(unsubscribeSpies[0]).toHaveBeenCalled();
+
+    // La risposta tardiva non deve produrre aggiornamenti di stato (subscription chiusa)
+    act(() => {
+      resolveResponse?.();
+    });
+  });
+});
+

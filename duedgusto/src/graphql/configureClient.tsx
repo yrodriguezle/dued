@@ -157,37 +157,15 @@ function configureClient() {
         },
         Query: {
           fields: {
-            connection: {
-              // Indica ad Apollo di ignorare gli argomenti per questo campo, oppure
-              // se preferisci, specifica quali argomenti utilizzabili per differenziare i campi
-              keyArgs: false,
-              merge(existing = {}, incoming) {
-                // Logica di merge: unisci gli oggetti esistenti e quelli in arrivo.
-                // Questo esempio esegue una fusione superficiale; adatta la logica
-                // in base alla struttura dei tuoi dati
-                return { ...existing, ...incoming };
-              },
-            },
-            gestioneCassa: {
-              // Merge function for gestioneCassa field to avoid cache loss warnings
-              // This field doesn't have a stable ID, so we use keyArgs: false to merge
-              // all requests into a single cache entry
-              keyArgs: false,
-              merge(existing = {}, incoming) {
-                // Deep merge of existing and incoming data
-                // Preserve denominations if incoming doesn't have them
-                return {
-                  ...existing,
-                  ...incoming,
-                };
-              },
-            },
-            chiusureMensili: {
-              keyArgs: false,
-              merge(existing = {}, incoming) {
-                return { ...existing, ...incoming };
-              },
-            },
+            // Namespace fields senza argomenti: gli argomenti discriminanti vivono
+            // sui campi figli e Apollo li codifica nello storeFieldName
+            // (es. registroCassa({"data":...})). merge: true = mergeObjects built-in:
+            // preserva i sibling arg-keyed esistenti quando una query successiva
+            // seleziona solo un sottoinsieme dei figli.
+            connection: { merge: true },
+            gestioneCassa: { merge: true },
+            chiusureMensili: { merge: true },
+            settings: { merge: true },
           },
         },
       },

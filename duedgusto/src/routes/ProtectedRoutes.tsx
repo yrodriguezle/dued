@@ -5,6 +5,7 @@ import Layout from "../components/layout/Layout";
 import { Fallback } from "./RoutesFallback";
 import useStore from "../store/useStore";
 import { loadDynamicComponent } from "./dynamicComponentLoader";
+import RouteErrorBoundary from "./RouteErrorBoundary";
 
 const HomePage = React.lazy(() => import("../components/pages/dashboard/HomePage.tsx"));
 const MonthlyClosureDetails = React.lazy(() => import("../components/pages/registrazioneCassa/MonthlyClosureDetails.tsx"));
@@ -41,7 +42,9 @@ function ProtectedRoutes() {
           path="dashboard"
           element={
             <Suspense fallback={<Fallback />}>
-              <HomePage />
+              <RouteErrorBoundary>
+                <HomePage />
+              </RouteErrorBoundary>
             </Suspense>
           }
         />
@@ -63,7 +66,9 @@ function ProtectedRoutes() {
           path="cassa/vista-mensile"
           element={
             <Suspense fallback={<Fallback />}>
-              <VistaMensile />
+              <RouteErrorBoundary>
+                <VistaMensile />
+              </RouteErrorBoundary>
             </Suspense>
           }
         />
@@ -71,7 +76,9 @@ function ProtectedRoutes() {
           path="cassa/chiusura-mensile/new"
           element={
             <Suspense fallback={<Fallback />}>
-              <MonthlyClosureDetails />
+              <RouteErrorBoundary>
+                <MonthlyClosureDetails />
+              </RouteErrorBoundary>
             </Suspense>
           }
         />
@@ -79,7 +86,9 @@ function ProtectedRoutes() {
           path="cassa/chiusura-mensile/:id"
           element={
             <Suspense fallback={<Fallback />}>
-              <MonthlyClosureDetails />
+              <RouteErrorBoundary>
+                <MonthlyClosureDetails />
+              </RouteErrorBoundary>
             </Suspense>
           }
         />
@@ -87,7 +96,9 @@ function ProtectedRoutes() {
           path="cassa/details/:date"
           element={
             <Suspense fallback={<Fallback />}>
-              <CashRegisterDetails />
+              <RouteErrorBoundary>
+                <CashRegisterDetails />
+              </RouteErrorBoundary>
             </Suspense>
           }
         />
@@ -95,7 +106,9 @@ function ProtectedRoutes() {
           path="profilo"
           element={
             <Suspense fallback={<Fallback />}>
-              <ProfilePage />
+              <RouteErrorBoundary>
+                <ProfilePage />
+              </RouteErrorBoundary>
             </Suspense>
           }
         />
@@ -115,7 +128,9 @@ function ProtectedRoutes() {
                 path={finalPath}
                 element={
                   <Suspense fallback={<Fallback />}>
-                    <DynamicComponent />
+                    <RouteErrorBoundary>
+                      <DynamicComponent />
+                    </RouteErrorBoundary>
                   </Suspense>
                 }
               />

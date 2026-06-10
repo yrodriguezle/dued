@@ -11,9 +11,11 @@ import BusinessSettingsForm from "./BusinessSettingsForm";
 import FormikToolbar from "../../common/form/toolbar/FormikToolbar";
 import useInitializeValues from "./useInitializeValues";
 import { UPDATE_BUSINESS_SETTINGS } from "../../../graphql/settings/mutations";
+import { GET_BUSINESS_SETTINGS } from "../../../graphql/settings/queries";
+import { parseSettingsFromRaw } from "../../../graphql/settings/parseSettingsFromRaw";
+import useSyncSettingsToStore from "../../../graphql/settings/useSyncSettingsToStore";
 import { formStatuses } from "../../../common/globals/constants";
 import useConfirm from "../../common/confirm/useConfirm";
-import useStore from "../../../store/useStore";
 
 const validationSchema = z.object({
   businessName: z.string().min(2, "Nome attività troppo corto"),
@@ -36,31 +38,28 @@ const validationSchema = z.object({
 
 function SettingsDetails() {
   const { setTitle } = useContext(PageTitleContext);
-  const { settings, periodi, giorniNonLavorativi, loading, error } = useGetBusinessSettings();
+  const { settings, periodi, giorniNonLavorativi, rawSettings, loading, error } = useGetBusinessSettings();
   const formRef = useRef<FormikProps<BusinessSettings>>(null);
   const { initialValues, handleInitializeValues } = useInitializeValues({ skipInitialize: false });
   const onConfirm = useConfirm();
-  const setSettings = useStore((state) => state.setSettings);
-  const setPeriodi = useStore((state) => state.setPeriodi);
-  const setGiorniNonLavorativi = useStore((state) => state.setGiorniNonLavorativi);
+  const syncToStore = useSyncSettingsToStore();
 
   const [updateMutation] = useMutation(UPDATE_BUSINESS_SETTINGS, {
+    // Il refetch awaited aggiorna la query osservata → l'effect unico sincronizza lo store
+    refetchQueries: [{ query: GET_BUSINESS_SETTINGS }],
+    awaitRefetchQueries: true,
     onCompleted: (data) => {
       const updated = data.settings.updateBusinessSettings;
-      const parsed = {
-        ...updated,
-        operatingDays: typeof updated.operatingDays === "string" ? JSON.parse(updated.operatingDays) : updated.operatingDays,
-      };
+      const parsed = parseSettingsFromRaw({ businessSettings: updated }).settings;
 
-      // Aggiorna lo store globale per riflettere subito le modifiche (es. calendario)
-      setSettings(parsed as BusinessSettings);
-
-      handleInitializeValues(parsed).then(() => {
-        formRef.current?.setStatus({
-          formStatus: formStatuses.UPDATE,
-          isFormLocked: true,
+      if (parsed) {
+        handleInitializeValues(parsed).then(() => {
+          formRef.current?.setStatus({
+            formStatus: formStatuses.UPDATE,
+            isFormLocked: true,
+          });
         });
-      });
+      }
       toast.success("Impostazioni aggiornate con successo");
     },
     onError: (err) => {
@@ -86,14 +85,13 @@ function SettingsDetails() {
     }
   }, [settings, handleInitializeValues]);
 
-  // Sincronizza periodi e giorni non lavorativi da Apollo → Zustand store
+  // Percorso unico di sync Apollo → Zustand: ogni refetch di GET_BUSINESS_SETTINGS
+  // aggiorna rawSettings → l'effect sincronizza settings, periodi e giorni non lavorativi
   useEffect(() => {
-    setPeriodi(periodi);
-  }, [periodi, setPeriodi]);
-
-  useEffect(() => {
-    setGiorniNonLavorativi(giorniNonLavorativi);
-  }, [giorniNonLavorativi, setGiorniNonLavorativi]);
+    if (rawSettings) {
+      syncToStore(rawSettings);
+    }
+  }, [rawSettings, syncToStore]);
 
   const handleResetForm = useCallback(
     async (hasChanges: boolean) => {

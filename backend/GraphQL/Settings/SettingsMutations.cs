@@ -8,8 +8,8 @@ using duedgusto.DataAccess;
 
 using duedgusto.GraphQL.Settings.Types;
 using duedgusto.GraphQL.Subscriptions.Types;
+using duedgusto.Repositories.Interfaces;
 using duedgusto.Services.Events;
-using Microsoft.EntityFrameworkCore.Storage;
 
 namespace duedgusto.GraphQL.Settings;
 
@@ -145,8 +145,9 @@ public class SettingsMutations : ObjectGraphType
                     throw new ExecutionError("giorniOperativi deve essere un array JSON valido di 7 valori booleani");
                 }
 
-                await using IDbContextTransaction transaction = await dbContext.Database.BeginTransactionAsync();
-                try
+                // Stessa istanza scoped di AppDbContext condivisa con dbContext (DI per-request)
+                IUnitOfWork unitOfWork = GraphQLService.GetService<IUnitOfWork>(context);
+                return await unitOfWork.ExecuteInTransactionAsync(async () =>
                 {
                     BusinessSettings settings = await dbContext.BusinessSettings.FirstAsync();
 
@@ -202,15 +203,9 @@ public class SettingsMutations : ObjectGraphType
                     }
 
                     await dbContext.SaveChangesAsync();
-                    await transaction.CommitAsync();
 
                     return nuovo;
-                }
-                catch
-                {
-                    await transaction.RollbackAsync();
-                    throw;
-                }
+                });
             });
 
         // Update an existing programming period

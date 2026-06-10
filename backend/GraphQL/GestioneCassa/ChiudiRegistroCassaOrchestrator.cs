@@ -39,20 +39,13 @@ public class ChiudiRegistroCassaOrchestrator
         await GestioneCassaGuards.GuardMeseChiuso(_chiusuraService, registroCassa.Data);
         await GestioneCassaGuards.GuardGiornoOperativoConPeriodi(db, registroCassa.Data, "chiudere");
 
-        await _unitOfWork.BeginTransactionAsync();
-        try
+        await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
             registroCassa.Stato = "CLOSED";
             registroCassa.UpdatedAt = DateTime.UtcNow;
 
             await _unitOfWork.SaveChangesAsync();
-            await _unitOfWork.CommitTransactionAsync();
-        }
-        catch
-        {
-            await _unitOfWork.RollbackTransactionAsync();
-            throw;
-        }
+        });
 
         // Eventi pubblicati DOPO il commit della transazione
         _eventBus.Publish(new ChiusuraCassaCompletedEvent

@@ -14,8 +14,7 @@ public class DocumentoTrasportoService(IUnitOfWork unitOfWork, RegistroCassaSync
 
     public async Task<DocumentoTrasporto> MutateAsync(DocumentoTrasportoInput input, int utenteId)
     {
-        await _unitOfWork.BeginTransactionAsync();
-        try
+        return await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
             DocumentoTrasporto? ddt;
 
@@ -72,15 +71,8 @@ public class DocumentoTrasportoService(IUnitOfWork unitOfWork, RegistroCassaSync
                     _syncService.RecalculateSpeseFornitoriAsync(r.Id)));
             }
 
-            await _unitOfWork.CommitTransactionAsync();
-
             return ddt;
-        }
-        catch
-        {
-            await _unitOfWork.RollbackTransactionAsync();
-            throw;
-        }
+        });
     }
 
     public async Task<bool> EliminaAsync(int ddtId)

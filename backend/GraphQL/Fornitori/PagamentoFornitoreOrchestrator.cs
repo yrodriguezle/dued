@@ -24,8 +24,7 @@ public class PagamentoFornitoreOrchestrator
 
     public async Task<PagamentoFornitore> MutateAsync(PagamentoFornitoreInput input, int utenteId)
     {
-        await _unitOfWork.BeginTransactionAsync();
-        try
+        return await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
             PagamentoFornitore? payment;
             int? oldRegistroCassaId = null;
@@ -84,21 +83,13 @@ public class PagamentoFornitoreOrchestrator
                 await _syncService.RecalculateSpeseFornitoriAsync(oldRegistroCassaId.Value);
             }
 
-            await _unitOfWork.CommitTransactionAsync();
-
             return payment;
-        }
-        catch
-        {
-            await _unitOfWork.RollbackTransactionAsync();
-            throw;
-        }
+        });
     }
 
     public async Task<bool> EliminaAsync(int pagamentoId)
     {
-        await _unitOfWork.BeginTransactionAsync();
-        try
+        return await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
             PagamentoFornitore payment = await _unitOfWork.PagamentiFornitori.GetByIdAsync(pagamentoId)
                       ?? throw new ExecutionError($"Pagamento fornitore con ID {pagamentoId} non trovato");
@@ -129,14 +120,7 @@ public class PagamentoFornitoreOrchestrator
                 await _syncService.RecalculateSpeseFornitoriAsync(registroCassaId.Value);
             }
 
-            await _unitOfWork.CommitTransactionAsync();
-
             return true;
-        }
-        catch
-        {
-            await _unitOfWork.RollbackTransactionAsync();
-            throw;
-        }
+        });
     }
 }

@@ -67,15 +67,10 @@ function PeriodoProgrammazioneSection({ periodi }: PeriodoProgrammazioneSectionP
 
   const [creaPeriodo, { loading: creando }] = useMutation(CREA_PERIODO_PROGRAMMAZIONE, {
     refetchQueries: [{ query: GET_BUSINESS_SETTINGS }],
-    onCompleted: (data) => {
+    awaitRefetchQueries: true,
+    onCompleted: () => {
       toast.success("Periodo creato con successo");
       setDialogState(initialDialogState);
-      // Aggiorna lo store con i periodi dal refetch
-      const periodiData = data?.settings?.creaPeriodo;
-      if (periodiData) {
-        // Il refetch aggiornerà automaticamente i dati nella cache Apollo
-        // Lo store verrà aggiornato tramite il componente padre
-      }
     },
     onError: (err) => {
       toast.error(err.message || "Errore durante la creazione del periodo");
@@ -84,6 +79,7 @@ function PeriodoProgrammazioneSection({ periodi }: PeriodoProgrammazioneSectionP
 
   const [aggiornaPeriodo, { loading: aggiornando }] = useMutation(AGGIORNA_PERIODO_PROGRAMMAZIONE, {
     refetchQueries: [{ query: GET_BUSINESS_SETTINGS }],
+    awaitRefetchQueries: true,
     onCompleted: () => {
       toast.success("Periodo aggiornato con successo");
       setDialogState(initialDialogState);
@@ -95,6 +91,7 @@ function PeriodoProgrammazioneSection({ periodi }: PeriodoProgrammazioneSectionP
 
   const [eliminaPeriodo, { loading: eliminando }] = useMutation(ELIMINA_PERIODO_PROGRAMMAZIONE, {
     refetchQueries: [{ query: GET_BUSINESS_SETTINGS }],
+    awaitRefetchQueries: true,
     onCompleted: () => {
       toast.success("Periodo eliminato con successo");
     },
