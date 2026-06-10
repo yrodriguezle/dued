@@ -1,8 +1,17 @@
-# Specifications: Rinominazione Italiano Gestione Cassa
+# Gestione Cassa Specification
 
-**Change**: rinominazione-italiano-gestione-cassa
-**Date**: 2026-03-13
-**Status**: Draft
+**Domain**: gestione-cassa
+**Status**: Active
+**Ultimo aggiornamento**: 2026-06-10
+
+Change incorporate in questa spec:
+
+| Change | Archiviata il | Sezioni |
+|--------|---------------|---------|
+| rinominazione-italiano-gestione-cassa | 2026-03-13 | 1–6 (nomenclatura italiana) |
+| fix-salvataggio-cassa-fase1 | 2026-06-10 | 7 (salvataggio registro, dedup documenti, totali e riepilogo) |
+| coerenza-calcoli-fase2 | 2026-06-10 | 8 (KPI dashboard, guard giorno operativo, vista mensile); riformulazione requirement IVA in sez. 7 |
+| iva-multialiquota-fase3 | 2026-06-10 | 9 (aliquota IVA prodotto, snapshot vendita, breakdown IVA registro) |
 
 ---
 
@@ -526,3 +535,749 @@ La migrazione database Fase 2 DEVE usare `RenameTable` e `RenameColumn` (non dro
 - [ ] Le tabelle DB sono rinominate in italiano (Fase 2)
 - [ ] Nessun mapping EF Core temporaneo residuo dopo la Fase 2
 - [ ] Nessuna regressione funzionale: il comportamento del sistema e identico a prima della rinominazione
+
+---
+
+## 7. Requirements: Salvataggio Registro Cassa (fix-salvataggio-cassa-fase1)
+
+> Nota sullo schema GraphQL: questi requirement NON hanno richiesto modifiche allo schema GraphQL.
+> La mutation `gestioneCassa.mutateRegistroCassa` restituisce `pagamentiFornitori`
+> con `pagamentoId`, `fattura.fatturaId`, `ddt.ddtId` e i campi identificativi
+> (`fornitore.fornitoreId`, `numeroFattura`, `numeroDdt`) tramite `RegistroCassaFragment`.
+> Anche `importoIva` e `totaleVendite` sono esposti sul tipo `RegistroCassa`.
+
+### Requirement: Riuso DocumentoTrasporto esistente in salvataggio registro
+
+Quando il salvataggio del registro cassa crea un pagamento fornitore di tipo DDT senza
+`ddtId`, il sistema MUST cercare un `DocumentoTrasporto` esistente per la coppia
+`(FornitoreId, NumeroDdt)` — la stessa chiave dell'indice UNIQUE
+`IX_DocumentiTrasporto_FornitoreId_NumeroDdt` — e, se trovato, MUST riusarne l'ID invece
+di creare un nuovo record. Il confronto MUST trattare il numero DDT vuoto/null in modo
+normalizzato e coerente con la creazione: ogni riga con numero vuoto risolve a un
+documento con numero placeholder deterministico `SN-{yyyyMMdd}-{seq}` (data del registro,
+progressivo per fornitore), riusabile in modo idempotente ai salvataggi successivi.
+Il sistema MUST NOT sollevare violazioni dell'indice UNIQUE durante il salvataggio del
+registro per DDT già esistenti.
+
+#### Scenario: Riscrittura registro con DDT già registrato
+
+- GIVEN un registro cassa salvato in precedenza con un pagamento collegato al DDT n. "123" del fornitore F
+- AND il client reinvia la riga spesa senza `ddtId` (es. prima del refetch)
+- WHEN viene eseguita la mutation `mutateRegistroCassa` con la riga DDT n. "123" del fornitore F
+- THEN il sistema riusa il `DocumentoTrasporto` esistente `(F, "123")` senza crearne uno nuovo
+- AND il salvataggio completa con successo senza errori `Duplicate entry`
+- AND nel database esiste un solo DDT con quella coppia fornitore/numero
+
+#### Scenario: Due righe DDT senza numero per lo stesso fornitore
+
+- GIVEN un registro cassa in compilazione con due righe spesa di tipo DDT per lo stesso fornitore F, entrambe con numero DDT vuoto
+- WHEN l'utente salva il registro
+- THEN il salvataggio completa con successo senza violazione dell'indice UNIQUE
+- AND il comportamento è deterministico e documentato: ogni riga senza numero risolve a un documento placeholder distinto `SN-{yyyyMMdd}-{seq}` (es. `SN-20260609-1` e `SN-20260609-2`)
+- AND un risalvataggio del registro riusa gli stessi documenti placeholder in modo idempotente, senza crearne di nuovi
+
+#### Scenario: DDT nuovo (nessun documento esistente)
+
+- GIVEN nessun `DocumentoTrasporto` esiste per la coppia `(fornitore F, numero "456")`
+- WHEN l'utente salva il registro con una riga spesa DDT n. "456" del fornitore F
+- THEN il sistema crea un nuovo `DocumentoTrasporto` con fornitore F, numero "456", data e importo della riga
+- AND il pagamento fornitore creato referenzia il nuovo `ddtId`
+
+### Requirement: Deduplicazione fatture acquisto estesa al numero vuoto
+
+La deduplicazione delle fatture acquisto in salvataggio registro MUST essere applicata
+anche quando `NumeroFattura` è vuoto o null, usando la stessa normalizzazione del valore
+persistito (la chiave di ricerca MUST coincidere con quella dell'indice UNIQUE
+`IX_FattureAcquisto_FornitoreId_NumeroFattura`). Il sistema MUST NOT creare una seconda
+fattura con la stessa coppia `(FornitoreId, NumeroFattura)`.
+
+#### Scenario: Fattura con numero vuoto già esistente
+
+- GIVEN esiste una `FatturaAcquisto` del fornitore F con `NumeroFattura` vuoto (creata da un salvataggio precedente)
+- WHEN l'utente risalva il registro con una riga spesa fattura del fornitore F senza numero fattura e senza `fatturaId`
+- THEN il sistema trova la fattura esistente con la chiave normalizzata `(F, "")` e la riusa
+- AND il salvataggio completa senza errori `Duplicate entry`
+
+#### Scenario: Riuso fattura orfana (senza pagamenti)
+
+- GIVEN esiste una `FatturaAcquisto` `(F, "789")` senza alcun pagamento collegato
+- WHEN l'utente salva un registro con una riga spesa fattura n. "789" del fornitore F
+- THEN il sistema riusa la fattura esistente collegandovi il nuovo pagamento
+- AND non viene creata una seconda fattura `(F, "789")`
+
+### Requirement: Distinzione tra riscrittura dello stesso registro e doppia registrazione fattura
+
+Quando la dedup trova una fattura esistente che ha già pagamenti collegati, il sistema
+MUST distinguere i due casi: se tutti i pagamenti esistenti appartengono al registro
+cassa in corso di salvataggio (riscrittura legittima), il sistema MUST riusare la fattura
+senza errore; se almeno un pagamento appartiene a un ALTRO registro cassa, il sistema
+MUST rifiutare l'operazione con un errore esplicito di doppia registrazione che
+identifichi fattura e fornitore. L'errore MUST provocare il rollback dell'intera
+transazione (nessun salvataggio parziale).
+
+#### Scenario: Riscrittura del registro con fattura già pagata dallo stesso registro
+
+- GIVEN il registro R è stato salvato con una riga spesa fattura n. "100" del fornitore F (pagamento P collegato alla fattura, `RegistroCassaId = R`)
+- AND il client reinvia la riga con `pagamentoId = null` (es. risalvataggio prima del refetch)
+- WHEN viene eseguita la mutation `mutateRegistroCassa` per il registro R con la riga fattura n. "100" del fornitore F
+- THEN il sistema riusa la fattura esistente senza sollevare l'errore di doppia registrazione
+- AND il salvataggio completa con successo
+- AND la fattura n. "100" del fornitore F resta unica nel database
+
+#### Scenario: Vera doppia registrazione (pagamenti di un altro registro)
+
+- GIVEN la fattura n. "200" del fornitore F ha un pagamento collegato al registro R1
+- WHEN l'utente tenta di salvare il registro R2 (giorno diverso) con una riga spesa fattura n. "200" del fornitore F senza `fatturaId`/`pagamentoId`
+- THEN il sistema rifiuta il salvataggio con un errore che indica che la fattura è già registrata (numero fattura e fornitore nel messaggio)
+- AND l'intera transazione viene annullata: il registro R2 non viene salvato né parzialmente modificato
+
+### Requirement: Salvataggio registro con saldo di giornata negativo
+
+Il sistema MUST salvare correttamente un registro cassa il cui risultato di giornata è
+negativo (spese superiori agli incassi), inclusi DDT e fatture allegati. I campi
+`ContanteAtteso`, `Differenza` e i totali MUST accettare e persistere valori negativi.
+Il valore negativo MUST NOT essere causa di errore o di rollback.
+
+#### Scenario: Spese fornitori superiori agli incassi con documenti allegati
+
+- GIVEN un registro cassa con incasso contante tracciato 100€, incassi elettronici 0€, incassi fattura 0€
+- AND righe spesa per 250€ totali che includono una fattura acquisto e un DDT
+- WHEN l'utente salva il registro
+- THEN la mutation completa con successo e il registro viene persistito
+- AND `ContanteAtteso` risulta negativo (100 − spese) e viene salvato con il segno corretto
+- AND i documenti (fattura e DDT) risultano creati o riusati senza duplicati
+
+#### Scenario: Risalvataggio consecutivo di un registro con saldo negativo
+
+- GIVEN il registro con saldo negativo dello scenario precedente è stato appena salvato
+- WHEN l'utente preme di nuovo Salva senza che sia avvenuto il refetch
+- THEN il salvataggio completa di nuovo con successo
+- AND non vengono creati pagamenti, fatture o DDT duplicati
+
+### Requirement: Formula ContanteAtteso corretta
+
+Il calcolo dei totali del registro cassa MUST applicare la formula
+`ContanteAtteso = IncassoContanteTracciato − SpeseFornitori − SpeseGiornaliere`.
+Il sistema MUST NOT azzerare o ignorare la componente di incasso contante nel calcolo.
+`Differenza` MUST restare derivata come
+`(TotaleChiusura − TotaleApertura) − ContanteAtteso`.
+
+#### Scenario: Calcolo ContanteAtteso con incassi e spese
+
+- GIVEN un registro con incasso contante tracciato 500€, spese fornitori 120€, spese giornaliere 30€
+- AND totale apertura 200€ e totale chiusura 550€
+- WHEN il registro viene salvato
+- THEN `ContanteAtteso` persistito vale 350€ (500 − 120 − 30)
+- AND `Differenza` vale 0€ ((550 − 200) − 350)
+
+#### Scenario: ContanteAtteso negativo
+
+- GIVEN un registro con incasso contante tracciato 50€, spese fornitori 200€, spese giornaliere 0€
+- WHEN il registro viene salvato
+- THEN `ContanteAtteso` persistito vale −150€
+- AND il salvataggio completa senza errori
+
+### Requirement: Sincronizzazione ID documenti sulle righe spese dopo il submit
+
+Dopo un submit riuscito della mutation `mutateRegistroCassa`, il frontend MUST aggiornare
+le righe spese di tipo pagamento fornitore con gli identificativi restituiti dal server
+(`pagamentoId`, `fatturaId`, `ddtId` da `result.pagamentiFornitori`), così che un
+risalvataggio immediato invii aggiornamenti (`pagamentoId` valorizzato) e non nuovi
+inserimenti. L'associazione riga-pagamento restituito MUST avvenire per chiave di
+business (fornitore + tipo documento + numero documento), NOT per posizione/indice.
+Se l'associazione per chiave non è possibile (mismatch tra righe inviate e pagamenti
+restituiti), il frontend MUST riallineare lo stato con un refetch completo del registro
+invece di lasciare righe con ID mancanti o errati.
+
+#### Scenario: Risalvataggio immediato prima del refetch
+
+- GIVEN l'utente ha salvato con successo un registro con una riga spesa DDT n. "123" del fornitore F (prima volta, senza ID)
+- AND la mutation ha restituito `pagamentiFornitori` con `pagamentoId`, `ddtId` per quella riga
+- WHEN l'utente preme di nuovo Salva senza ricaricare la pagina e senza refetch
+- THEN la riga spesa viene inviata con `pagamentoId` e `ddtId` valorizzati (update, non insert)
+- AND il backend aggiorna il pagamento esistente senza cancellarlo e ricrearlo
+- AND il salvataggio completa senza errori `Duplicate entry`
+
+#### Scenario: Aggiornamento righe miste fattura e DDT
+
+- GIVEN un submit riuscito con due righe spesa: una fattura n. "10" del fornitore A e un DDT n. "20" del fornitore B
+- WHEN il frontend elabora `result.pagamentiFornitori`
+- THEN la riga fattura riceve `pagamentoId` e `fatturaId` del pagamento con fornitore A e numero fattura "10"
+- AND la riga DDT riceve `pagamentoId` e `ddtId` del pagamento con fornitore B e numero DDT "20"
+- AND nessuna riga riceve gli ID dell'altra (match per chiave, non per indice)
+
+#### Scenario: Mismatch tra righe inviate e pagamenti restituiti
+
+- GIVEN un submit riuscito in cui il numero o le chiavi dei `pagamentiFornitori` restituiti non corrispondono alle righe spese in griglia
+- WHEN il frontend tenta la mappatura per chiave e rileva il mismatch
+- THEN il frontend esegue un refetch completo del registro dal server
+- AND la griglia spese viene ripopolata con i dati e gli ID del server
+
+### Requirement: IVA visualizzata dal backend
+
+Il riepilogo cassa attivo (`SummaryDataGrid`) MUST mostrare l'IVA usando il valore
+`importoIva` calcolato e restituito dal backend. Il frontend MUST NOT calcolare l'IVA con
+un'aliquota hardcoded (es. `totalSales * 0.1`). Il backend resta l'unica fonte di verità
+per l'aliquota (da `BusinessSettings.VatRate`) e per lo scorporo.
+
+> Nota (coerenza-calcoli-fase2): il requirement era originariamente formulato sul
+> componente `CashSummary`, rimosso in Fase 2 perché dead code (nessun import nel
+> codebase). Il requisito sostanziale resta in vigore sul riepilogo attivo
+> `SummaryDataGrid`, già allineato in Fase 1.
+
+#### Scenario: Visualizzazione IVA su registro salvato
+
+- GIVEN un registro cassa salvato per cui il backend ha calcolato `importoIva`
+- WHEN l'utente apre la pagina di gestione cassa di quel giorno
+- THEN il riepilogo mostra l'IVA pari al campo `importoIva` del server
+- AND nessun ricalcolo locale con aliquota fissa al 10% viene applicato
+
+#### Scenario: Registro nuovo non ancora salvato
+
+- GIVEN l'utente sta compilando un registro nuovo non ancora salvato (nessun `importoIva` dal server)
+- WHEN il riepilogo viene renderizzato
+- THEN l'IVA MUST NOT essere calcolata con l'aliquota 10% hardcoded
+- AND il riepilogo mostra un valore neutro definito (0 o assente) finché il dato del server non è disponibile, oppure dopo il salvataggio mostra l'`importoIva` restituito dalla mutation
+
+### Requirement: Totale Vendite frontend allineato al backend
+
+Il valore "Totale Vendite" visualizzato dal frontend (`SummaryDataGrid`) MUST coincidere
+con il `totaleVendite` calcolato dal backend, definito come somma dei canali di incasso
+(`incassoContanteTracciato + incassiElettronici + incassiFattura`). Il frontend MUST NOT
+derivarlo dal movimento fisico di cassa
+(attuale `(chiusura − apertura) + elettronico + fattura`). In presenza del dato del
+server il frontend SHOULD usarlo direttamente.
+
+#### Scenario: Totale Vendite coerente tra riepilogo e backend
+
+- GIVEN un registro con incasso contante tracciato 300€, incassi elettronici 150€, incassi fattura 50€
+- AND conteggi fisici con chiusura − apertura = 280€ (diverso dal contante tracciato)
+- WHEN il riepilogo viene visualizzato
+- THEN il Totale Vendite mostrato vale 500€ (300 + 150 + 50)
+- AND coincide con il campo `totaleVendite` restituito dal backend
+- AND il movimento fisico (280€) non altera il Totale Vendite
+
+---
+
+## 8. Requirements: Coerenza Calcoli e KPI (coerenza-calcoli-fase2)
+
+> Nota sullo schema GraphQL: questi requirement NON hanno modificato lo schema GraphQL
+> del modulo gestione cassa. I campi del tipo `RegistroCassaKPI` (`venditeOggi`,
+> `differenzaOggi`, `venditeMese`, `mediaMese`, `trendSettimana`) restano invariati nel
+> nome e nel tipo; sono cambiati i criteri di calcolo di `mediaMese` e `trendSettimana`.
+>
+> Nota: la Fase 2 ha inoltre rimosso il componente `CashSummary.tsx` (dead code, nessun
+> import nel codebase); il riepilogo attivo è `SummaryDataGrid.tsx` (vedi requirement
+> "IVA visualizzata dal backend" in sezione 7, riformulato di conseguenza).
+
+### Requirement: MediaMese calcolata solo sui registri chiusi
+
+Il KPI `mediaMese` MUST essere la media di `TotaleVendite` dei soli registri cassa del
+mese corrente (dal primo del mese a oggi incluso) con stato `CLOSED` o `RECONCILED`.
+I registri `DRAFT` MUST NOT concorrere alla media. Se nel mese non esiste alcun registro
+`CLOSED`/`RECONCILED`, `mediaMese` MUST valere 0 (nessuna divisione per zero).
+I KPI `venditeOggi` e `differenzaOggi` MUST continuare a riflettere il registro del
+giorno corrente qualunque sia il suo stato (incluso `DRAFT`: è il dato live di oggi);
+`venditeMese` resta invariato.
+
+(Precedentemente: la media includeva tutti i registri del mese, e i DRAFT — che valgono
+0 € — abbassavano artificialmente il valore.)
+
+#### Scenario: Mese con registri chiusi e bozze
+
+- GIVEN un mese corrente con 10 registri `CLOSED` per un totale vendite di 5.000 €
+- AND 2 registri `DRAFT` con `TotaleVendite = 0`
+- WHEN viene eseguita la query `dashboardKPIs`
+- THEN `mediaMese` vale 500 € (5.000 / 10)
+- AND i 2 DRAFT non entrano né al numeratore né al denominatore
+
+#### Scenario: Mese senza registri chiusi
+
+- GIVEN un mese corrente che contiene solo registri `DRAFT` (o nessun registro)
+- WHEN viene eseguita la query `dashboardKPIs`
+- THEN `mediaMese` vale 0
+- AND la query completa senza errori
+
+### Requirement: TrendSettimana su settimane lunedì-based con porzione equivalente
+
+Il KPI `trendSettimana` MUST confrontare le vendite della **settimana corrente da lunedì
+a oggi incluso** con le vendite della **porzione equivalente della settimana precedente**
+(dal lunedì precedente allo stesso giorno della settimana, cioè ogni data spostata di
+−7 giorni). La settimana MUST iniziare di lunedì, coerentemente con la convenzione
+`operatingDayIndex` (0 = lunedì) usata dai guard e dalle chiusure mensili.
+Solo i registri con stato `CLOSED` o `RECONCILED` MUST concorrere a entrambe le somme.
+La formula MUST essere `trend = (correnteParziale − precedenteEquivalente) / precedenteEquivalente × 100`;
+se `precedenteEquivalente` vale 0, `trendSettimana` MUST valere 0 (guardia divisione per zero).
+
+(Precedentemente: confronto arbitrario `TakeLast(3)` contro il resto dei registri caricati,
+con settimana che partiva di domenica e senza filtro sullo stato.)
+
+#### Scenario: Trend positivo su porzione equivalente
+
+- GIVEN oggi è mercoledì e i registri `CLOSED` da lunedì a mercoledì della settimana
+  corrente totalizzano 1.100 €
+- AND i registri `CLOSED` da lunedì a mercoledì della settimana precedente totalizzano 1.000 €
+- AND giovedì-domenica della settimana precedente hanno altri registri chiusi (esclusi dal confronto)
+- WHEN viene eseguita la query `dashboardKPIs`
+- THEN `trendSettimana` vale +10 (%)
+- AND i giorni della settimana precedente successivi a mercoledì non entrano nella base di confronto
+
+#### Scenario: Settimana precedente con base zero
+
+- GIVEN la porzione equivalente della settimana precedente non contiene registri
+  `CLOSED`/`RECONCILED` (somma 0)
+- WHEN viene eseguita la query `dashboardKPIs`
+- THEN `trendSettimana` vale 0
+- AND la query completa senza errori di divisione per zero
+
+#### Scenario: Settimana corrente con 0 registri chiusi
+
+- GIVEN la settimana corrente (lunedì → oggi) contiene solo registri `DRAFT` o nessun registro
+- AND la porzione equivalente della settimana precedente totalizza 800 € di registri chiusi
+- WHEN viene eseguita la query `dashboardKPIs`
+- THEN `trendSettimana` vale −100 (%) ((0 − 800) / 800 × 100)
+- AND i registri `DRAFT` della settimana corrente non vengono sommati
+
+#### Scenario: Domenica appartiene alla settimana iniziata il lunedì precedente
+
+- GIVEN oggi è domenica
+- WHEN viene calcolato l'inizio della settimana corrente
+- THEN la settimana corrente è iniziata il lunedì di 6 giorni prima (non oggi né il giorno dopo)
+- AND il confronto copre lunedì→domenica corrente vs lunedì→domenica della settimana precedente
+
+### Requirement: Guard giorno operativo simmetrico tra creazione e chiusura registro
+
+La chiusura del registro cassa (`chiudiRegistroCassa`) MUST validare il giorno operativo
+con la stessa logica della creazione: periodi di programmazione
+(`PeriodiProgrammazione`) quando esistono, con fallback alle impostazioni globali
+(`BusinessSettings.OperatingDays`) quando non esiste alcun periodo. Un registro creato in
+un giorno operativo MUST risultare sempre chiudibile rispetto al guard del giorno
+operativo (guard simmetrici). I messaggi d'errore MUST essere declinati per l'operazione
+("Impossibile chiudere...") mantenendo giorno e data nel testo. La logica condivisa di
+valutazione del giorno operativo MUST essere unica (nessuna duplicazione tra i due guard).
+
+(Precedentemente: la chiusura usava `GuardGiornoOperativoSoloGlobale`, che ignora i
+periodi di programmazione → un registro creato in un giorno operativo di periodo ma non
+operativo nel calendario globale risultava non chiudibile.)
+
+#### Scenario: Registro creato in giorno operativo di periodo è chiudibile
+
+- GIVEN un periodo di programmazione attivo che include il martedì come giorno operativo
+- AND le impostazioni globali (`OperatingDays`) marcano il martedì come giorno di chiusura
+- AND un registro cassa creato di martedì (la creazione è stata permessa dal guard con periodi)
+- WHEN l'utente esegue `chiudiRegistroCassa` su quel registro
+- THEN il guard del giorno operativo passa e il registro transita a `CLOSED`
+
+#### Scenario: Chiusura rifiutata in giorno non operativo del periodo
+
+- GIVEN un periodo di programmazione attivo che marca la domenica come giorno di chiusura
+- AND un registro cassa con data domenica
+- WHEN l'utente esegue `chiudiRegistroCassa` su quel registro
+- THEN l'operazione fallisce con un errore che inizia con "Impossibile chiudere"
+  e contiene il nome del giorno e la data
+- AND lo stato del registro resta invariato
+
+#### Scenario: Nessun periodo configurato — fallback globale invariato
+
+- GIVEN nessun `PeriodoProgrammazione` configurato
+- AND le impostazioni globali marcano il lunedì come giorno operativo
+- WHEN l'utente chiude un registro con data lunedì
+- THEN il guard usa le impostazioni globali e la chiusura procede
+- AND il comportamento è identico a quello precedente alla modifica
+
+### Requirement: Totale Vendite mensile allineato al backend (VistaMensile)
+
+Le metriche mensili di `VistaMensile` MUST calcolare `totaleVendite` sommando il campo
+`totaleVendite` restituito dal server per ciascun registro; in assenza del dato del
+server la somma di fallback MUST usare i canali di incasso
+(`incassoContanteTracciato + incassiElettronici + incassiFattura`), cioè la stessa
+formula del backend. Il movimento fisico di cassa (`totaleChiusura − totaleApertura`)
+MUST NOT concorrere al Totale Vendite mensile. Anche il `revenue` degli eventi del
+calendario MUST usare lo stesso valore/formula del server, NOT il movimento fisico.
+
+(Precedentemente: `VistaMensile.tsx` sommava `movimento + elettronici + fatture` e
+calcolava `revenue = (chiusura − apertura) + elettronici` — formule già corrette in
+Fase 1 su `SummaryDataGrid.tsx` ma rimaste nella vista mensile.)
+
+#### Scenario: Totale Vendite mensile coerente con il server
+
+- GIVEN un mese con due registri: R1 con `totaleVendite = 500 €` (movimento fisico 480 €)
+  e R2 con `totaleVendite = 300 €` (movimento fisico 320 €)
+- WHEN la vista mensile calcola le metriche
+- THEN il Totale Vendite mensile vale 800 € (500 + 300)
+- AND il valore coincide con la somma dei `totaleVendite` del server, non con la somma
+  dei movimenti fisici
+
+#### Scenario: Evento calendario con revenue dal valore server
+
+- GIVEN un registro con `totaleVendite = 500 €`, `totaleChiusura − totaleApertura = 480 €`
+  e `incassiElettronici = 150 €`
+- WHEN la vista mensile genera l'evento calendario di quel giorno
+- THEN il `revenue` mostrato nel titolo dell'evento vale 500 €
+- AND non vale 630 € (movimento + elettronici, formula precedente)
+
+---
+
+## 9. Requirements: IVA Multialiquota (iva-multialiquota-fase3)
+
+Convenzioni trasversali (vincolanti per tutti i requirement di questa sezione):
+
+- L'aliquota persistita è SEMPRE in **percentuale** (`22.00`), come `Fornitore.AliquotaIva`; la conversione a frazione avviene esclusivamente via `IvaCalculator.AliquotaDaPercentuale` nei punti di calcolo.
+- Tutti gli scorpori/applicazioni IVA passano da `IvaCalculator` (invariante: `Imponibile + Iva == Totale` al centesimo, vedi spec `calcoli-iva`). I requirement sotto riusano questa invariante senza ridefinirla.
+- Le aliquote ammesse sono il set chiuso `{0, 4, 5, 10, 22}` (percentuali), definito come costante centralizzata unica.
+- Decisioni vincolanti: residuo negativo → clamp a 0 + log warning (mai bloccare il salvataggio); calcolo breakdown in helper puro (senza accesso DB); pagina amministrativa Prodotti fuori scope; snapshot IVA vendita immutabile salvo cambio prodotto/prezzo; backfill registri storici tutto `stimato = true`; eventi subscription invariati.
+
+### Requirement: Aliquota IVA del prodotto
+
+Ogni prodotto DEVE avere un'aliquota IVA persistita (`Prodotto.AliquotaIva`, percentuale, `decimal(5,2) NOT NULL`). I prodotti creati senza aliquota esplicita DEVONO ricevere il default `22.00` (default applicativo e di colonna DB). I prodotti seed DEVONO dichiarare aliquote esplicite.
+
+#### Scenario: Backfill dei prodotti esistenti dalla configurazione
+
+- GIVEN un database con prodotti preesistenti privi di aliquota e `BusinessSettings.VatRate = 0.10` (frazione)
+- WHEN viene applicata la migrazione che introduce `Prodotto.AliquotaIva`
+- THEN ogni prodotto preesistente ha `AliquotaIva = 10.00` (conversione frazione → percentuale: `VatRate × 100`)
+- AND nessun altro dato dei prodotti viene modificato
+
+#### Scenario: Backfill senza riga BusinessSettings
+
+- GIVEN un database con prodotti preesistenti e nessuna riga in `BusinessSettings`
+- WHEN viene applicata la migrazione che introduce `Prodotto.AliquotaIva`
+- THEN ogni prodotto preesistente ha `AliquotaIva = 22.00` (fallback)
+
+#### Scenario: Default per nuovo prodotto
+
+- GIVEN il sistema migrato
+- WHEN viene creato un prodotto senza specificare l'aliquota
+- THEN il prodotto persiste `AliquotaIva = 22.00`
+
+### Requirement: Validazione delle aliquote ammesse
+
+Il sistema DEVE rifiutare, nelle mutation che accettano un'aliquota prodotto, qualunque valore fuori dal set `{0, 4, 5, 10, 22}`, con un errore GraphQL esplicito che indichi i valori ammessi. La validazione DEVE usare un'unica costante centralizzata (nessuna duplicazione del set nei call site).
+
+#### Scenario: Aliquota valida
+
+- GIVEN il set di aliquote ammesse `{0, 4, 5, 10, 22}`
+- WHEN un client invia `mutateProdotto` con `aliquotaIva: 10`
+- THEN la mutation viene eseguita e il prodotto persiste `AliquotaIva = 10.00`
+
+#### Scenario: Aliquota fuori set
+
+- GIVEN il set di aliquote ammesse `{0, 4, 5, 10, 22}`
+- WHEN un client invia `mutateProdotto` con `aliquotaIva: 7`
+- THEN la mutation fallisce con un errore GraphQL esplicito che elenca le aliquote ammesse
+- AND nessun prodotto viene creato o modificato
+
+#### Scenario: Aliquota zero ammessa
+
+- GIVEN il set di aliquote ammesse include `0`
+- WHEN un client invia `mutateProdotto` con `aliquotaIva: 0`
+- THEN la mutation viene eseguita e il prodotto persiste `AliquotaIva = 0.00`
+
+### Requirement: Mutation mutateProdotto
+
+Il sistema DEVE esporre una mutation GraphQL `mutateProdotto` (modulo Vendite) per creare o aggiornare un prodotto, inclusa l'aliquota IVA. La mutation DEVE essere protetta da autorizzazione (`.Authorize()`), DEVE applicare la validazione delle aliquote ammesse e DEVE restituire il prodotto risultante come `ProdottoType`. La gestione prodotti da interfaccia utente NON è in scope (la mutation è l'unico punto di amministrazione).
+
+Schema GraphQL (additivo):
+
+```graphql
+type VenditeMutation {
+  mutateProdotto(prodotto: ProdottoInput!): Prodotto
+}
+
+input ProdottoInput {
+  prodottoId: Int        # assente/null = creazione
+  codice: String!
+  nome: String!
+  descrizione: String
+  prezzo: Decimal!
+  categoria: String
+  unitaDiMisura: String
+  attivo: Boolean
+  aliquotaIva: Decimal   # default 22 se omessa in creazione
+}
+```
+
+#### Scenario: Creazione prodotto
+
+- GIVEN un client autenticato e nessun prodotto con codice `CAFFE01`
+- WHEN il client invia `mutateProdotto` con `{ codice: "CAFFE01", nome: "Caffè", prezzo: 1.20, aliquotaIva: 10 }`
+- THEN viene creato un prodotto con `AliquotaIva = 10.00`
+- AND la risposta contiene `prodottoId` valorizzato e `aliquotaIva: 10`
+
+#### Scenario: Aggiornamento aliquota di un prodotto esistente
+
+- GIVEN un prodotto esistente con `prodottoId: 5` e `AliquotaIva = 22.00`
+- WHEN il client invia `mutateProdotto` con `{ prodottoId: 5, ..., aliquotaIva: 4 }`
+- THEN il prodotto 5 persiste `AliquotaIva = 4.00`
+- AND gli snapshot IVA delle vendite già registrate per il prodotto 5 NON vengono modificati
+
+#### Scenario: Aggiornamento di un prodotto inesistente
+
+- GIVEN nessun prodotto con `prodottoId: 999`
+- WHEN il client invia `mutateProdotto` con `{ prodottoId: 999, ... }`
+- THEN la mutation fallisce con errore esplicito "Prodotto non trovato" (o equivalente)
+
+### Requirement: Snapshot IVA sulla vendita alla creazione
+
+Ogni vendita creata DEVE persistere lo snapshot IVA al momento della creazione: `AliquotaIva` (percentuale, copiata dal prodotto), `Imponibile` e `ImportoIva` (`decimal(10,2)`), calcolati per scorporo dal `PrezzoTotale` (prezzi IVA inclusa) tramite `IvaCalculator.ScorporaDaLordo`. L'invariante `Imponibile + ImportoIva == PrezzoTotale` DEVE valere al centesimo per ogni riga.
+
+#### Scenario: Creazione vendita con scorporo per riga
+
+- GIVEN un prodotto con `Prezzo = 1.20` e `AliquotaIva = 10.00`
+- WHEN un client invia `creaVendita` con `quantita: 3` (PrezzoTotale = 3.60)
+- THEN la vendita persiste `AliquotaIva = 10.00`, `Imponibile = 3.27`, `ImportoIva = 0.33`
+- AND `Imponibile + ImportoIva == PrezzoTotale` al centesimo
+
+#### Scenario: Creazione vendita con aliquota zero
+
+- GIVEN un prodotto con `AliquotaIva = 0.00`
+- WHEN un client invia `creaVendita` per quel prodotto con `PrezzoTotale = 5.00`
+- THEN la vendita persiste `AliquotaIva = 0.00`, `Imponibile = 5.00`, `ImportoIva = 0.00`
+
+#### Scenario: Backfill delle vendite esistenti
+
+- GIVEN vendite preesistenti senza snapshot IVA e prodotti già backfillati con `AliquotaIva`
+- WHEN viene applicata la migrazione che introduce lo snapshot su `Vendite`
+- THEN ogni vendita preesistente ha `AliquotaIva` = aliquota corrente del suo prodotto, `Imponibile = ROUND(PrezzoTotale / (1 + AliquotaIva/100), 2)` e `ImportoIva = PrezzoTotale − Imponibile`
+- AND per ogni vendita backfillata vale `Imponibile + ImportoIva == PrezzoTotale` al centesimo
+- AND i valori coincidono con quelli che `IvaCalculator.ScorporaDaLordo` produrrebbe per gli stessi input (nessun midpoint per le aliquote ammesse su lordi a 2 decimali)
+
+### Requirement: Immutabilità dello snapshot IVA in aggiornamento vendita
+
+In `aggiornaVendita`, lo snapshot `AliquotaIva` DEVE restare immutato salvo cambio prodotto: se `ProdottoId` cambia, l'aliquota snapshot DEVE essere ripresa dall'aliquota corrente del nuovo prodotto (coerentemente con la ripresa del prezzo corrente). `Imponibile` e `ImportoIva` DEVONO essere ricalcolati (con l'aliquota snapshot vigente) solo quando cambia il `PrezzoTotale` o l'aliquota snapshot, preservando l'invariante al centesimo. Un aggiornamento che non tocca né prodotto né prezzo NON DEVE alterare lo snapshot.
+
+#### Scenario: Aggiornamento solo note
+
+- GIVEN una vendita con snapshot `AliquotaIva = 10.00`, `Imponibile = 3.27`, `ImportoIva = 0.33`
+- WHEN un client invia `aggiornaVendita` modificando solo `note`
+- THEN `AliquotaIva`, `Imponibile` e `ImportoIva` restano invariati
+- AND l'aliquota NON viene riletta dal prodotto (anche se nel frattempo l'aliquota del prodotto è cambiata)
+
+#### Scenario: Aggiornamento quantità senza cambio prodotto
+
+- GIVEN una vendita con `AliquotaIva = 10.00` snapshot e prodotto la cui aliquota corrente è nel frattempo diventata `22.00`
+- WHEN un client invia `aggiornaVendita` con `quantita: 5` (il `PrezzoTotale` cambia)
+- THEN `Imponibile` e `ImportoIva` vengono ricalcolati per scorporo dal nuovo `PrezzoTotale` usando l'aliquota snapshot `10.00`
+- AND `AliquotaIva` resta `10.00` (immutabilità dello storico)
+
+#### Scenario: Cambio prodotto
+
+- GIVEN una vendita sul prodotto A (`AliquotaIva` snapshot `22.00`) e un prodotto B con aliquota corrente `4.00`
+- WHEN un client invia `aggiornaVendita` con `prodottoId` = B
+- THEN la vendita riprende prezzo unitario e aliquota correnti di B: `AliquotaIva = 4.00`
+- AND `Imponibile` e `ImportoIva` vengono ricalcolati per scorporo dal nuovo `PrezzoTotale` con aliquota `4.00`
+
+### Requirement: Breakdown IVA per aliquota del registro cassa
+
+Ogni registro cassa DEVE avere un breakdown IVA per aliquota persistito nella tabella figlia `RegistroCassaIva` (`RegistroCassaId` FK cascade, `Aliquota` decimal(5,2) percentuale, `Imponibile` decimal(10,2), `Imposta` decimal(10,2), `Stimato` bool; unique `(RegistroCassaId, Aliquota, Stimato)`). Il breakdown DEVE essere composto da:
+
+- una riga **esatta** (`Stimato = false`) per ogni aliquota presente tra le Vendite del registro, con `Imponibile = Σ Vendita.Imponibile` e `Imposta = Σ Vendita.ImportoIva` degli snapshot di riga (somma degli scorpori di riga, MAI scorporo della somma);
+- al più una riga **stimata** (`Stimato = true`) per il residuo non itemizzato (vedi requirement dedicato).
+
+Per ogni registro DEVE valere `Σ (Imponibile + Imposta) == TotaleVendite` al centesimo.
+
+#### Scenario: Registro con vendite ad aliquote miste
+
+- GIVEN un registro con `TotaleVendite = 100.00` e vendite itemizzate: 36.60 con aliquota 22 (`Imponibile 30.00`, `ImportoIva 6.60`) e 22.00 con aliquota 10 (`Imponibile 20.00`, `ImportoIva 2.00`)
+- WHEN il registro viene salvato e i totali ricalcolati
+- THEN il breakdown contiene una riga `(22.00, 30.00, 6.60, stimato: false)` e una riga `(10.00, 20.00, 2.00, stimato: false)`
+- AND una riga stimata per il residuo `100.00 − 58.60 = 41.40` scorporato all'aliquota di default
+- AND `Σ (imponibile + imposta)` di tutte le righe `== 100.00` al centesimo
+
+#### Scenario: Vendite ad aliquota zero
+
+- GIVEN un registro con una vendita di `PrezzoTotale = 5.00` e snapshot `AliquotaIva = 0.00`
+- WHEN i totali vengono ricalcolati
+- THEN il breakdown contiene la riga `(0.00, 5.00, 0.00, stimato: false)`
+
+#### Scenario: Coerenza al centesimo tra dettaglio e breakdown
+
+- GIVEN un registro con più vendite alla stessa aliquota i cui scorpori di riga, sommati, divergono di un centesimo dallo scorporo del totale
+- WHEN i totali vengono ricalcolati
+- THEN la riga esatta dell'aliquota riporta la SOMMA degli `Imponibile`/`ImportoIva` di riga (non lo scorporo della somma)
+- AND `imponibile + imposta` della riga `== Σ PrezzoTotale` delle vendite di quell'aliquota al centesimo
+
+### Requirement: Residuo non itemizzato stimato all'aliquota di default
+
+Il residuo `TotaleVendite − Σ Vendita.PrezzoTotale` rappresenta i canali dichiarati manualmente (incassi elettronici, contante tracciato, fatture) non legati a vendite. Se il residuo è positivo, il sistema DEVE generare una sola riga di breakdown scorporata all'aliquota di default (`BusinessSettings.VatRate`, frazione, convertita in percentuale per la persistenza) con `Stimato = true`. Se il residuo è zero, NON DEVE esistere alcuna riga stimata. Se il residuo è negativo (dati storici incoerenti), il sistema DEVE fare clamp a 0 e registrare un log di warning con gli importi coinvolti; il salvataggio del registro NON DEVE MAI essere bloccato per questo motivo.
+
+#### Scenario: Registro senza vendite itemizzate (flusso operativo attuale)
+
+- GIVEN un registro senza alcuna Vendita, con `TotaleVendite = 80.00` e `VatRate = 0.10`
+- WHEN i totali vengono ricalcolati
+- THEN il breakdown contiene un'unica riga stimata `(10.00, 72.73, 7.27, stimato: true)` (scorporo di 80.00 al 10%)
+- AND `ImportoIva` del registro coincide al centesimo con il valore che il calcolo single-rate pre-change avrebbe prodotto
+
+#### Scenario: Registro interamente itemizzato
+
+- GIVEN un registro in cui `Σ Vendita.PrezzoTotale == TotaleVendite`
+- WHEN i totali vengono ricalcolati
+- THEN il breakdown contiene solo righe esatte (`stimato: false`)
+- AND nessuna riga stimata viene creata
+
+#### Scenario: Residuo negativo da dati storici incoerenti
+
+- GIVEN un registro storico con `TotaleVendite = 50.00` e vendite persistite per `Σ PrezzoTotale = 60.00`
+- WHEN i totali vengono ricalcolati
+- THEN il residuo viene portato a 0 (clamp): nessuna riga stimata viene creata
+- AND viene emesso un log di warning che riporta registro, totale e somma vendite
+- AND il salvataggio del registro completa con successo (nessuna eccezione)
+
+### Requirement: ImportoIva come somma del breakdown (retrocompatibilità)
+
+`RegistroCassa.ImportoIva` DEVE essere valorizzato come `Σ Imposta` delle righe del breakdown (esatte + stimata), non ricalcolato indipendentemente. Per i registri senza vendite itemizzate il valore DEVE coincidere al centesimo con il calcolo single-rate pre-change. La chiusura mensile (`TotaleIvaCalcolato`) e il riepilogo annuale, che aggregano `ImportoIva`, NON DEVONO richiedere modifiche e DEVONO restituire valori invariati per i dati esistenti.
+
+#### Scenario: Equivalenza con il calcolo pre-change
+
+- GIVEN un registro senza vendite itemizzate con `TotaleVendite = 123.45` e `VatRate = 0.10`
+- WHEN i totali vengono ricalcolati dopo la change
+- THEN `ImportoIva == IvaCalculator.ScorporaDaLordo(123.45, 0.10).Iva` (identico al valore pre-change)
+
+#### Scenario: Chiusura mensile invariata
+
+- GIVEN un mese con registri il cui `ImportoIva` è la somma dei rispettivi breakdown
+- WHEN viene calcolato `TotaleIvaCalcolato` della chiusura mensile
+- THEN il valore è `Σ ImportoIva` dei registri del mese, identico nella semantica e nei valori pre-change per i dati esistenti
+
+### Requirement: Rigenerazione del breakdown a ogni ricalcolo dei totali
+
+Il breakdown DEVE essere rigenerato integralmente (delete + reinsert delle righe figlie, come per conteggi e spese) a ogni esecuzione del ricalcolo totali del registro: salvataggio del registro (`mutateRegistroCassa`) e mutation vendite che alterano i totali (`creaVendita`, `aggiornaVendita`, `eliminaVendita`). La rigenerazione DEVE essere idempotente: ricalcoli ripetuti sugli stessi dati DEVONO produrre lo stesso insieme di righe, senza duplicati (garantito anche dal vincolo unique `(RegistroCassaId, Aliquota, Stimato)`).
+
+#### Scenario: Risalvataggio idempotente
+
+- GIVEN un registro già salvato con un breakdown di N righe
+- WHEN il registro viene risalvato senza alcuna modifica ai dati
+- THEN il breakdown risultante contiene esattamente le stesse N righe (stessi valori di aliquota, imponibile, imposta, stimato)
+- AND non esistono righe duplicate per la stessa coppia `(aliquota, stimato)`
+
+#### Scenario: Ricalcolo su eliminazione vendita
+
+- GIVEN un registro con breakdown comprendente una riga esatta all'aliquota 10
+- WHEN l'unica vendita ad aliquota 10 viene eliminata con `eliminaVendita`
+- THEN il breakdown rigenerato non contiene più la riga esatta all'aliquota 10
+- AND `ImportoIva` e i totali del registro riflettono il nuovo stato
+
+### Requirement: Normalizzazione di VenditeContanti nel ricalcolo totali
+
+Nel ricalcolo dei totali del registro, `VenditeContanti` DEVE essere ricalcolato come `Σ PrezzoTotale` delle Vendite persistite del registro, invece di essere azzerato (comportamento precedente: `VenditeContanti = 0` ad ogni salvataggio, che perdeva il totale itemizzato e renderebbe negativo il residuo). Per i registri senza vendite il valore risultante DEVE essere 0, identico al comportamento precedente.
+
+#### Scenario: Registro con vendite risalvato
+
+- GIVEN un registro con vendite persistite per `Σ PrezzoTotale = 60.00`
+- WHEN il registro viene risalvato con `mutateRegistroCassa`
+- THEN `VenditeContanti == 60.00` (non azzerato)
+- AND `TotaleVendite == VenditeContanti + IncassiElettronici + IncassoContanteTracciato + IncassiFattura`
+- AND il residuo del breakdown è `TotaleVendite − 60.00` (mai negativo a regime)
+
+#### Scenario: Registro senza vendite (comportamento invariato)
+
+- GIVEN un registro senza alcuna Vendita
+- WHEN il registro viene risalvato
+- THEN `VenditeContanti == 0` e tutti i totali coincidono con il comportamento pre-change
+
+### Requirement: Backfill dei registri storici
+
+La migrazione che introduce `RegistroCassaIva` DEVE backfillare ogni registro esistente con una sola riga: `Aliquota = VatRate × 100` (fallback `22.00` senza riga settings), `Imposta = ImportoIva` esistente, `Imponibile = TotaleVendite − ImportoIva`, `Stimato = true`. Il backfill NON DEVE modificare alcun valore esistente del registro (`ImportoIva` preservato bit a bit) e NON DEVE tentare di ricostruire la parte esatta dalle vendite storiche (decisione vincolante: tutto `stimato = true`; il raffinamento avviene al primo ricalcolo naturale).
+
+#### Scenario: Backfill registro storico
+
+- GIVEN un registro pre-change con `TotaleVendite = 100.00` e `ImportoIva = 9.09`
+- WHEN viene applicata la migrazione `RegistroCassaIva`
+- THEN il registro ha una sola riga di breakdown `(aliquota default, 90.91, 9.09, stimato: true)`
+- AND `ImportoIva` del registro resta `9.09` (nessuna riscrittura)
+
+#### Scenario: Registro storico con vendite itemizzate
+
+- GIVEN un registro pre-change che possiede Vendite (già backfillate con snapshot IVA)
+- WHEN viene applicata la migrazione `RegistroCassaIva`
+- THEN anche questo registro riceve la sola riga stimata aggregata (nessuna ricostruzione esatta in migrazione)
+- AND al primo risalvataggio del registro il breakdown viene rigenerato con le righe esatte dalle vendite
+
+#### Scenario: Rollback della migrazione
+
+- GIVEN le tre migrazioni della change applicate
+- WHEN si esegue `dotnet ef database update <migrazione-precedente>` a ritroso
+- THEN colonne e tabella nuove vengono rimosse senza alterare i dati preesistenti
+- AND il calcolo single-rate pre-change torna a produrre gli stessi valori di prima
+
+### Requirement: Esposizione GraphQL additiva del dato IVA
+
+Lo schema GraphQL DEVE esporre il nuovo dato IVA esclusivamente con campi additivi; nessun campo esistente DEVE essere rinominato, rimosso o cambiato di tipo. Le query e i fragment esistenti DEVONO continuare a funzionare senza modifiche.
+
+Schema (additivo):
+
+```graphql
+type Prodotto {
+  aliquotaIva: Decimal!      # percentuale
+}
+
+type Vendita {
+  aliquotaIva: Decimal!      # snapshot, percentuale
+  imponibile: Decimal!
+  importoIva: Decimal!
+}
+
+type RegistroCassa {
+  breakdownIva: [RegistroCassaIva]   # risolto con DataLoader batch per registroCassaId
+}
+
+type RegistroCassaIva {
+  aliquota: Decimal!
+  imponibile: Decimal!
+  imposta: Decimal!
+  stimato: Boolean!
+}
+```
+
+#### Scenario: Query del breakdown sul registro
+
+- GIVEN un registro salvato con breakdown a più aliquote
+- WHEN un client interroga `registroCassa { importoIva breakdownIva { aliquota imponibile imposta stimato } }`
+- THEN la risposta contiene la lista delle righe di breakdown
+- AND `Σ imposta` delle righe `== importoIva`
+
+#### Scenario: Caricamento batch del breakdown su lista registri
+
+- GIVEN una query di lista che richiede `breakdownIva` per N registri
+- WHEN la query viene risolta
+- THEN le righe di breakdown sono caricate con un DataLoader batch per `registroCassaId` (pattern dei figli esistenti del registro), senza una query per registro
+
+#### Scenario: Query e fragment esistenti invariati
+
+- GIVEN i fragment frontend esistenti (`RegistroCassaFragment` senza `breakdownIva`, query prodotti/vendite correnti)
+- WHEN vengono eseguiti contro lo schema aggiornato
+- THEN eseguono senza errori e con gli stessi risultati semantici di prima
+
+### Requirement: Eventi subscription invariati
+
+I payload degli eventi di subscription esistenti (`RegistroCassaUpdatedEvent`, `VenditaCreatedEvent`) NON DEVONO essere estesi con dati IVA in questa change (decisione vincolante): il client ottiene il breakdown tramite refetch.
+
+#### Scenario: Evento dopo salvataggio registro
+
+- GIVEN un client sottoscritto agli aggiornamenti del registro cassa
+- WHEN un registro con breakdown multialiquota viene salvato
+- THEN l'evento pubblicato contiene esattamente i campi odierni (nessun campo IVA aggiunto)
+
+### Requirement: Visualizzazione del breakdown IVA nel dettaglio registro (frontend)
+
+Il dettaglio del registro cassa (`RegistroCassaDetails`) DEVE mostrare il breakdown IVA del registro come elenco/tabella con colonne aliquota, imponibile e imposta. Le righe stimate (`stimato = true`) DEVONO essere visivamente distinte dalle righe esatte (es. badge/etichetta "stimato"), per non presentare la stima come dato fiscale esatto. Il tipo `RegistroCassa` frontend e il fragment del registro DEVONO includere `breakdownIva`.
+
+#### Scenario: Dettaglio registro con breakdown misto
+
+- GIVEN un registro con due righe esatte (22%, 10%) e una riga stimata all'aliquota di default
+- WHEN l'utente apre il dettaglio del registro
+- THEN vede una tabella con tre righe: aliquota, imponibile, imposta
+- AND la riga stimata è marcata visivamente come "stimato"
+- AND le righe esatte non riportano alcuna marcatura di stima
+
+#### Scenario: Dettaglio registro storico (tutto stimato)
+
+- GIVEN un registro storico backfillato con la sola riga stimata aggregata
+- WHEN l'utente apre il dettaglio del registro
+- THEN vede un'unica riga di breakdown marcata "stimato"
+
+#### Scenario: Test e controlli statici frontend
+
+- GIVEN i mock dei test GraphQL aggiornati con `breakdownIva`
+- WHEN si eseguono `npm run ts:check`, `npm run lint` e `npm run test`
+- THEN tutti i controlli passano senza errori

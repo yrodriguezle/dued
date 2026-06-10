@@ -8,9 +8,9 @@ context: |
   Data grid: AG Grid Enterprise 33
   Auth: JWT + httpOnly refresh token
   Database: MySQL 8.0+ with EF Core migrations (auto-apply at startup)
-  Testing: None (no unit tests in codebase)
+  Testing: Backend xUnit in backend/DuedGusto.Tests (Unit + Integration, ~234 test); frontend Vitest + Testing Library (~471 test), Playwright per E2E e visual regression
   Linting: ESLint 9 + Prettier 3 (frontend), no linter configured (backend)
-  CI/CD: None configured
+  CI/CD: GitHub Actions (.github/workflows/deploy.yml) — on push su main: dotnet test + build frontend + deploy, versioning automatico (commit "chore: vX.Y.Z [skip ci]")
   Language: Italian UI and codebase conventions; all source files use .tsx extension
 
 rules:
