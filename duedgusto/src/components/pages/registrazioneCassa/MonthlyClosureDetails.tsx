@@ -1,4 +1,6 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import useAutoCreaChiusura from "./useAutoCreaChiusura";
+import useGiorniEsclusi from "./useGiorniEsclusi";
 import { useParams, useNavigate, useSearchParams } from "react-router";
 import {
   Box,
@@ -59,13 +61,6 @@ const MOTIVO_LABELS: Record<CodiceMotivo, string> = {
   EVENTO_ECCEZIONALE: "Evento eccezionale",
 };
 
-interface EsclusioneLocale {
-  data: string;
-  codiceMotivo: CodiceMotivo;
-  note: string;
-  selected: boolean;
-}
-
 interface SpesaRow extends Record<string, unknown> {
   spesaId: number;
   chiusuraId: number;
@@ -97,8 +92,6 @@ const MonthlyClosureDetails = () => {
   const [aggiornaGiorniEsclusi, { loading: excludeLoading }] = useMutation(mutationAggiornaGiorniEsclusi);
 
   const expensesGridRef = useRef<GridReadyEvent<DatagridData<SpesaRow>> | null>(null);
-  const autoCreateInitiated = useRef(false);
-  const [autoCreateError, setAutoCreateError] = useState<string | null>(null);
   const [giorniMancantiModalOpen, setGiorniMancantiModalOpen] = useState(false);
 
   const anno = chiusuraMensile?.anno ?? newAnno;
@@ -110,46 +103,17 @@ const MonthlyClosureDetails = () => {
   const registriInclusi = useMemo(() => chiusuraMensile?.registriInclusi ?? [], [chiusuraMensile?.registriInclusi]);
   const registriNonRiconciliati = useMemo(() => registriInclusi.filter((ri) => ri.registro.stato === "CLOSED"), [registriInclusi]);
 
-  const giorniEsclusiParsed: GiornoEscluso[] = useMemo(() => {
-    if (!chiusuraMensile?.giorniEsclusi) return [];
-    try {
-      return JSON.parse(chiusuraMensile.giorniEsclusi) as GiornoEscluso[];
-    } catch {
-      return [];
-    }
-  }, [chiusuraMensile?.giorniEsclusi]);
-
-  const giorniEsclusiSet = useMemo(() => new Set(giorniEsclusiParsed.map((e) => dayjs(e.data).format("YYYY-MM-DD"))), [giorniEsclusiParsed]);
-
   const { giorniMancanti } = useQueryValidaCompletezzaRegistri({
     anno,
     mese,
     skip: !anno || !mese || !isDraft,
   });
 
-  const giorniEffettivamenteMancanti = useMemo(() => giorniMancanti.filter((d) => !giorniEsclusiSet.has(dayjs(d).format("YYYY-MM-DD"))), [giorniMancanti, giorniEsclusiSet]);
-  const hasRegistriMancanti = giorniEffettivamenteMancanti.length > 0;
-  const hasGiorniDaGestire = hasRegistriMancanti || giorniEsclusiParsed.length > 0;
-
-  const [esclusioniLocali, setEsclusioniLocali] = useState<EsclusioneLocale[]>([]);
-
-  useEffect(() => {
-    setEsclusioniLocali((prev) => {
-      const newDates = giorniEffettivamenteMancanti.map((d) => dayjs(d).format("YYYY-MM-DD"));
-      const prevDates = prev.map((e) => e.data);
-
-      if (newDates.length === prevDates.length && newDates.every((d, i) => d === prevDates[i])) {
-        return prev;
-      }
-
-      return newDates.map((d) => ({
-        data: d,
-        codiceMotivo: "ATTIVITA_NON_AVVIATA" as CodiceMotivo,
-        note: "",
-        selected: false,
-      }));
-    });
-  }, [giorniEffettivamenteMancanti]);
+  // Derivazioni giorni esclusi/mancanti + stato locale delle esclusioni (hook estratto)
+  const { giorniEsclusiParsed, giorniEffettivamenteMancanti, hasRegistriMancanti, hasGiorniDaGestire, esclusioniLocali, setEsclusioniLocali } = useGiorniEsclusi({
+    chiusuraMensile,
+    giorniMancanti,
+  });
 
   useEffect(() => {
     if (anno && mese) {
@@ -163,29 +127,14 @@ const MonthlyClosureDetails = () => {
     }
   }, [anno, mese, setTitle]);
 
-  useEffect(() => {
-    if (isNewMode && newAnno && newMese && !autoCreateInitiated.current) {
-      autoCreateInitiated.current = true;
-      creaChiusura({ variables: { anno: newAnno, mese: newMese } })
-        .then((result) => {
-          const nuovaChiusura = result.data?.chiusureMensili.creaChiusuraMensile;
-          if (nuovaChiusura) {
-            navigate(`/gestionale/cassa/chiusura-mensile/${nuovaChiusura.chiusuraId}`, { replace: true });
-          } else {
-            setAutoCreateError("La creazione non ha restituito dati.");
-          }
-        })
-        .catch((err: unknown) => {
-          const message = err instanceof Error ? err.message : "";
-          const existingIdMatch = message.match(/ID:\s*(\d+)/);
-          if (existingIdMatch) {
-            navigate(`/gestionale/cassa/chiusura-mensile/${existingIdMatch[1]}`, { replace: true });
-            return;
-          }
-          setAutoCreateError(message || "Errore nella creazione della chiusura");
-        });
-    }
-  }, [isNewMode, newAnno, newMese, creaChiusura, navigate]);
+  // Auto-creazione bozza in modalità nuova (hook estratto)
+  const { autoCreateError } = useAutoCreaChiusura({
+    isNewMode,
+    anno: newAnno,
+    mese: newMese,
+    creaChiusura,
+    navigate,
+  });
 
   const getGridExpenses = useCallback((): SpesaRow[] => {
     if (!expensesGridRef.current) return [];

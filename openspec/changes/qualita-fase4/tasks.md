@@ -123,17 +123,49 @@ MonthlyClosure, useCrudForm pilota); spec `architettura-backend` (Validator, API
 invariata); design Decisioni 7, 8, 9, 10.
 *Sacrificabile in blocco; ma 3.1-3.4 sono OBBLIGATORI se si esegue qualunque task 3.6-3.10.
 
-- [ ] 3.1 Creare `duedgusto/src/components/pages/registrazioneCassa/__tests__/RegistroCassaDetails.test.tsx` (pattern `ProfilePage.test.tsx`: `vi.mock` + `DataRouterTestWrapper`, NON `MockedProvider` — nota di coerenza 3): mock di `useQueryDenominations`, `useQueryCashRegister`, `useSubmitCashRegister`, `useCloseCashRegister`, le 3 subscription (→ `{ data: undefined }`), `useStore` (utente, `isOpen`, `getNextOperatingDate`), stub `CashRegisterFormDataGrid`. Assert: mount senza errori su `/gestionale/cassa/details/2026-06-10`, data/toolbar visibili, `setTitle` chiamato.
-- [ ] 3.2 Creare `.../__tests__/MonthlyClosureDetails.test.tsx`: mock `useQueryChiusuraMensile`, `useQueryValidaCompletezzaRegistri`, le 7 mutation via mock `useMutation`, stub griglie. Assert: mount in modalità `:id` con chiusura BOZZA mock, titolo "Chiusura Mensile - …", sezioni chiave visibili.
-- [ ] 3.3 Creare `duedgusto/src/components/pages/fattureAcquisto/__tests__/FatturaAcquistoDetails.test.tsx`: mock hook GraphQL del modulo + store, eventuali grid stub (se shell sottile, test banale — open question del design). Assert: mount senza errori, elementi chiave del form presenti.
-- [ ] 3.4 GATE VINCOLANTE: i 3 smoke test verdi su codice PRE-refactor (`npm run test`). Solo dopo si può procedere con 3.5-3.10 (scenario "Harness di regressione per i refactor P2").
-- [ ] 3.5 Backend: creare `backend/Services/ChiusureMensili/ChiusuraMensileValidator.cs` — spostamento LETTERALE di `ValidaCompletezzaRegistriAsync` + helper privati `ElencoGiorniMancanti`/`ElencoGiorniMancantiPerPeriodo` (righe 476-661 del service), ctor `(AppDbContext)`. NESSUN calculator (nota di coerenza 2). `IsGiornoOperativoAsync` opzionale SOLO se a costo zero (default: non fare).
-- [ ] 3.6 `backend/Services/ChiusureMensili/ChiusuraMensileService.cs`: ctor riceve il validator, `ValidaCompletezzaRegistriAsync` delega; API pubblica (13 metodi, firme e semantica) INVARIATA — zero modifiche ai call site GraphQL. Registrare `AddScoped<ChiusuraMensileValidator>` in `backend/Program.cs`. Aggiornare i 2 test che istanziano il service direttamente: `DuedGusto.Tests/Unit/Services/ChiusuraMensileServiceTests.cs:18` e `DuedGusto.Tests/Integration/GraphQL/MonthlyClosuresQueriesTests.cs:20`. Gate `dotnet build && dotnet test`.
-- [ ] 3.7 Creare `duedgusto/src/graphql/subscriptions/useRegistroCassaSubscriptions.tsx`: lift letterale delle 3 coppie subscription+effect (`RegistroCassaDetails.tsx` righe ~132-167), firma `({ cashRegisterId, refetch })` (Decisione 9); adottarlo in `RegistroCassaDetails.tsx` rimuovendo i 3 useEffect inline. Consolidamento dei 4 `useState` `initial*` SOLO se diff meccanico a costo zero (default: NON fare — open question design). Smoke test 3.1 deve restare verde SENZA modifiche.
-- [ ] 3.8 Creare `duedgusto/src/components/pages/registrazioneCassa/useAutoCreaChiusura.tsx` (lift effect righe ~166-188 + ref `autoCreateInitiated` + stato `autoCreateError`) e `useGiorniEsclusi.tsx` (lift derivazioni `giorniEsclusiParsed`/`giorniEsclusiSet`/`giorniEffettivamenteMancanti` + stato `esclusioniLocali` + effect righe ~136-152); adottarli in `MonthlyClosureDetails.tsx` senza scomposizione in sotto-componenti. Smoke test 3.2 verde senza modifiche.
-- [ ] 3.9 Creare `duedgusto/src/components/common/form/useCrudForm.tsx` con l'API della Decisione 8 (`defaultValues` factory, `skipInitialize`, `focusFieldName`; ritorna `initialValues`, `handleInitializeValues`, `setInitialFocus`) = lift del corpo di `fornitori/useInitializeValues.tsx` con focus generalizzato. Lo status/lock del form NON entra nell'hook (vincolo conservativo). Test `renderHook`: defaults, merge parziale, skip, focus via jsdom `getElementsByName` (scenari "Nuovo fornitore", "Fornitore esistente", "Inizializzazione singola").
-- [ ] 3.10 Pilota fornitori: `duedgusto/src/components/pages/fornitori/FornitoreFormContainer.tsx` usa `useCrudForm<FormikFornitoreValues>` (`focusFieldName: "ragioneSociale"`, `skipInitialize` come da Decisione 8); spostare `getDefaultFornitoreValues` in `fornitoreFormSchema.tsx`; ELIMINARE `fornitori/useInitializeValues.tsx` e `fornitori/setInitialFocus.tsx`. Gli altri ~15 moduli NON si toccano (scenario "Altri moduli intatti"). Verifica manuale: dirty/submit/reset/focus identici a prima (scenario "Comportamento dirty/submit invariato").
-- [ ] 3.11 Gate Fase 3: `dotnet build && dotnet test` + `ts:check + lint + test` (inclusi i 3 smoke test invariati). Commit atomico P2.
+- [x] 3.1 Creare `duedgusto/src/components/pages/registrazioneCassa/__tests__/RegistroCassaDetails.test.tsx` (pattern `ProfilePage.test.tsx`: `vi.mock` + `DataRouterTestWrapper`, NON `MockedProvider` — nota di coerenza 3): mock di `useQueryDenominations`, `useQueryCashRegister`, `useSubmitCashRegister`, `useCloseCashRegister`, le 3 subscription (→ `{ data: undefined }`), `useStore` (utente, `isOpen`, `getNextOperatingDate`), stub `CashRegisterFormDataGrid`. Assert: mount senza errori su `/gestionale/cassa/details/2026-06-10`, data/toolbar visibili, `setTitle` chiamato.
+  > NOTA apply: per supportare `useParams(:date/:id)` è stato aggiunto un prop opzionale
+  > `path` (default `"*"`, comportamento invariato) a `DataRouterTestWrapper`. Per il
+  > PageTitleContext si usa il Provider reale con `setTitle` mock (più robusto del mock
+  > di `react.useContext` usato da ProfilePage.test; l'intento del pattern è invariato).
+  > 4 test: mount+data/toolbar, setTitle, registro DRAFT → "Chiudi Cassa", loader.
+- [x] 3.2 Creare `.../__tests__/MonthlyClosureDetails.test.tsx`: mock `useQueryChiusuraMensile`, `useQueryValidaCompletezzaRegistri`, le 7 mutation via mock `useMutation`, stub griglie. Assert: mount in modalità `:id` con chiusura BOZZA mock, titolo "Chiusura Mensile - …", sezioni chiave visibili.
+  > 4 test: metriche riepilogo + griglia/report stub, titolo, azioni toolbar bozza
+  > (Indietro/Salva/Chiudi Mese/Elimina), alert "Chiusura non trovata".
+- [x] 3.3 Creare `duedgusto/src/components/pages/fattureAcquisto/__tests__/FatturaAcquistoDetails.test.tsx`: mock hook GraphQL del modulo + store, eventuali grid stub (se shell sottile, test banale — open question del design). Assert: mount senza errori, elementi chiave del form presenti.
+  > Risoluzione open question: NON è una shell sottile (usa useLazyQuery/useMutation
+  > diretti + FatturaAcquistoForm con grid) → stub di FatturaAcquistoForm e
+  > PrelevaDdtDialog, mock di useLazyQuery/useMutation. 3 test: mount+toolbar+form stub,
+  > setTitle, caricamento fattura con `?invoiceId=` (useLazyQuery chiamata con fatturaId).
+- [x] 3.4 GATE VINCOLANTE: i 3 smoke test verdi su codice PRE-refactor (`npm run test`). Solo dopo si può procedere con 3.5-3.10 (scenario "Harness di regressione per i refactor P2").
+  > Gate 2026-06-10: smoke verdi su codice pre-refactor (run individuali) + suite
+  > completa 505/505 (68 file) = 494 baseline Fase 2 + 11 smoke.
+- [x] 3.5 Backend: creare `backend/Services/ChiusureMensili/ChiusuraMensileValidator.cs` — spostamento LETTERALE di `ValidaCompletezzaRegistriAsync` + helper privati `ElencoGiorniMancanti`/`ElencoGiorniMancantiPerPeriodo` (righe 476-661 del service), ctor `(AppDbContext)`. NESSUN calculator (nota di coerenza 2). `IsGiornoOperativoAsync` opzionale SOLO se a costo zero (default: non fare).
+  > NOTA apply: `IsGiornoOperativoAsync` NON estratto (come da default: la logica in
+  > `AggiornaGiorniEsclusiAsync` è intrecciata col loop di validazione — non a costo zero).
+- [x] 3.6 `backend/Services/ChiusureMensili/ChiusuraMensileService.cs`: ctor riceve il validator, `ValidaCompletezzaRegistriAsync` delega; API pubblica (13 metodi, firme e semantica) INVARIATA — zero modifiche ai call site GraphQL. Registrare `AddScoped<ChiusuraMensileValidator>` in `backend/Program.cs`. Aggiornare i 2 test che istanziano il service direttamente: `DuedGusto.Tests/Unit/Services/ChiusuraMensileServiceTests.cs:18` e `DuedGusto.Tests/Integration/GraphQL/MonthlyClosuresQueriesTests.cs:20`. Gate `dotnet build && dotnet test`.
+  > Gate 2026-06-10: `dotnet build` 0 errori/0 avvisi, `dotnet test` 241/241 verdi.
+- [x] 3.7 Creare `duedgusto/src/graphql/subscriptions/useRegistroCassaSubscriptions.tsx`: lift letterale delle 3 coppie subscription+effect (`RegistroCassaDetails.tsx` righe ~132-167), firma `({ cashRegisterId, refetch })` (Decisione 9); adottarlo in `RegistroCassaDetails.tsx` rimuovendo i 3 useEffect inline. Consolidamento dei 4 `useState` `initial*` SOLO se diff meccanico a costo zero (default: NON fare — open question design). Smoke test 3.1 deve restare verde SENZA modifiche.
+  > NOTA apply: consolidamento `initial*` NON eseguito (default rispettato: i 4 stati
+  > alimentano prop distinte della griglia, il consolidamento non è un diff meccanico).
+  > Smoke test 3.1 verde senza modifiche dopo l'estrazione.
+- [x] 3.8 Creare `duedgusto/src/components/pages/registrazioneCassa/useAutoCreaChiusura.tsx` (lift effect righe ~166-188 + ref `autoCreateInitiated` + stato `autoCreateError`) e `useGiorniEsclusi.tsx` (lift derivazioni `giorniEsclusiParsed`/`giorniEsclusiSet`/`giorniEffettivamenteMancanti` + stato `esclusioniLocali` + effect righe ~136-152); adottarli in `MonthlyClosureDetails.tsx` senza scomposizione in sotto-componenti. Smoke test 3.2 verde senza modifiche.
+  > Smoke test 3.2 verde senza modifiche dopo l'estrazione (gli hook estratti importano
+  > gli stessi moduli mockati). L'interfaccia `EsclusioneLocale` è ora esportata da
+  > `useGiorniEsclusi.tsx`.
+- [x] 3.9 Creare `duedgusto/src/components/common/form/useCrudForm.tsx` con l'API della Decisione 8 (`defaultValues` factory, `skipInitialize`, `focusFieldName`; ritorna `initialValues`, `handleInitializeValues`, `setInitialFocus`) = lift del corpo di `fornitori/useInitializeValues.tsx` con focus generalizzato. Lo status/lock del form NON entra nell'hook (vincolo conservativo). Test `renderHook`: defaults, merge parziale, skip, focus via jsdom `getElementsByName` (scenari "Nuovo fornitore", "Fornitore esistente", "Inizializzazione singola").
+  > 8 test in `src/components/common/form/__tests__/useCrudForm.test.tsx`. NOTA fedeltà
+  > al lift: `handleInitializeValues()` senza argomenti NON riporta ai default (come
+  > nell'originale: `mergeWithDefaults(undefined, prev)` preserva i valori correnti);
+  > il reset effettivo resta delegato a `formRef.resetForm()` nei call site.
+- [x] 3.10 Pilota fornitori: `duedgusto/src/components/pages/fornitori/FornitoreFormContainer.tsx` usa `useCrudForm<FormikFornitoreValues>` (`focusFieldName: "ragioneSociale"`, `skipInitialize` come da Decisione 8); spostare `getDefaultFornitoreValues` in `fornitoreFormSchema.tsx`; ELIMINARE `fornitori/useInitializeValues.tsx` e `fornitori/setInitialFocus.tsx`. Gli altri ~15 moduli NON si toccano (scenario "Altri moduli intatti"). Verifica manuale: dirty/submit/reset/focus identici a prima (scenario "Comportamento dirty/submit invariato").
+  > ESITO (2026-06-10): file eliminati, zero import residui (grep). Verifica manuale a
+  > browser non eseguibile (agente headless): copertura equivalente via i test di
+  > useCrudForm (default `paese: "IT"`/`attivo: true`/`aliquotaIva: 22` identici,
+  > focus `ragioneSociale`, merge/skip/one-shot identici all'hook originale).
+  > RESTA la verifica a browser in fase verify/5.6.
+- [x] 3.11 Gate Fase 3: `dotnet build && dotnet test` + `ts:check + lint + test` (inclusi i 3 smoke test invariati). Commit atomico P2.
+  > Gate eseguito dall'orchestratore: dotnet build 0 errori, dotnet test 241/241; ts:check OK, lint OK, vitest 513/513 (69 file, inclusi i 3 smoke test).
 
 ## Phase 4: P3 Tipi + ARIA (SACRIFICABILE)
 

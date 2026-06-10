@@ -11,6 +11,8 @@ import { createMemoryRouter, RouterProvider } from "react-router";
 
 interface DataRouterTestWrapperProps {
   initialEntries?: string[];
+  /** Pattern di route (es. "/gestionale/cassa/details/:date") per componenti che usano useParams. Default: "*" */
+  path?: string;
   children: ReactNode;
 }
 
@@ -19,11 +21,11 @@ interface DataRouterTestWrapperProps {
  * Crea un router con createMemoryRouter e lo renderizza con RouterProvider.
  * Supporta useBlocker e altre API del data router.
  */
-export const DataRouterTestWrapper = ({ initialEntries = ["/"], children }: DataRouterTestWrapperProps) => {
+export const DataRouterTestWrapper = ({ initialEntries = ["/"], path = "*", children }: DataRouterTestWrapperProps) => {
   const router = createMemoryRouter(
     [
       {
-        path: "*",
+        path,
         element: children,
       },
     ],

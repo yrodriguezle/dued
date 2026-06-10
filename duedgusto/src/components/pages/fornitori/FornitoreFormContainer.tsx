@@ -10,11 +10,10 @@ import { formStatuses } from "../../../common/globals/constants";
 import useConfirm from "../../common/confirm/useConfirm";
 import { existsPartitaIva } from "../../../graphql/fornitori/queries";
 import { mutationMutateFornitore } from "../../../graphql/fornitori/mutations";
-import useInitializeValues from "./useInitializeValues";
-import setInitialFocus from "./setInitialFocus";
+import useCrudForm from "../../common/form/useCrudForm";
 import sleep from "../../../common/bones/sleep";
 import { FornitoreSearchbox } from "../../common/form/searchbox/searchboxOptions/fornitoreSearchboxOptions";
-import { Schema, FormikFornitoreValues, mapFornitoreToFormValues } from "./fornitoreFormSchema";
+import { Schema, FormikFornitoreValues, mapFornitoreToFormValues, getDefaultFornitoreValues } from "./fornitoreFormSchema";
 
 interface PageModeProps {
   mode: "page";
@@ -45,8 +44,10 @@ function FornitoreFormContainer(props: FornitoreFormContainerProps) {
   const [checkPartitaIva] = useLazyQuery(existsPartitaIva, { fetchPolicy: "network-only" });
   const [mutateFornitore] = useMutation(mutationMutateFornitore);
   const onConfirm = useConfirm();
-  const { initialValues, handleInitializeValues } = useInitializeValues({
+  const { initialValues, handleInitializeValues, setInitialFocus } = useCrudForm<FormikFornitoreValues>({
+    defaultValues: getDefaultFornitoreValues,
     skipInitialize: props.mode === "page" && !!props.initialFornitoreValues,
+    focusFieldName: "ragioneSociale",
   });
 
   // In page mode, apply initial values from parent when provided
@@ -151,7 +152,7 @@ function FornitoreFormContainer(props: FornitoreFormContainerProps) {
         setInitialFocus();
       }
     },
-    [onConfirm, handleInitializeValues, props]
+    [onConfirm, handleInitializeValues, setInitialFocus, props]
   );
 
   const handleSelectedItem = useCallback(

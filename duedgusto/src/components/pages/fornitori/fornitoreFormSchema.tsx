@@ -21,6 +21,24 @@ export const Schema = z.object({
 
 export type FormikFornitoreValues = z.infer<typeof Schema>;
 
+export const getDefaultFornitoreValues = (): FormikFornitoreValues => ({
+  fornitoreId: undefined,
+  ragioneSociale: "",
+  ragioneSociale2: "",
+  partitaIva: "",
+  codiceFiscale: "",
+  email: "",
+  telefono: "",
+  indirizzo: "",
+  citta: "",
+  cap: "",
+  provincia: "",
+  paese: "IT",
+  note: "",
+  attivo: true,
+  aliquotaIva: 22,
+});
+
 export const mapFornitoreToFormValues = (fornitore: Fornitore): Partial<FormikFornitoreValues> => ({
   fornitoreId: fornitore.fornitoreId,
   ragioneSociale: fornitore.ragioneSociale,

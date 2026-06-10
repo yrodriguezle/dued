@@ -17,7 +17,7 @@ public class MonthlyClosuresQueriesTests : IDisposable
     public MonthlyClosuresQueriesTests()
     {
         _dbContext = TestDbContextFactory.Create();
-        _service = new ChiusuraMensileService(_dbContext);
+        _service = new ChiusuraMensileService(_dbContext, new ChiusuraMensileValidator(_dbContext));
     }
 
     public void Dispose()

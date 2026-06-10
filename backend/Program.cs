@@ -42,6 +42,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddTransient<PasswordService>();
 
 // ChiusureMensili Services (modello referenziale puro)
+builder.Services.AddScoped<ChiusuraMensileValidator>();
 builder.Services.AddScoped<ChiusuraMensileService>();
 builder.Services.AddScoped<MigrazioneChiusureMensiliService>();
 
