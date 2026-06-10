@@ -52,7 +52,10 @@ function MonthlyView() {
           Vista Mensile Cassa
         </Typography>
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <IconButton onClick={handlePreviousMonth}>
+          <IconButton
+            onClick={handlePreviousMonth}
+            aria-label="Mese precedente"
+          >
             <ArrowBackIcon />
           </IconButton>
           <Typography
@@ -61,7 +64,10 @@ function MonthlyView() {
           >
             {selectedDate.format("MMMM YYYY")}
           </Typography>
-          <IconButton onClick={handleNextMonth}>
+          <IconButton
+            onClick={handleNextMonth}
+            aria-label="Mese successivo"
+          >
             <ArrowForwardIcon />
           </IconButton>
         </Box>

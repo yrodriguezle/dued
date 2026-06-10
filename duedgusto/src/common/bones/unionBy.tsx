@@ -1,5 +1,4 @@
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type MapFunc<T> = (item: T) => any;
+type MapFunc<T> = (item: T) => unknown;
 
 function unionBy<T>(array1: T[], array2: T[], iteratee: MapFunc<T>): T[] {
   const uniqValues = new Set(array1.map(iteratee));

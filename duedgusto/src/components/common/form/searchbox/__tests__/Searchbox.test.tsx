@@ -517,8 +517,8 @@ describe("Searchbox", () => {
         expect(screen.getByTestId("grid-results")).toBeInTheDocument();
       });
 
-      // La griglia mockata ha un pulsante "Mario Rossi", cerchiamo il pulsante expand per data-testid dell'icona
-      const expandButton = screen.getByTestId("ExpandMoreIcon").closest("button") as HTMLElement;
+      // La griglia mockata ha un pulsante "Mario Rossi", cerchiamo il pulsante expand per nome accessibile
+      const expandButton = screen.getByRole("button", { name: "Apri ricerca" });
       await user.click(expandButton);
 
       await waitFor(() => {

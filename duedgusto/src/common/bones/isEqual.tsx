@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 function getType(obj: unknown): string {
   return {}.toString.call(obj).slice(8, -1).toLowerCase();
 }
@@ -17,7 +16,7 @@ function sortObject<T extends { [key: string]: unknown }>(obj: T): T {
   return sorted as T;
 }
 
-const isEqual = (first: any, second: any): boolean => {
+const isEqual = (first: unknown, second: unknown): boolean => {
   if (first === second) {
     return true;
   }
@@ -28,22 +27,23 @@ const isEqual = (first: any, second: any): boolean => {
   }
 
   // Check if the types are different
-  if (first.constructor !== second.constructor) {
+  if ((first as object).constructor !== (second as object).constructor) {
     return false;
   }
 
   // Check for arrays
   if (Array.isArray(first)) {
-    if (first.length !== second.length) {
+    const secondArray = second as unknown[];
+    if (first.length !== secondArray.length) {
       return false;
     }
-    return first.every((item, index) => isEqual(item, second[index]));
+    return first.every((item, index) => isEqual(item, secondArray[index]));
   }
 
   // Object
   if (getType(first) === "object") {
-    const sortedSource = sortObject(first);
-    const sortedTarget = sortObject(second);
+    const sortedSource = sortObject(first as Record<string, unknown>);
+    const sortedTarget = sortObject(second as Record<string, unknown>);
     const sourceKeys = Object.keys(sortedSource);
     const targetKeys = Object.keys(sortedTarget);
     if (sourceKeys.length !== targetKeys.length) {

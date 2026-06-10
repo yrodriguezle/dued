@@ -1,22 +1,25 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 function getType(obj: unknown): string {
   return Object.prototype.toString.call(obj).slice(8, -1).toLowerCase();
 }
 
-function omitDeep(value: any, omitArrayProperties: string[] = []): any {
-  if (getType(value) === "array") {
-    return value.map((item: any) => omitDeep(item, omitArrayProperties));
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return getType(value) === "object";
+}
+
+function omitDeep<T>(value: T, omitArrayProperties: string[] = []): T {
+  if (Array.isArray(value)) {
+    return value.map((item: unknown) => omitDeep(item, omitArrayProperties)) as T;
   }
-  if (getType(value) === "object") {
+  if (isPlainRecord(value)) {
     return Object.keys(value)
       .filter((key: string) => !omitArrayProperties.includes(key))
-      .reduce(
-        (acc: any, key: string) => ({
+      .reduce<Record<string, unknown>>(
+        (acc, key: string) => ({
           ...acc,
           [key]: omitDeep(value[key], omitArrayProperties),
         }),
         {}
-      );
+      ) as T;
   }
   return value;
 }

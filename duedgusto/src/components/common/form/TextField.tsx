@@ -133,7 +133,7 @@ const TextField = forwardRef<TextFieldRef, TextFieldProps>(({ value = "", name, 
               <InputAdornment position="end">
                 <IconButton
                   disabled={props.disabled}
-                  aria-label="toggle password visibility"
+                  aria-label="Mostra o nascondi password"
                   onClick={handleClickShowPassword}
                   onMouseDown={handleMouseDownPassword}
                 >

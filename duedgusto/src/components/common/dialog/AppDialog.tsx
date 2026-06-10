@@ -63,6 +63,7 @@ function AppDialog({ open, onClose, title, children, footer, maxWidth = "900px",
             onClick={onClose}
             size="small"
             disabled={disableClose}
+            aria-label="Chiudi finestra"
           >
             <CloseIcon />
           </IconButton>

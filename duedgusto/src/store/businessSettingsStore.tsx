@@ -29,8 +29,7 @@ interface BusinessSettingsStoreState {
   getClosingTime: () => string | null;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function businessSettingsStore(set: any, get: () => Store): BusinessSettingsStoreState {
+function businessSettingsStore(set: StoreSet, get: () => Store): BusinessSettingsStoreState {
   return {
     settings: null,
     settingsLoaded: false,

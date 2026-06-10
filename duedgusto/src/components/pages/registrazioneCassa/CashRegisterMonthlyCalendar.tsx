@@ -101,12 +101,14 @@ function CashRegisterMonthlyCalendar({ open, onClose, onSelectDate, currentDate,
         <IconButton
           size="small"
           onClick={handlePreviousMonth}
+          aria-label="Mese precedente"
         >
           <ChevronLeft />
         </IconButton>
         <IconButton
           size="small"
           onClick={handleNextMonth}
+          aria-label="Mese successivo"
         >
           <ChevronRight />
         </IconButton>

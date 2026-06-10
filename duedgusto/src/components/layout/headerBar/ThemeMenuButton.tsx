@@ -25,6 +25,7 @@ function ThemeMenuButton() {
       <Tooltip title="Tema">
         <IconButton
           onClick={handleClick}
+          aria-label="Tema"
           sx={{ p: 0, mr: "10px" }}
         >
           <ContrastIcon />

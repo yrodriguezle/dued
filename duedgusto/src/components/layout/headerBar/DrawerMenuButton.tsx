@@ -8,7 +8,14 @@ interface DrawerMenuButtonProps {
 }
 
 function DrawerMenuButton({ drawerOpen, toggleDrawer }: DrawerMenuButtonProps) {
-  return <IconButton onClick={toggleDrawer}>{drawerOpen ? <MenuOpenIcon /> : <MenuIcon />}</IconButton>;
+  return (
+    <IconButton
+      onClick={toggleDrawer}
+      aria-label={drawerOpen ? "Chiudi menu di navigazione" : "Apri menu di navigazione"}
+    >
+      {drawerOpen ? <MenuOpenIcon /> : <MenuIcon />}
+    </IconButton>
+  );
 }
 
 export default DrawerMenuButton;

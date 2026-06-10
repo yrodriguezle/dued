@@ -198,7 +198,7 @@ describe("TextField - passthrough delle props", () => {
       label="Password"
       type="password"
     />);
-    const toggleButton = screen.getByLabelText("toggle password visibility");
+    const toggleButton = screen.getByRole("button", { name: "Mostra o nascondi password" });
     expect(toggleButton).toBeInTheDocument();
   });
 

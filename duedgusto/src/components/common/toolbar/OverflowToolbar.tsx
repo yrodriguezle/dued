@@ -88,6 +88,7 @@ function OverflowToolbar({ actions, iconOnly = false }: OverflowToolbarProps) {
             <IconButton
               key={action.key}
               size="small"
+              aria-label={action.label}
               sx={{ flexShrink: 0 }}
             >
               {action.icon}
@@ -119,6 +120,7 @@ function OverflowToolbar({ actions, iconOnly = false }: OverflowToolbarProps) {
                   size="small"
                   onClick={action.onClick}
                   disabled={action.disabled}
+                  aria-label={action.label}
                   sx={{ flexShrink: 0 }}
                 >
                   {action.icon}
@@ -147,6 +149,7 @@ function OverflowToolbar({ actions, iconOnly = false }: OverflowToolbarProps) {
           <IconButton
             size="small"
             onClick={(e) => setMenuAnchor(e.currentTarget)}
+            aria-label="Altre azioni"
             sx={{ ml: "auto", flexShrink: 0 }}
           >
             <MoreVertIcon fontSize="small" />

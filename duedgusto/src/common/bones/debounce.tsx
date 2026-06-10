@@ -1,15 +1,13 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
-function debounce<T extends (...args: any[]) => any>(func: T, wait: number) {
+function debounce<TArgs extends unknown[], TReturn>(func: (...args: TArgs) => TReturn, wait: number) {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
-  const debounced = function (this: any, ...args: Parameters<T>): Promise<ReturnType<T>> {
-    return new Promise<ReturnType<T>>((resolve, reject) => {
+  const debounced = function (this: unknown, ...args: TArgs): Promise<Awaited<TReturn>> {
+    return new Promise<Awaited<TReturn>>((resolve, reject) => {
       const later = () => {
         timeoutId = undefined;
         try {
           const result = func.apply(this, args);
-          resolve(result);
+          resolve(result as Awaited<TReturn> | PromiseLike<Awaited<TReturn>>);
         } catch (error) {
           reject(error);
         }
@@ -30,7 +28,7 @@ function debounce<T extends (...args: any[]) => any>(func: T, wait: number) {
     }
   };
 
-  return debounced as typeof debounced & { cancel: () => void };
+  return debounced as ((...args: TArgs) => Promise<Awaited<TReturn>>) & { cancel: () => void };
 }
 
 export default debounce;

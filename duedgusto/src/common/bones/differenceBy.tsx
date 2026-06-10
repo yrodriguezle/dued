@@ -1,6 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-const differenceBy = (arr1: any[], arr2: any[], keyOrIterateeFunc: string | ((item: any) => any)) => {
-  const iteratee = typeof keyOrIterateeFunc === "string" ? (item: any) => item[keyOrIterateeFunc] : keyOrIterateeFunc;
+const differenceBy = <T, K>(arr1: T[], arr2: T[], keyOrIterateeFunc: keyof T | ((item: T) => K)): T[] => {
+  const iteratee: (item: T) => unknown = typeof keyOrIterateeFunc === "function" ? keyOrIterateeFunc : (item: T) => item[keyOrIterateeFunc];
   return arr1.filter((objItem) => !arr2.map(iteratee).includes(iteratee(objItem)));
 };
 

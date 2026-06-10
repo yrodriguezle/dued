@@ -31,6 +31,7 @@ function ProfileMenuButton() {
       <Tooltip title="Impostazioni">
         <IconButton
           onClick={handleOpenUserMenu}
+          aria-label="Impostazioni"
           sx={{ p: 0 }}
         >
           <Persona

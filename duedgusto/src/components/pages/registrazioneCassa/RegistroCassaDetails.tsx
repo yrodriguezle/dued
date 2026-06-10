@@ -515,6 +515,7 @@ function RegistroCassaDetails() {
                     size="small"
                     onClick={handlePreviousDay}
                     title="Giorno precedente"
+                    aria-label="Giorno precedente"
                   >
                     <ArrowBack fontSize="small" />
                   </IconButton>
@@ -531,6 +532,7 @@ function RegistroCassaDetails() {
                     size="small"
                     onClick={handleNextDay}
                     title="Giorno successivo"
+                    aria-label="Giorno successivo"
                   >
                     <ArrowForward fontSize="small" />
                   </IconButton>
@@ -538,6 +540,7 @@ function RegistroCassaDetails() {
                     size="small"
                     onClick={handleOpenMonthlyCalendar}
                     title="Vista mensile"
+                    aria-label="Vista mensile"
                     color="primary"
                   >
                     <CalendarMonthIcon fontSize="small" />

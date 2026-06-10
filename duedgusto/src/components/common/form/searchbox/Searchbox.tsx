@@ -200,6 +200,7 @@ function Searchbox<T extends Record<string, unknown>>({ id, name, value, orderBy
                     disabled={props.disabled}
                     onClick={handleOpenModal}
                     onMouseDown={(e) => e.preventDefault()}
+                    aria-label="Apri ricerca"
                   >
                     <ExpandMoreIcon />
                   </IconButton>

@@ -63,6 +63,7 @@ function ToolbarNavigazioneMensile({
                 size="small"
                 onClick={onBack}
                 title="Indietro"
+                aria-label="Indietro"
                 sx={{ height: 48, width: 48 }}
               >
                 <ArrowBackIcon />
@@ -71,6 +72,7 @@ function ToolbarNavigazioneMensile({
                 size="small"
                 onClick={onChiusuraMensile}
                 title="Chiusura Mensile"
+                aria-label="Chiusura Mensile"
                 sx={{ height: 48, width: 48 }}
               >
                 <SummarizeIcon />
@@ -99,6 +101,7 @@ function ToolbarNavigazioneMensile({
             size="small"
             onClick={onPrevYear}
             title="Anno precedente"
+            aria-label="Anno precedente"
           >
             <ChevronLeftIcon fontSize="small" />
             <ChevronLeftIcon
@@ -110,6 +113,7 @@ function ToolbarNavigazioneMensile({
             size="small"
             onClick={onPrevMonth}
             title="Mese precedente"
+            aria-label="Mese precedente"
           >
             <ChevronLeftIcon />
           </IconButton>
@@ -144,6 +148,7 @@ function ToolbarNavigazioneMensile({
             size="small"
             onClick={onNextMonth}
             title="Mese successivo"
+            aria-label="Mese successivo"
           >
             <ChevronRightIcon />
           </IconButton>
@@ -151,6 +156,7 @@ function ToolbarNavigazioneMensile({
             size="small"
             onClick={onNextYear}
             title="Anno successivo"
+            aria-label="Anno successivo"
           >
             <ChevronRightIcon
               fontSize="small"

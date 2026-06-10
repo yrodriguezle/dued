@@ -136,6 +136,7 @@ function FormikToolbar({
           {rightContent ?? (isMobile ? (
             <IconButton
               size="small"
+              aria-label="Altre azioni"
               sx={{
                 "&:hover": {
                   backgroundColor: theme.palette.action.hover,

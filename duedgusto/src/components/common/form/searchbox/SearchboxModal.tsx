@@ -166,6 +166,7 @@ function SearchboxModal<T extends Record<string, unknown>>({ open, title, items,
           <IconButton
             onClick={onClose}
             size="small"
+            aria-label="Chiudi finestra"
           >
             <CloseIcon />
           </IconButton>

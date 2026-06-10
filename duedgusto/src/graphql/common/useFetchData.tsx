@@ -20,6 +20,31 @@ interface RelayResult<T> {
   cursor: number;
 }
 
+// Shape strutturale minima letta dal hook (supporta sia 'items' legacy sia 'edges' Relay).
+interface RelayConnectionData<T> {
+  totalCount?: number;
+  pageInfo?: Partial<RelayPageInfo>;
+  items?: T[];
+  edges?: { node: T }[];
+}
+
+// Supporta entrambi i pattern di risposta: data.connection[queryName] (grouped)
+// e data[queryName] (flat). Sostituisce i precedenti accessi via `as any`.
+function extractConnectionData<T>(data: unknown, queryName: string): RelayConnectionData<T> | undefined {
+  const page = data as Record<string, unknown> | null | undefined;
+  const grouped = page?.connection as Record<string, RelayConnectionData<T> | undefined> | null | undefined;
+  if (grouped?.[queryName]) {
+    // Grouped pattern: data.connection[queryName]
+    return grouped[queryName];
+  }
+  const flat = page?.[queryName] as RelayConnectionData<T> | undefined;
+  if (flat) {
+    // New pattern: data[queryName]
+    return flat;
+  }
+  return undefined;
+}
+
 function useFetchData<T>({ query, variables, skip, reverseGrid, fetchPolicy = "network-only" }: UseFetchDataProps<T>) {
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(false);
@@ -68,22 +93,13 @@ function useFetchData<T>({ query, variables, skip, reverseGrid, fetchPolicy = "n
           const queryName = getQueryName(query);
 
           // Support both old and new patterns
-          let connectionData;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const firstPageAny = firstPage as any;
-          if (firstPageAny?.connection?.[queryName]) {
-            // Grouped pattern: data.connection[queryName]
-            connectionData = firstPageAny.connection[queryName];
-          } else if (firstPageAny?.[queryName]) {
-            // New pattern: data[queryName]
-            connectionData = firstPageAny[queryName];
-          }
+          const connectionData = extractConnectionData<T>(firstPage, queryName);
 
           const totalCount = connectionData?.totalCount || 0;
           const hasMore = connectionData?.pageInfo?.[nextPage] || false;
 
           // Support both 'items' (old) and 'edges' (new Relay standard)
-          let items = [];
+          let items: T[] = [];
           if (connectionData?.items) {
             items = connectionData.items;
           } else if (connectionData?.edges) {
@@ -149,22 +165,13 @@ function useFetchData<T>({ query, variables, skip, reverseGrid, fetchPolicy = "n
             const queryName = getQueryName(query);
 
             // Support both old and new patterns
-            let connectionData;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const nextPageAny = nextPage as any;
-            if (nextPageAny?.connection?.[queryName]) {
-              // Grouped pattern: data.connection[queryName]
-              connectionData = nextPageAny.connection[queryName];
-            } else if (nextPageAny?.[queryName]) {
-              // New pattern: data[queryName]
-              connectionData = nextPageAny[queryName];
-            }
+            const connectionData = extractConnectionData<T>(nextPage, queryName);
 
             const totalCount = connectionData?.totalCount || 0;
             const hasMore = connectionData?.pageInfo?.[nextPageInfo] || false;
 
             // Support both 'items' (old) and 'edges' (new Relay standard)
-            let items = [];
+            let items: T[] = [];
             if (connectionData?.items) {
               items = connectionData.items;
             } else if (connectionData?.edges) {

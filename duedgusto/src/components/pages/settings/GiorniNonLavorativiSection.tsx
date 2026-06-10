@@ -265,6 +265,7 @@ function GiorniNonLavorativiSection({ giorniNonLavorativi }: GiorniNonLavorativi
                       onClick={() => handleApriDialogModifica(giorno)}
                       disabled={isLoading}
                       title="Modifica"
+                      aria-label="Modifica"
                     >
                       <EditIcon fontSize="small" />
                     </IconButton>
@@ -274,6 +275,7 @@ function GiorniNonLavorativiSection({ giorniNonLavorativi }: GiorniNonLavorativi
                       disabled={isLoading}
                       color="error"
                       title="Elimina"
+                      aria-label="Elimina"
                     >
                       <DeleteIcon fontSize="small" />
                     </IconButton>

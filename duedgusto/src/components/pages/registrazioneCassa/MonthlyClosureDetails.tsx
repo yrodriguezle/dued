@@ -430,6 +430,7 @@ const MonthlyClosureDetails = () => {
               <IconButton
                 onClick={() => setGiorniMancantiModalOpen(true)}
                 size="small"
+                aria-label="Mostra giorni mancanti"
               >
                 <Badge
                   badgeContent={giorniEffettivamenteMancanti.length}
@@ -871,6 +872,7 @@ const MonthlyClosureDetails = () => {
                               color="error"
                               disabled={isMutating}
                               onClick={() => handleRimuoviEsclusione(dayjs(ge.data).format("YYYY-MM-DD"))}
+                              aria-label="Rimuovi esclusione"
                             >
                               <RemoveCircleOutlineIcon />
                             </IconButton>

@@ -171,14 +171,43 @@ invariata); design Decisioni 7, 8, 9, 10.
 
 Rif: spec `manutenibilita-frontend` (eliminazione any, aria-label); design Decisioni 6, 11.
 
-- [ ] 4.1 `duedgusto/src/common/bones/debounce.tsx`: generics `<TArgs extends unknown[], TReturn>`, `this` tipizzato `unknown`, ritorno `((...args: TArgs) => Promise<Awaited<TReturn>>) & { cancel: () => void }`; rimuovere `eslint-disable no-explicit-any`. Vincolo: zero nuovi cast nei call site (`ts:check` arbitro).
-- [ ] 4.2 `duedgusto/src/common/bones/omitDeep.tsx`: firma `omitDeep<T>(value: T, omitArrayProperties?: string[]): T`, helper interni su `unknown` + narrowing (`Array.isArray`, type predicate). Stesso trattamento per `differenceBy.tsx`: `differenceBy<T, K>(arr1: T[], arr2: T[], keyOrIteratee: keyof T | ((item: T) => K)): T[]`.
-- [ ] 4.3 `duedgusto/src/common/bones/{isEqual,unionBy,uniq,PromiseQueue}.tsx` (SHOULD, stesso intervento): generics + `unknown` interno, firme finalizzate file per file con `ts:check` come gate (open question design — se un file richiede cast nei call site, lasciarlo invariato e documentare).
-- [ ] 4.4 `duedgusto/src/store/businessSettingsStore.tsx`: tipizzare `set: StoreApi<Store>["setState"]`, `get: StoreApi<Store>["getState"]` (o il pattern usato dagli altri slice in `useStore.tsx` — coerenza > eleganza); rimuovere l'`eslint-disable` riga ~32; NON semplificare i body `set((state) => ...)` (Decisione 6).
-- [ ] 4.5 Verifica "Zero eslint-disable residui": grep `eslint-disable @typescript-eslint/no-explicit-any` nei file in scope (bones toccati, `businessSettingsStore`, `parseSettingsFromRaw`, `useFetchData`) → zero occorrenze. Test unitari esistenti su bones/store invariati e verdi (scenario "Comportamento runtime invariato").
-- [ ] 4.6 Censimento ARIA: grep `<IconButton` in `duedgusto/src/components/**` e individuare i 18 file con IconButton senza testo né `aria-label`; per ciascuno aggiungere `aria-label` italiano descrittivo dell'azione (es. "Modifica", "Elimina riga", "Giorno precedente", "Chiudi finestra"); dove esiste già `title`, l'`aria-label` lo duplica. Nessun cambiamento visivo.
-- [ ] 4.7 Test ARIA spot (eventuale, a costo zero): nei test esistenti dei componenti toccati, sostituire/aggiungere query `getByRole("button", { name: "..." })` dove banale (scenario "Pulsante icona accessibile"). Non scrivere nuovi file di test solo per gli aria-label.
-- [ ] 4.8 Gate Fase 4: `ts:check + lint + test` verdi. Commit atomico P3.
+- [x] 4.1 `duedgusto/src/common/bones/debounce.tsx`: generics `<TArgs extends unknown[], TReturn>`, `this` tipizzato `unknown`, ritorno `((...args: TArgs) => Promise<Awaited<TReturn>>) & { cancel: () => void }`; rimuovere `eslint-disable no-explicit-any`. Vincolo: zero nuovi cast nei call site (`ts:check` arbitro).
+  > NOTA apply: un solo cast interno su `resolve(result as Awaited<TReturn> | PromiseLike<...>)`
+  > (TS non sa unwrappare TReturn generico); zero cast nei call site (`useDebouncedCallback`,
+  > `useGridStatePersistence` compilano invariati).
+- [x] 4.2 `duedgusto/src/common/bones/omitDeep.tsx`: firma `omitDeep<T>(value: T, omitArrayProperties?: string[]): T`, helper interni su `unknown` + narrowing (`Array.isArray`, type predicate). Stesso trattamento per `differenceBy.tsx`: `differenceBy<T, K>(arr1: T[], arr2: T[], keyOrIteratee: keyof T | ((item: T) => K)): T[]`.
+  > NOTA apply: in `differenceBy` il discriminante è `typeof === "function"` (equivalente
+  > runtime dell'originale `typeof === "string"` invertito, necessario per il narrowing
+  > di `keyof T`); iteratee interno tipizzato `(item: T) => unknown`.
+- [x] 4.3 `duedgusto/src/common/bones/{isEqual,unionBy,uniq,PromiseQueue}.tsx` (SHOULD, stesso intervento): generics + `unknown` interno, firme finalizzate file per file con `ts:check` come gate (open question design — se un file richiede cast nei call site, lasciarlo invariato e documentare).
+  > Firme finalizzate: `isEqual(first: unknown, second: unknown): boolean`;
+  > `unionBy<T>` con `MapFunc<T> = (item: T) => unknown`; `uniq<T>(target?: T[]): T[]`;
+  > `PromiseQueue.add<T>(operation: () => Promise<T>): Promise<T>` (queue interna
+  > `Promise<unknown>`). Nessun call site ha richiesto cast — nessun fallback necessario.
+- [x] 4.4 `duedgusto/src/store/businessSettingsStore.tsx`: tipizzare `set: StoreApi<Store>["setState"]`, `get: StoreApi<Store>["getState"]` (o il pattern usato dagli altri slice in `useStore.tsx` — coerenza > eleganza); rimuovere l'`eslint-disable` riga ~32; NON semplificare i body `set((state) => ...)` (Decisione 6).
+  > Usato il pattern degli altri 6 slice: `set: StoreSet` (tipo globale in `types.d.ts`),
+  > `get: () => Store` invariato. Body `set((state) => ...)` NON semplificati.
+- [x] 4.5 Verifica "Zero eslint-disable residui": grep `eslint-disable @typescript-eslint/no-explicit-any` nei file in scope (bones toccati, `businessSettingsStore`, `parseSettingsFromRaw`, `useFetchData`) → zero occorrenze. Test unitari esistenti su bones/store invariati e verdi (scenario "Comportamento runtime invariato").
+  > Per azzerare `useFetchData` sono stati rimossi anche i 2 `as any` residui (Fase 1 li
+  > aveva lasciati): estratto helper tipizzato `extractConnectionData<T>` che replica
+  > letteralmente i rami grouped/flat. Grep verde su tutti i file in scope; restano
+  > disable in file FUORI scope (getPromiseModal, logger, mergeWithDefaults, FastField,
+  > Formik* wrapper, useDebouncedCallback ecc. — non elencati dalla spec). Test bones/store
+  > invariati e verdi.
+- [x] 4.6 Censimento ARIA: grep `<IconButton` in `duedgusto/src/components/**` e individuare i 18 file con IconButton senza testo né `aria-label`; per ciascuno aggiungere `aria-label` italiano descrittivo dell'azione (es. "Modifica", "Elimina riga", "Giorno precedente", "Chiudi finestra"); dove esiste già `title`, l'`aria-label` lo duplica. Nessun cambiamento visivo.
+  > Censimento 2026-06-10: 33 `<IconButton` in 19 file; 18 file senza aria-label coperti
+  > (33 bottoni etichettati, incluse le 3 occorrenze di OverflowToolbar con
+  > `aria-label={action.label}`); il 19° (`TextField`) aveva già un aria-label inglese,
+  > tradotto in "Mostra o nascondi password" per coerenza. Verifica multiline grep:
+  > zero `<IconButton ...>` senza aria-label in `src/components/**`.
+- [x] 4.7 Test ARIA spot (eventuale, a costo zero): nei test esistenti dei componenti toccati, sostituire/aggiungere query `getByRole("button", { name: "..." })` dove banale (scenario "Pulsante icona accessibile"). Non scrivere nuovi file di test solo per gli aria-label.
+  > 2 sostituzioni: `TextField.test.tsx` (getByLabelText inglese → getByRole con nome
+  > italiano) e `Searchbox.test.tsx` riga ~521 (query fragile via testid icona →
+  > `getByRole("button", { name: "Apri ricerca" })`). Nessun nuovo file di test.
+- [x] 4.8 Gate Fase 4: `ts:check + lint + test` verdi. Commit atomico P3.
+  > Gate 2026-06-10: ts:check OK, lint OK, vitest 513/513 verdi (69 file) — invariato
+  > rispetto al gate Fase 3 (nessun nuovo file di test; 2 test esistenti aggiornati
+  > alle query per nome accessibile). COMMIT NON eseguito su istruzione dell'orchestratore.
 
 ## Phase 5: Verifica finale
 

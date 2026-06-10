@@ -118,6 +118,7 @@ const DateField = forwardRef<DateFieldRef, DateFieldProps>(({ value = "", name, 
                 onMouseDown={handleMouseDown}
                 size="small"
                 edge="end"
+                aria-label="Apri calendario"
               >
                 <CalendarMonthIcon fontSize="small" />
               </IconButton>

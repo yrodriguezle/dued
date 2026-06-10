@@ -161,6 +161,7 @@ function FatturaAcquistoForm({ onSelectFornitore, onSelectInvoice, documentiTras
               size="small"
               onClick={() => handleRemoveDdt(params.data.ddtId)}
               title="Rimuovi DDT"
+              aria-label="Rimuovi DDT"
             >
               <LinkOffIcon fontSize="small" />
             </IconButton>

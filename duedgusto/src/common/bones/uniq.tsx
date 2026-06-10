@@ -1,6 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
-function uniq(target: any[] = []): any[] {
+function uniq<T>(target: T[] = []): T[] {
   return [...new Set(target)];
 }
 

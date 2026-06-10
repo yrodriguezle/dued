@@ -262,6 +262,7 @@ function PeriodoProgrammazioneSection({ periodi }: PeriodoProgrammazioneSectionP
                     onClick={() => handleApriDialogModifica(periodo)}
                     disabled={isLoading}
                     title="Modifica"
+                    aria-label="Modifica"
                   >
                     <EditIcon fontSize="small" />
                   </IconButton>
@@ -272,6 +273,7 @@ function PeriodoProgrammazioneSection({ periodi }: PeriodoProgrammazioneSectionP
                       disabled={isLoading}
                       color="error"
                       title="Elimina"
+                      aria-label="Elimina"
                     >
                       <DeleteIcon fontSize="small" />
                     </IconButton>
