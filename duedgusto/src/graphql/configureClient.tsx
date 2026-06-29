@@ -49,8 +49,17 @@ function configureClient() {
     return forward(operation);
   });
 
+  // Riconosce gli errori di autorizzazione provenienti dal backend GraphQL.NET.
+  // Il runtime usa `extensions.code` ("ACCESS_DENIED" o "authorization"), ma in
+  // produzione le extensions non vengono esposte (ExposeExtensions = IsDevelopment()):
+  // il messaggio "Access denied ..." è invece sempre presente, quindi usiamo anche quello.
+  const isAuthError = (err: { extensions?: { code?: unknown }; message?: string }) =>
+    err.extensions?.code === "ACCESS_DENIED" ||
+    err.extensions?.code === "authorization" ||
+    /access denied/i.test(err.message ?? "");
+
   const errorLink = onError(({ graphQLErrors, operation, forward }) => {
-    if (graphQLErrors && graphQLErrors.some((err) => err.extensions?.code === "ACCESS_DENIED")) {
+    if (graphQLErrors && graphQLErrors.some(isAuthError)) {
       logger.log("Received ACCESS_DENIED, attempting token refresh from Apollo Client");
 
       // Usa il manager centralizzato per il refresh del token
