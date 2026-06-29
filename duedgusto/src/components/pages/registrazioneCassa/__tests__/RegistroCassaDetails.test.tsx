@@ -15,7 +15,7 @@ vi.mock("../../../../graphql/cashRegister/useQueryDenominations", () => ({
   default: vi.fn(),
 }));
 
-vi.mock("../../../../graphql/cashRegister/useQueryCashRegister", () => ({
+vi.mock("../../../../graphql/cashRegister/useQueryRegistroCassa", () => ({
   default: vi.fn(),
 }));
 
@@ -78,14 +78,14 @@ vi.mock("react-toastify", () => ({
 
 import useStore from "../../../../store/useStore";
 import useQueryDenominations from "../../../../graphql/cashRegister/useQueryDenominations";
-import useQueryCashRegister from "../../../../graphql/cashRegister/useQueryCashRegister";
+import useQueryRegistroCassa from "../../../../graphql/cashRegister/useQueryRegistroCassa";
 import RegistroCassaDetails from "../RegistroCassaDetails";
 import PageTitleContext from "../../../layout/headerBar/PageTitleContext";
 import { DataRouterTestWrapper } from "../../../../test/helpers/dataRouterTestWrapper";
 
 const mockUseStore = vi.mocked(useStore);
 const mockUseQueryDenominations = vi.mocked(useQueryDenominations);
-const mockUseQueryCashRegister = vi.mocked(useQueryCashRegister);
+const mockUseQueryRegistroCassa = vi.mocked(useQueryRegistroCassa);
 
 // ── Dati di test ───────────────────────────────────────────────────────
 
@@ -141,9 +141,8 @@ function setupQueries(cashRegister: RegistroCassa | null = null) {
     error: undefined,
     loading: false,
   } as never);
-  mockUseQueryCashRegister.mockReturnValue({
+  mockUseQueryRegistroCassa.mockReturnValue({
     registroCassa: cashRegister,
-    cashRegister,
     error: undefined,
     loading: false,
     refetch: mockRefetch,
@@ -201,9 +200,8 @@ describe("RegistroCassaDetails (smoke)", () => {
   });
 
   it("mostra il loader quando le query sono in caricamento", () => {
-    mockUseQueryCashRegister.mockReturnValue({
+    mockUseQueryRegistroCassa.mockReturnValue({
       registroCassa: null,
-      cashRegister: null,
       error: undefined,
       loading: true,
       refetch: mockRefetch,

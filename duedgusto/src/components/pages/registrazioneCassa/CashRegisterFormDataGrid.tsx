@@ -3,7 +3,7 @@ import { TextField, Box } from "@mui/material";
 import { useFormikContext } from "formik";
 import { FormikCashRegisterValues } from "./RegistroCassaDetails";
 import CashCountDataGrid from "./CashCountDataGrid";
-import SummaryDataGrid from "./SummaryDataGrid";
+import RiepilogoCards from "./RiepilogoCards";
 import IncomesDataGrid from "./IncomesDataGrid";
 import ExpensesDataGrid from "./ExpensesDataGrid";
 import { GridReadyEvent } from "ag-grid-community";
@@ -31,11 +31,11 @@ interface CashRegisterFormDataGridProps {
   initialExpenses: Expense[];
   onCellChange: () => void;
   onCopyFromPrevious?: () => void;
-  summaryData: SummaryData;
+  riepilogoGiornaliero: RiepilogoGiornaliero;
   registroCassa?: RegistroCassa | null;
   onOpeningTotalChange: (total: number) => void;
   onClosingTotalChange: (total: number) => void;
-  onIncomesChange: (incomes: IncomeEntry[]) => void;
+  onIncomesChange: (incomes: IncassiGiornalieri[]) => void;
   onExpensesChange: (totalAmount: number, receiptAmount: number) => void;
 }
 
@@ -50,7 +50,7 @@ const CashRegisterFormDataGrid: React.FC<CashRegisterFormDataGridProps> = ({
   initialExpenses,
   onCellChange,
   onCopyFromPrevious,
-  summaryData,
+  riepilogoGiornaliero,
   registroCassa,
   onOpeningTotalChange,
   onClosingTotalChange,
@@ -110,8 +110,8 @@ const CashRegisterFormDataGrid: React.FC<CashRegisterFormDataGridProps> = ({
         </div>
 
         <div className="col-span-12">
-          <SummaryDataGrid
-            summaryData={summaryData}
+          <RiepilogoCards
+            riepilogoGiornaliero={riepilogoGiornaliero}
             registroCassa={registroCassa}
           />
         </div>

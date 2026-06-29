@@ -9,7 +9,7 @@ interface IncomesDataGridProps {
   initialIncomes: Income[];
   isLocked: boolean;
   onCellChange?: () => void;
-  onIncomesChange?: (incomes: IncomeEntry[]) => void;
+  onIncomesChange?: (incomes: IncassiGiornalieri[]) => void;
 }
 
 const IncomesDataGrid = memo(
@@ -50,10 +50,10 @@ const IncomesDataGrid = memo(
     const reportIncomes = useCallback(
       (api: GridReadyEvent<DatagridData<Income>>["api"]) => {
         if (!onIncomesChange) return;
-        const entries: IncomeEntry[] = [];
+        const entries: IncassiGiornalieri[] = [];
         api.forEachNode((node) => {
           if (node.data) {
-            entries.push({ type: node.data.type, amount: node.data.amount });
+            entries.push({ tipo: node.data.type, importo: node.data.amount });
           }
         });
         onIncomesChange(entries);

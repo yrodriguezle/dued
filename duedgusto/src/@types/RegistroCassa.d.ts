@@ -1,17 +1,16 @@
 // Cash Register Type Definitions - Versione Italiana
 
-// Summary types for cross-grid aggregation
-interface IncomeEntry {
-  type: string;
-  amount: number;
+interface IncassiGiornalieri {
+  tipo: string;
+  importo: number;
 }
 
-interface SummaryData {
-  openingTotal: number;
-  closingTotal: number;
-  incomes: IncomeEntry[];
-  expensesTotalAmount: number;     // AC: tutte le spese (fornitori + scontrino)
-  receiptExpensesAmount: number;   // AF: solo spese scontrino (non fornitori)
+interface RiepilogoGiornaliero {
+  totaleApertura: number;
+  totaleChiusura: number;
+  incassi: IncassiGiornalieri[];
+  totaleSpese: number;        // AC: tutte le spese (fornitori + scontrino)
+  speseScontrino: number;     // AF: solo spese scontrino (non fornitori)
 }
 
 type TipoDenominazioneMoneta = "COIN" | "BANKNOTE";

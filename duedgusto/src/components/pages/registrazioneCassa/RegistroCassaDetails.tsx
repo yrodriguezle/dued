@@ -21,7 +21,7 @@ import useInitializeValues from "./useInitializeValues";
 import useConfirm from "../../common/confirm/useConfirm";
 import PageTitleContext from "../../layout/headerBar/PageTitleContext";
 import useQueryDenominations from "../../../graphql/cashRegister/useQueryDenominations";
-import useQueryCashRegister from "../../../graphql/cashRegister/useQueryCashRegister";
+import useQueryRegistroCassa from "../../../graphql/cashRegister/useQueryRegistroCassa";
 import useSubmitCashRegister from "../../../graphql/cashRegister/useSubmitCashRegister";
 import { PagamentoFornitoreRegistroInput, RegistroCassaInput } from "../../../graphql/cashRegister/mutations";
 import useCloseCashRegister from "../../../graphql/cashRegister/useCloseCashRegister";
@@ -29,7 +29,7 @@ import { getRegistroCassa } from "../../../graphql/cashRegister/queries";
 import useStore from "../../../store/useStore";
 import useRegistroCassaSubscriptions from "../../../graphql/subscriptions/useRegistroCassaSubscriptions";
 import { toast } from "react-toastify";
-import { getCurrentDate, getFormattedDate, getWeekdayName, parseDateForGraphQL } from "../../../common/date/date";
+import { getCurrentDate, getFormattedDate, getWeekdayName, isValidDate, parseDateForGraphQL } from "../../../common/date/date";
 import useCashCountData from "./useCashCountData";
 import syncExpenseRowsWithPagamenti from "./syncExpenseRowsWithPagamenti";
 
@@ -66,32 +66,32 @@ function RegistroCassaDetails() {
     formRef.current?.setFieldValue("gridDirty", true);
   }, []);
 
-  // summaryData: stato aggregato aggiornato via callback dalle griglie figlie
-  const [summaryData, setSummaryData] = useState<SummaryData>({
-    openingTotal: 0,
-    closingTotal: 0,
-    incomes: [],
-    expensesTotalAmount: 0,
-    receiptExpensesAmount: 0,
+  // riepilogoGiornaliero: stato aggregato aggiornato via callback dalle griglie figlie
+  const [riepilogoGiornaliero, setRiepilogoGiornaliero] = useState<RiepilogoGiornaliero>({
+    totaleApertura: 0,
+    totaleChiusura: 0,
+    incassi: [],
+    totaleSpese: 0,
+    speseScontrino: 0,
   });
 
   const handleOpeningTotalChange = useCallback((total: number) => {
-    setSummaryData((prev) => ({ ...prev, openingTotal: total }));
+    setRiepilogoGiornaliero((prev) => ({ ...prev, totaleApertura: total }));
   }, []);
 
   const handleClosingTotalChange = useCallback((total: number) => {
-    setSummaryData((prev) => ({ ...prev, closingTotal: total }));
+    setRiepilogoGiornaliero((prev) => ({ ...prev, totaleChiusura: total }));
   }, []);
 
-  const handleIncomesChange = useCallback((incomes: IncomeEntry[]) => {
-    setSummaryData((prev) => ({ ...prev, incomes }));
+  const handleIncomesChange = useCallback((incassi: IncassiGiornalieri[]) => {
+    setRiepilogoGiornaliero((prev) => ({ ...prev, incassi }));
   }, []);
 
   const handleExpensesChange = useCallback((totalAmount: number, receiptAmount: number) => {
-    setSummaryData((prev) => ({
+    setRiepilogoGiornaliero((prev) => ({
       ...prev,
-      expensesTotalAmount: totalAmount,
-      receiptExpensesAmount: receiptAmount,
+      totaleSpese: totalAmount,
+      speseScontrino: receiptAmount,
     }));
   }, []);
 
@@ -101,9 +101,11 @@ function RegistroCassaDetails() {
   const [initialIncomes, setInitialIncomes] = useState<Income[]>([]);
   const [initialExpenses, setInitialExpenses] = useState<Expense[]>([]);
 
-  // Usa il parametro date dall'URL, altrimenti usa la data corrente
   const getInitialDate = useCallback(() => {
-    return dateParam || getCurrentDate("YYYY-MM-DD");
+    if (dateParam && isValidDate(dateParam, ["YYYY-MM-DD"])) {
+      return dateParam;
+    }
+    return getCurrentDate("YYYY-MM-DD");
   }, [dateParam]);
 
   const [currentDate, setCurrentDate] = useState<string>(getInitialDate());
@@ -122,7 +124,11 @@ function RegistroCassaDetails() {
 
   const { denominazioni, loading: loadingDenominations } = useQueryDenominations();
 
-  const { cashRegister, loading: loadingCashRegister, refetch: refetchCashRegister } = useQueryCashRegister({
+  const {
+    registroCassa, 
+    loading: loadingCashRegister, 
+    refetch: refetchCashRegister,
+  } = useQueryRegistroCassa({
     data: parseDateForGraphQL(currentDate) ?? "",
     skip: !currentDate,
   });
@@ -130,7 +136,7 @@ function RegistroCassaDetails() {
   // Subscription (registro aggiornato, vendita creata, chiusura cassa):
   // se l'evento riguarda il registro corrente → refetch
   useRegistroCassaSubscriptions({
-    cashRegisterId: cashRegister?.id,
+    cashRegisterId: registroCassa?.id,
     refetch: refetchCashRegister,
   });
 
@@ -225,50 +231,50 @@ function RegistroCassaDetails() {
 
   // Initialize form with cash register data when available
   useEffect(() => {
-    if (cashRegister) {
+    if (registroCassa) {
       // Convert date from ISO 8601 to YYYY-MM-DD
-      const dateStr = cashRegister.data.split("T")[0]; // Extract YYYY-MM-DD from ISO string
+      const dateStr = registroCassa.data.split("T")[0]; // Extract YYYY-MM-DD from ISO string
 
       // Popola i valori del form (solo campi non-griglia)
       const formikValues: FormikCashRegisterValues = {
-        id: cashRegister.id,
+        id: registroCassa.id,
         date: dateStr,
-        utenteId: cashRegister.utenteId,
-        notes: cashRegister.note || "",
-        status: cashRegister.stato,
+        utenteId: registroCassa.utenteId,
+        notes: registroCassa.note || "",
+        status: registroCassa.stato,
         gridDirty: false,
       };
       handleInitializeValues(formikValues);
 
       // Popola i dati iniziali delle griglie
       setInitialOpeningCounts(
-        cashRegister.conteggiApertura?.map((c: ConteggioMoneta) => ({
+        registroCassa.conteggiApertura?.map((c: ConteggioMoneta) => ({
           denominazioneMonetaId: c.denominazioneMonetaId,
           quantita: c.quantita,
         })) || []
       );
 
       setInitialClosingCounts(
-        cashRegister.conteggiChiusura?.map((c: ConteggioMoneta) => ({
+        registroCassa.conteggiChiusura?.map((c: ConteggioMoneta) => ({
           denominazioneMonetaId: c.denominazioneMonetaId,
           quantita: c.quantita,
         })) || []
       );
 
       setInitialIncomes([
-        { type: "Pago in contanti", amount: cashRegister.incassoContanteTracciato || 0 },
-        { type: "Pagamenti Elettronici", amount: cashRegister.incassiElettronici || 0 },
-        { type: "Pagamento con Fattura", amount: cashRegister.incassiFattura || 0 },
+        { type: "Pago in contanti", amount: registroCassa.incassoContanteTracciato || 0 },
+        { type: "Pagamenti Elettronici", amount: registroCassa.incassiElettronici || 0 },
+        { type: "Pagamento con Fattura", amount: registroCassa.incassiFattura || 0 },
       ]);
 
       // Ricostruisci le spese: spese normali + pagamenti fornitore
       const normalExpenses: Expense[] =
-        cashRegister.spese?.map((e: SpesaCassa) => ({
+        registroCassa.spese?.map((e: SpesaCassa) => ({
           description: e.descrizione,
           amount: e.importo,
         })) || [];
       const pagamentoFornitoreExpenses: Expense[] =
-        cashRegister.pagamentiFornitori?.map((p: PagamentoFornitoreRegistro) => {
+        registroCassa.pagamentiFornitori?.map((p: PagamentoFornitoreRegistro) => {
           const hasInvoice = !!p.fattura;
           const nomeFornitore = hasInvoice ? p.fattura?.fornitore?.ragioneSociale || "Fornitore" : p.ddt?.fornitore?.ragioneSociale || "Fornitore";
           const fornitoreIdVal = hasInvoice ? p.fattura?.fornitore?.fornitoreId : p.ddt?.fornitore?.fornitoreId;
@@ -319,7 +325,7 @@ function RegistroCassaDetails() {
       ]);
       setInitialExpenses([]);
     }
-  }, [cashRegister, handleInitializeValues, currentDate, utente?.id]);
+  }, [handleInitializeValues, currentDate, utente?.id, registroCassa]);
 
   const onSubmit = async (values: FormikCashRegisterValues) => {
     try {
@@ -481,8 +487,8 @@ function RegistroCassaDetails() {
       enableReinitialize
       initialValues={initialValues}
       initialStatus={{
-        formStatus: cashRegister ? formStatuses.UPDATE : formStatuses.INSERT,
-        isFormLocked: cashRegister ? cashRegister.stato !== "DRAFT" : false,
+        formStatus: registroCassa ? formStatuses.UPDATE : formStatuses.INSERT,
+        isFormLocked: registroCassa ? registroCassa.stato !== "DRAFT" : false,
       }}
       validate={(values: FormikCashRegisterValues) => {
         const result = Schema.safeParse(values);
@@ -583,8 +589,8 @@ function RegistroCassaDetails() {
                 initialExpenses={initialExpenses}
                 onCellChange={handleCellChange}
                 onCopyFromPrevious={handleCopyFromPrevious}
-                summaryData={summaryData}
-                registroCassa={cashRegister}
+                riepilogoGiornaliero={riepilogoGiornaliero}
+                registroCassa={registroCassa}
                 onOpeningTotalChange={handleOpeningTotalChange}
                 onClosingTotalChange={handleClosingTotalChange}
                 onIncomesChange={handleIncomesChange}

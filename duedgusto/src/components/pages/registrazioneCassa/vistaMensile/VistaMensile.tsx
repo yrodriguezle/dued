@@ -75,7 +75,7 @@ function VistaMensile() {
     setTitle("Cassa - Vista Mensile");
   }, [setTitle]);
 
-  // Metriche mensili — stesse formule del riepilogo giornaliero (SummaryDataGrid)
+  // Metriche mensili — stesse formule del riepilogo giornaliero (RiepilogoCards)
   const monthlyStats = useMemo(() => {
     return cashRegisters.reduce(
       (acc, cr: RegistroCassa) => {

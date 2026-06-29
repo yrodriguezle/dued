@@ -6,7 +6,7 @@ interface UseQueryRegistroCassaParams {
   skip?: boolean;
 }
 
-function useQueryCashRegister({ data: dataParam, skip = false }: UseQueryRegistroCassaParams) {
+function useQueryRegistroCassa({ data: dataParam, skip = false }: UseQueryRegistroCassaParams) {
   const { data, error, loading, refetch } = useQuery(getRegistroCassa, {
     variables: { data: dataParam },
     skip,
@@ -16,12 +16,10 @@ function useQueryCashRegister({ data: dataParam, skip = false }: UseQueryRegistr
 
   return {
     registroCassa,
-    // Legacy alias
-    cashRegister: registroCassa,
     error,
     loading,
     refetch,
   };
 }
 
-export default useQueryCashRegister;
+export default useQueryRegistroCassa;

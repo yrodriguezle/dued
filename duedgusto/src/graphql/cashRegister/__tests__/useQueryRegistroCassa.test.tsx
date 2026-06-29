@@ -1,7 +1,7 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { MockedProvider, MockedResponse } from "@apollo/client/testing";
 import { ReactNode } from "react";
-import useQueryCashRegister from "../useQueryCashRegister";
+import useQueryRegistroCassa from "../useQueryRegistroCassa";
 import { getRegistroCassa } from "../queries";
 
 const createWrapper = (mocks: MockedResponse[]) =>
@@ -59,7 +59,7 @@ const mockRegistroCassa = {
   pagamentiFornitori: [],
 };
 
-describe("useQueryCashRegister", () => {
+describe("useQueryRegistroCassa", () => {
   it("dovrebbe restituire i dati del registro cassa dal mock", async () => {
     const mock: MockedResponse = {
       request: { query: getRegistroCassa },
@@ -77,7 +77,7 @@ describe("useQueryCashRegister", () => {
     const wrapper = createWrapper([mock]);
 
     const { result } = renderHook(
-      () => useQueryCashRegister({ data: "2026-03-12" }),
+      () => useQueryRegistroCassa({ data: "2026-03-12" }),
       { wrapper }
     );
 
@@ -91,7 +91,6 @@ describe("useQueryCashRegister", () => {
     expect(result.current.registroCassa).toBeDefined();
     expect(result.current.registroCassa?.id).toBe(1);
     expect(result.current.registroCassa?.data).toBe("2026-03-12");
-    expect(result.current.cashRegister).toEqual(result.current.registroCassa);
     expect(result.current.error).toBeUndefined();
   });
 
@@ -112,7 +111,7 @@ describe("useQueryCashRegister", () => {
     const wrapper = createWrapper([mock]);
 
     const { result } = renderHook(
-      () => useQueryCashRegister({ data: "2026-03-12" }),
+      () => useQueryRegistroCassa({ data: "2026-03-12" }),
       { wrapper }
     );
 
@@ -133,7 +132,7 @@ describe("useQueryCashRegister", () => {
     const wrapper = createWrapper([errorMock]);
 
     const { result } = renderHook(
-      () => useQueryCashRegister({ data: "2026-03-12" }),
+      () => useQueryRegistroCassa({ data: "2026-03-12" }),
       { wrapper }
     );
 
@@ -149,7 +148,7 @@ describe("useQueryCashRegister", () => {
     const wrapper = createWrapper([]);
 
     const { result } = renderHook(
-      () => useQueryCashRegister({ data: "2026-03-12", skip: true }),
+      () => useQueryRegistroCassa({ data: "2026-03-12", skip: true }),
       { wrapper }
     );
 
