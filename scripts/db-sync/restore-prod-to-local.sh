@@ -55,6 +55,19 @@ SSH_OPTS=(-p "$SSH_PORT" -o ConnectTimeout=15)
 [ -n "${SSH_KEY:-}" ] && SSH_OPTS+=(-i "$SSH_KEY")
 SSH_TARGET="$SSH_USER@$SSH_HOST"
 
+# Auth SSH: se SSH_KEY è impostata si usa la chiave. Altrimenti password via sshpass:
+# fallback da .env (SSH_PASSWORD); se assente, chiedila al prompt.
+SSH_CMD=(ssh)
+if [ -z "${SSH_KEY:-}" ]; then
+  if [ -z "${SSH_PASSWORD:-}" ]; then
+    read -rsp "Password SSH ($SSH_TARGET): " SSH_PASSWORD
+    echo
+    [ -n "$SSH_PASSWORD" ] || die "Password SSH vuota."
+  fi
+  command -v sshpass >/dev/null 2>&1 || die "sshpass non installato (brew install sshpass / apt install sshpass)."
+  SSH_CMD=(sshpass -p "$SSH_PASSWORD" ssh -o PubkeyAuthentication=no)
+fi
+
 mkdir -p "$DUMP_DIR"
 STAMP="$(date +%Y%m%d_%H%M%S)"
 DUMP_FILE="$DUMP_DIR/${PROD_DB_NAME}_prod_${STAMP}.sql.gz"
@@ -74,7 +87,7 @@ docker exec -e MYSQL_PWD='${PROD_DB_PASSWORD}' '${REMOTE_MYSQL_CONTAINER}' \
 EOF
 )
 
-ssh "${SSH_OPTS[@]}" "$SSH_TARGET" "$REMOTE_CMD" | gzip > "$DUMP_FILE"
+"${SSH_CMD[@]}" "${SSH_OPTS[@]}" "$SSH_TARGET" "$REMOTE_CMD" | gzip > "$DUMP_FILE"
 
 # Verifica dump non vuoto
 [ -s "$DUMP_FILE" ] || die "Dump vuoto o fallito: $DUMP_FILE"
