@@ -4,7 +4,7 @@ import { Box, LinearProgress } from "@mui/material";
 import dayjs from "dayjs";
 import "dayjs/locale/it";
 import PageTitleContext from "../../../layout/headerBar/PageTitleContext";
-import useQueryCashRegistersByMonth from "../../../../graphql/cashRegister/useQueryCashRegistersByMonth";
+import useQueryCashRegistersByMonth from "../../../../graphql/registroCassa/useQueryCashRegistersByMonth";
 import useRegistroCassaSubscription from "../../../../graphql/subscriptions/useRegistroCassaSubscription";
 import ToolbarNavigazioneMensile from "./ToolbarNavigazioneMensile";
 import RiepilogoIncassiMensile from "./RiepilogoIncassiMensile";

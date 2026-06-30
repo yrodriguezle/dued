@@ -6,7 +6,7 @@ import dayjs from "dayjs";
 
 import PageTitleContext from "../../layout/headerBar/PageTitleContext";
 import { useQuery } from "@apollo/client";
-import { getMonthlySummary } from "../../../graphql/cashRegister/queries";
+import { getMonthlySummary } from "../../../graphql/registroCassa/queries";
 
 function MonthlyView() {
   const { setTitle } = useContext(PageTitleContext);

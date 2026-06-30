@@ -2,7 +2,7 @@ import { useMutation } from "@apollo/client";
 import { mutationSubmitRegistroCassa, SubmitRegistroCassaValues } from "./mutations";
 import { getRegistroCassa } from "./queries";
 
-function useSubmitCashRegister() {
+function useSubmitRegistroCassa() {
   const [mutate, { data, error, loading }] = useMutation(mutationSubmitRegistroCassa);
 
   const submitRegistroCassa = async (variables: SubmitRegistroCassaValues) => {
@@ -35,4 +35,4 @@ function useSubmitCashRegister() {
   };
 }
 
-export default useSubmitCashRegister;
+export default useSubmitRegistroCassa;

@@ -1,7 +1,7 @@
 
 import { TextField, Box } from "@mui/material";
 import { useFormikContext } from "formik";
-import { FormikCashRegisterValues } from "./RegistroCassaDetails";
+import { FormikRegistroCassaValues } from "./RegistroCassaDetails";
 import CashCountDataGrid from "./CashCountDataGrid";
 import RiepilogoCards from "./RiepilogoCards";
 import IncomesDataGrid from "./IncomesDataGrid";
@@ -28,7 +28,7 @@ interface CashRegisterFormDataGridProps {
   openingRowData: CashCountRowData[];
   closingRowData: CashCountRowData[];
   initialIncomes: Income[];
-  initialExpenses: Expense[];
+  initialExpenses: Spese[];
   onCellChange: () => void;
   onCopyFromPrevious?: () => void;
   riepilogoGiornaliero: RiepilogoGiornaliero;
@@ -57,7 +57,7 @@ const CashRegisterFormDataGrid: React.FC<CashRegisterFormDataGridProps> = ({
   onIncomesChange,
   onExpensesChange,
 }) => {
-  const formik = useFormikContext<FormikCashRegisterValues>();
+  const formik = useFormikContext<FormikRegistroCassaValues>();
   const isLocked = formik.status?.isFormLocked || false;
   const isClosed = formik.values.status === "CLOSED";
 

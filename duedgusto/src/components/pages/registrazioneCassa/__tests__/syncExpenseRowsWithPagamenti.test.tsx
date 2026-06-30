@@ -25,7 +25,7 @@ function makeDdtPagamento(overrides: { pagamentoId: number; fornitoreId: number;
   };
 }
 
-function makeFatturaRow(overrides: Partial<Expense> = {}): Expense {
+function makeFatturaRow(overrides: Partial<Spese> = {}): Spese {
   return {
     description: "Pagamento Fornitore - FA",
     amount: 100,
@@ -37,7 +37,7 @@ function makeFatturaRow(overrides: Partial<Expense> = {}): Expense {
   };
 }
 
-function makeDdtRow(overrides: Partial<Expense> = {}): Expense {
+function makeDdtRow(overrides: Partial<Spese> = {}): Spese {
   return {
     description: "Pagamento Fornitore - DDT",
     amount: 100,
@@ -109,7 +109,7 @@ describe("syncExpenseRowsWithPagamenti", () => {
   });
 
   it("ignora le righe spesa normali (non pagamento fornitore)", () => {
-    const normalRow: Expense = { description: "Spesa scontrino", amount: 15 };
+    const normalRow: Spese = { description: "Spesa scontrino", amount: 15 };
     const row = makeFatturaRow({ fornitoreId: 3, invoiceNumber: "55" });
     const pagamento = makeFatturaPagamento({ pagamentoId: 5, fornitoreId: 3, numeroFattura: "55", fatturaId: 66 });
 

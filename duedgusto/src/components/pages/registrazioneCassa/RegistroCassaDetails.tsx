@@ -20,12 +20,12 @@ import { formStatuses } from "../../../common/globals/constants";
 import useInitializeValues from "./useInitializeValues";
 import useConfirm from "../../common/confirm/useConfirm";
 import PageTitleContext from "../../layout/headerBar/PageTitleContext";
-import useQueryDenominations from "../../../graphql/cashRegister/useQueryDenominations";
-import useQueryRegistroCassa from "../../../graphql/cashRegister/useQueryRegistroCassa";
-import useSubmitCashRegister from "../../../graphql/cashRegister/useSubmitCashRegister";
-import { PagamentoFornitoreRegistroInput, RegistroCassaInput } from "../../../graphql/cashRegister/mutations";
-import useCloseCashRegister from "../../../graphql/cashRegister/useCloseCashRegister";
-import { getRegistroCassa } from "../../../graphql/cashRegister/queries";
+import useQueryDenominations from "../../../graphql/registroCassa/useQueryDenominations";
+import useQueryRegistroCassa from "../../../graphql/registroCassa/useQueryRegistroCassa";
+import useSubmitRegistroCassa from "../../../graphql/registroCassa/useSubmitRegistroCassa";
+import { PagamentoFornitoreRegistroInput, RegistroCassaInput } from "../../../graphql/registroCassa/mutations";
+import useCloseCashRegister from "../../../graphql/registroCassa/useCloseCashRegister";
+import { getRegistroCassa } from "../../../graphql/registroCassa/queries";
 import useStore from "../../../store/useStore";
 import useRegistroCassaSubscriptions from "../../../graphql/subscriptions/useRegistroCassaSubscriptions";
 import { toast } from "react-toastify";
@@ -43,14 +43,14 @@ const Schema = z.object({
   gridDirty: z.boolean().default(false),
 });
 
-export type FormikCashRegisterValues = z.infer<typeof Schema>;
+export type FormikRegistroCassaValues = z.infer<typeof Schema>;
 
 function RegistroCassaDetails() {
   const { date: dateParam } = useParams<{ date?: string }>();
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const formRef = useRef<FormikProps<FormikCashRegisterValues>>(null);
+  const formRef = useRef<FormikProps<FormikRegistroCassaValues>>(null);
   const openingGridRef = useRef<GridReadyEvent<DatagridData<CashCountRow>> | null>(null);
   const closingGridRef = useRef<GridReadyEvent<DatagridData<CashCountRow>> | null>(null);
   const incomesGridRef = useRef<GridReadyEvent<DatagridData<IncomeRow>> | null>(null);
@@ -99,7 +99,7 @@ function RegistroCassaDetails() {
   const [initialOpeningCounts, setInitialOpeningCounts] = useState<CashCount[]>([]);
   const [initialClosingCounts, setInitialClosingCounts] = useState<CashCount[]>([]);
   const [initialIncomes, setInitialIncomes] = useState<Income[]>([]);
-  const [initialExpenses, setInitialExpenses] = useState<Expense[]>([]);
+  const [initialExpenses, setInitialExpenses] = useState<Spese[]>([]);
 
   const getInitialDate = useCallback(() => {
     if (dateParam && isValidDate(dateParam, ["YYYY-MM-DD"])) {
@@ -221,7 +221,7 @@ function RegistroCassaDetails() {
     }
   }, [currentDate, isOpen, client, denominazioni, handleCellChange]);
 
-  const { submitRegistroCassa } = useSubmitCashRegister();
+  const { submitRegistroCassa } = useSubmitRegistroCassa();
   const { closeCashRegister, loading: closing } = useCloseCashRegister();
   const onConfirm = useConfirm();
 
@@ -236,7 +236,7 @@ function RegistroCassaDetails() {
       const dateStr = registroCassa.data.split("T")[0]; // Extract YYYY-MM-DD from ISO string
 
       // Popola i valori del form (solo campi non-griglia)
-      const formikValues: FormikCashRegisterValues = {
+      const formikValues: FormikRegistroCassaValues = {
         id: registroCassa.id,
         date: dateStr,
         utenteId: registroCassa.utenteId,
@@ -268,12 +268,12 @@ function RegistroCassaDetails() {
       ]);
 
       // Ricostruisci le spese: spese normali + pagamenti fornitore
-      const normalExpenses: Expense[] =
+      const normalExpenses: Spese[] =
         registroCassa.spese?.map((e: SpesaCassa) => ({
           description: e.descrizione,
           amount: e.importo,
         })) || [];
-      const pagamentoFornitoreExpenses: Expense[] =
+      const pagamentoFornitoreExpenses: Spese[] =
         registroCassa.pagamentiFornitori?.map((p: PagamentoFornitoreRegistro) => {
           const hasInvoice = !!p.fattura;
           const nomeFornitore = hasInvoice ? p.fattura?.fornitore?.ragioneSociale || "Fornitore" : p.ddt?.fornitore?.ragioneSociale || "Fornitore";
@@ -306,7 +306,7 @@ function RegistroCassaDetails() {
       setInitialExpenses([...pagamentoFornitoreExpenses, ...normalExpenses]);
     } else {
       // Initialize with current date for new entry
-      const newFormikValues: FormikCashRegisterValues = {
+      const newFormikValues: FormikRegistroCassaValues = {
         date: currentDate,
         utenteId: utente?.id || 0,
         notes: "",
@@ -327,7 +327,7 @@ function RegistroCassaDetails() {
     }
   }, [handleInitializeValues, currentDate, utente?.id, registroCassa]);
 
-  const onSubmit = async (values: FormikCashRegisterValues) => {
+  const onSubmit = async (values: FormikRegistroCassaValues) => {
     try {
       openingGridRef.current?.api.stopEditing();
       closingGridRef.current?.api.stopEditing();
@@ -348,10 +348,10 @@ function RegistroCassaDetails() {
       }
 
       // Separa spese normali da pagamenti fornitore
-      const normalExpenses = expenses.filter((row: Expense) => !row.isPagamentoFornitore);
+      const normalExpenses = expenses.filter((row: Spese) => !row.isPagamentoFornitore);
       const pagamentiFornitore: PagamentoFornitoreRegistroInput[] = expenses
-        .filter((row: Expense) => row.isPagamentoFornitore && row.fornitoreId)
-        .map((row: Expense) => ({
+        .filter((row: Spese) => row.isPagamentoFornitore && row.fornitoreId)
+        .map((row: Spese) => ({
           fornitoreId: row.fornitoreId!,
           numeroDdt: row.ddtNumber || "",
           importo: row.amount,
@@ -402,7 +402,7 @@ function RegistroCassaDetails() {
         // (pagamentoId/fatturaId/ddtId + numeri documento, placeholder SN-... inclusi):
         // un risalvataggio immediato prima del refetch invia update, non insert.
         // Matching per chiave fornitore|tipo|numero, mai per indice.
-        const { updates, mismatch } = syncExpenseRowsWithPagamenti(expenses as DatagridData<Expense>[], result.pagamentiFornitori || []);
+        const { updates, mismatch } = syncExpenseRowsWithPagamenti(expenses as DatagridData<Spese>[], result.pagamentiFornitori || []);
         if (mismatch) {
           // Nessun aggiornamento parziale: il refetch di getRegistroCassa già
           // attivato da useSubmitCashRegister riallinea griglia e ID dal server.
@@ -490,7 +490,7 @@ function RegistroCassaDetails() {
         formStatus: registroCassa ? formStatuses.UPDATE : formStatuses.INSERT,
         isFormLocked: registroCassa ? registroCassa.stato !== "DRAFT" : false,
       }}
-      validate={(values: FormikCashRegisterValues) => {
+      validate={(values: FormikRegistroCassaValues) => {
         const result = Schema.safeParse(values);
         if (result.success) {
           return;

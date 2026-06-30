@@ -6,7 +6,7 @@ import FormikSearchbox from "../../common/form/searchbox/FormikSearchbox";
 import fornitoreSearchboxOption, { FornitoreSearchbox } from "../../common/form/searchbox/searchboxOptions/fornitoreSearchboxOptions";
 import showToast from "../../../common/toast/showToast";
 import { Formik, Form } from "formik";
-import { getFattureNonPagatePerFornitore, getDdtNonPagatiPerFornitore } from "../../../graphql/cashRegister/queries";
+import { getFattureNonPagatePerFornitore, getDdtNonPagatiPerFornitore } from "../../../graphql/registroCassa/queries";
 import AppDialog from "../../common/dialog/AppDialog";
 
 const DEFAULT_ALIQUOTA_IVA = 22;
@@ -14,9 +14,9 @@ const DEFAULT_ALIQUOTA_IVA = 22;
 interface PagamentoFornitoreDialogProps {
   open: boolean;
   onClose: () => void;
-  onConfirm: (expense: Expense) => void;
+  onConfirm: (expense: Spese) => void;
   /** Dati della spesa da modificare; se assente il dialog è in modalità aggiunta */
-  initialData?: Expense;
+  initialData?: Spese;
 }
 
 interface PaymentFormValues {

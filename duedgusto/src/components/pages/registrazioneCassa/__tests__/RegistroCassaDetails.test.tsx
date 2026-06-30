@@ -11,16 +11,16 @@ vi.mock("../../../../store/useStore", () => {
   return { default: mockStore };
 });
 
-vi.mock("../../../../graphql/cashRegister/useQueryDenominations", () => ({
+vi.mock("../../../../graphql/registroCassa/useQueryDenominations", () => ({
   default: vi.fn(),
 }));
 
-vi.mock("../../../../graphql/cashRegister/useQueryRegistroCassa", () => ({
+vi.mock("../../../../graphql/registroCassa/useQueryRegistroCassa", () => ({
   default: vi.fn(),
 }));
 
 const mockSubmitRegistroCassa = vi.fn();
-vi.mock("../../../../graphql/cashRegister/useSubmitCashRegister", () => ({
+vi.mock("../../../../graphql/registroCassa/useSubmitRegistroCassa", () => ({
   default: vi.fn(() => ({
     submitRegistroCassa: mockSubmitRegistroCassa,
     data: undefined,
@@ -30,7 +30,7 @@ vi.mock("../../../../graphql/cashRegister/useSubmitCashRegister", () => ({
 }));
 
 const mockCloseCashRegister = vi.fn();
-vi.mock("../../../../graphql/cashRegister/useCloseCashRegister", () => ({
+vi.mock("../../../../graphql/registroCassa/useCloseCashRegister", () => ({
   default: vi.fn(() => ({
     chiudiRegistroCassa: mockCloseCashRegister,
     closeCashRegister: mockCloseCashRegister,
@@ -77,8 +77,8 @@ vi.mock("react-toastify", () => ({
 // ── Import dopo i mock ─────────────────────────────────────────────────
 
 import useStore from "../../../../store/useStore";
-import useQueryDenominations from "../../../../graphql/cashRegister/useQueryDenominations";
-import useQueryRegistroCassa from "../../../../graphql/cashRegister/useQueryRegistroCassa";
+import useQueryDenominations from "../../../../graphql/registroCassa/useQueryDenominations";
+import useQueryRegistroCassa from "../../../../graphql/registroCassa/useQueryRegistroCassa";
 import RegistroCassaDetails from "../RegistroCassaDetails";
 import PageTitleContext from "../../../layout/headerBar/PageTitleContext";
 import { DataRouterTestWrapper } from "../../../../test/helpers/dataRouterTestWrapper";

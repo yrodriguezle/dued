@@ -186,7 +186,7 @@ interface Income extends Record<string, unknown> {
   amount: number;
 }
 
-interface Expense extends Record<string, unknown> {
+interface Spese extends Record<string, unknown> {
   description: string;
   amount: number;
   isPagamentoFornitore?: boolean;

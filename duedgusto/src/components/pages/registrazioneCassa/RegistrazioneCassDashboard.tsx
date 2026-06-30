@@ -13,7 +13,7 @@ import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 import PageTitleContext from "../../layout/headerBar/PageTitleContext";
-import useQueryYearlySummary from "../../../graphql/cashRegister/useQueryYearlySummary";
+import useQueryYearlySummary from "../../../graphql/registroCassa/useQueryYearlySummary";
 import useStore from "../../../store/useStore";
 import formatCurrency from "../../../common/bones/formatCurrency";
 

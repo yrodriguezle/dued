@@ -22,12 +22,12 @@ export interface ExpenseRowSyncChanges {
   ddtNumber?: string;
 }
 
-export interface ExpenseRowSyncUpdate<T extends Expense = Expense> {
+export interface ExpenseRowSyncUpdate<T extends Spese = Spese> {
   row: T;
   changes: ExpenseRowSyncChanges;
 }
 
-export interface SyncExpenseRowsResult<T extends Expense = Expense> {
+export interface SyncExpenseRowsResult<T extends Spese = Spese> {
   updates: ExpenseRowSyncUpdate<T>[];
   mismatch: boolean;
 }
@@ -40,15 +40,15 @@ interface ServerPagamentoDescriptor {
   matched: boolean;
 }
 
-function mismatchResult<T extends Expense>(): SyncExpenseRowsResult<T> {
+function mismatchResult<T extends Spese>(): SyncExpenseRowsResult<T> {
   return { updates: [], mismatch: true };
 }
 
-function getRowTipo(row: Expense): TipoDocumentoPagamento {
+function getRowTipo(row: Spese): TipoDocumentoPagamento {
   return row.documentType === "FA" ? "FA" : "DDT";
 }
 
-function getRowNumero(row: Expense): string {
+function getRowNumero(row: Spese): string {
   const numero = getRowTipo(row) === "FA" ? row.invoiceNumber : row.ddtNumber;
   return (numero ?? "").trim();
 }
@@ -93,7 +93,7 @@ function toChanges(server: ServerPagamentoDescriptor): ExpenseRowSyncChanges {
  * Le righe spese normali (non pagamento fornitore) vengono ignorate.
  * Non muta le righe in input: restituisce le coppie riga → modifiche da applicare.
  */
-function syncExpenseRowsWithPagamenti<T extends Expense>(expenseRows: T[], pagamentiFornitori: PagamentoFornitoreRegistro[]): SyncExpenseRowsResult<T> {
+function syncExpenseRowsWithPagamenti<T extends Spese>(expenseRows: T[], pagamentiFornitori: PagamentoFornitoreRegistro[]): SyncExpenseRowsResult<T> {
   const supplierRows = (expenseRows ?? []).filter((row) => row.isPagamentoFornitore && row.fornitoreId);
   const descriptors = (pagamentiFornitori ?? []).map(toServerDescriptor);
 

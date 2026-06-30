@@ -1,7 +1,7 @@
 import { renderHook, act } from "@testing-library/react";
 import { MockedProvider, MockedResponse } from "@apollo/client/testing";
 import { ReactNode } from "react";
-import useSubmitCashRegister from "../useSubmitCashRegister";
+import useSubmitRegistroCassa from "../useSubmitRegistroCassa";
 import { mutationSubmitRegistroCassa, SubmitRegistroCassaValues } from "../mutations";
 import { getRegistroCassa } from "../queries";
 
@@ -102,7 +102,7 @@ describe("useSubmitCashRegister", () => {
 
     const wrapper = createWrapper([mock, createRefetchMock()]);
 
-    const { result } = renderHook(() => useSubmitCashRegister(), { wrapper });
+    const { result } = renderHook(() => useSubmitRegistroCassa(), { wrapper });
 
     expect(result.current.loading).toBe(false);
 
@@ -118,7 +118,7 @@ describe("useSubmitCashRegister", () => {
   it("dovrebbe esporre submitRegistroCassa", () => {
     const wrapper = createWrapper([]);
 
-    const { result } = renderHook(() => useSubmitCashRegister(), { wrapper });
+    const { result } = renderHook(() => useSubmitRegistroCassa(), { wrapper });
 
     expect(result.current.submitRegistroCassa).toBeDefined();
     expect(result.current.submitRegistroCassa).toBe(result.current.submitRegistroCassa);
@@ -140,7 +140,7 @@ describe("useSubmitCashRegister", () => {
 
     const wrapper = createWrapper([mock, createRefetchMock()]);
 
-    const { result } = renderHook(() => useSubmitCashRegister(), { wrapper });
+    const { result } = renderHook(() => useSubmitRegistroCassa(), { wrapper });
 
     let submitResult: unknown;
     await act(async () => {
@@ -159,7 +159,7 @@ describe("useSubmitCashRegister", () => {
 
     const wrapper = createWrapper([errorMock]);
 
-    const { result } = renderHook(() => useSubmitCashRegister(), { wrapper });
+    const { result } = renderHook(() => useSubmitRegistroCassa(), { wrapper });
 
     await expect(
       act(async () => {

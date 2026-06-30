@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FormikCashRegisterValues } from "./RegistroCassaDetails";
+import { FormikRegistroCassaValues } from "./RegistroCassaDetails";
 import setInitialFocus from "./setInitialFocus";
 import mergeWithDefaults from "../../../common/form/mergeWithDefaults";
 
@@ -13,7 +13,7 @@ function useInitializeValues({ skipInitialize, utenteId, currentDate }: UseIniti
   const initialized = useRef(false);
 
   const getDefaultInitialValues = useCallback(() => {
-    const initialValues: FormikCashRegisterValues = {
+    const initialValues: FormikRegistroCassaValues = {
       id: undefined,
       date: currentDate,
       utenteId,
@@ -24,9 +24,9 @@ function useInitializeValues({ skipInitialize, utenteId, currentDate }: UseIniti
     return initialValues;
   }, [currentDate, utenteId]);
 
-  const [initialValues, setInitialValues] = useState<FormikCashRegisterValues>(getDefaultInitialValues());
+  const [initialValues, setInitialValues] = useState<FormikRegistroCassaValues>(getDefaultInitialValues());
 
-  const handleInitializeValues = useCallback(async (values?: FormikCashRegisterValues) => {
+  const handleInitializeValues = useCallback(async (values?: FormikRegistroCassaValues) => {
     setInitialValues((prev) => mergeWithDefaults(values, prev));
     if (!values) {
       setInitialFocus();
