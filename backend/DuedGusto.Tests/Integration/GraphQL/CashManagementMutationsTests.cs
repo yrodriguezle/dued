@@ -75,7 +75,9 @@ public class CashManagementMutationsTests : IDisposable
         decimal totaleVendite = 0,
         decimal incassiElettronici = 0,
         decimal incassoContante = 0,
-        decimal incassiFattura = 0)
+        decimal incassiFattura = 0,
+        decimal totaleApertura = 0,
+        decimal totaleChiusura = 0)
     {
         var registro = new RegistroCassa
         {
@@ -85,7 +87,9 @@ public class CashManagementMutationsTests : IDisposable
             TotaleVendite = totaleVendite,
             IncassiElettronici = incassiElettronici,
             IncassoContanteTracciato = incassoContante,
-            IncassiFattura = incassiFattura
+            IncassiFattura = incassiFattura,
+            TotaleApertura = totaleApertura,
+            TotaleChiusura = totaleChiusura
         };
         _dbContext.RegistriCassa.Add(registro);
         _dbContext.SaveChanges();
@@ -517,7 +521,8 @@ public class CashManagementMutationsTests : IDisposable
         // Scenario spec "Equivalenza con il calcolo pre-change": 123.45 al 10%
         SeedBusinessSettings(vatRate: 0.10m);
         var utente = SeedUtente();
-        var registro = SeedRegistroCassa(utente, new DateTime(2026, 3, 12), incassoContante: 123.45m);
+        // Contante reale = movimento fisico cassa (chiusura - apertura), non IncassoContanteTracciato
+        var registro = SeedRegistroCassa(utente, new DateTime(2026, 3, 12), totaleChiusura: 123.45m);
 
         await BreakdownIvaApplier.ApplicaAsync(_dbContext, registro, 0.10m, Mock.Of<ILogger>());
         await _dbContext.SaveChangesAsync();
@@ -543,7 +548,8 @@ public class CashManagementMutationsTests : IDisposable
         // Scenario spec "Registro con vendite ad aliquote miste" + normalizzazione VenditeContanti
         SeedBusinessSettings(vatRate: 0.22m);
         var utente = SeedUtente();
-        var registro = SeedRegistroCassa(utente, new DateTime(2026, 3, 12), incassiElettronici: 41.40m);
+        // Contante reale 58.60 (= Σ vendite itemizzate) + elettronico 41.40 = TotaleVendite 100
+        var registro = SeedRegistroCassa(utente, new DateTime(2026, 3, 12), incassiElettronici: 41.40m, totaleChiusura: 58.60m);
         var prodotto22 = SeedProdotto("P22", 36.60m, 22m);
         var prodotto10 = SeedProdotto("P10", 22.00m, 10m);
         SeedVendita(registro, prodotto22, 1);
@@ -620,7 +626,8 @@ public class CashManagementMutationsTests : IDisposable
         // canale dichiarato negativo → TotaleVendite < Σ vendite
         SeedBusinessSettings(vatRate: 0.22m);
         var utente = SeedUtente();
-        var registro = SeedRegistroCassa(utente, new DateTime(2026, 3, 12), incassiElettronici: -10.00m);
+        // Contante reale 60 + elettronico -10 = TotaleVendite 50 < Σ vendite 60 -> residuo negativo
+        var registro = SeedRegistroCassa(utente, new DateTime(2026, 3, 12), incassiElettronici: -10.00m, totaleChiusura: 60.00m);
         var prodotto22 = SeedProdotto("P22", 60.00m, 22m);
         var vendita = SeedVendita(registro, prodotto22, 1);
 

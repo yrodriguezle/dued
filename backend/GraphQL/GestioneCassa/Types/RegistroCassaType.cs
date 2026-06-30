@@ -14,18 +14,6 @@ public class RegistroCassaType : ObjectGraphType<RegistroCassa>
         Field(x => x.Id);
         Field(x => x.Data, type: typeof(DateTimeGraphType));
         Field(x => x.UtenteId);
-        Field<UtenteType>("utente")
-            .Resolve(context => context.GetUtenteById(context.Source.UtenteId));
-        Field<ListGraphType<ConteggioMonetaType>>("conteggiApertura")
-            .Resolve(context => context.GetConteggiAperturaByRegistroId(context.Source.Id));
-        Field<ListGraphType<ConteggioMonetaType>>("conteggiChiusura")
-            .Resolve(context => context.GetConteggiChiusuraByRegistroId(context.Source.Id));
-        Field<ListGraphType<SpesaCassaType>>("spese")
-            .Resolve(context => context.GetSpeseByRegistroId(context.Source.Id));
-        Field<ListGraphType<PagamentoFornitoreType>>("pagamentiFornitori")
-            .Resolve(context => context.GetPagamentiFornitoriByRegistroId(context.Source.Id));
-        Field<ListGraphType<RegistroCassaIvaType>>("breakdownIva")
-            .Resolve(context => context.GetBreakdownIvaByRegistroId(context.Source.Id));
         Field(x => x.TotaleApertura);
         Field(x => x.TotaleChiusura);
         Field(x => x.VenditeContanti);
@@ -43,5 +31,12 @@ public class RegistroCassaType : ObjectGraphType<RegistroCassa>
         Field(x => x.Stato);
         Field(x => x.CreatedAt, type: typeof(DateTimeGraphType));
         Field(x => x.UpdatedAt, type: typeof(DateTimeGraphType));
+
+        Field<UtenteType>("utente").Resolve(context => context.GetUtenteById(context.Source.UtenteId));
+        Field<ListGraphType<ConteggioMonetaType>>("conteggiApertura").Resolve(context => context.GetConteggiAperturaByRegistroId(context.Source.Id));
+        Field<ListGraphType<ConteggioMonetaType>>("conteggiChiusura").Resolve(context => context.GetConteggiChiusuraByRegistroId(context.Source.Id));
+        Field<ListGraphType<SpesaCassaType>>("spese").Resolve(context => context.GetSpeseByRegistroId(context.Source.Id));
+        Field<ListGraphType<PagamentoFornitoreType>>("pagamentiFornitori").Resolve(context => context.GetPagamentiFornitoriByRegistroId(context.Source.Id));
+        Field<ListGraphType<RegistroCassaIvaType>>("breakdownIva").Resolve(context => context.GetBreakdownIvaByRegistroId(context.Source.Id));
     }
 }

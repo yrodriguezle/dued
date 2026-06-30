@@ -33,9 +33,13 @@ public static class BreakdownIvaApplier
         // Normalizzazione: VenditeContanti dalla somma delle Vendite persistite
         // (per i registri senza vendite itemizzate resta 0, identico a oggi)
         registro.VenditeContanti = vendite.Sum(v => v.PrezzoTotale);
-        registro.TotaleVendite = registro.VenditeContanti
+
+        // TotaleVendite allineato al calcolo della view Registro cassa (fonte di verità):
+        // il contante reale è il MOVIMENTO FISICO di cassa (TotaleChiusura - TotaleApertura),
+        // non IncassoContanteTracciato (digitato a mano, solo un subset del contante reale).
+        decimal contanteReale = registro.TotaleChiusura - registro.TotaleApertura;
+        registro.TotaleVendite = contanteReale
             + registro.IncassiElettronici
-            + registro.IncassoContanteTracciato
             + registro.IncassiFattura;
 
         EsitoBreakdownIva esito = IvaBreakdownCalculator.Calcola(

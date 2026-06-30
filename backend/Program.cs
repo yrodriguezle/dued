@@ -279,6 +279,9 @@ using (IServiceScope scope = app.Services.CreateScope())
     {
         await SeedTestUser.Initialize(services);
     }
+
+    // Backfill one-shot TotaleVendite pregresso (gated da BACKFILL_TOTALEVENDITE=true)
+    await duedgusto.Maintenance.BackfillTotaleVendite.Initialize(services);
 }
 
 var appVersion = Assembly.GetEntryAssembly()?
