@@ -1,10 +1,7 @@
-﻿using GraphQL.Types;
-
-using Microsoft.EntityFrameworkCore;
+using GraphQL.Types;
 
 using duedgusto.Models;
-using duedgusto.DataAccess;
-using duedgusto.Services.GraphQL;
+using duedgusto.GraphQL.DataLoaders;
 
 namespace duedgusto.GraphQL.Authentication;
 
@@ -18,13 +15,6 @@ public class RuoloType : ObjectGraphType<Ruolo>
         Field(x => x.Nome, typeof(StringGraphType));
         Field(x => x.Descrizione, typeof(StringGraphType));
         Field<ListGraphType<IntGraphType>>("menuIds")
-            .ResolveAsync(async (context) =>
-            {
-                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
-                return await dbContext.Ruoli
-                    .Where(r => r.Id == context.Source.Id)
-                    .SelectMany(r => r.Menus.Select(m => m.Id))
-                    .ToListAsync();
-            });
+            .Resolve(context => context.GetMenuIdsByRuoloId(context.Source.Id));
     }
 }

@@ -35,4 +35,28 @@ public static class AuthenticationDataLoaders
             id => found.TryGetValue(id, out Utente? u) ? u : null
         );
     }
+
+    public static IDataLoaderResult<IEnumerable<int>> GetMenuIdsByRuoloId(this IResolveFieldContext context, int ruoloId)
+    {
+        IServiceProvider services = context.RequestServices!;
+        IDataLoader<int, IEnumerable<int>> loader = services
+            .GetRequiredService<IDataLoaderContextAccessor>()
+            .Context!
+            .GetOrAddCollectionBatchLoader<int, int>(
+                "MenuIdsByRuoloId",
+                (ids, ct) => LoadMenuIdsByRuoloIds(services, ids, ct));
+        return loader.LoadAsync(ruoloId);
+    }
+
+    private static async Task<ILookup<int, int>> LoadMenuIdsByRuoloIds(IServiceProvider services, IEnumerable<int> ids, CancellationToken ct)
+    {
+        using IServiceScope scope = services.GetRequiredService<IServiceScopeFactory>().CreateScope();
+        AppDbContext db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        List<int> idList = [.. ids];
+        var pairs = await db.Ruoli
+            .Where(r => idList.Contains(r.Id))
+            .SelectMany(r => r.Menus.Select(m => new { RuoloId = r.Id, MenuId = m.Id }))
+            .ToListAsync(ct);
+        return pairs.ToLookup(p => p.RuoloId, p => p.MenuId);
+    }
 }
