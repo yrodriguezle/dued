@@ -9,6 +9,7 @@ import SpeseDataGrid from "./SpeseDataGrid";
 import { GridReadyEvent } from "ag-grid-community";
 import { DatagridData } from "../../common/datagrid/@types/Datagrid";
 import { CashCountRowData } from "./useCashCountData";
+import { statoRegistroCassa } from "../../../common/globals/constants";
 
 interface IncomeRow extends Record<string, unknown> {
   type: string;
@@ -20,7 +21,7 @@ interface ExpenseRow extends Record<string, unknown> {
   amount: number;
 }
 
-interface CashRegisterFormDataGridProps {
+interface RegistroCassaFormProps {
   openingGridRef: React.RefObject<GridReadyEvent<DatagridData<CashCountRowData>> | null>;
   closingGridRef: React.RefObject<GridReadyEvent<DatagridData<CashCountRowData>> | null>;
   incomesGridRef: React.RefObject<GridReadyEvent<DatagridData<IncomeRow>> | null>;
@@ -39,7 +40,7 @@ interface CashRegisterFormDataGridProps {
   onExpensesChange: (totalAmount: number, receiptAmount: number) => void;
 }
 
-const CashRegisterFormDataGrid: React.FC<CashRegisterFormDataGridProps> = ({
+const RegistroCassaForm: React.FC<RegistroCassaFormProps> = ({
   openingGridRef,
   closingGridRef,
   incomesGridRef,
@@ -59,7 +60,7 @@ const CashRegisterFormDataGrid: React.FC<CashRegisterFormDataGridProps> = ({
 }) => {
   const formik = useFormikContext<FormikRegistroCassaValues>();
   const isLocked = formik.status?.isFormLocked || false;
-  const isClosed = formik.values.status === "CLOSED";
+  const isClosed = formik.values.status === statoRegistroCassa.CLOSED;
 
   return (
     <Box sx={{ marginTop: 1, paddingX: { xs: 0, sm: 1, md: 2 }, overflow: "hidden", width: "100%", boxSizing: "border-box" }}>
@@ -126,6 +127,7 @@ const CashRegisterFormDataGrid: React.FC<CashRegisterFormDataGridProps> = ({
               value={formik.values.notes}
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
+              disabled={isLocked}
               fullWidth
               margin="normal"
               placeholder="Inserisci eventuali note sulla chiusura cassa..."
@@ -137,4 +139,4 @@ const CashRegisterFormDataGrid: React.FC<CashRegisterFormDataGridProps> = ({
   );
 };
 
-export default CashRegisterFormDataGrid;
+export default RegistroCassaForm;

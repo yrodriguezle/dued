@@ -60,7 +60,7 @@ function FormikToolbar({
 
   const disableUnlock = useMemo(() => updateDenied || status.formStatus === formStatuses.INSERT || disabledUnlockButton, [disabledUnlockButton, status.formStatus, updateDenied]);
   const disableSave = useMemo(
-    () => Boolean(status.isFormLocked || isSubmitting || insertDenied || updateDenied || (disabledSave !== undefined ? disabledSave : !dirty)),
+    () => Boolean(isSubmitting || insertDenied || updateDenied || (disabledSave !== undefined ? disabledSave : status.isFormLocked || !dirty)),
     [dirty, disabledSave, insertDenied, isSubmitting, status.isFormLocked, updateDenied]
   );
   const disableDelete = useMemo(

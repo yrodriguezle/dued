@@ -48,6 +48,7 @@ import {
   mutationAggiornaGiorniEsclusi,
 } from "../../../graphql/chiusureMensili/mutations";
 import PageTitleContext from "../../layout/headerBar/PageTitleContext";
+import { statoRegistroCassa, statoChiusuraMensile } from "../../../common/globals/constants";
 import FormikToolbarButton from "../../common/form/toolbar/FormikToolbarButton";
 import useConfirm from "../../common/confirm/useConfirm";
 import showToast from "../../../common/toast/showToast";
@@ -97,11 +98,11 @@ const MonthlyClosureDetails = () => {
   const anno = chiusuraMensile?.anno ?? newAnno;
   const mese = chiusuraMensile?.mese ?? newMese;
   const isMutating = createLoading || addExpenseLoading || closeLoading || deleteLoading || excludeLoading;
-  const isDraft = isNewMode || chiusuraMensile?.stato === "BOZZA";
+  const isDraft = isNewMode || chiusuraMensile?.stato === statoChiusuraMensile.BOZZA;
   const isReadOnly = !isDraft;
 
   const registriInclusi = useMemo(() => chiusuraMensile?.registriInclusi ?? [], [chiusuraMensile?.registriInclusi]);
-  const registriNonRiconciliati = useMemo(() => registriInclusi.filter((ri) => ri.registro.stato === "CLOSED"), [registriInclusi]);
+  const registriNonRiconciliati = useMemo(() => registriInclusi.filter((ri) => ri.registro.stato === statoRegistroCassa.CLOSED), [registriInclusi]);
 
   const { giorniMancanti } = useQueryValidaCompletezzaRegistri({
     anno,
@@ -647,9 +648,9 @@ const MonthlyClosureDetails = () => {
                           </TableCell>
                           <TableCell>
                             <Chip
-                              label={ri.registro.stato === "RECONCILED" ? "Riconciliato" : "Chiuso"}
+                              label={ri.registro.stato === statoRegistroCassa.RECONCILED ? "Riconciliato" : "Chiuso"}
                               size="small"
-                              color={ri.registro.stato === "RECONCILED" ? "success" : "warning"}
+                              color={ri.registro.stato === statoRegistroCassa.RECONCILED ? "success" : "warning"}
                               variant="outlined"
                             />
                           </TableCell>
@@ -712,7 +713,7 @@ const MonthlyClosureDetails = () => {
           )}
 
           {/* Info chiusura */}
-          {chiusuraMensile.stato !== "BOZZA" && chiusuraMensile.chiusaDaUtente && (
+          {chiusuraMensile.stato !== statoChiusuraMensile.BOZZA && chiusuraMensile.chiusaDaUtente && (
             <div className="col-span-12">
               <Typography
                 variant="body2"

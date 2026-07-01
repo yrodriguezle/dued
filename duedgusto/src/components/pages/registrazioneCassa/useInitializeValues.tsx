@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { FormikRegistroCassaValues } from "./RegistroCassaDetails";
 import setInitialFocus from "./setInitialFocus";
 import mergeWithDefaults from "../../../common/form/mergeWithDefaults";
+import { statoRegistroCassa } from "../../../common/globals/constants";
 
 interface UseInitializeValuesProps {
   skipInitialize?: boolean;
@@ -18,7 +19,7 @@ function useInitializeValues({ skipInitialize, utenteId, currentDate }: UseIniti
       date: currentDate,
       utenteId,
       notes: "",
-      status: "DRAFT",
+      status: statoRegistroCassa.DRAFT,
       gridDirty: false,
     };
     return initialValues;

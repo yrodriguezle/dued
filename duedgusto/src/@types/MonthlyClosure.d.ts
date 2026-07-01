@@ -12,6 +12,8 @@ type GiornoEscluso = {
 
 type CategoriaSpesa = "Affitto" | "Utenze" | "Stipendi" | "Altro";
 
+type StatoChiusuraMensile = "BOZZA" | "CHIUSA" | "RICONCILIATA";
+
 type SpesaMensileLibera = {
   __typename: "SpesaMensileLibera";
   spesaId: number;
@@ -70,7 +72,7 @@ type ChiusuraMensile = {
 
   giorniEsclusi: string | null;
 
-  stato: "BOZZA" | "CHIUSA" | "RICONCILIATA";
+  stato: StatoChiusuraMensile;
   note: string | null;
   chiusaDa: number | null;
   chiusaDaUtente: User | null;

@@ -4,17 +4,18 @@ import { alpha, useTheme, Theme } from "@mui/material/styles";
 import { useNavigate } from "react-router";
 import { useQueryChiusureMensili } from "../../../graphql/chiusureMensili/queries";
 import PageTitleContext from "../../layout/headerBar/PageTitleContext";
+import { statoChiusuraMensile } from "../../../common/globals/constants";
 import dayjs from "dayjs";
 
 const MONTH_NAMES = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"];
 
 const getStatusColor = (stato?: string) => {
   switch (stato) {
-    case "CHIUSA":
+    case statoChiusuraMensile.CHIUSA:
       return "success.main";
-    case "RICONCILIATA":
+    case statoChiusuraMensile.RICONCILIATA:
       return "info.main";
-    case "BOZZA":
+    case statoChiusuraMensile.BOZZA:
       return "warning.main";
     default:
       return "transparent";
@@ -24,11 +25,11 @@ const getStatusColor = (stato?: string) => {
 const getStatusBg = (stato: string | undefined, theme: Theme) => {
   const isDark = theme.palette.mode === "dark";
   switch (stato) {
-    case "CHIUSA":
+    case statoChiusuraMensile.CHIUSA:
       return isDark ? alpha(theme.palette.success.main, 0.5) : "success.light";
-    case "RICONCILIATA":
+    case statoChiusuraMensile.RICONCILIATA:
       return isDark ? alpha(theme.palette.info.main, 0.5) : "info.light";
-    case "BOZZA":
+    case statoChiusuraMensile.BOZZA:
       return isDark ? alpha(theme.palette.warning.main, 0.4) : "warning.light";
     default:
       return "action.hover";

@@ -9,6 +9,7 @@ import useRegistroCassaSubscription from "../../../../graphql/subscriptions/useR
 import ToolbarNavigazioneMensile from "./ToolbarNavigazioneMensile";
 import RiepilogoIncassiMensile from "./RiepilogoIncassiMensile";
 import CalendarioCassaMensile from "./CalendarioCassaMensile";
+import { statoRegistroCassa } from "../../../../common/globals/constants";
 
 dayjs.locale("it");
 
@@ -93,8 +94,8 @@ function VistaMensile() {
           fatture: acc.fatture + fatture,
           spese: acc.spese + (cr.speseFornitori || 0) + (cr.speseGiornaliere || 0),
           registri: acc.registri + 1,
-          chiusi: acc.chiusi + (cr.stato === "CLOSED" || cr.stato === "RECONCILED" ? 1 : 0),
-          bozze: acc.bozze + (cr.stato === "DRAFT" ? 1 : 0),
+          chiusi: acc.chiusi + (cr.stato === statoRegistroCassa.CLOSED || cr.stato === statoRegistroCassa.RECONCILED ? 1 : 0),
+          bozze: acc.bozze + (cr.stato === statoRegistroCassa.DRAFT ? 1 : 0),
         };
       },
       { totaleVendite: 0, contanti: 0, elettronici: 0, fatture: 0, spese: 0, registri: 0, chiusi: 0, bozze: 0 }

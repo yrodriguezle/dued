@@ -3,6 +3,20 @@ export const formStatuses = Object.freeze({
   UPDATE: "UPDATE",
 });
 
+// Stati del registro cassa giornaliero (workflow: DRAFT → CLOSED → RECONCILED)
+export const statoRegistroCassa = Object.freeze({
+  DRAFT: "DRAFT",
+  CLOSED: "CLOSED",
+  RECONCILED: "RECONCILED",
+} as const) satisfies Readonly<Record<string, StatoRegistroCassa>>;
+
+// Stati della chiusura mensile (workflow: BOZZA → CHIUSA → RICONCILIATA)
+export const statoChiusuraMensile = Object.freeze({
+  BOZZA: "BOZZA",
+  CHIUSA: "CHIUSA",
+  RICONCILIATA: "RICONCILIATA",
+} as const) satisfies Readonly<Record<string, StatoChiusuraMensile>>;
+
 export const enum DatagridStatus {
   Added = 0,
   Unchanged = 1,

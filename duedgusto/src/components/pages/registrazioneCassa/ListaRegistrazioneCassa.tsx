@@ -16,7 +16,7 @@ import { mutationEliminaRegistroCassa } from "../../../graphql/registroCassa/mut
 import useRegistroCassaSubscription from "../../../graphql/subscriptions/useRegistroCassaSubscription";
 import { DatagridColDef, DatagridData, DatagridRowDoubleClickedEvent } from "../../common/datagrid/@types/Datagrid";
 import useConfirm from "../../common/confirm/useConfirm";
-import { DatagridStatus } from "../../../common/globals/constants";
+import { DatagridStatus, statoRegistroCassa } from "../../../common/globals/constants";
 import useStore from "../../../store/useStore";
 import logger from "../../../common/logger/logger";
 
@@ -124,7 +124,7 @@ function ListaRegistrazioneCassa() {
   const isRowSelectable = useCallback((params: { data: DatagridData<RegistroCassaWithStatus> | undefined }) => {
     const stato = params.data?.stato;
     if (typeof stato === "number") return stato === 0;
-    return stato === "DRAFT";
+    return stato === statoRegistroCassa.DRAFT;
   }, []);
 
   const columnDefs = useMemo<DatagridColDef<RegistroCassaWithStatus>[]>(
@@ -281,28 +281,28 @@ function ListaRegistrazioneCassa() {
         width: 120,
         valueGetter: (params: ValueGetterParams<RegistroCassaWithStatus>) => {
           const cr = params.data;
-          if (!cr || !cr.stato) return "DRAFT";
+          if (!cr || !cr.stato) return statoRegistroCassa.DRAFT;
           // Se stato è un numero, converti a stringa corrispondente
           if (typeof cr.stato === "number") {
-            const statusMap: Record<number, string> = {
-              0: "DRAFT",
-              1: "CLOSED",
-              2: "RECONCILED",
+            const statusMap: Record<number, StatoRegistroCassa> = {
+              0: statoRegistroCassa.DRAFT,
+              1: statoRegistroCassa.CLOSED,
+              2: statoRegistroCassa.RECONCILED,
             };
-            return statusMap[cr.stato] || "DRAFT";
+            return statusMap[cr.stato] || statoRegistroCassa.DRAFT;
           }
           return cr.stato;
         },
         cellRenderer: (params: ICellRendererParams<RegistroCassaWithStatus>) => {
           const statusColors: Record<string, "default" | "success" | "primary"> = {
-            DRAFT: "default",
-            CLOSED: "success",
-            RECONCILED: "primary",
+            [statoRegistroCassa.DRAFT]: "default",
+            [statoRegistroCassa.CLOSED]: "success",
+            [statoRegistroCassa.RECONCILED]: "primary",
           };
           const statusLabels: Record<string, string> = {
-            DRAFT: "Bozza",
-            CLOSED: "Chiusa",
-            RECONCILED: "Riconciliata",
+            [statoRegistroCassa.DRAFT]: "Bozza",
+            [statoRegistroCassa.CLOSED]: "Chiusa",
+            [statoRegistroCassa.RECONCILED]: "Riconciliata",
           };
           const status = params.value as string;
           return <Chip

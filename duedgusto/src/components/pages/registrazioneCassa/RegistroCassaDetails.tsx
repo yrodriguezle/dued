@@ -3,7 +3,7 @@
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Form, Formik, FormikProps } from "formik";
 import { z } from "zod";
-import { Box, Typography, IconButton, useMediaQuery, useTheme } from "@mui/material";
+import { Box, Typography, IconButton, Chip, useMediaQuery, useTheme } from "@mui/material";
 import { ArrowBack, ArrowForward } from "@mui/icons-material";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import LockIcon from "@mui/icons-material/Lock";
@@ -13,10 +13,10 @@ import { GridReadyEvent } from "ag-grid-community";
 import FormikToolbar from "../../common/form/toolbar/FormikToolbar";
 import FormikToolbarButton from "../../common/form/toolbar/FormikToolbarButton";
 
-import CashRegisterFormDataGrid from "./CashRegisterFormDataGrid";
+import RegistroCassaForm from "./RegistroCassaForm";
 import { DatagridData } from "../../common/datagrid/@types/Datagrid";
 import logger from "../../../common/logger/logger";
-import { formStatuses } from "../../../common/globals/constants";
+import { formStatuses, statoRegistroCassa } from "../../../common/globals/constants";
 import useInitializeValues from "./useInitializeValues";
 import useConfirm from "../../common/confirm/useConfirm";
 import PageTitleContext from "../../layout/headerBar/PageTitleContext";
@@ -310,7 +310,7 @@ function RegistroCassaDetails() {
         date: currentDate,
         utenteId: utente?.id || 0,
         notes: "",
-        status: "DRAFT",
+        status: statoRegistroCassa.DRAFT,
         gridDirty: false,
       };
       handleInitializeValues(newFormikValues);
@@ -426,7 +426,9 @@ function RegistroCassaDetails() {
           values: updatedValues,
           status: {
             formStatus: formStatuses.UPDATE,
-            isFormLocked: false,
+            // Preserva il lock in base allo stato: dopo aver salvato le spese
+            // su un giorno CHIUSO/RICONCILIATO, il resto del form resta bloccato.
+            isFormLocked: updatedValues.status !== statoRegistroCassa.DRAFT,
           },
         });
       }
@@ -488,7 +490,7 @@ function RegistroCassaDetails() {
       initialValues={initialValues}
       initialStatus={{
         formStatus: registroCassa ? formStatuses.UPDATE : formStatuses.INSERT,
-        isFormLocked: registroCassa ? registroCassa.stato !== "DRAFT" : false,
+        isFormLocked: registroCassa ? registroCassa.stato !== statoRegistroCassa.DRAFT : false,
       }}
       validate={(values: FormikRegistroCassaValues) => {
         const result = Schema.safeParse(values);
@@ -501,8 +503,9 @@ function RegistroCassaDetails() {
     >
       {({ status, isSubmitting, isValid, dirty, values }) => {
         const hasChanges = dirty || values.gridDirty;
-        const isClosed = values.status === "CLOSED";
-        const disableSave = (status?.isFormLocked && !isClosed) || isSubmitting || !isValid || !hasChanges;
+        const isClosed = values.status === statoRegistroCassa.CLOSED;
+        const isReconciled = values.status === statoRegistroCassa.RECONCILED;
+        const disableSave = isReconciled || isSubmitting || !isValid || !hasChanges;
 
         return (
           <Form
@@ -565,6 +568,26 @@ function RegistroCassaDetails() {
                   Chiudi Cassa
                 </FormikToolbarButton>
               )}
+              {isClosed && (
+                <Chip
+                  icon={<LockIcon />}
+                  label="Giorno chiuso"
+                  color="warning"
+                  size="small"
+                  variant="outlined"
+                  sx={{ alignSelf: "center", ml: 1 }}
+                />
+              )}
+              {isReconciled && (
+                <Chip
+                  icon={<LockIcon />}
+                  label="Giorno riconciliato"
+                  color="info"
+                  size="small"
+                  variant="outlined"
+                  sx={{ alignSelf: "center", ml: 1 }}
+                />
+              )}
             </FormikToolbar>
             <Box
               className="scrollable-box"
@@ -578,7 +601,7 @@ function RegistroCassaDetails() {
                 backgroundColor: "background.paper",
               }}
             >
-              <CashRegisterFormDataGrid
+              <RegistroCassaForm
                 openingGridRef={openingGridRef}
                 closingGridRef={closingGridRef}
                 incomesGridRef={incomesGridRef}
