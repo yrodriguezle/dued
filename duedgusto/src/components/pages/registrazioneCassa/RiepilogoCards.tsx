@@ -5,7 +5,6 @@ import KPICard from "../../common/KPICard";
 
 interface RiepilogoCardsProps {
   riepilogoGiornaliero: RiepilogoGiornaliero;
-  /** Registro cassa dal server: fonte di verità per i totali persistiti (totaleVendite, ...) */
   registroCassa?: RegistroCassa | null;
 }
 
@@ -26,19 +25,14 @@ function RiepilogoCards({ riepilogoGiornaliero, registroCassa }: RiepilogoCardsP
     const pagatoContanti = incassi.find((i) => i.tipo === "Pago in contanti")?.importo ?? 0;
     const elettronico = incassi.find((i) => i.tipo === "Pagamenti Elettronici")?.importo ?? 0;
     const pagamentoConFattura = incassi.find((i) => i.tipo === "Pagamento con Fattura")?.importo ?? 0;
-    // Ricavato contante reale = movimento fisico cassa (totaleMenoApertura), non il "Pago in contanti"
-    // digitato a mano (che ne è solo un subset). Vendite = contante reale + elettronico + fattura.
     const totaleVedite = totaleMenoApertura + elettronico + pagamentoConFattura;
 
     // Spese solo fornitori = totale spese - spese scontrino
     const supplierExpenses = totaleSpese - speseScontrino;
-
     // AD: Resto fornitore = Contanti - Spese fornitori
     const restoValue = pagatoContanti - supplierExpenses;
-
     // AE: ECC = Movimento - Contanti
     const eccValue = totaleMenoApertura - pagatoContanti;
-
     // AG: Resto finale = ECC - NC ecc (spese scontrino)
     const restoFinaleValue = eccValue - speseScontrino;
 

@@ -15,8 +15,14 @@ function KPICard({ label, value, highlight, negative }: KPICardProps) {
       sx={{
         p: 1,
         textAlign: "center",
-        flex: "1 1 auto",
-        minWidth: "100px",
+        flex: "0 0 auto",
+        width: "120px",
+        aspectRatio: "1 / 1",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+        overflow: "hidden",
         ...(highlight && { borderColor: "primary.main", borderWidth: 2 }),
       }}
     >
@@ -25,6 +31,7 @@ function KPICard({ label, value, highlight, negative }: KPICardProps) {
         color="text.secondary"
         display="block"
         noWrap
+        sx={{ width: "100%" }}
       >
         {label}
       </Typography>
@@ -33,6 +40,7 @@ function KPICard({ label, value, highlight, negative }: KPICardProps) {
         fontWeight="bold"
         color={negative ? "error.main" : "text.primary"}
         noWrap
+        sx={{ width: "100%" }}
       >
         {formatCurrency(value)}
       </Typography>

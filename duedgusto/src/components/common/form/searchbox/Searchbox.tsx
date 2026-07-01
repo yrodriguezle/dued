@@ -109,13 +109,18 @@ function Searchbox<T extends Record<string, unknown>>({ id, name, value, orderBy
         const node = resultListRef.current.api.getDisplayedRowAtIndex(0);
         node?.setSelected(true);
       }
-      if (event.key === "Escape" || event.key === "Tab") {
-        setResultsVisible((prev) => {
-          if (prev && event.key === "Escape") {
-            event.stopPropagation();
-          }
-          return false;
-        });
+      if (event.key === "Escape") {
+        // Se la tendina è aperta, ESC chiude solo lei: blocca la propagazione
+        // sincronamente (non nell'updater di setState, altrimenti è troppo tardi
+        // e l'evento raggiunge il Modal chiudendolo).
+        if (resultsVisible) {
+          event.stopPropagation();
+          event.preventDefault();
+        }
+        setResultsVisible(false);
+      }
+      if (event.key === "Tab") {
+        setResultsVisible(false);
       }
       if (event.key === "Enter" || event.key === "Tab") {
         if (innerValue && items?.length) {
@@ -131,9 +136,13 @@ function Searchbox<T extends Record<string, unknown>>({ id, name, value, orderBy
   );
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      const insideContainer = containerRef.current?.contains(target);
+      const insideDropdown = dropdownRef.current?.contains(target);
+      if (!insideContainer && !insideDropdown) {
         setResultsVisible(false);
       }
     };
@@ -225,6 +234,8 @@ function Searchbox<T extends Record<string, unknown>>({ id, name, value, orderBy
       {resultsVisible && (
         <ContainerGridResults<T>
           searchBoxId={searchBoxId}
+          anchorEl={containerRef.current}
+          paperRef={dropdownRef}
           loading={loading}
           items={items}
           columnDefs={options.items}

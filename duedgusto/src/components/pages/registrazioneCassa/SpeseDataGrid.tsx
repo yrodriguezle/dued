@@ -13,21 +13,20 @@ import formatCurrency from "../../../common/bones/formatCurrency";
 import PagamentoFornitoreDialog from "./PagamentoFornitoreDialog";
 import OverflowToolbar, { OverflowAction } from "../../common/toolbar/OverflowToolbar";
 
-interface ExpensesDataGridProps {
+interface SpeseDataGridProps {
   initialExpenses: Spese[];
   isLocked: boolean;
   onCellChange?: () => void;
   onExpensesChange?: (totalAmount: number, receiptAmount: number) => void;
 }
 
-// Schema Zod per validazione inline non bloccante
-const expenseSchema = z.object({
+const speseSchema = z.object({
   description: z.string().min(1, "La descrizione è obbligatoria"),
   amount: z.number().min(0, "L'importo deve essere maggiore o uguale a 0"),
 });
 
-const ExpensesDataGrid = memo(
-  forwardRef<GridReadyEvent<DatagridData<Spese>>, ExpensesDataGridProps>(({ initialExpenses, isLocked, onCellChange, onExpensesChange }, ref) => {
+const SpeseDataGrid = memo(
+  forwardRef<GridReadyEvent<DatagridData<Spese>>, SpeseDataGridProps>(({ initialExpenses, isLocked, onCellChange, onExpensesChange }, ref) => {
     const muiTheme = useTheme();
     const isSmallScreen = useMediaQuery(muiTheme.breakpoints.down("sm"));
     const isMobile = isSmallScreen && navigator.maxTouchPoints > 0;
@@ -35,7 +34,7 @@ const ExpensesDataGrid = memo(
     const [validationErrors, setValidationErrors] = useState<Map<number, ValidationError[]>>(new Map());
     const [dialogOpen, setDialogOpen] = useState(false);
     // Spesa in fase di modifica (null = modalità aggiunta)
-    const [editingExpense, setEditingExpense] = useState<Spese | null>(null);
+    const [editingSpese, setEditingSpese] = useState<Spese | null>(null);
     const gridEventRef = useRef<GridReadyEvent<DatagridData<Spese>> | null>(null);
 
     const reportExpenses = useCallback(
@@ -59,10 +58,10 @@ const ExpensesDataGrid = memo(
     const handlePaymentConfirm = useCallback(
       (expense: Spese) => {
         if (gridEventRef.current) {
-          if (editingExpense) {
+          if (editingSpese) {
             // Modalità modifica: rimuove la riga vecchia e aggiunge quella aggiornata
             gridEventRef.current.api.applyTransaction({
-              remove: [editingExpense as DatagridData<Spese>],
+              remove: [editingSpese as DatagridData<Spese>],
               add: [expense as DatagridData<Spese>],
             });
           } else {
@@ -71,18 +70,18 @@ const ExpensesDataGrid = memo(
           }
           reportExpenses(gridEventRef.current.api);
         }
-        setEditingExpense(null);
+        setEditingSpese(null);
         setDialogOpen(false);
         onCellChange?.();
       },
-      [editingExpense, onCellChange, reportExpenses]
+      [editingSpese, onCellChange, reportExpenses]
     );
 
     // Apre il dialog in modalità modifica per una riga fornitore
     const openEditDialog = useCallback(
       (data: Spese) => {
         if (isLocked) return;
-        setEditingExpense(data);
+        setEditingSpese(data);
         setDialogOpen(true);
       },
       [isLocked]
@@ -107,8 +106,8 @@ const ExpensesDataGrid = memo(
         {
           headerName: "Tipo",
           field: "documentType",
-          width: 85,
-          minWidth: 60,
+          width: 120,
+          minWidth: 120,
           editable: false,
           valueGetter: (params) => {
             if (params.data?.isPagamentoFornitore) {
@@ -243,9 +242,9 @@ const ExpensesDataGrid = memo(
         </Typography>
         <PagamentoFornitoreDialog
           open={dialogOpen}
-          onClose={() => { setDialogOpen(false); setEditingExpense(null); }}
+          onClose={() => { setDialogOpen(false); setEditingSpese(null); }}
           onConfirm={handlePaymentConfirm}
-          initialData={editingExpense ?? undefined}
+          initialData={editingSpese ?? undefined}
         />
         <Box
           sx={{
@@ -270,7 +269,7 @@ const ExpensesDataGrid = memo(
               iconOnly={isMobile}
             />}
             hideToolbar={true}
-            validationSchema={expenseSchema}
+            validationSchema={speseSchema}
             onValidationErrors={setValidationErrors}
             showRowNumbers={true}
             onCellValueChanged={handleCellValueChanged}
@@ -299,6 +298,6 @@ const ExpensesDataGrid = memo(
   })
 );
 
-ExpensesDataGrid.displayName = "ExpensesDataGrid";
+SpeseDataGrid.displayName = "ExpensesDataGrid";
 
-export default ExpensesDataGrid;
+export default SpeseDataGrid;

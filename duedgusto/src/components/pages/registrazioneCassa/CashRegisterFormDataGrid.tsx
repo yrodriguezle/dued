@@ -5,7 +5,7 @@ import { FormikRegistroCassaValues } from "./RegistroCassaDetails";
 import CashCountDataGrid from "./CashCountDataGrid";
 import RiepilogoCards from "./RiepilogoCards";
 import IncomesDataGrid from "./IncomesDataGrid";
-import ExpensesDataGrid from "./ExpensesDataGrid";
+import SpeseDataGrid from "./SpeseDataGrid";
 import { GridReadyEvent } from "ag-grid-community";
 import { DatagridData } from "../../common/datagrid/@types/Datagrid";
 import { CashCountRowData } from "./useCashCountData";
@@ -100,7 +100,7 @@ const CashRegisterFormDataGrid: React.FC<CashRegisterFormDataGridProps> = ({
         </div>
 
         <div className="col-span-12 md:col-span-6">
-          <ExpensesDataGrid
+          <SpeseDataGrid
             ref={expensesGridRef}
             initialExpenses={initialExpenses}
             isLocked={isLocked && !isClosed}
