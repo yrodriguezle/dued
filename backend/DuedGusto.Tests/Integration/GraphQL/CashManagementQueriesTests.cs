@@ -279,14 +279,17 @@ public class CashManagementQueriesTests : IDisposable
         var utente = SeedUtente();
         var today = DateTime.Today;
         var startOfMonth = new DateTime(today.Year, today.Month, 1);
+        // Data di riferimento a metà mese: evita che AddDays(-1/-2) sconfini nel
+        // mese precedente nei primi giorni del mese (altrimenti test flaky).
+        var referenceDate = startOfMonth.AddDays(14);
 
-        SeedRegistroCassa(utente, today, totaleVendite: 100m);
-        SeedRegistroCassa(utente, today.AddDays(-1), totaleVendite: 200m);
-        SeedRegistroCassa(utente, today.AddDays(-2), totaleVendite: 300m);
+        SeedRegistroCassa(utente, referenceDate, totaleVendite: 100m);
+        SeedRegistroCassa(utente, referenceDate.AddDays(-1), totaleVendite: 200m);
+        SeedRegistroCassa(utente, referenceDate.AddDays(-2), totaleVendite: 300m);
 
         // Act — mirrors the KPI resolver logic
         var monthRegisters = await _dbContext.RegistriCassa
-            .Where(r => r.Data >= startOfMonth && r.Data <= today)
+            .Where(r => r.Data >= startOfMonth && r.Data <= referenceDate)
             .ToListAsync();
 
         var monthSales = monthRegisters.Sum(r => r.TotaleVendite);
