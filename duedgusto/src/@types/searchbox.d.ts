@@ -13,6 +13,8 @@ interface SearchboxOptions<T extends object> {
   query: string;
   id: Extract<keyof T, string>;
   tableName: string;
+  /** Campi su cui applicare la ricerca testuale in OR. Se assente, usa il solo fieldName. */
+  searchFields?: Extract<keyof T, string>[];
   additionalWhere?: string;
   view?: string;
   items: SearchboxColDef<T>[];

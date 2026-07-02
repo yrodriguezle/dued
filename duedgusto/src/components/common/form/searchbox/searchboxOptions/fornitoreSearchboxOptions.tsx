@@ -20,6 +20,12 @@ const items: SearchboxColDef<FornitoreSearchbox>[] = [
     width: 300,
   },
   {
+    headerName: "Ragione Sociale 2",
+    field: "ragioneSociale2",
+    filter: true,
+    width: 250,
+  },
+  {
     headerName: "P.IVA",
     field: "partitaIva",
     filter: true,
@@ -37,6 +43,7 @@ const fornitoreSearchboxOption: SearchboxOptions<FornitoreSearchbox> = {
   query: "fornitori",
   id: "fornitoreId",
   tableName: "fornitori",
+  searchFields: ["ragioneSociale", "ragioneSociale2"],
   view: "FornitoreDetails",
   items,
   modal: {

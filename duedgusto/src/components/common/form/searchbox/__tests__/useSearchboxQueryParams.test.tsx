@@ -282,3 +282,37 @@ describe("useSearchboxQueryParams — caratteri speciali nell'input", () => {
     expect(params.where).toBe("fornitore.ragioneSociale LIKE \"%Dell'Arte%\"");
   });
 });
+
+// ----------------------------------------------------------------
+// searchFields: ricerca multi-campo in OR
+// ----------------------------------------------------------------
+describe("useSearchboxQueryParams — searchFields multi-campo (OR)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const multiOptions: SearchboxOptions<TestItem> = {
+    ...baseOptions,
+    searchFields: ["ragioneSociale", "codice"],
+  };
+
+  it("dovrebbe generare un gruppo OR fra i campi per una singola parola", () => {
+    const params = renderAndCapture("Mar", multiOptions);
+    expect(params.where).toBe(
+      '(fornitore.ragioneSociale LIKE "%Mar%" OR fornitore.codice LIKE "%Mar%")'
+    );
+  });
+
+  it("dovrebbe combinare più parole in AND, ciascuna con OR fra i campi", () => {
+    const params = renderAndCapture("Mar Ros", multiOptions);
+    expect(params.where).toBe(
+      '(fornitore.ragioneSociale LIKE "%Mar%" OR fornitore.codice LIKE "%Mar%") AND (fornitore.ragioneSociale LIKE "%Ros%" OR fornitore.codice LIKE "%Ros%")'
+    );
+  });
+
+  it("dovrebbe ricadere sul solo fieldName quando searchFields è assente", () => {
+    const params = renderAndCapture("Mar", baseOptions);
+    expect(params.where).toBe('fornitore.ragioneSociale LIKE "%Mar%"');
+    expect(params.where).not.toContain("OR");
+  });
+});

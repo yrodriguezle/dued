@@ -181,7 +181,9 @@ public class GraphQLService
 
     /// <summary>
     /// Generic LIKE WHERE clause parser. Converts frontend LIKE patterns into safe LINQ expressions.
-    /// Supports: "table.field LIKE "%value%"" and multiple conditions joined by AND.
+    /// Supports: "table.field LIKE "%value%"", multiple conditions joined by AND, e più LIKE
+    /// in OR all'interno di una singola condizione (es. ricerca su più campi):
+    /// "(table.f1 LIKE "%v%" OR table.f2 LIKE "%v%")".
     /// Safe from SQL injection: uses Expression trees that EF Core translates to parameterized SQL.
     /// </summary>
     private static IQueryable<T> ApplyLikeWhereClause<T>(IQueryable<T> query, string whereClause) where T : class
@@ -192,30 +194,42 @@ public class GraphQLService
         {
             var trimmed = condition.Trim().Trim('(', ')').Trim();
 
-            // Match pattern: "tableName.fieldName LIKE "%value%""
-            Match likeMatch = Regex.Match(trimmed, @"(\w+)\.(\w+)\s+LIKE\s+""%(.+?)%""", RegexOptions.IgnoreCase);
+            // Una condizione può contenere più LIKE in OR (ricerca multi-campo).
+            var orParts = trimmed.Split(new[] { " OR ", " or " }, StringSplitOptions.RemoveEmptyEntries);
 
-            if (!likeMatch.Success) continue;
-
-            var fieldName = likeMatch.Groups[2].Value;
-            var searchValue = likeMatch.Groups[3].Value;
-
-            // Find property on entity (case-insensitive match)
-            PropertyInfo? property = typeof(T).GetProperties()
-                      .FirstOrDefault(p => string.Equals(p.Name, fieldName, StringComparison.OrdinalIgnoreCase));
-
-            if (property == null || property.PropertyType != typeof(string)) continue;
-
-            // Build: entity => entity.Property != null && entity.Property.Contains(searchValue)
             ParameterExpression parameter = Expression.Parameter(typeof(T), "e");
-            MemberExpression propertyAccess = Expression.Property(parameter, property);
-            BinaryExpression nullCheck = Expression.NotEqual(propertyAccess, Expression.Constant(null, typeof(string)));
-            ConstantExpression searchConstant = Expression.Constant(searchValue, typeof(string));
-            MethodInfo containsMethod = typeof(string).GetMethod("Contains", new[] { typeof(string) })!;
-            MethodCallExpression containsCall = Expression.Call(propertyAccess, containsMethod, searchConstant);
-            BinaryExpression combined = Expression.AndAlso(nullCheck, containsCall);
-            var lambda = Expression.Lambda<Func<T, bool>>(combined, parameter);
+            Expression? orExpression = null;
 
+            foreach (var orPart in orParts)
+            {
+                // Match pattern: "tableName.fieldName LIKE "%value%""
+                Match likeMatch = Regex.Match(orPart.Trim(), @"(\w+)\.(\w+)\s+LIKE\s+""%(.+?)%""", RegexOptions.IgnoreCase);
+
+                if (!likeMatch.Success) continue;
+
+                var fieldName = likeMatch.Groups[2].Value;
+                var searchValue = likeMatch.Groups[3].Value;
+
+                // Find property on entity (case-insensitive match)
+                PropertyInfo? property = typeof(T).GetProperties()
+                          .FirstOrDefault(p => string.Equals(p.Name, fieldName, StringComparison.OrdinalIgnoreCase));
+
+                if (property == null || property.PropertyType != typeof(string)) continue;
+
+                // Build: entity => entity.Property != null && entity.Property.Contains(searchValue)
+                MemberExpression propertyAccess = Expression.Property(parameter, property);
+                BinaryExpression nullCheck = Expression.NotEqual(propertyAccess, Expression.Constant(null, typeof(string)));
+                ConstantExpression searchConstant = Expression.Constant(searchValue, typeof(string));
+                MethodInfo containsMethod = typeof(string).GetMethod("Contains", new[] { typeof(string) })!;
+                MethodCallExpression containsCall = Expression.Call(propertyAccess, containsMethod, searchConstant);
+                BinaryExpression combined = Expression.AndAlso(nullCheck, containsCall);
+
+                orExpression = orExpression == null ? combined : Expression.OrElse(orExpression, combined);
+            }
+
+            if (orExpression == null) continue;
+
+            var lambda = Expression.Lambda<Func<T, bool>>(orExpression, parameter);
             query = query.Where(lambda);
         }
 
