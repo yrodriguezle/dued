@@ -62,7 +62,7 @@ vi.mock("@apollo/client", async () => {
 });
 
 // Stub AG Grid Enterprise (non gira in jsdom in modo affidabile)
-vi.mock("../CashRegisterFormDataGrid", () => ({
+vi.mock("../RegistroCassaForm", () => ({
   default: () => <div data-testid="cash-register-form-data-grid" />,
 }));
 
@@ -130,6 +130,7 @@ function setupStore() {
       getNextOperatingDate: (date: Date) => date,
       setFormDirty: vi.fn(),
       setConfirmValues: vi.fn(),
+      userTheme: { mode: "light", theme: "light" },
     } as unknown as Store;
     return selector(state);
   });
