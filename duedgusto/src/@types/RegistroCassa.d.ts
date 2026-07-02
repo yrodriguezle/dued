@@ -79,13 +79,25 @@ type PagamentoFornitoreRegistro = {
   };
 };
 
-// RegistroCassaIvaRiga — riga del breakdown IVA per aliquota
+// RegistroCassaIvaRiga — riga del breakdown IVA a debito (vendite) per aliquota
 type RegistroCassaIvaRiga = {
   __typename: "RegistroCassaIva";
   aliquota: number;
   imponibile: number;
   imposta: number;
   stimato: boolean;
+};
+
+// RegistroCassaIvaCreditoRiga — riga IVA a credito (acquisti), dato gestionale di cassa
+// Fonte: "FATTURA" (dato certo) | "DDT" (stima, nessuna fattura). aliquotaMista = fattura multi-aliquota.
+type RegistroCassaIvaCreditoRiga = {
+  __typename: "RegistroCassaIvaCredito";
+  aliquota: number;
+  imponibile: number;
+  imposta: number;
+  fonte: "FATTURA" | "DDT";
+  stimato: boolean;
+  aliquotaMista: boolean;
 };
 
 // RegistroCassa
@@ -113,6 +125,7 @@ type RegistroCassa = {
   contanteNetto: number;
   importoIva: number;
   breakdownIva: RegistroCassaIvaRiga[];
+  breakdownIvaCredito: RegistroCassaIvaCreditoRiga[];
   note: string | null;
   stato: StatoRegistroCassa;
   createdAt: string;

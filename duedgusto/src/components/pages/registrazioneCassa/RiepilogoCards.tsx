@@ -99,7 +99,7 @@ function RiepilogoCards({ riepilogoGiornaliero, registroCassa }: RiepilogoCardsP
             color="text.secondary"
             display="block"
           >
-            IVA (totale € {formatCurrency(registroCassa.importoIva)})
+            IVA su vendite (totale € {formatCurrency(registroCassa.importoIva)})
           </Typography>
           {registroCassa.breakdownIva.map((riga) => (
             <Box
@@ -118,6 +118,56 @@ function RiepilogoCards({ riepilogoGiornaliero, registroCassa }: RiepilogoCardsP
               )}
             </Box>
           ))}
+        </Paper>
+      )}
+      {registroCassa && (registroCassa.breakdownIvaCredito?.length ?? 0) > 0 && (
+        <Paper
+          variant="outlined"
+          sx={{ p: 1, flexBasis: "100%" }}
+        >
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            display="block"
+          >
+            IVA su pagamenti fornitori — stima (totale €{" "}
+            {formatCurrency(registroCassa.breakdownIvaCredito.reduce((acc, r) => acc + r.imposta, 0))})
+          </Typography>
+          {registroCassa.breakdownIvaCredito.map((riga) => (
+            <Box
+              key={`${riga.fonte}-${riga.aliquota}-${riga.stimato}-${riga.aliquotaMista}`}
+              sx={{ display: "flex", alignItems: "center", gap: 1 }}
+            >
+              <Typography variant="body2">
+                {riga.aliquota}% ({riga.fonte === "FATTURA" ? "fattura" : "DDT"}) — Imponibile €{" "}
+                {formatCurrency(riga.imponibile)} · IVA € {formatCurrency(riga.imposta)}
+              </Typography>
+              {riga.stimato && (
+                <Chip
+                  size="small"
+                  color="warning"
+                  label="stimato"
+                />
+              )}
+              {riga.aliquotaMista && (
+                <Chip
+                  size="small"
+                  color="warning"
+                  variant="outlined"
+                  label="aliquota mista"
+                />
+              )}
+            </Box>
+          ))}
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            display="block"
+            sx={{ mt: 0.5, fontStyle: "italic" }}
+          >
+            Dato gestionale di cassa (IVA sui pagamenti del giorno), non fiscale. Non sostituisce il registro
+            IVA acquisti né la liquidazione periodica.
+          </Typography>
         </Paper>
       )}
     </Box>

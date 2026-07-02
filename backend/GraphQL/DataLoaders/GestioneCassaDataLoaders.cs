@@ -1,6 +1,7 @@
 using GraphQL;
 using GraphQL.DataLoader;
 using Microsoft.EntityFrameworkCore;
+using duedgusto.Common;
 using duedgusto.DataAccess;
 using duedgusto.Models;
 
@@ -73,6 +74,19 @@ public static class GestioneCassaDataLoaders
         return loader.LoadAsync(registroId);
     }
 
+    public static IDataLoaderResult<IEnumerable<RigaBreakdownIvaCredito>> GetBreakdownIvaCreditoByRegistroId(
+        this IResolveFieldContext context, int registroId)
+    {
+        IServiceProvider services = context.RequestServices!;
+        IDataLoader<int, IEnumerable<RigaBreakdownIvaCredito>> loader = services
+                .GetRequiredService<IDataLoaderContextAccessor>()
+                .Context!
+                .GetOrAddCollectionBatchLoader<int, RigaBreakdownIvaCredito>(
+                    "BreakdownIvaCreditoByRegistroId",
+                    (ids, ct) => LoadBreakdownIvaCredito(services, ids, ct));
+        return loader.LoadAsync(registroId);
+    }
+
     private static async Task<ILookup<int, ConteggioMoneta>> LoadConteggiApertura(
         IServiceProvider services, IEnumerable<int> ids, CancellationToken ct)
     {
@@ -130,5 +144,32 @@ public static class GestioneCassaDataLoaders
                 .Where(p => p.RegistroCassaId.HasValue && ids.Contains(p.RegistroCassaId.Value))
                 .ToListAsync(ct);
         return items.ToLookup(p => p.RegistroCassaId!.Value);
+    }
+
+    private static async Task<ILookup<int, RigaBreakdownIvaCredito>> LoadBreakdownIvaCredito(
+        IServiceProvider services, IEnumerable<int> ids, CancellationToken ct)
+    {
+        using IServiceScope scope = services.GetRequiredService<IServiceScopeFactory>().CreateScope();
+        AppDbContext db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        // Navigazioni necessarie al calculator: Fattura (Imponibile/ImportoIva + Fornitore)
+        // e Ddt (Fornitore per aliquota presuntiva).
+        List<PagamentoFornitore> pagamenti = await db.PagamentiFornitori
+                .Include(p => p.Fattura!).ThenInclude(f => f.Fornitore)
+                .Include(p => p.Ddt!).ThenInclude(d => d.Fornitore)
+                .Where(p => p.RegistroCassaId.HasValue && ids.Contains(p.RegistroCassaId.Value))
+                .ToListAsync(ct);
+
+        List<RigaBreakdownIvaCredito> righe = new();
+        foreach (IGrouping<int, PagamentoFornitore> gruppo in pagamenti.GroupBy(p => p.RegistroCassaId!.Value))
+        {
+            foreach (RigaBreakdownIvaCredito riga in IvaBreakdownCreditoCalculator.Calcola(gruppo.ToList()))
+            {
+                riga.RegistroCassaId = gruppo.Key;
+                righe.Add(riga);
+            }
+        }
+
+        return righe.ToLookup(r => r.RegistroCassaId);
     }
 }

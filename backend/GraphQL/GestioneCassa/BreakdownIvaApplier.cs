@@ -34,11 +34,11 @@ public static class BreakdownIvaApplier
         // (per i registri senza vendite itemizzate resta 0, identico a oggi)
         registro.VenditeContanti = vendite.Sum(v => v.PrezzoTotale);
 
-        // TotaleVendite allineato al calcolo della view Registro cassa (fonte di verità):
-        // il contante reale è il MOVIMENTO FISICO di cassa (TotaleChiusura - TotaleApertura),
-        // non IncassoContanteTracciato (digitato a mano, solo un subset del contante reale).
-        decimal contanteReale = registro.TotaleChiusura - registro.TotaleApertura;
-        registro.TotaleVendite = contanteReale
+        // Base imponibile IVA a debito (vendite): i tre canali di incasso DICHIARATI.
+        // Contante = IncassoContanteTracciato ("Pago in contanti", digitato), NON il
+        // movimento fisico di cassa (TotaleChiusura - TotaleApertura), che include resti
+        // e uscite in contanti verso fornitori e sovrastimerebbe le vendite.
+        registro.TotaleVendite = registro.IncassoContanteTracciato
             + registro.IncassiElettronici
             + registro.IncassiFattura;
 

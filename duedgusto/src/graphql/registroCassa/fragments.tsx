@@ -48,6 +48,14 @@ export const registroCassaFragment = `
       imposta
       stimato
     }
+    breakdownIvaCredito {
+      aliquota
+      imponibile
+      imposta
+      fonte
+      stimato
+      aliquotaMista
+    }
     note
     stato
     createdAt

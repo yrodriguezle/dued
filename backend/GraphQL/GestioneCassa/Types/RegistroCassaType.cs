@@ -38,5 +38,6 @@ public class RegistroCassaType : ObjectGraphType<RegistroCassa>
         Field<ListGraphType<SpesaCassaType>>("spese").Resolve(context => context.GetSpeseByRegistroId(context.Source.Id));
         Field<ListGraphType<PagamentoFornitoreType>>("pagamentiFornitori").Resolve(context => context.GetPagamentiFornitoriByRegistroId(context.Source.Id));
         Field<ListGraphType<RegistroCassaIvaType>>("breakdownIva").Resolve(context => context.GetBreakdownIvaByRegistroId(context.Source.Id));
+        Field<ListGraphType<RegistroCassaIvaCreditoType>>("breakdownIvaCredito").Resolve(context => context.GetBreakdownIvaCreditoByRegistroId(context.Source.Id));
     }
 }

@@ -146,7 +146,7 @@ describe("RiepilogoCards", () => {
       } as RegistroCassa;
       renderWithTheme(emptySummary, registroCassa);
 
-      expect(screen.getByText("IVA (totale € 12,36)")).toBeInTheDocument();
+      expect(screen.getByText("IVA su vendite (totale € 12,36)")).toBeInTheDocument();
       expect(screen.getByText("22% — Imponibile € 30,00 · IVA € 6,60")).toBeInTheDocument();
       expect(screen.getByText("10% — Imponibile € 20,00 · IVA € 2,00")).toBeInTheDocument();
       expect(screen.getByText("10% — Imponibile € 37,64 · IVA € 3,76")).toBeInTheDocument();
@@ -182,14 +182,14 @@ describe("RiepilogoCards", () => {
       } as RegistroCassa;
       renderWithTheme(emptySummary, registroCassa);
 
-      expect(screen.getByText("IVA (totale € 7,27)")).toBeInTheDocument();
+      expect(screen.getByText("IVA su vendite (totale € 7,27)")).toBeInTheDocument();
       expect(screen.getByText("10% — Imponibile € 72,73 · IVA € 7,27")).toBeInTheDocument();
       expect(screen.getAllByText("stimato")).toHaveLength(1);
     });
 
     it("non deve mostrare il blocco senza registroCassa", () => {
       renderWithTheme(emptySummary);
-      expect(screen.queryByText(/IVA \(totale/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/IVA su vendite/)).not.toBeInTheDocument();
       expect(screen.queryByText("stimato")).not.toBeInTheDocument();
     });
 
@@ -200,7 +200,64 @@ describe("RiepilogoCards", () => {
         breakdownIva: [],
       } as unknown as RegistroCassa;
       renderWithTheme(emptySummary, registroCassa);
-      expect(screen.queryByText(/IVA \(totale/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/IVA su vendite/)).not.toBeInTheDocument();
+    });
+  });
+
+  describe("breakdown IVA a credito (acquisti)", () => {
+    const makeRigaCredito = (
+      aliquota: number,
+      imponibile: number,
+      imposta: number,
+      fonte: "FATTURA" | "DDT",
+      stimato: boolean,
+      aliquotaMista = false
+    ): RegistroCassaIvaCreditoRiga => ({
+      __typename: "RegistroCassaIvaCredito",
+      aliquota,
+      imponibile,
+      imposta,
+      fonte,
+      stimato,
+      aliquotaMista,
+    });
+
+    it("mostra riga da fattura (certa) e riga da DDT (stima) con totale e disclaimer", () => {
+      const registroCassa = {
+        breakdownIva: [],
+        breakdownIvaCredito: [
+          makeRigaCredito(22, 100, 22, "FATTURA", false),
+          makeRigaCredito(10, 100, 10, "DDT", true),
+        ],
+      } as unknown as RegistroCassa;
+      renderWithTheme(emptySummary, registroCassa);
+
+      // Totale = 22 + 10 = 32
+      expect(screen.getByText("IVA su pagamenti fornitori — stima (totale € 32,00)")).toBeInTheDocument();
+      expect(screen.getByText("22% (fattura) — Imponibile € 100,00 · IVA € 22,00")).toBeInTheDocument();
+      expect(screen.getByText("10% (DDT) — Imponibile € 100,00 · IVA € 10,00")).toBeInTheDocument();
+      // Solo la riga DDT è stimata
+      expect(screen.getAllByText("stimato")).toHaveLength(1);
+      expect(screen.getByText(/Dato gestionale di cassa/)).toBeInTheDocument();
+    });
+
+    it("marca la fattura multi-aliquota con il chip 'aliquota mista'", () => {
+      const registroCassa = {
+        breakdownIva: [],
+        breakdownIvaCredito: [makeRigaCredito(15.3, 100, 15.3, "FATTURA", false, true)],
+      } as unknown as RegistroCassa;
+      renderWithTheme(emptySummary, registroCassa);
+
+      expect(screen.getByText("aliquota mista")).toBeInTheDocument();
+    });
+
+    it("non mostra il blocco credito con breakdownIvaCredito vuoto", () => {
+      const registroCassa = {
+        breakdownIva: [],
+        breakdownIvaCredito: [],
+      } as unknown as RegistroCassa;
+      renderWithTheme(emptySummary, registroCassa);
+      expect(screen.queryByText(/IVA su pagamenti fornitori/)).not.toBeInTheDocument();
     });
   });
 });
