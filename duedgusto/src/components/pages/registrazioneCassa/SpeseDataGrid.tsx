@@ -5,6 +5,7 @@ import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import PaymentIcon from "@mui/icons-material/Payment";
 import EditIcon from "@mui/icons-material/Edit";
+import MenuBookIcon from "@mui/icons-material/MenuBook";
 import { z } from "zod";
 import Datagrid from "../../common/datagrid/Datagrid";
 import { withDatagridStatus } from "../../common/datagrid/datagridUtils";
@@ -18,9 +19,15 @@ import OverflowToolbar, { OverflowAction } from "../../common/toolbar/OverflowTo
 interface SpeseDataGridProps {
   initialExpenses: Spese[];
   isLocked: boolean;
+  // Data del registro (YYYY-MM-DD): serve a calcolare l'importo del Giornale
+  date: string;
   onCellChange?: () => void;
   onExpensesChange?: (totalAmount: number, receiptAmount: number) => void;
 }
+
+// Importo giornale: €5 il sabato, €3,20 negli altri giorni operativi
+const GIORNALE_SATURDAY_AMOUNT = 5;
+const GIORNALE_WEEKDAY_AMOUNT = 3.2;
 
 const speseSchema = z.object({
   description: z.string().min(1, "La descrizione è obbligatoria"),
@@ -28,13 +35,19 @@ const speseSchema = z.object({
 });
 
 const SpeseDataGrid = memo(
-  forwardRef<GridReadyEvent<DatagridData<Spese>>, SpeseDataGridProps>(({ initialExpenses, isLocked, onCellChange, onExpensesChange }, ref) => {
+  forwardRef<GridReadyEvent<DatagridData<Spese>>, SpeseDataGridProps>(({ initialExpenses, isLocked, date, onCellChange, onExpensesChange }, ref) => {
     const muiTheme = useTheme();
     const isSmallScreen = useMediaQuery(muiTheme.breakpoints.down("sm"));
     const isMobile = isSmallScreen && navigator.maxTouchPoints > 0;
 
     const [validationErrors, setValidationErrors] = useState<Map<number, ValidationError[]>>(new Map());
     const [dialogOpen, setDialogOpen] = useState(false);
+    // Stato per abilitare i tasti toolbar: Cancella riga → almeno una riga selezionata,
+    // Nuova riga → NON in editing. Il wrapper Datagrid ha già questo stato ma non lo
+    // espone ai bottoni custom (hideToolbar + additionalToolbarButtons), quindi lo
+    // ricalcoliamo qui via listener diretti sull'api della griglia.
+    const [selectedCount, setSelectedCount] = useState(0);
+    const [isEditing, setIsEditing] = useState(false);
     // Spesa in fase di modifica (null = modalità aggiunta); è la riga reale della griglia,
     // il riferimento va preservato per applyTransaction({ remove }) che matcha per identità
     const [editingSpese, setEditingSpese] = useState<DatagridData<Spese> | null>(null);
@@ -181,6 +194,13 @@ const SpeseDataGrid = memo(
         if (ref && typeof ref !== "function") {
           (ref as React.MutableRefObject<GridReadyEvent<DatagridData<Spese>> | null>).current = event;
         }
+        // Traccia selezione ed editing per abilitare/disabilitare i tasti custom.
+        // I listener vengono rimossi automaticamente alla distruzione della griglia.
+        event.api.addEventListener("selectionChanged", () => {
+          setSelectedCount(event.api.getSelectedRows().length);
+        });
+        event.api.addEventListener("cellEditingStarted", () => setIsEditing(true));
+        event.api.addEventListener("cellEditingStopped", () => setIsEditing(false));
         reportExpenses(event.api);
       },
       [ref, reportExpenses]
@@ -226,13 +246,27 @@ const SpeseDataGrid = memo(
       }
     }, [onCellChange, reportExpenses]);
 
+    // Inserisce una spesa normale "GIORNALE" con importo in base al giorno:
+    // €5 il sabato, €3,20 gli altri giorni. Nessun editing: valori preimpostati.
+    const handleAddGiornale = useCallback(() => {
+      if (!gridEventRef.current) return;
+      const [year, month, day] = date.split("-").map(Number);
+      const isSaturday = new Date(year, month - 1, day).getDay() === 6;
+      const amount = isSaturday ? GIORNALE_SATURDAY_AMOUNT : GIORNALE_WEEKDAY_AMOUNT;
+      const giornale: Spese = { description: "GIORNALE", amount };
+      gridEventRef.current.api.applyTransaction({ add: [withDatagridStatus(giornale, DatagridStatus.Unchanged)] });
+      reportExpenses(gridEventRef.current.api);
+      onCellChange?.();
+    }, [date, onCellChange, reportExpenses]);
+
     const toolbarActions = useMemo<OverflowAction[]>(
       () => [
-        { key: "add", label: "Nuova riga", icon: <AddIcon fontSize="small" />, onClick: handleAddRow, disabled: isLocked },
-        { key: "delete", label: "Cancella riga", icon: <RemoveIcon fontSize="small" />, onClick: handleDeleteSelected, disabled: isLocked },
+        { key: "add", label: "Nuova riga", icon: <AddIcon fontSize="small" />, onClick: handleAddRow, disabled: isLocked || isEditing },
+        { key: "delete", label: "Cancella riga", icon: <RemoveIcon fontSize="small" />, onClick: handleDeleteSelected, disabled: isLocked || selectedCount === 0 },
+        { key: "giornale", label: "Giornale", icon: <MenuBookIcon fontSize="small" />, onClick: handleAddGiornale, disabled: isLocked },
         { key: "fornitore", label: "Pagamento fornitore", icon: <PaymentIcon fontSize="small" />, onClick: () => setDialogOpen(true), disabled: isLocked },
       ],
-      [handleAddRow, handleDeleteSelected, isLocked]
+      [handleAddRow, handleDeleteSelected, handleAddGiornale, isLocked, isEditing, selectedCount]
     );
 
     return (

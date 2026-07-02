@@ -147,6 +147,157 @@ function RegistroCassaDetails() {
     closingCounts: initialClosingCounts,
   });
 
+  const setFormDirty = useStore((state) => state.setFormDirty);
+  const { submitRegistroCassa } = useSubmitRegistroCassa();
+  const { closeCashRegister, loading: closing } = useCloseCashRegister();
+  const onConfirm = useConfirm();
+
+  // saveRegistro: salva il registro e ritorna true se il salvataggio è riuscito.
+  // Estratto da onSubmit per poter salvare anche prima di navigare tra i giorni.
+  const saveRegistro = useCallback(
+    async (values: FormikRegistroCassaValues): Promise<boolean> => {
+      try {
+        openingGridRef.current?.api.stopEditing();
+        closingGridRef.current?.api.stopEditing();
+        incomesGridRef.current?.api.stopEditing();
+        expensesGridRef.current?.api.stopEditing();
+
+        // Leggi i dati dalle griglie
+        const openingCounts = openingGridRef.current?.context.getGridData() || [];
+        const closingCounts = closingGridRef.current?.context.getGridData() || [];
+        const incomes = incomesGridRef.current?.context.getGridData() || [];
+        const expenses = expensesGridRef.current?.context.getGridData() || [];
+
+        // Converti la data in formato GraphQL (ISO 8601 UTC)
+        const parsedDate = parseDateForGraphQL(values.date);
+        if (!parsedDate) {
+          toast.error("Data non valida");
+          return false;
+        }
+
+        // Separa spese normali da pagamenti fornitore
+        const normalExpenses = expenses.filter((row: Spese) => !row.isPagamentoFornitore);
+        const pagamentiFornitore: PagamentoFornitoreRegistroInput[] = expenses
+          .filter((row: Spese) => row.isPagamentoFornitore && row.fornitoreId)
+          .map((row: Spese) => ({
+            fornitoreId: row.fornitoreId!,
+            numeroDdt: row.ddtNumber || "",
+            importo: row.amount,
+            metodoPagamento: row.paymentMethod || undefined,
+            tipoDocumento: row.documentType || "DDT",
+            numeroFattura: row.invoiceNumber || undefined,
+            pagamentoId: row.pagamentoId,
+            fatturaId: row.fatturaId,
+            ddtId: row.ddtId,
+            dataFattura: row.dataFattura,
+            dataDdt: row.dataDdt,
+            aliquotaIva: row.aliquotaIva ?? undefined,
+          }));
+
+        // Converti gli array in campi per il backend (nomi italiani)
+        const input: RegistroCassaInput = {
+          id: values.id,
+          data: parsedDate,
+          utenteId: values.utenteId,
+          conteggiApertura: openingCounts.map((row: CashCountRow) => ({
+            denominazioneMonetaId: row.denominationId,
+            quantita: row.quantity,
+          })),
+          conteggiChiusura: closingCounts.map((row: CashCountRow) => ({
+            denominazioneMonetaId: row.denominationId,
+            quantita: row.quantity,
+          })),
+          spese: normalExpenses.map((row: ExpenseRow) => ({
+            descrizione: row.description,
+            importo: row.amount,
+          })),
+          pagamentiFornitori: pagamentiFornitore,
+          incassoContanteTracciato: incomes.find((i: IncomeRow) => i.type === "Pago in contanti")?.amount || 0,
+          incassiElettronici: incomes.find((i: IncomeRow) => i.type === "Pagamenti Elettronici")?.amount || 0,
+          incassiFattura: incomes.find((i: IncomeRow) => i.type === "Pagamento con Fattura")?.amount || 0,
+          speseFornitori: 0, // Non più usato, calcolato dal backend
+          speseGiornaliere: 0, // Non più usato, calcolato dal backend
+          note: values.notes,
+          stato: values.status as StatoRegistroCassa,
+        };
+
+        const result = await submitRegistroCassa({ registroCassa: input });
+
+        if (!result) {
+          return false;
+        }
+
+        toast.success("Cassa salvata con successo!", { position: "bottom-right" });
+
+        // Sincronizza le righe spese con gli ID restituiti dal server
+        // (pagamentoId/fatturaId/ddtId + numeri documento, placeholder SN-... inclusi):
+        // un risalvataggio immediato prima del refetch invia update, non insert.
+        // Matching per chiave fornitore|tipo|numero, mai per indice.
+        const { updates, mismatch } = syncExpenseRowsWithPagamenti(expenses as DatagridData<Spese>[], result.pagamentiFornitori || []);
+        if (mismatch) {
+          // Nessun aggiornamento parziale: il refetch di getRegistroCassa già
+          // attivato da useSubmitCashRegister riallinea griglia e ID dal server.
+          logger.warn("Sync ID pagamenti fornitori: mismatch tra righe spese e pagamenti restituiti dal server; riallineamento delegato al refetch del registro.");
+        } else if (updates.length > 0 && expensesGridRef.current) {
+          // Le righe restituite da getGridData sono gli stessi oggetti dei nodi
+          // griglia: si aggiornano in place e si notifica AG Grid via transaction
+          // (senza toccare initialExpenses né lo stato dirty).
+          const updatedRows = updates.map(({ row, changes }) => Object.assign(row, changes));
+          expensesGridRef.current.api.applyTransaction({ update: updatedRows });
+        }
+
+        // Aggiorna l'ID e resetta dirty: resetForm con i valori correnti
+        // rende i valori correnti i nuovi initialValues, azzerando dirty
+        const updatedValues = {
+          ...values,
+          id: result.id || values.id,
+          gridDirty: false,
+        };
+        formRef.current?.resetForm({
+          values: updatedValues,
+          status: {
+            formStatus: formStatuses.UPDATE,
+            // Preserva il lock in base allo stato: dopo aver salvato le spese
+            // su un giorno CHIUSO/RICONCILIATO, il resto del form resta bloccato.
+            isFormLocked: updatedValues.status !== statoRegistroCassa.DRAFT,
+          },
+        });
+        // Sincronizza subito lo store: evita che il blocker globale (Root.tsx)
+        // veda ancora isFormDirty=true durante una navigazione immediata post-save.
+        setFormDirty(false);
+        return true;
+      } catch (error) {
+        logger.error("Errore durante il salvataggio:", error);
+        const graphQLMessage = (error as { graphQLErrors?: { message: string }[] })?.graphQLErrors?.[0]?.message;
+        toast.error(graphQLMessage || "Errore durante il salvataggio della cassa");
+        return false;
+      }
+    },
+    [submitRegistroCassa, setFormDirty]
+  );
+
+  // navigateToDay: se ci sono modifiche non salvate, chiede se salvarle prima
+  // di cambiare giorno. "Sì, salva" salva e poi naviga; "Annulla" resta.
+  const navigateToDay = useCallback(
+    async (newDate: string) => {
+      const form = formRef.current;
+      const hasChanges = !!(form && (form.dirty || form.values.gridDirty));
+      if (hasChanges) {
+        const confirmed = await onConfirm({
+          title: "Modifiche non salvate",
+          content: "Vuoi salvare le modifiche prima di cambiare giorno?",
+          acceptLabel: "Sì, salva",
+          cancelLabel: "Annulla",
+        });
+        if (!confirmed) return;
+        const saved = await saveRegistro(form!.values);
+        if (!saved) return;
+      }
+      navigate(`/gestionale/cassa/details/${newDate}`);
+    },
+    [onConfirm, saveRegistro, navigate]
+  );
+
   // Navigate between days for cash register entry, skipping non-operating days
   const handlePreviousDay = useCallback(() => {
     const [year, month, day] = currentDate.split("-").map(Number);
@@ -156,8 +307,8 @@ function RegistroCassaDetails() {
       if (isOpen(date)) break;
     }
     const newDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-    navigate(`/gestionale/cassa/details/${newDate}`);
-  }, [currentDate, isOpen, navigate]);
+    navigateToDay(newDate);
+  }, [currentDate, isOpen, navigateToDay]);
 
   const handleNextDay = useCallback(() => {
     const [year, month, day] = currentDate.split("-").map(Number);
@@ -167,8 +318,8 @@ function RegistroCassaDetails() {
       if (isOpen(date)) break;
     }
     const newDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-    navigate(`/gestionale/cassa/details/${newDate}`);
-  }, [currentDate, isOpen, navigate]);
+    navigateToDay(newDate);
+  }, [currentDate, isOpen, navigateToDay]);
 
   const handleOpenMonthlyCalendar = useCallback(() => {
     // Estrai anno e mese dalla data corrente nell'URL
@@ -220,10 +371,6 @@ function RegistroCassaDetails() {
       toast.error("Errore durante la copia dal giorno precedente");
     }
   }, [currentDate, isOpen, client, denominazioni, handleCellChange]);
-
-  const { submitRegistroCassa } = useSubmitRegistroCassa();
-  const { closeCashRegister, loading: closing } = useCloseCashRegister();
-  const onConfirm = useConfirm();
 
   useEffect(() => {
     setTitle("Gestione Cassa");
@@ -327,118 +474,6 @@ function RegistroCassaDetails() {
     }
   }, [handleInitializeValues, currentDate, utente?.id, registroCassa]);
 
-  const onSubmit = async (values: FormikRegistroCassaValues) => {
-    try {
-      openingGridRef.current?.api.stopEditing();
-      closingGridRef.current?.api.stopEditing();
-      incomesGridRef.current?.api.stopEditing();
-      expensesGridRef.current?.api.stopEditing();
-
-      // Leggi i dati dalle griglie
-      const openingCounts = openingGridRef.current?.context.getGridData() || [];
-      const closingCounts = closingGridRef.current?.context.getGridData() || [];
-      const incomes = incomesGridRef.current?.context.getGridData() || [];
-      const expenses = expensesGridRef.current?.context.getGridData() || [];
-
-      // Converti la data in formato GraphQL (ISO 8601 UTC)
-      const parsedDate = parseDateForGraphQL(values.date);
-      if (!parsedDate) {
-        toast.error("Data non valida");
-        return;
-      }
-
-      // Separa spese normali da pagamenti fornitore
-      const normalExpenses = expenses.filter((row: Spese) => !row.isPagamentoFornitore);
-      const pagamentiFornitore: PagamentoFornitoreRegistroInput[] = expenses
-        .filter((row: Spese) => row.isPagamentoFornitore && row.fornitoreId)
-        .map((row: Spese) => ({
-          fornitoreId: row.fornitoreId!,
-          numeroDdt: row.ddtNumber || "",
-          importo: row.amount,
-          metodoPagamento: row.paymentMethod || undefined,
-          tipoDocumento: row.documentType || "DDT",
-          numeroFattura: row.invoiceNumber || undefined,
-          pagamentoId: row.pagamentoId,
-          fatturaId: row.fatturaId,
-          ddtId: row.ddtId,
-          dataFattura: row.dataFattura,
-          dataDdt: row.dataDdt,
-          aliquotaIva: row.aliquotaIva ?? undefined,
-        }));
-
-      // Converti gli array in campi per il backend (nomi italiani)
-      const input: RegistroCassaInput = {
-        id: values.id,
-        data: parsedDate,
-        utenteId: values.utenteId,
-        conteggiApertura: openingCounts.map((row: CashCountRow) => ({
-          denominazioneMonetaId: row.denominationId,
-          quantita: row.quantity,
-        })),
-        conteggiChiusura: closingCounts.map((row: CashCountRow) => ({
-          denominazioneMonetaId: row.denominationId,
-          quantita: row.quantity,
-        })),
-        spese: normalExpenses.map((row: ExpenseRow) => ({
-          descrizione: row.description,
-          importo: row.amount,
-        })),
-        pagamentiFornitori: pagamentiFornitore,
-        incassoContanteTracciato: incomes.find((i: IncomeRow) => i.type === "Pago in contanti")?.amount || 0,
-        incassiElettronici: incomes.find((i: IncomeRow) => i.type === "Pagamenti Elettronici")?.amount || 0,
-        incassiFattura: incomes.find((i: IncomeRow) => i.type === "Pagamento con Fattura")?.amount || 0,
-        speseFornitori: 0, // Non più usato, calcolato dal backend
-        speseGiornaliere: 0, // Non più usato, calcolato dal backend
-        note: values.notes,
-        stato: values.status as StatoRegistroCassa,
-      };
-
-      const result = await submitRegistroCassa({ registroCassa: input });
-
-      if (result) {
-        toast.success("Cassa salvata con successo!", { position: "bottom-right" });
-
-        // Sincronizza le righe spese con gli ID restituiti dal server
-        // (pagamentoId/fatturaId/ddtId + numeri documento, placeholder SN-... inclusi):
-        // un risalvataggio immediato prima del refetch invia update, non insert.
-        // Matching per chiave fornitore|tipo|numero, mai per indice.
-        const { updates, mismatch } = syncExpenseRowsWithPagamenti(expenses as DatagridData<Spese>[], result.pagamentiFornitori || []);
-        if (mismatch) {
-          // Nessun aggiornamento parziale: il refetch di getRegistroCassa già
-          // attivato da useSubmitCashRegister riallinea griglia e ID dal server.
-          logger.warn("Sync ID pagamenti fornitori: mismatch tra righe spese e pagamenti restituiti dal server; riallineamento delegato al refetch del registro.");
-        } else if (updates.length > 0 && expensesGridRef.current) {
-          // Le righe restituite da getGridData sono gli stessi oggetti dei nodi
-          // griglia: si aggiornano in place e si notifica AG Grid via transaction
-          // (senza toccare initialExpenses né lo stato dirty).
-          const updatedRows = updates.map(({ row, changes }) => Object.assign(row, changes));
-          expensesGridRef.current.api.applyTransaction({ update: updatedRows });
-        }
-
-        // Aggiorna l'ID e resetta dirty: resetForm con i valori correnti
-        // rende i valori correnti i nuovi initialValues, azzerando dirty
-        const updatedValues = {
-          ...values,
-          id: result.id || values.id,
-          gridDirty: false,
-        };
-        formRef.current?.resetForm({
-          values: updatedValues,
-          status: {
-            formStatus: formStatuses.UPDATE,
-            // Preserva il lock in base allo stato: dopo aver salvato le spese
-            // su un giorno CHIUSO/RICONCILIATO, il resto del form resta bloccato.
-            isFormLocked: updatedValues.status !== statoRegistroCassa.DRAFT,
-          },
-        });
-      }
-    } catch (error) {
-      logger.error("Errore durante il salvataggio:", error);
-      const graphQLMessage = (error as { graphQLErrors?: { message: string }[] })?.graphQLErrors?.[0]?.message;
-      toast.error(graphQLMessage || "Errore durante il salvataggio della cassa");
-    }
-  };
-
   const handleCloseCashRegister = async () => {
     const confirmed = await onConfirm({
       title: "Chiudi Cassa",
@@ -499,7 +534,7 @@ function RegistroCassaDetails() {
         }
         return Object.fromEntries(result.error.issues.map(({ path, message }) => [path[0], message]));
       }}
-      onSubmit={onSubmit}
+      onSubmit={saveRegistro}
     >
       {({ status, isSubmitting, isValid, dirty, values }) => {
         const hasChanges = dirty || values.gridDirty;

@@ -429,6 +429,7 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
                     fullWidth
                     value={amount}
                     onChange={(_name, value) => setAmount(value)}
+                    emitOnChange
                     decimals={2}
                   />
                 </div>

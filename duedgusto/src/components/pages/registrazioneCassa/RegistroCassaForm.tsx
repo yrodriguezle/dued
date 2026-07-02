@@ -97,6 +97,7 @@ const RegistroCassaForm: React.FC<RegistroCassaFormProps> = ({
             ref={expensesGridRef}
             initialExpenses={initialExpenses}
             isLocked={isLocked && !isClosed}
+            date={formik.values.date}
             onCellChange={onCellChange}
             onExpensesChange={onExpensesChange}
           />

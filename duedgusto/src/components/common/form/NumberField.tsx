@@ -6,6 +6,9 @@ export interface NumberFieldProps extends Omit<MTextFieldProps<"standard">, "onC
   name: string;
   thousandsSeparator?: boolean;
   decimals?: number;
+  // Se true, onChange viene chiamato ad ogni digitazione (non solo al blur).
+  // Utile quando l'UI deve reagire live al valore (es. abilitare un pulsante).
+  emitOnChange?: boolean;
   onChange?: (name: string, value: number) => void;
   onFocus?: FocusEventHandler<HTMLInputElement>;
   onBlur?: FocusEventHandler<HTMLInputElement>;
@@ -65,7 +68,7 @@ const findCursorPosition = (formatted: string, targetCount: number): number => {
 };
 
 const NumberField = forwardRef<NumberFieldRef, NumberFieldProps>(({
-  value = 0, name, onChange, thousandsSeparator: useThousands = true, decimals, sx, slotProps, ...props
+  value = 0, name, onChange, emitOnChange = false, thousandsSeparator: useThousands = true, decimals, sx, slotProps, ...props
 }, ref) => {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [innerValue, setInnerValue] = useState<string>(() => numberToDisplay(value, useThousands));
@@ -119,13 +122,17 @@ const NumberField = forwardRef<NumberFieldRef, NumberFieldProps>(({
     const formatted = formatCleaned(cleaned, useThousands);
     setInnerValue(formatted);
     pendingCursor.current = findCursorPosition(formatted, sigBefore);
+    return displayToNumber(formatted);
   }, [useThousands, decimals]);
 
   const handleChange: ChangeEventHandler<HTMLInputElement> = useCallback(
     (event) => {
-      processAndFormat(event.target.value, event.target.selectionStart ?? event.target.value.length);
+      const numericValue = processAndFormat(event.target.value, event.target.selectionStart ?? event.target.value.length);
+      if (emitOnChange && onChange) {
+        onChange(name, numericValue);
+      }
     },
-    [processAndFormat]
+    [processAndFormat, emitOnChange, onChange, name]
   );
 
   // Intercetta "." e inserisce "," al suo posto
