@@ -1,24 +1,19 @@
 import { useCallback } from "react";
 import { z } from "zod";
 import { GridApi, IRowNode } from "ag-grid-community";
-import { DatagridData } from "../@types/Datagrid";
+import { DatagridData, ValidationError } from "../@types/Datagrid";
 import { DatagridStatus } from "../../../../common/globals/constants";
 
-export interface ValidationError {
-  field: string;
-  message: string;
-}
-
-interface UseZodValidationProps<T extends Record<string, unknown>> {
+interface UseZodValidationProps<T extends object> {
   schema?: z.ZodSchema<T>;
 }
 
-interface UseZodValidationReturn<T extends Record<string, unknown>> {
+interface UseZodValidationReturn<T extends object> {
   validateRow: (node: IRowNode<DatagridData<T>>) => ValidationError[] | null;
   validateAllRows: (api: GridApi<DatagridData<T>>) => Map<number, ValidationError[]>;
 }
 
-function useZodValidation<T extends Record<string, unknown>>(props: UseZodValidationProps<T>): UseZodValidationReturn<T> {
+function useZodValidation<T extends object>(props: UseZodValidationProps<T>): UseZodValidationReturn<T> {
   const { schema } = props;
 
   const validateRow = useCallback(

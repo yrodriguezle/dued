@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { CellKeyDownEvent, Column, GridApi, IRowNode, RowPinnedType } from "ag-grid-community";
 import { DatagridData } from "../@types/Datagrid";
 
-interface UseEnterNavigationProps<T extends Record<string, unknown>> {
+interface UseEnterNavigationProps<T extends object> {
   isMobile: boolean;
   getNewRow?: () => T;
   onAddRow?: (index?: number) => IRowNode<DatagridData<T>> | undefined;
@@ -10,11 +10,11 @@ interface UseEnterNavigationProps<T extends Record<string, unknown>> {
   autoAddRowOnTab?: boolean;
 }
 
-interface UseEnterNavigationReturn {
-  handleEnterNavigation: (event: CellKeyDownEvent) => void;
+interface UseEnterNavigationReturn<T extends object> {
+  handleEnterNavigation: (event: CellKeyDownEvent<DatagridData<T>>) => void;
 }
 
-function useEnterNavigation<T extends Record<string, unknown>>(props: UseEnterNavigationProps<T>): UseEnterNavigationReturn {
+function useEnterNavigation<T extends object>(props: UseEnterNavigationProps<T>): UseEnterNavigationReturn<T> {
   const { isMobile, getNewRow, onAddRow, gotoEditCell, autoAddRowOnTab = true } = props;
 
   const getNextEditableColumn = useCallback((api: GridApi, rowIndex: number, currentColumn: Column): Column | null => {

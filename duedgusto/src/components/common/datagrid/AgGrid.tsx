@@ -6,13 +6,14 @@ import { SetFilterModule, MultiFilterModule, RichSelectModule, TreeDataModule, C
 import { AG_GRID_LOCALE_IT } from "./i18n/it-IT";
 import useStore from "../../../store/useStore";
 import { themeDark, themeLight } from "./datagridThemes";
-import { DatagridData } from "./@types/Datagrid";
 
 ModuleRegistry.registerModules([AllCommunityModule, SetFilterModule, MultiFilterModule, RichSelectModule, TreeDataModule, ColumnMenuModule, ContextMenuModule, ColumnsToolPanelModule]);
 
-function AgGridInner<T extends Record<string, unknown>>(agGridProps: AgGridReactProps<DatagridData<T>>, ref: ForwardedRef<AgGridReact<DatagridData<T>>>) {
+// AgGrid è un wrapper di theming/localizzazione: è parametrizzato sul TData completo.
+// La policy di wrapping con DatagridData appartiene a Datagrid (che passa già DatagridData<T>).
+function AgGridInner<TData extends object>(agGridProps: AgGridReactProps<TData>, ref: ForwardedRef<AgGridReact<TData>>) {
   const { userTheme } = useStore((store) => store);
-  return <AgGridReact<DatagridData<T>>
+  return <AgGridReact<TData>
     localeText={AG_GRID_LOCALE_IT}
     theme={userTheme.mode === "light" ? themeLight : themeDark}
     stopEditingWhenCellsLoseFocus={true}
@@ -21,6 +22,6 @@ function AgGridInner<T extends Record<string, unknown>>(agGridProps: AgGridReact
   />;
 }
 
-const AgGrid = forwardRef(AgGridInner) as <T extends Record<string, unknown>>(props: AgGridReactProps<DatagridData<T>> & { ref?: ForwardedRef<AgGridReact<DatagridData<T>>> }) => JSX.Element;
+const AgGrid = forwardRef(AgGridInner) as <TData extends object>(props: AgGridReactProps<TData> & { ref?: ForwardedRef<AgGridReact<TData>> }) => JSX.Element;
 
 export default AgGrid;

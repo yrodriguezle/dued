@@ -1,5 +1,5 @@
 import { ReactNode, useCallback, useMemo, useRef, useState, useEffect } from "react";
-import { CellValueChangedEvent, Column, GridReadyEvent, IRowNode, RowPinnedType, RowSelectionOptions, SelectionChangedEvent } from "ag-grid-community";
+import { CellValueChangedEvent, Column, GetRowIdParams, GridReadyEvent, IRowNode, RowPinnedType, RowSelectionOptions, SelectionChangedEvent } from "ag-grid-community";
 import Box from "@mui/material/Box";
 import { useMediaQuery, useTheme } from "@mui/material";
 import { z } from "zod";
@@ -14,10 +14,11 @@ import useZodValidation from "./validation/useZodValidation";
 import useTabNavigation from "./navigation/useTabNavigation";
 import useEnterNavigation from "./navigation/useEnterNavigation";
 import createRowNumberColumn from "./columns/createRowNumberColumn";
+import { withDatagridStatus } from "./datagridUtils";
 import useGridStatePersistence from "./persistence/useGridStatePersistence";
 import { getGridColumnState } from "../../../common/ui/gridStateStorage";
 
-interface BaseDatagridProps<T extends Record<string, unknown>> extends Omit<DatagridAgGridProps<DatagridData<T>>, "rowData" | "columnDefs"> {
+interface BaseDatagridProps<T extends object> extends Omit<DatagridAgGridProps<T>, "rowData" | "columnDefs"> {
   height: string;
   items: T[];
   columnDefs: DatagridColDef<T>[];
@@ -31,25 +32,25 @@ interface BaseDatagridProps<T extends Record<string, unknown>> extends Omit<Data
   onRowsDeleted?: (deletedRows: DatagridData<T>[]) => void;
 }
 
-interface NormalModeProps<T extends Record<string, unknown>> extends BaseDatagridProps<T> {
+interface NormalModeProps<T extends object> extends BaseDatagridProps<T> {
   presentation?: undefined;
   getNewRow?: () => T;
   readOnly: boolean;
 }
 
-interface PresentationModeProps<T extends Record<string, unknown>> extends BaseDatagridProps<T> {
+interface PresentationModeProps<T extends object> extends BaseDatagridProps<T> {
   presentation: true;
   getNewRow?: never;
   readOnly?: never;
 }
 
-type DatagridProps<T extends Record<string, unknown>> = NormalModeProps<T> | PresentationModeProps<T>;
+type DatagridProps<T extends object> = NormalModeProps<T> | PresentationModeProps<T>;
 
 const initialStatus: DatagridAuxData = {
   status: DatagridStatus.Unchanged,
 };
 
-function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
+function Datagrid<T extends object>(props: DatagridProps<T>) {
   const muiTheme = useTheme();
   const isSmallScreen = useMediaQuery(muiTheme.breakpoints.down("sm"));
   const isMobile = isSmallScreen && navigator.maxTouchPoints > 0;
@@ -154,14 +155,14 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
       const newRowData: DatagridData<T> = {
         ...baseNewRow,
         ...initialStatus,
-      } as DatagridData<T>;
+      };
 
       gridRef.current.api.stopEditing();
       const node = handleInsertSingleRow(newRowData, index);
 
       setCanAddNewRow(false);
 
-      const rowEvent: IRowEvent<DatagridData<T>> = {
+      const rowEvent: IRowEvent<T> = {
         data: newRowData,
         node,
         api: gridRef.current.api,
@@ -205,25 +206,22 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
 
       const newRowTemplate = getNewRow();
 
-      // Confronta tutti i campi (escludendo status che è un campo ausiliario)
-      for (const key in newRowTemplate) {
-        if (key === "status") continue;
-        if (rowData[key] !== newRowTemplate[key]) {
-          return false;
-        }
-      }
-      return true;
+      // Confronta tutti i campi (escludendo status che è un campo ausiliario).
+      // Unico cast: Object.keys restituisce string[] per limite noto di lib.d.ts.
+      return (Object.keys(newRowTemplate) as Array<keyof T & string>)
+        .filter((key) => key !== "status")
+        .every((key) => rowData[key] === newRowTemplate[key]);
     },
     [getNewRow]
   );
 
   // Handler per keydown esteso: gestisce Tab navigation + ESC per cancellare righe pristine
   const handleCellKeyDown = useCallback(
-    (event: Parameters<NonNullable<DatagridAgGridProps<DatagridData<T>>["onCellKeyDown"]>>[0]) => {
+    (event: Parameters<NonNullable<DatagridAgGridProps<T>["onCellKeyDown"]>>[0]) => {
       // Prima gestisce la navigazione Tab e Enter (solo per CellKeyDownEvent)
       if (event.type === "cellKeyDown" && "column" in event) {
-        handleTabNavigation(event as Parameters<typeof handleTabNavigation>[0]);
-        handleEnterNavigation(event as Parameters<typeof handleEnterNavigation>[0]);
+        handleTabNavigation(event);
+        handleEnterNavigation(event);
       }
 
       const keyboardEvent = event.event as KeyboardEvent | undefined;
@@ -280,7 +278,7 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
 
   const handleDeleteSelected = useCallback(() => {
     if (!gridRef.current || isPresentation) return;
-    const selected = gridRef.current.api.getSelectedRows() as DatagridData<T>[];
+    const selected = gridRef.current.api.getSelectedRows();
     if (selected.length === 0) return;
     gridRef.current.api.applyTransaction({ remove: selected });
     onRowsDeleted?.(selected);
@@ -318,8 +316,9 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
   );
 
   const rowSelection = useMemo<RowSelectionOptions<DatagridData<T>> | undefined>(() => {
-    if (props.rowSelection) {
-      return props.rowSelection as RowSelectionOptions<DatagridData<T>>;
+    // I literal deprecati "single"/"multiple" ricadono nel default sottostante
+    if (typeof props.rowSelection === "object") {
+      return props.rowSelection;
     }
     if (!isPresentation && !readOnly) {
       return { mode: "singleRow" };
@@ -359,15 +358,14 @@ function Datagrid<T extends Record<string, unknown>>(props: DatagridProps<T>) {
     }
 
     const newRowData = items.map((item) => {
-      // Usa getRowId per ottenere l'ID della riga (se definito nelle props)
-      const rowId = getRowId?.({ data: item as DatagridData<T> } as Parameters<NonNullable<typeof getRowId>>[0]);
+      const candidate = withDatagridStatus(item, initialStatus.status);
+      // Usa getRowId per ottenere l'ID della riga (se definito nelle props).
+      // Cast documentato: params parziale senza api/level (pattern già in uso).
+      const rowId = getRowId?.({ data: candidate } as GetRowIdParams<DatagridData<T>>);
       const currentStatus = rowId ? currentStatuses.get(rowId) : undefined;
 
-      return {
-        ...item,
-        // Preserva lo status esistente, altrimenti usa Unchanged
-        status: currentStatus ?? initialStatus.status,
-      };
+      // Preserva lo status esistente, altrimenti usa Unchanged
+      return currentStatus ? { ...candidate, status: currentStatus } : candidate;
     });
 
     previousRowDataRef.current = newRowData;

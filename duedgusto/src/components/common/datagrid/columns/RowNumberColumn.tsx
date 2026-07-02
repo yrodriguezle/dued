@@ -5,7 +5,7 @@ import Box from "@mui/material/Box";
 import { DatagridStatus } from "../../../../common/globals/constants";
 import { DatagridData } from "../@types/Datagrid";
 
-function RowNumberCellRenderer<T extends Record<string, unknown>>(props: ICellRendererParams<DatagridData<T>>) {
+function RowNumberCellRenderer<T extends object>(props: ICellRendererParams<DatagridData<T>>) {
   const { data, node } = props;
 
   if (node.rowPinned) {

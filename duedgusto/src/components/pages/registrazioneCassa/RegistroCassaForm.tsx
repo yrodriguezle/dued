@@ -11,15 +11,7 @@ import { DatagridData } from "../../common/datagrid/@types/Datagrid";
 import { CashCountRowData } from "./useCashCountData";
 import { statoRegistroCassa } from "../../../common/globals/constants";
 
-interface IncomeRow extends Record<string, unknown> {
-  type: string;
-  amount: number;
-}
-
-interface ExpenseRow extends Record<string, unknown> {
-  description: string;
-  amount: number;
-}
+// IncomeRow ed ExpenseRow sono i tipi ambient dichiarati in src/@types/RegistroCassa.d.ts
 
 interface RegistroCassaFormProps {
   openingGridRef: React.RefObject<GridReadyEvent<DatagridData<CashCountRowData>> | null>;

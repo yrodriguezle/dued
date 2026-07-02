@@ -4,7 +4,7 @@ import { GridReadyEvent } from "ag-grid-community";
 import Datagrid from "../../common/datagrid/Datagrid";
 import { DatagridColDef, DatagridData } from "../../common/datagrid/@types/Datagrid";
 
-interface SpesaRow extends Record<string, unknown> {
+export interface SpesaRow {
   spesaId: number;
   chiusuraId: number;
   descrizione: string;

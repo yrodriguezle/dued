@@ -3,7 +3,7 @@ import { CellEditingStartedEvent, CellValueChangedEvent, GridReadyEvent, IRowNod
 import { DatagridData } from "../@types/Datagrid";
 import { DatagridStatus } from "../../../../common/globals/constants";
 
-function useEditingGrid<T extends Record<string, unknown>>(
+function useEditingGrid<T extends object>(
   ready: boolean,
   gridRef: React.RefObject<GridReadyEvent<DatagridData<T>> | null>,
   previousEditingNode: React.RefObject<IRowNode<DatagridData<T>> | null>

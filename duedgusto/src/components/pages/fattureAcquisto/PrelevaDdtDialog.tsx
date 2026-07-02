@@ -6,6 +6,7 @@ import { RowSelectionOptions } from "ag-grid-community";
 
 import AppDialog from "../../common/dialog/AppDialog";
 import Datagrid from "../../common/datagrid/Datagrid";
+import { stripDatagridStatus } from "../../common/datagrid/datagridUtils";
 import { DatagridColDef, DatagridRowSelectedEvent } from "../../common/datagrid/@types/Datagrid";
 import { getDocumentiTrasportoAperti } from "../../../graphql/fornitori/queries";
 
@@ -74,8 +75,7 @@ function PrelevaDdtDialog({ open, fornitoreId, onConfirm, onClose }: PrelevaDdtD
 
   const handleRowSelected = useCallback((event: DatagridRowSelectedEvent<PrelevaDdtItem>) => {
     const selected = event.api.getSelectedRows();
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const cleanSelected = selected.map(({ status, ...rest }) => rest as unknown as PrelevaDdtItem);
+    const cleanSelected = selected.map((row) => stripDatagridStatus(row));
     setSelectedItems(cleanSelected);
     setSelectedTotal(cleanSelected.reduce((sum, r) => sum + (r.importo ?? 0), 0));
   }, []);

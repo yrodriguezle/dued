@@ -7,10 +7,12 @@ import AddIcon from "@mui/icons-material/Add";
 import { RowSelectionOptions } from "ag-grid-community";
 
 import Datagrid from "../../datagrid/Datagrid";
-import { DatagridColDef, DatagridCellFocusedEvent, DatagridRowDoubleClickedEvent, DatagridRowClickedEvent } from "../../datagrid/@types/Datagrid";
+import { DatagridColDef, DatagridData, DatagridCellFocusedEvent, DatagridRowDoubleClickedEvent, DatagridRowClickedEvent } from "../../datagrid/@types/Datagrid";
+import { stripDatagridStatus } from "../../datagrid/datagridUtils";
+import { toDatagridColDef } from "./searchboxUtils";
 import { SearchboxColDef } from "../../../../@types/searchbox";
 
-interface SearchboxModalProps<T extends Record<string, unknown>> {
+interface SearchboxModalProps<T extends object> {
   open: boolean;
   title: string;
   items: T[];
@@ -39,7 +41,7 @@ const modalStyle = {
   overflow: "hidden",
 };
 
-function SearchboxModal<T extends Record<string, unknown>>({ open, title, items, columnDefs, loading, onClose, onSelectItem, renderCreateForm, createFormTitle, onItemCreated }: SearchboxModalProps<T>) {
+function SearchboxModal<T extends object>({ open, title, items, columnDefs, loading, onClose, onSelectItem, renderCreateForm, createFormTitle, onItemCreated }: SearchboxModalProps<T>) {
   const [selectedItem, setSelectedItem] = useState<T | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
@@ -49,21 +51,11 @@ function SearchboxModal<T extends Record<string, unknown>>({ open, title, items,
     enableClickSelection: true,
   }), []);
 
-  const datagridColumnDefs = useMemo<DatagridColDef<T>[]>(
-    () =>
-      columnDefs.map((col) => {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { graphField: _g, action: _a, ...rest } = col;
-        return rest as unknown as DatagridColDef<T>;
-      }),
-    [columnDefs]
-  );
+  // Converte SearchboxColDef<T> in DatagridColDef<T> omettendo graphField/action (vedi searchboxUtils)
+  const datagridColumnDefs = useMemo<DatagridColDef<T>[]>(() => columnDefs.map(toDatagridColDef), [columnDefs]);
 
-  const extractOriginalData = useCallback((data: Record<string, unknown>): T => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { status, ...originalData } = data;
-    return originalData as unknown as T;
-  }, []);
+  // Estrae i dati originali rimuovendo il campo status ausiliario
+  const extractOriginalData = useCallback((data: DatagridData<T>): T => stripDatagridStatus(data), []);
 
   const handleConfirmSelection = useCallback(() => {
     if (selectedItem) {

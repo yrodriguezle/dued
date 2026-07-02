@@ -9,7 +9,7 @@ interface UseEditingStateReturn {
   currentEditingRow: React.MutableRefObject<IRowNode | null>;
 }
 
-function useEditingState<T extends Record<string, unknown>>(onEditingStatusChange?: (isEditing: boolean) => void): UseEditingStateReturn {
+function useEditingState<T extends object>(onEditingStatusChange?: (isEditing: boolean) => void): UseEditingStateReturn {
   const currentEditingRow = useRef<IRowNode<DatagridData<T>> | null>(null);
   const stopTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 

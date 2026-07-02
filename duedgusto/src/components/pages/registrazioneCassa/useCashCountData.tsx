@@ -1,13 +1,7 @@
 import { useMemo } from "react";
 
-// Row data per le griglie di conteggio
-interface CashCountRowData extends Record<string, unknown> {
-  denominationId: number;
-  type: "COIN" | "BANKNOTE";
-  value: number;
-  quantity: number;
-  total: number;
-}
+// Row data per le griglie di conteggio (stessa shape del tipo ambient CashCountRow)
+type CashCountRowData = CashCountRow;
 
 
 interface UseCashCountDataProps {

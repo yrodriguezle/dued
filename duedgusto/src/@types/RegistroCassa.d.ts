@@ -181,12 +181,12 @@ interface CashCount {
   quantita: number;
 }
 
-interface Income extends Record<string, unknown> {
+interface Income {
   type: string;
   amount: number;
 }
 
-interface Spese extends Record<string, unknown> {
+interface Spese {
   description: string;
   amount: number;
   isPagamentoFornitore?: boolean;
@@ -203,7 +203,7 @@ interface Spese extends Record<string, unknown> {
   aliquotaIva?: number | null;
 }
 
-interface CashCountRow extends Record<string, unknown> {
+interface CashCountRow {
   denominationId: number;
   type: "COIN" | "BANKNOTE";
   value: number;
@@ -211,12 +211,12 @@ interface CashCountRow extends Record<string, unknown> {
   total: number;
 }
 
-interface IncomeRow extends Record<string, unknown> {
+interface IncomeRow {
   type: string;
   amount: number;
 }
 
-interface ExpenseRow extends Record<string, unknown> {
+interface ExpenseRow {
   description: string;
   amount: number;
 }

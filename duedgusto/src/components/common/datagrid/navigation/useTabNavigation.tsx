@@ -2,18 +2,18 @@ import { useCallback } from "react";
 import { CellKeyDownEvent, Column, GridApi, IRowNode, RowPinnedType } from "ag-grid-community";
 import { DatagridData } from "../@types/Datagrid";
 
-interface UseTabNavigationProps<T extends Record<string, unknown>> {
+interface UseTabNavigationProps<T extends object> {
   getNewRow?: () => T;
   onAddRow?: (index?: number) => IRowNode<DatagridData<T>> | undefined;
   gotoEditCell?: (rowIndex: number, col: string | Column, rowPinned?: RowPinnedType) => Promise<boolean>;
   autoAddRowOnTab?: boolean;
 }
 
-interface UseTabNavigationReturn {
-  handleCellKeyDown: (event: CellKeyDownEvent) => void;
+interface UseTabNavigationReturn<T extends object> {
+  handleCellKeyDown: (event: CellKeyDownEvent<DatagridData<T>>) => void;
 }
 
-function useTabNavigation<T extends Record<string, unknown>>(props: UseTabNavigationProps<T>): UseTabNavigationReturn {
+function useTabNavigation<T extends object>(props: UseTabNavigationProps<T>): UseTabNavigationReturn<T> {
   const { getNewRow, onAddRow, gotoEditCell, autoAddRowOnTab = true } = props;
 
   const isLastEditableCell = useCallback((api: GridApi, rowIndex: number, column: Column): boolean => {

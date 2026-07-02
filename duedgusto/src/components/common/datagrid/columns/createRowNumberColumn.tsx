@@ -1,11 +1,10 @@
-import { DatagridColDef, DatagridData } from "../@types/Datagrid";
+import { DatagridColDef } from "../@types/Datagrid";
 import RowNumberCellRenderer from "./RowNumberColumn";
-import { ColDefField } from "ag-grid-community";
 
-function createRowNumberColumn<T extends Record<string, unknown>>(): DatagridColDef<T> {
+function createRowNumberColumn<T extends object>(): DatagridColDef<T> {
   return {
     headerName: "#",
-    field: "__rowNumber" as ColDefField<DatagridData<T>>,
+    colId: "__rowNumber",
     width: 50,
     minWidth: 50,
     maxWidth: 50,

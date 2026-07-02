@@ -52,7 +52,7 @@ import { statoRegistroCassa, statoChiusuraMensile } from "../../../common/global
 import FormikToolbarButton from "../../common/form/toolbar/FormikToolbarButton";
 import useConfirm from "../../common/confirm/useConfirm";
 import showToast from "../../../common/toast/showToast";
-import MonthlyExpensesDataGrid from "./MonthlyExpensesDataGrid";
+import MonthlyExpensesDataGrid, { SpesaRow } from "./MonthlyExpensesDataGrid";
 import MonthlyClosureReport from "./MonthlyClosureReport";
 import { DatagridData } from "../../common/datagrid/@types/Datagrid";
 
@@ -61,14 +61,6 @@ const MOTIVO_LABELS: Record<CodiceMotivo, string> = {
   CHIUSURA_PROGRAMMATA: "Chiusura programmata",
   EVENTO_ECCEZIONALE: "Evento eccezionale",
 };
-
-interface SpesaRow extends Record<string, unknown> {
-  spesaId: number;
-  chiusuraId: number;
-  descrizione: string;
-  importo: number;
-  categoria: CategoriaSpesa;
-}
 
 const MonthlyClosureDetails = () => {
   const { id } = useParams<{ id: string }>();

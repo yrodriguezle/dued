@@ -4,15 +4,15 @@ import InputAdornment from "@mui/material/InputAdornment";
 import IconButton from "@mui/material/IconButton";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import CircularProgress from "@mui/material/CircularProgress";
-import { GridReadyEvent } from "ag-grid-community";
 
 import { SearchboxOptions } from "../../../../@types/searchbox";
+import { DatagridGridReadyEvent } from "../../datagrid/@types/Datagrid";
 import useSearchboxQueryParams from "./useSearchboxQueryParams";
 import useFetchData from "../../../../graphql/common/useFetchData";
 import ContainerGridResults from "./ContainerGridResults";
 import SearchboxModal from "./SearchboxModal";
 
-export interface SearchboxProps<T extends Record<string, unknown>> extends Omit<TextFieldProps<"standard">, "onChange"> {
+export interface SearchboxProps<T extends object> extends Omit<TextFieldProps<"standard">, "onChange"> {
   id?: string;
   options: SearchboxOptions<T>;
   fieldName?: Extract<keyof T, string>;
@@ -23,13 +23,14 @@ export interface SearchboxProps<T extends Record<string, unknown>> extends Omit<
   onSelectItem: (item: T) => void;
 }
 
-function Searchbox<T extends Record<string, unknown>>({ id, name, value, orderBy, fieldName, options, onChange, onSelectItem, ...props }: SearchboxProps<T>) {
+function Searchbox<T extends object>({ id, name, value, orderBy, fieldName, options, onChange, onSelectItem, ...props }: SearchboxProps<T>) {
   const [innerValue, setInnerValue] = useState(value);
   const [resultsVisible, setResultsVisible] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const resultListRef = useRef<GridReadyEvent<T>>(null);
+  // La griglia dei risultati contiene DatagridData<T> (firma reale, vedi GridResults)
+  const resultListRef = useRef<DatagridGridReadyEvent<T>>(null);
 
   const lookupFieldName = useMemo<Extract<keyof T, string>>(() => {
     return fieldName || (name as Extract<keyof T, string>);
@@ -67,7 +68,7 @@ function Searchbox<T extends Record<string, unknown>>({ id, name, value, orderBy
   });
 
   const handleResultGridReady = useCallback(
-    (event: GridReadyEvent<T>) => {
+    (event: DatagridGridReadyEvent<T>) => {
       resultListRef.current = event;
     },
     [resultListRef]

@@ -7,13 +7,13 @@ import useResizeObserver from "../../../../common/resizer/useResizeObserver";
 import { getSearchboxResultContainerWidth, setSearchboxResultContainerWidth } from "../../../../common/ui/searchboxResultContainer";
 import GridResults, { GridResultsProps } from "./GridResults";
 
-interface ContainerGridResultsProps<T extends Record<string, unknown>> extends GridResultsProps<T> {
+interface ContainerGridResultsProps<T extends object> extends GridResultsProps<T> {
   searchBoxId: string;
   anchorEl: HTMLElement | null;
   paperRef?: React.MutableRefObject<HTMLDivElement | null>;
 }
 
-function ContainerGridResults<T extends Record<string, unknown>>({ searchBoxId, anchorEl, paperRef, loading, items, columnDefs, onSelectedItem, onGridReady, onNavigateBack, showNoRowsOverlay }: ContainerGridResultsProps<T>) {
+function ContainerGridResults<T extends object>({ searchBoxId, anchorEl, paperRef, loading, items, columnDefs, onSelectedItem, onGridReady, onNavigateBack, showNoRowsOverlay }: ContainerGridResultsProps<T>) {
   const mounted = useRef(false);
   useEffect(() => {
     mounted.current = true;

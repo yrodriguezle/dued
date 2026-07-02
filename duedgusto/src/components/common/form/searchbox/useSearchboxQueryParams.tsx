@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { SearchboxOptions } from "../../../../@types/searchbox";
 import useQueryParams from "../../../../graphql/common/useQueryParams";
 
-interface UseSearchboxQueryParamsProps<T extends Record<string, unknown>, K extends keyof T> {
+interface UseSearchboxQueryParamsProps<T extends object, K extends keyof T> {
   options: SearchboxOptions<T>;
   orderBy?: string;
   value: string;
@@ -11,14 +11,14 @@ interface UseSearchboxQueryParamsProps<T extends Record<string, unknown>, K exte
   pageSize?: number;
 }
 
-function useSearchboxQueryParams<T extends Record<string, unknown>, K extends keyof T>(props: UseSearchboxQueryParamsProps<T, K>) {
+function useSearchboxQueryParams<T extends object, K extends keyof T>(props: UseSearchboxQueryParamsProps<T, K>) {
   const body = useMemo(() => {
-    if (props.modal) {
-      const modalFields = props.options.modal.items.map((item) => item.field).filter((f) => typeof f === "string") as unknown as Extract<keyof T, string>[];
-      return modalFields;
-    }
-    const fields = props.options.items.map((item) => item.field).filter((f) => typeof f === "string") as unknown as Extract<keyof T, string>[];
-    return fields;
+    const sourceItems = props.modal ? props.options.modal.items : props.options.items;
+    // I `field` delle colonne searchbox sono i nomi dei campi GraphQL da richiedere.
+    // Cast documentato: ColDefField<T> ammette anche path annidati ("a.b"), mentre il contratto
+    // di useQueryParams richiede (keyof T)[]; le searchboxOptions usano solo campi di primo livello.
+    const fieldNames = sourceItems.map((item): string | undefined => item.field).filter((f): f is string => typeof f === "string");
+    return fieldNames as Extract<keyof T, string>[];
   }, [props.modal, props.options.items, props.options.modal.items]);
 
   const where = useMemo(() => {

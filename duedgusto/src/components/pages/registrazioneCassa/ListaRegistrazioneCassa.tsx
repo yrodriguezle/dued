@@ -16,21 +16,17 @@ import { mutationEliminaRegistroCassa } from "../../../graphql/registroCassa/mut
 import useRegistroCassaSubscription from "../../../graphql/subscriptions/useRegistroCassaSubscription";
 import { DatagridColDef, DatagridData, DatagridRowDoubleClickedEvent } from "../../common/datagrid/@types/Datagrid";
 import useConfirm from "../../common/confirm/useConfirm";
-import { DatagridStatus, statoRegistroCassa } from "../../../common/globals/constants";
+import { statoRegistroCassa } from "../../../common/globals/constants";
 import useStore from "../../../store/useStore";
 import logger from "../../../common/logger/logger";
-
-export type RegistroCassaWithStatus = RegistroCassa & {
-  status: DatagridStatus;
-};
 
 function ListaRegistrazioneCassa() {
   const navigate = useNavigate();
   const theme = useTheme();
   const { title, setTitle } = useContext(PageTitleContext);
   const getNextOperatingDate = useStore((state) => state.getNextOperatingDate);
-  const gridRef = useRef<GridReadyEvent<DatagridData<RegistroCassaWithStatus>> | null>(null);
-  const [selectedRows, setSelectedRows] = useState<DatagridData<RegistroCassaWithStatus>[]>([]);
+  const gridRef = useRef<GridReadyEvent<DatagridData<RegistroCassa>> | null>(null);
+  const [selectedRows, setSelectedRows] = useState<DatagridData<RegistroCassa>[]>([]);
   const onConfirm = useConfirm();
   const [eliminaRegistroCassa] = useMutation(mutationEliminaRegistroCassa);
 
@@ -64,7 +60,7 @@ function ListaRegistrazioneCassa() {
     }
   }, [registroUpdatedData, apolloClient]);
 
-  const handleGridReady = useCallback((event: GridReadyEvent<DatagridData<RegistroCassaWithStatus>>) => {
+  const handleGridReady = useCallback((event: GridReadyEvent<DatagridData<RegistroCassa>>) => {
     gridRef.current = event;
 
     event.api.addEventListener("selectionChanged", () => {
@@ -109,7 +105,7 @@ function ListaRegistrazioneCassa() {
   }, [selectedRows, onConfirm, eliminaRegistroCassa]);
 
   const handleRowDoubleClicked = useCallback(
-    (event: DatagridRowDoubleClickedEvent<RegistroCassaWithStatus>) => {
+    (event: DatagridRowDoubleClickedEvent<RegistroCassa>) => {
       const data = event.data;
       if (data?.data) {
         // Extract date in YYYY-MM-DD format
@@ -121,19 +117,19 @@ function ListaRegistrazioneCassa() {
   );
 
   // Solo le righe in stato DRAFT sono selezionabili
-  const isRowSelectable = useCallback((params: { data: DatagridData<RegistroCassaWithStatus> | undefined }) => {
+  const isRowSelectable = useCallback((params: { data: DatagridData<RegistroCassa> | undefined }) => {
     const stato = params.data?.stato;
     if (typeof stato === "number") return stato === 0;
     return stato === statoRegistroCassa.DRAFT;
   }, []);
 
-  const columnDefs = useMemo<DatagridColDef<RegistroCassaWithStatus>[]>(
+  const columnDefs = useMemo<DatagridColDef<RegistroCassa>[]>(
     () => [
       {
         field: "data",
         headerName: "Data",
         width: 120,
-        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => getFormattedDate(params.value as string, "DD/MM/YYYY"),
+        valueFormatter: (params: ValueFormatterParams<DatagridData<RegistroCassa>>) => getFormattedDate(params.value as string, "DD/MM/YYYY"),
       },
       {
         field: "utente.nomeUtente",
@@ -145,59 +141,59 @@ function ListaRegistrazioneCassa() {
         headerName: "Apertura",
         width: 120,
         type: "rightAligned",
-        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => formatCurrency(params.value),
+        valueFormatter: (params: ValueFormatterParams<DatagridData<RegistroCassa>>) => formatCurrency(params.value),
       },
       {
         field: "totaleChiusura",
         headerName: "Totale Cassa",
         width: 120,
         type: "rightAligned",
-        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => formatCurrency(params.value),
+        valueFormatter: (params: ValueFormatterParams<DatagridData<RegistroCassa>>) => formatCurrency(params.value),
       },
       {
         colId: "incassoGiornaliero",
         headerName: "Totale (-) Apertura",
         width: 150,
-        valueGetter: (params: ValueGetterParams<RegistroCassaWithStatus>) => {
+        valueGetter: (params: ValueGetterParams<DatagridData<RegistroCassa>>) => {
           const cr = params.data;
           if (!cr) return 0;
           return (cr.totaleChiusura || 0) - (cr.totaleApertura || 0);
         },
         type: "rightAligned",
-        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => formatCurrency(params.value),
+        valueFormatter: (params: ValueFormatterParams<DatagridData<RegistroCassa>>) => formatCurrency(params.value),
       },
       {
         colId: "pagatoContanti",
         headerName: "Pagato Contanti",
         width: 140,
         cellStyle: { backgroundColor: theme.palette.success.light, color: theme.palette.success.contrastText },
-        valueGetter: (params: ValueGetterParams<RegistroCassaWithStatus>) => {
+        valueGetter: (params: ValueGetterParams<DatagridData<RegistroCassa>>) => {
           const cr = params.data;
           if (!cr) return 0;
           return cr.incassoContanteTracciato ?? 0;
         },
         type: "rightAligned",
-        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => formatCurrency(params.value),
+        valueFormatter: (params: ValueFormatterParams<DatagridData<RegistroCassa>>) => formatCurrency(params.value),
       },
       {
         colId: "elett",
         headerName: "Elett",
         width: 120,
         cellStyle: { backgroundColor: theme.palette.success.light, color: theme.palette.success.contrastText },
-        valueGetter: (params: ValueGetterParams<RegistroCassaWithStatus>) => {
+        valueGetter: (params: ValueGetterParams<DatagridData<RegistroCassa>>) => {
           const cr = params.data;
           if (!cr) return 0;
           return cr.incassiElettronici ?? 0;
         },
         type: "rightAligned",
-        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => formatCurrency(params.value),
+        valueFormatter: (params: ValueFormatterParams<DatagridData<RegistroCassa>>) => formatCurrency(params.value),
       },
       {
         colId: "totaleVendite",
         headerName: "Totale Vendite",
         width: 140,
         cellStyle: { backgroundColor: theme.palette.warning.light, color: theme.palette.warning.contrastText },
-        valueGetter: (params: ValueGetterParams<RegistroCassaWithStatus>) => {
+        valueGetter: (params: ValueGetterParams<DatagridData<RegistroCassa>>) => {
           const cr = params.data;
           if (!cr) return 0;
           const movement = (cr.totaleChiusura || 0) - (cr.totaleApertura || 0);
@@ -206,39 +202,39 @@ function ListaRegistrazioneCassa() {
           return movement + electronic + invoice;
         },
         type: "rightAligned",
-        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => formatCurrency(params.value),
+        valueFormatter: (params: ValueFormatterParams<DatagridData<RegistroCassa>>) => formatCurrency(params.value),
       },
       {
         colId: "speseFornitori",
         headerName: "Spese fornitori",
         width: 130,
         cellStyle: { backgroundColor: theme.palette.error.light, color: theme.palette.error.contrastText },
-        valueGetter: (params: ValueGetterParams<RegistroCassaWithStatus>) => {
+        valueGetter: (params: ValueGetterParams<DatagridData<RegistroCassa>>) => {
           const cr = params.data;
           if (!cr) return 0;
           return cr.speseFornitori || 0;
         },
         type: "rightAligned",
-        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => formatCurrency(params.value),
+        valueFormatter: (params: ValueFormatterParams<DatagridData<RegistroCassa>>) => formatCurrency(params.value),
       },
       {
         colId: "restoFornitore",
         headerName: "Resto fornitore",
         width: 130,
-        valueGetter: (params: ValueGetterParams<RegistroCassaWithStatus>) => {
+        valueGetter: (params: ValueGetterParams<DatagridData<RegistroCassa>>) => {
           const cr = params.data;
           if (!cr) return 0;
           const cash = cr.incassoContanteTracciato ?? 0;
           return cash - (cr.speseFornitori || 0);
         },
         type: "rightAligned",
-        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => formatCurrency(params.value),
+        valueFormatter: (params: ValueFormatterParams<DatagridData<RegistroCassa>>) => formatCurrency(params.value),
       },
       {
         colId: "ecc",
         headerName: "ECC",
         width: 120,
-        valueGetter: (params: ValueGetterParams<RegistroCassaWithStatus>) => {
+        valueGetter: (params: ValueGetterParams<DatagridData<RegistroCassa>>) => {
           const cr = params.data;
           if (!cr) return 0;
           const movement = (cr.totaleChiusura || 0) - (cr.totaleApertura || 0);
@@ -246,25 +242,25 @@ function ListaRegistrazioneCassa() {
           return movement - cash;
         },
         type: "rightAligned",
-        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => formatCurrency(params.value),
+        valueFormatter: (params: ValueFormatterParams<DatagridData<RegistroCassa>>) => formatCurrency(params.value),
       },
       {
         colId: "speseEcc",
         headerName: "Spese ecc",
         width: 120,
-        valueGetter: (params: ValueGetterParams<RegistroCassaWithStatus>) => {
+        valueGetter: (params: ValueGetterParams<DatagridData<RegistroCassa>>) => {
           const cr = params.data;
           if (!cr) return 0;
           return cr.speseGiornaliere || 0;
         },
         type: "rightAligned",
-        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => formatCurrency(params.value),
+        valueFormatter: (params: ValueFormatterParams<DatagridData<RegistroCassa>>) => formatCurrency(params.value),
       },
       {
         colId: "resto",
         headerName: "Resto",
         width: 120,
-        valueGetter: (params: ValueGetterParams<RegistroCassaWithStatus>) => {
+        valueGetter: (params: ValueGetterParams<DatagridData<RegistroCassa>>) => {
           const cr = params.data;
           if (!cr) return 0;
           const movement = (cr.totaleChiusura || 0) - (cr.totaleApertura || 0);
@@ -273,13 +269,13 @@ function ListaRegistrazioneCassa() {
           return ecc - (cr.speseGiornaliere || 0);
         },
         type: "rightAligned",
-        valueFormatter: (params: ValueFormatterParams<RegistroCassaWithStatus>) => formatCurrency(params.value),
+        valueFormatter: (params: ValueFormatterParams<DatagridData<RegistroCassa>>) => formatCurrency(params.value),
       },
       {
         field: "stato",
         headerName: "Stato",
         width: 120,
-        valueGetter: (params: ValueGetterParams<RegistroCassaWithStatus>) => {
+        valueGetter: (params: ValueGetterParams<DatagridData<RegistroCassa>>) => {
           const cr = params.data;
           if (!cr || !cr.stato) return statoRegistroCassa.DRAFT;
           // Se stato è un numero, converti a stringa corrispondente
@@ -293,7 +289,7 @@ function ListaRegistrazioneCassa() {
           }
           return cr.stato;
         },
-        cellRenderer: (params: ICellRendererParams<RegistroCassaWithStatus>) => {
+        cellRenderer: (params: ICellRendererParams<DatagridData<RegistroCassa>>) => {
           const statusColors: Record<string, "default" | "success" | "primary"> = {
             [statoRegistroCassa.DRAFT]: "default",
             [statoRegistroCassa.CLOSED]: "success",
@@ -335,7 +331,7 @@ function ListaRegistrazioneCassa() {
       <Box sx={{ flex: 1, paddingX: 2, paddingBottom: 2 }}>
         <Datagrid
           gridId="registro-cassa-list"
-          items={(cashRegisters as unknown as RegistroCassaWithStatus[]) || []}
+          items={cashRegisters || []}
           columnDefs={columnDefs}
           height="100%"
           loading={loading}

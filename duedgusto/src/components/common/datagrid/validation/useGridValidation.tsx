@@ -7,7 +7,7 @@ import reportError from "../../../../common/bones/reportError";
 import hideToast from "../../../../common/toast/hideToast";
 import getFirstEditableColumn from "../getFirstEditableColumn";
 
-function useGridValidation<T extends Record<string, unknown>>() {
+function useGridValidation<T extends object>() {
   const validateRow = useCallback(async (event: CellEditingStartedEvent<DatagridData<T>>, validationOnly: boolean = false) => {
     if (!event?.node) {
       throw new Error("node not exists");
@@ -42,7 +42,7 @@ function useGridValidation<T extends Record<string, unknown>>() {
           node.setDataValue("status", DatagridStatus.Invalid);
 
           if (!validationOnly) {
-            const rowEvent: IRowEvent<DatagridData<T>> = {
+            const rowEvent: IRowEvent<T> = {
               data: node.data,
               node,
               api: event.api,

@@ -7,6 +7,8 @@ import PaymentIcon from "@mui/icons-material/Payment";
 import EditIcon from "@mui/icons-material/Edit";
 import { z } from "zod";
 import Datagrid from "../../common/datagrid/Datagrid";
+import { withDatagridStatus } from "../../common/datagrid/datagridUtils";
+import { DatagridStatus } from "../../../common/globals/constants";
 import { DatagridColDef, ValidationError, DatagridCellValueChangedEvent, DatagridData } from "../../common/datagrid/@types/Datagrid";
 import { GridReadyEvent, RowDoubleClickedEvent, ICellRendererParams } from "ag-grid-community";
 import formatCurrency from "../../../common/bones/formatCurrency";
@@ -33,8 +35,9 @@ const SpeseDataGrid = memo(
 
     const [validationErrors, setValidationErrors] = useState<Map<number, ValidationError[]>>(new Map());
     const [dialogOpen, setDialogOpen] = useState(false);
-    // Spesa in fase di modifica (null = modalità aggiunta)
-    const [editingSpese, setEditingSpese] = useState<Spese | null>(null);
+    // Spesa in fase di modifica (null = modalità aggiunta); è la riga reale della griglia,
+    // il riferimento va preservato per applyTransaction({ remove }) che matcha per identità
+    const [editingSpese, setEditingSpese] = useState<DatagridData<Spese> | null>(null);
     const gridEventRef = useRef<GridReadyEvent<DatagridData<Spese>> | null>(null);
 
     const reportExpenses = useCallback(
@@ -61,12 +64,12 @@ const SpeseDataGrid = memo(
           if (editingSpese) {
             // Modalità modifica: rimuove la riga vecchia e aggiunge quella aggiornata
             gridEventRef.current.api.applyTransaction({
-              remove: [editingSpese as DatagridData<Spese>],
-              add: [expense as DatagridData<Spese>],
+              remove: [editingSpese],
+              add: [withDatagridStatus(expense, DatagridStatus.Unchanged)],
             });
           } else {
             // Modalità aggiunta: inserisce la nuova riga
-            gridEventRef.current.api.applyTransaction({ add: [expense as DatagridData<Spese>] });
+            gridEventRef.current.api.applyTransaction({ add: [withDatagridStatus(expense, DatagridStatus.Unchanged)] });
           }
           reportExpenses(gridEventRef.current.api);
         }
@@ -79,7 +82,7 @@ const SpeseDataGrid = memo(
 
     // Apre il dialog in modalità modifica per una riga fornitore
     const openEditDialog = useCallback(
-      (data: Spese) => {
+      (data: DatagridData<Spese>) => {
         if (isLocked) return;
         setEditingSpese(data);
         setDialogOpen(true);
@@ -91,7 +94,7 @@ const SpeseDataGrid = memo(
     const handleRowDoubleClicked = useCallback(
       (event: RowDoubleClickedEvent<DatagridData<Spese>>) => {
         if (!event.data?.isPagamentoFornitore) return;
-        openEditDialog(event.data as Spese);
+        openEditDialog(event.data);
       },
       [openEditDialog]
     );
@@ -117,11 +120,12 @@ const SpeseDataGrid = memo(
           },
           cellRenderer: (params: ICellRendererParams<DatagridData<Spese>>) => {
             const label = params.valueFormatted ?? params.value;
-            if (!params.data?.isPagamentoFornitore || isLocked) return label;
+            const rowData = params.data;
+            if (!rowData?.isPagamentoFornitore || isLocked) return label;
             return (
               <Box
                 sx={{ display: "flex", alignItems: "center", gap: 0.5, cursor: "pointer" }}
-                onClick={() => openEditDialog(params.data as Spese)}
+                onClick={() => openEditDialog(rowData)}
               >
                 <EditIcon sx={{ fontSize: 14, color: "primary.main" }} />
                 {label}
@@ -192,7 +196,7 @@ const SpeseDataGrid = memo(
 
     const handleAddRow = useCallback(() => {
       if (gridEventRef.current) {
-        const result = gridEventRef.current.api.applyTransaction({ add: [{ description: "", amount: 0 } as DatagridData<Spese>] });
+        const result = gridEventRef.current.api.applyTransaction({ add: [withDatagridStatus(getNewExpense(), DatagridStatus.Unchanged)] });
         reportExpenses(gridEventRef.current.api);
 
         // Avvia editing sulla prima cella editabile della nuova riga
@@ -209,7 +213,7 @@ const SpeseDataGrid = memo(
         }
       }
       onCellChange?.();
-    }, [onCellChange, reportExpenses]);
+    }, [getNewExpense, onCellChange, reportExpenses]);
 
     const handleDeleteSelected = useCallback(() => {
       if (gridEventRef.current) {

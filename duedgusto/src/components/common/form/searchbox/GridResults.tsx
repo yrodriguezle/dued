@@ -1,57 +1,35 @@
 import { useCallback, useMemo, useRef } from "react";
-import type { ColDef, RowDoubleClickedEvent, CellKeyDownEvent, GridReadyEvent, RowSelectionOptions } from "ag-grid-community";
+import type { RowSelectionOptions } from "ag-grid-community";
 import AgGrid from "../../datagrid/AgGrid";
-import { DatagridData, DatagridRowSelectedEvent, DatagridRowDoubleClickedEvent, DatagridCellKeyDownEvent, DatagridCellFocusedEvent, DatagridGridReadyEvent } from "../../datagrid/@types/Datagrid";
+import { DatagridColDef, DatagridData, DatagridRowSelectedEvent, DatagridRowDoubleClickedEvent, DatagridCellKeyDownEvent, DatagridCellFocusedEvent, DatagridGridReadyEvent } from "../../datagrid/@types/Datagrid";
+import { withDatagridStatus, stripDatagridStatus } from "../../datagrid/datagridUtils";
+import { toDatagridColDef } from "./searchboxUtils";
 import { DatagridStatus } from "../../../../common/globals/constants";
 import { SearchboxColDef } from "../../../../@types/searchbox";
 
-export interface GridResultsProps<T extends Record<string, unknown>> {
+export interface GridResultsProps<T extends object> {
   loading: boolean;
   items: T[];
   columnDefs: SearchboxColDef<T>[];
-  onSelectedItem: (item: T, event: RowDoubleClickedEvent<T> | CellKeyDownEvent<T>) => void;
-  onGridReady: (event: GridReadyEvent<T>) => void;
+  onSelectedItem: (item: T, event: DatagridRowDoubleClickedEvent<T> | DatagridCellKeyDownEvent<T>) => void;
+  onGridReady: (event: DatagridGridReadyEvent<T>) => void;
   onNavigateBack?: () => void;
   showNoRowsOverlay?: boolean;
 }
 
-function GridResults<T extends Record<string, unknown>>({ loading, items, columnDefs, onSelectedItem, onGridReady, onNavigateBack, showNoRowsOverlay }: GridResultsProps<T>) {
+function GridResults<T extends object>({ loading, items, columnDefs, onSelectedItem, onGridReady, onNavigateBack, showNoRowsOverlay }: GridResultsProps<T>) {
   const gridRef = useRef<DatagridGridReadyEvent<T> | null>(null);
 
-  // Wrapper i dati con DatagridData
-  const wrappedItems = useMemo<DatagridData<T>[]>(
-    () =>
-      items.map(
-        (item) =>
-          ({
-            ...item,
-            status: DatagridStatus.Valid,
-          }) as DatagridData<T>
-      ),
-    [items]
-  );
+  // Wrappa i dati con DatagridData aggiungendo lo status ausiliario
+  const wrappedItems = useMemo<DatagridData<T>[]>(() => items.map((item) => withDatagridStatus(item, DatagridStatus.Valid)), [items]);
 
-  // Converte SearchboxColDef<T> in ColDef<DatagridData<T>> per AgGrid.
-  // graphField e action sono campi searchbox-specifici non presenti in ColDef — vengono omessi.
-  // Il cast via unknown è necessario al boundary T → DatagridData<T>: tutte le callback di AG Grid
-  // (valueGetter, cellRenderer, ecc.) sono parametrizzate in T, ma DatagridData<T> = T & DatagridAuxData
-  // è compatibile a runtime. Non è possibile esprimere questa covarianza strutturalmente in TypeScript
-  // senza un'asserzione esplicita a questo boundary.
-  const wrappedColumnDefs = useMemo<ColDef<DatagridData<T>>[]>(
-    () =>
-      columnDefs.map((col) => {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { graphField: _g, action: _a, ...rest } = col;
-        return rest as unknown as ColDef<DatagridData<T>>;
-      }),
-    [columnDefs]
-  );
+  // Converte SearchboxColDef<T> in DatagridColDef<T> omettendo graphField/action (vedi searchboxUtils)
+  const wrappedColumnDefs = useMemo<DatagridColDef<T>[]>(() => columnDefs.map(toDatagridColDef), [columnDefs]);
 
   const handleGridReady = useCallback(
     (event: DatagridGridReadyEvent<T>) => {
       gridRef.current = event;
-      // Cast event per callback che si aspetta GridReadyEvent<T>
-      onGridReady(event as unknown as GridReadyEvent<T>);
+      onGridReady(event);
     },
     [onGridReady]
   );
@@ -74,10 +52,8 @@ function GridResults<T extends Record<string, unknown>>({ loading, items, column
       if (!params.data) {
         return;
       }
-      // Estrai dati originali rimuovendo il campo status
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { status, ...originalData } = params.data;
-      onSelectedItem(originalData as unknown as T, params as unknown as RowDoubleClickedEvent<T>);
+      // Estrai i dati originali rimuovendo il campo status ausiliario
+      onSelectedItem(stripDatagridStatus(params.data), params);
     },
     [onSelectedItem]
   );
@@ -94,10 +70,8 @@ function GridResults<T extends Record<string, unknown>>({ loading, items, column
         return;
       }
       if (keyboardEvent.key === "Enter" && params.data) {
-        // Estrai dati originali rimuovendo il campo status
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { status, ...originalData } = params.data;
-        onSelectedItem(originalData as unknown as T, params as unknown as CellKeyDownEvent<T>);
+        // Estrai i dati originali rimuovendo il campo status ausiliario
+        onSelectedItem(stripDatagridStatus(params.data), params);
       }
     },
     [onNavigateBack, onSelectedItem]
