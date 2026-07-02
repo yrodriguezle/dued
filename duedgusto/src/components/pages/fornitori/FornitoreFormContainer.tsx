@@ -109,15 +109,21 @@ function FornitoreFormContainer(props: FornitoreFormContainerProps) {
             return;
           }
 
-          // Page mode: update form state
-          const updatedValues = mapFornitoreToFormValues(fornitore);
+          // Page mode: aggiorna la baseline del form ai valori salvati.
+          // resetForm riallinea initialValues e azzera lo stato dirty (Formik +
+          // store isFormDirty tramite l'effect in FormikToolbar). Senza questo, il
+          // reinitialize non scatta perché props.initialFornitoreValues maschera
+          // i valori aggiornati, e il blocco navigazione segnala falsamente
+          // "modifiche non salvate" dopo il Salva.
+          const updatedValues = { ...getDefaultFornitoreValues(), ...mapFornitoreToFormValues(fornitore) };
           await handleInitializeValues(updatedValues);
-          setTimeout(() => {
-            formRef.current?.setStatus({
+          formRef.current?.resetForm({
+            values: updatedValues,
+            status: {
               formStatus: formStatuses.UPDATE,
               isFormLocked: true,
-            });
-          }, 0);
+            },
+          });
         }
       } catch {
         toast.error("Errore durante il salvataggio del fornitore", {
