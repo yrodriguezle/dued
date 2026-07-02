@@ -290,6 +290,8 @@ function FatturaAcquistoDetails() {
 
   return (
     <Formik
+      validateOnChange
+      validateOnBlur={false}
       innerRef={formRef}
       enableReinitialize
       initialValues={initialValues}

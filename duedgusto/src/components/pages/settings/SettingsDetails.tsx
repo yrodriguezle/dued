@@ -177,6 +177,8 @@ function SettingsDetails() {
 
   return (
     <Formik
+      validateOnChange
+      validateOnBlur={false}
       innerRef={formRef}
       initialValues={initialValues}
       enableReinitialize

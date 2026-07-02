@@ -180,6 +180,8 @@ function FornitoreFormContainer(props: FornitoreFormContainerProps) {
 
   return (
     <Formik
+      validateOnChange
+      validateOnBlur={false}
       innerRef={formRef}
       enableReinitialize
       initialValues={effectiveInitialValues}

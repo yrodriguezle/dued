@@ -277,6 +277,8 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
       footer={footer}
     >
       <Formik
+        validateOnChange
+        validateOnBlur={false}
         initialValues={initialValues}
         enableReinitialize
         onSubmit={handleConfirm}

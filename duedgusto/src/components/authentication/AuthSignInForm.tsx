@@ -23,6 +23,8 @@ interface AuthSignInFormProps {
 function AuthSignInForm({ onSubmit }: AuthSignInFormProps) {
   return (
     <Formik
+      validateOnChange
+      validateOnBlur={false}
       enableReinitialize
       initialValues={{
         username: "",

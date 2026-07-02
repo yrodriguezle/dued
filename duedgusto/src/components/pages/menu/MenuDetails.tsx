@@ -163,6 +163,8 @@ function MenuDetails() {
   return (
     <Box>
       <Formik
+        validateOnChange
+        validateOnBlur={false}
         innerRef={formRef}
         enableReinitialize
         initialValues={initialValues}
