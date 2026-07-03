@@ -8,6 +8,7 @@ import { useShallow } from "zustand/react/shallow";
 import useTheme from "../components/theme/useTheme";
 import theme from "../components/theme/theme";
 import Confirm from "../components/common/confirm/Confirm";
+import UpdateNotification from "../components/common/UpdateNotification";
 import ErrorBoundary from "../components/common/ErrorBoundary";
 import useStore from "../store/useStore";
 import PageTitleContext from "../components/layout/headerBar/PageTitleContext";
@@ -73,6 +74,7 @@ function Root() {
           <GlobalStyles styles={{ html: { height: "100dvh", overflow: "hidden" }, body: { height: "100dvh", overflow: "hidden" } }} />
           <Outlet />
           <ToastContainer theme={userTheme.theme} />
+          <UpdateNotification />
           <Confirm />
           <Backdrop
             open={isLoading}
