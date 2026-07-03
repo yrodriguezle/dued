@@ -133,6 +133,17 @@ function Datagrid<T extends object>(props: DatagridProps<T>) {
         gridRef.current.api.ensureColumnVisible(colIdOrColumn);
         setTimeout(() => {
           if (!gridRef.current) throw new Error("Grid is not ready");
+          // Se la cella è già in editing non rifare setFocusedCell: sposterebbe il focus
+          // DOM dall'input dell'editor al wrapper della cella, lasciando l'editor aperto
+          // ma senza cursore (chiamate duplicate da useTabNavigation/useEnterNavigation)
+          const colId = typeof colIdOrColumn === "string" ? colIdOrColumn : colIdOrColumn.getColId();
+          const alreadyEditing = gridRef.current.api
+            .getEditingCells()
+            .some((cell) => cell.rowIndex === rowIndex && cell.column.getColId() === colId && (cell.rowPinned ?? null) === (rowPinned ?? null));
+          if (alreadyEditing) {
+            resolve(true);
+            return;
+          }
           gridRef.current.api.setFocusedCell(rowIndex, colIdOrColumn, rowPinned);
           gridRef.current.api.startEditingCell({ rowIndex, colKey: colIdOrColumn, rowPinned });
           resolve(true);
