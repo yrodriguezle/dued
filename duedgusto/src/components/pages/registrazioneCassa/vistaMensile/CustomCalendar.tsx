@@ -253,9 +253,8 @@ function CustomCalendar({ events, onSelectEvent, onSelectSlot, currentDate = new
                   </Typography>
                   {!isMobile && (
                     <Box sx={{ display: "flex", gap: 0.5, mt: 0.25, flexWrap: "wrap" }}>
-                      {event.contanti > 0 && <Typography sx={{ fontSize: "0.6rem", color: "success.main" }}>{`C: ${event.contanti.toFixed(0)}`}</Typography>}
-                      {event.elettronici > 0 && <Typography sx={{ fontSize: "0.6rem", color: "info.main" }}>{`E: ${event.elettronici.toFixed(0)}`}</Typography>}
-                      {event.fatture > 0 && <Typography sx={{ fontSize: "0.6rem", color: "text.secondary" }}>{`F: ${event.fatture.toFixed(0)}`}</Typography>}
+                      {event.spese > 0 && <Typography sx={{ fontSize: "0.6rem", color: "error.main" }}>{`S: ${event.spese.toFixed(2)}`}</Typography>}
+                      <Typography sx={{ fontSize: "0.6rem", color: event.differenza >= 0 ? "success.main" : "error.main" }}>{`D: ${event.differenza.toFixed(2)}`}</Typography>
                     </Box>
                   )}
                 </Box>

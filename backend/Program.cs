@@ -273,6 +273,10 @@ using (IServiceScope scope = app.Services.CreateScope())
         await SeedBusinessSettings.Initialize(services);
     }
 
+    // Data-fix idempotente: riallinea TotaleVendite (e breakdown IVA) dei registri
+    // esistenti alla formula del KPI giornaliero. No-op quando tutto è già allineato.
+    await SeedRicalcoloTotaleVendite.Initialize(services);
+
     // Utente test e2e — solo in Development
     if (app.Environment.IsDevelopment())
     {

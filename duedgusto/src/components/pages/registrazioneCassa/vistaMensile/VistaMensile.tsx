@@ -21,9 +21,8 @@ export interface CashEvent {
   date: string;
   stato: string;
   revenue: number;
-  contanti: number;
-  elettronici: number;
-  fatture: number;
+  spese: number;
+  differenza: number;
 }
 
 function VistaMensile() {
@@ -76,19 +75,20 @@ function VistaMensile() {
     setTitle("Cassa - Vista Mensile");
   }, [setTitle]);
 
-  // Metriche mensili — stesse formule del riepilogo giornaliero (RiepilogoCards)
+  // Metriche mensili — stesse formule del riepilogo giornaliero (RiepilogoCards):
+  // contanti = movimento fisico di cassa (chiusura - apertura),
+  // vendite = movimento fisico + elettronici + fatture.
   const monthlyStats = useMemo(() => {
     return cashRegisters.reduce(
       (acc, cr: RegistroCassa) => {
-        const contantiDichiarati = cr.incassoContanteTracciato ?? 0;
+        const movimentoCassa = (cr.totaleChiusura ?? 0) - (cr.totaleApertura ?? 0);
         const elettronici = cr.incassiElettronici ?? 0;
         const fatture = cr.incassiFattura ?? 0;
-        // Totale Vendite — usa il valore del server quando disponibile (backend unica
-        // fonte di verità); fallback allineato alla formula backend (somma dei canali
-        // di incasso: contante tracciato + elettronici + fatture), NON il movimento fisico.
-        const venditeRegistro = cr.totaleVendite ?? contantiDichiarati + elettronici + fatture;
+        // Totale Vendite — valore server quando disponibile (backend unica fonte di
+        // verità); fallback con la stessa formula backend/KPI giornaliero.
+        const venditeRegistro = cr.totaleVendite ?? movimentoCassa + elettronici + fatture;
         return {
-          contanti: acc.contanti + contantiDichiarati,
+          contanti: acc.contanti + movimentoCassa,
           elettronici: acc.elettronici + elettronici,
           totaleVendite: acc.totaleVendite + venditeRegistro,
           fatture: acc.fatture + fatture,
@@ -106,9 +106,11 @@ function VistaMensile() {
   const events = useMemo<CashEvent[]>(() => {
     return cashRegisters.map((cr: RegistroCassa, index: number) => {
       const date = new Date(cr.data);
-      // Revenue — valore server con fallback ai canali di incasso (stessa formula
-      // backend di CalcolaTotali), NON il movimento fisico di cassa.
-      const revenue = cr.totaleVendite ?? (cr.incassoContanteTracciato || 0) + (cr.incassiElettronici || 0) + (cr.incassiFattura || 0);
+      // Revenue — valore server con fallback alla stessa formula backend/KPI
+      // giornaliero: movimento fisico di cassa + elettronici + fatture.
+      const movimentoCassa = (cr.totaleChiusura ?? 0) - (cr.totaleApertura ?? 0);
+      const revenue = cr.totaleVendite ?? movimentoCassa + (cr.incassiElettronici || 0) + (cr.incassiFattura || 0);
+      const spese = (cr.speseFornitori || 0) + (cr.speseGiornaliere || 0);
 
       return {
         id: cr.id || index,
@@ -118,9 +120,8 @@ function VistaMensile() {
         date: cr.data,
         stato: cr.stato,
         revenue,
-        contanti: cr.incassoContanteTracciato || 0,
-        elettronici: cr.incassiElettronici || 0,
-        fatture: cr.incassiFattura || 0,
+        spese,
+        differenza: revenue - spese,
       };
     });
   }, [cashRegisters]);

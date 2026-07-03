@@ -133,7 +133,7 @@ function RiepilogoIncassiMensile({ stats }: RiepilogoIncassiMensileProps) {
             color="text.secondary"
             sx={{ lineHeight: 1 }}
           >
-            Netto
+            Differenza
           </Typography>
           <Typography
             variant={isMobile ? "body2" : "body1"}

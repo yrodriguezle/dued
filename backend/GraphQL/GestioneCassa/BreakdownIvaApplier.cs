@@ -34,11 +34,9 @@ public static class BreakdownIvaApplier
         // (per i registri senza vendite itemizzate resta 0, identico a oggi)
         registro.VenditeContanti = vendite.Sum(v => v.PrezzoTotale);
 
-        // Base imponibile IVA a debito (vendite): i tre canali di incasso DICHIARATI.
-        // Contante = IncassoContanteTracciato ("Pago in contanti", digitato), NON il
-        // movimento fisico di cassa (TotaleChiusura - TotaleApertura), che include resti
-        // e uscite in contanti verso fornitori e sovrastimerebbe le vendite.
-        registro.TotaleVendite = registro.IncassoContanteTracciato
+        // Totale Vendite = movimento fisico di cassa (TotaleChiusura - TotaleApertura)
+        // + elettronici + fatture — stessa formula del KPI giornaliero (RiepilogoCards).
+        registro.TotaleVendite = (registro.TotaleChiusura - registro.TotaleApertura)
             + registro.IncassiElettronici
             + registro.IncassiFattura;
 
