@@ -67,8 +67,8 @@ public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper, IWebHos
 
         (string RefreshToken, string Token) = jwtHelper.CreateSignedToken(claims);
         user.TokenAggiornamento = RefreshToken;
-        // SECURITY FIX: Add server-side expiration for refresh token
-        user.ScadenzaTokenAggiornamento = DateTime.UtcNow.AddDays(7);
+        // Scadenza lato server del refresh token: 6 mesi di inattività massima
+        user.ScadenzaTokenAggiornamento = DateTime.UtcNow.AddMonths(6);
 
         await dbContext.SaveChangesAsync();
         return Ok(new { Token, RefreshToken });
@@ -107,8 +107,8 @@ public class AuthController(AppDbContext dbContext, JwtHelper jwtHelper, IWebHos
 
         (string? RefreshToken, string? Token) = jwtHelper.CreateSignedToken(userClaims);
         user.TokenAggiornamento = RefreshToken;
-        // SECURITY FIX: Update refresh token expiration on rotation
-        user.ScadenzaTokenAggiornamento = DateTime.UtcNow.AddDays(7);
+        // Scadenza rinnovata a ogni rotazione: 6 mesi di inattività massima
+        user.ScadenzaTokenAggiornamento = DateTime.UtcNow.AddMonths(6);
 
         await dbContext.SaveChangesAsync();
         return new ObjectResult(new { Token, RefreshToken });
