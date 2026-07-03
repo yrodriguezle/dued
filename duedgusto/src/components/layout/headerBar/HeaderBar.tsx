@@ -46,16 +46,16 @@ function HeaderBar({ drawerOpen, setHeaderHeight, toggleDrawer }: HeaderBarProps
           toggleDrawer={toggleDrawer}
         />
         <LogoSection variant="h6" />
+        {!drawerOpen && appVersion && (
+          <Typography
+            variant="caption"
+            sx={{ ml: 1, color: "inherit", opacity: 0.7, flexShrink: 0, alignSelf: "flex-end", pb: 0.5 }}
+          >
+            v{appVersion}
+          </Typography>
+        )}
         <HeaderViewTitle />
-        <Box sx={{ marginLeft: "auto", flexShrink: 0, display: "flex", alignItems: "center" }}>
-          {!drawerOpen && appVersion && (
-            <Typography
-              variant="caption"
-              sx={{ mr: 1, color: "inherit", opacity: 0.7 }}
-            >
-              v{appVersion}
-            </Typography>
-          )}
+        <Box sx={{ marginLeft: "auto", flexShrink: 0 }}>
           <ThemeMenuButton />
           <ProfileMenuButton />
         </Box>

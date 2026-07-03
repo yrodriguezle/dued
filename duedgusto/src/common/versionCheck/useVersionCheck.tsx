@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import fetchConfiguration from "../../api/fetchConfiguration";
 
-const CHECK_INTERVAL_MS = 5 * 60_000;
+// TODO: riportare a 5 minuti dopo il test del meccanismo di notifica
+const CHECK_INTERVAL_MS = 30_000;
 
 /**
  * Rileva la disponibilità di una nuova versione dell'app confrontando
