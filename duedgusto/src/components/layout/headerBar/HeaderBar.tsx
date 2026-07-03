@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef } from "react";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
 import Toolbar from "@mui/material/Toolbar";
+import Typography from "@mui/material/Typography";
 
 import LogoSection from "../../common/logo/LogoSection";
 import ThemeMenuButton from "../headerBar/ThemeMenuButton";
@@ -17,6 +18,7 @@ interface HeaderBarProps {
 
 function HeaderBar({ drawerOpen, setHeaderHeight, toggleDrawer }: HeaderBarProps) {
   const ref = useRef<HTMLElement>(null);
+  const appVersion = (window as Global).appVersion;
 
   useLayoutEffect(() => {
     if (ref.current) {
@@ -45,7 +47,15 @@ function HeaderBar({ drawerOpen, setHeaderHeight, toggleDrawer }: HeaderBarProps
         />
         <LogoSection variant="h6" />
         <HeaderViewTitle />
-        <Box sx={{ marginLeft: "auto", flexShrink: 0 }}>
+        <Box sx={{ marginLeft: "auto", flexShrink: 0, display: "flex", alignItems: "center" }}>
+          {!drawerOpen && appVersion && (
+            <Typography
+              variant="caption"
+              sx={{ mr: 1, color: "inherit", opacity: 0.7 }}
+            >
+              v{appVersion}
+            </Typography>
+          )}
           <ThemeMenuButton />
           <ProfileMenuButton />
         </Box>
