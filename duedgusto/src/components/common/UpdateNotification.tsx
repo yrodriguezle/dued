@@ -19,6 +19,14 @@ function UpdateNotification() {
       open={updateAvailable && !dismissed}
       anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       message="È disponibile una nuova versione dell'applicazione"
+      sx={{
+        "& .MuiSnackbarContent-root": {
+          backgroundColor: "background.paper",
+          color: "text.primary",
+          border: 1,
+          borderColor: "divider",
+        },
+      }}
       action={
         <>
           <Button
