@@ -1,5 +1,7 @@
 import React, { ComponentType, LazyExoticComponent } from "react";
 
+import { reloadOnStaleChunk } from "../common/staleChunk/reloadOnStaleChunk";
+
 /**
  * Mappa dei componenti disponibili per il caricamento dinamico.
  * Questa mappa viene popolata automaticamente usando import.meta.glob di Vite.
@@ -68,9 +70,23 @@ export function loadDynamicComponent(filePath: string): LazyExoticComponent<Comp
 
   // Crea il componente lazy
   const LazyComponent = React.lazy(() =>
-    moduleLoader().then((module) => ({
-      default: module.default,
-    }))
+    moduleLoader()
+      .then((module) => ({
+        default: module.default,
+      }))
+      .catch((error: unknown) => {
+        // Chunk non più presente sul server (asset sostituiti da un deploy):
+        // ricarica la pagina per ottenere l'index.html aggiornato.
+        // Rimuove il componente dalla cache così un eventuale retry
+        // (pulsante "Riprova" dell'error boundary) ritenta l'import.
+        componentCache.delete(filePath);
+        if (reloadOnStaleChunk()) {
+          // Pagina in ricaricamento: sospende il rendering per sempre
+          // invece di mostrare l'error boundary per un istante.
+          return new Promise<{ default: ComponentType<unknown> }>(() => {});
+        }
+        throw error;
+      })
   );
 
   // Salva nella cache

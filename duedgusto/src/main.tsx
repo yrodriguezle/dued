@@ -17,7 +17,10 @@ import "react-toastify/dist/ReactToastify.css";
 import router from "./routes/appRouter";
 import fetchConfiguration from "./api/fetchConfiguration";
 import configureClient from "./graphql/configureClient";
+import { setupStaleChunkReload } from "./common/staleChunk/reloadOnStaleChunk";
 import "./assets/css/app.css";
+
+setupStaleChunkReload();
 
 (async function render() {
   const response = await fetchConfiguration();
