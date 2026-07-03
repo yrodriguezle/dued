@@ -3,6 +3,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek } from
 import dayjs from "dayjs";
 import { Box, Typography, useTheme, useMediaQuery, alpha, Tooltip } from "@mui/material";
 import useStore from "../../../../store/useStore";
+import formatCurrency from "../../../../common/bones/formatCurrency";
 import type { CashEvent } from "./VistaMensile";
 
 const STATO_CONFIG: Record<string, { label: string; color: string }> = {
@@ -249,12 +250,12 @@ function CustomCalendar({ events, onSelectEvent, onSelectSlot, currentDate = new
                       lineHeight: 1.2,
                     }}
                   >
-                    {isMobile ? `${event.revenue.toFixed(0)}` : `\u20AC ${event.revenue.toFixed(2)}`}
+                    {isMobile ? `${Math.round(event.revenue)}` : `\u20AC ${formatCurrency(event.revenue)}`}
                   </Typography>
                   {!isMobile && (
                     <Box sx={{ display: "flex", gap: 0.5, mt: 0.25, flexWrap: "wrap" }}>
-                      {event.spese > 0 && <Typography sx={{ fontSize: "0.6rem", color: "error.main" }}>{`S: ${event.spese.toFixed(2)}`}</Typography>}
-                      <Typography sx={{ fontSize: "0.6rem", color: event.differenza >= 0 ? "success.main" : "error.main" }}>{`D: ${event.differenza.toFixed(2)}`}</Typography>
+                      {event.spese > 0 && <Typography sx={{ fontSize: "0.6rem", color: "error.main" }}>{`S: ${formatCurrency(event.spese)}`}</Typography>}
+                      <Typography sx={{ fontSize: "0.6rem", color: event.differenza >= 0 ? "success.main" : "error.main" }}>{`D: ${formatCurrency(event.differenza)}`}</Typography>
                     </Box>
                   )}
                 </Box>

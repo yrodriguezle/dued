@@ -4,6 +4,7 @@ import { Box, LinearProgress } from "@mui/material";
 import dayjs from "dayjs";
 import "dayjs/locale/it";
 import PageTitleContext from "../../../layout/headerBar/PageTitleContext";
+import formatCurrency from "../../../../common/bones/formatCurrency";
 import useQueryCashRegistersByMonth from "../../../../graphql/registroCassa/useQueryCashRegistersByMonth";
 import useRegistroCassaSubscription from "../../../../graphql/subscriptions/useRegistroCassaSubscription";
 import ToolbarNavigazioneMensile from "./ToolbarNavigazioneMensile";
@@ -75,30 +76,33 @@ function VistaMensile() {
     setTitle("Cassa - Vista Mensile");
   }, [setTitle]);
 
-  // Metriche mensili — stesse formule del riepilogo giornaliero (RiepilogoCards):
-  // contanti = movimento fisico di cassa (chiusura - apertura),
-  // vendite = movimento fisico + elettronici + fatture.
+  // Metriche mensili:
+  // - Totale Vendite = Σ totaleVendite (fallback: movimento fisico + elettronici + fatture)
+  // - Ricavo tracciato = Σ contante tracciato + elettronici + fatture
+  // - Ricavo non tracciato = Σ movimento fisico - Σ contante tracciato (ECC)
+  // - Spese tracciate = Σ speseFornitori (DDT/fattura); non tracciate = Σ speseGiornaliere
   const monthlyStats = useMemo(() => {
     return cashRegisters.reduce(
       (acc, cr: RegistroCassa) => {
         const movimentoCassa = (cr.totaleChiusura ?? 0) - (cr.totaleApertura ?? 0);
+        const contanteTracciato = cr.incassoContanteTracciato ?? 0;
         const elettronici = cr.incassiElettronici ?? 0;
         const fatture = cr.incassiFattura ?? 0;
         // Totale Vendite — valore server quando disponibile (backend unica fonte di
         // verità); fallback con la stessa formula backend/KPI giornaliero.
         const venditeRegistro = cr.totaleVendite ?? movimentoCassa + elettronici + fatture;
         return {
-          contanti: acc.contanti + movimentoCassa,
-          elettronici: acc.elettronici + elettronici,
           totaleVendite: acc.totaleVendite + venditeRegistro,
-          fatture: acc.fatture + fatture,
-          spese: acc.spese + (cr.speseFornitori || 0) + (cr.speseGiornaliere || 0),
+          ricavoTracciato: acc.ricavoTracciato + contanteTracciato + elettronici + fatture,
+          ricavoNonTracciato: acc.ricavoNonTracciato + (movimentoCassa - contanteTracciato),
+          speseTracciate: acc.speseTracciate + (cr.speseFornitori || 0),
+          speseNonTracciate: acc.speseNonTracciate + (cr.speseGiornaliere || 0),
           registri: acc.registri + 1,
           chiusi: acc.chiusi + (cr.stato === statoRegistroCassa.CLOSED || cr.stato === statoRegistroCassa.RECONCILED ? 1 : 0),
           bozze: acc.bozze + (cr.stato === statoRegistroCassa.DRAFT ? 1 : 0),
         };
       },
-      { totaleVendite: 0, contanti: 0, elettronici: 0, fatture: 0, spese: 0, registri: 0, chiusi: 0, bozze: 0 }
+      { totaleVendite: 0, ricavoTracciato: 0, ricavoNonTracciato: 0, speseTracciate: 0, speseNonTracciate: 0, registri: 0, chiusi: 0, bozze: 0 }
     );
   }, [cashRegisters]);
 
@@ -114,7 +118,7 @@ function VistaMensile() {
 
       return {
         id: cr.id || index,
-        title: `\u20AC ${revenue.toFixed(2)}`,
+        title: `\u20AC ${formatCurrency(revenue)}`,
         start: date,
         end: date,
         date: cr.data,
@@ -195,7 +199,10 @@ function VistaMensile() {
         onPrevYear={handlePrevYear}
         onNextYear={handleNextYear}
       />
-      <LinearProgress sx={{ flexShrink: 0, visibility: loading ? "visible" : "hidden" }} />
+      {/* Altezza zero: la barra si sovrappone ai KPI senza creare gap tra toolbar e riepilogo */}
+      <Box sx={{ position: "relative", flexShrink: 0, height: 0, zIndex: 1 }}>
+        <LinearProgress sx={{ position: "absolute", top: 0, left: 0, right: 0, visibility: loading ? "visible" : "hidden" }} />
+      </Box>
       <RiepilogoIncassiMensile stats={monthlyStats} />
       <CalendarioCassaMensile
         events={events}
