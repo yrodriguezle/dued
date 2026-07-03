@@ -45,15 +45,27 @@ function HeaderBar({ drawerOpen, setHeaderHeight, toggleDrawer }: HeaderBarProps
           drawerOpen={drawerOpen}
           toggleDrawer={toggleDrawer}
         />
-        <LogoSection variant="h6" />
-        {!drawerOpen && appVersion && (
-          <Typography
-            variant="caption"
-            sx={{ ml: 1, color: "inherit", opacity: 0.7, flexShrink: 0, alignSelf: "flex-end", pb: 0.5 }}
-          >
-            v{appVersion}
-          </Typography>
-        )}
+        <Box sx={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+          <LogoSection variant="h6" />
+          {!drawerOpen && appVersion && (
+            <Typography
+              component="span"
+              data-testid="app-version-badge"
+              sx={{
+                fontSize: "0.6rem",
+                lineHeight: 1.4,
+                px: 0.5,
+                mt: "-4px",
+                borderRadius: 1,
+                bgcolor: "action.selected",
+                color: "inherit",
+                opacity: 0.95,
+              }}
+            >
+              v{appVersion}
+            </Typography>
+          )}
+        </Box>
         <HeaderViewTitle />
         <Box sx={{ marginLeft: "auto", flexShrink: 0 }}>
           <ThemeMenuButton />

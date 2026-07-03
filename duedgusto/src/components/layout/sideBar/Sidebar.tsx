@@ -50,6 +50,7 @@ function Sidebar({ drawerOpen, drawerSwipeable, mobileDrawerOpen, setMobileDrawe
           {open && appVersion && (
             <Typography
               variant="caption"
+              data-testid="sidebar-app-version"
               sx={{ p: 1, textAlign: "center", color: "text.secondary" }}
             >
               v{appVersion}
