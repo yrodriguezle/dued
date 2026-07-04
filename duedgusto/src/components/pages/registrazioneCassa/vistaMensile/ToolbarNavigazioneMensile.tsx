@@ -4,6 +4,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import SummarizeIcon from "@mui/icons-material/Summarize";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
 import type { Dayjs } from "dayjs";
@@ -15,6 +16,7 @@ interface ToolbarNavigazioneMensileProps {
   onDateChange: (date: Date) => void;
   onBack: () => void;
   onChiusuraMensile: () => void;
+  onRefresh: () => void;
   onPrevMonth: () => void;
   onNextMonth: () => void;
   onPrevYear: () => void;
@@ -27,6 +29,7 @@ function ToolbarNavigazioneMensile({
   onDateChange,
   onBack,
   onChiusuraMensile,
+  onRefresh,
   onPrevMonth,
   onNextMonth,
   onPrevYear,
@@ -77,6 +80,15 @@ function ToolbarNavigazioneMensile({
               >
                 <SummarizeIcon />
               </IconButton>
+              <IconButton
+                size="small"
+                onClick={onRefresh}
+                title="Aggiorna"
+                aria-label="Aggiorna"
+                sx={{ height: 48, width: 48 }}
+              >
+                <RefreshIcon />
+              </IconButton>
             </>
           ) : (
             <>
@@ -91,6 +103,12 @@ function ToolbarNavigazioneMensile({
                 onClick={onChiusuraMensile}
               >
                 Chiusura Mensile
+              </FormikToolbarButton>
+              <FormikToolbarButton
+                startIcon={<RefreshIcon />}
+                onClick={onRefresh}
+              >
+                Aggiorna
               </FormikToolbarButton>
             </>
           )}

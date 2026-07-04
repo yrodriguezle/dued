@@ -194,6 +194,7 @@ function VistaMensile() {
         onDateChange={handleDateChange}
         onBack={handleBack}
         onChiusuraMensile={handleChiusuraMensile}
+        onRefresh={refresh}
         onPrevMonth={handlePrevMonth}
         onNextMonth={handleNextMonth}
         onPrevYear={handlePrevYear}

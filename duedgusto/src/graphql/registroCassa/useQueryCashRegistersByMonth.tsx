@@ -27,6 +27,11 @@ export function useQueryCashRegistersByMonth({ year, month, skip = false }: UseQ
       orderBy: "data DESC",
     },
     skip,
+    // cache-first servirebbe lo snapshot stantio del mese quando si salva dalla
+    // vista giornaliera a Vista Mensile smontata (refetchQueries per nome agisce
+    // solo sulle query attive): mostra la cache ma rivalida sempre dalla rete.
+    fetchPolicy: "cache-and-network",
+    notifyOnNetworkStatusChange: true,
   });
 
   const registriCassa = useMemo(() => {
