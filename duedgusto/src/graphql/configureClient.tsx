@@ -164,6 +164,14 @@ function configureClient() {
         PagamentoFornitore: {
           keyFields: ["pagamentoId"],
         },
+        // Riepiloghi dashboard cassa: normalizzazione per anno/mese così cambio
+        // anno e refetch aggiornano le entry esistenti senza duplicati in cache.
+        RiepilogoAnnualeCassa: {
+          keyFields: ["anno"],
+        },
+        RiepilogoMeseCassa: {
+          keyFields: ["anno", "mese"],
+        },
         Query: {
           fields: {
             // Namespace fields senza argomenti: gli argomenti discriminanti vivono

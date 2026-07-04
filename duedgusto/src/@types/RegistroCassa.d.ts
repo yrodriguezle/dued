@@ -172,6 +172,50 @@ type RiepilogoMensileCassa = {
   registri: RegistroCassa[];
 };
 
+// === Contratto dati Dashboard Cassa (change: dashboard-charts-redesign) ===
+
+// Riepilogo mensile normalizzato per la dashboard (12 elementi garantiti, mese 1-12).
+// I campi derivati (totaleSpese, differenza) sono calcolati SOLO client-side in
+// src/common/registroCassa/aggregaRegistri.tsx, mai richiesti al server.
+type RiepilogoMeseDashboard = {
+  anno: number;
+  mese: number; // 1-12
+  totaleVendite: number;
+  ricavoTracciato: number; // Σ incassoContanteTracciato + incassiElettronici + incassiFattura
+  ricavoNonTracciato: number; // Σ (totaleChiusura - totaleApertura) - incassoContanteTracciato
+  speseTracciate: number; // Σ speseFornitori
+  speseNonTracciate: number; // Σ speseGiornaliere
+  incassoContanteTracciato: number;
+  incassiElettronici: number;
+  incassiFattura: number;
+  registri: number;
+  chiusi: number; // stato CLOSED o RECONCILED
+  bozze: number; // stato DRAFT
+  // Derivati client (aggregaRegistri/derivaTotali)
+  totaleSpese: number; // speseTracciate + speseNonTracciate
+  differenza: number; // totaleVendite - totaleSpese
+};
+
+// Contratto unico consumato dai componenti della dashboard.
+type RiepilogoDashboard = {
+  anno: number;
+  mesi: RiepilogoMeseDashboard[]; // sempre 12, indicizzati mese-1
+  totaliAnno: Omit<RiepilogoMeseDashboard, "mese">;
+  meseCorrente: RiepilogoMeseDashboard | null; // solo se anno === anno corrente
+  fonte: "server" | "adapter"; // per banner/log diagnostico
+};
+
+// Payload server della query gestioneCassa.riepilogoAnnuale(anno) — senza derivati client.
+type RiepilogoMeseCassaServer = Omit<RiepilogoMeseDashboard, "totaleSpese" | "differenza"> & {
+  __typename?: "RiepilogoMeseCassa";
+};
+
+type RiepilogoAnnualeCassaServer = {
+  __typename?: "RiepilogoAnnualeCassa";
+  anno: number;
+  mesi: RiepilogoMeseCassaServer[]; // esattamente 12 lato server
+};
+
 // Pagination info
 type PaginazioneCassaInfo = {
   haProssimaPagina: boolean;

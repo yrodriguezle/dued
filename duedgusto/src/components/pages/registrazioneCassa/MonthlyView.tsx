@@ -8,6 +8,13 @@ import PageTitleContext from "../../layout/headerBar/PageTitleContext";
 import { useQuery } from "@apollo/client";
 import { getMonthlySummary } from "../../../graphql/registroCassa/queries";
 
+/**
+ * @deprecated Componente legacy basato su `getMonthlySummary` (field server
+ * `riepilogoMensile` inesistente: la query fallirebbe in validazione). La
+ * panoramica mensile è `vistaMensile/VistaMensile.tsx`; la dashboard è
+ * `RegistrazioneCassDashboard.tsx` (change dashboard-charts-redesign).
+ * Rimozione in cleanup separato.
+ */
 function MonthlyView() {
   const { setTitle } = useContext(PageTitleContext);
   const [selectedDate, setSelectedDate] = useState(dayjs());

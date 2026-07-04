@@ -6,6 +6,13 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "jsdom",
+    // @mui/x-charts (ESM .mjs) importa "@mui/material/styles" come directory:
+    // va processato da Vite (inline) perché la risoluzione ESM di Node fallisce.
+    server: {
+      deps: {
+        inline: ["@mui/x-charts"],
+      },
+    },
     setupFiles: ["./src/test/setup.ts"],
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
     exclude: ["node_modules", "dist"],

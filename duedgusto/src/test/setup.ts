@@ -86,6 +86,28 @@ Object.defineProperty(window, "BroadcastChannel", {
   value: BroadcastChannelMock,
 });
 
+// Mock di ResizeObserver (richiesto da @mui/x-charts, assente in jsdom)
+class ResizeObserverMock {
+  observe() {
+    // Implementazione minima per i test
+  }
+
+  unobserve() {
+    // Implementazione minima per i test
+  }
+
+  disconnect() {
+    // Implementazione minima per i test
+  }
+}
+
+if (!("ResizeObserver" in globalThis)) {
+  Object.defineProperty(globalThis, "ResizeObserver", {
+    value: ResizeObserverMock,
+    writable: true,
+  });
+}
+
 // Mock delle variabili globali dell'app (window.API_ENDPOINT, ecc.)
 Object.defineProperty(window, "API_ENDPOINT", {
   value: "https://localhost:4000/api",

@@ -27,6 +27,12 @@ interface UseQueryYearlySummaryProps {
   skip?: boolean;
 }
 
+/**
+ * @deprecated Scarica fino a 1000 registri e duplica (divergendo) le formule
+ * della vista mensile. La dashboard usa `useQueryRiepilogoAnnuale` (aggregato
+ * server) + `useDashboardData` (change dashboard-charts-redesign). Nessun
+ * consumer residuo: rimozione in cleanup separato.
+ */
 export function useQueryYearlySummary({ year, skip = false }: UseQueryYearlySummaryProps) {
   // Recupera tutte le casse dell'anno con una singola query
   const startDate = `${year}-01-01`;

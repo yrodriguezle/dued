@@ -1,5 +1,7 @@
 using DuedGusto.Tests.Helpers;
 
+using duedgusto.GraphQL.GestioneCassa;
+
 namespace DuedGusto.Tests.Integration.GraphQL;
 
 /// <summary>
@@ -60,7 +62,9 @@ public class CashManagementQueriesTests : IDisposable
         decimal incassoContante = 0,
         decimal incassiFattura = 0,
         decimal speseGiornaliere = 0,
-        decimal speseFornitori = 0)
+        decimal speseFornitori = 0,
+        decimal totaleApertura = 0,
+        decimal totaleChiusura = 0)
     {
         var registro = new RegistroCassa
         {
@@ -72,7 +76,9 @@ public class CashManagementQueriesTests : IDisposable
             IncassoContanteTracciato = incassoContante,
             IncassiFattura = incassiFattura,
             SpeseGiornaliere = speseGiornaliere,
-            SpeseFornitori = speseFornitori
+            SpeseFornitori = speseFornitori,
+            TotaleApertura = totaleApertura,
+            TotaleChiusura = totaleChiusura
         };
         _dbContext.RegistriCassa.Add(registro);
         _dbContext.SaveChanges();
@@ -318,6 +324,181 @@ public class CashManagementQueriesTests : IDisposable
         // Assert
         monthSales.Should().Be(0m);
         monthAverage.Should().Be(0m);
+    }
+
+    #endregion
+
+    #region Riepilogo Annuale (dashboard-charts-redesign, Fase 1)
+
+    [Fact]
+    public async Task RiepilogoAnnuale_AnnoConDatiParziali_Restituisce12MesiOrdinatiConZeriPerIMesiVuoti()
+    {
+        // Arrange — registri solo a gennaio e marzo 2026
+        var utente = SeedUtente();
+        SeedRegistroCassa(utente, new DateTime(2026, 1, 10), stato: "CLOSED",
+            totaleVendite: 100.50m, incassoContante: 40.25m, incassiElettronici: 50.25m,
+            incassiFattura: 10m, totaleApertura: 200m, totaleChiusura: 260.25m);
+        SeedRegistroCassa(utente, new DateTime(2026, 3, 5), stato: "CLOSED",
+            totaleVendite: 300m, speseFornitori: 45.10m, speseGiornaliere: 12.90m);
+
+        // Act
+        var risultato = await RiepilogoAnnualeCassa.AggregaAsync(_dbContext.RegistriCassa, 2026);
+
+        // Assert — sempre 12 elementi ordinati 1-12
+        risultato.Anno.Should().Be(2026);
+        risultato.Mesi.Should().HaveCount(12);
+        risultato.Mesi.Select(m => m.Mese).Should().Equal(Enumerable.Range(1, 12));
+        risultato.Mesi.Should().OnlyContain(m => m.Anno == 2026);
+
+        // Gennaio: aggregati corretti
+        var gennaio = risultato.Mesi[0];
+        gennaio.TotaleVendite.Should().Be(100.50m);
+        gennaio.RicavoTracciato.Should().Be(40.25m + 50.25m + 10m);
+        gennaio.RicavoNonTracciato.Should().Be((260.25m - 200m) - 40.25m);
+        gennaio.Registri.Should().Be(1);
+
+        // Marzo: aggregati corretti
+        var marzo = risultato.Mesi[2];
+        marzo.TotaleVendite.Should().Be(300m);
+        marzo.SpeseTracciate.Should().Be(45.10m);
+        marzo.SpeseNonTracciate.Should().Be(12.90m);
+
+        // Tutti gli altri mesi: valori a zero
+        var mesiVuoti = risultato.Mesi.Where(m => m.Mese != 1 && m.Mese != 3).ToList();
+        mesiVuoti.Should().HaveCount(10);
+        mesiVuoti.Should().OnlyContain(m =>
+            m.TotaleVendite == 0 && m.RicavoTracciato == 0 && m.RicavoNonTracciato == 0 &&
+            m.SpeseTracciate == 0 && m.SpeseNonTracciate == 0 &&
+            m.IncassoContanteTracciato == 0 && m.IncassiElettronici == 0 && m.IncassiFattura == 0 &&
+            m.Registri == 0 && m.Chiusi == 0 && m.Bozze == 0);
+    }
+
+    [Fact]
+    public async Task RiepilogoAnnuale_ParitaAlCentesimo_AggregatoCoincideConSommaPerRegistro()
+    {
+        // Arrange — dataset misto: stati diversi, centesimi "scomodi", tutte le categorie
+        // di incasso, non tracciato negativo, mesi multipli
+        var utente = SeedUtente();
+        var anno = 2026;
+        SeedRegistroCassa(utente, new DateTime(anno, 2, 3), stato: "CLOSED",
+            totaleVendite: 1234.56m, incassoContante: 400.01m, incassiElettronici: 700.02m,
+            incassiFattura: 134.53m, speseFornitori: 250.99m, speseGiornaliere: 33.33m,
+            totaleApertura: 150.00m, totaleChiusura: 583.34m);
+        SeedRegistroCassa(utente, new DateTime(anno, 2, 14), stato: "RECONCILED",
+            totaleVendite: 987.65m, incassoContante: 300.10m, incassiElettronici: 600.55m,
+            incassiFattura: 87.00m, speseFornitori: 120.45m, speseGiornaliere: 0.01m,
+            totaleApertura: 200.00m, totaleChiusura: 512.10m);
+        // DRAFT con non tracciato negativo: (100 − 150) − 10 = −60
+        SeedRegistroCassa(utente, new DateTime(anno, 2, 28), stato: "DRAFT",
+            totaleVendite: 55.55m, incassoContante: 10.00m, incassiElettronici: 45.55m,
+            totaleApertura: 150.00m, totaleChiusura: 100.00m);
+        SeedRegistroCassa(utente, new DateTime(anno, 11, 30), stato: "CLOSED",
+            totaleVendite: 0.01m, incassiFattura: 0.01m, speseGiornaliere: 99999.99m);
+        // Registro di un altro anno: NON deve concorrere
+        SeedRegistroCassa(utente, new DateTime(anno - 1, 2, 10), stato: "CLOSED", totaleVendite: 9999m);
+
+        var registriAnno = _dbContext.RegistriCassa.AsEnumerable()
+            .Where(r => r.Data.Year == anno)
+            .ToList();
+
+        // Act
+        var risultato = await RiepilogoAnnualeCassa.AggregaAsync(_dbContext.RegistriCassa, anno);
+
+        // Assert — per ogni mese, ogni campo coincide al centesimo con la somma
+        // per-registro delle formule normative
+        foreach (var mese in risultato.Mesi)
+        {
+            var attesi = registriAnno.Where(r => r.Data.Month == mese.Mese).ToList();
+            mese.TotaleVendite.Should().Be(attesi.Sum(r => r.TotaleVendite));
+            mese.RicavoTracciato.Should().Be(attesi.Sum(r => r.IncassoContanteTracciato + r.IncassiElettronici + r.IncassiFattura));
+            mese.RicavoNonTracciato.Should().Be(attesi.Sum(r => (r.TotaleChiusura - r.TotaleApertura) - r.IncassoContanteTracciato));
+            mese.SpeseTracciate.Should().Be(attesi.Sum(r => r.SpeseFornitori));
+            mese.SpeseNonTracciate.Should().Be(attesi.Sum(r => r.SpeseGiornaliere));
+            mese.IncassoContanteTracciato.Should().Be(attesi.Sum(r => r.IncassoContanteTracciato));
+            mese.IncassiElettronici.Should().Be(attesi.Sum(r => r.IncassiElettronici));
+            mese.IncassiFattura.Should().Be(attesi.Sum(r => r.IncassiFattura));
+            mese.Registri.Should().Be(attesi.Count);
+        }
+
+        // Il registro dell'anno precedente non è incluso
+        risultato.Mesi.Sum(m => m.TotaleVendite).Should().Be(registriAnno.Sum(r => r.TotaleVendite));
+    }
+
+    [Fact]
+    public async Task RiepilogoAnnuale_DraftInclusiNeiTotali_EContatiSeparatamente()
+    {
+        // Arrange — febbraio: 1 CLOSED, 1 RECONCILED, 1 DRAFT
+        var utente = SeedUtente();
+        SeedRegistroCassa(utente, new DateTime(2026, 2, 1), stato: "CLOSED", totaleVendite: 100m);
+        SeedRegistroCassa(utente, new DateTime(2026, 2, 2), stato: "RECONCILED", totaleVendite: 200m);
+        SeedRegistroCassa(utente, new DateTime(2026, 2, 3), stato: "DRAFT", totaleVendite: 50m);
+
+        // Act
+        var risultato = await RiepilogoAnnualeCassa.AggregaAsync(_dbContext.RegistriCassa, 2026);
+
+        // Assert — la bozza concorre ai totali monetari ed è contata in Bozze
+        var febbraio = risultato.Mesi[1];
+        febbraio.TotaleVendite.Should().Be(350m); // 100 + 200 + 50 (DRAFT incluso)
+        febbraio.Registri.Should().Be(3);
+        febbraio.Chiusi.Should().Be(2); // CLOSED + RECONCILED
+        febbraio.Bozze.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task RiepilogoAnnuale_AnnoSenzaRegistri_Restituisce12MesiAZeroSenzaErrori()
+    {
+        // Arrange — nessun registro seedato per il 2030
+        var utente = SeedUtente();
+        SeedRegistroCassa(utente, new DateTime(2026, 5, 5), totaleVendite: 100m);
+
+        // Act
+        var risultato = await RiepilogoAnnualeCassa.AggregaAsync(_dbContext.RegistriCassa, 2030);
+
+        // Assert
+        risultato.Anno.Should().Be(2030);
+        risultato.Mesi.Should().HaveCount(12);
+        risultato.Mesi.Select(m => m.Mese).Should().Equal(Enumerable.Range(1, 12));
+        risultato.Mesi.Should().OnlyContain(m =>
+            m.Anno == 2030 &&
+            m.TotaleVendite == 0 && m.RicavoTracciato == 0 && m.RicavoNonTracciato == 0 &&
+            m.SpeseTracciate == 0 && m.SpeseNonTracciate == 0 &&
+            m.IncassoContanteTracciato == 0 && m.IncassiElettronici == 0 && m.IncassiFattura == 0 &&
+            m.Registri == 0 && m.Chiusi == 0 && m.Bozze == 0);
+    }
+
+    [Fact]
+    public void CompletaDodiciMesi_ConAggregatiParziali_RestituisceSempre12ElementiOrdinati()
+    {
+        // Arrange — aggregati fuori ordine e parziali
+        var aggregati = new List<duedgusto.GraphQL.GestioneCassa.RiepilogoMeseCassa>
+        {
+            new() { Anno = 2026, Mese = 7, TotaleVendite = 700m, Registri = 2 },
+            new() { Anno = 2026, Mese = 2, TotaleVendite = 200m, Registri = 1 },
+        };
+
+        // Act
+        var risultato = duedgusto.GraphQL.GestioneCassa.RiepilogoAnnualeCassa.CompletaDodiciMesi(2026, aggregati);
+
+        // Assert
+        risultato.Mesi.Should().HaveCount(12);
+        risultato.Mesi.Select(m => m.Mese).Should().Equal(Enumerable.Range(1, 12));
+        risultato.Mesi[1].TotaleVendite.Should().Be(200m);
+        risultato.Mesi[6].TotaleVendite.Should().Be(700m);
+        risultato.Mesi.Where(m => m.Mese != 2 && m.Mese != 7)
+            .Should().OnlyContain(m => m.TotaleVendite == 0 && m.Registri == 0 && m.Anno == 2026);
+    }
+
+    [Fact]
+    public void RiepilogoAnnuale_RichiedeAutorizzazione_ComeGliAltriFieldDiGestioneCassa()
+    {
+        // Arrange/Act — la classe GestioneCassaQueries applica this.Authorize() nel
+        // costruttore: senza JWT il middleware GraphQL risponde ACCESS_DENIED per
+        // tutti i field del namespace, incluso riepilogoAnnuale.
+        var queries = new duedgusto.GraphQL.GestioneCassa.GestioneCassaQueries();
+
+        // Assert
+        global::GraphQL.AuthorizationExtensions.IsAuthorizationRequired(queries).Should().BeTrue();
+        queries.Fields.Find("riepilogoAnnuale").Should().NotBeNull();
     }
 
     #endregion

@@ -59,6 +59,41 @@ export const getRegistriCassa: TypedDocumentNode<RelayData<RegistroCassa>, Relay
     }
   }`);
 
+// Get yearly aggregated summary (dashboard)
+interface GetRiepilogoAnnualeData {
+  gestioneCassa: {
+    riepilogoAnnuale: RiepilogoAnnualeCassaServer;
+  };
+}
+
+interface GetRiepilogoAnnualeVariables {
+  anno: number;
+}
+
+export const getRiepilogoAnnuale: TypedDocumentNode<GetRiepilogoAnnualeData, GetRiepilogoAnnualeVariables> = gql(`
+  query GetRiepilogoAnnuale($anno: Int!) {
+    gestioneCassa {
+      riepilogoAnnuale(anno: $anno) {
+        anno
+        mesi {
+          anno
+          mese
+          totaleVendite
+          ricavoTracciato
+          ricavoNonTracciato
+          speseTracciate
+          speseNonTracciate
+          incassoContanteTracciato
+          incassiElettronici
+          incassiFattura
+          registri
+          chiusi
+          bozze
+        }
+      }
+    }
+  }`);
+
 // Get dashboard KPIs
 interface GetDashboardKPIsData {
   gestioneCassa: {
@@ -66,6 +101,10 @@ interface GetDashboardKPIsData {
   };
 }
 
+/**
+ * @deprecated Hook mai usato dalla nuova dashboard: usare `getRiepilogoAnnuale`
+ * (change dashboard-charts-redesign). Rimozione in cleanup separato.
+ */
 export const getDashboardKPIs: TypedDocumentNode<GetDashboardKPIsData> = gql(`
   query GetDashboardKPIs {
     gestioneCassa {
@@ -96,6 +135,11 @@ interface GetRiepilogoMensileVariables {
   month?: number;
 }
 
+/**
+ * @deprecated Il field server `riepilogoMensile` NON esiste nel backend: questa
+ * query è codice morto e fallirebbe in validazione. Usare `getRiepilogoAnnuale`
+ * (change dashboard-charts-redesign). Rimozione in cleanup separato.
+ */
 export const getRiepilogoMensile: TypedDocumentNode<GetRiepilogoMensileData, GetRiepilogoMensileVariables> = gql(`
   query GetRiepilogoMensile($anno: Int!, $mese: Int!) {
     gestioneCassa {
@@ -112,7 +156,10 @@ export const getRiepilogoMensile: TypedDocumentNode<GetRiepilogoMensileData, Get
     }
   }`);
 
-// Legacy alias
+/**
+ * @deprecated Alias legacy di `getRiepilogoMensile` (field server inesistente,
+ * codice morto). Usare `getRiepilogoAnnuale`. Rimozione in cleanup separato.
+ */
 export const getMonthlySummary = getRiepilogoMensile;
 
 // Get unpaid invoices for a supplier

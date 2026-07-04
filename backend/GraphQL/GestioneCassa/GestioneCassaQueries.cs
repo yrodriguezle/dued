@@ -116,6 +116,18 @@ public class GestioneCassaQueries : ObjectGraphType
                 };
             });
 
+        // Riepilogo annuale aggregato per la dashboard: 12 mesi sempre presenti,
+        // aggregazione GroupBy/Sum lato SQL, DRAFT inclusi nei totali (come vista mensile).
+        Field<NonNullGraphType<RiepilogoAnnualeCassaType>, RiepilogoAnnualeCassa>("riepilogoAnnuale")
+            .Argument<NonNullGraphType<IntGraphType>>("anno", "Anno di riferimento del riepilogo")
+            .ResolveAsync(async context =>
+            {
+                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                int anno = context.GetArgument<int>("anno");
+
+                return await RiepilogoAnnualeCassa.AggregaAsync(dbContext.RegistriCassa, anno);
+            });
+
         // Get supplier payments for a specific date
         Field<ListGraphType<PagamentoFornitoreType>, List<PagamentoFornitore>>("pagamentiFornitoriPerData")
             .Argument<NonNullGraphType<DateTimeGraphType>>("data", "Data per cui cercare i pagamenti")
