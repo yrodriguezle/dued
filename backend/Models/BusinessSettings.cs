@@ -42,9 +42,12 @@ public class BusinessSettings
     public string Currency { get; set; } = "EUR";
 
     /// <summary>
-    /// Aliquota IVA come decimal (es. 0.22 per 22%)
+    /// Aliquota IVA come decimal (es. 0.10 per 10%).
+    /// Default 0.10: aliquota ridotta per somministrazione alimenti e bevande
+    /// (allineato al seed SeedBusinessSettings). Usata come aliquota di default
+    /// per il residuo non itemizzato del breakdown IVA vendite.
     /// </summary>
-    public decimal VatRate { get; set; } = 0.22m;
+    public decimal VatRate { get; set; } = 0.10m;
 
     /// <summary>
     /// Data di creazione della configurazione

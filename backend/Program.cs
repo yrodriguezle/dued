@@ -84,7 +84,13 @@ builder.Services.AddDbContext<AppDbContext>(options =>
             : throw new InvalidOperationException(
                 "CONNECTION_STRING non impostata. In ambienti non-Development impostare la variabile " +
                 "d'ambiente CONNECTION_STRING (oppure ConnectionStrings__Default)."));
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
+    // A runtime: rileva la versione MySQL dal server (AutoDetect apre una connessione).
+    // A design-time (dotnet ef migrations add/update con EF_MIGRATIONS=1): usa una versione
+    // fissa per non richiedere un DB in esecuzione. Il comportamento runtime resta invariato.
+    ServerVersion serverVersion = Environment.GetEnvironmentVariable("EF_MIGRATIONS") == "1"
+        ? new MySqlServerVersion(new Version(8, 0, 32))
+        : ServerVersion.AutoDetect(connectionString);
+    options.UseMySql(connectionString, serverVersion);
 });
 
 // Repository Pattern — UnitOfWork + Domain Repositories
@@ -276,6 +282,10 @@ using (IServiceScope scope = app.Services.CreateScope())
     // Data-fix idempotente: riallinea TotaleVendite (e breakdown IVA) dei registri
     // esistenti alla formula del KPI giornaliero. No-op quando tutto è già allineato.
     await SeedRicalcoloTotaleVendite.Initialize(services);
+
+    // Rettifica gestionale una-tantum (issue #6) del residuo IVA stimato: OFF per default,
+    // si abilita con RICALCOLO_IVA_STIMA=dryrun|1. Vedi SeedRicalcoloIvaVenditeStima.
+    await SeedRicalcoloIvaVenditeStima.Initialize(services);
 
     // Utente test e2e — solo in Development
     if (app.Environment.IsDevelopment())

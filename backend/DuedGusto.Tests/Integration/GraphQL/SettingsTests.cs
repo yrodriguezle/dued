@@ -151,7 +151,7 @@ public class SettingsTests : IDisposable
         settings.ClosingTime.Should().Be("18:00");
         settings.Timezone.Should().Be("Europe/Rome");
         settings.Currency.Should().Be("EUR");
-        settings.VatRate.Should().Be(0.22m);
+        settings.VatRate.Should().Be(0.10m); // aliquota ridotta somministrazione (issue #6)
         settings.OperatingDays.Should().Be("[true,true,true,true,true,false,false]");
     }
 

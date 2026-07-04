@@ -430,7 +430,7 @@ public class AppDbContext : DbContext
             entity.Property(x => x.VatRate)
                 .HasColumnType("decimal(5,4)")
                 .IsRequired()
-                .HasDefaultValue(0.22m);
+                .HasDefaultValue(0.10m);
 
             entity.Property(x => x.CreatedAt)
                 .HasColumnType("datetime")
