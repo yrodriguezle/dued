@@ -133,6 +133,10 @@ function SearchboxModal<T extends object>({ open, title, items, columnDefs, load
       onClose={onClose}
       aria-labelledby="searchbox-modal-title"
       onKeyDown={handleKeyDown}
+      // Il ritorno del focus all'input è gestito esplicitamente dal Searchbox
+      // alla chiusura: il restore nativo punterebbe all'elemento attivo
+      // all'apertura, non necessariamente il campo.
+      disableRestoreFocus
     >
       <Box sx={modalStyle}>
         {/* Header */}

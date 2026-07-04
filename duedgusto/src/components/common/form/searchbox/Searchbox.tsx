@@ -89,6 +89,11 @@ function Searchbox<T extends object>({ id, name, value, orderBy, fieldName, opti
       setInnerValue(String(item[lookupFieldName]));
       onSelectItem(item);
       setResultsVisible(false);
+      // Quando la selezione avviene dalla griglia della tendina, il focus DOM è
+      // su una cella AG Grid che sta per essere smontata: senza questo focus
+      // esplicito cadrebbe sul body e il Tab successivo ripartirebbe da un punto
+      // imprevedibile invece che dal campo.
+      inputRef.current?.focus();
     },
     [lookupFieldName, name, onChange, onSelectItem]
   );
@@ -154,6 +159,17 @@ function Searchbox<T extends object>({ id, name, value, orderBy, fieldName, opti
   useEffect(() => {
     setInnerValue(value || "");
   }, [value]);
+
+  // Alla chiusura della modale (selezione, Annulla, X, Escape, backdrop) il focus
+  // torna sempre all'input: il restore nativo del Modal punta all'elemento attivo
+  // al momento dell'apertura, che non è necessariamente questo campo.
+  const wasModalOpenRef = useRef(false);
+  useEffect(() => {
+    if (wasModalOpenRef.current && !modalOpen) {
+      inputRef.current?.focus();
+    }
+    wasModalOpenRef.current = modalOpen;
+  }, [modalOpen]);
 
   const handleOpenModal = useCallback(() => {
     setModalOpen(true);

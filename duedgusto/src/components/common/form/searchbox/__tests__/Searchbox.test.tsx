@@ -388,6 +388,39 @@ describe("Searchbox", () => {
         expect(screen.queryByTestId("grid-results")).not.toBeInTheDocument();
       });
     });
+
+    it("dovrebbe riportare il focus sull'input dopo la selezione dal dropdown", async () => {
+      const user = userEvent.setup();
+      mockUseFetchData.mockReturnValue({
+        items: [{ id: 1, nome: "Mario Rossi" }],
+        loading: false,
+      });
+
+      renderSearchbox({ value: "" });
+
+      const input = screen.getByRole("textbox");
+      await user.type(input, "M");
+
+      await waitFor(() => {
+        expect(screen.getByTestId("grid-results")).toBeInTheDocument();
+      });
+
+      // Il click sposta il focus sul bottone della griglia (come una cella AG Grid);
+      // dopo la selezione il focus deve tornare all'input, così il Tab successivo
+      // prosegue dal campo e non da un punto imprevedibile.
+      await user.click(screen.getByTestId("select-item-btn"));
+
+      await waitFor(() => {
+        expect(input).toHaveFocus();
+      });
+    });
+
+    it("il pulsante di apertura modale non deve essere raggiungibile con Tab", () => {
+      renderSearchbox({ value: "" });
+
+      const expandButton = screen.getByRole("button", { name: "Apri ricerca" });
+      expect(expandButton).toHaveAttribute("tabindex", "-1");
+    });
   });
 
   // ─── REQ-SB-007: Navigazione tastiera ────────────────────────────────────
@@ -572,6 +605,46 @@ describe("Searchbox", () => {
 
       await waitFor(() => {
         expect(input).toHaveValue("Luigi Verdi");
+      });
+    });
+
+    it("dovrebbe riportare il focus sull'input dopo la selezione dalla modale", async () => {
+      const user = userEvent.setup();
+
+      renderSearchbox({ value: "" });
+
+      const input = screen.getByRole("textbox");
+      await user.click(screen.getByRole("button", { name: "Apri ricerca" }));
+
+      await waitFor(() => {
+        expect(screen.getByTestId("searchbox-modal")).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByTestId("modal-select-btn"));
+
+      await waitFor(() => {
+        expect(screen.queryByTestId("searchbox-modal")).not.toBeInTheDocument();
+        expect(input).toHaveFocus();
+      });
+    });
+
+    it("dovrebbe riportare il focus sull'input alla chiusura della modale senza selezione", async () => {
+      const user = userEvent.setup();
+
+      renderSearchbox({ value: "" });
+
+      const input = screen.getByRole("textbox");
+      await user.click(screen.getByRole("button", { name: "Apri ricerca" }));
+
+      await waitFor(() => {
+        expect(screen.getByTestId("searchbox-modal")).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByTestId("modal-close-btn"));
+
+      await waitFor(() => {
+        expect(screen.queryByTestId("searchbox-modal")).not.toBeInTheDocument();
+        expect(input).toHaveFocus();
       });
     });
   });
