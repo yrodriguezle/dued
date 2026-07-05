@@ -25,6 +25,7 @@ import {
   IconButton,
   Badge,
   Stack,
+  Collapse,
 } from "@mui/material";
 import AppDialog from "../../common/dialog/AppDialog";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -32,6 +33,8 @@ import LockIcon from "@mui/icons-material/Lock";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import EventBusyIcon from "@mui/icons-material/EventBusy";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import { useMutation } from "@apollo/client";
 import dayjs from "dayjs";
 
@@ -96,6 +99,7 @@ const MonthlyClosureDetails = () => {
 
   const palette = useChartPalette();
   const [giorniMancantiModalOpen, setGiorniMancantiModalOpen] = useState(false);
+  const [registriEspansi, setRegistriEspansi] = useState(true);
 
   const anno = chiusuraMensile?.anno ?? newAnno;
   const mese = chiusuraMensile?.mese ?? newMese;
@@ -609,14 +613,29 @@ const MonthlyClosureDetails = () => {
                 elevation={1}
                 sx={{ p: 2 }}
               >
-                <Typography
-                  variant="subtitle1"
-                  fontWeight="bold"
-                  gutterBottom
+                <Box
+                  onClick={() => setRegistriEspansi((v) => !v)}
+                  sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", userSelect: "none" }}
                 >
-                  Registri Giornalieri ({registriInclusi.length})
-                </Typography>
-                <TableContainer>
+                  <Typography
+                    variant="subtitle1"
+                    fontWeight="bold"
+                  >
+                    Registri Giornalieri ({registriInclusi.length})
+                  </Typography>
+                  <IconButton
+                    size="small"
+                    aria-label={registriEspansi ? "Comprimi registri giornalieri" : "Espandi registri giornalieri"}
+                  >
+                    {registriEspansi ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                  </IconButton>
+                </Box>
+                <Collapse
+                  in={registriEspansi}
+                  timeout="auto"
+                  unmountOnExit
+                >
+                  <TableContainer sx={{ mt: 1 }}>
                   <Table size="small">
                     <TableHead>
                       <TableRow>
@@ -655,7 +674,8 @@ const MonthlyClosureDetails = () => {
                       ))}
                     </TableBody>
                   </Table>
-                </TableContainer>
+                  </TableContainer>
+                </Collapse>
               </Paper>
             </div>
           )}
