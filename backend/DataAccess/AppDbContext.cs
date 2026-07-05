@@ -1008,6 +1008,10 @@ public class AppDbContext : DbContext
                 .HasMaxLength(20)
                 .IsRequired();
 
+            // Data (giorno di competenza) della spesa nel mese della chiusura (nullable)
+            entity.Property(e => e.Data)
+                .HasColumnType("date");
+
             entity.Property(e => e.CreatedAt)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");

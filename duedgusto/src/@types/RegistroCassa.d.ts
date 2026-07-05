@@ -132,6 +132,23 @@ type RegistroCassa = {
   updatedAt: string;
 };
 
+// Sottoinsieme strutturale dei campi di RegistroCassa necessari ad
+// `aggregaRegistriPerMese`. RegistroCassa (completo) e i registri ridotti
+// esposti sulla chiusura mensile sono entrambi assegnabili a questo tipo.
+type RegistroCassaAggregabile = Pick<
+  RegistroCassa,
+  | "data"
+  | "totaleApertura"
+  | "totaleChiusura"
+  | "incassoContanteTracciato"
+  | "incassiElettronici"
+  | "incassiFattura"
+  | "totaleVendite"
+  | "speseFornitori"
+  | "speseGiornaliere"
+  | "stato"
+>;
+
 // Form values for Formik
 type FormikConteggioMonetaValues = {
   denominazioneMonetaId: number;

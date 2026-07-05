@@ -16,6 +16,7 @@ public class SpesaMensileTyperaInputType : InputObjectGraphType
         Field<NonNullGraphType<StringGraphType>>("descrizione").Description("Descrizione della spesa");
         Field<NonNullGraphType<DecimalGraphType>>("importo").Description("Importo della spesa");
         Field<NonNullGraphType<StringGraphType>>("categoria").Description("Categoria: Affitto, Utenze, Stipendi, Altro");
+        Field<DateTimeGraphType>("data").Description("Data (giorno di competenza) della spesa nel mese della chiusura");
     }
 }
 
@@ -28,4 +29,5 @@ public class SpesaMensileTyperaInput
     public string Descrizione { get; set; } = string.Empty;
     public decimal Importo { get; set; }
     public string Categoria { get; set; } = string.Empty;
+    public DateTime? Data { get; set; }
 }

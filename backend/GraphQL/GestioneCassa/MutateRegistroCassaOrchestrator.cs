@@ -7,6 +7,7 @@ using duedgusto.Models;
 using duedgusto.Repositories.Interfaces;
 using duedgusto.Services.ChiusureMensili;
 using duedgusto.Services.Events;
+using duedgusto.Services.Fornitori;
 using duedgusto.GraphQL.Fornitori;
 using duedgusto.GraphQL.GestioneCassa.Types;
 using duedgusto.GraphQL.Subscriptions.Types;
@@ -18,17 +19,20 @@ public class MutateRegistroCassaOrchestrator
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly ChiusuraMensileService _chiusuraService;
+    private readonly DocumentiFornitoreService _documentiService;
     private readonly IEventBus _eventBus;
     private readonly ILogger<MutateRegistroCassaOrchestrator> _logger;
 
     public MutateRegistroCassaOrchestrator(
         IUnitOfWork unitOfWork,
         ChiusuraMensileService chiusuraService,
+        DocumentiFornitoreService documentiService,
         IEventBus eventBus,
         ILogger<MutateRegistroCassaOrchestrator> logger)
     {
         _unitOfWork = unitOfWork;
         _chiusuraService = chiusuraService;
+        _documentiService = documentiService;
         _eventBus = eventBus;
         _logger = logger;
     }
@@ -170,7 +174,7 @@ public class MutateRegistroCassaOrchestrator
         return totaleSpese;
     }
 
-    private static async Task ProcessaPagamentiFornitori(
+    private async Task ProcessaPagamentiFornitori(
         DataAccess.AppDbContext db,
         RegistroCassa registroCassa,
         RegistroCassaInput input)
@@ -285,7 +289,7 @@ public class MutateRegistroCassaOrchestrator
         }
     }
 
-    private static async Task CreaPagamentiNuovi(
+    private async Task CreaPagamentiNuovi(
         DataAccess.AppDbContext db,
         RegistroCassa registroCassa,
         List<PagamentoFornitoreRegistroInput> inputNew,
@@ -298,25 +302,21 @@ public class MutateRegistroCassaOrchestrator
 
         foreach (PagamentoFornitoreRegistroInput pagInput in inputNew)
         {
-            int? fatturaId = null;
-            int? ddtId = null;
+            // Numero/data del documento dipendono dal tipo (FA usa NumeroFattura/DataFattura,
+            // DDT usa NumeroDdt/DataDdt). La creazione/collegamento è delegata al servizio condiviso.
+            bool isFattura = pagInput.TipoDocumento == "FA";
+            var dati = new DocumentiFornitoreService.DatiDocumento(
+                FornitoreId: pagInput.FornitoreId,
+                TipoDocumento: pagInput.TipoDocumento,
+                Numero: isFattura ? pagInput.NumeroFattura : pagInput.NumeroDdt,
+                DataDocumento: isFattura ? pagInput.DataFattura : pagInput.DataDdt,
+                Importo: pagInput.Importo,
+                AliquotaIva: pagInput.AliquotaIva,
+                FatturaIdCollegata: pagInput.FatturaId,
+                DdtIdCollegato: pagInput.DdtId);
 
-            if (pagInput.FatturaId != null)
-            {
-                fatturaId = pagInput.FatturaId;
-            }
-            else if (pagInput.TipoDocumento == "FA")
-            {
-                fatturaId = await CreaFatturaAcquisto(db, pagInput, dataRegistro, registroCassa.Id, fattureConsumate);
-            }
-            else if (pagInput.DdtId != null)
-            {
-                ddtId = pagInput.DdtId;
-            }
-            else
-            {
-                ddtId = await CreaDocumentoTrasporto(db, pagInput, dataRegistro, registroCassa.Id, ddtConsumati);
-            }
+            (int? fatturaId, int? ddtId) = await _documentiService.CreaOCollegaAsync(
+                dati, dataRegistro, registroCassa.Id, fattureConsumate, ddtConsumati);
 
             db.PagamentiFornitori.Add(new PagamentoFornitore
             {
@@ -329,187 +329,6 @@ public class MutateRegistroCassaOrchestrator
                 RegistroCassaId = registroCassa.Id,
             });
         }
-    }
-
-    private static async Task<int> CreaFatturaAcquisto(
-        DataAccess.AppDbContext db,
-        PagamentoFornitoreRegistroInput pagInput,
-        DateTime dataRegistro,
-        int registroCassaId,
-        HashSet<int> fattureConsumate)
-    {
-        string numeroFattura = (pagInput.NumeroFattura ?? "").Trim();
-        FatturaAcquisto? existing = null;
-
-        if (numeroFattura.Length > 0)
-        {
-            // Lookup sulla stessa chiave dell'indice UNIQUE (FornitoreId, NumeroFattura)
-            existing = await db.FattureAcquisto
-                .Include(f => f.Pagamenti)
-                .FirstOrDefaultAsync(f =>
-                    f.FornitoreId == pagInput.FornitoreId &&
-                    f.NumeroFattura == numeroFattura);
-
-            // Pagamenti di un ALTRO registro → vera doppia registrazione (errore bloccante).
-            // Pagamenti solo del registro corrente (riscrittura) o nessun pagamento → riuso.
-            if (existing != null && existing.Pagamenti.Any(p => p.RegistroCassaId != registroCassaId))
-            {
-                throw new ExecutionError(
-                    $"La fattura n. {numeroFattura} del fornitore (Id: {pagInput.FornitoreId}) " +
-                    $"è già registrata in un altro registro cassa (FatturaId: {existing.FatturaId}). " +
-                    "Non è possibile registrare due volte la stessa fattura.");
-            }
-        }
-        else
-        {
-            // Numero vuoto → normalizzazione con placeholder deterministico SN-{yyyyMMdd}-{seq}
-            string prefix = PlaceholderPrefix(dataRegistro);
-            List<FatturaAcquisto> candidate = await db.FattureAcquisto
-                .Include(f => f.Pagamenti)
-                .Where(f => f.FornitoreId == pagInput.FornitoreId && f.NumeroFattura.StartsWith(prefix))
-                .ToListAsync();
-
-            // Riusa la prima fattura placeholder "libera": non consumata da un'altra riga
-            // della stessa richiesta e senza pagamenti di registri diversi dal corrente.
-            existing = candidate
-                .Where(f => !fattureConsumate.Contains(f.FatturaId))
-                .FirstOrDefault(f => f.Pagamenti.All(p => p.RegistroCassaId == registroCassaId));
-
-            if (existing == null)
-            {
-                numeroFattura = ProssimoNumeroPlaceholder(prefix, candidate.Select(f => f.NumeroFattura));
-            }
-        }
-
-        decimal aliquota = pagInput.AliquotaIva ?? 22m;
-        if (pagInput.AliquotaIva == null)
-        {
-            Fornitore? fornitore = await db.Set<Fornitore>().FindAsync(pagInput.FornitoreId);
-            if (fornitore?.AliquotaIva != null)
-                aliquota = fornitore.AliquotaIva.Value;
-        }
-
-        RisultatoIva scorporo = IvaCalculator.ScorporaDaLordo(
-            pagInput.Importo, IvaCalculator.AliquotaDaPercentuale(aliquota));
-
-        if (existing != null)
-        {
-            // Riuso: aggiorna gli importi con lo stesso scorporo di UpdatePagamentiEsistenti
-            existing.DataFattura = pagInput.DataFattura ?? dataRegistro;
-            existing.Imponibile = scorporo.Imponibile;
-            existing.ImportoIva = scorporo.Iva;
-            existing.TotaleConIva = scorporo.Totale;
-            existing.UpdatedAt = DateTime.UtcNow;
-            await db.SaveChangesAsync();
-            fattureConsumate.Add(existing.FatturaId);
-            return existing.FatturaId;
-        }
-
-        var fattura = new FatturaAcquisto
-        {
-            FornitoreId = pagInput.FornitoreId,
-            NumeroFattura = numeroFattura,
-            DataFattura = pagInput.DataFattura ?? dataRegistro,
-            Imponibile = scorporo.Imponibile,
-            ImportoIva = scorporo.Iva,
-            TotaleConIva = scorporo.Totale,
-            Stato = "PAGATA",
-        };
-        db.FattureAcquisto.Add(fattura);
-        await db.SaveChangesAsync();
-        fattureConsumate.Add(fattura.FatturaId);
-        return fattura.FatturaId;
-    }
-
-    private static async Task<int> CreaDocumentoTrasporto(
-        DataAccess.AppDbContext db,
-        PagamentoFornitoreRegistroInput pagInput,
-        DateTime dataRegistro,
-        int registroCassaId,
-        HashSet<int> ddtConsumati)
-    {
-        string numero = (pagInput.NumeroDdt ?? "").Trim();
-
-        if (numero.Length > 0)
-        {
-            // Lookup sulla stessa chiave dell'indice UNIQUE (FornitoreId, NumeroDdt)
-            DocumentoTrasporto? existing = await db.DocumentiTrasporto
-                .FirstOrDefaultAsync(d =>
-                    d.FornitoreId == pagInput.FornitoreId &&
-                    d.NumeroDdt == numero);
-
-            if (existing != null)
-            {
-                existing.DataDdt = pagInput.DataDdt ?? dataRegistro;
-                existing.Importo = pagInput.Importo;
-                existing.UpdatedAt = DateTime.UtcNow;
-                await db.SaveChangesAsync();
-                ddtConsumati.Add(existing.DdtId);
-                return existing.DdtId;
-            }
-        }
-        else
-        {
-            // Numero vuoto → normalizzazione con placeholder deterministico SN-{yyyyMMdd}-{seq}
-            string prefix = PlaceholderPrefix(dataRegistro);
-            List<DocumentoTrasporto> candidati = await db.DocumentiTrasporto
-                .Include(d => d.Pagamenti)
-                .Where(d => d.FornitoreId == pagInput.FornitoreId && d.NumeroDdt.StartsWith(prefix))
-                .ToListAsync();
-
-            // Riusa il primo DDT placeholder "libero": non consumato da un'altra riga
-            // della stessa richiesta e senza pagamenti di registri diversi dal corrente.
-            DocumentoTrasporto? libero = candidati
-                .Where(d => !ddtConsumati.Contains(d.DdtId))
-                .FirstOrDefault(d => d.Pagamenti.All(p => p.RegistroCassaId == registroCassaId));
-
-            if (libero != null)
-            {
-                libero.DataDdt = pagInput.DataDdt ?? dataRegistro;
-                libero.Importo = pagInput.Importo;
-                libero.UpdatedAt = DateTime.UtcNow;
-                await db.SaveChangesAsync();
-                ddtConsumati.Add(libero.DdtId);
-                return libero.DdtId;
-            }
-
-            numero = ProssimoNumeroPlaceholder(prefix, candidati.Select(d => d.NumeroDdt));
-        }
-
-        var ddt = new DocumentoTrasporto
-        {
-            FornitoreId = pagInput.FornitoreId,
-            NumeroDdt = numero,
-            DataDdt = pagInput.DataDdt ?? dataRegistro,
-            Importo = pagInput.Importo,
-            FatturaId = null,
-        };
-        db.DocumentiTrasporto.Add(ddt);
-        await db.SaveChangesAsync();
-        ddtConsumati.Add(ddt.DdtId);
-        return ddt.DdtId;
-    }
-
-    /// <summary>
-    /// Prefisso del numero placeholder per documenti senza numero: "SN-{yyyyMMdd}-"
-    /// (SN = senza numero, data del registro cassa).
-    /// </summary>
-    private static string PlaceholderPrefix(DateTime dataRegistro)
-        => $"SN-{dataRegistro:yyyyMMdd}-";
-
-    /// <summary>
-    /// Primo numero placeholder libero per il prefisso dato: "SN-{yyyyMMdd}-{seq}"
-    /// con seq ≥ 1 non ancora usato tra i numeri esistenti (lunghezza ≤ 50, MaxLength dei campi numero).
-    /// </summary>
-    private static string ProssimoNumeroPlaceholder(string prefix, IEnumerable<string> numeriEsistenti)
-    {
-        HashSet<int> occupati = numeriEsistenti
-            .Select(n => int.TryParse(n[prefix.Length..], out int seq) ? seq : 0)
-            .Where(seq => seq > 0)
-            .ToHashSet();
-
-        int prossimo = Enumerable.Range(1, occupati.Count + 1).First(seq => !occupati.Contains(seq));
-        return $"{prefix}{prossimo}";
     }
 
     // VenditeContanti, TotaleVendite, ImportoIva e breakdown IVA sono calcolati da

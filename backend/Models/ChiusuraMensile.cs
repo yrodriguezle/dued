@@ -139,5 +139,70 @@ namespace duedgusto.Models
         public decimal TotaleDifferenzeCassaCalcolato => RegistriInclusi
             .Where(r => r.Incluso)
             .Sum(r => r.Registro?.Differenza ?? 0);
+
+        // ✅ PROPRIETÀ CALCOLATE GESTIONALI ANTI-DOPPIO-CONTEGGIO (headline vista chiusura)
+        // Single source of truth backend per KPI/headline gestionali. NON toccano i campi
+        // fiscali *Calcolato esistenti (report fiscale invariato).
+
+        /// <summary>
+        /// Spese aggiuntive NON duplicate rispetto ai registri cassa inclusi (headline gestionale).
+        /// = Σ SpeseLibere.Importo
+        ///   + Σ Pagamenti fornitori inclusi il cui PagamentoFornitore NON è già conteggiato in un
+        ///     registro incluso (RegistroCassaId == null OPPURE RegistroCassaId non appartiene ai
+        ///     registri realmente inclusi della chiusura).
+        /// Motivazione contabile: RegistroCassa.SpeseFornitori viene ricalcolato sommando i
+        /// PagamentoFornitore linkati al registro (RegistroCassaSyncService.RecalculateSpeseFornitoriAsync);
+        /// i pagamenti appartenenti a un registro incluso sono quindi GIÀ presenti nel totale spese di
+        /// quel registro e vanno esclusi qui per evitare il doppio conteggio. Il criterio corretto è
+        /// l'APPARTENENZA ai registri inclusi, NON il solo RegistroCassaId == null.
+        /// </summary>
+        [NotMapped]
+        public decimal SpeseAggiuntiveNonDuplicateCalcolate
+        {
+            get
+            {
+                HashSet<int> registriIdInclusi = RegistriInclusi
+                    .Where(r => r.Incluso)
+                    .Select(r => r.RegistroId)
+                    .ToHashSet();
+
+                decimal pagamentiNonDuplicati = PagamentiInclusi
+                    .Where(p => p.InclusoInChiusura && p.Pagamento != null)
+                    .Where(p => p.Pagamento!.RegistroCassaId == null
+                        || !registriIdInclusi.Contains(p.Pagamento.RegistroCassaId.Value))
+                    .Sum(p => p.Pagamento!.Importo);
+
+                return SpeseLibere.Sum(s => s.Importo) + pagamentiNonDuplicati;
+            }
+        }
+
+        /// <summary>
+        /// Totale spese gestionale (headline della vista chiusura).
+        /// = spese dei registri inclusi [tracciate (SpeseFornitori) + non tracciate (SpeseGiornaliere),
+        ///   coerenti con RiepilogoAnnualeCassa/aggregaRegistri: SpeseTracciate = Σ SpeseFornitori,
+        ///   SpeseNonTracciate = Σ SpeseGiornaliere]
+        /// + SpeseAggiuntiveNonDuplicateCalcolate (spese libere + pagamenti fornitori non già nei registri).
+        /// </summary>
+        [NotMapped]
+        public decimal TotaleSpeseCalcolato =>
+            RegistriInclusi
+                .Where(r => r.Incluso)
+                .Sum(r => (r.Registro?.SpeseFornitori ?? 0) + (r.Registro?.SpeseGiornaliere ?? 0))
+            + SpeseAggiuntiveNonDuplicateCalcolate;
+
+        /// <summary>
+        /// Differenza gestionale = totale vendite dei registri inclusi (RicavoTotaleCalcolato)
+        /// - TotaleSpeseCalcolato. Riusa RicavoTotaleCalcolato per coerenza al centesimo con i registri.
+        /// </summary>
+        [NotMapped]
+        public decimal DifferenzaCalcolata => RicavoTotaleCalcolato - TotaleSpeseCalcolato;
+
+        /// <summary>
+        /// Avvisi (WARNING) di completezza NON bloccanti rilevati alla chiusura mensile:
+        /// registri chiusi/riconciliati del mese non inclusi, pagamenti fornitori del mese non inclusi.
+        /// Popolato a runtime dal service (NON persistito): campo di sola presentazione.
+        /// </summary>
+        [NotMapped]
+        public List<string> AvvisiCompletezza { get; set; } = [];
     }
 }

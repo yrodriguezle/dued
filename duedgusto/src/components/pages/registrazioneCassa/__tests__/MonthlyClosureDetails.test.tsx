@@ -15,7 +15,7 @@ vi.mock("../../../../graphql/chiusureMensili/queries", () => ({
   useQueryValidaCompletezzaRegistri: vi.fn(),
 }));
 
-// Le 7 mutation via mock useMutation (pattern ProfilePage)
+// Le mutation via mock useMutation (pattern ProfilePage)
 const mockMutate = vi.fn(async () => ({ data: undefined }));
 vi.mock("@apollo/client", async () => {
   const actual = await vi.importActual("@apollo/client");
@@ -25,9 +25,20 @@ vi.mock("@apollo/client", async () => {
   };
 });
 
-// Stub griglie AG Grid e report
-vi.mock("../MonthlyExpensesDataGrid", () => ({
-  default: () => <div data-testid="monthly-expenses-data-grid" />,
+// Stub della NUOVA griglia unificata SpeseDataGrid: cattura le props per verificarne
+// il wiring (persistenza per-riga quando bozza, read-only quando chiusa). AG Grid non
+// gira in modo affidabile in jsdom, quindi la sostituiamo con un placeholder.
+type SpeseDataGridProps = {
+  isLocked: boolean;
+  persistence?: unknown;
+  initialExpenses: unknown[];
+};
+let capturedSpeseProps: SpeseDataGridProps | null = null;
+vi.mock("../SpeseDataGrid", () => ({
+  default: (props: SpeseDataGridProps) => {
+    capturedSpeseProps = props;
+    return <div data-testid="spese-data-grid" />;
+  },
 }));
 vi.mock("../MonthlyClosureReport", () => ({
   default: () => <div data-testid="monthly-closure-report" />,
@@ -47,6 +58,38 @@ const mockUseQueryValidaCompletezzaRegistri = vi.mocked(useQueryValidaCompletezz
 
 // ── Dati di test ───────────────────────────────────────────────────────
 
+// Registro incluso a maggio 2026 con valori scelti per KPI aggregati deterministici:
+// - totaleVendite 1000 → "Totale Vendite" = 1.000,00
+// - contante 300 + elettronici 200 + fatture 100 → "Ricavo tracciato" = 600,00
+// - movimentoCassa (chiusura 700 - apertura 0) - contante 300 = 400 → "Ricavo non tracc." = 400,00
+//   (600 tracciato + 400 non tracciato = 1000 = Totale Vendite: i ricavi quadrano)
+// - speseFornitori 150 → "Spese tracciate" = 150,00
+// - speseGiornaliere 50 → "Spese non tracc." = 50,00
+function makeRegistroIncluso(overrides: Record<string, unknown> = {}, incluso = true) {
+  const registroId = (overrides.id as number) ?? 11;
+  return {
+    __typename: "RegistroCassaMensile",
+    chiusuraId: 5,
+    registroId,
+    incluso,
+    registro: {
+      id: registroId,
+      data: "2026-05-04",
+      totaleVendite: 1000,
+      incassoContanteTracciato: 300,
+      incassiElettronici: 200,
+      incassiFattura: 100,
+      differenza: 0,
+      stato: "CLOSED",
+      totaleApertura: 0,
+      totaleChiusura: 700,
+      speseFornitori: 150,
+      speseGiornaliere: 50,
+      ...overrides,
+    },
+  };
+}
+
 const mockChiusuraBozza = {
   chiusuraId: 5,
   anno: 2026,
@@ -56,17 +99,24 @@ const mockChiusuraBozza = {
   note: null,
   chiusaDaUtente: null,
   chiusaIl: null,
-  registriInclusi: [],
+  registriInclusi: [makeRegistroIncluso()],
   speseLibere: [],
   pagamentiInclusi: [],
-  ricavoNettoCalcolato: 1500.5,
-  totaleContantiCalcolato: 800,
-  totaleElettroniciCalcolato: 600,
-  totaleFattureCalcolato: 100.5,
-  speseAggiuntiveCalcolate: 50,
-  totaleLordoCalcolato: 1500.5,
-  totaleImponibileCalcolato: 1364.09,
-  totaleIvaCalcolato: 136.41,
+  // Campi gestionali headline (single source of truth backend)
+  differenzaCalcolata: 800,
+  totaleSpeseCalcolato: 200,
+  speseAggiuntiveNonDuplicateCalcolate: 0,
+  // ricavoNettoCalcolato NON deve più essere usato nella headline (era la strip fiscale)
+  ricavoNettoCalcolato: 999,
+  // Campi fiscali (presenti ma non nella headline)
+  ricavoTotaleCalcolato: 1000,
+  totaleContantiCalcolato: 300,
+  totaleElettroniciCalcolato: 200,
+  totaleFattureCalcolato: 100,
+  speseAggiuntiveCalcolate: 0,
+  totaleLordoCalcolato: 1000,
+  totaleImponibileCalcolato: 900,
+  totaleIvaCalcolato: 100,
   totaleDifferenzeCassaCalcolato: 0,
 } as unknown as ChiusuraMensile;
 
@@ -118,23 +168,70 @@ function renderMonthlyClosureDetails(id = 5) {
 describe("MonthlyClosureDetails (smoke)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    capturedSpeseProps = null;
     setupStore();
     setupQueries();
   });
 
-  it("monta senza errori in modalità :id con chiusura BOZZA e mostra le sezioni chiave", () => {
+  it("monta senza errori in modalità :id con chiusura BOZZA e mostra i KPI gestionali + la griglia spese", () => {
     renderMonthlyClosureDetails(5);
 
-    // Metriche del riepilogo
-    expect(screen.getByText("Ricavo Netto")).toBeInTheDocument();
+    // KPI gestionali: hero "Differenza" (l'etichetta esiste anche come header tabella registri) + valore hero univoco
+    expect(screen.getAllByText("Differenza").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("€ 800,00")).toBeInTheDocument();
+    // banda a 6
     expect(screen.getByText("Totale Vendite")).toBeInTheDocument();
-    expect(screen.getByText("Contanti")).toBeInTheDocument();
-    expect(screen.getByText("Elettronici")).toBeInTheDocument();
-    expect(screen.getByText("€ 1500.50")).toBeInTheDocument();
+    expect(screen.getByText("Totale Spese")).toBeInTheDocument();
+    expect(screen.getByText("Ricavo tracciato")).toBeInTheDocument();
+    expect(screen.getByText("Ricavo non tracc.")).toBeInTheDocument();
+    expect(screen.getByText("Spese tracciate")).toBeInTheDocument();
+    expect(screen.getByText("Spese non tracc.")).toBeInTheDocument();
 
-    // Griglia spese (stub) e report (stub)
-    expect(screen.getByTestId("monthly-expenses-data-grid")).toBeInTheDocument();
+    // Le tre differenze quadrano: totale (800) = tracciata (450) + non tracciata (350)
+    expect(screen.getByText("€ 450,00")).toBeInTheDocument(); // Differenza tracciata
+    expect(screen.getByText("€ 350,00")).toBeInTheDocument(); // Differenza non tracc.
+
+    // La strip fiscale (Ricavo Netto) è stata sostituita: non deve più comparire
+    expect(screen.queryByText("Ricavo Netto")).not.toBeInTheDocument();
+
+    // Nuova griglia unificata (stub) e report (stub)
+    expect(screen.getByTestId("spese-data-grid")).toBeInTheDocument();
     expect(screen.getByTestId("monthly-closure-report")).toBeInTheDocument();
+  });
+
+  it("passa alla SpeseDataGrid la persistenza per-riga e isLocked=false in bozza", () => {
+    renderMonthlyClosureDetails(5);
+    expect(capturedSpeseProps).not.toBeNull();
+    expect(capturedSpeseProps!.isLocked).toBe(false);
+    // In bozza la griglia riceve i callback di persistenza per-riga (niente pulsante "Salva")
+    expect(capturedSpeseProps!.persistence).toBeTruthy();
+  });
+
+  it("adatta i KPI gestionali dai campi corretti (differenzaCalcolata + aggregati dei SOLI registri inclusi)", () => {
+    // Aggiunge un registro ESCLUSO con valori enormi: NON deve contribuire agli aggregati.
+    const chiusura = {
+      ...mockChiusuraBozza,
+      registriInclusi: [
+        makeRegistroIncluso(),
+        makeRegistroIncluso({ id: 22, totaleVendite: 5000 }, false),
+      ],
+    } as unknown as ChiusuraMensile;
+    setupQueries(chiusura);
+
+    renderMonthlyClosureDetails(5);
+
+    // Hero = differenzaCalcolata (800), NON ricavoNettoCalcolato (999)
+    expect(screen.getByText("€ 800,00")).toBeInTheDocument();
+    expect(screen.queryByText("€ 999,00")).not.toBeInTheDocument();
+
+    // Banda: aggregati calcolati SOLO sui registri inclusi (il registro escluso da 5000 è ignorato)
+    expect(screen.getByText("1.000,00")).toBeInTheDocument(); // Totale Vendite (non 6.000,00)
+    expect(screen.queryByText("6.000,00")).not.toBeInTheDocument();
+    expect(screen.getByText("600,00")).toBeInTheDocument(); // Ricavo tracciato
+    expect(screen.getByText("150,00")).toBeInTheDocument(); // Spese tracciate
+    expect(screen.getByText("50,00")).toBeInTheDocument(); // Spese non tracc.
+    // Totale Spese = totaleSpeseCalcolato del backend (200), non un derivato client
+    expect(screen.getByText("200,00")).toBeInTheDocument();
   });
 
   it("imposta il titolo 'Chiusura Mensile - …'", () => {
@@ -143,13 +240,14 @@ describe("MonthlyClosureDetails (smoke)", () => {
     expect(mockSetTitle).toHaveBeenCalledWith(expect.stringContaining("2026"));
   });
 
-  it("mostra le azioni di toolbar per la bozza (Salva, Chiudi Mese, Elimina, Indietro)", () => {
+  it("mostra le azioni di toolbar per la bozza (Indietro, Chiudi Mese, Elimina) senza il vecchio pulsante Salva", () => {
     renderMonthlyClosureDetails(5);
 
     expect(screen.getByText("Indietro")).toBeInTheDocument();
-    expect(screen.getByText("Salva")).toBeInTheDocument();
     expect(screen.getByText("Chiudi Mese")).toBeInTheDocument();
     expect(screen.getByText("Elimina")).toBeInTheDocument();
+    // Il salvataggio è ora per-riga: il pulsante "Salva" è stato rimosso
+    expect(screen.queryByText("Salva")).not.toBeInTheDocument();
   });
 
   it("mostra l'alert quando la chiusura non viene trovata", () => {

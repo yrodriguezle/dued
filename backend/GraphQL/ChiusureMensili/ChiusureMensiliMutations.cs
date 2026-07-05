@@ -9,6 +9,7 @@ using duedgusto.DataAccess;
 using duedgusto.GraphQL.Authentication;
 using duedgusto.Services.Jwt;
 using duedgusto.GraphQL.ChiusureMensili.Types;
+using duedgusto.GraphQL.Fornitori.Types;
 using duedgusto.Services.ChiusureMensili;
 
 namespace duedgusto.GraphQL.ChiusureMensili;
@@ -48,6 +49,7 @@ public class ChiusureMensiliMutations : ObjectGraphType
             .Argument<NonNullGraphType<StringGraphType>>("descrizione", "Descrizione della spesa")
             .Argument<NonNullGraphType<DecimalGraphType>>("importo", "Importo della spesa")
             .Argument<NonNullGraphType<StringGraphType>>("categoria", "Categoria: Affitto, Utenze, Stipendi, Altro")
+            .Argument<DateTimeGraphType>("data", "Data (giorno di competenza) della spesa nel mese della chiusura (opzionale)")
             .ResolveAsync(async context =>
             {
                 ChiusuraMensileService service = GraphQLService.GetService<ChiusuraMensileService>(context);
@@ -55,6 +57,7 @@ public class ChiusureMensiliMutations : ObjectGraphType
                 string descrizione = context.GetArgument<string>("descrizione");
                 decimal importo = context.GetArgument<decimal>("importo");
                 string categoriaStr = context.GetArgument<string>("categoria");
+                DateTime? data = context.GetArgument<DateTime?>("data");
 
                 // Parse categoria enum
                 if (!Enum.TryParse<CategoriaSpesa>(categoriaStr, ignoreCase: true, out CategoriaSpesa categoria))
@@ -64,7 +67,7 @@ public class ChiusureMensiliMutations : ObjectGraphType
 
                 try
                 {
-                    SpesaMensileLibera spesa = await service.AggiungiSpesaLiberaAsync(chiusuraId, descrizione, importo, categoria);
+                    SpesaMensileLibera spesa = await service.AggiungiSpesaLiberaAsync(chiusuraId, descrizione, importo, categoria, data);
                     return spesa;
                 }
                 catch (Exception ex)
@@ -80,6 +83,7 @@ public class ChiusureMensiliMutations : ObjectGraphType
             .Argument<StringGraphType>("descrizione", "Nuova descrizione (opzionale)")
             .Argument<DecimalGraphType>("importo", "Nuovo importo (opzionale)")
             .Argument<StringGraphType>("categoria", "Nuova categoria (opzionale)")
+            .Argument<DateTimeGraphType>("data", "Nuova data della spesa nel mese della chiusura (opzionale)")
             .ResolveAsync(async context =>
             {
                 ChiusuraMensileService service = GraphQLService.GetService<ChiusuraMensileService>(context);
@@ -87,6 +91,7 @@ public class ChiusureMensiliMutations : ObjectGraphType
                 string? descrizione = context.GetArgument<string?>("descrizione");
                 decimal? importo = context.GetArgument<decimal?>("importo");
                 string? categoriaStr = context.GetArgument<string?>("categoria");
+                DateTime? data = context.GetArgument<DateTime?>("data");
 
                 CategoriaSpesa? categoria = null;
                 if (categoriaStr != null)
@@ -98,7 +103,7 @@ public class ChiusureMensiliMutations : ObjectGraphType
 
                 try
                 {
-                    return await service.ModificaSpesaLiberaAsync(spesaId, descrizione, importo, categoria);
+                    return await service.ModificaSpesaLiberaAsync(spesaId, descrizione, importo, categoria, data);
                 }
                 catch (Exception ex)
                 {
@@ -118,6 +123,86 @@ public class ChiusureMensiliMutations : ObjectGraphType
                 try
                 {
                     return await service.EliminaSpesaLiberaAsync(spesaId);
+                }
+                catch (Exception ex)
+                {
+                    throw new ExecutionError(ex.Message);
+                }
+            });
+
+        // Registra un pagamento fornitore (documento FA/DDT reale) dalla griglia spese della chiusura.
+        // Il pagamento è di origine-chiusura (RegistroCassaId = null) e NON crea/tocca alcun RegistroCassa.
+        Field<PagamentoFornitoreType>("aggiungiPagamentoFornitoreInChiusura")
+            .Description("Registra un pagamento fornitore con documento FA/DDT reale dalla chiusura mensile (origine-chiusura, senza registro cassa). Solo in stato BOZZA.")
+            .Argument<NonNullGraphType<IntGraphType>>("chiusuraId", "ID della chiusura")
+            .Argument<NonNullGraphType<PagamentoDocumentoChiusuraInputType>>("input", "Dati del documento e del pagamento")
+            .ResolveAsync(async context =>
+            {
+                ChiusuraMensileService service = GraphQLService.GetService<ChiusuraMensileService>(context);
+                int chiusuraId = context.GetArgument<int>("chiusuraId");
+                PagamentoDocumentoChiusuraInput input = context.GetArgument<PagamentoDocumentoChiusuraInput>("input");
+
+                var dati = new ChiusuraMensileService.DatiPagamentoChiusura(
+                    FornitoreId: input.FornitoreId,
+                    TipoDocumento: input.TipoDocumento,
+                    NumeroDocumento: input.NumeroDocumento,
+                    DataPagamento: input.DataPagamento,
+                    Importo: input.Importo,
+                    AliquotaIva: input.AliquotaIva,
+                    MetodoPagamento: input.MetodoPagamento,
+                    FatturaIdCollegata: input.FatturaId,
+                    DdtIdCollegato: input.DdtId);
+
+                try
+                {
+                    return await service.AggiungiPagamentoFornitoreInChiusuraAsync(chiusuraId, dati);
+                }
+                catch (Exception ex)
+                {
+                    throw new ExecutionError(ex.Message);
+                }
+            });
+
+        // Modifica un pagamento fornitore di origine-chiusura (importo/data/metodo/aliquota)
+        Field<PagamentoFornitoreType>("modificaPagamentoFornitoreInChiusura")
+            .Description("Modifica un pagamento fornitore di origine-chiusura (solo in stato BOZZA, solo pagamenti senza registro cassa)")
+            .Argument<NonNullGraphType<IntGraphType>>("pagamentoId", "ID del pagamento fornitore")
+            .Argument<DecimalGraphType>("importo", "Nuovo importo lordo (opzionale)")
+            .Argument<DateTimeGraphType>("dataPagamento", "Nuova data del pagamento nel mese della chiusura (opzionale)")
+            .Argument<StringGraphType>("metodoPagamento", "Nuovo metodo di pagamento (opzionale)")
+            .Argument<DecimalGraphType>("aliquotaIva", "Aliquota IVA in percentuale per il documento collegato (opzionale)")
+            .ResolveAsync(async context =>
+            {
+                ChiusuraMensileService service = GraphQLService.GetService<ChiusuraMensileService>(context);
+                int pagamentoId = context.GetArgument<int>("pagamentoId");
+                decimal? importo = context.GetArgument<decimal?>("importo");
+                DateTime? dataPagamento = context.GetArgument<DateTime?>("dataPagamento");
+                string? metodoPagamento = context.GetArgument<string?>("metodoPagamento");
+                decimal? aliquotaIva = context.GetArgument<decimal?>("aliquotaIva");
+
+                try
+                {
+                    return await service.ModificaPagamentoFornitoreInChiusuraAsync(
+                        pagamentoId, importo, dataPagamento, metodoPagamento, aliquotaIva);
+                }
+                catch (Exception ex)
+                {
+                    throw new ExecutionError(ex.Message);
+                }
+            });
+
+        // Elimina un pagamento fornitore di origine-chiusura (e il link con la chiusura)
+        Field<BooleanGraphType>("eliminaPagamentoFornitoreInChiusura")
+            .Description("Elimina un pagamento fornitore di origine-chiusura (solo in stato BOZZA, solo pagamenti senza registro cassa). Il documento FA/DDT non viene eliminato.")
+            .Argument<NonNullGraphType<IntGraphType>>("pagamentoId", "ID del pagamento fornitore")
+            .ResolveAsync(async context =>
+            {
+                ChiusuraMensileService service = GraphQLService.GetService<ChiusuraMensileService>(context);
+                int pagamentoId = context.GetArgument<int>("pagamentoId");
+
+                try
+                {
+                    return await service.EliminaPagamentoFornitoreInChiusuraAsync(pagamentoId);
                 }
                 catch (Exception ex)
                 {
@@ -230,6 +315,12 @@ public class ChiusureMensiliMutations : ObjectGraphType
 
                     // Ricarica con relazioni per ritorno
                     ChiusuraMensile? chiusura = await service.GetChiusuraConRelazioniAsync(chiusuraId);
+                    if (chiusura != null)
+                    {
+                        // Avvisi di completezza NON bloccanti (registri/pagamenti del mese non inclusi):
+                        // ricalcolati sull'istanza ricaricata per esporli nel payload GraphQL.
+                        chiusura.AvvisiCompletezza = await service.ValidaCompletezzaChiusuraWarningsAsync(chiusuraId);
+                    }
                     return chiusura;
                 }
                 catch (InvalidOperationException ex)

@@ -19,6 +19,9 @@ public class SpesaMensileTyperaType : ObjectGraphType<SpesaMensileLibera>
         Field(x => x.Importo);
         Field<StringGraphType>("categoria")
             .Resolve(context => context.Source.Categoria.ToString());
+        Field<DateTimeGraphType>("data")
+            .Description("Data (giorno di competenza) della spesa nel mese della chiusura")
+            .Resolve(context => context.Source.Data);
         Field(x => x.CreatedAt, type: typeof(DateTimeGraphType));
         Field(x => x.UpdatedAt, type: typeof(DateTimeGraphType));
 

@@ -48,6 +48,7 @@ builder.Services.AddScoped<MigrazioneChiusureMensiliService>();
 
 // Fornitori Services
 builder.Services.AddScoped<RegistroCassaSyncService>();
+builder.Services.AddScoped<DocumentiFornitoreService>();
 
 // Fornitori Orchestrators
 builder.Services.AddScoped<FornitoreOrchestrator>();
