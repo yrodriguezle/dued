@@ -494,14 +494,38 @@ const MonthlyClosureDetails = () => {
 
       {/* Contenuto — scroll singolo */}
       <Box sx={{ flex: 1, overflow: "auto", minHeight: 0, px: 2, py: 2 }}>
-        {/* Alert registri non riconciliati */}
+        {/* Alert giorni mancanti \u2014 bloccano la chiusura */}
+        {isDraft && hasRegistriMancanti && (
+          <Alert
+            severity="error"
+            sx={{ mb: 2 }}
+            action={
+              <Button
+                color="inherit"
+                size="small"
+                onClick={() => setGiorniMancantiModalOpen(true)}
+              >
+                Gestisci
+              </Button>
+            }
+          >
+            {giorniEffettivamenteMancanti.length === 1
+              ? "Manca il registro di 1 giornata operativa"
+              : `Mancano i registri di ${giorniEffettivamenteMancanti.length} giornate operative`}
+            : {giorniEffettivamenteMancanti.map((d) => dayjs(d).format("DD/MM")).join(", ")}. Chiudi quei giorni oppure escludili per poter chiudere il mese.
+          </Alert>
+        )}
+
+        {/* Alert registri non riconciliati \u2014 informativo, non blocca la chiusura */}
         {registriNonRiconciliati.length > 0 && (
           <Alert
-            severity="warning"
+            severity="info"
             sx={{ mb: 2 }}
           >
-            {registriNonRiconciliati.length} registr{registriNonRiconciliati.length === 1 ? "o" : "i"} giornalier{registriNonRiconciliati.length === 1 ? "o" : "i"} non riconciliat
-            {registriNonRiconciliati.length === 1 ? "o" : "i"}. La chiusura \u00E8 possibile, ma si consiglia la riconciliazione per maggiore accuratezza.
+            {registriNonRiconciliati.length === 1
+              ? "1 giornata \u00E8 chiusa ma non ancora riconciliata"
+              : `${registriNonRiconciliati.length} giornate sono chiuse ma non ancora riconciliate`}{" "}
+            (verificate col contante effettivo). Puoi chiudere il mese comunque; riconciliarle prima rende i totali pi\u00F9 affidabili.
           </Alert>
         )}
 
