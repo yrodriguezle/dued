@@ -58,6 +58,7 @@ import SpeseDataGrid, { SpeseDataGridPersistence, SpeseGridRow } from "./SpeseDa
 import MonthlyClosureReport from "./MonthlyClosureReport";
 import KPICard from "../../common/KPICard";
 import useChartPalette from "./dashboard/useChartPalette";
+import { MESI_LABEL } from "./dashboard/dashboardUtils";
 import { aggregaRegistriPerMese } from "../../../common/registroCassa/aggregaRegistri";
 import { parseDateForGraphQL } from "../../../common/date/date";
 
@@ -118,11 +119,7 @@ const MonthlyClosureDetails = () => {
 
   useEffect(() => {
     if (anno && mese) {
-      setTitle(
-        `Chiusura Mensile - ${dayjs()
-          .month(mese - 1)
-          .format("MMMM")} ${anno}`
-      );
+      setTitle(`Chiusura Mensile - ${MESI_LABEL[mese - 1]} ${anno}`);
     } else {
       setTitle("Dettagli Chiusura Mensile");
     }
@@ -541,7 +538,7 @@ const MonthlyClosureDetails = () => {
                   variant="subtitle1"
                   fontWeight={600}
                 >
-                  {`KPI gestionali · ${dayjs().month((mese || 1) - 1).format("MMMM")} ${anno}`}
+                  {`KPI gestionali · ${MESI_LABEL[(mese || 1) - 1]} ${anno}`}
                 </Typography>
                 <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
                   <Chip
