@@ -29,6 +29,14 @@ public class SpesaMensileLibera
     [Required]
     public CategoriaSpesa Categoria { get; set; }
 
+    /// <summary>
+    /// Data (giorno di competenza) della spesa all'interno del mese della chiusura.
+    /// Nullable per compatibilità con le spese storiche: la migration effettua il backfill
+    /// al primo giorno del mese/anno della chiusura di appartenenza.
+    /// </summary>
+    [Column(TypeName = "date")]
+    public DateTime? Data { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

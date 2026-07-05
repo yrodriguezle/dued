@@ -88,7 +88,7 @@ function annoMeseDaData(data: string | null | undefined): { anno: number; mese: 
  * Bozze (DRAFT) incluse nei totali, come nella vista mensile.
  * Output: sempre 12 mesi ordinati 1-12 (mesi senza registri a zero).
  */
-export function aggregaRegistriPerMese(registri: RegistroCassa[], anno: number): RiepilogoMeseDashboard[] {
+export function aggregaRegistriPerMese(registri: RegistroCassaAggregabile[], anno: number): RiepilogoMeseDashboard[] {
   const perMese = registri.reduce((acc, cr) => {
     const chiave = annoMeseDaData(cr.data);
     // Filtro di sicurezza: ignora registri fuori dall'anno richiesto

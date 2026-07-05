@@ -40,6 +40,9 @@ public class PagamentoFornitoreInfoType : ObjectGraphType<PagamentoFornitore>
         Field(x => x.PagamentoId);
         Field(x => x.FatturaId, nullable: true);
         Field(x => x.DdtId, nullable: true);
+        // Origine del pagamento: null = origine-chiusura (editabile in chiusura),
+        // valorizzato = proveniente da un registro cassa (read-only in chiusura).
+        Field(x => x.RegistroCassaId, nullable: true);
         Field(x => x.DataPagamento, type: typeof(DateTimeGraphType));
         Field(x => x.Importo);
         Field(x => x.MetodoPagamento, nullable: true);

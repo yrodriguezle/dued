@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import useAutoCreaChiusura from "./useAutoCreaChiusura";
 import useGiorniEsclusi from "./useGiorniEsclusi";
 import { useParams, useNavigate, useSearchParams } from "react-router";
@@ -27,13 +27,11 @@ import {
   Stack,
 } from "@mui/material";
 import AppDialog from "../../common/dialog/AppDialog";
-import SaveIcon from "@mui/icons-material/Save";
 import DeleteIcon from "@mui/icons-material/Delete";
 import LockIcon from "@mui/icons-material/Lock";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import EventBusyIcon from "@mui/icons-material/EventBusy";
-import { GridReadyEvent } from "ag-grid-community";
 import { useMutation } from "@apollo/client";
 import dayjs from "dayjs";
 
@@ -46,15 +44,22 @@ import {
   mutationModificaSpesaLibera,
   mutationEliminaSpesaLibera,
   mutationAggiornaGiorniEsclusi,
+  mutationAggiungiPagamentoFornitoreInChiusura,
+  mutationModificaPagamentoFornitoreInChiusura,
+  mutationEliminaPagamentoFornitoreInChiusura,
+  PagamentoDocumentoChiusuraInput,
 } from "../../../graphql/chiusureMensili/mutations";
 import PageTitleContext from "../../layout/headerBar/PageTitleContext";
 import { statoRegistroCassa, statoChiusuraMensile } from "../../../common/globals/constants";
 import FormikToolbarButton from "../../common/form/toolbar/FormikToolbarButton";
 import useConfirm from "../../common/confirm/useConfirm";
 import showToast from "../../../common/toast/showToast";
-import MonthlyExpensesDataGrid, { SpesaRow } from "./MonthlyExpensesDataGrid";
+import SpeseDataGrid, { SpeseDataGridPersistence, SpeseGridRow } from "./SpeseDataGrid";
 import MonthlyClosureReport from "./MonthlyClosureReport";
-import { DatagridData } from "../../common/datagrid/@types/Datagrid";
+import KPICard from "../../common/KPICard";
+import useChartPalette from "./dashboard/useChartPalette";
+import { aggregaRegistriPerMese } from "../../../common/registroCassa/aggregaRegistri";
+import { parseDateForGraphQL } from "../../../common/date/date";
 
 const MOTIVO_LABELS: Record<CodiceMotivo, string> = {
   ATTIVITA_NON_AVVIATA: "Attività non avviata",
@@ -80,11 +85,14 @@ const MonthlyClosureDetails = () => {
   const [aggiungiSpesaLibera, { loading: addExpenseLoading }] = useMutation(mutationAggiungiSpesaLibera);
   const [modificaSpesaLibera] = useMutation(mutationModificaSpesaLibera);
   const [eliminaSpesaLiberaMutation] = useMutation(mutationEliminaSpesaLibera);
+  const [aggiungiPagamentoInChiusura] = useMutation(mutationAggiungiPagamentoFornitoreInChiusura);
+  const [modificaPagamentoInChiusura] = useMutation(mutationModificaPagamentoFornitoreInChiusura);
+  const [eliminaPagamentoInChiusura] = useMutation(mutationEliminaPagamentoFornitoreInChiusura);
   const [chiudiChiusura, { loading: closeLoading }] = useMutation(mutationChiudiChiusuraMensile);
   const [eliminaChiusura, { loading: deleteLoading }] = useMutation(mutationEliminaChiusuraMensile);
   const [aggiornaGiorniEsclusi, { loading: excludeLoading }] = useMutation(mutationAggiornaGiorniEsclusi);
 
-  const expensesGridRef = useRef<GridReadyEvent<DatagridData<SpesaRow>> | null>(null);
+  const palette = useChartPalette();
   const [giorniMancantiModalOpen, setGiorniMancantiModalOpen] = useState(false);
 
   const anno = chiusuraMensile?.anno ?? newAnno;
@@ -129,22 +137,135 @@ const MonthlyClosureDetails = () => {
     navigate,
   });
 
-  const getGridExpenses = useCallback((): SpesaRow[] => {
-    if (!expensesGridRef.current) return [];
-    const rows: SpesaRow[] = [];
-    expensesGridRef.current.api.forEachNode((node) => {
-      if (node.data) {
-        rows.push({
-          spesaId: node.data.spesaId,
-          chiusuraId: node.data.chiusuraId,
-          descrizione: node.data.descrizione,
-          importo: node.data.importo,
-          categoria: node.data.categoria as CategoriaSpesa,
+  // Primo giorno del mese: default per le nuove righe e per la dataPagamento
+  // dei pagamenti registrati dalla chiusura (deve appartenere al mese).
+  const defaultDate = useMemo(() => (anno && mese ? dayjs(new Date(anno, mese - 1, 1)).format("YYYY-MM-DD") : dayjs().format("YYYY-MM-DD")), [anno, mese]);
+
+  // KPI gestionali: aggregazione con le stesse formule della Vista mensile,
+  // applicata ai SOLI registri effettivamente inclusi nella chiusura.
+  const meseAggregato = useMemo(() => {
+    const registri = registriInclusi.filter((ri) => ri.incluso).map((ri) => ri.registro);
+    const mesi = aggregaRegistriPerMese(registri, anno || dayjs().year());
+    const indice = (mese || 1) - 1;
+    return mesi[indice] ?? mesi[0];
+  }, [registriInclusi, anno, mese]);
+
+  // Righe della griglia spese: spese libere + pagamenti fornitori inclusi.
+  const gridExpenses = useMemo<SpeseGridRow[]>(() => {
+    if (!chiusuraMensile) return [];
+    const speseLibereRows: SpeseGridRow[] = chiusuraMensile.speseLibere.map((s) => ({
+      spesaId: s.spesaId,
+      description: s.descrizione,
+      amount: s.importo,
+      categoria: s.categoria,
+      data: s.data ? dayjs(s.data).format("YYYY-MM-DD") : undefined,
+      isPagamentoFornitore: false,
+    }));
+    const pagamentiRows: SpeseGridRow[] = chiusuraMensile.pagamentiInclusi
+      .filter((pi) => pi.inclusoInChiusura)
+      .map((pi) => {
+        const p = pi.pagamento;
+        const documentType: "FA" | "DDT" = p.fatturaId != null ? "FA" : "DDT";
+        return {
+          pagamentoId: p.pagamentoId,
+          isPagamentoFornitore: true,
+          description: p.note || `Pagamento fornitore ${documentType}`,
+          amount: p.importo,
+          data: p.dataPagamento ? dayjs(p.dataPagamento).format("YYYY-MM-DD") : undefined,
+          documentType,
+          fatturaId: p.fatturaId ?? undefined,
+          ddtId: p.ddtId ?? undefined,
+          paymentMethod: p.metodoPagamento ?? undefined,
+          registroCassaId: p.registroCassaId,
+        };
+      });
+    return [...pagamentiRows, ...speseLibereRows];
+  }, [chiusuraMensile]);
+
+  // Persistenza per-riga: ogni operazione persiste e poi refetch per aggiornare
+  // headline/KPI (i campi calcolati backend includono già le novità).
+  const persistence = useMemo<SpeseDataGridPersistence | undefined>(() => {
+    if (!chiusuraMensile) return undefined;
+    const chiusuraIdCorrente = chiusuraMensile.chiusuraId;
+    return {
+      createExpense: async (row) => {
+        const res = await aggiungiSpesaLibera({
+          variables: {
+            chiusuraId: chiusuraIdCorrente,
+            descrizione: row.description,
+            importo: row.amount,
+            categoria: row.categoria ?? "Altro",
+            data: parseDateForGraphQL(row.data ?? defaultDate) ?? null,
+          },
         });
-      }
-    });
-    return rows;
-  }, []);
+        await refetch();
+        return res.data?.chiusureMensili.aggiungiSpesaLibera?.spesaId ?? null;
+      },
+      updateExpense: async (row) => {
+        if ((row.spesaId ?? 0) <= 0) return;
+        await modificaSpesaLibera({
+          variables: {
+            spesaId: row.spesaId as number,
+            descrizione: row.description,
+            importo: row.amount,
+            categoria: row.categoria ?? "Altro",
+            data: parseDateForGraphQL(row.data ?? defaultDate) ?? null,
+          },
+        });
+        await refetch();
+      },
+      deleteExpense: async (row) => {
+        if ((row.spesaId ?? 0) <= 0) return;
+        await eliminaSpesaLiberaMutation({ variables: { spesaId: row.spesaId as number } });
+        await refetch();
+      },
+      createSupplierPayment: async (row) => {
+        if (!row.fornitoreId) return null;
+        const input: PagamentoDocumentoChiusuraInput = {
+          fornitoreId: row.fornitoreId,
+          tipoDocumento: row.documentType ?? "DDT",
+          numeroDocumento: (row.documentType === "FA" ? row.invoiceNumber : row.ddtNumber) ?? null,
+          dataPagamento: parseDateForGraphQL(row.data ?? defaultDate) ?? (parseDateForGraphQL(defaultDate) as string),
+          importo: row.amount,
+          aliquotaIva: row.aliquotaIva ?? null,
+          metodoPagamento: row.paymentMethod ?? null,
+          fatturaId: row.fatturaId ?? null,
+          ddtId: row.ddtId ?? null,
+        };
+        const res = await aggiungiPagamentoInChiusura({ variables: { chiusuraId: chiusuraIdCorrente, input } });
+        await refetch();
+        return res.data?.chiusureMensili.aggiungiPagamentoFornitoreInChiusura?.pagamentoId ?? null;
+      },
+      updateSupplierPayment: async (row) => {
+        if (row.pagamentoId == null) return;
+        await modificaPagamentoInChiusura({
+          variables: {
+            pagamentoId: row.pagamentoId,
+            importo: row.amount,
+            dataPagamento: parseDateForGraphQL(row.data ?? defaultDate) ?? null,
+            metodoPagamento: row.paymentMethod ?? null,
+            aliquotaIva: row.aliquotaIva ?? null,
+          },
+        });
+        await refetch();
+      },
+      deleteSupplierPayment: async (row) => {
+        if (row.pagamentoId == null) return;
+        await eliminaPagamentoInChiusura({ variables: { pagamentoId: row.pagamentoId } });
+        await refetch();
+      },
+    };
+  }, [
+    chiusuraMensile,
+    defaultDate,
+    aggiungiSpesaLibera,
+    modificaSpesaLibera,
+    eliminaSpesaLiberaMutation,
+    aggiungiPagamentoInChiusura,
+    modificaPagamentoInChiusura,
+    eliminaPagamentoInChiusura,
+    refetch,
+  ]);
 
   const handleEscludiSelezionati = useCallback(async () => {
     if (!chiusuraMensile) return;
@@ -201,72 +322,6 @@ const MonthlyClosureDetails = () => {
     [chiusuraMensile, giorniEsclusiParsed, aggiornaGiorniEsclusi, refetch]
   );
 
-  const handleSaveExpenses = useCallback(async () => {
-    const localSpeseLibere = getGridExpenses();
-
-    try {
-      if (isNewMode) {
-        const result = await creaChiusura({ variables: { anno: newAnno, mese: newMese } });
-        const nuovaChiusura = result.data?.chiusureMensili.creaChiusuraMensile;
-        if (!nuovaChiusura) return;
-
-        for (const expense of localSpeseLibere) {
-          await aggiungiSpesaLibera({
-            variables: {
-              chiusuraId: nuovaChiusura.chiusuraId,
-              descrizione: expense.descrizione,
-              importo: expense.importo,
-              categoria: expense.categoria,
-            },
-          });
-        }
-
-        showToast({ type: "success", position: "bottom-right", message: "Chiusura creata con successo", autoClose: 2000, toastId: "save-success" });
-        navigate(`/gestionale/cassa/chiusura-mensile/${nuovaChiusura.chiusuraId}`, { replace: true });
-        return;
-      }
-
-      if (!chiusuraMensile) return;
-
-      const newExpenses = localSpeseLibere.filter((e) => e.spesaId < 0);
-      for (const expense of newExpenses) {
-        await aggiungiSpesaLibera({
-          variables: {
-            chiusuraId: chiusuraMensile.chiusuraId,
-            descrizione: expense.descrizione,
-            importo: expense.importo,
-            categoria: expense.categoria,
-          },
-        });
-      }
-
-      const serverExpenses = chiusuraMensile.speseLibere;
-      const modifiedExpenses = localSpeseLibere.filter((e) => {
-        if (e.spesaId < 0) return false;
-        const original = serverExpenses.find((s) => s.spesaId === e.spesaId);
-        if (!original) return false;
-        return original.descrizione !== e.descrizione || original.importo !== e.importo || original.categoria !== e.categoria;
-      });
-
-      for (const expense of modifiedExpenses) {
-        await modificaSpesaLibera({
-          variables: { spesaId: expense.spesaId, descrizione: expense.descrizione, importo: expense.importo, categoria: expense.categoria },
-        });
-      }
-
-      const deletedExpenses = serverExpenses.filter((s) => !localSpeseLibere.find((l) => l.spesaId === s.spesaId));
-      for (const expense of deletedExpenses) {
-        await eliminaSpesaLiberaMutation({ variables: { spesaId: expense.spesaId } });
-      }
-
-      showToast({ type: "success", position: "bottom-right", message: "Spese salvate con successo", autoClose: 2000, toastId: "save-success" });
-      refetch();
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Errore nel salvataggio";
-      showToast({ type: "error", position: "bottom-right", message, toastId: "save-error" });
-    }
-  }, [getGridExpenses, isNewMode, chiusuraMensile, creaChiusura, newAnno, newMese, aggiungiSpesaLibera, navigate, modificaSpesaLibera, eliminaSpesaLiberaMutation, refetch]);
-
   const handleChiudiMese = useCallback(async () => {
     if (!chiusuraMensile) return;
     const confirmed = await onConfirm({
@@ -278,7 +333,7 @@ const MonthlyClosureDetails = () => {
     if (!confirmed) return;
 
     try {
-      await handleSaveExpenses();
+      // Le spese/pagamenti sono già persistiti per-riga: qui basta chiudere il mese.
       await chiudiChiusura({ variables: { chiusuraId: chiusuraMensile.chiusuraId } });
       showToast({ type: "success", position: "bottom-right", message: "Mese chiuso con successo", autoClose: 2000, toastId: "close-success" });
       refetch();
@@ -286,7 +341,7 @@ const MonthlyClosureDetails = () => {
       const message = err instanceof Error ? err.message : "Errore nella chiusura del mese";
       showToast({ type: "error", position: "bottom-right", message, toastId: "close-error" });
     }
-  }, [chiusuraMensile, onConfirm, handleSaveExpenses, chiudiChiusura, refetch]);
+  }, [chiusuraMensile, onConfirm, chiudiChiusura, refetch]);
 
   const handleElimina = useCallback(async () => {
     if (!chiusuraMensile) return;
@@ -366,7 +421,15 @@ const MonthlyClosureDetails = () => {
     return <Alert severity="warning">Chiusura non trovata.</Alert>;
   }
 
-  const totaleVendite = (chiusuraMensile.totaleContantiCalcolato ?? 0) + (chiusuraMensile.totaleElettroniciCalcolato ?? 0);
+  const differenzaGestionale = chiusuraMensile.differenzaCalcolata ?? 0;
+  const kpiBanda: { label: string; value: number; negative?: boolean }[] = [
+    { label: "Totale Vendite", value: meseAggregato?.totaleVendite ?? 0 },
+    { label: "Totale Spese", value: chiusuraMensile.totaleSpeseCalcolato ?? 0, negative: true },
+    { label: "Ricavo tracciato", value: meseAggregato?.ricavoTracciato ?? 0 },
+    { label: "Ricavo non tracc.", value: meseAggregato?.ricavoNonTracciato ?? 0 },
+    { label: "Spese tracciate", value: meseAggregato?.speseTracciate ?? 0, negative: true },
+    { label: "Spese non tracc.", value: meseAggregato?.speseNonTracciate ?? 0, negative: true },
+  ];
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "calc(100dvh - 64px)" }}>
@@ -384,16 +447,6 @@ const MonthlyClosureDetails = () => {
             >
               Indietro
             </FormikToolbarButton>
-
-            {isDraft && (
-              <FormikToolbarButton
-                startIcon={<SaveIcon />}
-                disabled={isMutating}
-                onClick={handleSaveExpenses}
-              >
-                Salva
-              </FormikToolbarButton>
-            )}
 
             {isDraft && !isNewMode && (
               <FormikToolbarButton
@@ -453,146 +506,55 @@ const MonthlyClosureDetails = () => {
         )}
 
         <div className="grid grid-cols-12 gap-4">
-          {/* Riepilogo compatto — metriche in strip */}
-          <div className="col-span-8">
+          {/* KPI gestionali (stile Vista mensile) - Differenza in hero + banda a 6 */}
+          <div className="col-span-12">
             <Paper
-              elevation={1}
-              sx={{ p: 2 }}
+              variant="outlined"
+              sx={{ p: 2.5 }}
             >
-              <div className="grid grid-cols-12 gap-4">
-                <div className="col-span-6 sm:col-span-4 md:col-span-2">
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ mb: 0.5 }}
-                  >
-                    Ricavo Netto
-                  </Typography>
-                  <Typography
-                    variant="h5"
-                    fontWeight="bold"
-                    color="primary.main"
-                  >
-                    {`\u20AC ${chiusuraMensile.ricavoNettoCalcolato.toFixed(2)}`}
-                  </Typography>
-                </div>
-                <div className="col-span-6 sm:col-span-4 md:col-span-2">
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ mb: 0.5 }}
-                  >
-                    Totale Vendite
-                  </Typography>
-                  <Typography
-                    variant="h6"
-                    fontWeight="bold"
-                    color="warning.main"
-                  >
-                    {`\u20AC ${totaleVendite.toFixed(2)}`}
-                  </Typography>
-                </div>
-                <div className="col-span-6 sm:col-span-4 md:col-span-2">
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ mb: 0.5 }}
-                  >
-                    Contanti
-                  </Typography>
-                  <Typography
-                    variant="h6"
-                    fontWeight="bold"
-                    color="success.main"
-                  >
-                    {`\u20AC ${chiusuraMensile.totaleContantiCalcolato.toFixed(2)}`}
-                  </Typography>
-                </div>
-                <div className="col-span-6 sm:col-span-4 md:col-span-2">
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ mb: 0.5 }}
-                  >
-                    Elettronici
-                  </Typography>
-                  <Typography
-                    variant="h6"
-                    fontWeight="bold"
-                    color="success.main"
-                  >
-                    {`\u20AC ${chiusuraMensile.totaleElettroniciCalcolato.toFixed(2)}`}
-                  </Typography>
-                </div>
-                <div className="col-span-6 sm:col-span-4 md:col-span-2">
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ mb: 0.5 }}
-                  >
-                    Fatture
-                  </Typography>
-                  <Typography
-                    variant="h6"
-                    fontWeight="bold"
-                  >
-                    {`\u20AC ${chiusuraMensile.totaleFattureCalcolato.toFixed(2)}`}
-                  </Typography>
-                </div>
-                <div className="col-span-6 sm:col-span-4 md:col-span-2">
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ mb: 0.5 }}
-                  >
-                    Spese
-                  </Typography>
-                  <Typography
-                    variant="h6"
-                    fontWeight="bold"
-                    color="error.main"
-                  >
-                    {`-\u20AC ${chiusuraMensile.speseAggiuntiveCalcolate.toFixed(2)}`}
-                  </Typography>
-                </div>
-              </div>
-
-              {/* Sub-dettaglio fiscale */}
-              <Divider sx={{ my: 1.5 }} />
-              <Box sx={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 1, mb: 2 }}>
                 <Typography
-                  variant="body2"
-                  color="text.secondary"
+                  variant="subtitle1"
+                  fontWeight={600}
                 >
-                  Lordo: {`\u20AC ${chiusuraMensile.totaleLordoCalcolato.toFixed(2)}`}
+                  {`KPI gestionali · ${dayjs().month((mese || 1) - 1).format("MMMM")} ${anno}`}
                 </Typography>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                >
-                  Imponibile: {`\u20AC ${chiusuraMensile.totaleImponibileCalcolato.toFixed(2)}`}
-                </Typography>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                >
-                  IVA: {`\u20AC ${chiusuraMensile.totaleIvaCalcolato.toFixed(2)}`}
-                </Typography>
-                {chiusuraMensile.totaleDifferenzeCassaCalcolato !== 0 && (
-                  <Typography
-                    variant="body2"
-                    color={chiusuraMensile.totaleDifferenzeCassaCalcolato < 0 ? "error.main" : "success.main"}
-                  >
-                    Differenze cassa: {`\u20AC ${chiusuraMensile.totaleDifferenzeCassaCalcolato.toFixed(2)}`}
-                  </Typography>
-                )}
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                >
-                  {registriInclusi.length} registri inclusi
-                  {giorniEsclusiParsed.length > 0 && ` \u00B7 ${giorniEsclusiParsed.length} giorni esclusi`}
-                </Typography>
+                <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
+                  <Chip
+                    label={`${registriInclusi.length} registri inclusi`}
+                    size="small"
+                    variant="outlined"
+                  />
+                  {giorniEsclusiParsed.length > 0 && (
+                    <Chip
+                      label={`${giorniEsclusiParsed.length} giorni esclusi`}
+                      size="small"
+                      variant="outlined"
+                    />
+                  )}
+                </Box>
+              </Box>
+              <Box sx={{ display: "flex", gap: 2.5, flexWrap: "wrap", alignItems: "stretch" }}>
+                {/* Hero: la Differenza e' l'unico numero grande della pagina */}
+                <Box sx={{ flex: "1 1 300px", maxWidth: { md: 380 } }}>
+                  <KPICard
+                    variant="hero"
+                    label="Differenza"
+                    value={differenzaGestionale}
+                    color={differenzaGestionale >= 0 ? palette.netto : palette.spese}
+                  />
+                </Box>
+                {/* Banda a 6 KPI gestionali */}
+                <Box sx={{ flex: "2 1 380px", display: "flex", flexWrap: "wrap", gap: { xs: 1, sm: 1.5 }, alignItems: "stretch" }}>
+                  {kpiBanda.map((kpi) => (
+                    <KPICard
+                      key={kpi.label}
+                      label={kpi.label}
+                      value={kpi.value}
+                      negative={kpi.negative}
+                    />
+                  ))}
+                </Box>
               </Box>
             </Paper>
           </div>
@@ -655,54 +617,16 @@ const MonthlyClosureDetails = () => {
             </div>
           )}
 
-          {/* Spese Mensili Libere */}
+          {/* Spese e pagamenti fornitori (griglia unificata in stile cassa) */}
           <div className="col-span-12">
-            <MonthlyExpensesDataGrid
-              ref={expensesGridRef}
-              expenses={chiusuraMensile?.speseLibere ?? []}
-              readOnly={isReadOnly}
+            <SpeseDataGrid
+              initialExpenses={gridExpenses}
+              isLocked={isReadOnly}
+              date={defaultDate}
+              columns={{ showData: true, showCategoria: true, categoriaOptions: ["Affitto", "Utenze", "Stipendi", "Altro"], showGiornale: false }}
+              persistence={isReadOnly ? undefined : persistence}
             />
           </div>
-
-          {/* Pagamenti Fornitori Inclusi */}
-          {chiusuraMensile.pagamentiInclusi.length > 0 && (
-            <div className="col-span-12">
-              <Paper
-                elevation={1}
-                sx={{ p: 2 }}
-              >
-                <Typography
-                  variant="subtitle1"
-                  fontWeight="bold"
-                  gutterBottom
-                >
-                  Pagamenti Fornitori ({chiusuraMensile.pagamentiInclusi.length})
-                </Typography>
-                <TableContainer>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Data Pagamento</TableCell>
-                        <TableCell align="right">Importo</TableCell>
-                        <TableCell>Metodo</TableCell>
-                        <TableCell>Note</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {chiusuraMensile.pagamentiInclusi.map((pi) => (
-                        <TableRow key={pi.pagamentoId}>
-                          <TableCell>{dayjs(pi.pagamento.dataPagamento).format("DD/MM/YYYY")}</TableCell>
-                          <TableCell align="right">{`\u20AC ${pi.pagamento.importo.toFixed(2)}`}</TableCell>
-                          <TableCell>{pi.pagamento.metodoPagamento || "-"}</TableCell>
-                          <TableCell>{pi.pagamento.note || "-"}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Paper>
-            </div>
-          )}
 
           {/* Info chiusura */}
           {chiusuraMensile.stato !== statoChiusuraMensile.BOZZA && chiusuraMensile.chiusaDaUtente && (

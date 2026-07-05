@@ -58,6 +58,23 @@ public class ChiusuraMensileType : ObjectGraphType<ChiusuraMensile>
             .Description("Totale differenze di cassa aggregate dai registri giornalieri")
             .Resolve(context => context.Source.TotaleDifferenzeCassaCalcolato);
 
+        // ✅ CAMPI CALCOLATI GESTIONALI ANTI-DOPPIO-CONTEGGIO (headline vista chiusura)
+        Field<DecimalGraphType>("speseAggiuntiveNonDuplicateCalcolate")
+            .Description("Spese libere + pagamenti fornitori NON già conteggiati nei registri inclusi (anti-doppio-conteggio)")
+            .Resolve(context => context.Source.SpeseAggiuntiveNonDuplicateCalcolate);
+
+        Field<DecimalGraphType>("totaleSpeseCalcolato")
+            .Description("Totale spese gestionale: spese dei registri inclusi (tracciate + non tracciate) + spese aggiuntive non duplicate")
+            .Resolve(context => context.Source.TotaleSpeseCalcolato);
+
+        Field<DecimalGraphType>("differenzaCalcolata")
+            .Description("Differenza gestionale: totale vendite registri inclusi - totale spese calcolato")
+            .Resolve(context => context.Source.DifferenzaCalcolata);
+
+        Field<ListGraphType<StringGraphType>>("avvisiCompletezza")
+            .Description("Avvisi non bloccanti di completezza rilevati alla chiusura (registri/pagamenti del mese non inclusi)")
+            .Resolve(context => context.Source.AvvisiCompletezza);
+
         Field("giorniEsclusi", x => x.GiorniEsclusi, nullable: true);
 
         Field("stato", x => x.Stato);

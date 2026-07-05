@@ -7,6 +7,7 @@ export const spesaMensileLiberaFragment = gql`
     descrizione
     importo
     categoria
+    data
     createdAt
     updatedAt
   }
@@ -26,6 +27,10 @@ export const registroCassaMensileFragment = gql`
       incassiFattura
       differenza
       stato
+      totaleApertura
+      totaleChiusura
+      speseFornitori
+      speseGiornaliere
     }
   }
 `;
@@ -41,6 +46,9 @@ export const pagamentoMensileFornitoriFragment = gql`
       importo
       metodoPagamento
       note
+      registroCassaId
+      fatturaId
+      ddtId
     }
   }
 `;
@@ -61,6 +69,11 @@ export const chiusuraMensileFragment = gql`
     totaleImponibileCalcolato
     totaleLordoCalcolato
     totaleDifferenzeCassaCalcolato
+
+    speseAggiuntiveNonDuplicateCalcolate
+    totaleSpeseCalcolato
+    differenzaCalcolata
+    avvisiCompletezza
 
     giorniEsclusi
 

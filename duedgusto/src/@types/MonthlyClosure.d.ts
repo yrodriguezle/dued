@@ -21,8 +21,29 @@ type SpesaMensileLibera = {
   descrizione: string;
   importo: number;
   categoria: CategoriaSpesa;
+  // Giorno di competenza della spesa nel mese della chiusura (nullable).
+  data: string | null;
   createdAt: string;
   updatedAt: string;
+};
+
+// Sottoinsieme dei campi del registro cassa esposti sulla chiusura mensile
+// (fragment RegistroCassaMensileFragment). Contiene tutti i campi necessari a
+// `aggregaRegistriPerMese` per calcolare i KPI gestionali della chiusura.
+type RegistroCassaMensileRidotto = {
+  __typename?: "RegistroCassa";
+  id: number;
+  data: string;
+  totaleVendite: number;
+  incassoContanteTracciato: number;
+  incassiElettronici: number;
+  incassiFattura: number;
+  differenza: number;
+  stato: StatoRegistroCassa;
+  totaleApertura: number;
+  totaleChiusura: number;
+  speseFornitori: number;
+  speseGiornaliere: number;
 };
 
 type RegistroCassaMensile = {
@@ -30,7 +51,7 @@ type RegistroCassaMensile = {
   chiusuraId: number;
   registroId: number;
   incluso: boolean;
-  registro: CashRegister;
+  registro: RegistroCassaMensileRidotto;
 };
 
 type PagamentoMensileFornitori = {
@@ -44,6 +65,10 @@ type PagamentoMensileFornitori = {
     importo: number;
     metodoPagamento: string | null;
     note: string | null;
+    // null = origine-chiusura (editabile), valorizzato = origine cassa (read-only)
+    registroCassaId: number | null;
+    fatturaId: number | null;
+    ddtId: number | null;
   };
 };
 
@@ -64,6 +89,13 @@ type ChiusuraMensile = {
   totaleImponibileCalcolato: number;
   totaleLordoCalcolato: number;
   totaleDifferenzeCassaCalcolato: number;
+
+  // Campi calcolati gestionali anti-doppio-conteggio (headline vista chiusura)
+  speseAggiuntiveNonDuplicateCalcolate: number;
+  totaleSpeseCalcolato: number;
+  differenzaCalcolata: number;
+  // Avvisi non bloccanti valorizzati solo nel payload di chiudiChiusuraMensile
+  avvisiCompletezza: string[] | null;
 
   // Relazioni
   registriInclusi: RegistroCassaMensile[];
