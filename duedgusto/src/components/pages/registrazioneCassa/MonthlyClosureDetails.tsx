@@ -59,6 +59,7 @@ import MonthlyClosureReport from "./MonthlyClosureReport";
 import KPICard from "../../common/KPICard";
 import useChartPalette from "./dashboard/useChartPalette";
 import { MESI_LABEL } from "./dashboard/dashboardUtils";
+import formatCurrency from "../../../common/bones/formatCurrency";
 import { aggregaRegistriPerMese } from "../../../common/registroCassa/aggregaRegistri";
 import { parseDateForGraphQL } from "../../../common/date/date";
 
@@ -419,6 +420,9 @@ const MonthlyClosureDetails = () => {
   }
 
   const differenzaGestionale = chiusuraMensile.differenzaCalcolata ?? 0;
+  // Differenze per canale (sui soli registri inclusi): ricavo - spese, per tracciato/non tracciato.
+  const differenzaTracciata = (meseAggregato?.ricavoTracciato ?? 0) - (meseAggregato?.speseTracciate ?? 0);
+  const differenzaNonTracciata = (meseAggregato?.ricavoNonTracciato ?? 0) - (meseAggregato?.speseNonTracciate ?? 0);
   const kpiBanda: { label: string; value: number; negative?: boolean }[] = [
     { label: "Totale Vendite", value: meseAggregato?.totaleVendite ?? 0 },
     { label: "Totale Spese", value: chiusuraMensile.totaleSpeseCalcolato ?? 0, negative: true },
@@ -538,7 +542,7 @@ const MonthlyClosureDetails = () => {
                   variant="subtitle1"
                   fontWeight={600}
                 >
-                  {`KPI gestionali · ${MESI_LABEL[(mese || 1) - 1]} ${anno}`}
+                  {`${MESI_LABEL[(mese || 1) - 1]} ${anno}`}
                 </Typography>
                 <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
                   <Chip
@@ -555,27 +559,42 @@ const MonthlyClosureDetails = () => {
                   )}
                 </Box>
               </Box>
-              <Box sx={{ display: "flex", gap: 2.5, flexWrap: "wrap", alignItems: "stretch" }}>
-                {/* Hero: la Differenza e' l'unico numero grande della pagina */}
-                <Box sx={{ flex: "1 1 300px", maxWidth: { md: 380 } }}>
+              {/* Tutti i KPI su una sola riga: 3 differenze (un po' più grandi) + 6 componenti */}
+              <Box sx={{ display: "flex", flexWrap: "nowrap", gap: 1.5, alignItems: "stretch", overflowX: "auto", pb: 1 }}>
+                {[
+                  { label: "Differenza", value: differenzaGestionale },
+                  { label: "Differenza tracciata", value: differenzaTracciata },
+                  { label: "Differenza non tracc.", value: differenzaNonTracciata },
+                ].map((d) => (
+                  <Paper
+                    key={d.label}
+                    variant="outlined"
+                    sx={{ flexShrink: 0, p: 1.25, width: 150, textAlign: "center", display: "flex", flexDirection: "column", justifyContent: "center", gap: 0.25 }}
+                  >
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      noWrap
+                    >
+                      {d.label}
+                    </Typography>
+                    <Typography
+                      variant="h5"
+                      fontWeight="bold"
+                      sx={{ fontVariantNumeric: "tabular-nums", color: d.value >= 0 ? palette.netto : palette.spese }}
+                    >
+                      {`€ ${formatCurrency(d.value)}`}
+                    </Typography>
+                  </Paper>
+                ))}
+                {kpiBanda.map((kpi) => (
                   <KPICard
-                    variant="hero"
-                    label="Differenza"
-                    value={differenzaGestionale}
-                    color={differenzaGestionale >= 0 ? palette.netto : palette.spese}
+                    key={kpi.label}
+                    label={kpi.label}
+                    value={kpi.value}
+                    negative={kpi.negative}
                   />
-                </Box>
-                {/* Banda a 6 KPI gestionali */}
-                <Box sx={{ flex: "2 1 380px", display: "flex", flexWrap: "wrap", gap: { xs: 1, sm: 1.5 }, alignItems: "stretch" }}>
-                  {kpiBanda.map((kpi) => (
-                    <KPICard
-                      key={kpi.label}
-                      label={kpi.label}
-                      value={kpi.value}
-                      negative={kpi.negative}
-                    />
-                  ))}
-                </Box>
+                ))}
               </Box>
             </Paper>
           </div>
