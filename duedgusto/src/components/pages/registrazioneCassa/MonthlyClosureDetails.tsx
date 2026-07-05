@@ -420,9 +420,12 @@ const MonthlyClosureDetails = () => {
   }
 
   const differenzaGestionale = chiusuraMensile.differenzaCalcolata ?? 0;
-  // Differenze per canale (sui soli registri inclusi): ricavo - spese, per tracciato/non tracciato.
-  const differenzaTracciata = (meseAggregato?.ricavoTracciato ?? 0) - (meseAggregato?.speseTracciate ?? 0);
+  // Le tre differenze quadrano: totale (autorevole, comprende le spese di chiusura)
+  // = tracciata + non tracciata. La non tracciata è dei registri (ricavo − spese non
+  // tracciate); la tracciata è il residuo e assorbe le spese di chiusura, che sono
+  // documentate (fatture/DDT/spese libere) e quindi pesano sul lato tracciato.
   const differenzaNonTracciata = (meseAggregato?.ricavoNonTracciato ?? 0) - (meseAggregato?.speseNonTracciate ?? 0);
+  const differenzaTracciata = differenzaGestionale - differenzaNonTracciata;
   const kpiBanda: { label: string; value: number; negative?: boolean }[] = [
     { label: "Totale Vendite", value: meseAggregato?.totaleVendite ?? 0 },
     { label: "Totale Spese", value: chiusuraMensile.totaleSpeseCalcolato ?? 0, negative: true },

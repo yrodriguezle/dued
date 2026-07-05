@@ -61,7 +61,8 @@ const mockUseQueryValidaCompletezzaRegistri = vi.mocked(useQueryValidaCompletezz
 // Registro incluso a maggio 2026 con valori scelti per KPI aggregati deterministici:
 // - totaleVendite 1000 → "Totale Vendite" = 1.000,00
 // - contante 300 + elettronici 200 + fatture 100 → "Ricavo tracciato" = 600,00
-// - movimentoCassa (chiusura 300 - apertura 0) - contante 300 = 0 → "Ricavo non tracc." = 0,00
+// - movimentoCassa (chiusura 700 - apertura 0) - contante 300 = 400 → "Ricavo non tracc." = 400,00
+//   (600 tracciato + 400 non tracciato = 1000 = Totale Vendite: i ricavi quadrano)
 // - speseFornitori 150 → "Spese tracciate" = 150,00
 // - speseGiornaliere 50 → "Spese non tracc." = 50,00
 function makeRegistroIncluso(overrides: Record<string, unknown> = {}, incluso = true) {
@@ -81,7 +82,7 @@ function makeRegistroIncluso(overrides: Record<string, unknown> = {}, incluso = 
       differenza: 0,
       stato: "CLOSED",
       totaleApertura: 0,
-      totaleChiusura: 300,
+      totaleChiusura: 700,
       speseFornitori: 150,
       speseGiornaliere: 50,
       ...overrides,
@@ -185,6 +186,10 @@ describe("MonthlyClosureDetails (smoke)", () => {
     expect(screen.getByText("Ricavo non tracc.")).toBeInTheDocument();
     expect(screen.getByText("Spese tracciate")).toBeInTheDocument();
     expect(screen.getByText("Spese non tracc.")).toBeInTheDocument();
+
+    // Le tre differenze quadrano: totale (800) = tracciata (450) + non tracciata (350)
+    expect(screen.getByText("€ 450,00")).toBeInTheDocument(); // Differenza tracciata
+    expect(screen.getByText("€ 350,00")).toBeInTheDocument(); // Differenza non tracc.
 
     // La strip fiscale (Ricavo Netto) è stata sostituita: non deve più comparire
     expect(screen.queryByText("Ricavo Netto")).not.toBeInTheDocument();
