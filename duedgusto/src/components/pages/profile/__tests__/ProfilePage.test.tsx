@@ -84,6 +84,7 @@ const mockUtente: Utente = {
   descrizione: "Descrizione test",
   disabilitato: false,
   ruoloId: 1,
+  preferenzaDragModale: "free",
   ruolo: { __typename: "Ruolo", id: 1, nome: "Amministratore", descrizione: "Admin" } as Ruolo,
   menus: [],
 };
@@ -276,6 +277,80 @@ describe("ProfilePage", () => {
             cognome: "Rossi",
             descrizione: "Nuova descrizione",
             ruoloId: 1,
+          }),
+        },
+      });
+    });
+  });
+
+  // ── Preferenza drag modale ──
+
+  it("il RadioGroup riflette la preferenza corrente dallo store (elastic)", () => {
+    setupStore({ ...mockUtente, preferenzaDragModale: "elastic" });
+    renderProfilePage();
+
+    const freeRadio = screen.getByRole("radio", { name: "Resta dove la lasci" });
+    const elasticRadio = screen.getByRole("radio", { name: "Torna al centro" });
+
+    expect(elasticRadio).toBeChecked();
+    expect(freeRadio).not.toBeChecked();
+  });
+
+  it("cambiando il selettore a 'elastic' e salvando invia preferenzaDragModale='elastic' e aggiorna lo store", async () => {
+    const user = userEvent.setup();
+    const utenteElastic = { ...mockUtente, preferenzaDragModale: "elastic" as const };
+    const mutate = vi.fn(async () => ({ data: { authentication: { mutateUtente: utenteElastic } } }));
+    mockUseMutation.mockImplementation((_, options) => {
+      const wrapped = vi.fn(async (...args: unknown[]) => {
+        const res = await mutate(...(args as []));
+        options?.onCompleted?.(res.data as never);
+        return res;
+      });
+      return [wrapped, { loading: false, data: undefined, error: undefined } as never];
+    });
+
+    renderProfilePage();
+
+    const elasticRadio = screen.getByRole("radio", { name: "Torna al centro" });
+    await user.click(elasticRadio);
+
+    const salvaButton = screen.getByText("Salva");
+    await user.click(salvaButton);
+
+    await waitFor(() => {
+      expect(mutate).toHaveBeenCalledWith({
+        variables: {
+          utente: expect.objectContaining({
+            id: 1,
+            preferenzaDragModale: "elastic",
+          }),
+        },
+      });
+    });
+
+    expect(mockReceiveUtente).toHaveBeenCalledWith(expect.objectContaining({ preferenzaDragModale: "elastic" }));
+  });
+
+  it("salvando altri campi senza toccare il selettore preserva preferenzaDragModale nelle variables", async () => {
+    const user = userEvent.setup();
+    setupStore({ ...mockUtente, preferenzaDragModale: "elastic" });
+    const mutate = vi.fn(async () => ({ data: null }));
+    mockUseMutation.mockImplementation(() => [mutate, { loading: false, data: undefined, error: undefined } as never]);
+
+    renderProfilePage();
+
+    const descrizioneInput = screen.getByLabelText("Descrizione");
+    await user.clear(descrizioneInput);
+    await user.type(descrizioneInput, "Solo descrizione");
+
+    const salvaButton = screen.getByText("Salva");
+    await user.click(salvaButton);
+
+    await waitFor(() => {
+      expect(mutate).toHaveBeenCalledWith({
+        variables: {
+          utente: expect.objectContaining({
+            preferenzaDragModale: "elastic",
           }),
         },
       });

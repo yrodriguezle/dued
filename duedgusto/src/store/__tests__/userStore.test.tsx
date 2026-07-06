@@ -24,6 +24,7 @@ describe("userStore", () => {
       descrizione: "Amministratore",
       disabilitato: false,
       ruoloId: 1,
+      preferenzaDragModale: "free",
       ruolo: { __typename: "Ruolo", id: 1, nome: "Admin", descrizione: "Amministratore" } as Ruolo,
       menus: [],
     };
@@ -49,6 +50,7 @@ describe("userStore", () => {
       descrizione: "Cassiere",
       disabilitato: false,
       ruoloId: 2,
+      preferenzaDragModale: "free",
       ruolo: { __typename: "Ruolo", id: 2, nome: "Cassiere", descrizione: "Cassiere" } as Ruolo,
       menus: [
         {
@@ -85,6 +87,7 @@ describe("userStore", () => {
       descrizione: "Admin",
       disabilitato: false,
       ruoloId: 1,
+      preferenzaDragModale: "free",
       ruolo: { __typename: "Ruolo", id: 1, nome: "Admin", descrizione: "Admin" } as Ruolo,
       menus: [],
     };
@@ -107,6 +110,7 @@ describe("userStore", () => {
       descrizione: "Admin",
       disabilitato: false,
       ruoloId: 1,
+      preferenzaDragModale: "free",
       ruolo: { __typename: "Ruolo", id: 1, nome: "Admin", descrizione: "Admin" } as Ruolo,
       menus: [],
     };
@@ -119,6 +123,7 @@ describe("userStore", () => {
       descrizione: "Cassiere",
       disabilitato: false,
       ruoloId: 2,
+      preferenzaDragModale: "free",
       ruolo: { __typename: "Ruolo", id: 2, nome: "Cassiere", descrizione: "Cassiere" } as Ruolo,
       menus: [],
     };

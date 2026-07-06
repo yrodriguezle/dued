@@ -17,6 +17,8 @@ public class UtenteType : ObjectGraphType<Utente>
         Field(x => x.Descrizione, typeof(StringGraphType));
         Field(x => x.Disabilitato, typeof(BooleanGraphType));
         Field(x => x.RuoloId, typeof(IntGraphType));
+        // Preferenza per-utente della modalita' di drag della modale: sempre valorizzata ("free" | "elastic")
+        Field(x => x.PreferenzaDragModale, typeof(NonNullGraphType<StringGraphType>));
         Field<RuoloType>("ruolo")
             .Resolve(context => context.GetRuoloById(context.Source.RuoloId));
         Field<ListGraphType<MenuType>>("menus")

@@ -14,4 +14,6 @@ public class Utente
     public required byte[] Salt { get; set; }
     public int RuoloId { get; set; }
     public Ruolo Ruolo { get; set; } = null!;
+    // Preferenza per-utente della modalita' di drag della modale: "free" | "elastic" (default "free")
+    public string PreferenzaDragModale { get; set; } = "free";
 }

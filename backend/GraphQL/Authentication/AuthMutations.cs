@@ -16,6 +16,16 @@ namespace duedgusto.GraphQL.Authentication;
 
 public class AuthMutations : ObjectGraphType
 {
+    // Whitelist dei valori ammessi per la preferenza di drag della modale
+    private static readonly HashSet<string> DragModesAmmessi = new() { "free", "elastic" };
+
+    // Whitelist + fallback: restituisce il valore solo se la chiave e' presente e in whitelist, altrimenti "free"
+    private static string ParseDragMode(Dictionary<string, object> arg) =>
+        arg.ContainsKey("preferenzaDragModale")
+        && arg["preferenzaDragModale"]?.ToString() is string v
+        && DragModesAmmessi.Contains(v)
+            ? v : "free";
+
     public AuthMutations()
     {
         Field<RuoloType, Ruolo>("mutateRuolo")
@@ -157,6 +167,12 @@ public class AuthMutations : ObjectGraphType
                     existingUser.Disabilitato = userArg.ContainsKey("disabilitato") ? Convert.ToBoolean(userArg["disabilitato"]) : false;
                     existingUser.RuoloId = Convert.ToInt32(userArg["ruoloId"]);
 
+                    // Aggiorna la preferenza SOLO se la chiave e' presente, per non sovrascrivere il valore corrente
+                    if (userArg.ContainsKey("preferenzaDragModale"))
+                    {
+                        existingUser.PreferenzaDragModale = ParseDragMode(userArg);
+                    }
+
                     // Se è fornita una nuova password, aggiorna hash e salt
                     if (!string.IsNullOrEmpty(password))
                     {
@@ -186,6 +202,8 @@ public class AuthMutations : ObjectGraphType
                         Descrizione = userArg.ContainsKey("descrizione") ? userArg["descrizione"]?.ToString() : null,
                         Disabilitato = userArg.ContainsKey("disabilitato") ? Convert.ToBoolean(userArg["disabilitato"]) : false,
                         RuoloId = Convert.ToInt32(userArg["ruoloId"]),
+                        // In create applica il valore fornito oppure il default "free" se assente/fuori whitelist
+                        PreferenzaDragModale = ParseDragMode(userArg),
                         Hash = hash,
                         Salt = salt
                     };

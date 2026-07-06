@@ -17,5 +17,7 @@ public class UtenteInputType : InputObjectGraphType
         Field<BooleanGraphType>("disabilitato");
         Field<NonNullGraphType<IntGraphType>>("ruoloId");
         Field<StringGraphType>("password");
+        // Opzionale: se omesso in update non altera il valore corrente; in create applica il default "free"
+        Field<StringGraphType>("preferenzaDragModale");
     }
 }

@@ -66,6 +66,13 @@ public class AppDbContext : DbContext
             entity.Property(x => x.Id)
                 .ValueGeneratedOnAdd();
 
+            // Colonna varchar(20) NOT NULL con default schema "free": gli utenti esistenti
+            // ereditano "free" alla migration senza backfill manuale.
+            entity.Property(x => x.PreferenzaDragModale)
+                .IsRequired()
+                .HasMaxLength(20)
+                .HasDefaultValue("free");
+
             entity.HasOne(x => x.Ruolo)
                 .WithMany(r => r.Utenti)
                 .HasForeignKey(x => x.RuoloId)

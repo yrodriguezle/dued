@@ -1,5 +1,5 @@
 import { useContext, useEffect, useRef, useCallback, useMemo } from "react";
-import { Box, Paper, Typography, Avatar, Chip, CircularProgress, Alert, Container } from "@mui/material";
+import { Box, Paper, Typography, Avatar, Chip, CircularProgress, Alert, Container, RadioGroup, FormControlLabel, Radio } from "@mui/material";
 import { Formik, Form, FormikProps } from "formik";
 import { z } from "zod";
 import { toast } from "react-toastify";
@@ -22,6 +22,7 @@ const profileSchema = z
     descrizione: z.string().optional(),
     ruoloId: z.number(),
     disabilitato: z.boolean(),
+    preferenzaDragModale: z.enum(["free", "elastic"]),
     password: z.string().optional(),
     confirmPassword: z.string().optional(),
   })
@@ -73,6 +74,7 @@ function ProfilePage() {
       descrizione: utente?.descrizione ?? "",
       ruoloId: utente?.ruoloId ?? 0,
       disabilitato: utente?.disabilitato ?? false,
+      preferenzaDragModale: utente?.preferenzaDragModale ?? "free",
       password: "",
       confirmPassword: "",
     }),
@@ -97,6 +99,7 @@ function ProfilePage() {
             descrizione: values.descrizione || "",
             disabilitato: values.disabilitato,
             ruoloId: values.ruoloId,
+            preferenzaDragModale: values.preferenzaDragModale,
             password: values.password || undefined,
           },
         },
@@ -151,7 +154,7 @@ function ProfilePage() {
       onSubmit={handleSubmit}
       initialStatus={{ formStatus: formStatuses.UPDATE, isFormLocked: false }}
     >
-      {() => (
+      {({ values, setFieldValue }) => (
         <Form style={{ display: "flex", flexDirection: "column", height: "calc(100dvh - 48px)" }}>
           <FormikToolbar
             hideUnlockButton
@@ -309,6 +312,44 @@ function ProfilePage() {
                     />
                   </div>
                 </div>
+              </Paper>
+
+              {/* Sezione: Preferenze */}
+              <Paper
+                variant="outlined"
+                sx={{ p: 2.5, mb: 2.5 }}
+              >
+                <Typography
+                  variant="subtitle1"
+                  fontWeight={600}
+                  sx={{ mb: 1 }}
+                >
+                  Preferenze
+                </Typography>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mb: 2 }}
+                >
+                  Comportamento delle finestre di dialogo quando le trascini.
+                </Typography>
+                <RadioGroup
+                  aria-label="Modalità di trascinamento delle finestre"
+                  name="preferenzaDragModale"
+                  value={values.preferenzaDragModale}
+                  onChange={(event) => setFieldValue("preferenzaDragModale", event.target.value)}
+                >
+                  <FormControlLabel
+                    value="free"
+                    control={<Radio />}
+                    label="Resta dove la lasci"
+                  />
+                  <FormControlLabel
+                    value="elastic"
+                    control={<Radio />}
+                    label="Torna al centro"
+                  />
+                </RadioGroup>
               </Paper>
 
             </Box>

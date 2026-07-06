@@ -82,6 +82,7 @@ describe("useStore (root store)", () => {
       descrizione: "Admin",
       disabilitato: false,
       ruoloId: 1,
+      preferenzaDragModale: "free",
       ruolo: { __typename: "Ruolo", id: 1, nome: "Admin", descrizione: "Admin" } as Ruolo,
       menus: [],
     };

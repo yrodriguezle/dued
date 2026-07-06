@@ -22,6 +22,12 @@ vi.mock("../../../../common/toast/showToast", () => ({
   default: vi.fn(),
 }));
 
+// AppDialog legge la preferenza drag dallo userStore tramite useDragModePreference:
+// lo mockiamo per isolare il test dal wiring dello store (default "free").
+vi.mock("../../../common/dialog/useDragModePreference", () => ({
+  default: vi.fn(() => "free"),
+}));
+
 // ── Import dopo i mock ─────────────────────────────────────────────────
 
 import PagamentoFornitoreDialog from "../PagamentoFornitoreDialog";

@@ -12,6 +12,7 @@ export const utenteFragment = `
     descrizione
     disabilitato
     ruoloId
+    preferenzaDragModale
     ruolo { ...RuoloFragment }
     menus { ...MenuFragment }
   }`;

@@ -14,6 +14,7 @@ export interface UtenteInput {
   descrizione: string;
   disabilitato: boolean;
   ruoloId: number;
+  preferenzaDragModale?: DragModePreference;
   password?: string;
 }
 

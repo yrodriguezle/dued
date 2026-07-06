@@ -43,7 +43,8 @@ public static class SeedTestUser
             Hash = hash,
             Salt = salt,
             RuoloId = superAdminRole.Id,
-            Ruolo = superAdminRole
+            Ruolo = superAdminRole,
+            PreferenzaDragModale = "free"
         };
 
         dbContext.Utenti.Add(testUser);
