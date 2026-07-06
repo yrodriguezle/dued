@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using duedgusto.DataAccess;
 using duedgusto.Models;
 using duedgusto.Repositories.Interfaces;
 
@@ -73,5 +74,44 @@ public class RegistroCassaSyncService
     public static bool IsRegisterCreatedPayment(PagamentoFornitore payment)
     {
         return payment.Note != null && payment.Note.Contains("Pagamento da registro cassa");
+    }
+
+    /// <summary>
+    /// Auto-elimina un registro "leggero" rimasto vuoto (Decision 3). Un <see cref="RegistroCassa"/>
+    /// in stato DRAFT viene rimosso quando, dopo una cancellazione o uno spostamento di riga, non ha
+    /// più: SpeseCassa, PagamentiFornitori, Vendite, ConteggiMoneta né totali apertura/chiusura impostati.
+    /// Idempotente e sicuro: se una qualunque condizione non è soddisfatta non elimina nulla.
+    /// Ritorna <c>true</c> se il registro è stato eliminato.
+    /// </summary>
+    public async Task<bool> CleanupRegistroLeggeroVuotoAsync(int registroCassaId)
+    {
+        AppDbContext db = _unitOfWork.Context;
+
+        RegistroCassa? registro = await db.RegistriCassa
+            .FirstOrDefaultAsync(r => r.Id == registroCassaId);
+
+        if (registro == null)
+            return false;
+
+        // Solo i registri in bozza sono eliminabili (coerente con EliminaRegistroCassaOrchestrator).
+        if (!string.Equals(registro.Stato, "DRAFT", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        // Totali apertura/chiusura impostati → il registro è operativo, non "leggero".
+        if (registro.TotaleApertura != 0 || registro.TotaleChiusura != 0)
+            return false;
+
+        bool haContenuto =
+            await db.SpeseCassa.AnyAsync(s => s.RegistroCassaId == registroCassaId)
+            || await db.PagamentiFornitori.AnyAsync(p => p.RegistroCassaId == registroCassaId)
+            || await db.Vendite.AnyAsync(v => v.RegistroCassaId == registroCassaId)
+            || await db.ConteggiMoneta.AnyAsync(c => c.RegistroCassaId == registroCassaId);
+
+        if (haContenuto)
+            return false;
+
+        db.RegistriCassa.Remove(registro);
+        await _unitOfWork.SaveChangesAsync();
+        return true;
     }
 }

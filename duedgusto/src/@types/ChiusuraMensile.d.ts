@@ -1,4 +1,4 @@
-// src/@types/MonthlyClosure.d.ts
+// src/@types/ChiusuraMensile.d.ts
 
 type CodiceMotivo = "ATTIVITA_NON_AVVIATA" | "CHIUSURA_PROGRAMMATA" | "EVENTO_ECCEZIONALE";
 
@@ -14,9 +14,42 @@ type GiornoEscluso = {
 
 type StatoChiusuraMensile = "BOZZA" | "CHIUSA" | "RICONCILIATA";
 
+// Fattura minima esposta sui pagamenti fornitore della chiusura mensile
+// (campi necessari a ricostruire la riga griglia CON fattura).
+type FatturaChiusuraRidotta = {
+  fatturaId: number;
+  numeroFattura: string;
+  dataFattura?: string;
+  imponibile?: number;
+  totaleConIva?: number | null;
+  stato?: string;
+  fornitore: {
+    fornitoreId: number;
+    ragioneSociale: string;
+    aliquotaIva?: number | null;
+  };
+};
+
+// Pagamento fornitore per-riga esposto sulla chiusura mensile. `registroCassaId`
+// distingue l'origine: registro leggero della chiusura (editabile) vs registro
+// operativo (read-only). `fatturaId`/`ddtId` servono ad aggiornare la riga.
+type PagamentoFornitoreChiusura = {
+  pagamentoId: number;
+  dataPagamento?: string;
+  importo: number;
+  categoria?: CategoriaSpesa | null;
+  metodoPagamento?: string | null;
+  fatturaId?: number | null;
+  ddtId?: number | null;
+  registroCassaId?: number | null;
+  note?: string | null;
+  fattura?: FatturaChiusuraRidotta | null;
+};
+
 // Sottoinsieme dei campi del registro cassa esposti sulla chiusura mensile
 // (fragment RegistroCassaMensileFragment). Contiene tutti i campi necessari a
-// `aggregaRegistriPerMese` per calcolare i KPI gestionali della chiusura.
+// `aggregaRegistriPerMese` per calcolare i KPI gestionali della chiusura, più le
+// liste spese/pagamentiFornitori per-riga (griglia spese editabile della chiusura).
 type RegistroCassaMensileRidotto = {
   __typename?: "RegistroCassa";
   id: number;
@@ -31,6 +64,8 @@ type RegistroCassaMensileRidotto = {
   totaleChiusura: number;
   speseFornitori: number;
   speseGiornaliere: number;
+  spese: SpesaCassa[];
+  pagamentiFornitori: PagamentoFornitoreChiusura[];
 };
 
 type RegistroCassaMensile = {

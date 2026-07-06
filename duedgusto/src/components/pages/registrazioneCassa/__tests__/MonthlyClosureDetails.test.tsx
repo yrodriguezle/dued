@@ -25,11 +25,25 @@ vi.mock("@apollo/client", async () => {
   };
 });
 
-// La chiusura mensile è ora pura aggregazione dei registri inclusi: non contiene
-// più una griglia spese editabile. Stubbiamo solo il report (usa @mui/x-charts,
-// non necessario per lo smoke test dei KPI).
+// Il report usa @mui/x-charts (non necessario per lo smoke test dei KPI).
 vi.mock("../MonthlyClosureReport", () => ({
   default: () => <div data-testid="monthly-closure-report" />,
+}));
+
+// La chiusura mensile ORA monta una griglia spese editabile (SpeseDataGrid).
+// SpeseDataGrid include PagamentoFornitoreDialog che usa useLazyQuery di Apollo:
+// senza ApolloProvider real-e questo esplode con InvariantError. Per lo smoke test
+// dei KPI/lifecycle stubbiamo l'intera griglia con un semplice segnaposto: la
+// logica interna della griglia è coperta in SpeseDataGrid.test.tsx. Il conteggio
+// righe (`initialExpenses`) è esposto per verificare che la griglia riceva le
+// spese appiattite dai registri inclusi.
+vi.mock("../SpeseDataGrid", () => ({
+  default: (props: { initialExpenses?: unknown[] }) => (
+    <div
+      data-testid="spese-data-grid"
+      data-rows={props.initialExpenses?.length ?? 0}
+    />
+  ),
 }));
 
 // ── Import dopo i mock ─────────────────────────────────────────────────
@@ -73,6 +87,11 @@ function makeRegistroIncluso(overrides: Record<string, unknown> = {}, incluso = 
       totaleChiusura: 700,
       speseFornitori: 150,
       speseGiornaliere: 50,
+      // Lista spese/pagamenti per la griglia editabile: NON influenza i KPI aggregati
+      // (aggregaRegistriPerMese usa i campi numerici speseFornitori/speseGiornaliere).
+      // Serve solo a verificare che flattenSpeseChiusura alimenti SpeseDataGrid.
+      spese: [{ id: 1, registroCassaId: registroId, descrizione: "Spesa test", importo: 10, categoria: "Altro" }],
+      pagamentiFornitori: [],
       ...overrides,
     },
   };
@@ -176,8 +195,11 @@ describe("MonthlyClosureDetails (smoke)", () => {
     // La strip fiscale (Ricavo Netto) è stata sostituita: non deve più comparire
     expect(screen.queryByText("Ricavo Netto")).not.toBeInTheDocument();
 
-    // La chiusura non ha più una griglia spese editabile: solo il report (stub)
-    expect(screen.queryByTestId("spese-data-grid")).not.toBeInTheDocument();
+    // La chiusura ORA include la griglia spese editabile (stub) + il report (stub).
+    // La griglia riceve una riga appiattita dal registro incluso (1 spesa libera).
+    const grid = screen.getByTestId("spese-data-grid");
+    expect(grid).toBeInTheDocument();
+    expect(grid).toHaveAttribute("data-rows", "1");
     expect(screen.getByTestId("monthly-closure-report")).toBeInTheDocument();
   });
 

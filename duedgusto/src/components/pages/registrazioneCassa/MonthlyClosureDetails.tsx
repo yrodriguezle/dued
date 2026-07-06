@@ -51,6 +51,9 @@ import FormikToolbarButton from "../../common/form/toolbar/FormikToolbarButton";
 import useConfirm from "../../common/confirm/useConfirm";
 import showToast from "../../../common/toast/showToast";
 import MonthlyClosureReport from "./MonthlyClosureReport";
+import SpeseDataGrid from "./SpeseDataGrid";
+import useSpeseChiusura from "./useSpeseChiusura";
+import flattenSpeseChiusura from "./flattenSpeseChiusura";
 import KPICard from "../../common/KPICard";
 import useChartPalette from "./dashboard/useChartPalette";
 import { MESI_LABEL } from "./dashboard/dashboardUtils";
@@ -85,6 +88,7 @@ const MonthlyClosureDetails = () => {
   const palette = useChartPalette();
   const [giorniMancantiModalOpen, setGiorniMancantiModalOpen] = useState(false);
   const [registriEspansi, setRegistriEspansi] = useState(true);
+  const [speseEspanse, setSpeseEspanse] = useState(true);
 
   const anno = chiusuraMensile?.anno ?? newAnno;
   const mese = chiusuraMensile?.mese ?? newMese;
@@ -131,6 +135,15 @@ const MonthlyClosureDetails = () => {
     const indice = (mese || 1) - 1;
     return mesi[indice] ?? mesi[0];
   }, [registriInclusi, anno, mese]);
+
+  // Griglia spese editabile della chiusura: righe appiattite dai registri inclusi
+  // e persistenza per-riga instradata al registro del giorno (refetch dopo ogni op).
+  const speseRows = useMemo(() => flattenSpeseChiusura(registriInclusi), [registriInclusi]);
+  const spesePersistence = useSpeseChiusura({ refetch });
+  const speseDefaultDate = useMemo(
+    () => (anno && mese ? dayjs().year(anno).month(mese - 1).date(1).format("YYYY-MM-DD") : dayjs().format("YYYY-MM-DD")),
+    [anno, mese]
+  );
 
   const handleEscludiSelezionati = useCallback(async () => {
     if (!chiusuraMensile) return;
@@ -541,6 +554,47 @@ const MonthlyClosureDetails = () => {
               </Paper>
             </div>
           )}
+
+          {/* Spese del Mese — griglia editabile (CRUD instradato al registro del giorno) */}
+          <div className="col-span-12">
+            <Paper
+              elevation={1}
+              sx={{ p: 2 }}
+            >
+              <Box
+                onClick={() => setSpeseEspanse((v) => !v)}
+                sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", userSelect: "none" }}
+              >
+                <Typography
+                  variant="subtitle1"
+                  fontWeight="bold"
+                >
+                  Spese del Mese ({speseRows.length})
+                </Typography>
+                <IconButton
+                  size="small"
+                  aria-label={speseEspanse ? "Comprimi spese del mese" : "Espandi spese del mese"}
+                >
+                  {speseEspanse ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                </IconButton>
+              </Box>
+              <Collapse
+                in={speseEspanse}
+                timeout="auto"
+                unmountOnExit
+              >
+                <Box sx={{ mt: 1 }}>
+                  <SpeseDataGrid
+                    initialExpenses={speseRows}
+                    isLocked={!isDraft}
+                    date={speseDefaultDate}
+                    columns={{ showData: true, showCategoria: true, showGiornale: false }}
+                    persistence={spesePersistence}
+                  />
+                </Box>
+              </Collapse>
+            </Paper>
+          </div>
 
           {/* Info chiusura */}
           {chiusuraMensile.stato !== statoChiusuraMensile.BOZZA && chiusuraMensile.chiusaDaUtente && (

@@ -28,6 +28,20 @@ public static class GestioneCassaGuards
     }
 
     /// <summary>
+    /// Blocca le operazioni CRUD su un registro riconciliato (Decision 4). Applicabile sia al
+    /// registro d'origine sia a quello di destinazione su un cambio data.
+    /// </summary>
+    public static void GuardRegistroReconciled(RegistroCassa? registro, DateTime data)
+    {
+        if (registro != null
+            && string.Equals(registro.Stato, "RECONCILED", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ExecutionError(
+                $"Impossibile modificare le spese: il registro del {data:dd/MM/yyyy} è riconciliato.");
+        }
+    }
+
+    /// <summary>
     /// Verifica che la data non appartenga a un mese chiuso (variante per eliminazione).
     /// </summary>
     public static async Task GuardMeseChiusoPerEliminazione(ChiusuraMensileService chiusuraService, DateTime data)

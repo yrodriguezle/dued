@@ -18,6 +18,37 @@ export const registroCassaMensileFragment = gql`
       totaleChiusura
       speseFornitori
       speseGiornaliere
+      spese {
+        id
+        registroCassaId
+        descrizione
+        importo
+        categoria
+      }
+      pagamentiFornitori {
+        pagamentoId
+        dataPagamento
+        importo
+        categoria
+        metodoPagamento
+        fatturaId
+        ddtId
+        registroCassaId
+        note
+        fattura {
+          fatturaId
+          numeroFattura
+          dataFattura
+          imponibile
+          totaleConIva
+          stato
+          fornitore {
+            fornitoreId
+            ragioneSociale
+            aliquotaIva
+          }
+        }
+      }
     }
   }
 `;
