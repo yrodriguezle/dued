@@ -178,12 +178,16 @@ function MenuDetails() {
         }}
         onSubmit={onSubmit}
       >
-        {() => (
+        {({ dirty, values, isSubmitting, isValid }) => {
+          const hasChanges = dirty || values.gridDirty;
+          const disableSave = isSubmitting || !isValid || !hasChanges;
+          return (
           <Form noValidate>
             <FormikToolbar
               onFormReset={handleResetForm}
               hideNewButton
               hideDeleteButton
+              disabledSave={disableSave}
             />
             <Box sx={{ marginTop: 1, paddingX: 2 }}>
               <Typography
@@ -203,7 +207,8 @@ function MenuDetails() {
               </Box>
             )}
           </Form>
-        )}
+          );
+        }}
       </Formik>
     </Box>
   );

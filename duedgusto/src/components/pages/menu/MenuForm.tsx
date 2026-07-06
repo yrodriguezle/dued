@@ -7,10 +7,9 @@ import Datagrid from "../../common/datagrid/Datagrid";
 import { useFormikContext } from "formik";
 import MenuIconRenderer from "../../common/datagrid/cellRenderers/MenuIconRenderer";
 import { iconMapping } from "../../layout/sideBar/iconMapping";
-import { DatagridCellValueChangedEvent, DatagridColDef, DatagridData, DatagridGridReadyEvent, DatagridRowDragEndEvent, DatagridRowDataUpdatedEvent } from "../../common/datagrid/@types/Datagrid";
+import { DatagridColDef, DatagridData, DatagridGridReadyEvent, DatagridRowDragEndEvent, DatagridRowDataUpdatedEvent } from "../../common/datagrid/@types/Datagrid";
 import { FormikMenuValues } from "./MenuDetails";
 import { DatagridStatus } from "../../../common/globals/constants";
-import useDebouncedCallback from "../../common/debounced/useDebouncedCallback";
 import showToast from "../../../common/toast/showToast";
 
 const iconNames = Object.keys(iconMapping);
@@ -99,26 +98,25 @@ const MenuForm: React.FC<MenuFormProps> = ({ menus, deletedRowIdsRef, gridApiRef
           deletedRowIdsRef.current.push(row.id);
         }
       });
+      setFieldValue("gridDirty", true);
     },
-    [deletedRowIdsRef]
+    [deletedRowIdsRef, setFieldValue]
   );
 
   const handleRowDataUpdated = useCallback(
     (event: DatagridRowDataUpdatedEvent<MenuWithStatus>) => {
       const gridData: DatagridData<MenuWithStatus>[] = event.context.getGridData();
-      setFieldValue("gridDirty", isGridDirty(gridData));
+      // Solo attivazione: intercetta add/delete. Il reset a false e gestito dalla reinizializzazione del form.
+      if (isGridDirty(gridData)) {
+        setFieldValue("gridDirty", true);
+      }
     },
     [setFieldValue, isGridDirty]
   );
 
-  const handleCellValueChanged = useDebouncedCallback(
-    (event: DatagridCellValueChangedEvent<MenuWithStatus>) => {
-      const gridData: DatagridData<MenuWithStatus>[] = event.context.getGridData();
-      setFieldValue("gridDirty", isGridDirty(gridData));
-    },
-    [isGridDirty],
-    1
-  );
+  const handleCellValueChanged = useCallback(() => {
+    setFieldValue("gridDirty", true);
+  }, [setFieldValue]);
 
   const handleRowDragEnd = useCallback(
     (event: DatagridRowDragEndEvent<MenuWithStatus>) => {
