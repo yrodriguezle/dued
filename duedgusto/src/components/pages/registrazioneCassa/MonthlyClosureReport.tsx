@@ -99,55 +99,6 @@ const MonthlyClosureReport: React.FC<MonthlyClosureReportProps> = ({ closure }) 
                 </table>
 
                 ${
-                  closure.speseLibere.length > 0
-                    ? `
-                    <h2>Spese Mensili</h2>
-                    <table>
-                        <thead>
-                            <tr><th>Categoria</th><th>Descrizione</th><th class="text-right">Importo</th></tr>
-                        </thead>
-                        <tbody>
-                            ${closure.speseLibere
-                              .map(
-                                (s) => `
-                                <tr><td>${s.categoria}</td><td>${s.descrizione}</td><td class="text-right">€ ${s.importo.toFixed(2)}</td></tr>
-                            `
-                              )
-                              .join("")}
-                        </tbody>
-                    </table>
-                `
-                    : ""
-                }
-
-                ${
-                  closure.pagamentiInclusi.length > 0
-                    ? `
-                    <h2>Pagamenti Fornitori</h2>
-                    <table>
-                        <thead>
-                            <tr><th>Data</th><th class="text-right">Importo</th><th>Metodo</th><th>Note</th></tr>
-                        </thead>
-                        <tbody>
-                            ${closure.pagamentiInclusi
-                              .map(
-                                (p) => `
-                                <tr>
-                                    <td>${dayjs(p.pagamento.dataPagamento).format("DD/MM/YYYY")}</td>
-                                    <td class="text-right">€ ${p.pagamento.importo.toFixed(2)}</td>
-                                    <td>${p.pagamento.metodoPagamento || "-"}</td>
-                                    <td>${p.pagamento.note || "-"}</td>
-                                </tr>
-                            `
-                              )
-                              .join("")}
-                        </tbody>
-                    </table>
-                `
-                    : ""
-                }
-
-                ${
                   giorniEsclusiParsed.length > 0
                     ? `
                     <h2>Giorni Esclusi dalla Chiusura</h2>
@@ -179,7 +130,7 @@ const MonthlyClosureReport: React.FC<MonthlyClosureReportProps> = ({ closure }) 
                 <table>
                     <tr><td>Totale Entrate (Lordo)</td><td class="text-right">€ ${closure.totaleLordoCalcolato.toFixed(2)}</td></tr>
                     <tr><td>Totale IVA</td><td class="text-right">€ ${closure.totaleIvaCalcolato.toFixed(2)}</td></tr>
-                    <tr><td>Totale Spese</td><td class="text-right negative">€ ${closure.speseAggiuntiveCalcolate.toFixed(2)}</td></tr>
+                    <tr><td>Spese Tracciate (Registri)</td><td class="text-right negative">€ ${closure.speseTracciateRegistriCalcolate.toFixed(2)}</td></tr>
                     <tr><td>Spese Giornaliere Registri</td><td class="text-right negative">€ ${closure.speseGiornaliereRegistriCalcolate.toFixed(2)}</td></tr>
                     ${
                       closure.totaleDifferenzeCassaCalcolato !== 0

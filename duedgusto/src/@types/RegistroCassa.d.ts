@@ -16,6 +16,10 @@ interface RiepilogoGiornaliero {
 type TipoDenominazioneMoneta = "COIN" | "BANKNOTE";
 type StatoRegistroCassa = "DRAFT" | "CLOSED" | "RECONCILED";
 
+// Categoria di una spesa (registro cassa + chiusura mensile). Sede condivisa:
+// usata dalla colonna Categoria della griglia spese del registro e della chiusura.
+type CategoriaSpesa = "Affitto" | "Utenze" | "Stipendi" | "Altro";
+
 // DenominazioneMoneta
 type DenominazioneMoneta = {
   __typename: "DenominazioneMoneta";
@@ -44,6 +48,7 @@ type SpesaCassa = {
   registroCassaId: number;
   descrizione: string;
   importo: number;
+  categoria: CategoriaSpesa;
 };
 
 // PagamentoFornitoreRegistro
@@ -53,6 +58,8 @@ type PagamentoFornitoreRegistro = {
   metodoPagamento?: string;
   dataPagamento?: string;
   note?: string;
+  // Categoria (nullable): valorizzata solo per le spese fisse pagate in modo tracciato.
+  categoria?: CategoriaSpesa | null;
   ddt?: {
     ddtId: number;
     numeroDdt: string;
@@ -263,6 +270,7 @@ interface Income {
 interface Spese {
   description: string;
   amount: number;
+  categoria?: CategoriaSpesa;
   isPagamentoFornitore?: boolean;
   fornitoreId?: number;
   ddtNumber?: string;

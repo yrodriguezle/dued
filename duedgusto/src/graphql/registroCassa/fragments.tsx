@@ -17,6 +17,7 @@ export const spesaCassaFragment = `
     registroCassaId
     descrizione
     importo
+    categoria
   }
 `;
 
@@ -68,6 +69,7 @@ export const registroCassaFragment = `
       importo
       metodoPagamento
       dataPagamento
+      categoria
       note
       ddt {
         ddtId

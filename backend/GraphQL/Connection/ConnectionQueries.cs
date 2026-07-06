@@ -196,11 +196,6 @@ public class ConnectionQueries : ObjectGraphType
                     payment =>
                     {
                         return payment.PagamentoId.ToString();
-                    },
-                    query =>
-                    {
-                        return query
-                            .Include(p => p.SpeseMensili);
                     });
                 return connection;
             });
@@ -226,40 +221,7 @@ public class ConnectionQueries : ObjectGraphType
                         return query
                             .Include(c => c.ChiusaDaUtente)
                             .Include(c => c.RegistriInclusi)
-                                .ThenInclude(r => r.Registro)
-                            .Include(c => c.SpeseLibere)
-                            .Include(c => c.PagamentiInclusi)
-                                .ThenInclude(p => p.Pagamento);
-                    });
-                return connection;
-            });
-
-        Field<ConnectionType<SpesaMensileType>>("speseMensili")
-            .Argument<IntGraphType>("first", "Number of items to return")
-            .Argument<IntGraphType>("cursor", "Offset for pagination (deprecated, use after)")
-            .Argument<StringGraphType>("after", "Cursor after which to return items")
-            .Argument<StringGraphType>("where", "Filter condition")
-            .Argument<StringGraphType>("orderBy", "Order by clause")
-            .ResolveAsync(async (context) =>
-            {
-                Connection<SpesaMensile> connection = await GraphQLService.GetConnectionAsync<SpesaMensile>(
-                    context,
-                    context.GetArgument<string>("where"),
-                    context.GetArgument<string>("orderBy"),
-                    expense =>
-                    {
-                        return expense.SpesaId.ToString();
-                    },
-                    query =>
-                    {
-                        return query
-                            .Include(e => e.Chiusura)
-                            .Include(e => e.Pagamento!)
-                                .ThenInclude(p => p.Fattura!)
-                                    .ThenInclude(f => f.Fornitore)
-                            .Include(e => e.Pagamento!)
-                                .ThenInclude(p => p.Ddt!)
-                                    .ThenInclude(d => d.Fornitore);
+                                .ThenInclude(r => r.Registro);
                     });
                 return connection;
             });

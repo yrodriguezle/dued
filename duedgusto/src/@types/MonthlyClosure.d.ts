@@ -10,22 +10,9 @@ type GiornoEscluso = {
   utenteEsclusione: number;
 };
 
-type CategoriaSpesa = "Affitto" | "Utenze" | "Stipendi" | "Altro";
+// `CategoriaSpesa` è definita in sede condivisa in @types/RegistroCassa.d.ts.
 
 type StatoChiusuraMensile = "BOZZA" | "CHIUSA" | "RICONCILIATA";
-
-type SpesaMensileLibera = {
-  __typename: "SpesaMensileLibera";
-  spesaId: number;
-  chiusuraId: number;
-  descrizione: string;
-  importo: number;
-  categoria: CategoriaSpesa;
-  // Giorno di competenza della spesa nel mese della chiusura (nullable).
-  data: string | null;
-  createdAt: string;
-  updatedAt: string;
-};
 
 // Sottoinsieme dei campi del registro cassa esposti sulla chiusura mensile
 // (fragment RegistroCassaMensileFragment). Contiene tutti i campi necessari a
@@ -54,35 +41,18 @@ type RegistroCassaMensile = {
   registro: RegistroCassaMensileRidotto;
 };
 
-type PagamentoMensileFornitori = {
-  __typename: "PagamentoMensileFornitori";
-  chiusuraId: number;
-  pagamentoId: number;
-  inclusoInChiusura: boolean;
-  pagamento: {
-    pagamentoId: number;
-    dataPagamento: string;
-    importo: number;
-    metodoPagamento: string | null;
-    note: string | null;
-    // null = origine-chiusura (editabile), valorizzato = origine cassa (read-only)
-    registroCassaId: number | null;
-    fatturaId: number | null;
-    ddtId: number | null;
-  };
-};
-
 type ChiusuraMensile = {
   __typename: "ChiusuraMensile";
   chiusuraId: number;
   anno: number;
   mese: number;
-  // Proprietà calcolate (compute on-the-fly dal backend)
+  // Proprietà calcolate (pura aggregazione dei registri inclusi, compute on-the-fly dal backend)
   ricavoTotaleCalcolato: number;
   totaleContantiCalcolato: number;
   totaleElettroniciCalcolato: number;
   totaleFattureCalcolato: number;
-  speseAggiuntiveCalcolate: number;
+  // Spese tracciate (Σ SpeseFornitori) e non tracciate (Σ SpeseGiornaliere) dei registri inclusi.
+  speseTracciateRegistriCalcolate: number;
   speseGiornaliereRegistriCalcolate: number;
   ricavoNettoCalcolato: number;
   totaleIvaCalcolato: number;
@@ -90,17 +60,11 @@ type ChiusuraMensile = {
   totaleLordoCalcolato: number;
   totaleDifferenzeCassaCalcolato: number;
 
-  // Campi calcolati gestionali anti-doppio-conteggio (headline vista chiusura)
-  speseAggiuntiveNonDuplicateCalcolate: number;
-  totaleSpeseCalcolato: number;
-  differenzaCalcolata: number;
   // Avvisi non bloccanti valorizzati solo nel payload di chiudiChiusuraMensile
   avvisiCompletezza: string[] | null;
 
-  // Relazioni
+  // Relazioni (chiusura = pura aggregazione dei soli registri inclusi)
   registriInclusi: RegistroCassaMensile[];
-  speseLibere: SpesaMensileLibera[];
-  pagamentiInclusi: PagamentoMensileFornitori[];
 
   giorniEsclusi: string | null;
 

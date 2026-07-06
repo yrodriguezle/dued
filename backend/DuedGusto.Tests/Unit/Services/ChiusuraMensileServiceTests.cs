@@ -142,7 +142,8 @@ public class ChiusuraMensileServiceTests : IDisposable
         chiusura.RicavoTotaleCalcolato.Should().Be(0m);
         chiusura.TotaleContantiCalcolato.Should().Be(0m);
         chiusura.TotaleElettroniciCalcolato.Should().Be(0m);
-        chiusura.SpeseAggiuntiveCalcolate.Should().Be(0m);
+        chiusura.SpeseTracciateRegistriCalcolate.Should().Be(0m);
+        chiusura.SpeseGiornaliereRegistriCalcolate.Should().Be(0m);
     }
 
     [Fact]
@@ -197,42 +198,26 @@ public class ChiusuraMensileServiceTests : IDisposable
     #region Computed Properties (REQ-2.2.1)
 
     [Fact]
-    public async Task ComputedProperties_SpeseAggiuntive_IncludesLiberePlusPagamenti()
+    public async Task ComputedProperties_KpiPuri_NettoComeAggregazione()
     {
-        // Arrange
+        // Arrange — chiusura = pura aggregazione (Decision 4): il netto deriva solo dai
+        // registri inclusi. Tracciato = Σ SpeseFornitori, non tracciato = Σ SpeseGiornaliere.
         var utente = SeedUtente();
         SeedBusinessSettings();
 
-        // speseGiornaliere > 0: il nuovo RicavoNettoCalcolato le sottrae
-        SeedRegistroCassa(utente, new DateTime(2026, 5, 4), "CLOSED", totaleVendite: 1000m, speseGiornaliere: 50m);
+        SeedRegistroCassa(utente, new DateTime(2026, 5, 4), "CLOSED",
+            totaleVendite: 1000m, speseGiornaliere: 50m, speseFornitori: 200m);
 
         var chiusura = await _service.CreaChiusuraAsync(2026, 5);
-
-        // Add free expense
-        await _service.AggiungiSpesaLiberaAsync(chiusura.ChiusuraId, "Affitto", 500m, CategoriaSpesa.Affitto);
-
-        // Add a PagamentoFornitore and link it
-        var pagamento = new PagamentoFornitore
-        {
-            DataPagamento = new DateTime(2026, 5, 5),
-            Importo = 200m,
-            MetodoPagamento = "Contanti"
-        };
-        _dbContext.PagamentiFornitori.Add(pagamento);
-        await _dbContext.SaveChangesAsync();
-
-        await _service.IncludiPagamentoFornitoreAsync(chiusura.ChiusuraId, pagamento.PagamentoId);
 
         // Act — reload with relations
         var loaded = await _service.GetChiusuraConRelazioniAsync(chiusura.ChiusuraId);
 
-        // Assert
+        // Assert — nessuna spesa fuori-registro; ogni spesa contata una volta via registro
         loaded.Should().NotBeNull();
-        loaded!.SpeseLibere.Should().HaveCount(1);
-        loaded.PagamentiInclusi.Should().HaveCount(1);
-        loaded.SpeseAggiuntiveCalcolate.Should().Be(700m); // 500 + 200
-        loaded.SpeseGiornaliereRegistriCalcolate.Should().Be(50m);
-        loaded.RicavoNettoCalcolato.Should().Be(250m); // 1000 - 700 - 50
+        loaded!.SpeseTracciateRegistriCalcolate.Should().Be(200m);   // Σ SpeseFornitori
+        loaded.SpeseGiornaliereRegistriCalcolate.Should().Be(50m);   // Σ SpeseGiornaliere
+        loaded.RicavoNettoCalcolato.Should().Be(750m);               // 1000 - 200 - 50
     }
 
     [Fact]
@@ -388,58 +373,10 @@ public class ChiusuraMensileServiceTests : IDisposable
 
     #endregion
 
-    #region AggiungiSpesaLiberaAsync (REQ-2.2.1)
-
-    [Fact]
-    public async Task AggiungiSpesaLibera_ValidData_PersistsExpense()
-    {
-        // Arrange
-        SeedBusinessSettings();
-        var chiusura = new ChiusuraMensile { Anno = 2026, Mese = 7, Stato = "BOZZA" };
-        _dbContext.ChiusureMensili.Add(chiusura);
-        await _dbContext.SaveChangesAsync();
-
-        // Act
-        var spesa = await _service.AggiungiSpesaLiberaAsync(
-            chiusura.ChiusuraId, "Affitto locale", 1200m, CategoriaSpesa.Affitto);
-
-        // Assert
-        spesa.Should().NotBeNull();
-        spesa.Descrizione.Should().Be("Affitto locale");
-        spesa.Importo.Should().Be(1200m);
-        spesa.Categoria.Should().Be(CategoriaSpesa.Affitto);
-    }
-
-    [Fact]
-    public async Task AggiungiSpesaLibera_ChiusuraChiusa_ThrowsInvalidOperationException()
-    {
-        // Arrange
-        var chiusura = new ChiusuraMensile { Anno = 2026, Mese = 7, Stato = "CHIUSA" };
-        _dbContext.ChiusureMensili.Add(chiusura);
-        await _dbContext.SaveChangesAsync();
-
-        // Act & Assert
-        var act = () => _service.AggiungiSpesaLiberaAsync(
-            chiusura.ChiusuraId, "Affitto", 1200m, CategoriaSpesa.Affitto);
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*stato*BOZZA*");
-    }
-
-    [Fact]
-    public async Task AggiungiSpesaLibera_ZeroImporto_ThrowsArgumentException()
-    {
-        // Arrange
-        var chiusura = new ChiusuraMensile { Anno = 2026, Mese = 7, Stato = "BOZZA" };
-        _dbContext.ChiusureMensili.Add(chiusura);
-        await _dbContext.SaveChangesAsync();
-
-        // Act & Assert
-        var act = () => _service.AggiungiSpesaLiberaAsync(
-            chiusura.ChiusuraId, "Spesa", 0m, CategoriaSpesa.Altro);
-        await act.Should().ThrowAsync<ArgumentException>();
-    }
-
-    #endregion
+    // NOTE: la region "AggiungiSpesaLiberaAsync" è stata rimossa: le spese libere di chiusura
+    // non esistono più (change spese-su-registro-giornaliero, Decision 4/5). Le spese ora si
+    // registrano sul registro giornaliero (SpesaCassa / PagamentoFornitore) — vedi
+    // AggiungiSpesaSuGiornoTests per la nuova mutation aggiungiSpesaSuGiorno.
 
     #region ValidaCompletezzaRegistriAsync (REQ-2.2.1)
 
@@ -504,239 +441,62 @@ public class ChiusuraMensileServiceTests : IDisposable
 
     #endregion
 
-    #region Formula anti-doppio-conteggio (Issue #3)
+    // NOTE: le region "Formula anti-doppio-conteggio", "Validazione Data nel mese" e
+    // "AggiungiPagamentoFornitoreInChiusura" sono state rimosse: dopo il change
+    // spese-su-registro-giornaliero non esistono più spese fuori-registro
+    // (SpeseLibere/PagamentiInclusi), i KPI anti-doppio-conteggio PR #7
+    // (SpeseAggiuntiveNonDuplicateCalcolate/TotaleSpeseCalcolato/DifferenzaCalcolata) né la
+    // mutation aggiungiPagamentoFornitoreInChiusura. Ogni spesa è ora contata esattamente
+    // una volta via il suo registro (Decision 4).
+
+    #region Decision 8 — Differenza fantasma registro a sole spese
 
     [Fact]
-    public async Task ComputedProperties_TotaleSpese_NonDuplicaPagamentiDeiRegistriInclusi()
+    public async Task TotaleDifferenzeCassa_EscludeRegistriASoleSpese_MantieneDifferenzeReali()
     {
-        // Arrange — un registro incluso con SpeseFornitori (che GIA' contengono il pagamento P1
-        // linkato al registro) + un pagamento origine-chiusura P2 (RegistroCassaId = null).
+        // Arrange — un mese con:
+        //  - R1: registro di vendita con differenza REALE (deve concorrere al totale)
+        //  - R2: registro "leggero" a sole spese (TotaleVendite==0, Apertura==Chiusura):
+        //        la sua "Differenza fantasma" NON deve inquinare il totale (Decision 8).
         var utente = SeedUtente();
         SeedBusinessSettings();
 
-        var r1 = SeedRegistroCassa(utente, new DateTime(2026, 5, 4), "CLOSED",
-            totaleVendite: 1000m, speseGiornaliere: 50m, speseFornitori: 150m);
+        // R1: vendite → differenza reale X = 10
+        SeedRegistroCassa(utente, new DateTime(2026, 10, 5), "CLOSED",
+            totaleVendite: 500m, differenza: 10m);
 
-        var chiusura = new ChiusuraMensile { Anno = 2026, Mese = 5, Stato = "BOZZA" };
-        _dbContext.ChiusureMensili.Add(chiusura);
-        await _dbContext.SaveChangesAsync();
-
-        _dbContext.RegistriCassaMensili.Add(new RegistroCassaMensile
-        {
-            ChiusuraId = chiusura.ChiusuraId,
-            RegistroId = r1.Id,
-            Incluso = true
-        });
-
-        // P1: appartiene a R1 (RegistroCassaId = r1.Id) → già conteggiato in R1.SpeseFornitori
-        var p1 = new PagamentoFornitore { DataPagamento = new DateTime(2026, 5, 5), Importo = 150m, RegistroCassaId = r1.Id };
-        // P2: origine-chiusura (RegistroCassaId = null) → spesa aggiuntiva reale
-        var p2 = new PagamentoFornitore { DataPagamento = new DateTime(2026, 5, 6), Importo = 80m, RegistroCassaId = null };
-        _dbContext.PagamentiFornitori.AddRange(p1, p2);
-        await _dbContext.SaveChangesAsync();
-
-        _dbContext.PagamentiMensiliFornitori.AddRange(
-            new PagamentoMensileFornitori { ChiusuraId = chiusura.ChiusuraId, PagamentoId = p1.PagamentoId, InclusoInChiusura = true },
-            new PagamentoMensileFornitori { ChiusuraId = chiusura.ChiusuraId, PagamentoId = p2.PagamentoId, InclusoInChiusura = true });
-        await _dbContext.SaveChangesAsync();
+        // R2: registro a sole spese. TotaleApertura == TotaleChiusura (entrambi 0),
+        // nessuna vendita, ma Differenza "fantasma" Y = 30 (come da formula ContanteAtteso=−Importo).
+        SeedRegistroCassa(utente, new DateTime(2026, 10, 6), "CLOSED",
+            totaleVendite: 0m, speseGiornaliere: 30m, differenza: 30m);
 
         // Act
-        var loaded = await _service.GetChiusuraConRelazioniAsync(chiusura.ChiusuraId);
+        var chiusura = await _service.CreaChiusuraAsync(2026, 10);
 
-        // Assert
-        loaded.Should().NotBeNull();
-        // Solo P2 conta come spesa aggiuntiva non duplicata; P1 è già in R1.SpeseFornitori
-        loaded!.SpeseAggiuntiveNonDuplicateCalcolate.Should().Be(80m);
-        // TotaleSpese = (150 fornitori + 50 giornaliere) dei registri inclusi + 80 non duplicati
-        loaded.TotaleSpeseCalcolato.Should().Be(280m);
-        // Differenza = 1000 - 280
-        loaded.DifferenzaCalcolata.Should().Be(720m);
-    }
-
-    [Fact]
-    public async Task ComputedProperties_TotaleSpese_PagamentoDiRegistroEsclusoTornaSpesaAggiuntiva()
-    {
-        // Arrange — un pagamento con RegistroCassaId che punta a un registro NON incluso nella
-        // chiusura: non essendo nel totale spese di alcun registro incluso, va conteggiato.
-        var utente = SeedUtente();
-        SeedBusinessSettings();
-
-        var rEscluso = SeedRegistroCassa(utente, new DateTime(2026, 5, 7), "CLOSED", totaleVendite: 0m, speseFornitori: 90m);
-
-        var chiusura = new ChiusuraMensile { Anno = 2026, Mese = 5, Stato = "BOZZA" };
-        _dbContext.ChiusureMensili.Add(chiusura);
-        await _dbContext.SaveChangesAsync();
-
-        // Registro collegato ma ESCLUSO (Incluso = false) → le sue spese NON entrano nei registri
-        _dbContext.RegistriCassaMensili.Add(new RegistroCassaMensile
-        {
-            ChiusuraId = chiusura.ChiusuraId,
-            RegistroId = rEscluso.Id,
-            Incluso = false
-        });
-
-        var p = new PagamentoFornitore { DataPagamento = new DateTime(2026, 5, 8), Importo = 90m, RegistroCassaId = rEscluso.Id };
-        _dbContext.PagamentiFornitori.Add(p);
-        await _dbContext.SaveChangesAsync();
-
-        _dbContext.PagamentiMensiliFornitori.Add(new PagamentoMensileFornitori
-        {
-            ChiusuraId = chiusura.ChiusuraId,
-            PagamentoId = p.PagamentoId,
-            InclusoInChiusura = true
-        });
-        await _dbContext.SaveChangesAsync();
-
-        // Act
-        var loaded = await _service.GetChiusuraConRelazioniAsync(chiusura.ChiusuraId);
-
-        // Assert — il pagamento del registro escluso è una spesa aggiuntiva a tutti gli effetti
-        loaded!.SpeseAggiuntiveNonDuplicateCalcolate.Should().Be(90m);
-        loaded.TotaleSpeseCalcolato.Should().Be(90m); // nessun registro incluso, solo il pagamento
+        // Assert — totale = X (10), NON X+Y (40): la differenza fantasma di R2 è esclusa
+        chiusura.TotaleDifferenzeCassaCalcolato.Should().Be(10m);
     }
 
     #endregion
 
-    #region Validazione Data nel mese (Issue #3)
+    #region Guard completezza non bloccante — registri non inclusi
 
     [Fact]
-    public async Task AggiungiSpesaLibera_DataFuoriMese_ThrowsInvalidOperationException()
+    public async Task ChiudiMensile_RegistroChiusoDelMeseNonIncluso_ProduceWarningMaNonBlocca()
     {
-        // Arrange
-        SeedBusinessSettings();
-        var chiusura = new ChiusuraMensile { Anno = 2026, Mese = 7, Stato = "BOZZA" };
-        _dbContext.ChiusureMensili.Add(chiusura);
-        await _dbContext.SaveChangesAsync();
-
-        // Act & Assert — data ad agosto, fuori dal mese 7
-        var act = () => _service.AggiungiSpesaLiberaAsync(
-            chiusura.ChiusuraId, "Affitto", 100m, CategoriaSpesa.Affitto, new DateTime(2026, 8, 1));
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*non appartiene al mese*");
-    }
-
-    [Fact]
-    public async Task AggiungiSpesaLibera_DataNelMese_PersisteData()
-    {
-        // Arrange
-        SeedBusinessSettings();
-        var chiusura = new ChiusuraMensile { Anno = 2026, Mese = 7, Stato = "BOZZA" };
-        _dbContext.ChiusureMensili.Add(chiusura);
-        await _dbContext.SaveChangesAsync();
-
-        // Act
-        var spesa = await _service.AggiungiSpesaLiberaAsync(
-            chiusura.ChiusuraId, "Affitto", 100m, CategoriaSpesa.Affitto, new DateTime(2026, 7, 15));
-
-        // Assert
-        spesa.Data.Should().Be(new DateTime(2026, 7, 15));
-    }
-
-    #endregion
-
-    #region AggiungiPagamentoFornitoreInChiusura (Issue #3)
-
-    [Fact]
-    public async Task AggiungiPagamentoInChiusura_ValidDdt_CreaPagamentoOrigineChiusuraEJoin()
-    {
-        // Arrange
-        SeedBusinessSettings();
-        var fornitore = new Fornitore { RagioneSociale = "Fornitore Test", AliquotaIva = 22m };
-        _dbContext.Fornitori.Add(fornitore);
-        var chiusura = new ChiusuraMensile { Anno = 2026, Mese = 5, Stato = "BOZZA" };
-        _dbContext.ChiusureMensili.Add(chiusura);
-        await _dbContext.SaveChangesAsync();
-
-        var dati = new ChiusuraMensileService.DatiPagamentoChiusura(
-            FornitoreId: fornitore.FornitoreId,
-            TipoDocumento: "DDT",
-            NumeroDocumento: "DDT-001",
-            DataPagamento: new DateTime(2026, 5, 10),
-            Importo: 120m,
-            AliquotaIva: null,
-            MetodoPagamento: "Contanti",
-            FatturaIdCollegata: null,
-            DdtIdCollegato: null);
-
-        // Act
-        var pagamento = await _service.AggiungiPagamentoFornitoreInChiusuraAsync(chiusura.ChiusuraId, dati);
-
-        // Assert — pagamento di origine-chiusura con documento DDT reale
-        pagamento.Should().NotBeNull();
-        pagamento.RegistroCassaId.Should().BeNull();
-        pagamento.DdtId.Should().NotBeNull();
-        pagamento.FatturaId.Should().BeNull();
-        pagamento.Importo.Should().Be(120m);
-
-        // Join con la chiusura, InclusoInChiusura = true
-        var link = await _dbContext.PagamentiMensiliFornitori
-            .FirstOrDefaultAsync(pm => pm.PagamentoId == pagamento.PagamentoId);
-        link.Should().NotBeNull();
-        link!.ChiusuraId.Should().Be(chiusura.ChiusuraId);
-        link.InclusoInChiusura.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task AggiungiPagamentoInChiusura_ChiusuraChiusa_ThrowsInvalidOperationException()
-    {
-        // Arrange
-        SeedBusinessSettings();
-        var chiusura = new ChiusuraMensile { Anno = 2026, Mese = 5, Stato = "CHIUSA" };
-        _dbContext.ChiusureMensili.Add(chiusura);
-        await _dbContext.SaveChangesAsync();
-
-        var dati = new ChiusuraMensileService.DatiPagamentoChiusura(
-            FornitoreId: 1, TipoDocumento: "DDT", NumeroDocumento: "DDT-1",
-            DataPagamento: new DateTime(2026, 5, 10), Importo: 50m,
-            AliquotaIva: null, MetodoPagamento: null, FatturaIdCollegata: null, DdtIdCollegato: null);
-
-        // Act & Assert
-        var act = () => _service.AggiungiPagamentoFornitoreInChiusuraAsync(chiusura.ChiusuraId, dati);
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*BOZZA*");
-    }
-
-    [Fact]
-    public async Task AggiungiPagamentoInChiusura_DataFuoriMese_ThrowsInvalidOperationException()
-    {
-        // Arrange
-        SeedBusinessSettings();
-        var chiusura = new ChiusuraMensile { Anno = 2026, Mese = 5, Stato = "BOZZA" };
-        _dbContext.ChiusureMensili.Add(chiusura);
-        await _dbContext.SaveChangesAsync();
-
-        var dati = new ChiusuraMensileService.DatiPagamentoChiusura(
-            FornitoreId: 1, TipoDocumento: "DDT", NumeroDocumento: "DDT-1",
-            DataPagamento: new DateTime(2026, 6, 10), Importo: 50m, // giugno, fuori dal mese 5
-            AliquotaIva: null, MetodoPagamento: null, FatturaIdCollegata: null, DdtIdCollegato: null);
-
-        // Act & Assert
-        var act = () => _service.AggiungiPagamentoFornitoreInChiusuraAsync(chiusura.ChiusuraId, dati);
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*non appartiene al mese*");
-    }
-
-    #endregion
-
-    #region Guard completezza non bloccante (Issue #3)
-
-    [Fact]
-    public async Task ChiudiMensile_PagamentoDelMeseNonIncluso_ProduceWarningMaNonBlocca()
-    {
-        // Arrange — mese completo (nessun giorno mancante), tutti i giorni operativi
+        // Arrange — mese completo (giorni 1-27 coperti alla creazione), tutti i giorni operativi
         var utente = SeedUtente();
         SeedBusinessSettings("[true,true,true,true,true,true,true]");
-        for (int day = 1; day <= 28; day++)
+        for (int day = 1; day <= 27; day++)
         {
             SeedRegistroCassa(utente, new DateTime(2026, 2, day), "CLOSED", totaleVendite: 500m);
         }
 
         var chiusura = await _service.CreaChiusuraAsync(2026, 2);
 
-        // Pagamento del mese aggiunto DOPO la creazione → non collegato alla chiusura
-        var pagamento = new PagamentoFornitore { DataPagamento = new DateTime(2026, 2, 15), Importo = 100m, RegistroCassaId = null };
-        _dbContext.PagamentiFornitori.Add(pagamento);
-        await _dbContext.SaveChangesAsync();
+        // Registro CLOSED del mese (giorno 28) creato DOPO la chiusura → NON collegato ai
+        // RegistriInclusi: dà origine al warning di completezza sopravvissuto (Decision 4).
+        SeedRegistroCassa(utente, new DateTime(2026, 2, 28), "CLOSED", totaleVendite: 500m);
 
         // Act — la chiusura NON deve essere bloccata dal warning di completezza
         var result = await _service.ChiudiMensileAsync(chiusura.ChiusuraId, utente.Id);
@@ -746,10 +506,10 @@ public class ChiusuraMensileServiceTests : IDisposable
         var loaded = await _service.GetChiusuraConRelazioniAsync(chiusura.ChiusuraId);
         loaded!.Stato.Should().Be("CHIUSA");
 
-        // Il warning di completezza è comunque prodotto (non bloccante)
+        // Il warning di completezza è comunque prodotto (non bloccante): registro non incluso
         var warnings = await _service.ValidaCompletezzaChiusuraWarningsAsync(chiusura.ChiusuraId);
         warnings.Should().NotBeEmpty();
-        warnings.Should().Contain(w => w.Contains("pagamento"));
+        warnings.Should().Contain(w => w.Contains("registro"));
     }
 
     #endregion

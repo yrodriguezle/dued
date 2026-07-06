@@ -52,6 +52,8 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [amount, setAmount] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState("Contanti");
+  // Categoria opzionale: valorizzata solo per le spese fisse pagate in modo tracciato.
+  const [categoria, setCategoria] = useState<CategoriaSpesa | "">("");
 
   // Aliquota IVA (solo per fatture)
   const [aliquotaIva, setAliquotaIva] = useState<number>(DEFAULT_ALIQUOTA_IVA);
@@ -106,6 +108,7 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
       setInvoiceNumber(initialData.invoiceNumber ?? "");
       setAmount(initialData.amount ?? 0);
       setPaymentMethod(initialData.paymentMethod ?? "Contanti");
+      setCategoria(initialData.categoria ?? "");
       setAliquotaIva(initialData.aliquotaIva ?? DEFAULT_ALIQUOTA_IVA);
       setFatturaId(initialData.fatturaId);
       setDdtId(initialData.ddtId);
@@ -126,6 +129,7 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
     setInvoiceNumber("");
     setAmount(0);
     setPaymentMethod("Contanti");
+    setCategoria("");
     setAliquotaIva(DEFAULT_ALIQUOTA_IVA);
     setFatturaId(undefined);
     setDdtId(undefined);
@@ -219,10 +223,11 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
       dataFattura: documentType === "FA" ? dataFattura : undefined,
       dataDdt: documentType === "DDT" ? dataDdt : undefined,
       aliquotaIva: documentType === "FA" ? aliquotaIva : undefined,
+      categoria: categoria || undefined,
     });
     resetForm();
     onClose();
-  }, [fornitoreId, amount, ddtNumber, invoiceNumber, nomeFornitore, paymentMethod, documentType, onConfirm, resetForm, onClose, initialData?.pagamentoId, fatturaId, ddtId, dataFattura, dataDdt, aliquotaIva]);
+  }, [fornitoreId, amount, ddtNumber, invoiceNumber, nomeFornitore, paymentMethod, documentType, onConfirm, resetForm, onClose, initialData?.pagamentoId, fatturaId, ddtId, dataFattura, dataDdt, aliquotaIva, categoria]);
 
   // initialValues calcolati da initialData per pre-riempire FormikSearchbox (enableReinitialize)
   const initialValues: PaymentFormValues = {
@@ -477,6 +482,27 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
                     >
                       <MenuItem value="Contanti">Contanti</MenuItem>
                       <MenuItem value="Bonifico">Bonifico</MenuItem>
+                    </Select>
+                  </FormControl>
+                </div>
+
+                {/* Categoria opzionale: solo per le spese fisse pagate in modo tracciato */}
+                <div className="col-span-12 md:col-span-6">
+                  <FormControl fullWidth>
+                    <InputLabel>Categoria</InputLabel>
+                    <Select
+                      value={categoria}
+                      label="Categoria"
+                      onChange={(e) => setCategoria(e.target.value as CategoriaSpesa | "")}
+                      displayEmpty
+                    >
+                      <MenuItem value="">
+                        <em>Nessuna</em>
+                      </MenuItem>
+                      <MenuItem value="Affitto">Affitto</MenuItem>
+                      <MenuItem value="Utenze">Utenze</MenuItem>
+                      <MenuItem value="Stipendi">Stipendi</MenuItem>
+                      <MenuItem value="Altro">Altro</MenuItem>
                     </Select>
                   </FormControl>
                 </div>

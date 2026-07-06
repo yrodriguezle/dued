@@ -1,37 +1,16 @@
-# Chiusure Mensili Specification
+# Delta for Chiusure Mensili
 
+**Change**: spese-su-registro-giornaliero
 **Domain**: chiusure-mensili
-**Status**: Active
-**Ultimo aggiornamento**: 2026-07-06
 
-Change incorporate in questa spec:
+Questo delta riporta la chiusura mensile a **pura aggregazione dai registri
+giornalieri inclusi**: nessuna spesa vive più appesa alla `ChiusuraMensile`. Tutte le
+spese (tracciate e non tracciate) appartengono a un registro giornaliero e i totali della
+chiusura derivano esclusivamente dai registri con `Incluso == true`. Vengono rimossi il
+codice legacy delle spese fuori registro e i KPI `[NotMapped]` anti-doppio-conteggio
+introdotti nella PR #7.
 
-| Change | Archiviata il | Contenuto |
-|--------|---------------|-----------|
-| coerenza-calcoli-fase2 | 2026-06-10 | Spec iniziale del dominio: atomicità creazione/chiusura, formula ricavo netto |
-| spese-su-registro-giornaliero | 2026-07-06 | Chiusura come pura aggregazione dai registri inclusi; rimosse spese fuori registro, join pagamenti fornitori e KPI PR #7 (issue #8) |
-
-> Nota sullo schema GraphQL (corretta in fase di archiviazione): il field
-> `speseGiornaliereRegistriCalcolate` su `ChiusuraMensileType` resta come esposizione
-> additiva dell'aggregato non tracciato dei registri inclusi. Il campo
-> `ricavoNettoCalcolato` resta invariato nel nome e nel tipo; è calcolato a runtime
-> (proprietà `[NotMapped]`, nessun dato persistito).
->
-> Nota (spese-su-registro-giornaliero, 2026-07-06): la chiusura è ora **pura aggregazione
-> dai soli registri inclusi**. Sono stati rimossi dallo schema GraphQL i tipi
-> `SpesaMensileType`, `SpesaMensileInputType`, `SpesaMensileTyperaType`,
-> `SpesaMensileTyperaInputType`, `PagamentoMensileFornitoriType`; i field
-> `speseLibere`, `pagamentiInclusi`, `speseAggiuntiveNonDuplicateCalcolate`,
-> `totaleSpeseCalcolato`, `differenzaCalcolata` su `ChiusuraMensileType`; le mutation
-> `aggiungiSpesaLibera`, `modificaSpesaLibera`, `eliminaSpesaLibera`,
-> `aggiungiPagamentoFornitoreInChiusura`, `modificaPagamentoFornitoreInChiusura`,
-> `eliminaPagamentoFornitoreInChiusura`, `includiPagamentoFornitore`,
-> `migraChiusureMensiliVecchioModello`; la query `speseMensili`. La navigation
-> `RegistriInclusi` (`RegistriCassaMensili`) resta l'unica join legittima per
-> l'aggregazione. Migrazione `Drop...` con 3 `DropTable`
-> (`SpeseMensili`, `SpeseMensiliLibere`, `PagamentiMensiliFornitori`).
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Atomicità della creazione chiusura mensile
 
@@ -45,8 +24,7 @@ annullare l'intera operazione: nessuna `ChiusuraMensile` e nessun record di link
 `RegistroCassaMensile` devono restare persistiti.
 
 (Precedentemente: la sequenza associava anche i pagamenti fornitori del mese tramite la
-join `PagamentoMensileFornitori`, che viene rimossa dalla change
-spese-su-registro-giornaliero.)
+join `PagamentoMensileFornitori`, che viene rimossa da questa change.)
 
 #### Scenario: Errore a metà creazione — nessun dato parziale
 
@@ -66,33 +44,6 @@ spese-su-registro-giornaliero.)
 - AND NON esiste alcun record di link `PagamentoMensileFornitori`
 - AND i pagamenti fornitori del mese restano raggiungibili solo tramite i registri inclusi
 - AND la transazione è stata confermata una sola volta al termine dell'intera sequenza
-
-### Requirement: Atomicità della chiusura definitiva mensile
-
-`ChiudiMensileAsync` MUST eseguire la transizione di stato `BOZZA → CHIUSA` (inclusi i
-campi di audit `ChiusaDa`, `ChiusaIl`, `UpdatedAt`) in una transazione esplicita con il
-pattern try/commit/catch/rollback già usato dagli orchestrator. In caso di errore in
-qualunque punto, la chiusura MUST restare in stato `BOZZA` senza alcun campo di audit
-parzialmente valorizzato. Le validazioni esistenti (stato `BOZZA`, completezza registri
-al netto dei giorni esclusi, ricavo totale > 0) MUST restare invariate.
-
-#### Scenario: Errore durante la chiusura — stato invariato
-
-- GIVEN una chiusura mensile in stato `BOZZA` valida per la chiusura
-- WHEN `ChiudiMensileAsync` incontra un errore dopo l'avvio della transazione
-  (es. fallimento del salvataggio)
-- THEN la chiusura resta in stato `BOZZA`
-- AND `ChiusaDa` e `ChiusaIl` restano null
-- AND l'errore viene propagato al chiamante
-
-#### Scenario: Chiusura riuscita
-
-- GIVEN una chiusura mensile in stato `BOZZA` con tutti i registri operativi presenti
-  e ricavo totale > 0
-- WHEN `ChiudiMensileAsync` completa
-- THEN la chiusura è in stato `CHIUSA` con `ChiusaIl` valorizzato e `ChiusaDa` pari
-  all'utente indicato
-- AND la transazione è stata confermata
 
 ### Requirement: Chiusura mensile come pura aggregazione dai registri inclusi
 
@@ -114,16 +65,13 @@ essere calcolati a runtime (proprietà `[NotMapped]`, nessun dato persistito): l
 esistenti, anche già `CHIUSA`, espongono i valori come pura aggregazione dei registri.
 Il sistema MUST NOT usare campi speciali, residui o anti-doppio-conteggio per riconciliare
 fonti di spesa eterogenee (i KPI `SpeseAggiuntiveNonDuplicateCalcolate`,
-`TotaleSpeseCalcolato`, `DifferenzaCalcolata` introdotti nella PR #7 sono rimossi).
-La somma delle spese giornaliere dei registri inclusi resta esposta come field GraphQL
-additivo `speseGiornaliereRegistriCalcolate` su `ChiusuraMensileType`. Lista, dettaglio e
-report di stampa MUST mostrare i valori del server senza ricalcoli locali.
+`TotaleSpeseCalcolato`, `DifferenzaCalcolata` introdotti nella PR #7 sono rimossi — vedi
+sezione REMOVED).
 
-(Precedentemente — coerenza-calcoli-fase2: `RicavoNettoCalcolato = RicavoTotaleCalcolato −
-SpeseAggiuntiveCalcolate − Σ SpeseGiornaliere`, dove `SpeseAggiuntiveCalcolate` sommava
-spese libere appese alla chiusura più pagamenti fornitori inclusi tramite join dedicata,
-con KPI `[NotMapped]` dedicati a evitare il doppio conteggio dei pagamenti già presenti
-nei registri.)
+(Precedentemente: `RicavoNettoCalcolato = RicavoTotaleCalcolato − SpeseAggiuntiveCalcolate
+− Σ SpeseGiornaliere`, dove `SpeseAggiuntiveCalcolate` sommava spese libere appese alla
+chiusura più pagamenti fornitori inclusi tramite join dedicata, con KPI `[NotMapped]`
+dedicati a evitare il doppio conteggio dei pagamenti già presenti nei registri.)
 
 #### Scenario: Netto come pura aggregazione dei registri inclusi
 
@@ -159,17 +107,65 @@ nei registri.)
 - THEN i valori restituiti sono la pura aggregazione dei registri inclusi
 - AND nessun dato persistito della chiusura è stato modificato
 
-### Requirement: Schema GraphQL della chiusura privo dei tipi e mutation legacy
+## REMOVED Requirements
 
-Lo schema GraphQL del dominio chiusure-mensili MUST NOT esporre i tipi legacy
-(`SpesaMensileType`, `SpesaMensileInputType`, `SpesaMensileTyperaType`,
-`SpesaMensileTyperaInputType`, `PagamentoMensileFornitoriType`), i field della chiusura
-legati alle spese fuori registro (`speseLibere`, `pagamentiInclusi`) né i KPI speciali
-della PR #7 (`speseAggiuntiveNonDuplicateCalcolate`, `totaleSpeseCalcolato`,
-`differenzaCalcolata`). Le mutation delle spese libere, dei pagamenti-in-chiusura,
-`includiPagamentoFornitore` e `migraChiusureMensiliVecchioModello` MUST NOT esistere. La
-query `speseMensili` MUST NOT esistere. Il sistema MUST NOT reintrodurre alcun field
-basato sulle spese appese alla chiusura.
+### Requirement: Spese libere appese alla chiusura mensile
+
+(Motivazione: OPZIONE B della issue #8 — tutte le spese vivono su un registro giornaliero.
+Le entità/tabelle `SpesaMensileLibera` (`SpeseMensiliLibere`) e `SpesaMensile`
+(`SpeseMensili`, legacy morto) vengono eliminate. Sono rimosse le mutation GraphQL
+`aggiungiSpesaLibera`, `modificaSpesaLibera`, `eliminaSpesaLibera` e la navigation
+`ChiusuraMensile.SpeseLibere`. I dati reali giustificano la rimozione senza migrazione:
+`SpeseMensili = 0` righe e `SpeseMensiliLibere = 0` righe. Le spese non tracciate si
+registrano ora come `SpesaCassa` su un registro giornaliero — vedi dominio gestione-cassa.)
+
+### Requirement: Pagamenti fornitori inclusi in chiusura tramite join dedicata
+
+(Motivazione: i pagamenti fornitori appartengono al registro giornaliero
+(`PagamentoFornitore.RegistroCassaId`) e vengono aggregati dalla chiusura solo tramite i
+registri inclusi. Sono rimosse la tabella/entità `PagamentoMensileFornitori`
+(`PagamentiMensiliFornitori`), la navigation `ChiusuraMensile.PagamentiInclusi` e le
+mutation `aggiungiPagamentoFornitoreInChiusura`, `modificaPagamentoFornitoreInChiusura`,
+`eliminaPagamentoFornitoreInChiusura`, `includiPagamentoFornitore`. I 32 record esistenti
+di `PagamentiMensiliFornitori` hanno tutti `PagamentoFornitore.RegistroCassaId` non null →
+zero orfani, nessuna migrazione dati necessaria. La navigation `RegistriInclusi`
+(`RegistriCassaMensili`) resta come unica join legittima per l'aggregazione.)
+
+### Requirement: KPI speciali anti-doppio-conteggio della chiusura (PR #7)
+
+(Motivazione: i KPI `[NotMapped]` `SpeseAggiuntiveNonDuplicateCalcolate`,
+`TotaleSpeseCalcolato` e `DifferenzaCalcolata` esistevano solo per riconciliare fonti di
+spesa eterogenee ed evitare il doppio conteggio dei pagamenti già presenti nei registri.
+Con la chiusura ridotta a pura aggregazione dei soli registri inclusi, questi KPI
+diventano codice morto: le spese tracciate/non tracciate quadrano per costruzione. Sono
+rimossi dal modello, dai tipi GraphQL e dal frontend.)
+
+### Requirement: Migrazione chiusure vecchio modello
+
+(Motivazione: `MigrazioneChiusureMensiliService` è un servizio no-op e la mutation
+`migraChiusureMensiliVecchioModello` non ha alcun effetto utile. Con la rimozione del
+vecchio modello di spesa non esiste più nulla da migrare — vengono eliminati servizio e
+mutation.)
+
+## GraphQL Schema Changes
+
+I seguenti field MUST essere rimossi dallo schema GraphQL del dominio chiusure-mensili:
+
+- Su `ChiusuraMensileType`: `speseLibere`, `pagamentiInclusi`,
+  `speseAggiuntiveNonDuplicateCalcolate`, `totaleSpeseCalcolato`, `differenzaCalcolata`
+  (e ogni field derivato dai KPI PR #7 rimossi).
+- Tipi eliminati: `SpesaMensileType`, `SpesaMensileInputType`, `SpesaMensileTyperaType`,
+  `SpesaMensileTyperaInputType`, `PagamentoMensileFornitoriType`.
+- Mutation eliminate: `aggiungiSpesaLibera`, `modificaSpesaLibera`, `eliminaSpesaLibera`,
+  `aggiungiPagamentoFornitoreInChiusura`, `modificaPagamentoFornitoreInChiusura`,
+  `eliminaPagamentoFornitoreInChiusura`, `includiPagamentoFornitore`,
+  `migraChiusureMensiliVecchioModello`.
+- Query eliminata: `speseMensili` (su `ConnectionQueries`).
+
+Il field GraphQL additivo `speseGiornaliereRegistriCalcolate` su `ChiusuraMensileType`
+(introdotto in coerenza-calcoli-fase2) MAY restare come esposizione dell'aggregato non
+tracciato dei registri inclusi; il sistema MUST NOT reintrodurre alcun field basato sulle
+spese appese alla chiusura.
 
 #### Scenario: Schema privo dei tipi e delle mutation rimossi
 

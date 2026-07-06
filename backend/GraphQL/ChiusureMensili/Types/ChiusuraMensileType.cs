@@ -30,16 +30,16 @@ public class ChiusuraMensileType : ObjectGraphType<ChiusuraMensile>
             .Description("Totale fatture calcolato dalla somma dei registri cassa inclusi")
             .Resolve(context => context.Source.TotaleFattureCalcolato);
 
-        Field<DecimalGraphType>("speseAggiuntiveCalcolate")
-            .Description("Spese aggiuntive calcolate dalla somma di spese libere + pagamenti fornitori")
-            .Resolve(context => context.Source.SpeseAggiuntiveCalcolate);
-
         Field<DecimalGraphType>("speseGiornaliereRegistriCalcolate")
-            .Description("Somma delle spese giornaliere dei registri cassa inclusi nella chiusura")
+            .Description("Somma delle spese giornaliere (non tracciate) dei registri cassa inclusi nella chiusura")
             .Resolve(context => context.Source.SpeseGiornaliereRegistriCalcolate);
 
+        Field<DecimalGraphType>("speseTracciateRegistriCalcolate")
+            .Description("Somma delle spese tracciate (Σ SpeseFornitori) dei registri cassa inclusi nella chiusura")
+            .Resolve(context => context.Source.SpeseTracciateRegistriCalcolate);
+
         Field<DecimalGraphType>("ricavoNettoCalcolato")
-            .Description("Ricavo netto calcolato (ricavo totale - spese aggiuntive - spese giornaliere registri)")
+            .Description("Ricavo netto calcolato (ricavo totale - spese tracciate - spese non tracciate dei registri)")
             .Resolve(context => context.Source.RicavoNettoCalcolato);
 
         Field<DecimalGraphType>("totaleIvaCalcolato")
@@ -57,19 +57,6 @@ public class ChiusuraMensileType : ObjectGraphType<ChiusuraMensile>
         Field<DecimalGraphType>("totaleDifferenzeCassaCalcolato")
             .Description("Totale differenze di cassa aggregate dai registri giornalieri")
             .Resolve(context => context.Source.TotaleDifferenzeCassaCalcolato);
-
-        // ✅ CAMPI CALCOLATI GESTIONALI ANTI-DOPPIO-CONTEGGIO (headline vista chiusura)
-        Field<DecimalGraphType>("speseAggiuntiveNonDuplicateCalcolate")
-            .Description("Spese libere + pagamenti fornitori NON già conteggiati nei registri inclusi (anti-doppio-conteggio)")
-            .Resolve(context => context.Source.SpeseAggiuntiveNonDuplicateCalcolate);
-
-        Field<DecimalGraphType>("totaleSpeseCalcolato")
-            .Description("Totale spese gestionale: spese dei registri inclusi (tracciate + non tracciate) + spese aggiuntive non duplicate")
-            .Resolve(context => context.Source.TotaleSpeseCalcolato);
-
-        Field<DecimalGraphType>("differenzaCalcolata")
-            .Description("Differenza gestionale: totale vendite registri inclusi - totale spese calcolato")
-            .Resolve(context => context.Source.DifferenzaCalcolata);
 
         Field<ListGraphType<StringGraphType>>("avvisiCompletezza")
             .Description("Avvisi non bloccanti di completezza rilevati alla chiusura (registri/pagamenti del mese non inclusi)")
@@ -92,14 +79,6 @@ public class ChiusuraMensileType : ObjectGraphType<ChiusuraMensile>
         Field<ListGraphType<RegistroCassaMensileType>, IEnumerable<RegistroCassaMensile>>("registriInclusi")
             .Description("Registri cassa giornalieri inclusi in questa chiusura")
             .Resolve(context => context.Source.RegistriInclusi);
-
-        Field<ListGraphType<SpesaMensileTyperaType>, IEnumerable<SpesaMensileLibera>>("speseLibere")
-            .Description("Spese mensili libere (affitto, utenze, stipendi, altro)")
-            .Resolve(context => context.Source.SpeseLibere);
-
-        Field<ListGraphType<PagamentoMensileFornitoriType>, IEnumerable<PagamentoMensileFornitori>>("pagamentiInclusi")
-            .Description("Pagamenti fornitori inclusi in questa chiusura")
-            .Resolve(context => context.Source.PagamentiInclusi);
     }
 }
 

@@ -50,9 +50,6 @@ public class ChiusureMensiliQueries : ObjectGraphType
                     .Include(c => c.ChiusaDaUtente)
                     .Include(c => c.RegistriInclusi)
                         .ThenInclude(r => r.Registro)
-                    .Include(c => c.SpeseLibere)
-                    .Include(c => c.PagamentiInclusi)
-                        .ThenInclude(p => p.Pagamento)
                     .OrderByDescending(c => c.Anno)
                         .ThenByDescending(c => c.Mese)
                     .ToListAsync();

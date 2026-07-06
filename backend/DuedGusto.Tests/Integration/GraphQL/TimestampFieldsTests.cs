@@ -413,55 +413,10 @@ public class TimestampFieldsTests : IDisposable
 
     #endregion
 
-    #region SpesaMensile
-
-    [Fact]
-    public async Task SpesaMensile_Insert_SetsTimestamps()
-    {
-        var chiusura = SeedChiusura();
-        var before = DateTime.UtcNow.AddSeconds(-1);
-
-        var spesa = new SpesaMensile
-        {
-            ChiusuraId = chiusura.ChiusuraId,
-            Descrizione = "Spesa test",
-            Importo = 100m,
-            Categoria = "ALTRO"
-        };
-        _dbContext.SpeseMensili.Add(spesa);
-        await _dbContext.SaveChangesAsync();
-
-        var loaded = await _dbContext.SpeseMensili.FirstAsync(s => s.SpesaId == spesa.SpesaId);
-        loaded.CreatedAt.Should().BeAfter(before);
-        loaded.UpdatedAt.Should().BeAfter(before);
-    }
-
-    #endregion
-
-    #region SpesaMensileLibera
-
-    [Fact]
-    public async Task SpesaMensileLibera_Insert_SetsTimestamps()
-    {
-        var chiusura = SeedChiusura();
-        var before = DateTime.UtcNow.AddSeconds(-1);
-
-        var spesa = new SpesaMensileLibera
-        {
-            ChiusuraId = chiusura.ChiusuraId,
-            Descrizione = "Affitto test",
-            Importo = 800m,
-            Categoria = CategoriaSpesa.Affitto
-        };
-        _dbContext.SpeseMensiliLibere.Add(spesa);
-        await _dbContext.SaveChangesAsync();
-
-        var loaded = await _dbContext.SpeseMensiliLibere.FirstAsync(s => s.SpesaId == spesa.SpesaId);
-        loaded.CreatedAt.Should().BeAfter(before);
-        loaded.UpdatedAt.Should().BeAfter(before);
-    }
-
-    #endregion
+    // NOTE: le region SpesaMensile e SpesaMensileLibera sono state rimosse: le entità
+    // SpesaMensile/SpesaMensileLibera sono state eliminate dal change
+    // "spese-su-registro-giornaliero" (chiusura = pura aggregazione). Le spese ora vivono
+    // su SpesaCassa/PagamentoFornitore (vedi SpesaCassa_Insert_* più sotto se presenti).
 
     #region PeriodoProgrammazione
 
