@@ -21,6 +21,15 @@ public class GestioneCassaMutations : ObjectGraphType
                 return await orchestrator.ExecuteAsync(input);
             });
 
+        Field<RegistroCassaType>("aggiungiSpesaSuGiorno")
+            .Argument<NonNullGraphType<AggiungiSpesaSuGiornoInputType>>("input", "Spesa fissa da registrare su un giorno (registro leggero)")
+            .ResolveAsync(async context =>
+            {
+                AggiungiSpesaSuGiornoOrchestrator orchestrator = GraphQLService.GetService<AggiungiSpesaSuGiornoOrchestrator>(context);
+                AggiungiSpesaSuGiornoInput input = context.GetArgument<AggiungiSpesaSuGiornoInput>("input");
+                return await orchestrator.ExecuteAsync(input);
+            });
+
         Field<RegistroCassaType>("chiudiRegistroCassa")
             .Argument<NonNullGraphType<IntGraphType>>("registroCassaId")
             .ResolveAsync(async context =>

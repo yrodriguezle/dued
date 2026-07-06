@@ -167,7 +167,8 @@ public class MutateRegistroCassaOrchestrator
             registroCassa.SpeseCassa.Add(new SpesaCassa
             {
                 Descrizione = spesaInput.Descrizione,
-                Importo = spesaInput.Importo
+                Importo = spesaInput.Importo,
+                Categoria = spesaInput.Categoria ?? CategoriaSpesa.Altro
             });
             totaleSpese += spesaInput.Importo;
         }
@@ -263,6 +264,7 @@ public class MutateRegistroCassaOrchestrator
             PagamentoFornitoreRegistroInput inp = inputById[existing.PagamentoId];
             existing.Importo = inp.Importo;
             existing.MetodoPagamento = inp.MetodoPagamento;
+            existing.Categoria = inp.Categoria;
             existing.UpdatedAt = DateTime.UtcNow;
 
             if (existing.FatturaId.HasValue)
@@ -325,6 +327,7 @@ public class MutateRegistroCassaOrchestrator
                 DataPagamento = dataRegistro,
                 Importo = pagInput.Importo,
                 MetodoPagamento = pagInput.MetodoPagamento,
+                Categoria = pagInput.Categoria,
                 Note = $"Pagamento da registro cassa del {dataRegistro:dd/MM/yyyy}",
                 RegistroCassaId = registroCassa.Id,
             });
@@ -333,7 +336,8 @@ public class MutateRegistroCassaOrchestrator
 
     // VenditeContanti, TotaleVendite, ImportoIva e breakdown IVA sono calcolati da
     // BreakdownIvaApplier (VenditeContanti = Σ Vendite persistite, non più azzerato).
-    private static void CalcolaTotali(RegistroCassa registroCassa, decimal totaleSpese)
+    // internal: riusato da AggiungiSpesaSuGiornoOrchestrator (fonte unica della formula, INVARIATA).
+    internal static void CalcolaTotali(RegistroCassa registroCassa, decimal totaleSpese)
     {
         registroCassa.SpeseGiornaliere = totaleSpese;
 

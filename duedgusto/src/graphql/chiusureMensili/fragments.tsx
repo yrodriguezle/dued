@@ -1,18 +1,5 @@
 import { gql } from "@apollo/client";
 
-export const spesaMensileLiberaFragment = gql`
-  fragment SpesaMensileLiberaFragment on SpesaMensileLibera {
-    spesaId
-    chiusuraId
-    descrizione
-    importo
-    categoria
-    data
-    createdAt
-    updatedAt
-  }
-`;
-
 export const registroCassaMensileFragment = gql`
   fragment RegistroCassaMensileFragment on RegistroCassaMensile {
     chiusuraId
@@ -35,24 +22,6 @@ export const registroCassaMensileFragment = gql`
   }
 `;
 
-export const pagamentoMensileFornitoriFragment = gql`
-  fragment PagamentoMensileFornitoriFragment on PagamentoMensileFornitori {
-    chiusuraId
-    pagamentoId
-    inclusoInChiusura
-    pagamento {
-      pagamentoId
-      dataPagamento
-      importo
-      metodoPagamento
-      note
-      registroCassaId
-      fatturaId
-      ddtId
-    }
-  }
-`;
-
 export const chiusuraMensileFragment = gql`
   fragment ChiusuraMensileFragment on ChiusuraMensile {
     chiusuraId
@@ -62,7 +31,7 @@ export const chiusuraMensileFragment = gql`
     totaleContantiCalcolato
     totaleElettroniciCalcolato
     totaleFattureCalcolato
-    speseAggiuntiveCalcolate
+    speseTracciateRegistriCalcolate
     speseGiornaliereRegistriCalcolate
     ricavoNettoCalcolato
     totaleIvaCalcolato
@@ -70,9 +39,6 @@ export const chiusuraMensileFragment = gql`
     totaleLordoCalcolato
     totaleDifferenzeCassaCalcolato
 
-    speseAggiuntiveNonDuplicateCalcolate
-    totaleSpeseCalcolato
-    differenzaCalcolata
     avvisiCompletezza
 
     giorniEsclusi
@@ -91,16 +57,6 @@ export const chiusuraMensileFragment = gql`
     registriInclusi {
       ...RegistroCassaMensileFragment
     }
-
-    speseLibere {
-      ...SpesaMensileLiberaFragment
-    }
-
-    pagamentiInclusi {
-      ...PagamentoMensileFornitoriFragment
-    }
   }
   ${registroCassaMensileFragment}
-  ${spesaMensileLiberaFragment}
-  ${pagamentoMensileFornitoriFragment}
 `;

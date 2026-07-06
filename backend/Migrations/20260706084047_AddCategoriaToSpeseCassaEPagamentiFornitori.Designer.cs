@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using duedgusto.DataAccess;
 
@@ -11,9 +12,11 @@ using duedgusto.DataAccess;
 namespace duedgusto.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260706084047_AddCategoriaToSpeseCassaEPagamentiFornitori")]
+    partial class AddCategoriaToSpeseCassaEPagamentiFornitori
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -597,6 +600,31 @@ namespace duedgusto.Migrations
                     MySqlEntityTypeBuilderExtensions.UseCollation(b, "utf8mb4_unicode_ci");
                 });
 
+            modelBuilder.Entity("duedgusto.Models.PagamentoMensileFornitori", b =>
+                {
+                    b.Property<int>("ChiusuraId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PagamentoId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("InclusoInChiusura")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true);
+
+                    b.HasKey("ChiusuraId", "PagamentoId");
+
+                    b.HasIndex("ChiusuraId");
+
+                    b.HasIndex("PagamentoId");
+
+                    b.ToTable("PagamentiMensiliFornitori", (string)null);
+
+                    MySqlEntityTypeBuilderExtensions.HasCharSet(b, "utf8mb4");
+                    MySqlEntityTypeBuilderExtensions.UseCollation(b, "utf8mb4_unicode_ci");
+                });
+
             modelBuilder.Entity("duedgusto.Models.PeriodoProgrammazione", b =>
                 {
                     b.Property<int>("PeriodoId")
@@ -922,6 +950,104 @@ namespace duedgusto.Migrations
                     MySqlEntityTypeBuilderExtensions.UseCollation(b, "utf8mb4_unicode_ci");
                 });
 
+            modelBuilder.Entity("duedgusto.Models.SpesaMensile", b =>
+                {
+                    b.Property<int>("SpesaId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("SpesaId"));
+
+                    b.Property<string>("Categoria")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<int>("ChiusuraId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("Descrizione")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<decimal>("Importo")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<int?>("PagamentoId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+
+                    b.HasKey("SpesaId");
+
+                    b.HasIndex("Categoria");
+
+                    b.HasIndex("ChiusuraId");
+
+                    b.HasIndex("PagamentoId");
+
+                    b.ToTable("SpeseMensili", (string)null);
+
+                    MySqlEntityTypeBuilderExtensions.HasCharSet(b, "utf8mb4");
+                    MySqlEntityTypeBuilderExtensions.UseCollation(b, "utf8mb4_unicode_ci");
+                });
+
+            modelBuilder.Entity("duedgusto.Models.SpesaMensileLibera", b =>
+                {
+                    b.Property<int>("SpesaId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("SpesaId"));
+
+                    b.Property<string>("Categoria")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<int>("ChiusuraId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<DateTime?>("Data")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Descrizione")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<decimal>("Importo")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+
+                    b.HasKey("SpesaId");
+
+                    b.HasIndex("Categoria");
+
+                    b.HasIndex("ChiusuraId");
+
+                    b.ToTable("SpeseMensiliLibere", (string)null);
+
+                    MySqlEntityTypeBuilderExtensions.HasCharSet(b, "utf8mb4");
+                    MySqlEntityTypeBuilderExtensions.UseCollation(b, "utf8mb4_unicode_ci");
+                });
+
             modelBuilder.Entity("duedgusto.Models.Utente", b =>
                 {
                     b.Property<int>("Id")
@@ -1159,6 +1285,25 @@ namespace duedgusto.Migrations
                     b.Navigation("RegistroCassa");
                 });
 
+            modelBuilder.Entity("duedgusto.Models.PagamentoMensileFornitori", b =>
+                {
+                    b.HasOne("duedgusto.Models.ChiusuraMensile", "Chiusura")
+                        .WithMany("PagamentiInclusi")
+                        .HasForeignKey("ChiusuraId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("duedgusto.Models.PagamentoFornitore", "Pagamento")
+                        .WithMany()
+                        .HasForeignKey("PagamentoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Chiusura");
+
+                    b.Navigation("Pagamento");
+                });
+
             modelBuilder.Entity("duedgusto.Models.PeriodoProgrammazione", b =>
                 {
                     b.HasOne("duedgusto.Models.BusinessSettings", "Settings")
@@ -1222,6 +1367,35 @@ namespace duedgusto.Migrations
                     b.Navigation("RegistroCassa");
                 });
 
+            modelBuilder.Entity("duedgusto.Models.SpesaMensile", b =>
+                {
+                    b.HasOne("duedgusto.Models.ChiusuraMensile", "Chiusura")
+                        .WithMany()
+                        .HasForeignKey("ChiusuraId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("duedgusto.Models.PagamentoFornitore", "Pagamento")
+                        .WithMany("SpeseMensili")
+                        .HasForeignKey("PagamentoId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Chiusura");
+
+                    b.Navigation("Pagamento");
+                });
+
+            modelBuilder.Entity("duedgusto.Models.SpesaMensileLibera", b =>
+                {
+                    b.HasOne("duedgusto.Models.ChiusuraMensile", "Chiusura")
+                        .WithMany("SpeseLibere")
+                        .HasForeignKey("ChiusuraId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Chiusura");
+                });
+
             modelBuilder.Entity("duedgusto.Models.Utente", b =>
                 {
                     b.HasOne("duedgusto.Models.Ruolo", "Ruolo")
@@ -1261,7 +1435,11 @@ namespace duedgusto.Migrations
 
             modelBuilder.Entity("duedgusto.Models.ChiusuraMensile", b =>
                 {
+                    b.Navigation("PagamentiInclusi");
+
                     b.Navigation("RegistriInclusi");
+
+                    b.Navigation("SpeseLibere");
                 });
 
             modelBuilder.Entity("duedgusto.Models.DenominazioneMoneta", b =>
@@ -1291,6 +1469,11 @@ namespace duedgusto.Migrations
             modelBuilder.Entity("duedgusto.Models.Menu", b =>
                 {
                     b.Navigation("Figli");
+                });
+
+            modelBuilder.Entity("duedgusto.Models.PagamentoFornitore", b =>
+                {
+                    b.Navigation("SpeseMensili");
                 });
 
             modelBuilder.Entity("duedgusto.Models.Prodotto", b =>

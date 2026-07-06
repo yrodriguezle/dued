@@ -20,6 +20,10 @@ public class PagamentoFornitoreType : ObjectGraphType<PagamentoFornitore>
         Field("dataPagamento", x => x.DataPagamento, type: typeof(DateTimeGraphType));
         Field("importo", x => x.Importo);
         Field("metodoPagamento", x => x.MetodoPagamento, nullable: true);
+        // Categoria (nullable): valorizzata solo per le spese fisse pagate in modo tracciato,
+        // NULL per i pagamenti documentali (fatture/DDT fornitori).
+        Field<EnumerationGraphType<CategoriaSpesa>>("categoria")
+            .Resolve(context => context.Source.Categoria);
         Field("note", x => x.Note, nullable: true);
         Field("createdAt", x => x.CreatedAt, type: typeof(DateTimeGraphType));
         Field("updatedAt", x => x.UpdatedAt, type: typeof(DateTimeGraphType));
@@ -33,8 +37,5 @@ public class PagamentoFornitoreType : ObjectGraphType<PagamentoFornitore>
             .Resolve(context => context.Source.DdtId is { } fk
                 ? context.GetDdtById(fk)
                 : null);
-
-        Field<ListGraphType<SpesaMensileType>, IEnumerable<SpesaMensile>>("speseMensili")
-            .Resolve(context => context.Source.SpeseMensili);
     }
 }

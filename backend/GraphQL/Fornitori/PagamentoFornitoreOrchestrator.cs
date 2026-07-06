@@ -51,6 +51,7 @@ public class PagamentoFornitoreOrchestrator
             payment.DataPagamento = input.DataPagamento;
             payment.Importo = input.Importo;
             payment.MetodoPagamento = input.MetodoPagamento;
+            payment.Categoria = input.Categoria;
             payment.Note = input.Note;
             payment.UpdatedAt = DateTime.UtcNow;
 

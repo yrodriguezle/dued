@@ -98,6 +98,7 @@ const RegistroCassaForm: React.FC<RegistroCassaFormProps> = ({
             initialExpenses={initialExpenses}
             isLocked={isLocked && !isClosed}
             date={formik.values.date}
+            columns={{ showCategoria: true }}
             onCellChange={onCellChange}
             onExpensesChange={onExpensesChange}
           />

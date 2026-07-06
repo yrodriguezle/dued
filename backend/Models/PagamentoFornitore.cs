@@ -27,6 +27,12 @@ namespace duedgusto.Models
 
         public string? Note { get; set; }
 
+        /// <summary>
+        /// Categoria della spesa (spesa fissa TRACCIATA). Nullable: valorizzata solo per le spese fisse
+        /// pagate in modo tracciato; NULL per i pagamenti documentali (fatture/DDT fornitori).
+        /// </summary>
+        public CategoriaSpesa? Categoria { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
@@ -41,7 +47,5 @@ namespace duedgusto.Models
         public int? RegistroCassaId { get; set; }
         [ForeignKey("RegistroCassaId")]
         public virtual RegistroCassa? RegistroCassa { get; set; }
-
-        public virtual ICollection<SpesaMensile> SpeseMensili { get; set; } = [];
     }
 }

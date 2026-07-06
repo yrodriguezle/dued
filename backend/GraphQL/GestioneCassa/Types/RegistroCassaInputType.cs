@@ -1,4 +1,5 @@
 using GraphQL.Types;
+using duedgusto.Models;
 
 namespace duedgusto.GraphQL.GestioneCassa.Types;
 
@@ -16,6 +17,8 @@ public class PagamentoFornitoreRegistroInput
     public DateTime? DataFattura { get; set; }
     public DateTime? DataDdt { get; set; }
     public decimal? AliquotaIva { get; set; }
+    // Categoria opzionale: valorizzata per le spese fisse tracciate, NULL per i pagamenti documentali.
+    public CategoriaSpesa? Categoria { get; set; }
 }
 
 public class PagamentoFornitoreRegistroInputType : InputObjectGraphType<PagamentoFornitoreRegistroInput>
@@ -35,6 +38,7 @@ public class PagamentoFornitoreRegistroInputType : InputObjectGraphType<Pagament
         Field(x => x.DataFattura, type: typeof(DateTimeGraphType));
         Field(x => x.DataDdt, type: typeof(DateTimeGraphType));
         Field(x => x.AliquotaIva, nullable: true);
+        Field(x => x.Categoria, type: typeof(EnumerationGraphType<CategoriaSpesa>));
     }
 }
 

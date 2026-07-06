@@ -16,6 +16,8 @@ export interface ConteggioMonetaInput {
 export interface SpesaCassaInput {
   descrizione: string;
   importo: number;
+  // Categoria NON tracciata: se assente il backend applica il default "Altro".
+  categoria?: CategoriaSpesa;
 }
 
 export interface PagamentoFornitoreRegistroInput {
@@ -31,6 +33,8 @@ export interface PagamentoFornitoreRegistroInput {
   dataFattura?: string;
   dataDdt?: string;
   aliquotaIva?: number;
+  // Categoria (opzionale): valorizzata solo per le spese fisse pagate in modo tracciato.
+  categoria?: CategoriaSpesa;
 }
 
 export interface RegistroCassaInput {
@@ -102,6 +106,44 @@ export const mutationEliminaRegistroCassa: TypedDocumentNode<EliminaRegistroCass
   mutation EliminaRegistroCassa($registroCassaId: Int!) {
     gestioneCassa {
       eliminaRegistroCassa(registroCassaId: $registroCassaId)
+    }
+  }
+`;
+
+// ============ MUTATION: Aggiungi Spesa su Giorno (registro "leggero") ============
+// Registra una spesa fissa su un giorno anche in assenza di registro operativo
+// (bypassa il solo guard giorno-operativo, mantiene GuardMeseChiuso).
+// tracciata=true → PagamentoFornitore; tracciata=false → SpesaCassa.
+// TODO: nessuna UI dedicata prevista dal design corrente; la mutation è esposta
+// per uso futuro (es. registrazione affitto in giorno di chiusura).
+
+export interface AggiungiSpesaSuGiornoInput {
+  data: string;
+  descrizione: string;
+  importo: number;
+  categoria: CategoriaSpesa;
+  tracciata: boolean;
+  metodoPagamento?: string;
+  utenteId: number;
+}
+
+interface AggiungiSpesaSuGiornoData {
+  gestioneCassa: {
+    aggiungiSpesaSuGiorno: RegistroCassa | null;
+  };
+}
+
+interface AggiungiSpesaSuGiornoValues {
+  input: AggiungiSpesaSuGiornoInput;
+}
+
+export const mutationAggiungiSpesaSuGiorno: TypedDocumentNode<AggiungiSpesaSuGiornoData, AggiungiSpesaSuGiornoValues> = gql`
+  ${registroCassaFragment}
+  mutation AggiungiSpesaSuGiorno($input: AggiungiSpesaSuGiornoInput!) {
+    gestioneCassa {
+      aggiungiSpesaSuGiorno(input: $input) {
+        ...RegistroCassaFragment
+      }
     }
   }
 `;

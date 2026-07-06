@@ -40,31 +40,22 @@ import dayjs from "dayjs";
 
 import { useQueryChiusuraMensile, useQueryValidaCompletezzaRegistri } from "../../../graphql/chiusureMensili/queries";
 import {
-  mutationAggiungiSpesaLibera,
   mutationCreaChiusuraMensile,
   mutationChiudiChiusuraMensile,
   mutationEliminaChiusuraMensile,
-  mutationModificaSpesaLibera,
-  mutationEliminaSpesaLibera,
   mutationAggiornaGiorniEsclusi,
-  mutationAggiungiPagamentoFornitoreInChiusura,
-  mutationModificaPagamentoFornitoreInChiusura,
-  mutationEliminaPagamentoFornitoreInChiusura,
-  PagamentoDocumentoChiusuraInput,
 } from "../../../graphql/chiusureMensili/mutations";
 import PageTitleContext from "../../layout/headerBar/PageTitleContext";
 import { statoRegistroCassa, statoChiusuraMensile } from "../../../common/globals/constants";
 import FormikToolbarButton from "../../common/form/toolbar/FormikToolbarButton";
 import useConfirm from "../../common/confirm/useConfirm";
 import showToast from "../../../common/toast/showToast";
-import SpeseDataGrid, { SpeseDataGridPersistence, SpeseGridRow } from "./SpeseDataGrid";
 import MonthlyClosureReport from "./MonthlyClosureReport";
 import KPICard from "../../common/KPICard";
 import useChartPalette from "./dashboard/useChartPalette";
 import { MESI_LABEL } from "./dashboard/dashboardUtils";
 import formatCurrency from "../../../common/bones/formatCurrency";
 import { aggregaRegistriPerMese } from "../../../common/registroCassa/aggregaRegistri";
-import { parseDateForGraphQL } from "../../../common/date/date";
 
 const MOTIVO_LABELS: Record<CodiceMotivo, string> = {
   ATTIVITA_NON_AVVIATA: "Attività non avviata",
@@ -87,12 +78,6 @@ const MonthlyClosureDetails = () => {
   const { chiusuraMensile, loading, error, refetch } = useQueryChiusuraMensile({ chiusuraId });
 
   const [creaChiusura, { loading: createLoading }] = useMutation(mutationCreaChiusuraMensile);
-  const [aggiungiSpesaLibera, { loading: addExpenseLoading }] = useMutation(mutationAggiungiSpesaLibera);
-  const [modificaSpesaLibera] = useMutation(mutationModificaSpesaLibera);
-  const [eliminaSpesaLiberaMutation] = useMutation(mutationEliminaSpesaLibera);
-  const [aggiungiPagamentoInChiusura] = useMutation(mutationAggiungiPagamentoFornitoreInChiusura);
-  const [modificaPagamentoInChiusura] = useMutation(mutationModificaPagamentoFornitoreInChiusura);
-  const [eliminaPagamentoInChiusura] = useMutation(mutationEliminaPagamentoFornitoreInChiusura);
   const [chiudiChiusura, { loading: closeLoading }] = useMutation(mutationChiudiChiusuraMensile);
   const [eliminaChiusura, { loading: deleteLoading }] = useMutation(mutationEliminaChiusuraMensile);
   const [aggiornaGiorniEsclusi, { loading: excludeLoading }] = useMutation(mutationAggiornaGiorniEsclusi);
@@ -103,9 +88,8 @@ const MonthlyClosureDetails = () => {
 
   const anno = chiusuraMensile?.anno ?? newAnno;
   const mese = chiusuraMensile?.mese ?? newMese;
-  const isMutating = createLoading || addExpenseLoading || closeLoading || deleteLoading || excludeLoading;
+  const isMutating = createLoading || closeLoading || deleteLoading || excludeLoading;
   const isDraft = isNewMode || chiusuraMensile?.stato === statoChiusuraMensile.BOZZA;
-  const isReadOnly = !isDraft;
 
   const registriInclusi = useMemo(() => chiusuraMensile?.registriInclusi ?? [], [chiusuraMensile?.registriInclusi]);
   const registriNonRiconciliati = useMemo(() => registriInclusi.filter((ri) => ri.registro.stato === statoRegistroCassa.CLOSED), [registriInclusi]);
@@ -139,10 +123,6 @@ const MonthlyClosureDetails = () => {
     navigate,
   });
 
-  // Primo giorno del mese: default per le nuove righe e per la dataPagamento
-  // dei pagamenti registrati dalla chiusura (deve appartenere al mese).
-  const defaultDate = useMemo(() => (anno && mese ? dayjs(new Date(anno, mese - 1, 1)).format("YYYY-MM-DD") : dayjs().format("YYYY-MM-DD")), [anno, mese]);
-
   // KPI gestionali: aggregazione con le stesse formule della Vista mensile,
   // applicata ai SOLI registri effettivamente inclusi nella chiusura.
   const meseAggregato = useMemo(() => {
@@ -151,123 +131,6 @@ const MonthlyClosureDetails = () => {
     const indice = (mese || 1) - 1;
     return mesi[indice] ?? mesi[0];
   }, [registriInclusi, anno, mese]);
-
-  // Righe della griglia spese: spese libere + pagamenti fornitori inclusi.
-  const gridExpenses = useMemo<SpeseGridRow[]>(() => {
-    if (!chiusuraMensile) return [];
-    const speseLibereRows: SpeseGridRow[] = chiusuraMensile.speseLibere.map((s) => ({
-      spesaId: s.spesaId,
-      description: s.descrizione,
-      amount: s.importo,
-      categoria: s.categoria,
-      data: s.data ? dayjs(s.data).format("YYYY-MM-DD") : undefined,
-      isPagamentoFornitore: false,
-    }));
-    const pagamentiRows: SpeseGridRow[] = chiusuraMensile.pagamentiInclusi
-      .filter((pi) => pi.inclusoInChiusura)
-      .map((pi) => {
-        const p = pi.pagamento;
-        const documentType: "FA" | "DDT" = p.fatturaId != null ? "FA" : "DDT";
-        return {
-          pagamentoId: p.pagamentoId,
-          isPagamentoFornitore: true,
-          description: p.note || `Pagamento fornitore ${documentType}`,
-          amount: p.importo,
-          data: p.dataPagamento ? dayjs(p.dataPagamento).format("YYYY-MM-DD") : undefined,
-          documentType,
-          fatturaId: p.fatturaId ?? undefined,
-          ddtId: p.ddtId ?? undefined,
-          paymentMethod: p.metodoPagamento ?? undefined,
-          registroCassaId: p.registroCassaId,
-        };
-      });
-    return [...pagamentiRows, ...speseLibereRows];
-  }, [chiusuraMensile]);
-
-  // Persistenza per-riga: ogni operazione persiste e poi refetch per aggiornare
-  // headline/KPI (i campi calcolati backend includono già le novità).
-  const persistence = useMemo<SpeseDataGridPersistence | undefined>(() => {
-    if (!chiusuraMensile) return undefined;
-    const chiusuraIdCorrente = chiusuraMensile.chiusuraId;
-    return {
-      createExpense: async (row) => {
-        const res = await aggiungiSpesaLibera({
-          variables: {
-            chiusuraId: chiusuraIdCorrente,
-            descrizione: row.description,
-            importo: row.amount,
-            categoria: row.categoria ?? "Altro",
-            data: parseDateForGraphQL(row.data ?? defaultDate) ?? null,
-          },
-        });
-        await refetch();
-        return res.data?.chiusureMensili.aggiungiSpesaLibera?.spesaId ?? null;
-      },
-      updateExpense: async (row) => {
-        if ((row.spesaId ?? 0) <= 0) return;
-        await modificaSpesaLibera({
-          variables: {
-            spesaId: row.spesaId as number,
-            descrizione: row.description,
-            importo: row.amount,
-            categoria: row.categoria ?? "Altro",
-            data: parseDateForGraphQL(row.data ?? defaultDate) ?? null,
-          },
-        });
-        await refetch();
-      },
-      deleteExpense: async (row) => {
-        if ((row.spesaId ?? 0) <= 0) return;
-        await eliminaSpesaLiberaMutation({ variables: { spesaId: row.spesaId as number } });
-        await refetch();
-      },
-      createSupplierPayment: async (row) => {
-        if (!row.fornitoreId) return null;
-        const input: PagamentoDocumentoChiusuraInput = {
-          fornitoreId: row.fornitoreId,
-          tipoDocumento: row.documentType ?? "DDT",
-          numeroDocumento: (row.documentType === "FA" ? row.invoiceNumber : row.ddtNumber) ?? null,
-          dataPagamento: parseDateForGraphQL(row.data ?? defaultDate) ?? (parseDateForGraphQL(defaultDate) as string),
-          importo: row.amount,
-          aliquotaIva: row.aliquotaIva ?? null,
-          metodoPagamento: row.paymentMethod ?? null,
-          fatturaId: row.fatturaId ?? null,
-          ddtId: row.ddtId ?? null,
-        };
-        const res = await aggiungiPagamentoInChiusura({ variables: { chiusuraId: chiusuraIdCorrente, input } });
-        await refetch();
-        return res.data?.chiusureMensili.aggiungiPagamentoFornitoreInChiusura?.pagamentoId ?? null;
-      },
-      updateSupplierPayment: async (row) => {
-        if (row.pagamentoId == null) return;
-        await modificaPagamentoInChiusura({
-          variables: {
-            pagamentoId: row.pagamentoId,
-            importo: row.amount,
-            dataPagamento: parseDateForGraphQL(row.data ?? defaultDate) ?? null,
-            metodoPagamento: row.paymentMethod ?? null,
-            aliquotaIva: row.aliquotaIva ?? null,
-          },
-        });
-        await refetch();
-      },
-      deleteSupplierPayment: async (row) => {
-        if (row.pagamentoId == null) return;
-        await eliminaPagamentoInChiusura({ variables: { pagamentoId: row.pagamentoId } });
-        await refetch();
-      },
-    };
-  }, [
-    chiusuraMensile,
-    defaultDate,
-    aggiungiSpesaLibera,
-    modificaSpesaLibera,
-    eliminaSpesaLiberaMutation,
-    aggiungiPagamentoInChiusura,
-    modificaPagamentoInChiusura,
-    eliminaPagamentoInChiusura,
-    refetch,
-  ]);
 
   const handleEscludiSelezionati = useCallback(async () => {
     if (!chiusuraMensile) return;
@@ -423,16 +286,15 @@ const MonthlyClosureDetails = () => {
     return <Alert severity="warning">Chiusura non trovata.</Alert>;
   }
 
-  const differenzaGestionale = chiusuraMensile.differenzaCalcolata ?? 0;
-  // Le tre differenze quadrano: totale (autorevole, comprende le spese di chiusura)
-  // = tracciata + non tracciata. La non tracciata è dei registri (ricavo − spese non
-  // tracciate); la tracciata è il residuo e assorbe le spese di chiusura, che sono
-  // documentate (fatture/DDT/spese libere) e quindi pesano sul lato tracciato.
+  // Chiusura = pura aggregazione dei soli registri inclusi: tutte le differenze
+  // derivano da `meseAggregato` (aggregaRegistriPerMese), nessun KPI di chiusura.
+  // Le tre differenze quadrano: totale = tracciata + non tracciata.
+  const differenzaGestionale = meseAggregato?.differenza ?? 0;
   const differenzaNonTracciata = (meseAggregato?.ricavoNonTracciato ?? 0) - (meseAggregato?.speseNonTracciate ?? 0);
   const differenzaTracciata = differenzaGestionale - differenzaNonTracciata;
   const kpiBanda: { label: string; value: number; negative?: boolean }[] = [
     { label: "Totale Vendite", value: meseAggregato?.totaleVendite ?? 0 },
-    { label: "Totale Spese", value: chiusuraMensile.totaleSpeseCalcolato ?? 0, negative: true },
+    { label: "Totale Spese", value: meseAggregato?.totaleSpese ?? 0, negative: true },
     { label: "Ricavo tracciato", value: meseAggregato?.ricavoTracciato ?? 0 },
     { label: "Ricavo non tracc.", value: meseAggregato?.ricavoNonTracciato ?? 0 },
     { label: "Spese tracciate", value: meseAggregato?.speseTracciate ?? 0, negative: true },
@@ -679,17 +541,6 @@ const MonthlyClosureDetails = () => {
               </Paper>
             </div>
           )}
-
-          {/* Spese e pagamenti fornitori (griglia unificata in stile cassa) */}
-          <div className="col-span-12">
-            <SpeseDataGrid
-              initialExpenses={gridExpenses}
-              isLocked={isReadOnly}
-              date={defaultDate}
-              columns={{ showData: true, showCategoria: true, categoriaOptions: ["Affitto", "Utenze", "Stipendi", "Altro"], showGiornale: false }}
-              persistence={isReadOnly ? undefined : persistence}
-            />
-          </div>
 
           {/* Info chiusura */}
           {chiusuraMensile.stato !== statoChiusuraMensile.BOZZA && chiusuraMensile.chiusaDaUtente && (

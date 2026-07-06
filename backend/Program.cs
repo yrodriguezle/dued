@@ -44,7 +44,6 @@ builder.Services.AddTransient<PasswordService>();
 // ChiusureMensili Services (modello referenziale puro)
 builder.Services.AddScoped<ChiusuraMensileValidator>();
 builder.Services.AddScoped<ChiusuraMensileService>();
-builder.Services.AddScoped<MigrazioneChiusureMensiliService>();
 
 // Fornitori Services
 builder.Services.AddScoped<RegistroCassaSyncService>();
@@ -58,6 +57,7 @@ builder.Services.AddScoped<PagamentoFornitoreOrchestrator>();
 
 // GestioneCassa Orchestrators
 builder.Services.AddScoped<MutateRegistroCassaOrchestrator>();
+builder.Services.AddScoped<AggiungiSpesaSuGiornoOrchestrator>();
 builder.Services.AddScoped<ChiudiRegistroCassaOrchestrator>();
 builder.Services.AddScoped<EliminaRegistroCassaOrchestrator>();
 

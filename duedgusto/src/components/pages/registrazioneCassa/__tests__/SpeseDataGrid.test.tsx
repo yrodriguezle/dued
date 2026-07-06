@@ -126,6 +126,53 @@ describe("SpeseDataGrid — colonna Data editabile per pagamenti origine-chiusur
   });
 });
 
+describe("SpeseDataGrid — colonna Categoria (registro cassa)", () => {
+  it("con showCategoria mostra la colonna Categoria con l'editor a tendina e i valori di default", () => {
+    renderGrid();
+
+    const categoriaCol = capturedDatagridProps!.columnDefs.find((c) => c.field === "categoria");
+    expect(categoriaCol).toBeDefined();
+    expect((categoriaCol as { cellEditor?: string }).cellEditor).toBe("agSelectCellEditor");
+    expect((categoriaCol as { cellEditorParams?: { values?: unknown[] } }).cellEditorParams?.values).toEqual([
+      "Affitto",
+      "Utenze",
+      "Stipendi",
+      "Altro",
+    ]);
+  });
+
+  it("la Categoria è editabile sulle spese normali ma non sui pagamenti fornitore", () => {
+    renderGrid();
+
+    const categoriaCol = capturedDatagridProps!.columnDefs.find((c) => c.field === "categoria");
+    const editable = categoriaCol!.editable as (params: { data?: unknown }) => boolean;
+    // Spesa normale del registro → categoria modificabile
+    expect(editable({ data: { isPagamentoFornitore: false } })).toBe(true);
+    // Pagamento fornitore → categoria read-only in griglia (si modifica dal dialog)
+    expect(editable({ data: { isPagamentoFornitore: true } })).toBe(false);
+  });
+
+  it("senza showCategoria la colonna Categoria non viene renderizzata", () => {
+    renderGrid({ columns: { showData: true } });
+    expect(capturedDatagridProps!.columnDefs.find((c) => c.field === "categoria")).toBeUndefined();
+  });
+
+  it("modificando la Categoria di una spesa (staged) l'importo/valore resta locale senza errori", async () => {
+    // Registro cassa = modalità staged (nessuna persistence): il cambio di Categoria
+    // aggiorna la riga senza toccare il server.
+    renderGrid();
+    const api = makeFakeApi();
+    act(() => capturedDatagridProps!.onGridReady!({ api }));
+
+    const row = { description: "Bolletta", amount: 80, categoria: "Altro", isPagamentoFornitore: false };
+    await act(async () => {
+      capturedDatagridProps!.onCellValueChanged!({ data: { ...row, categoria: "Utenze" }, colDef: { field: "categoria" }, newValue: "Utenze", api });
+    });
+    // Nessuna scrittura server: staged.
+    expect(api.applyTransaction).not.toHaveBeenCalled();
+  });
+});
+
 describe("SpeseDataGrid — persistenza per-riga (CON persistence)", () => {
   it("crea una spesa libera nuova (spesaId temporaneo) → createExpense", async () => {
     const persistence = makePersistence();

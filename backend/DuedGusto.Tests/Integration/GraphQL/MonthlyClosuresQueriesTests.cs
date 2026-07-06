@@ -138,9 +138,6 @@ public class MonthlyClosuresQueriesTests : IDisposable
         var results = await _dbContext.ChiusureMensili
             .Include(c => c.RegistriInclusi)
                 .ThenInclude(r => r.Registro)
-            .Include(c => c.SpeseLibere)
-            .Include(c => c.PagamentiInclusi)
-                .ThenInclude(p => p.Pagamento)
             .Where(c => c.Anno == 2026)
             .OrderByDescending(c => c.Anno)
                 .ThenByDescending(c => c.Mese)
@@ -223,9 +220,6 @@ public class MonthlyClosuresQueriesTests : IDisposable
         var closures = await _dbContext.ChiusureMensili
             .Include(c => c.RegistriInclusi)
                 .ThenInclude(r => r.Registro)
-            .Include(c => c.SpeseLibere)
-            .Include(c => c.PagamentiInclusi)
-                .ThenInclude(p => p.Pagamento)
             .Where(c => c.Anno == 2026)
             .OrderBy(c => c.Mese)
             .ToListAsync();
@@ -245,31 +239,29 @@ public class MonthlyClosuresQueriesTests : IDisposable
     [Fact]
     public async Task YearlySummary_WithExpenses_CalculatesNetCorrectly()
     {
-        // Arrange
+        // Arrange — chiusura = pura aggregazione: le spese vivono sui registri inclusi
+        // (SpeseGiornaliere = non tracciato, SpeseFornitori = tracciato). Nessuna spesa libera.
         var utente = SeedUtente();
         SeedBusinessSettings();
 
-        // speseGiornaliere > 0: il nuovo RicavoNettoCalcolato le sottrae
         var chiusura = await SeedChiusuraWithRegisters(utente, 2026, 1, [5000m], speseGiornalierePerGiorno: 150m);
 
-        // Add expenses
-        await _service.AggiungiSpesaLiberaAsync(chiusura.ChiusuraId, "Affitto", 1000m, CategoriaSpesa.Affitto);
-        await _service.AggiungiSpesaLiberaAsync(chiusura.ChiusuraId, "Utenze", 300m, CategoriaSpesa.Utenze);
+        // Aggiungo spese TRACCIATE (SpeseFornitori) direttamente sul registro incluso
+        var registro = await _dbContext.RegistriCassa.FirstAsync();
+        registro.SpeseFornitori = 200m;
+        await _dbContext.SaveChangesAsync();
 
         // Act
         var loaded = await _dbContext.ChiusureMensili
             .Include(c => c.RegistriInclusi)
                 .ThenInclude(r => r.Registro)
-            .Include(c => c.SpeseLibere)
-            .Include(c => c.PagamentiInclusi)
-                .ThenInclude(p => p.Pagamento)
             .FirstAsync(c => c.ChiusuraId == chiusura.ChiusuraId);
 
-        // Assert
+        // Assert — RicavoNetto = Ricavo − Tracciate − NonTracciate (Decision 4)
         loaded.RicavoTotaleCalcolato.Should().Be(5000m);
-        loaded.SpeseAggiuntiveCalcolate.Should().Be(1300m);
+        loaded.SpeseTracciateRegistriCalcolate.Should().Be(200m);
         loaded.SpeseGiornaliereRegistriCalcolate.Should().Be(150m);
-        loaded.RicavoNettoCalcolato.Should().Be(3550m); // 5000 - 1300 - 150
+        loaded.RicavoNettoCalcolato.Should().Be(4650m); // 5000 - 200 - 150
     }
 
     #endregion
@@ -277,23 +269,28 @@ public class MonthlyClosuresQueriesTests : IDisposable
     #region Query by ID with Full Relations (REQ-2.2.2)
 
     [Fact]
-    public async Task QueryById_LoadsAllRelations()
+    public async Task QueryById_LoadsRegistriInclusi()
     {
-        // Arrange
+        // Arrange — chiusura = pura aggregazione: GetChiusuraConRelazioniAsync carica solo
+        // RegistriInclusi.ThenInclude(Registro). Le navigation SpeseLibere/PagamentiInclusi
+        // sono state rimosse dal modello (change spese-su-registro-giornaliero).
         var utente = SeedUtente();
         SeedBusinessSettings();
 
         var chiusura = await SeedChiusuraWithRegisters(utente, 2026, 8, [1000m]);
-        await _service.AggiungiSpesaLiberaAsync(chiusura.ChiusuraId, "Stipendi", 2000m, CategoriaSpesa.Stipendi);
+        var registro = await _dbContext.RegistriCassa.FirstAsync();
+        registro.SpeseFornitori = 300m; // spesa tracciata sul registro
+        await _dbContext.SaveChangesAsync();
 
-        // Act — mirrors the resolver: use service to load with all relations
+        // Act — mirrors the resolver: use service to load with relations
         var loaded = await _service.GetChiusuraConRelazioniAsync(chiusura.ChiusuraId);
 
-        // Assert
+        // Assert — i KPI puri sono calcolabili dai soli registri inclusi
         loaded.Should().NotBeNull();
         loaded!.RegistriInclusi.Should().HaveCount(1);
-        loaded.SpeseLibere.Should().HaveCount(1);
-        loaded.SpeseLibere.First().Descrizione.Should().Be("Stipendi");
+        loaded.RegistriInclusi.First().Registro.Should().NotBeNull();
+        loaded.SpeseTracciateRegistriCalcolate.Should().Be(300m);
+        loaded.RicavoNettoCalcolato.Should().Be(700m); // 1000 - 300 - 0
     }
 
     #endregion

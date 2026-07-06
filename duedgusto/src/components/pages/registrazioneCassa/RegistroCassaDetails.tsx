@@ -192,6 +192,7 @@ function RegistroCassaDetails() {
             dataFattura: row.dataFattura,
             dataDdt: row.dataDdt,
             aliquotaIva: row.aliquotaIva ?? undefined,
+            categoria: row.categoria,
           }));
 
         // Converti gli array in campi per il backend (nomi italiani)
@@ -207,9 +208,10 @@ function RegistroCassaDetails() {
             denominazioneMonetaId: row.denominationId,
             quantita: row.quantity,
           })),
-          spese: normalExpenses.map((row: ExpenseRow) => ({
+          spese: normalExpenses.map((row: Spese) => ({
             descrizione: row.description,
             importo: row.amount,
+            categoria: row.categoria,
           })),
           pagamentiFornitori: pagamentiFornitore,
           incassoContanteTracciato: incomes.find((i: IncomeRow) => i.type === "Pago in contanti")?.amount || 0,
@@ -419,6 +421,7 @@ function RegistroCassaDetails() {
         registroCassa.spese?.map((e: SpesaCassa) => ({
           description: e.descrizione,
           amount: e.importo,
+          categoria: e.categoria,
         })) || [];
       const pagamentoFornitoreExpenses: Spese[] =
         registroCassa.pagamentiFornitori?.map((p: PagamentoFornitoreRegistro) => {
@@ -448,6 +451,7 @@ function RegistroCassaDetails() {
             dataFattura: p.fattura?.dataFattura,
             dataDdt: p.ddt?.dataDdt,
             aliquotaIva: fornitoreAliquota ?? undefined,
+            categoria: p.categoria ?? undefined,
           };
         }) || [];
       setInitialExpenses([...pagamentoFornitoreExpenses, ...normalExpenses]);

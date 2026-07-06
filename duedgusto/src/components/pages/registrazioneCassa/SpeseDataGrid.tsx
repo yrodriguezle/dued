@@ -207,8 +207,8 @@ const SpeseDataGrid = memo(
             field: "data",
             width: 120,
             minWidth: 110,
-            // La "Data" è editabile anche sui pagamenti fornitore di origine-chiusura
-            // (registroCassaId == null): la modifica mappa su modificaPagamentoFornitoreInChiusura.
+            // La "Data" è editabile anche sui pagamenti fornitore senza registro
+            // (registroCassaId == null), via il callback di persistenza per-riga.
             // I pagamenti origine-cassa (registroCassaId != null) restano read-only.
             editable: (params) => !isLocked && !isReadOnlyPayment(params.data),
             cellEditor: "agDateStringCellEditor",
@@ -298,8 +298,8 @@ const SpeseDataGrid = memo(
                 // Spese libere: create/update tramite le mutation spesa libera.
                 void persistExpenseRow(event.data);
               } else if (!isReadOnlyPayment(event.data) && event.data.pagamentoId != null) {
-                // Pagamenti fornitore di origine-chiusura: l'unica colonna editabile è "Data",
-                // quindi ogni modifica mappa su modificaPagamentoFornitoreInChiusura(pagamentoId, dataPagamento).
+                // Pagamenti fornitore senza registro: l'unica colonna editabile è "Data",
+                // quindi ogni modifica mappa sul callback di persistenza updateSupplierPayment.
                 void persistence.updateSupplierPayment(event.data);
               }
             }

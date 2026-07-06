@@ -25,21 +25,9 @@ vi.mock("@apollo/client", async () => {
   };
 });
 
-// Stub della NUOVA griglia unificata SpeseDataGrid: cattura le props per verificarne
-// il wiring (persistenza per-riga quando bozza, read-only quando chiusa). AG Grid non
-// gira in modo affidabile in jsdom, quindi la sostituiamo con un placeholder.
-type SpeseDataGridProps = {
-  isLocked: boolean;
-  persistence?: unknown;
-  initialExpenses: unknown[];
-};
-let capturedSpeseProps: SpeseDataGridProps | null = null;
-vi.mock("../SpeseDataGrid", () => ({
-  default: (props: SpeseDataGridProps) => {
-    capturedSpeseProps = props;
-    return <div data-testid="spese-data-grid" />;
-  },
-}));
+// La chiusura mensile è ora pura aggregazione dei registri inclusi: non contiene
+// più una griglia spese editabile. Stubbiamo solo il report (usa @mui/x-charts,
+// non necessario per lo smoke test dei KPI).
 vi.mock("../MonthlyClosureReport", () => ({
   default: () => <div data-testid="monthly-closure-report" />,
 }));
@@ -100,20 +88,15 @@ const mockChiusuraBozza = {
   chiusaDaUtente: null,
   chiusaIl: null,
   registriInclusi: [makeRegistroIncluso()],
-  speseLibere: [],
-  pagamentiInclusi: [],
-  // Campi gestionali headline (single source of truth backend)
-  differenzaCalcolata: 800,
-  totaleSpeseCalcolato: 200,
-  speseAggiuntiveNonDuplicateCalcolate: 0,
-  // ricavoNettoCalcolato NON deve più essere usato nella headline (era la strip fiscale)
+  // ricavoNettoCalcolato NON deve comparire nella headline (era la vecchia strip fiscale)
   ricavoNettoCalcolato: 999,
-  // Campi fiscali (presenti ma non nella headline)
+  // Campi fiscali di pura aggregazione (presenti ma non nella headline gestionale)
   ricavoTotaleCalcolato: 1000,
   totaleContantiCalcolato: 300,
   totaleElettroniciCalcolato: 200,
   totaleFattureCalcolato: 100,
-  speseAggiuntiveCalcolate: 0,
+  speseTracciateRegistriCalcolate: 150,
+  speseGiornaliereRegistriCalcolate: 50,
   totaleLordoCalcolato: 1000,
   totaleImponibileCalcolato: 900,
   totaleIvaCalcolato: 100,
@@ -168,7 +151,6 @@ function renderMonthlyClosureDetails(id = 5) {
 describe("MonthlyClosureDetails (smoke)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    capturedSpeseProps = null;
     setupStore();
     setupQueries();
   });
@@ -194,20 +176,12 @@ describe("MonthlyClosureDetails (smoke)", () => {
     // La strip fiscale (Ricavo Netto) è stata sostituita: non deve più comparire
     expect(screen.queryByText("Ricavo Netto")).not.toBeInTheDocument();
 
-    // Nuova griglia unificata (stub) e report (stub)
-    expect(screen.getByTestId("spese-data-grid")).toBeInTheDocument();
+    // La chiusura non ha più una griglia spese editabile: solo il report (stub)
+    expect(screen.queryByTestId("spese-data-grid")).not.toBeInTheDocument();
     expect(screen.getByTestId("monthly-closure-report")).toBeInTheDocument();
   });
 
-  it("passa alla SpeseDataGrid la persistenza per-riga e isLocked=false in bozza", () => {
-    renderMonthlyClosureDetails(5);
-    expect(capturedSpeseProps).not.toBeNull();
-    expect(capturedSpeseProps!.isLocked).toBe(false);
-    // In bozza la griglia riceve i callback di persistenza per-riga (niente pulsante "Salva")
-    expect(capturedSpeseProps!.persistence).toBeTruthy();
-  });
-
-  it("adatta i KPI gestionali dai campi corretti (differenzaCalcolata + aggregati dei SOLI registri inclusi)", () => {
+  it("adatta i KPI gestionali come pura aggregazione dei SOLI registri inclusi", () => {
     // Aggiunge un registro ESCLUSO con valori enormi: NON deve contribuire agli aggregati.
     const chiusura = {
       ...mockChiusuraBozza,
@@ -220,7 +194,8 @@ describe("MonthlyClosureDetails (smoke)", () => {
 
     renderMonthlyClosureDetails(5);
 
-    // Hero = differenzaCalcolata (800), NON ricavoNettoCalcolato (999)
+    // Hero = differenza aggregata dei registri inclusi (800). Il campo fiscale
+    // ricavoNettoCalcolato (999) NON deve mai comparire nella headline.
     expect(screen.getByText("€ 800,00")).toBeInTheDocument();
     expect(screen.queryByText("€ 999,00")).not.toBeInTheDocument();
 
@@ -230,7 +205,7 @@ describe("MonthlyClosureDetails (smoke)", () => {
     expect(screen.getByText("600,00")).toBeInTheDocument(); // Ricavo tracciato
     expect(screen.getByText("150,00")).toBeInTheDocument(); // Spese tracciate
     expect(screen.getByText("50,00")).toBeInTheDocument(); // Spese non tracc.
-    // Totale Spese = totaleSpeseCalcolato del backend (200), non un derivato client
+    // Totale Spese = aggregazione client (speseTracciate 150 + speseNonTracciate 50 = 200)
     expect(screen.getByText("200,00")).toBeInTheDocument();
   });
 

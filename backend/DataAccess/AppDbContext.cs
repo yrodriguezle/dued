@@ -40,12 +40,9 @@ public class AppDbContext : DbContext
 
     // Monthly Closure
     public DbSet<ChiusuraMensile> ChiusureMensili { get; set; }
-    public DbSet<SpesaMensile> SpeseMensili { get; set; }
 
     // Monthly Closure - New Referential Model
     public DbSet<RegistroCassaMensile> RegistriCassaMensili { get; set; }
-    public DbSet<SpesaMensileLibera> SpeseMensiliLibere { get; set; }
-    public DbSet<PagamentoMensileFornitori> PagamentiMensiliFornitori { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -318,6 +315,15 @@ public class AppDbContext : DbContext
             entity.Property(x => x.Importo)
                 .HasColumnType("decimal(10,2)")
                 .IsRequired();
+
+            entity.Property(x => x.Categoria)
+                .HasConversion<string>()
+                .HasMaxLength(20)
+                .IsRequired()
+                .HasDefaultValue(CategoriaSpesa.Altro)
+                // Sentinel = Altro (valore di default CLR della proprietà): così un valore esplicito
+                // Affitto (CLR default dell'enum) viene inviato al DB e non scambiato per "non impostato".
+                .HasSentinel(CategoriaSpesa.Altro);
 
             entity.HasOne(x => x.RegistroCassa)
                 .WithMany(x => x.SpeseCassa)
@@ -816,6 +822,10 @@ public class AppDbContext : DbContext
             entity.Property(x => x.MetodoPagamento)
                 .HasMaxLength(50);
 
+            entity.Property(x => x.Categoria)
+                .HasConversion<string>()
+                .HasMaxLength(20);
+
             entity.Property(x => x.Note)
                 .HasColumnType("text");
 
@@ -903,55 +913,6 @@ public class AppDbContext : DbContext
             entity.HasIndex(x => x.Stato);
         });
 
-        modelBuilder.Entity<SpesaMensile>(entity =>
-        {
-            entity
-                .ToTable("SpeseMensili")
-                .HasCharSet("utf8mb4")
-                .UseCollation("utf8mb4_unicode_ci")
-                .HasKey(x => x.SpesaId);
-
-            entity.Property(x => x.SpesaId)
-                .ValueGeneratedOnAdd();
-
-            entity.Property(x => x.Descrizione)
-                .IsRequired();
-
-            entity.Property(x => x.Importo)
-                .HasColumnType("decimal(10,2)")
-                .IsRequired();
-
-            entity.Property(x => x.Categoria)
-                .HasMaxLength(50);
-
-            entity.Property(x => x.CreatedAt)
-                .HasColumnType("datetime")
-                .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-            entity.Property(x => x.UpdatedAt)
-                .HasColumnType("datetime")
-                .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
-
-            entity.HasOne(x => x.Chiusura)
-                .WithMany()
-                .HasForeignKey(x => x.ChiusuraId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            entity.HasOne(x => x.Pagamento)
-                .WithMany(p => p.SpeseMensili)
-                .HasForeignKey(x => x.PagamentoId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            // Indice su ChiusuraId per join
-            entity.HasIndex(x => x.ChiusuraId);
-
-            // Indice su PagamentoId per join
-            entity.HasIndex(x => x.PagamentoId);
-
-            // Indice su Categoria per filtri
-            entity.HasIndex(x => x.Categoria);
-        });
-
         // ✅ NEW REFERENTIAL MODEL CONFIGURATIONS
 
         // RegistroCassaMensile (Join Table)
@@ -982,80 +943,5 @@ public class AppDbContext : DbContext
             entity.HasIndex(e => e.RegistroId);
         });
 
-        // SpesaMensileLibera
-        modelBuilder.Entity<SpesaMensileLibera>(entity =>
-        {
-            entity.ToTable("SpeseMensiliLibere")
-                .HasCharSet("utf8mb4")
-                .UseCollation("utf8mb4_unicode_ci");
-
-            entity.HasKey(e => e.SpesaId);
-
-            entity.Property(e => e.SpesaId)
-                .ValueGeneratedOnAdd();
-
-            entity.Property(e => e.Descrizione)
-                .HasMaxLength(255)
-                .IsRequired();
-
-            entity.Property(e => e.Importo)
-                .HasColumnType("decimal(10,2)")
-                .IsRequired();
-
-            // Enum to string conversion
-            entity.Property(e => e.Categoria)
-                .HasConversion<string>()
-                .HasMaxLength(20)
-                .IsRequired();
-
-            // Data (giorno di competenza) della spesa nel mese della chiusura (nullable)
-            entity.Property(e => e.Data)
-                .HasColumnType("date");
-
-            entity.Property(e => e.CreatedAt)
-                .HasColumnType("datetime")
-                .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-            entity.Property(e => e.UpdatedAt)
-                .HasColumnType("datetime")
-                .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
-
-            entity.HasOne(e => e.Chiusura)
-                .WithMany(c => c.SpeseLibere)
-                .HasForeignKey(e => e.ChiusuraId)
-                .OnDelete(DeleteBehavior.Cascade); // Elimina in cascata
-
-            // Indici per performance
-            entity.HasIndex(e => e.ChiusuraId);
-            entity.HasIndex(e => e.Categoria);
-        });
-
-        // PagamentoMensileFornitori (Join Table)
-        modelBuilder.Entity<PagamentoMensileFornitori>(entity =>
-        {
-            entity.ToTable("PagamentiMensiliFornitori")
-                .HasCharSet("utf8mb4")
-                .UseCollation("utf8mb4_unicode_ci");
-
-            // Chiave composita
-            entity.HasKey(e => new { e.ChiusuraId, e.PagamentoId });
-
-            entity.Property(e => e.InclusoInChiusura)
-                .HasDefaultValue(true);
-
-            entity.HasOne(e => e.Chiusura)
-                .WithMany(c => c.PagamentiInclusi)
-                .HasForeignKey(e => e.ChiusuraId)
-                .OnDelete(DeleteBehavior.Restrict); // Impedisce eliminazione chiusura
-
-            entity.HasOne(e => e.Pagamento)
-                .WithMany()
-                .HasForeignKey(e => e.PagamentoId)
-                .OnDelete(DeleteBehavior.Restrict); // Impedisce eliminazione pagamento
-
-            // Indici per performance
-            entity.HasIndex(e => e.ChiusuraId);
-            entity.HasIndex(e => e.PagamentoId);
-        });
     }
 }
