@@ -15,6 +15,12 @@
     <None Remove="DuedGusto.Tests/**" />
   </ItemGroup>
 
+  <!-- Dati dell'import storico: embedded, così finiscono nella dll e sono
+       disponibili anche nell'immagine Docker (che copia solo /app/publish) -->
+  <ItemGroup>
+    <EmbeddedResource Include="SeedData/registri-cassa-storici.json" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="DotNetEnv" Version="3.1.1" />
     <PackageReference Include="GraphQL" Version="8.4.1" />

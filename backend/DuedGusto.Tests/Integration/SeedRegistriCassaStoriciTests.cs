@@ -1,0 +1,220 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+using duedgusto.SeedData;
+
+using DuedGusto.Tests.Helpers;
+
+namespace DuedGusto.Tests.Integration;
+
+/// <summary>
+/// Verifica l'import una-tantum dello storico chiusure 2026 (SEED_REGISTRI_STORICI).
+/// I valori attesi sono presi dal foglio Excel di origine, così il test fallisce se
+/// la mappatura delle colonne o le formule dei totali cambiano.
+/// </summary>
+[Collection("SeedRegistriStorici")] // l'env var è stato globale: niente parallelismo
+public class SeedRegistriCassaStoriciTests
+{
+    private const string EnvVar = "SEED_REGISTRI_STORICI";
+
+    private static ServiceProvider BuildProvider(AppDbContext db)
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton(db); // stessa istanza dentro lo scope creato dal seed
+        services.AddLogging();
+        return services.BuildServiceProvider();
+    }
+
+    private static AppDbContext CreateDb(decimal vatRate = 0.10m)
+    {
+        AppDbContext db = TestDbContextFactory.Create();
+
+        var ruolo = new Ruolo { Nome = "SuperAdmin", Descrizione = "test" };
+        db.Ruoli.Add(ruolo);
+        db.SaveChanges();
+
+        db.Utenti.Add(new Utente
+        {
+            NomeUtente = "superadmin",
+            Nome = "Super Admin",
+            Hash = [1],
+            Salt = [1],
+            RuoloId = ruolo.Id,
+        });
+
+        db.BusinessSettings.Add(new BusinessSettings
+        {
+            BusinessName = "Test",
+            OpeningTime = "09:00",
+            ClosingTime = "18:00",
+            OperatingDays = "[true,true,true,true,true,true,false]",
+            Timezone = "Europe/Rome",
+            Currency = "EUR",
+            VatRate = vatRate,
+        });
+
+        decimal[] tagli = [0.05m, 0.10m, 0.20m, 0.50m, 1m, 2m, 5m, 10m, 20m, 50m, 100m];
+        for (int i = 0; i < tagli.Length; i++)
+        {
+            db.DenominazioniMoneta.Add(new DenominazioneMoneta
+            {
+                Valore = tagli[i],
+                Tipo = tagli[i] >= 5m ? "BANKNOTE" : "COIN",
+                OrdineVisualizzazione = i + 1,
+            });
+        }
+
+        db.SaveChanges();
+        return db;
+    }
+
+    private static async Task RunSeedAsync(AppDbContext db, string mode)
+    {
+        Environment.SetEnvironmentVariable(EnvVar, mode);
+        try
+        {
+            await SeedRegistriCassaStorici.Initialize(BuildProvider(db));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(EnvVar, null);
+        }
+    }
+
+    [Fact]
+    public async Task SenzaVariabileDAmbiente_NonInserisceNulla()
+    {
+        using AppDbContext db = CreateDb();
+
+        await SeedRegistriCassaStorici.Initialize(BuildProvider(db));
+
+        db.RegistriCassa.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Dryrun_NonScriveNulla()
+    {
+        using AppDbContext db = CreateDb();
+
+        await RunSeedAsync(db, "dryrun");
+
+        db.RegistriCassa.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Apply_ImportaTuttoLoStorico()
+    {
+        using AppDbContext db = CreateDb();
+
+        await RunSeedAsync(db, "1");
+
+        List<RegistroCassa> registri = await db.RegistriCassa.OrderBy(r => r.Data).ToListAsync();
+
+        registri.Should().HaveCount(177);
+        registri.First().Data.Should().Be(new DateTime(2026, 1, 2));
+        registri.Last().Data.Should().Be(new DateTime(2026, 8, 1));
+        registri.Select(r => r.Data).Should().OnlyHaveUniqueItems();
+        registri.Should().OnlyContain(r => r.Stato == "CLOSED");
+    }
+
+    [Fact]
+    public async Task Apply_CalcolaITotaliComeIlFoglioExcel()
+    {
+        using AppDbContext db = CreateDb();
+
+        await RunSeedAsync(db, "1");
+
+        RegistroCassa r = await db.RegistriCassa
+            .Include(x => x.ConteggiMoneta)
+            .Include(x => x.SpeseCassa)
+            .FirstAsync(x => x.Data == new DateTime(2026, 1, 2));
+
+        // Valori del foglio "01 2026", primo blocco:
+        // J=42,40 (apertura)  X=259,25 (chiusura)  Z=137,80  AA=29,60  AC=80,78
+        r.TotaleApertura.Should().Be(42.40m);
+        r.TotaleChiusura.Should().Be(259.25m);
+        r.IncassoContanteTracciato.Should().Be(137.80m);
+        r.IncassiElettronici.Should().Be(29.60m);
+        r.SpeseGiornaliere.Should().Be(80.78m);
+
+        // Colonne calcolate del foglio: AD "resto"=57,02  Y "Totale (-) Apertura"=216,85  AB "Totale Vendite"=246,45
+        r.ContanteAtteso.Should().Be(57.02m);
+        r.ContanteNetto.Should().Be(216.85m);
+        r.TotaleVendite.Should().Be(246.45m);
+
+        r.ConteggiMoneta.Where(c => c.IsApertura).Sum(c => c.Totale).Should().Be(42.40m);
+        r.ConteggiMoneta.Where(c => !c.IsApertura).Sum(c => c.Totale).Should().Be(259.25m);
+        r.SpeseCassa.Should().ContainSingle().Which.Importo.Should().Be(80.78m);
+    }
+
+    [Fact]
+    public async Task Apply_TieneLaFatturaFuoriDalContanteMaDentroLeVendite()
+    {
+        using AppDbContext db = CreateDb();
+
+        await RunSeedAsync(db, "1");
+
+        // 09/01: il foglio somma la fattura (W=18,90) dentro al totale di chiusura (X=246,05).
+        // Nell'app il contante contato resta 227,15 e la fattura ha il suo campo, ma
+        // TotaleVendite deve tornare identico all'AB del foglio: 217,65.
+        RegistroCassa r = await db.RegistriCassa.FirstAsync(x => x.Data == new DateTime(2026, 1, 9));
+
+        r.TotaleChiusura.Should().Be(227.15m);
+        r.IncassiFattura.Should().Be(18.90m);
+        r.TotaleVendite.Should().Be(217.65m);
+    }
+
+    [Fact]
+    public async Task Apply_SaltaLeDateGiaPresentiSenzaSovrascriverle()
+    {
+        using AppDbContext db = CreateDb();
+        int utenteId = db.Utenti.First().Id;
+
+        // Giorno già inserito dall'app: deve restare intatto.
+        db.RegistriCassa.Add(new RegistroCassa
+        {
+            Data = new DateTime(2026, 1, 2),
+            UtenteId = utenteId,
+            TotaleApertura = 999m,
+            TotaleChiusura = 1234m,
+            Stato = "RECONCILED",
+            Note = "inserito a mano",
+        });
+        await db.SaveChangesAsync();
+
+        await RunSeedAsync(db, "1");
+
+        db.RegistriCassa.Should().HaveCount(177); // 176 importati + 1 preesistente
+
+        RegistroCassa esistente = await db.RegistriCassa.FirstAsync(x => x.Data == new DateTime(2026, 1, 2));
+        esistente.TotaleChiusura.Should().Be(1234m);
+        esistente.Stato.Should().Be("RECONCILED");
+        esistente.Note.Should().Be("inserito a mano");
+    }
+
+    [Fact]
+    public async Task Apply_EIdempotente()
+    {
+        using AppDbContext db = CreateDb();
+
+        await RunSeedAsync(db, "1");
+        await RunSeedAsync(db, "1");
+
+        db.RegistriCassa.Should().HaveCount(177);
+        db.ConteggiMoneta.Count().Should().Be(await db.RegistriCassa
+            .Include(r => r.ConteggiMoneta)
+            .SumAsync(r => r.ConteggiMoneta.Count));
+    }
+
+    [Fact]
+    public async Task Apply_SenzaDenominazioni_NonInserisceNulla()
+    {
+        using AppDbContext db = CreateDb();
+        db.DenominazioniMoneta.RemoveRange(db.DenominazioniMoneta);
+        await db.SaveChangesAsync();
+
+        await RunSeedAsync(db, "1");
+
+        db.RegistriCassa.Should().BeEmpty();
+    }
+}

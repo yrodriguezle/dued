@@ -280,6 +280,11 @@ using (IServiceScope scope = app.Services.CreateScope())
         await SeedBusinessSettings.Initialize(services);
     }
 
+    // Import una-tantum dello storico chiusure 2026 dal foglio Excel: OFF per default,
+    // si abilita con SEED_REGISTRI_STORICI=dryrun|1. Salta le date già presenti.
+    // Deve girare dopo denominazioni e BusinessSettings, che usa entrambi.
+    await SeedRegistriCassaStorici.Initialize(services);
+
     // Data-fix idempotente: riallinea TotaleVendite (e breakdown IVA) dei registri
     // esistenti alla formula del KPI giornaliero. No-op quando tutto è già allineato.
     await SeedRicalcoloTotaleVendite.Initialize(services);
