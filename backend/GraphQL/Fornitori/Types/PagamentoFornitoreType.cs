@@ -2,6 +2,7 @@ using GraphQL.Types;
 using duedgusto.Models;
 using duedgusto.GraphQL.ChiusureMensili.Types;
 using duedgusto.GraphQL.DataLoaders;
+using duedgusto.GraphQL.GestioneCassa.Types;
 
 namespace duedgusto.GraphQL.Fornitori.Types;
 
@@ -22,7 +23,7 @@ public class PagamentoFornitoreType : ObjectGraphType<PagamentoFornitore>
         Field("metodoPagamento", x => x.MetodoPagamento, nullable: true);
         // Categoria (nullable): valorizzata solo per le spese fisse pagate in modo tracciato,
         // NULL per i pagamenti documentali (fatture/DDT fornitori).
-        Field<EnumerationGraphType<CategoriaSpesa>>("categoria")
+        Field<CategoriaSpesaGraphType>("categoria")
             .Resolve(context => context.Source.Categoria);
         Field("note", x => x.Note, nullable: true);
         Field("createdAt", x => x.CreatedAt, type: typeof(DateTimeGraphType));

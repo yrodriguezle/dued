@@ -1,5 +1,6 @@
 using GraphQL.Types;
 using duedgusto.Models;
+using duedgusto.GraphQL.GestioneCassa.Types;
 
 namespace duedgusto.GraphQL.Fornitori.Types;
 
@@ -29,6 +30,6 @@ public class PagamentoFornitoreInputType : InputObjectGraphType<PagamentoFornito
         Field(x => x.Importo);
         Field(x => x.MetodoPagamento, nullable: true);
         Field(x => x.Note, nullable: true);
-        Field(x => x.Categoria, type: typeof(EnumerationGraphType<CategoriaSpesa>));
+        Field(x => x.Categoria, type: typeof(CategoriaSpesaGraphType));
     }
 }

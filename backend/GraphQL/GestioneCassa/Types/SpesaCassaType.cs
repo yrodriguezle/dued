@@ -13,7 +13,7 @@ public class SpesaCassaType : ObjectGraphType<SpesaCassa>
         Field(x => x.Descrizione);
         Field(x => x.Importo, type: typeof(DecimalGraphType));
         // Categoria della spesa NON tracciata (enum NOT NULL, default Altro).
-        Field(x => x.Categoria, type: typeof(NonNullGraphType<EnumerationGraphType<CategoriaSpesa>>));
+        Field(x => x.Categoria, type: typeof(NonNullGraphType<CategoriaSpesaGraphType>));
     }
 }
 
@@ -33,6 +33,6 @@ public class SpesaCassaInputType : InputObjectGraphType<SpesaCassaInput>
         Field(x => x.Descrizione);
         Field(x => x.Importo);
         // Default Altro applicato lato orchestrator quando assente.
-        Field(x => x.Categoria, type: typeof(EnumerationGraphType<CategoriaSpesa>));
+        Field(x => x.Categoria, type: typeof(CategoriaSpesaGraphType));
     }
 }

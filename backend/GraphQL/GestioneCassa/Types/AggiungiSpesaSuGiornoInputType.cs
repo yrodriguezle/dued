@@ -28,7 +28,7 @@ public class AggiungiSpesaSuGiornoInputType : InputObjectGraphType<AggiungiSpesa
         Field(x => x.Data, type: typeof(DateTimeGraphType));
         Field(x => x.Descrizione);
         Field(x => x.Importo);
-        Field(x => x.Categoria, type: typeof(NonNullGraphType<EnumerationGraphType<CategoriaSpesa>>));
+        Field(x => x.Categoria, type: typeof(NonNullGraphType<CategoriaSpesaGraphType>));
         Field(x => x.Tracciata);
         Field(x => x.MetodoPagamento, nullable: true);
         Field(x => x.UtenteId);
