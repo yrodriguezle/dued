@@ -1,8 +1,10 @@
 using GraphQL;
 using GraphQL.Types;
 
+using duedgusto.GraphQL.Authentication;
 using duedgusto.GraphQL.GestioneCassa.Types;
 using duedgusto.Services.GraphQL;
+using duedgusto.Services.Jwt;
 
 namespace duedgusto.GraphQL.GestioneCassa;
 
@@ -21,13 +23,30 @@ public class GestioneCassaMutations : ObjectGraphType
                 return await orchestrator.ExecuteAsync(input);
             });
 
-        Field<RegistroCassaType>("aggiungiSpesaSuGiorno")
-            .Argument<NonNullGraphType<AggiungiSpesaSuGiornoInputType>>("input", "Spesa fissa da registrare su un giorno (registro leggero)")
+        // Spese non tracciate riga per riga: usata dalla griglia spese della Chiusura Mensile,
+        // che scrive su un giorno scelto dall'utente. Il registro viene creato se assente.
+        Field<SpesaCassaType>("mutateSpesaCassa")
+            .Argument<NonNullGraphType<SpesaCassaMutateInputType>>("spesa", "Spesa da creare o aggiornare")
             .ResolveAsync(async context =>
             {
-                AggiungiSpesaSuGiornoOrchestrator orchestrator = GraphQLService.GetService<AggiungiSpesaSuGiornoOrchestrator>(context);
-                AggiungiSpesaSuGiornoInput input = context.GetArgument<AggiungiSpesaSuGiornoInput>("input");
-                return await orchestrator.ExecuteAsync(input);
+                MutateSpesaCassaOrchestrator orchestrator = GraphQLService.GetService<MutateSpesaCassaOrchestrator>(context);
+                JwtHelper jwtHelper = GraphQLService.GetService<JwtHelper>(context);
+                SpesaCassaMutateInput input = context.GetArgument<SpesaCassaMutateInput>("spesa");
+
+                var userContext = context.UserContext as GraphQLUserContext
+                    ?? throw new ExecutionError("Utente non autenticato");
+                int utenteId = jwtHelper.GetUserID(userContext.Principal!);
+
+                return await orchestrator.ExecuteAsync(input, utenteId);
+            });
+
+        Field<BooleanGraphType>("eliminaSpesaCassa")
+            .Argument<NonNullGraphType<IntGraphType>>("spesaId")
+            .ResolveAsync(async context =>
+            {
+                MutateSpesaCassaOrchestrator orchestrator = GraphQLService.GetService<MutateSpesaCassaOrchestrator>(context);
+                int spesaId = context.GetArgument<int>("spesaId");
+                return await orchestrator.EliminaAsync(spesaId);
             });
 
         Field<RegistroCassaType>("chiudiRegistroCassa")

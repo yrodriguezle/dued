@@ -110,40 +110,65 @@ export const mutationEliminaRegistroCassa: TypedDocumentNode<EliminaRegistroCass
   }
 `;
 
-// ============ MUTATION: Aggiungi Spesa su Giorno (registro "leggero") ============
-// Registra una spesa fissa su un giorno anche in assenza di registro operativo
-// (bypassa il solo guard giorno-operativo, mantiene GuardMeseChiuso).
-// tracciata=true → PagamentoFornitore; tracciata=false → SpesaCassa.
-// TODO: nessuna UI dedicata prevista dal design corrente; la mutation è esposta
-// per uso futuro (es. registrazione affitto in giorno di chiusura).
+// ============ MUTATION: spesa non tracciata riga per riga ============
+// Usata dalla griglia spese della Chiusura Mensile: scrive UNA riga sul registro del
+// giorno indicato, creandolo se assente (registro "leggero"). Mantiene il guard sul
+// mese chiuso ma non quello sul giorno operativo, così una spesa fissa può cadere
+// anche di domenica. Cambiare `data` sposta la riga sul registro dell'altro giorno.
 
-export interface AggiungiSpesaSuGiornoInput {
+export interface SpesaCassaMutateInput {
+  /** Null = creazione; valorizzato = aggiornamento. */
+  spesaId?: number | null;
   data: string;
   descrizione: string;
   importo: number;
   categoria: CategoriaSpesa;
-  tracciata: boolean;
-  metodoPagamento?: string;
-  utenteId: number;
 }
 
-interface AggiungiSpesaSuGiornoData {
+interface MutateSpesaCassaData {
   gestioneCassa: {
-    aggiungiSpesaSuGiorno: RegistroCassa | null;
+    mutateSpesaCassa: {
+      id: number;
+      registroCassaId: number;
+      descrizione: string;
+      importo: number;
+      categoria: CategoriaSpesa;
+    } | null;
   };
 }
 
-interface AggiungiSpesaSuGiornoValues {
-  input: AggiungiSpesaSuGiornoInput;
+interface MutateSpesaCassaValues {
+  spesa: SpesaCassaMutateInput;
 }
 
-export const mutationAggiungiSpesaSuGiorno: TypedDocumentNode<AggiungiSpesaSuGiornoData, AggiungiSpesaSuGiornoValues> = gql`
-  ${registroCassaFragment}
-  mutation AggiungiSpesaSuGiorno($input: AggiungiSpesaSuGiornoInput!) {
+export const mutationMutateSpesaCassa: TypedDocumentNode<MutateSpesaCassaData, MutateSpesaCassaValues> = gql`
+  mutation MutateSpesaCassa($spesa: SpesaCassaMutateInput!) {
     gestioneCassa {
-      aggiungiSpesaSuGiorno(input: $input) {
-        ...RegistroCassaFragment
+      mutateSpesaCassa(spesa: $spesa) {
+        id
+        registroCassaId
+        descrizione
+        importo
+        categoria
       }
+    }
+  }
+`;
+
+interface EliminaSpesaCassaData {
+  gestioneCassa: {
+    eliminaSpesaCassa: boolean;
+  };
+}
+
+interface EliminaSpesaCassaValues {
+  spesaId: number;
+}
+
+export const mutationEliminaSpesaCassa: TypedDocumentNode<EliminaSpesaCassaData, EliminaSpesaCassaValues> = gql`
+  mutation EliminaSpesaCassa($spesaId: Int!) {
+    gestioneCassa {
+      eliminaSpesaCassa(spesaId: $spesaId)
     }
   }
 `;

@@ -27,7 +27,7 @@ export interface SpeseGridRow extends Spese {
   categoria?: CategoriaSpesa;
   /** Id della spesa libera server (>0) oppure temporaneo (<0) per righe non salvate. */
   spesaId?: number;
-  /** Per i pagamenti fornitore: null = origine-chiusura (editabile), valorizzato = origine cassa (read-only). */
+  /** Registro cassa di appartenenza. Informativo: NON decide la modificabilità della riga. */
   registroCassaId?: number | null;
 }
 
@@ -41,7 +41,21 @@ export interface SpeseDataGridColumns {
   categoriaOptions?: CategoriaSpesa[];
   /** Mostra il pulsante "Giornale" (default: attivo solo senza persistenza, cioè in cassa). */
   showGiornale?: boolean;
+  /** Mostra l'azione "Pagamento fornitore", che crea documenti reali (default: true). */
+  showPagamentoFornitore?: boolean;
+  /**
+   * Mostra la colonna "Pagamento" (contanti vs tracciato). È lei a decidere dove finisce
+   * la riga: contanti → SpesaCassa, qualsiasi altro metodo → PagamentoFornitore senza documento.
+   */
+  showMetodoPagamento?: boolean;
+  /** Categoria delle righe nuove (default: "Altro"). */
+  defaultCategoria?: CategoriaSpesa;
 }
+
+/** Metodo di pagamento che classifica la riga come NON tracciata (contante di cassa). */
+export const METODO_CONTANTI = "Contanti";
+
+const DEFAULT_METODI_PAGAMENTO = [METODO_CONTANTI, "Bonifico", "Carta", "Assegno", "RID"];
 
 // Callback di persistenza per-riga. Se assenti la griglia resta "staged" (cassa).
 // create* ritorna l'id assegnato dal server per patchare la riga (anti doppio-insert).
@@ -61,6 +75,14 @@ interface SpeseDataGridProps {
   date?: string;
   columns?: SpeseDataGridColumns;
   persistence?: SpeseDataGridPersistence;
+  /**
+   * Predicato che marca una riga pagamento come non modificabile in QUESTA griglia.
+   * Assente (registro cassa) → nessun pagamento è read-only, comportamento invariato.
+   * La read-only-ness è contestuale e va decisa dal chiamante: dopo il passaggio delle
+   * spese sul registro giornaliero, `registroCassaId` è sempre valorizzato e non è più
+   * un discriminante utilizzabile.
+   */
+  isPaymentReadOnly?: (row: SpeseGridRow) => boolean;
   onCellChange?: () => void;
   onExpensesChange?: (totalAmount: number, receiptAmount: number) => void;
 }
@@ -78,7 +100,7 @@ const speseSchema = z.object({
 
 const SpeseDataGrid = memo(
   forwardRef<GridReadyEvent<DatagridData<SpeseGridRow>>, SpeseDataGridProps>(
-    ({ initialExpenses, isLocked, date, columns, persistence, onCellChange, onExpensesChange }, ref) => {
+    ({ initialExpenses, isLocked, date, columns, persistence, isPaymentReadOnly, onCellChange, onExpensesChange }, ref) => {
       const muiTheme = useTheme();
       const isSmallScreen = useMediaQuery(muiTheme.breakpoints.down("sm"));
       const isMobile = isSmallScreen && navigator.maxTouchPoints > 0;
@@ -89,6 +111,9 @@ const SpeseDataGrid = memo(
       const categoriaOptions = columns?.categoriaOptions ?? DEFAULT_CATEGORIE;
       // Giornale: attivo di default solo in cassa (nessuna persistenza per-riga).
       const showGiornale = columns?.showGiornale ?? !hasPersistence;
+      const showPagamentoFornitore = columns?.showPagamentoFornitore ?? true;
+      const showMetodoPagamento = !!columns?.showMetodoPagamento;
+      const defaultCategoria = columns?.defaultCategoria ?? "Altro";
 
       const [validationErrors, setValidationErrors] = useState<Map<number, ValidationError[]>>(new Map());
       const [dialogOpen, setDialogOpen] = useState(false);
@@ -100,10 +125,11 @@ const SpeseDataGrid = memo(
       // prima che il server risponda con l'id.
       const creatingRowsRef = useRef<Set<SpeseGridRow>>(new Set());
 
-      // Un pagamento è read-only nella griglia se proviene da un registro cassa.
+      // La modificabilità di un pagamento dipende dal contesto: la decide il chiamante.
       const isReadOnlyPayment = useCallback(
-        (row?: SpeseGridRow | null) => !!row?.isPagamentoFornitore && row?.registroCassaId != null,
-        []
+        (row?: SpeseGridRow | null) =>
+          !!row?.isPagamentoFornitore && (isPaymentReadOnly?.(row) ?? false),
+        [isPaymentReadOnly]
       );
 
       const reportExpenses = useCallback(
@@ -129,7 +155,10 @@ const SpeseDataGrid = memo(
       const persistExpenseRow = useCallback(
         async (row: DatagridData<SpeseGridRow>) => {
           if (!persistence) return;
-          if ((row.spesaId ?? 0) > 0) {
+          // Una riga è già sul server se ha un id di spesa oppure di pagamento: con la
+          // colonna Pagamento attiva la stessa riga può passare da una forma all'altra,
+          // e a decidere quale mutation chiamare è il chiamante.
+          if ((row.spesaId ?? 0) > 0 || (row.pagamentoId ?? 0) > 0) {
             await persistence.updateExpense(row);
             return;
           }
@@ -139,7 +168,8 @@ const SpeseDataGrid = memo(
           try {
             const newId = await persistence.createExpense(row);
             if (typeof newId === "number" && gridEventRef.current) {
-              row.spesaId = newId;
+              if (row.isPagamentoFornitore) row.pagamentoId = newId;
+              else row.spesaId = newId;
               gridEventRef.current.api.applyTransaction({ update: [row] });
             }
           } finally {
@@ -179,13 +209,15 @@ const SpeseDataGrid = memo(
       );
 
       // Apre il dialog in modalità modifica per una riga fornitore (se editabile).
+      // Dove il dialog è disattivato (chiusura mensile) le righe si modificano in linea:
+      // il dialog pretende fornitore e documento, che una spesa fissa non ha.
       const openEditDialog = useCallback(
         (data: DatagridData<SpeseGridRow>) => {
-          if (isLocked || isReadOnlyPayment(data)) return;
+          if (!showPagamentoFornitore || isLocked || isReadOnlyPayment(data)) return;
           setEditingSpese(data);
           setDialogOpen(true);
         },
-        [isLocked, isReadOnlyPayment]
+        [showPagamentoFornitore, isLocked, isReadOnlyPayment]
       );
 
       const handleRowDoubleClicked = useCallback(
@@ -224,6 +256,9 @@ const SpeseDataGrid = memo(
           editable: false,
           valueGetter: (params) => {
             if (params.data?.isPagamentoFornitore) {
+              const senzaDocumento = params.data.fatturaId == null && params.data.ddtId == null;
+              // Le spese fisse tracciate non hanno documento: etichettarle "DDT" mentirebbe.
+              if (senzaDocumento) return showMetodoPagamento ? "" : "DDT";
               return params.data.documentType === "FA" ? "FA" : "DDT";
             }
             // In chiusura la categoria copre la classificazione → nessun "RIC".
@@ -232,7 +267,7 @@ const SpeseDataGrid = memo(
           cellRenderer: (params: ICellRendererParams<DatagridData<SpeseGridRow>>) => {
             const label = params.valueFormatted ?? params.value;
             const rowData = params.data;
-            if (!rowData?.isPagamentoFornitore || isLocked || isReadOnlyPayment(rowData)) return label;
+            if (!showPagamentoFornitore || !rowData?.isPagamentoFornitore || isLocked || isReadOnlyPayment(rowData)) return label;
             return (
               <Box
                 sx={{ display: "flex", alignItems: "center", gap: 0.5, cursor: "pointer" }}
@@ -251,10 +286,35 @@ const SpeseDataGrid = memo(
             field: "categoria",
             width: 140,
             minWidth: 110,
-            editable: (params) => !isLocked && !params.data?.isPagamentoFornitore,
+            editable: (params) =>
+              !isLocked
+              && (showMetodoPagamento
+                ? !isReadOnlyPayment(params.data)
+                : !params.data?.isPagamentoFornitore),
             cellEditor: "agSelectCellEditor",
             cellEditorParams: { values: categoriaOptions },
-            valueGetter: (params) => (params.data?.isPagamentoFornitore ? "" : params.data?.categoria ?? ""),
+            // Con la colonna Pagamento anche le righe tracciate hanno una categoria
+            // significativa (è ciò che le distingue dai pagamenti documentali).
+            valueGetter: (params) =>
+              params.data?.isPagamentoFornitore && !showMetodoPagamento
+                ? ""
+                : params.data?.categoria ?? "",
+          });
+        }
+
+        if (showMetodoPagamento) {
+          defs.push({
+            headerName: "Pagamento",
+            field: "paymentMethod",
+            width: 130,
+            minWidth: 110,
+            // Decide la destinazione della riga: Contanti → SpesaCassa, altro →
+            // PagamentoFornitore senza documento. Sui pagamenti già legati a una fattura
+            // o a un DDT il metodo si cambia dal documento, non da qui.
+            editable: (params) => !isLocked && !isReadOnlyPayment(params.data),
+            cellEditor: "agSelectCellEditor",
+            cellEditorParams: { values: DEFAULT_METODI_PAGAMENTO },
+            valueGetter: (params) => params.data?.paymentMethod ?? METODO_CONTANTI,
           });
         }
 
@@ -263,7 +323,13 @@ const SpeseDataGrid = memo(
           field: "description",
           flex: 2,
           minWidth: 80,
-          editable: (params) => !isLocked && !params.data?.isPagamentoFornitore,
+          // In chiusura anche le spese fisse tracciate sono righe libere senza documento:
+          // la causale resta editabile finché il pagamento non è read-only.
+          editable: (params) =>
+            !isLocked
+            && (showMetodoPagamento
+              ? !isReadOnlyPayment(params.data)
+              : !params.data?.isPagamentoFornitore),
         });
 
         defs.push({
@@ -271,7 +337,11 @@ const SpeseDataGrid = memo(
           field: "amount",
           flex: 1,
           minWidth: 70,
-          editable: (params) => !isLocked && !params.data?.isPagamentoFornitore,
+          editable: (params) =>
+            !isLocked
+            && (showMetodoPagamento
+              ? !isReadOnlyPayment(params.data)
+              : !params.data?.isPagamentoFornitore),
           cellEditor: "agNumberCellEditor",
           cellEditorParams: {
             min: 0,
@@ -283,7 +353,8 @@ const SpeseDataGrid = memo(
         });
 
         return defs;
-      }, [isLocked, openEditDialog, showData, showCategoria, categoriaOptions, isReadOnlyPayment]);
+      }, [isLocked, openEditDialog, showData, showCategoria, categoriaOptions, isReadOnlyPayment,
+          showMetodoPagamento, showPagamentoFornitore]);
 
       const handleCellValueChanged = useCallback(
         (event: DatagridCellValueChangedEvent<SpeseGridRow>) => {
@@ -294,7 +365,12 @@ const SpeseDataGrid = memo(
             }
             // Persistenza per-riga.
             if (persistence) {
-              if (!event.data.isPagamentoFornitore) {
+              if (showMetodoPagamento) {
+                // Con la colonna Pagamento la riga può cambiare natura (contanti ⇄ tracciata):
+                // la griglia non prova a indovinare la mutation, delega al chiamante che
+                // legge `paymentMethod` e converte se serve.
+                if (!isReadOnlyPayment(event.data)) void persistExpenseRow(event.data);
+              } else if (!event.data.isPagamentoFornitore) {
                 // Spese libere: create/update tramite le mutation spesa libera.
                 void persistExpenseRow(event.data);
               } else if (!isReadOnlyPayment(event.data) && event.data.pagamentoId != null) {
@@ -307,7 +383,7 @@ const SpeseDataGrid = memo(
           onCellChange?.();
           reportExpenses(event.api);
         },
-        [isReadOnlyPayment, onCellChange, persistence, persistExpenseRow, reportExpenses]
+        [isReadOnlyPayment, onCellChange, persistence, persistExpenseRow, reportExpenses, showMetodoPagamento]
       );
 
       const handleGridReady = useCallback(
@@ -329,11 +405,14 @@ const SpeseDataGrid = memo(
       const getNewExpense = useCallback((): SpeseGridRow => {
         const base: SpeseGridRow = { description: "", amount: 0 };
         if (showData) base.data = date || dayjs().format("YYYY-MM-DD");
-        if (showCategoria) base.categoria = "Altro";
+        // In chiusura la categoria di default deve essere una di quelle mostrate:
+        // una riga lasciata su "Altro" verrebbe filtrata via e sparirebbe al refetch.
+        if (showCategoria) base.categoria = defaultCategoria;
+        if (showMetodoPagamento) base.paymentMethod = METODO_CONTANTI;
         // Id temporaneo per il tracking riga quando la persistenza è attiva.
         if (hasPersistence) base.spesaId = -Date.now();
         return base;
-      }, [date, showData, showCategoria, hasPersistence]);
+      }, [date, showData, showCategoria, defaultCategoria, showMetodoPagamento, hasPersistence]);
 
       const handleAddRow = useCallback(() => {
         if (gridEventRef.current) {
@@ -406,9 +485,11 @@ const SpeseDataGrid = memo(
         if (showGiornale) {
           actions.push({ key: "giornale", label: "Giornale", icon: <MenuBookIcon fontSize="small" />, onClick: handleAddGiornale, disabled: isLocked || !date });
         }
-        actions.push({ key: "fornitore", label: "Pagamento fornitore", icon: <PaymentIcon fontSize="small" />, onClick: () => setDialogOpen(true), disabled: isLocked });
+        if (showPagamentoFornitore) {
+          actions.push({ key: "fornitore", label: "Pagamento fornitore", icon: <PaymentIcon fontSize="small" />, onClick: () => setDialogOpen(true), disabled: isLocked });
+        }
         return actions;
-      }, [handleAddRow, handleDeleteSelected, handleAddGiornale, isLocked, isEditing, selectedCount, showGiornale, date]);
+      }, [handleAddRow, handleDeleteSelected, handleAddGiornale, isLocked, isEditing, selectedCount, showGiornale, showPagamentoFornitore, date]);
 
       return (
         <Box>
@@ -419,15 +500,19 @@ const SpeseDataGrid = memo(
           >
             SPESE
           </Typography>
-          <PagamentoFornitoreDialog
-            open={dialogOpen}
-            onClose={() => {
-              setDialogOpen(false);
-              setEditingSpese(null);
-            }}
-            onConfirm={handlePaymentConfirm}
-            initialData={editingSpese ?? undefined}
-          />
+          {/* Non montato quando il dialog è disattivato: apre comunque una query Apollo
+              per l'anagrafica fornitori, inutile dove non lo si può aprire. */}
+          {showPagamentoFornitore && (
+            <PagamentoFornitoreDialog
+              open={dialogOpen}
+              onClose={() => {
+                setDialogOpen(false);
+                setEditingSpese(null);
+              }}
+              onConfirm={handlePaymentConfirm}
+              initialData={editingSpese ?? undefined}
+            />
+          )}
           <Box
             sx={{
               minWidth: 0,

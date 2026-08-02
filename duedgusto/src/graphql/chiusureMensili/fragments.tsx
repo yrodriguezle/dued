@@ -18,6 +18,26 @@ export const registroCassaMensileFragment = gql`
       totaleChiusura
       speseFornitori
       speseGiornaliere
+      # Righe di spesa del giorno: alimentano la griglia spese fisse della chiusura.
+      # Risolte da DataLoader batch, quindi 2 query per l'intero mese (non N).
+      # Niente fattura { } / ddt { }: innescherebbero i loader per documento su
+      # pagamenti che poi la griglia filtra via.
+      spese {
+        id
+        descrizione
+        importo
+        categoria
+      }
+      pagamentiFornitori {
+        pagamentoId
+        fatturaId
+        ddtId
+        dataPagamento
+        importo
+        metodoPagamento
+        categoria
+        note
+      }
     }
   }
 `;

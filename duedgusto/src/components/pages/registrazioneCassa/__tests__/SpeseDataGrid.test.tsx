@@ -7,6 +7,7 @@ import { render, act } from "@testing-library/react";
 type DatagridColDefLike = {
   field?: string;
   editable?: boolean | ((params: { data?: unknown }) => boolean);
+  valueGetter?: (params: { data?: unknown }) => unknown;
 };
 type CapturedDatagridProps = {
   columnDefs: DatagridColDefLike[];
@@ -80,20 +81,36 @@ beforeEach(() => {
   capturedActions = [];
 });
 
-describe("SpeseDataGrid — colonna Data editabile per pagamenti origine-chiusura (Fix A)", () => {
-  it("la colonna Data è editabile su spese e pagamenti origine-chiusura, read-only sui pagamenti origine-cassa", () => {
+describe("SpeseDataGrid — modificabilità dei pagamenti decisa dal chiamante", () => {
+  it("senza isPaymentReadOnly nessun pagamento è bloccato, qualunque sia registroCassaId", () => {
     renderGrid({ persistence: makePersistence() });
 
     const dataCol = capturedDatagridProps!.columnDefs.find((c) => c.field === "data");
     expect(dataCol).toBeDefined();
     const editable = dataCol!.editable as (params: { data?: unknown }) => boolean;
 
-    // Spesa libera → editabile
     expect(editable({ data: { isPagamentoFornitore: false } })).toBe(true);
-    // Pagamento origine-chiusura (registroCassaId == null) → editabile
     expect(editable({ data: { isPagamentoFornitore: true, registroCassaId: null } })).toBe(true);
-    // Pagamento origine-cassa (registroCassaId valorizzato) → read-only
-    expect(editable({ data: { isPagamentoFornitore: true, registroCassaId: 99 } })).toBe(false);
+    // Dopo il passaggio delle spese sul registro giornaliero registroCassaId è sempre
+    // valorizzato: non può più essere lui a decidere la modificabilità.
+    expect(editable({ data: { isPagamentoFornitore: true, registroCassaId: 99 } })).toBe(true);
+  });
+
+  it("con isPaymentReadOnly blocca solo le righe indicate dal chiamante", () => {
+    renderGrid({
+      persistence: makePersistence(),
+      isPaymentReadOnly: (row: { fatturaId?: number; ddtId?: number }) =>
+        row.fatturaId != null || row.ddtId != null,
+    });
+
+    const dataCol = capturedDatagridProps!.columnDefs.find((c) => c.field === "data");
+    const editable = dataCol!.editable as (params: { data?: unknown }) => boolean;
+
+    // Spesa fissa tracciata: nessun documento → modificabile.
+    expect(editable({ data: { isPagamentoFornitore: true, registroCassaId: 99 } })).toBe(true);
+    // Pagamento documentale: si gestisce dalla fattura, non da qui.
+    expect(editable({ data: { isPagamentoFornitore: true, registroCassaId: 99, fatturaId: 7 } })).toBe(false);
+    expect(editable({ data: { isPagamentoFornitore: true, registroCassaId: 99, ddtId: 3 } })).toBe(false);
   });
 
   it("modificando la Data di un pagamento origine-chiusura chiama updateSupplierPayment", async () => {
@@ -111,15 +128,18 @@ describe("SpeseDataGrid — colonna Data editabile per pagamenti origine-chiusur
     expect(persistence.updateExpense).not.toHaveBeenCalled();
   });
 
-  it("non persiste modifiche sui pagamenti origine-cassa (read-only)", async () => {
+  it("non persiste modifiche sulle righe marcate read-only dal chiamante", async () => {
     const persistence = makePersistence();
-    renderGrid({ persistence });
+    renderGrid({
+      persistence,
+      isPaymentReadOnly: (row: { fatturaId?: number }) => row.fatturaId != null,
+    });
     const api = makeFakeApi();
     act(() => capturedDatagridProps!.onGridReady!({ api }));
 
-    const cassaPayment = { pagamentoId: 60, isPagamentoFornitore: true, registroCassaId: 99, amount: 100, data: "2026-05-10" };
+    const documentale = { pagamentoId: 60, isPagamentoFornitore: true, fatturaId: 7, amount: 100, data: "2026-05-10" };
     await act(async () => {
-      capturedDatagridProps!.onCellValueChanged!({ data: cassaPayment, colDef: { field: "data" }, newValue: "2026-05-11", api });
+      capturedDatagridProps!.onCellValueChanged!({ data: documentale, colDef: { field: "data" }, newValue: "2026-05-11", api });
     });
 
     expect(persistence.updateSupplierPayment).not.toHaveBeenCalled();
@@ -219,13 +239,16 @@ describe("SpeseDataGrid — persistenza per-riga (CON persistence)", () => {
     expect(api.applyTransaction).toHaveBeenCalled(); // rimozione locale della riga
   });
 
-  it("cancella un pagamento origine-chiusura → deleteSupplierPayment; ignora i pagamenti origine-cassa", async () => {
+  it("cancella i pagamenti modificabili → deleteSupplierPayment; ignora quelli read-only", async () => {
     const persistence = makePersistence();
     const selected = [
-      { pagamentoId: 10, isPagamentoFornitore: true, registroCassaId: null },
-      { pagamentoId: 11, isPagamentoFornitore: true, registroCassaId: 99 }, // origine-cassa: ignorato
+      { pagamentoId: 10, isPagamentoFornitore: true },
+      { pagamentoId: 11, isPagamentoFornitore: true, fatturaId: 7 }, // documentale: ignorato
     ];
-    renderGrid({ persistence });
+    renderGrid({
+      persistence,
+      isPaymentReadOnly: (row: { fatturaId?: number }) => row.fatturaId != null,
+    });
     const api = makeFakeApi(selected);
     act(() => capturedDatagridProps!.onGridReady!({ api }));
 
@@ -266,5 +289,52 @@ describe("SpeseDataGrid — modalità staged (SENZA persistence, non-regressione
     await act(async () => deleteAction!.onClick());
 
     expect(api.applyTransaction).toHaveBeenCalledWith({ remove: selected });
+  });
+});
+
+describe("SpeseDataGrid — modalità chiusura mensile (colonna metodo di pagamento)", () => {
+  const columnsChiusura = {
+    showData: true,
+    showCategoria: true,
+    showMetodoPagamento: true,
+    showPagamentoFornitore: false,
+    defaultCategoria: "Utenze" as CategoriaSpesa,
+  };
+
+  it("mostra la colonna Pagamento con Contanti come default di riga", () => {
+    renderGrid({ persistence: makePersistence(), columns: columnsChiusura });
+
+    const metodoCol = capturedDatagridProps!.columnDefs.find((c) => c.field === "paymentMethod");
+    expect(metodoCol).toBeDefined();
+    const valueGetter = metodoCol!.valueGetter as (p: { data?: unknown }) => string;
+    expect(valueGetter({ data: {} })).toBe("Contanti");
+    expect(valueGetter({ data: { paymentMethod: "Bonifico" } })).toBe("Bonifico");
+  });
+
+  it("non espone l'azione Pagamento fornitore: il dialog pretende fornitore e documento", () => {
+    renderGrid({ persistence: makePersistence(), columns: columnsChiusura });
+
+    expect(capturedActions.find((a) => a.key === "fornitore")).toBeUndefined();
+  });
+
+  it("in cassa l'azione Pagamento fornitore resta disponibile (non-regressione)", () => {
+    renderGrid({ persistence: undefined, columns: { showData: true, showCategoria: true } });
+
+    expect(capturedActions.find((a) => a.key === "fornitore")).toBeDefined();
+  });
+
+  it("instrada anche le righe tracciate su updateExpense: è il chiamante a convertirle", async () => {
+    const persistence = makePersistence();
+    renderGrid({ persistence, columns: columnsChiusura });
+    const api = makeFakeApi();
+    act(() => capturedDatagridProps!.onGridReady!({ api }));
+
+    const riga = { pagamentoId: 50, isPagamentoFornitore: true, amount: 3000, paymentMethod: "Bonifico", description: "Stipendi" };
+    await act(async () => {
+      capturedDatagridProps!.onCellValueChanged!({ data: riga, colDef: { field: "amount" }, newValue: 3000, api });
+    });
+
+    expect(persistence.updateExpense).toHaveBeenCalledWith(riga);
+    expect(persistence.updateSupplierPayment).not.toHaveBeenCalled();
   });
 });

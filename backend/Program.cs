@@ -57,7 +57,7 @@ builder.Services.AddScoped<PagamentoFornitoreOrchestrator>();
 
 // GestioneCassa Orchestrators
 builder.Services.AddScoped<MutateRegistroCassaOrchestrator>();
-builder.Services.AddScoped<AggiungiSpesaSuGiornoOrchestrator>();
+builder.Services.AddScoped<MutateSpesaCassaOrchestrator>();
 builder.Services.AddScoped<ChiudiRegistroCassaOrchestrator>();
 builder.Services.AddScoped<EliminaRegistroCassaOrchestrator>();
 
