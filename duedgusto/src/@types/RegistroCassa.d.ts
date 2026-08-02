@@ -127,9 +127,12 @@ type RegistroCassa = {
   totaleVendite: number;
   speseFornitori: number;
   speseGiornaliere: number;
-  contanteAtteso: number;
-  differenza: number;
+  // Quadratura del foglio di chiusura: colonne Y, AD, AE, AG.
+  // Riferimento vivo delle formule: components/pages/registrazioneCassa/RiepilogoCards.tsx
   contanteNetto: number;
+  restoFornitore: number;
+  ecc: number;
+  resto: number;
   importoIva: number;
   breakdownIva: RegistroCassaIvaRiga[];
   breakdownIvaCredito: RegistroCassaIvaCreditoRiga[];

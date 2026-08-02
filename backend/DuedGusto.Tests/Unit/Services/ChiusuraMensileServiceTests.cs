@@ -68,7 +68,7 @@ public class ChiusuraMensileServiceTests : IDisposable
         decimal speseGiornaliere = 0,
         decimal speseFornitori = 0,
         decimal importoIva = 0,
-        decimal differenza = 0)
+        decimal resto = 0)
     {
         var registro = new RegistroCassa
         {
@@ -82,7 +82,7 @@ public class ChiusuraMensileServiceTests : IDisposable
             SpeseGiornaliere = speseGiornaliere,
             SpeseFornitori = speseFornitori,
             ImportoIva = importoIva,
-            Differenza = differenza
+            Resto = resto
         };
         _dbContext.RegistriCassa.Add(registro);
         _dbContext.SaveChanges();
@@ -255,8 +255,8 @@ public class ChiusuraMensileServiceTests : IDisposable
         var utente = SeedUtente();
         SeedBusinessSettings();
 
-        SeedRegistroCassa(utente, new DateTime(2026, 6, 1), "CLOSED", totaleVendite: 500m, differenza: 10m);
-        SeedRegistroCassa(utente, new DateTime(2026, 6, 2), "CLOSED", totaleVendite: 300m, differenza: -5m);
+        SeedRegistroCassa(utente, new DateTime(2026, 6, 1), "CLOSED", totaleVendite: 500m, resto: 10m);
+        SeedRegistroCassa(utente, new DateTime(2026, 6, 2), "CLOSED", totaleVendite: 300m, resto: -5m);
 
         // Act
         var chiusura = await _service.CreaChiusuraAsync(2026, 6);
@@ -461,14 +461,14 @@ public class ChiusuraMensileServiceTests : IDisposable
         var utente = SeedUtente();
         SeedBusinessSettings();
 
-        // R1: vendite → differenza reale X = 10
+        // R1: vendite → Resto reale X = 10
         SeedRegistroCassa(utente, new DateTime(2026, 10, 5), "CLOSED",
-            totaleVendite: 500m, differenza: 10m);
+            totaleVendite: 500m, resto: 10m);
 
         // R2: registro a sole spese. TotaleApertura == TotaleChiusura (entrambi 0),
         // nessuna vendita, ma Differenza "fantasma" Y = 30 (come da formula ContanteAtteso=−Importo).
         SeedRegistroCassa(utente, new DateTime(2026, 10, 6), "CLOSED",
-            totaleVendite: 0m, speseGiornaliere: 30m, differenza: 30m);
+            totaleVendite: 0m, speseGiornaliere: 30m, resto: 30m);
 
         // Act
         var chiusura = await _service.CreaChiusuraAsync(2026, 10);

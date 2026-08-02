@@ -336,17 +336,29 @@ public class MutateRegistroCassaOrchestrator
 
     // VenditeContanti, TotaleVendite, ImportoIva e breakdown IVA sono calcolati da
     // BreakdownIvaApplier (VenditeContanti = Σ Vendite persistite, non più azzerato).
-    // internal: riusato da AggiungiSpesaSuGiornoOrchestrator (fonte unica della formula, INVARIATA).
+    //
+    // FONTE UNICA della quadratura: replica esattamente il foglio di chiusura, di cui
+    // RiepilogoCards.tsx è il riferimento vivo lato frontend. Nessun altro punto del backend
+    // deve ricalcolare questi quattro campi: chi tocca spese o pagamenti richiama questo metodo.
+    //
+    //   ContanteNetto  = Chiusura − Apertura            (Y)
+    //   RestoFornitore = contanti − speseFornitori      (AD)
+    //   Ecc            = ContanteNetto − contanti       (AE)
+    //   Resto          = Ecc − speseScontrino           (AG)
+    //
+    // dove "contanti" = IncassoContanteTracciato e "speseScontrino" = SpeseGiornaliere.
+    // Resto NON deriva da RestoFornitore: nel foglio sono due grandezze indipendenti.
     internal static void CalcolaTotali(RegistroCassa registroCassa, decimal totaleSpese)
     {
         registroCassa.SpeseGiornaliere = totaleSpese;
 
-        registroCassa.ContanteAtteso = registroCassa.IncassoContanteTracciato
-            - registroCassa.SpeseFornitori
-            - registroCassa.SpeseGiornaliere;
+        registroCassa.ContanteNetto = registroCassa.TotaleChiusura - registroCassa.TotaleApertura;
 
-        decimal incassoGiornaliero = registroCassa.TotaleChiusura - registroCassa.TotaleApertura;
-        registroCassa.Differenza = incassoGiornaliero - registroCassa.ContanteAtteso;
-        registroCassa.ContanteNetto = incassoGiornaliero;
+        registroCassa.RestoFornitore = registroCassa.IncassoContanteTracciato
+            - registroCassa.SpeseFornitori;
+
+        registroCassa.Ecc = registroCassa.ContanteNetto - registroCassa.IncassoContanteTracciato;
+
+        registroCassa.Resto = registroCassa.Ecc - registroCassa.SpeseGiornaliere;
     }
 }

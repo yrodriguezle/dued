@@ -187,13 +187,16 @@ public class AppDbContext : DbContext
             entity.Property(x => x.SpeseGiornaliere)
                 .HasColumnType("decimal(10,2)");
 
-            entity.Property(x => x.ContanteAtteso)
-                .HasColumnType("decimal(10,2)");
-
-            entity.Property(x => x.Differenza)
-                .HasColumnType("decimal(10,2)");
-
             entity.Property(x => x.ContanteNetto)
+                .HasColumnType("decimal(10,2)");
+
+            entity.Property(x => x.RestoFornitore)
+                .HasColumnType("decimal(10,2)");
+
+            entity.Property(x => x.Ecc)
+                .HasColumnType("decimal(10,2)");
+
+            entity.Property(x => x.Resto)
                 .HasColumnType("decimal(10,2)");
 
             entity.Property(x => x.ImportoIva)

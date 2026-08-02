@@ -23,9 +23,11 @@ public class RegistroCassaType : ObjectGraphType<RegistroCassa>
         Field(x => x.TotaleVendite);
         Field(x => x.SpeseFornitori);
         Field(x => x.SpeseGiornaliere);
-        Field(x => x.ContanteAtteso);
-        Field(x => x.Differenza);
+        // Quadratura del foglio: colonne Y, AD, AE, AG.
         Field(x => x.ContanteNetto);
+        Field(x => x.RestoFornitore);
+        Field(x => x.Ecc);
+        Field(x => x.Resto);
         Field(x => x.ImportoIva);
         Field(x => x.Note, nullable: true);
         Field(x => x.Stato);

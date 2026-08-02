@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using duedgusto.Models;
 using duedgusto.Repositories.Interfaces;
+using duedgusto.GraphQL.GestioneCassa;
 
 namespace duedgusto.Services.Fornitori;
 
@@ -58,9 +59,10 @@ public class RegistroCassaSyncService
             .SumAsync(p => p.Importo);
 
         registro.SpeseFornitori = totaleSpeseFornitori;
-        registro.ContanteAtteso = registro.VenditeContanti - registro.SpeseFornitori - registro.SpeseGiornaliere;
-        decimal incassoGiornaliero = registro.TotaleChiusura - registro.TotaleApertura;
-        registro.Differenza = incassoGiornaliero - registro.ContanteAtteso;
+        // Delega alla fonte unica: qui esisteva una copia divergente della formula (partiva da
+        // VenditeContanti anziché dal contante dichiarato e non toccava ContanteNetto), per cui
+        // la quadratura del registro dipendeva da quale mutation lo avesse toccato per ultima.
+        MutateRegistroCassaOrchestrator.CalcolaTotali(registro, registro.SpeseGiornaliere);
         registro.UpdatedAt = DateTime.UtcNow;
 
         await _unitOfWork.SaveChangesAsync();

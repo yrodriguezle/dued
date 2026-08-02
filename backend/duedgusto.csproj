@@ -7,6 +7,12 @@
     <Version>1.0.118</Version>
   </PropertyGroup>
 
+  <!-- La fonte unica della quadratura (CalcolaTotali) è internal: i test la devono poter
+       richiamare per pinnare le formule del foglio senza esporla al resto dell'app. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="DuedGusto.Tests" />
+  </ItemGroup>
+
   <!-- Exclude test project from compilation -->
   <ItemGroup>
     <Compile Remove="DuedGusto.Tests/**" />

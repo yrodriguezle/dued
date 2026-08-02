@@ -25,7 +25,7 @@ type RegistroCassaMensileRidotto = {
   incassoContanteTracciato: number;
   incassiElettronici: number;
   incassiFattura: number;
-  differenza: number;
+  resto: number;
   stato: StatoRegistroCassa;
   totaleApertura: number;
   totaleChiusura: number;

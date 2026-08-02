@@ -75,7 +75,7 @@ const MonthlyClosureReport: React.FC<MonthlyClosureReportProps> = ({ closure }) 
                             <th class="text-right">Contanti</th>
                             <th class="text-right">Elettronici</th>
                             <th class="text-right">Fattura</th>
-                            <th class="text-right">Differenza</th>
+                            <th class="text-right">Resto</th>
                             <th>Stato</th>
                         </tr>
                     </thead>
@@ -89,7 +89,7 @@ const MonthlyClosureReport: React.FC<MonthlyClosureReportProps> = ({ closure }) 
                                 <td class="text-right">€ ${(ri.registro.incassoContanteTracciato ?? 0).toFixed(2)}</td>
                                 <td class="text-right">€ ${(ri.registro.incassiElettronici ?? 0).toFixed(2)}</td>
                                 <td class="text-right">€ ${(ri.registro.incassiFattura ?? 0).toFixed(2)}</td>
-                                <td class="text-right ${(ri.registro as { differenza?: number }).differenza !== 0 ? "negative" : ""}"}>€ ${((ri.registro as { differenza?: number }).differenza ?? 0).toFixed(2)}</td>
+                                <td class="text-right ${ri.registro.resto !== 0 ? "negative" : ""}"}>€ ${(ri.registro.resto ?? 0).toFixed(2)}</td>
                                 <td>${ri.registro.stato}</td>
                             </tr>
                         `

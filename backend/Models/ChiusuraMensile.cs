@@ -125,9 +125,9 @@ namespace duedgusto.Models
         public decimal TotaleLordoCalcolato => RicavoTotaleCalcolato;
 
         /// <summary>
-        /// Totale differenze di cassa aggregate dai registri cassa inclusi, ESCLUDENDO i registri
-        /// "a sole spese" (nessuna vendita e apertura == chiusura): la loro "Differenza fantasma"
-        /// non rappresenta un ammanco/eccedenza di cassa reale (Decision 8).
+        /// Somma del "Resto" (colonna AG del foglio) dei registri cassa inclusi, ESCLUDENDO i
+        /// registri "a sole spese" (nessuna vendita e apertura == chiusura): il loro Resto
+        /// fantasma non rappresenta un ammanco/eccedenza di cassa reale (Decision 8).
         /// </summary>
         [NotMapped]
         public decimal TotaleDifferenzeCassaCalcolato => RegistriInclusi
@@ -135,7 +135,7 @@ namespace duedgusto.Models
             .Where(r => r.Registro != null
                 && !(r.Registro.TotaleVendite == 0
                      && r.Registro.TotaleApertura == r.Registro.TotaleChiusura))
-            .Sum(r => r.Registro!.Differenza);
+            .Sum(r => r.Registro!.Resto);
 
         /// <summary>
         /// Avvisi (WARNING) di completezza NON bloccanti rilevati alla chiusura mensile:

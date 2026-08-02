@@ -73,7 +73,7 @@ function makeRegistroIncluso(overrides: Record<string, unknown> = {}, incluso = 
       incassoContanteTracciato: 300,
       incassiElettronici: 200,
       incassiFattura: 100,
-      differenza: 0,
+      resto: 0,
       stato: "CLOSED",
       totaleApertura: 0,
       totaleChiusura: 700,

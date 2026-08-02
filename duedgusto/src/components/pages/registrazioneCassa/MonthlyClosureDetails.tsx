@@ -506,7 +506,7 @@ const MonthlyClosureDetails = () => {
                         <TableCell align="right">Contanti</TableCell>
                         <TableCell align="right">Elettronici</TableCell>
                         <TableCell align="right">Fattura</TableCell>
-                        <TableCell align="right">Differenza</TableCell>
+                        <TableCell align="right">Resto</TableCell>
                         <TableCell>Stato</TableCell>
                       </TableRow>
                     </TableHead>
@@ -520,9 +520,9 @@ const MonthlyClosureDetails = () => {
                           <TableCell align="right">{`\u20AC ${(ri.registro.incassiFattura ?? 0).toFixed(2)}`}</TableCell>
                           <TableCell
                             align="right"
-                            sx={{ color: (ri.registro as { differenza?: number }).differenza !== 0 ? "error.main" : "inherit" }}
+                            sx={{ color: ri.registro.resto !== 0 ? "error.main" : "inherit" }}
                           >
-                            {`\u20AC ${((ri.registro as { differenza?: number }).differenza ?? 0).toFixed(2)}`}
+                            {`\u20AC ${(ri.registro.resto ?? 0).toFixed(2)}`}
                           </TableCell>
                           <TableCell>
                             <Chip

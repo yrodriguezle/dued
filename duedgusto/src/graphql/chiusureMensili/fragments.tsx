@@ -12,7 +12,7 @@ export const registroCassaMensileFragment = gql`
       incassoContanteTracciato
       incassiElettronici
       incassiFattura
-      differenza
+      resto
       stato
       totaleApertura
       totaleChiusura

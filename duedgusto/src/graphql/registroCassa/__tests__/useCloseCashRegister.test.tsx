@@ -24,8 +24,9 @@ const mockClosedRegister = {
   totaleVendite: 400,
   speseFornitori: 30,
   speseGiornaliere: 20,
-  contanteAtteso: 350,
-  differenza: 0,
+  restoFornitore: 350,
+  ecc: 0,
+  resto: 0,
   contanteNetto: 350,
   importoIva: 80,
   breakdownIva: [
