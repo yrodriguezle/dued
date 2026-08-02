@@ -16,6 +16,7 @@ namespace DuedGusto.Tests.Integration;
 public class SeedRegistriCassaStoriciTests
 {
     private const string EnvVar = "SEED_REGISTRI_STORICI";
+    private const string EnvVarSostituisci = "SEED_REGISTRI_STORICI_SOSTITUISCI_INCOMPLETI";
 
     private static ServiceProvider BuildProvider(AppDbContext db)
     {
@@ -68,9 +69,10 @@ public class SeedRegistriCassaStoriciTests
         return db;
     }
 
-    private static async Task RunSeedAsync(AppDbContext db, string mode)
+    private static async Task RunSeedAsync(AppDbContext db, string mode, bool sostituisciIncompleti = false)
     {
         Environment.SetEnvironmentVariable(EnvVar, mode);
+        Environment.SetEnvironmentVariable(EnvVarSostituisci, sostituisciIncompleti ? "1" : null);
         try
         {
             await SeedRegistriCassaStorici.Initialize(BuildProvider(db));
@@ -78,7 +80,24 @@ public class SeedRegistriCassaStoriciTests
         finally
         {
             Environment.SetEnvironmentVariable(EnvVar, null);
+            Environment.SetEnvironmentVariable(EnvVarSostituisci, null);
         }
+    }
+
+    /// <summary>Giornata aperta dall'app e mai chiusa, come il 06/07/2026 in produzione.</summary>
+    private static async Task<int> AggiungiGiornoApertoAsync(AppDbContext db, DateTime data)
+    {
+        var registro = new RegistroCassa
+        {
+            Data = data,
+            UtenteId = db.Utenti.First().Id,
+            TotaleApertura = 53.95m,
+            TotaleChiusura = 0m,
+            Stato = "DRAFT",
+        };
+        db.RegistriCassa.Add(registro);
+        await db.SaveChangesAsync();
+        return registro.Id;
     }
 
     [Fact]
@@ -204,6 +223,91 @@ public class SeedRegistriCassaStoriciTests
         db.ConteggiMoneta.Count().Should().Be(await db.RegistriCassa
             .Include(r => r.ConteggiMoneta)
             .SumAsync(r => r.ConteggiMoneta.Count));
+    }
+
+    [Fact]
+    public async Task GiornoRimastoAperto_SenzaLOpzione_VieneSaltato()
+    {
+        using AppDbContext db = CreateDb();
+        int id = await AggiungiGiornoApertoAsync(db, new DateTime(2026, 7, 6));
+
+        await RunSeedAsync(db, "1"); // opzione NON attiva
+
+        RegistroCassa r = await db.RegistriCassa.FirstAsync(x => x.Id == id);
+        r.TotaleChiusura.Should().Be(0m);
+        r.Stato.Should().Be("DRAFT");
+    }
+
+    [Fact]
+    public async Task GiornoRimastoAperto_ConLOpzione_VieneCompletatoSullaStessaRiga()
+    {
+        using AppDbContext db = CreateDb();
+        int id = await AggiungiGiornoApertoAsync(db, new DateTime(2026, 7, 6));
+
+        await RunSeedAsync(db, "1", sostituisciIncompleti: true);
+
+        RegistroCassa r = await db.RegistriCassa
+            .Include(x => x.ConteggiMoneta)
+            .FirstAsync(x => x.Data == new DateTime(2026, 7, 6));
+
+        r.Id.Should().Be(id); // aggiornato sul posto, non ricreato
+        r.Stato.Should().Be("CLOSED");
+        // Valori del foglio "07 2026" per il 06/07: apertura 53,95 chiusura 305,55
+        r.TotaleApertura.Should().Be(53.95m);
+        r.TotaleChiusura.Should().Be(305.55m);
+        r.IncassoContanteTracciato.Should().Be(178.80m);
+        r.IncassiElettronici.Should().Be(76.60m);
+        r.SpeseGiornaliere.Should().Be(152.95m);
+        r.ConteggiMoneta.Where(c => c.IsApertura).Sum(c => c.Totale).Should().Be(53.95m);
+
+        db.RegistriCassa.Should().HaveCount(177); // nessun duplicato per quella data
+    }
+
+    [Fact]
+    public async Task GiornoApertoMaConMovimenti_ConLOpzione_RestaIntatto()
+    {
+        using AppDbContext db = CreateDb();
+        int id = await AggiungiGiornoApertoAsync(db, new DateTime(2026, 7, 6));
+
+        // Una spesa collegata: c'e' qualcosa da perdere, quindi non va toccato.
+        db.SpeseCassa.Add(new SpesaCassa
+        {
+            RegistroCassaId = id,
+            Descrizione = "spesa inserita a mano",
+            Importo = 12.50m,
+            Categoria = CategoriaSpesa.Altro,
+        });
+        await db.SaveChangesAsync();
+
+        await RunSeedAsync(db, "1", sostituisciIncompleti: true);
+
+        RegistroCassa r = await db.RegistriCassa.FirstAsync(x => x.Id == id);
+        r.TotaleChiusura.Should().Be(0m);
+        r.Stato.Should().Be("DRAFT");
+        db.SpeseCassa.Where(s => s.RegistroCassaId == id)
+            .Should().ContainSingle().Which.Descrizione.Should().Be("spesa inserita a mano");
+    }
+
+    [Fact]
+    public async Task GiornoGiaChiuso_ConLOpzione_NonVieneMaiSovrascritto()
+    {
+        using AppDbContext db = CreateDb();
+        db.RegistriCassa.Add(new RegistroCassa
+        {
+            Data = new DateTime(2026, 1, 2),
+            UtenteId = db.Utenti.First().Id,
+            TotaleApertura = 10m,
+            TotaleChiusura = 1234m,
+            Stato = "CLOSED",
+            Note = "chiuso dall'app",
+        });
+        await db.SaveChangesAsync();
+
+        await RunSeedAsync(db, "1", sostituisciIncompleti: true);
+
+        RegistroCassa r = await db.RegistriCassa.FirstAsync(x => x.Data == new DateTime(2026, 1, 2));
+        r.TotaleChiusura.Should().Be(1234m);
+        r.Note.Should().Be("chiuso dall'app");
     }
 
     [Fact]

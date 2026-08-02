@@ -28,6 +28,13 @@ namespace duedgusto.SeedData;
 /// <para><b>Idempotente</b>: le date già presenti in <c>RegistriCassa</c> vengono saltate, mai
 /// sovrascritte. Un giorno già inserito dall'app vince sempre sul dato del foglio.</para>
 ///
+/// <para>Unica eccezione, da abilitare a parte con
+/// <c>SEED_REGISTRI_STORICI_SOSTITUISCI_INCOMPLETI=1</c>: i registri <b>rimasti aperti</b>
+/// (chiusura a zero) e <b>senza nulla di collegato</b> — niente spese, pagamenti fornitori o
+/// vendite — vengono completati col dato del foglio invece di essere saltati. Sono giornate
+/// aperte dall'app e mai chiuse, dove non c'è niente da perdere. La riga viene aggiornata sul
+/// posto, così l'Id resta lo stesso.</para>
+///
 /// <para>I totali NON sono ricopiati dall'Excel ma ricalcolati con le stesse funzioni usate dal
 /// salvataggio normale (<see cref="MutateRegistroCassaOrchestrator.CalcolaTotali"/> e
 /// <see cref="BreakdownIvaApplier"/>), così i registri importati sono indistinguibili da quelli
@@ -102,32 +109,70 @@ public static class SeedRegistriCassaStorici
             return;
         }
 
-        // Le date già presenti non vengono mai toccate.
-        HashSet<DateTime> dateEsistenti = [.. await db.RegistriCassa.Select(r => r.Data.Date).ToListAsync()];
+        bool sostituisciIncompleti =
+            Environment.GetEnvironmentVariable("SEED_REGISTRI_STORICI_SOSTITUISCI_INCOMPLETI") is "1" or "apply";
 
-        int inseriti = 0, saltati = 0;
+        // Registri già presenti, indicizzati per data: servono interi (non solo le date)
+        // per poter completare quelli rimasti aperti.
+        Dictionary<DateTime, RegistroCassa> esistenti = await db.RegistriCassa
+            .Include(r => r.ConteggiMoneta)
+            .Include(r => r.SpeseCassa)
+            .ToDictionaryAsync(r => r.Data.Date);
+
+        // Un registro è "da completare" solo se è rimasto aperto e non ha nulla di collegato.
+        HashSet<int> conMovimenti =
+        [
+            .. await db.SpeseCassa.Select(s => s.RegistroCassaId).Distinct().ToListAsync(),
+            .. await db.Vendite.Select(v => v.RegistroCassaId).Distinct().ToListAsync(),
+            .. await db.PagamentiFornitori.Where(p => p.RegistroCassaId != null)
+                                          .Select(p => p.RegistroCassaId!.Value).Distinct().ToListAsync(),
+        ];
+
+        int inseriti = 0, completati = 0, saltati = 0;
         decimal totaleIncassi = 0, totaleSpese = 0;
 
         foreach (GiornoStorico giorno in giorni)
         {
             DateTime data = DateTime.ParseExact(giorno.Data, "yyyy-MM-dd", CultureInfo.InvariantCulture);
-            if (dateEsistenti.Contains(data.Date))
+
+            RegistroCassa registro;
+            bool daCompletare = false;
+
+            if (esistenti.TryGetValue(data.Date, out RegistroCassa? esistente))
             {
-                saltati++;
-                continue;
+                bool incompleto = esistente.TotaleChiusura == 0m && !conMovimenti.Contains(esistente.Id);
+                if (!sostituisciIncompleti || !incompleto)
+                {
+                    saltati++;
+                    continue;
+                }
+
+                logger.LogInformation(
+                    "Registro {Id} del {Data:dd/MM/yyyy} è rimasto aperto e non ha movimenti collegati: " +
+                    "lo completo col dato del foglio.", esistente.Id, data);
+
+                // Stessa pulizia di MutateRegistroCassaOrchestrator.UpsertRegistroBase
+                db.ConteggiMoneta.RemoveRange(esistente.ConteggiMoneta);
+                db.SpeseCassa.RemoveRange(esistente.SpeseCassa);
+                esistente.ConteggiMoneta.Clear();
+                esistente.SpeseCassa.Clear();
+
+                registro = esistente;
+                daCompletare = true;
+            }
+            else
+            {
+                registro = new RegistroCassa { Data = data };
             }
 
-            var registro = new RegistroCassa
-            {
-                Data = data,
-                UtenteId = utente.Id,
-                IncassoContanteTracciato = giorno.Tracciato,
-                IncassiElettronici = giorno.Elettronici,
-                IncassiFattura = giorno.Fattura,
-                SpeseFornitori = 0m, // il foglio non distingue fornitori da spese generiche
-                Stato = "CLOSED",
-                Note = "Importato dal foglio di chiusura 2026",
-            };
+            registro.UtenteId = utente.Id;
+            registro.IncassoContanteTracciato = giorno.Tracciato;
+            registro.IncassiElettronici = giorno.Elettronici;
+            registro.IncassiFattura = giorno.Fattura;
+            registro.SpeseFornitori = 0m; // il foglio non distingue fornitori da spese generiche
+            registro.Stato = "CLOSED";
+            registro.Note = "Importato dal foglio di chiusura 2026";
+            registro.UpdatedAt = DateTime.UtcNow;
 
             registro.TotaleApertura = AggiungiConteggi(registro, denominazioni, giorno.Apertura, isApertura: true);
             registro.TotaleChiusura = AggiungiConteggi(registro, denominazioni, giorno.Chiusura, isApertura: false);
@@ -149,14 +194,17 @@ public static class SeedRegistriCassaStorici
 
             totaleIncassi += giorno.Tracciato + giorno.Elettronici + giorno.Fattura;
             totaleSpese += giorno.Spese;
-            inseriti++;
+            if (daCompletare) { completati++; } else { inseriti++; }
 
             if (dryRun)
             {
                 continue;
             }
 
-            db.RegistriCassa.Add(registro);
+            if (!daCompletare)
+            {
+                db.RegistriCassa.Add(registro);
+            }
             await db.SaveChangesAsync(); // serve l'Id per il breakdown IVA
 
             await BreakdownIvaApplier.ApplicaAsync(db, registro, settings.VatRate, logger);
@@ -164,9 +212,12 @@ public static class SeedRegistriCassaStorici
         }
 
         logger.LogInformation(
-            "Import registri storici {Esito}: {Inseriti} inseriti, {Saltati} saltati (data già presente). " +
-            "Incassi {Incassi:F2}, spese {Spese:F2}.",
-            dryRun ? "SIMULATO (nessuna scrittura)" : "COMPLETATO", inseriti, saltati, totaleIncassi, totaleSpese);
+            "Import registri storici {Esito}: {Inseriti} inseriti, {Completati} completati (erano rimasti aperti), " +
+            "{Saltati} saltati (data già presente). Incassi {Incassi:F2}, spese {Spese:F2}. " +
+            "Sostituzione incompleti: {Sostituisci}.",
+            dryRun ? "SIMULATO (nessuna scrittura)" : "COMPLETATO",
+            inseriti, completati, saltati, totaleIncassi, totaleSpese,
+            sostituisciIncompleti ? "ATTIVA" : "disattivata");
     }
 
     private static List<GiornoStorico> LeggiDati()

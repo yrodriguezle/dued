@@ -36,6 +36,8 @@ services:
       # Import una-tantum dello storico chiusure 2026: vuoto = OFF.
       # Si abilita temporaneamente nel .env del server (dryrun|1) e si rimuove dopo l'uso.
       SEED_REGISTRI_STORICI: "${SEED_REGISTRI_STORICI:-}"
+      # Completa anche i giorni rimasti aperti e senza movimenti, invece di saltarli
+      SEED_REGISTRI_STORICI_SOSTITUISCI_INCOMPLETI: "${SEED_REGISTRI_STORICI_SOSTITUISCI_INCOMPLETI:-}"
     ports:
       - "127.0.0.1:5000:5000"
     networks:
