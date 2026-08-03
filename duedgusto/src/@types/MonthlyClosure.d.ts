@@ -25,12 +25,34 @@ type RegistroCassaMensileRidotto = {
   incassoContanteTracciato: number;
   incassiElettronici: number;
   incassiFattura: number;
-  differenza: number;
+  resto: number;
   stato: StatoRegistroCassa;
   totaleApertura: number;
   totaleChiusura: number;
   speseFornitori: number;
   speseGiornaliere: number;
+  spese: SpesaCassaRidotta[];
+  pagamentiFornitori: PagamentoFornitoreRidotto[];
+};
+
+/** Riga di spesa non tracciata del giorno. La data è quella del registro genitore. */
+type SpesaCassaRidotta = {
+  id: number;
+  descrizione: string;
+  importo: number;
+  categoria: CategoriaSpesa;
+};
+
+/** Pagamento del giorno. `categoria` valorizzata = spesa fissa tracciata; null = documentale. */
+type PagamentoFornitoreRidotto = {
+  pagamentoId: number;
+  fatturaId: number | null;
+  ddtId: number | null;
+  dataPagamento: string;
+  importo: number;
+  metodoPagamento: string | null;
+  categoria: CategoriaSpesa | null;
+  note: string | null;
 };
 
 type RegistroCassaMensile = {

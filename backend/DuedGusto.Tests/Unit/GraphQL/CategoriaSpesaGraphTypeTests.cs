@@ -70,8 +70,8 @@ public class CategoriaSpesaGraphTypeTests
     [
         new SpesaCassaType(),
         new SpesaCassaInputType(),
+        new SpesaCassaMutateInputType(),
         new PagamentoFornitoreRegistroInputType(),
-        new AggiungiSpesaSuGiornoInputType(),
         new PagamentoFornitoreType(),
         new PagamentoFornitoreInputType(),
     ];

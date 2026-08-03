@@ -31,12 +31,25 @@ vi.mock("@apollo/client", async () => {
   };
 });
 
-// La chiusura mensile è ora pura aggregazione dei registri inclusi: non contiene
-// più una griglia spese editabile. Stubbiamo solo il report (usa @mui/x-charts,
-// non necessario per lo smoke test dei KPI).
+// Stub del report (usa @mui/x-charts, non serve allo smoke test dei KPI).
 vi.mock("../MonthlyClosureReport", () => ({
   default: () => <div data-testid="monthly-closure-report" />,
 }));
+
+// La griglia spese fisse è coperta dai suoi test (SpeseDataGrid, buildSpeseFisseRows):
+// qui interessa COME la pagina la configura, quindi ne catturiamo le props. AG Grid
+// richiederebbe theme e provider che questo smoke test non monta.
+const speseGridProps = vi.fn();
+vi.mock("../SpeseDataGrid", async () => {
+  const actual = await vi.importActual<typeof import("../SpeseDataGrid")>("../SpeseDataGrid");
+  return {
+    ...actual,
+    default: (props: Record<string, unknown>) => {
+      speseGridProps(props);
+      return <div data-testid="spese-data-grid" />;
+    },
+  };
+});
 
 // ── Import dopo i mock ─────────────────────────────────────────────────
 
@@ -73,7 +86,7 @@ function makeRegistroIncluso(overrides: Record<string, unknown> = {}, incluso = 
       incassoContanteTracciato: 300,
       incassiElettronici: 200,
       incassiFattura: 100,
-      differenza: 0,
+      resto: 0,
       stato: "CLOSED",
       totaleApertura: 0,
       totaleChiusura: 700,
@@ -182,9 +195,32 @@ describe("MonthlyClosureDetails (smoke)", () => {
     // La strip fiscale (Ricavo Netto) è stata sostituita: non deve più comparire
     expect(screen.queryByText("Ricavo Netto")).not.toBeInTheDocument();
 
-    // La chiusura non ha più una griglia spese editabile: solo il report (stub)
-    expect(screen.queryByTestId("spese-data-grid")).not.toBeInTheDocument();
+    // La griglia spese fisse è montata ed editabile: la chiusura è in BOZZA.
+    expect(screen.getByTestId("spese-data-grid")).toBeInTheDocument();
     expect(screen.getByTestId("monthly-closure-report")).toBeInTheDocument();
+
+    const calls = speseGridProps.mock.calls;
+    const props = calls[calls.length - 1][0];
+    expect(props.isLocked).toBe(false);
+    expect(props.persistence).toBeDefined();
+    // Solo le categorie fisse: la minuta quotidiana resta sul registro giornaliero.
+    expect(props.columns.categoriaOptions).toEqual(["Affitto", "Utenze", "Stipendi"]);
+    // Il dialog fornitore è disattivato: pretende fornitore e documento, che una
+    // spesa fissa non ha. Al suo posto c'è la colonna del metodo di pagamento.
+    expect(props.columns.showPagamentoFornitore).toBe(false);
+    expect(props.columns.showMetodoPagamento).toBe(true);
+    expect(props.columns.showData).toBe(true);
+  });
+
+  it("mette la griglia spese in sola lettura quando il mese è chiuso", () => {
+    setupQueries({ ...mockChiusuraBozza, stato: "CHIUSA" } as unknown as ChiusuraMensile);
+
+    renderMonthlyClosureDetails(5);
+
+    const calls = speseGridProps.mock.calls;
+    const props = calls[calls.length - 1][0];
+    expect(props.isLocked).toBe(true);
+    expect(props.persistence).toBeUndefined();
   });
 
   it("adatta i KPI gestionali come pura aggregazione dei SOLI registri inclusi", () => {

@@ -156,10 +156,21 @@ public class SeedRegistriCassaStoriciTests
         r.IncassiElettronici.Should().Be(29.60m);
         r.SpeseGiornaliere.Should().Be(80.78m);
 
-        // Colonne calcolate del foglio: AD "resto"=57,02  Y "Totale (-) Apertura"=216,85  AB "Totale Vendite"=246,45
-        r.ContanteAtteso.Should().Be(57.02m);
+        // Colonne calcolate del foglio: Y "Totale (-) Apertura"=216,85  AB "Totale Vendite"=246,45
         r.ContanteNetto.Should().Be(216.85m);
         r.TotaleVendite.Should().Be(246.45m);
+
+        // ATTENZIONE — discrepanza NOTA sull'import storico, non su questa formula.
+        // Nel foglio AD "resto" vale 57,02 = Z(137,80) − AC(80,78), cioè il contante meno la
+        // colonna delle spese FORNITORI. L'import però riversa quella colonna nelle spese con
+        // scontrino (`SpeseCassa`) e lascia SpeseFornitori a 0 (SeedRegistriCassaStorici.cs:172,
+        // "il foglio non distingue fornitori da spese generiche"), quindi qui i 80,78 finiscono
+        // nel secchio sbagliato: RestoFornitore = 137,80 − 0 e il loro effetto ricade su Resto.
+        // La somma dei due resta corretta; a cambiare è solo la ripartizione tracciato/non
+        // tracciato dei mesi importati. Da chiarire separatamente prima di rettificare i dati.
+        r.RestoFornitore.Should().Be(137.80m);
+        r.Ecc.Should().Be(79.05m);            // 216,85 − 137,80
+        r.Resto.Should().Be(-1.73m);          // 79,05 − 80,78
 
         r.ConteggiMoneta.Where(c => c.IsApertura).Sum(c => c.Totale).Should().Be(42.40m);
         r.ConteggiMoneta.Where(c => !c.IsApertura).Sum(c => c.Totale).Should().Be(259.25m);

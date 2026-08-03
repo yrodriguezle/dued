@@ -21,10 +21,20 @@ public class RegistroCassa
     public decimal SpeseFornitori { get; set; }
     public decimal SpeseGiornaliere { get; set; }
 
-    // Calcoli quadratura
-    public decimal ContanteAtteso { get; set; }
-    public decimal Differenza { get; set; }
+    // Calcoli quadratura — replicano il foglio di chiusura (colonne Y, AD, AE, AG).
+    // Fonte unica della formula: MutateRegistroCassaOrchestrator.CalcolaTotali.
+
+    /// <summary>Colonna Y: contante fisico entrato in cassa (Chiusura − Apertura).</summary>
     public decimal ContanteNetto { get; set; }
+
+    /// <summary>Colonna AD: contante dichiarato meno i pagamenti fornitori.</summary>
+    public decimal RestoFornitore { get; set; }
+
+    /// <summary>Colonna AE: contante entrato oltre a quello dichiarato (ContanteNetto − contanti).</summary>
+    public decimal Ecc { get; set; }
+
+    /// <summary>Colonna AG: Ecc al netto delle spese con scontrino.</summary>
+    public decimal Resto { get; set; }
 
     // IVA
     public decimal ImportoIva { get; set; }

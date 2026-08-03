@@ -195,7 +195,7 @@ export const mutationMutatePagamentoFornitore: TypedDocumentNode<MutatePagamento
 
 interface DeletePagamentoFornitoreData {
   fornitori: {
-    deletePagamentoFornitore: boolean;
+    eliminaPagamentoFornitore: boolean;
   };
 }
 
@@ -204,9 +204,9 @@ interface DeletePagamentoFornitoreVariables {
 }
 
 export const mutationDeletePagamentoFornitore: TypedDocumentNode<DeletePagamentoFornitoreData, DeletePagamentoFornitoreVariables> = gql`
-  mutation DeletePagamentoFornitore($pagamentoId: Int!) {
+  mutation EliminaPagamentoFornitore($pagamentoId: Int!) {
     fornitori {
-      deletePagamentoFornitore(pagamentoId: $pagamentoId)
+      eliminaPagamentoFornitore(pagamentoId: $pagamentoId)
     }
   }
 `;

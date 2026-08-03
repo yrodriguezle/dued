@@ -56,6 +56,11 @@ import useChartPalette from "./dashboard/useChartPalette";
 import { MESI_LABEL } from "./dashboard/dashboardUtils";
 import formatCurrency from "../../../common/bones/formatCurrency";
 import { aggregaRegistriPerMese } from "../../../common/registroCassa/aggregaRegistri";
+import SpeseDataGrid, { METODO_CONTANTI, SpeseDataGridPersistence, SpeseGridRow } from "./SpeseDataGrid";
+import buildSpeseFisseRows, { CATEGORIE_FISSE } from "./buildSpeseFisseRows";
+import { mutationMutateSpesaCassa, mutationEliminaSpesaCassa } from "../../../graphql/registroCassa/mutations";
+import { mutationMutatePagamentoFornitore, mutationDeletePagamentoFornitore } from "../../../graphql/fornitori/mutations";
+import { parseDateForGraphQL } from "../../../common/date/date";
 
 const MOTIVO_LABELS: Record<CodiceMotivo, string> = {
   ATTIVITA_NON_AVVIATA: "Attività non avviata",
@@ -81,6 +86,10 @@ const MonthlyClosureDetails = () => {
   const [chiudiChiusura, { loading: closeLoading }] = useMutation(mutationChiudiChiusuraMensile);
   const [eliminaChiusura, { loading: deleteLoading }] = useMutation(mutationEliminaChiusuraMensile);
   const [aggiornaGiorniEsclusi, { loading: excludeLoading }] = useMutation(mutationAggiornaGiorniEsclusi);
+  const [mutateSpesaCassa] = useMutation(mutationMutateSpesaCassa);
+  const [eliminaSpesaCassa] = useMutation(mutationEliminaSpesaCassa);
+  const [mutatePagamentoFornitore] = useMutation(mutationMutatePagamentoFornitore);
+  const [eliminaPagamentoFornitore] = useMutation(mutationDeletePagamentoFornitore);
 
   const palette = useChartPalette();
   const [giorniMancantiModalOpen, setGiorniMancantiModalOpen] = useState(false);
@@ -131,6 +140,135 @@ const MonthlyClosureDetails = () => {
     const indice = (mese || 1) - 1;
     return mesi[indice] ?? mesi[0];
   }, [registriInclusi, anno, mese]);
+
+  // ── Griglia spese fisse del mese ────────────────────────────────────────────
+  // Le righe restano di proprietà dei registri giornalieri: la chiusura le aggrega
+  // e basta. Il metodo di pagamento decide su quale delle due forme finisce la riga.
+  const gridSpeseFisse = useMemo(() => buildSpeseFisseRows(registriInclusi), [registriInclusi]);
+
+  // Data di default: l'ultimo registro GIÀ incluso del mese. Così il flusso tipico
+  // ("metti la spesa a fine mese") non crea registri leggeri su giorni scoperti, che
+  // resterebbero fra i giorni mancanti e non sarebbero più escludibili.
+  const dataDefaultSpese = useMemo(() => {
+    const ordinati = registriInclusi
+      .filter((ri) => ri.incluso)
+      .map((ri) => dayjs(ri.registro.data))
+      .sort((a, b) => a.valueOf() - b.valueOf());
+    const ultimo = ordinati.length > 0 ? ordinati[ordinati.length - 1] : null;
+    return (ultimo ?? dayjs(new Date(anno || dayjs().year(), (mese || 1) - 1, 1))).format("YYYY-MM-DD");
+  }, [registriInclusi, anno, mese]);
+
+  const persistenceSpese = useMemo<SpeseDataGridPersistence | undefined>(() => {
+    if (!chiusuraMensile) return undefined;
+
+    const dataRiga = (row: SpeseGridRow) => row.data ?? dataDefaultSpese;
+
+    // Una data fuori dal mese sposterebbe silenziosamente denaro su un'altra chiusura:
+    // mutatePagamentoFornitore non applica il guard sul mese, quindi si presidia qui.
+    const dataNelMese = (row: SpeseGridRow) => {
+      const d = dayjs(dataRiga(row));
+      return d.year() === chiusuraMensile.anno && d.month() + 1 === chiusuraMensile.mese;
+    };
+
+    const errore = (message: string) => {
+      showToast({ type: "error", position: "bottom-right", message, toastId: "spese-fisse-error" });
+    };
+
+    const esegui = async <T,>(azione: () => Promise<T>): Promise<T | undefined> => {
+      try {
+        return await azione();
+      } catch (err: unknown) {
+        errore(err instanceof Error ? err.message : "Errore nel salvataggio della spesa");
+        await refetch();
+        return undefined;
+      }
+    };
+
+    const isTracciata = (row: SpeseGridRow) => (row.paymentMethod ?? METODO_CONTANTI) !== METODO_CONTANTI;
+
+    const salvaSpesaContanti = async (row: SpeseGridRow) => {
+      const res = await mutateSpesaCassa({
+        variables: {
+          spesa: {
+            spesaId: (row.spesaId ?? 0) > 0 ? row.spesaId : null,
+            data: parseDateForGraphQL(dataRiga(row)) ?? dataRiga(row),
+            descrizione: row.description,
+            importo: row.amount,
+            categoria: row.categoria ?? "Utenze",
+          },
+        },
+      });
+      return res.data?.gestioneCassa.mutateSpesaCassa?.id ?? null;
+    };
+
+    // Spesa fissa tracciata = pagamento SENZA documento (fatturaId/ddtId null) con
+    // categoria valorizzata. Nessuna fattura finta per stipendi e affitto.
+    const salvaPagamentoTracciato = async (row: SpeseGridRow) => {
+      const res = await mutatePagamentoFornitore({
+        variables: {
+          pagamento: {
+            pagamentoId: (row.pagamentoId ?? 0) > 0 ? row.pagamentoId : undefined,
+            fatturaId: row.fatturaId ?? undefined,
+            ddtId: row.ddtId ?? undefined,
+            dataPagamento: parseDateForGraphQL(dataRiga(row)) ?? dataRiga(row),
+            importo: row.amount,
+            metodoPagamento: row.paymentMethod ?? "Bonifico",
+            note: row.description,
+            categoria: row.categoria ?? "Utenze",
+          },
+        },
+      });
+      return res.data?.fornitori.mutatePagamentoFornitore?.pagamentoId ?? null;
+    };
+
+    // Cambiare metodo su una riga già salvata ne cambia la natura: si elimina la
+    // vecchia forma e si ricrea nell'altra.
+    const salvaRiga = async (row: SpeseGridRow) => {
+      if (!dataNelMese(row)) {
+        errore("La data deve cadere nel mese della chiusura.");
+        await refetch();
+        return null;
+      }
+
+      const tracciata = isTracciata(row);
+      const eraSpesa = (row.spesaId ?? 0) > 0;
+      const eraPagamento = (row.pagamentoId ?? 0) > 0;
+
+      if (tracciata && eraSpesa) {
+        await eliminaSpesaCassa({ variables: { spesaId: row.spesaId! } });
+        row.spesaId = undefined;
+      } else if (!tracciata && eraPagamento) {
+        await eliminaPagamentoFornitore({ variables: { pagamentoId: row.pagamentoId! } });
+        row.pagamentoId = undefined;
+      }
+
+      row.isPagamentoFornitore = tracciata;
+      const nuovoId = tracciata ? await salvaPagamentoTracciato(row) : await salvaSpesaContanti(row);
+      await refetch();
+      return nuovoId;
+    };
+
+    const eliminaRiga = async (row: SpeseGridRow) => {
+      if ((row.pagamentoId ?? 0) > 0) {
+        await eliminaPagamentoFornitore({ variables: { pagamentoId: row.pagamentoId! } });
+      } else if ((row.spesaId ?? 0) > 0) {
+        await eliminaSpesaCassa({ variables: { spesaId: row.spesaId! } });
+      }
+      await refetch();
+    };
+
+    // La griglia in questa modalità instrada tutto su create/update/deleteExpense:
+    // le tre callback "supplier" restano per il contratto e coprono il dialog fattura.
+    return {
+      createExpense: (row) => esegui(() => salvaRiga(row)),
+      updateExpense: async (row) => { await esegui(() => salvaRiga(row)); },
+      deleteExpense: async (row) => { await esegui(() => eliminaRiga(row)); },
+      createSupplierPayment: (row) => esegui(() => salvaRiga(row)),
+      updateSupplierPayment: async (row) => { await esegui(() => salvaRiga(row)); },
+      deleteSupplierPayment: async (row) => { await esegui(() => eliminaRiga(row)); },
+    };
+  }, [chiusuraMensile, dataDefaultSpese, refetch, mutateSpesaCassa, eliminaSpesaCassa,
+      mutatePagamentoFornitore, eliminaPagamentoFornitore]);
 
   const handleEscludiSelezionati = useCallback(async () => {
     if (!chiusuraMensile) return;
@@ -506,7 +644,7 @@ const MonthlyClosureDetails = () => {
                         <TableCell align="right">Contanti</TableCell>
                         <TableCell align="right">Elettronici</TableCell>
                         <TableCell align="right">Fattura</TableCell>
-                        <TableCell align="right">Differenza</TableCell>
+                        <TableCell align="right">Resto</TableCell>
                         <TableCell>Stato</TableCell>
                       </TableRow>
                     </TableHead>
@@ -520,15 +658,29 @@ const MonthlyClosureDetails = () => {
                           <TableCell align="right">{`\u20AC ${(ri.registro.incassiFattura ?? 0).toFixed(2)}`}</TableCell>
                           <TableCell
                             align="right"
-                            sx={{ color: (ri.registro as { differenza?: number }).differenza !== 0 ? "error.main" : "inherit" }}
+                            sx={{ color: ri.registro.resto !== 0 ? "error.main" : "inherit" }}
                           >
-                            {`\u20AC ${((ri.registro as { differenza?: number }).differenza ?? 0).toFixed(2)}`}
+                            {`\u20AC ${(ri.registro.resto ?? 0).toFixed(2)}`}
                           </TableCell>
                           <TableCell>
                             <Chip
-                              label={ri.registro.stato === statoRegistroCassa.RECONCILED ? "Riconciliato" : "Chiuso"}
+                              // Con l'auto-link possono comparire registri DRAFT (giorni
+                              // toccati solo da una spesa fissa): non sono "Chiuso".
+                              label={
+                                ri.registro.stato === statoRegistroCassa.RECONCILED
+                                  ? "Riconciliato"
+                                  : ri.registro.stato === statoRegistroCassa.DRAFT
+                                    ? "Bozza"
+                                    : "Chiuso"
+                              }
                               size="small"
-                              color={ri.registro.stato === statoRegistroCassa.RECONCILED ? "success" : "warning"}
+                              color={
+                                ri.registro.stato === statoRegistroCassa.RECONCILED
+                                  ? "success"
+                                  : ri.registro.stato === statoRegistroCassa.DRAFT
+                                    ? "default"
+                                    : "warning"
+                              }
                               variant="outlined"
                             />
                           </TableCell>
@@ -541,6 +693,32 @@ const MonthlyClosureDetails = () => {
               </Paper>
             </div>
           )}
+
+          {/* Spese fisse del mese: stipendi, utenze, affitto. Le righe finiscono sul
+              registro del giorno indicato — la chiusura non possiede spese. */}
+          <div className="col-span-12">
+            <Paper
+              elevation={1}
+              sx={{ p: 2 }}
+            >
+              <SpeseDataGrid
+                initialExpenses={gridSpeseFisse}
+                isLocked={!isDraft}
+                date={dataDefaultSpese}
+                columns={{
+                  showData: true,
+                  showCategoria: true,
+                  categoriaOptions: CATEGORIE_FISSE,
+                  defaultCategoria: "Utenze",
+                  showGiornale: false,
+                  showMetodoPagamento: true,
+                  showPagamentoFornitore: false,
+                }}
+                isPaymentReadOnly={(row) => row.fatturaId != null || row.ddtId != null}
+                persistence={isDraft ? persistenceSpese : undefined}
+              />
+            </Paper>
+          </div>
 
           {/* Info chiusura */}
           {chiusuraMensile.stato !== statoChiusuraMensile.BOZZA && chiusuraMensile.chiusaDaUtente && (

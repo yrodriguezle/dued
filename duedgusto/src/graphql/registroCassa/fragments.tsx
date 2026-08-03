@@ -39,9 +39,10 @@ export const registroCassaFragment = `
     totaleVendite
     speseFornitori
     speseGiornaliere
-    contanteAtteso
-    differenza
     contanteNetto
+    restoFornitore
+    ecc
+    resto
     importoIva
     breakdownIva {
       aliquota

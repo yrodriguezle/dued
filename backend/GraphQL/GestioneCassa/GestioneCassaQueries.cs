@@ -76,7 +76,7 @@ public class GestioneCassaQueries : ObjectGraphType
                 // VenditeOggi/DifferenzaOggi: registro del giorno qualunque sia lo stato
                 // (anche DRAFT: è il dato live di oggi)
                 var todaySales = todayRegister?.TotaleVendite ?? 0;
-                var todayDifference = todayRegister?.Differenza ?? 0;
+                var todayDifference = todayRegister?.Resto ?? 0;
                 var monthSales = monthRegisters.Sum(r => r.TotaleVendite);
 
                 // MediaMese: solo registri contabilizzati (CLOSED/RECONCILED) —

@@ -419,4 +419,39 @@ public class ChiusuraMensileService
         return await DataAppartieneAMeseChiusoAsync(registro.Data);
     }
 
+    /// <summary>
+    /// Collega il registro alla chiusura in BOZZA del suo mese, se ne esiste una e il link
+    /// non c'è già.
+    /// <para>
+    /// Serve perché <see cref="CreaChiusuraAsync"/> collega solo i registri CLOSED/RECONCILED
+    /// esistenti al momento della creazione: un registro nato dopo (tipicamente il registro
+    /// "leggero" creato dal find-or-create quando si registra una spesa fissa su un giorno
+    /// scoperto) resterebbe fuori da <c>RegistriInclusi</c>, e la spesa sarebbe invisibile in
+    /// Chiusura Mensile — che legge le spese solo attraverso i registri inclusi.
+    /// </para>
+    /// Non chiama SaveChanges: partecipa alla transazione del chiamante.
+    /// </summary>
+    public async Task EnsureRegistroLinkedToBozzaAsync(RegistroCassa registro)
+    {
+        ChiusuraMensile? bozza = await _dbContext.ChiusureMensili
+            .FirstOrDefaultAsync(c => c.Anno == registro.Data.Year
+                && c.Mese == registro.Data.Month
+                && c.Stato == "BOZZA");
+
+        if (bozza == null)
+            return;
+
+        bool giaCollegato = await _dbContext.RegistriCassaMensili
+            .AnyAsync(rm => rm.ChiusuraId == bozza.ChiusuraId && rm.RegistroId == registro.Id);
+
+        if (giaCollegato)
+            return;
+
+        _dbContext.RegistriCassaMensili.Add(new RegistroCassaMensile
+        {
+            ChiusuraId = bozza.ChiusuraId,
+            RegistroId = registro.Id,
+            Incluso = true,
+        });
+    }
 }

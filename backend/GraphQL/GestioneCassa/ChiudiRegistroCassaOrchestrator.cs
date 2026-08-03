@@ -53,7 +53,7 @@ public class ChiudiRegistroCassaOrchestrator
             RegistroCassaId = registroCassa.Id,
             Data = registroCassa.Data,
             TotaleChiusura = registroCassa.TotaleChiusura,
-            Differenza = registroCassa.Differenza
+            Resto = registroCassa.Resto
         });
 
         _eventBus.Publish(new RegistroCassaUpdatedEvent

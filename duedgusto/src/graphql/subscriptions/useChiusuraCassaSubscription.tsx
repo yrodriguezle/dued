@@ -6,7 +6,7 @@ const ON_CHIUSURA_CASSA_COMPLETED = gql`
       registroCassaId
       data
       totaleChiusura
-      differenza
+      resto
     }
   }
 `;
@@ -15,7 +15,7 @@ interface ChiusuraCassaCompletedEvent {
   registroCassaId: number;
   data: string;
   totaleChiusura: number;
-  differenza: number;
+  resto: number;
 }
 
 interface ChiusuraCassaCompletedData {

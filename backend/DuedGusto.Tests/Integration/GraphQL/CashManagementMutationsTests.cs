@@ -421,24 +421,28 @@ public class CashManagementMutationsTests : IDisposable
         totaleVendite.Should().Be(175.00m);
     }
 
+    /// <summary>
+    /// Le spese incidono su due colonne DIVERSE del foglio: i pagamenti fornitori abbassano
+    /// RestoFornitore (AD), le spese con scontrino abbassano Resto (AG). Nessuna delle due
+    /// tocca l'altra.
+    /// </summary>
     [Fact]
-    public void TotalsComputation_ExpenseSubtraction_CorrectResult()
+    public void CalcolaTotali_SpeseFornitoriEScontrino_ColpisconoColonneDiverse()
     {
-        // Arrange
-        decimal venditeContanti = 0;
-        decimal incassoContante = 200m;
-        decimal incassiElettronici = 100m;
-        decimal incassiFattura = 50m;
-        decimal speseFornitori = 80m;
-        decimal speseGiornaliere = 30m;
+        var registro = new RegistroCassa
+        {
+            TotaleApertura = 0m,
+            TotaleChiusura = 250m,
+            IncassoContanteTracciato = 200m,
+            SpeseFornitori = 80m,
+        };
 
-        // Act — replicate the totals logic from the mutation
-        decimal totaleVendite = venditeContanti + incassiElettronici + incassoContante + incassiFattura;
-        decimal contanteAtteso = venditeContanti - speseFornitori - speseGiornaliere;
+        MutateRegistroCassaOrchestrator.CalcolaTotali(registro, totaleSpese: 30m);
 
-        // Assert
-        totaleVendite.Should().Be(350m);
-        contanteAtteso.Should().Be(-110m); // 0 - 80 - 30
+        registro.ContanteNetto.Should().Be(250m);        // Y  = 250 − 0
+        registro.RestoFornitore.Should().Be(120m);       // AD = 200 − 80
+        registro.Ecc.Should().Be(50m);                   // AE = 250 − 200
+        registro.Resto.Should().Be(20m);                 // AG = 50 − 30
     }
 
     [Fact]
@@ -658,25 +662,29 @@ public class CashManagementMutationsTests : IDisposable
 
     #endregion
 
+    /// <summary>
+    /// La quadratura NON dipende da <c>VenditeContanti</c> (somma delle Vendite persistite):
+    /// il primo termine è il contante dichiarato. Pinna la correzione della formula divergente
+    /// che stava in <c>RegistroCassaSyncService</c>.
+    /// </summary>
     [Fact]
-    public void TotalsComputation_CashDifference_CorrectCalculation()
+    public void CalcolaTotali_IgnoraVenditeContanti_UsaIlContanteDichiarato()
     {
-        // Arrange
-        decimal totaleApertura = 100m;
-        decimal totaleChiusura = 250m;
-        decimal venditeContanti = 0m;
-        decimal speseFornitori = 30m;
-        decimal speseGiornaliere = 20m;
+        var registro = new RegistroCassa
+        {
+            TotaleApertura = 100m,
+            TotaleChiusura = 250m,
+            IncassoContanteTracciato = 120m,
+            VenditeContanti = 999m,     // deve restare ininfluente
+            SpeseFornitori = 30m,
+        };
 
-        // Act — replicate the mutation's difference logic
-        decimal contanteAtteso = venditeContanti - speseFornitori - speseGiornaliere;
-        decimal incassoGiornaliero = totaleChiusura - totaleApertura;
-        decimal differenza = incassoGiornaliero - contanteAtteso;
+        MutateRegistroCassaOrchestrator.CalcolaTotali(registro, totaleSpese: 20m);
 
-        // Assert
-        incassoGiornaliero.Should().Be(150m);
-        contanteAtteso.Should().Be(-50m);
-        differenza.Should().Be(200m); // 150 - (-50) = 200
+        registro.ContanteNetto.Should().Be(150m);        // Y  = 250 − 100
+        registro.RestoFornitore.Should().Be(90m);        // AD = 120 − 30
+        registro.Ecc.Should().Be(30m);                   // AE = 150 − 120
+        registro.Resto.Should().Be(10m);                 // AG = 30 − 20
     }
 
     #endregion

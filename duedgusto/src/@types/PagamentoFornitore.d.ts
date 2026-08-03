@@ -21,4 +21,9 @@ type PagamentoFornitoreInput = {
   importo: number;
   metodoPagamento?: string;
   note?: string;
+  /**
+   * Valorizzata solo per le spese fisse pagate in modo tracciato (bonifico senza
+   * documento): è ciò che le distingue dai pagamenti documentali, dove resta null.
+   */
+  categoria?: CategoriaSpesa;
 };
