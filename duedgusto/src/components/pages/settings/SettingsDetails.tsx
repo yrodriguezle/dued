@@ -199,7 +199,7 @@ function SettingsDetails() {
             }}
           />
           <Box sx={{ flex: 1, overflow: "auto", minHeight: 0, px: 2, py: 2 }}>
-            <Box sx={{ maxWidth: 720 }}>
+            <Box sx={{ maxWidth: 1440 }}>
               <BusinessSettingsForm
                 periodi={periodi}
                 giorniNonLavorativi={giorniNonLavorativi}

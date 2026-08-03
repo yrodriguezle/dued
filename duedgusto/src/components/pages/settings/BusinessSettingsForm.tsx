@@ -16,9 +16,9 @@ const TIMEZONES = [
 ];
 
 const CURRENCIES = [
-  { value: "EUR", label: "EUR (\u20AC)" },
+  { value: "EUR", label: "EUR (€)" },
   { value: "USD", label: "USD ($)" },
-  { value: "GBP", label: "GBP (\u00A3)" },
+  { value: "GBP", label: "GBP (£)" },
 ];
 
 interface BusinessSettingsFormProps {
@@ -29,7 +29,8 @@ interface BusinessSettingsFormProps {
 function BusinessSettingsForm({ periodi, giorniNonLavorativi }: BusinessSettingsFormProps) {
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
-      {/* Sezione: Attività */}
+      {/* Sezione: Attività — anagrafica, fuso orario e aliquota su una sola riga,
+          per lasciare la larghezza alle sezioni con elenchi */}
       <Paper
         variant="outlined"
         sx={{ p: 2.5 }}
@@ -42,14 +43,14 @@ function BusinessSettingsForm({ periodi, giorniNonLavorativi }: BusinessSettings
           Attività
         </Typography>
         <div className="grid grid-cols-12 gap-4">
-          <div className="col-span-12 sm:col-span-8">
+          <div className="col-span-12 sm:col-span-6 lg:col-span-5">
             <FormikTextField
               name="businessName"
               label="Nome Attività"
               fullWidth
             />
           </div>
-          <div className="col-span-12 sm:col-span-4">
+          <div className="col-span-6 sm:col-span-2">
             <FormikTextField
               name="currency"
               label="Valuta"
@@ -66,23 +67,7 @@ function BusinessSettingsForm({ periodi, giorniNonLavorativi }: BusinessSettings
               ))}
             </FormikTextField>
           </div>
-        </div>
-      </Paper>
-
-      {/* Sezione: Programmazione */}
-      <Paper
-        variant="outlined"
-        sx={{ p: 2.5 }}
-      >
-        <Typography
-          variant="subtitle1"
-          fontWeight={600}
-          sx={{ mb: 2 }}
-        >
-          Programmazione
-        </Typography>
-        <div className="grid grid-cols-12 gap-4">
-          <div className="col-span-12 sm:col-span-6">
+          <div className="col-span-12 sm:col-span-4 lg:col-span-3">
             <FormikTextField
               name="timezone"
               label="Fuso Orario"
@@ -99,29 +84,7 @@ function BusinessSettingsForm({ periodi, giorniNonLavorativi }: BusinessSettings
               ))}
             </FormikTextField>
           </div>
-        </div>
-      </Paper>
-
-      {/* Sezione: Periodi di apertura (include orari) */}
-      <PeriodoProgrammazioneSection periodi={periodi} />
-
-      {/* Sezione: Giorni Non Lavorativi */}
-      <GiorniNonLavorativiSection giorniNonLavorativi={giorniNonLavorativi} />
-
-      {/* Sezione: Impostazioni Fiscali */}
-      <Paper
-        variant="outlined"
-        sx={{ p: 2.5 }}
-      >
-        <Typography
-          variant="subtitle1"
-          fontWeight={600}
-          sx={{ mb: 2 }}
-        >
-          Impostazioni Fiscali
-        </Typography>
-        <div className="grid grid-cols-12 gap-4">
-          <div className="col-span-12 sm:col-span-4">
+          <div className="col-span-6 sm:col-span-3 lg:col-span-2">
             <FormikNumberField
               name="vatRate"
               label="Aliquota IVA (%)"
@@ -131,6 +94,12 @@ function BusinessSettingsForm({ periodi, giorniNonLavorativi }: BusinessSettings
           </div>
         </div>
       </Paper>
+
+      {/* Sezione: Periodi di apertura (include orari) */}
+      <PeriodoProgrammazioneSection periodi={periodi} />
+
+      {/* Sezione: Giorni Non Lavorativi */}
+      <GiorniNonLavorativiSection giorniNonLavorativi={giorniNonLavorativi} />
     </Box>
   );
 }

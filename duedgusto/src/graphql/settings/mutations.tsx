@@ -78,6 +78,28 @@ export const CREA_GIORNO_NON_LAVORATIVO = gql`
   }
 `;
 
+export const CREA_GIORNI_NON_LAVORATIVI_RANGE = gql`
+  mutation CreaGiorniNonLavorativiRange($input: GiorniNonLavorativiRangeInput!) {
+    settings {
+      creaGiorniNonLavorativiRange(input: $input) {
+        numeroCreati
+        numeroSaltati
+        dateSaltate
+        creati {
+          giornoId
+          data
+          descrizione
+          codiceMotivo
+          ricorrente
+          settingsId
+          createdAt
+          updatedAt
+        }
+      }
+    }
+  }
+`;
+
 export const AGGIORNA_GIORNO_NON_LAVORATIVO = gql`
   mutation AggiornaGiornoNonLavorativo($input: GiornoNonLavorativoInput!) {
     settings {
@@ -99,6 +121,19 @@ export const ELIMINA_GIORNO_NON_LAVORATIVO = gql`
   mutation EliminaGiornoNonLavorativo($giornoId: Int!) {
     settings {
       eliminaGiornoNonLavorativo(giornoId: $giornoId)
+    }
+  }
+`;
+
+export const ELIMINA_GIORNI_NON_LAVORATIVI = gql`
+  mutation EliminaGiorniNonLavorativi($giorniIds: [Int!]!) {
+    settings {
+      eliminaGiorniNonLavorativi(giorniIds: $giorniIds) {
+        numeroEliminati
+        numeroNonTrovati
+        idsEliminati
+        idsNonTrovati
+      }
     }
   }
 `;

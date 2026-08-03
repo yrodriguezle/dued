@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using GraphQL;
 using GraphQL.Types;
+using duedgusto.Common;
 using duedgusto.Models;
 using duedgusto.Services.GraphQL;
 using duedgusto.DataAccess;
@@ -385,6 +386,101 @@ public class SettingsMutations : ObjectGraphType
                 return nuovo;
             });
 
+        // Create non-working days over a date range (es. ferie)
+        Field<GiorniNonLavorativiRangeResultType, GiorniNonLavorativiRangeResult>("creaGiorniNonLavorativiRange")
+            .Argument<NonNullGraphType<GiorniNonLavorativiRangeInputType>>("input", "Non-working days range data")
+            .ResolveAsync(async context =>
+            {
+                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                GiorniNonLavorativiRangeInput input = context.GetArgument<GiorniNonLavorativiRangeInput>("input");
+
+                if (string.IsNullOrEmpty(input.DataInizio))
+                    throw new ExecutionError("dataInizio è obbligatoria");
+
+                if (string.IsNullOrEmpty(input.DataFine))
+                    throw new ExecutionError("dataFine è obbligatoria");
+
+                if (!DateOnly.TryParse(input.DataInizio, out DateOnly dataInizio))
+                    throw new ExecutionError("dataInizio deve essere una data valida (formato: yyyy-MM-dd)");
+
+                if (!DateOnly.TryParse(input.DataFine, out DateOnly dataFine))
+                    throw new ExecutionError("dataFine deve essere una data valida (formato: yyyy-MM-dd)");
+
+                if (dataFine < dataInizio)
+                    throw new ExecutionError("dataFine non può essere precedente a dataInizio");
+
+                var giorniTotali = GiorniNonLavorativiRangePlanner.ContaGiorni(dataInizio, dataFine);
+                if (giorniTotali > GiorniNonLavorativiRangePlanner.MaxGiorni)
+                    throw new ExecutionError(
+                        $"L'intervallo non può superare {GiorniNonLavorativiRangePlanner.MaxGiorni} giorni (richiesti: {giorniTotali})"
+                    );
+
+                if (string.IsNullOrWhiteSpace(input.Descrizione))
+                    throw new ExecutionError("descrizione è obbligatoria");
+
+                var codiceMotivo = input.CodiceMotivo ?? "FERIE";
+                var codiciValidi = new[] { "FESTIVITA_NAZIONALE", "CHIUSURA_STRAORDINARIA", "FERIE" };
+                if (!codiciValidi.Contains(codiceMotivo))
+                    throw new ExecutionError($"codiceMotivo deve essere uno tra: {string.Join(", ", codiciValidi)}");
+
+                var descrizione = input.Descrizione.Trim();
+                var ricorrente = input.Ricorrente ?? false;
+
+                IUnitOfWork unitOfWork = GraphQLService.GetService<IUnitOfWork>(context);
+                GiorniNonLavorativiRangeResult risultato = await unitOfWork.ExecuteInTransactionAsync(async () =>
+                {
+                    BusinessSettings settings = await dbContext.BusinessSettings.FirstAsync();
+
+                    // Date già presenti nell'intervallo: vengono saltate, non sovrascritte
+                    List<DateOnly> dateEsistenti = await dbContext.GiorniNonLavorativi
+                        .Where(g => g.SettingsId == settings.SettingsId && g.Data >= dataInizio && g.Data <= dataFine)
+                        .Select(g => g.Data)
+                        .ToListAsync();
+
+                    GiorniNonLavorativiRangePlanner.Piano piano =
+                        GiorniNonLavorativiRangePlanner.Pianifica(dataInizio, dataFine, dateEsistenti);
+
+                    DateTime adesso = DateTime.UtcNow;
+
+                    List<GiornoNonLavorativo> nuovi = piano.DaCreare
+                        .Select(data => new GiornoNonLavorativo
+                        {
+                            Data = data,
+                            Descrizione = descrizione,
+                            CodiceMotivo = codiceMotivo,
+                            Ricorrente = ricorrente,
+                            SettingsId = settings.SettingsId,
+                            CreatedAt = adesso,
+                            UpdatedAt = adesso
+                        })
+                        .ToList();
+
+                    if (nuovi.Count == 0)
+                        throw new ExecutionError("Tutte le date dell'intervallo sono già configurate come giorni non lavorativi");
+
+                    dbContext.GiorniNonLavorativi.AddRange(nuovi);
+                    await dbContext.SaveChangesAsync();
+
+                    return new GiorniNonLavorativiRangeResult
+                    {
+                        Creati = nuovi,
+                        DateSaltate = piano.Saltate
+                            .Select(data => data.ToString("yyyy-MM-dd"))
+                            .ToList()
+                    };
+                });
+
+                // Pubblica evento per subscription real-time
+                IEventBus eventBus = GraphQLService.GetService<IEventBus>(context);
+                eventBus.Publish(new SettingsUpdatedEvent
+                {
+                    Azione = "CREATO",
+                    Timestamp = DateTime.UtcNow
+                });
+
+                return risultato;
+            });
+
         // Update an existing non-working day
         Field<GiornoNonLavorativoType, GiornoNonLavorativo>("aggiornaGiornoNonLavorativo")
             .Argument<NonNullGraphType<GiornoNonLavorativoInputType>>("input", "Non-working day data")
@@ -477,6 +573,63 @@ public class SettingsMutations : ObjectGraphType
                 });
 
                 return true;
+            });
+
+        // Delete multiple non-working days in one transaction (es. un intervallo di ferie)
+        Field<GiorniNonLavorativiEliminaResultType, GiorniNonLavorativiEliminaResult>("eliminaGiorniNonLavorativi")
+            .Argument<NonNullGraphType<ListGraphType<NonNullGraphType<IntGraphType>>>>(
+                "giorniIds", "ID dei giorni non lavorativi da eliminare"
+            )
+            .ResolveAsync(async context =>
+            {
+                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                List<int> giorniIds = context.GetArgument<List<int>>("giorniIds");
+
+                IReadOnlyList<int> idsRichiesti = GiorniNonLavorativiEliminazionePlanner.Normalizza(giorniIds);
+
+                if (idsRichiesti.Count == 0)
+                    throw new ExecutionError("giorniIds deve contenere almeno un ID valido");
+
+                if (idsRichiesti.Count > GiorniNonLavorativiEliminazionePlanner.MaxGiorni)
+                    throw new ExecutionError(
+                        $"Non è possibile eliminare più di {GiorniNonLavorativiEliminazionePlanner.MaxGiorni} giorni per volta (richiesti: {idsRichiesti.Count})"
+                    );
+
+                IUnitOfWork unitOfWork = GraphQLService.GetService<IUnitOfWork>(context);
+                GiorniNonLavorativiEliminaResult risultato = await unitOfWork.ExecuteInTransactionAsync(async () =>
+                {
+                    List<GiornoNonLavorativo> giorni = await dbContext.GiorniNonLavorativi
+                        .Where(g => idsRichiesti.Contains(g.GiornoId))
+                        .ToListAsync();
+
+                    GiorniNonLavorativiEliminazionePlanner.Piano piano =
+                        GiorniNonLavorativiEliminazionePlanner.Pianifica(idsRichiesti, giorni.Select(g => g.GiornoId));
+
+                    if (giorni.Count > 0)
+                    {
+                        dbContext.GiorniNonLavorativi.RemoveRange(giorni);
+                        await dbContext.SaveChangesAsync();
+                    }
+
+                    return new GiorniNonLavorativiEliminaResult
+                    {
+                        IdsEliminati = piano.DaEliminare.ToList(),
+                        IdsNonTrovati = piano.NonTrovati.ToList()
+                    };
+                });
+
+                // Pubblica un solo evento, dopo il commit, per non notificare un rollback
+                if (risultato.NumeroEliminati > 0)
+                {
+                    IEventBus eventBus = GraphQLService.GetService<IEventBus>(context);
+                    eventBus.Publish(new SettingsUpdatedEvent
+                    {
+                        Azione = "ELIMINATO",
+                        Timestamp = DateTime.UtcNow
+                    });
+                }
+
+                return risultato;
             });
 
         // Delete a programming period

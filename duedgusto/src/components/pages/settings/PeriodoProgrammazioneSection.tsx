@@ -227,7 +227,9 @@ function PeriodoProgrammazioneSection({ periodi }: PeriodoProgrammazioneSectionP
         </Typography>
       )}
 
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+      {/* Griglia fluida: su schermi larghi le card stanno affiancate invece di
+          occupare una riga intera ciascuna */}
+      <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 1.5 }}>
         {periodiOrdinati.map((periodo) => {
           const isAttivo = periodo.dataFine === null;
           return (
