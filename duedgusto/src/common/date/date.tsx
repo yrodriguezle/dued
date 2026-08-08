@@ -409,3 +409,15 @@ export const parseDateForGraphQL = (date: string): string | undefined => {
   const result = parsed.startOf("day").format("YYYY-MM-DDTHH:mm:ss");
   return result;
 };
+
+/**
+ * Variante di `parseDateForGraphQL` per gli input GraphQL dichiarati come scalar
+ * `Date` invece che `DateTime`: rifiutano la componente oraria e accettano solo
+ * `YYYY-MM-DD`.
+ *
+ * Serve per PagamentoFornitoreInput.dataPagamento, l'unico input di questa
+ * famiglia mappato su DateGraphType: passargli il risultato di
+ * parseDateForGraphQL fa fallire la mutation con
+ * "Unable to convert '...T00:00:00' to 'Date'".
+ */
+export const parseDateOnlyForGraphQL = (date: string): string | undefined => parseDateForGraphQL(date)?.split("T")[0];

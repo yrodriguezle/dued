@@ -60,7 +60,7 @@ import SpeseDataGrid, { METODO_CONTANTI, SpeseDataGridPersistence, SpeseGridRow 
 import buildSpeseFisseRows, { CATEGORIE_FISSE } from "./buildSpeseFisseRows";
 import { mutationMutateSpesaCassa, mutationEliminaSpesaCassa } from "../../../graphql/registroCassa/mutations";
 import { mutationMutatePagamentoFornitore, mutationDeletePagamentoFornitore } from "../../../graphql/fornitori/mutations";
-import { parseDateForGraphQL } from "../../../common/date/date";
+import { parseDateForGraphQL, parseDateOnlyForGraphQL } from "../../../common/date/date";
 
 const MOTIVO_LABELS: Record<CodiceMotivo, string> = {
   ATTIVITA_NON_AVVIATA: "Attività non avviata",
@@ -210,7 +210,7 @@ const MonthlyClosureDetails = () => {
             pagamentoId: (row.pagamentoId ?? 0) > 0 ? row.pagamentoId : undefined,
             fatturaId: row.fatturaId ?? undefined,
             ddtId: row.ddtId ?? undefined,
-            dataPagamento: parseDateForGraphQL(dataRiga(row)) ?? dataRiga(row),
+            dataPagamento: parseDateOnlyForGraphQL(dataRiga(row)) ?? dataRiga(row).split("T")[0],
             importo: row.amount,
             metodoPagamento: row.paymentMethod ?? "Bonifico",
             note: row.description,
