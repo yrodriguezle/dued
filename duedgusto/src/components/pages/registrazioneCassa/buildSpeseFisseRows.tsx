@@ -34,6 +34,7 @@ function buildSpeseFisseRows(registriInclusi: RegistroCassaMensile[]): SpeseGrid
         .map((s) => ({
           spesaId: s.id,
           description: s.descrizione,
+          note: s.note ?? undefined,
           amount: s.importo,
           categoria: s.categoria,
           data,
@@ -45,7 +46,10 @@ function buildSpeseFisseRows(registriInclusi: RegistroCassaMensile[]): SpeseGrid
         .map((p) => ({
           pagamentoId: p.pagamentoId,
           isPagamentoFornitore: true,
-          description: p.note?.trim() || `Spesa fissa tracciata (${p.categoria})`,
+          // `descrizione` e il campo proprio della causale. Il fallback su `note` copre
+          // le righe scritte prima che i due campi fossero separati.
+          description: p.descrizione?.trim() || p.note?.trim() || `Spesa fissa tracciata (${p.categoria})`,
+          note: p.descrizione?.trim() ? (p.note ?? undefined) : undefined,
           amount: p.importo,
           categoria: p.categoria as CategoriaSpesa,
           data,

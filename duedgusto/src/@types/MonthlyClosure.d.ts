@@ -41,6 +41,7 @@ type SpesaCassaRidotta = {
   descrizione: string;
   importo: number;
   categoria: CategoriaSpesa;
+  note: string | null;
 };
 
 /** Pagamento del giorno. `categoria` valorizzata = spesa fissa tracciata; null = documentale. */
@@ -52,6 +53,8 @@ type PagamentoFornitoreRidotto = {
   importo: number;
   metodoPagamento: string | null;
   categoria: CategoriaSpesa | null;
+  /** Causale della riga. Campo proprio; prima le spese fisse tracciate riusavano `note`. */
+  descrizione: string | null;
   note: string | null;
 };
 

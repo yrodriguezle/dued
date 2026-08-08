@@ -22,6 +22,9 @@ public class SpesaCassaMutateInput
     public string Descrizione { get; set; } = string.Empty;
     public decimal Importo { get; set; }
     public CategoriaSpesa Categoria { get; set; } = CategoriaSpesa.Altro;
+
+    /// <summary>Annotazione libera, distinta dalla descrizione.</summary>
+    public string? Note { get; set; }
 }
 
 public class SpesaCassaMutateInputType : InputObjectGraphType<SpesaCassaMutateInput>
@@ -36,5 +39,6 @@ public class SpesaCassaMutateInputType : InputObjectGraphType<SpesaCassaMutateIn
         // CategoriaSpesaGraphType, MAI EnumerationGraphType<CategoriaSpesa>: quello espone i
         // valori in CONSTANT_CASE e fa fallire la coercizione delle variabili.
         Field(x => x.Categoria, type: typeof(NonNullGraphType<CategoriaSpesaGraphType>));
+        Field(x => x.Note, nullable: true);
     }
 }

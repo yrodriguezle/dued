@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import buildSpeseFisseRows, { CATEGORIE_FISSE } from "../buildSpeseFisseRows";
 
-type SpesaMock = { id: number; descrizione: string; importo: number; categoria: CategoriaSpesa };
+type SpesaMock = { id: number; descrizione: string; importo: number; categoria: CategoriaSpesa; note?: string | null };
 type PagamentoMock = {
   pagamentoId: number;
   fatturaId: number | null;
@@ -10,6 +10,7 @@ type PagamentoMock = {
   importo: number;
   metodoPagamento: string | null;
   categoria: CategoriaSpesa | null;
+  descrizione?: string | null;
   note: string | null;
 };
 
@@ -131,5 +132,56 @@ describe("buildSpeseFisseRows", () => {
     ]);
 
     expect(righe).toEqual([]);
+  });
+});
+
+describe("buildSpeseFisseRows — causale e nota sono campi distinti", () => {
+  it("porta in griglia la nota di una spesa in contanti", () => {
+    const righe = buildSpeseFisseRows([
+      registro("2026-06-30", {
+        spese: [spesa({ id: 221, categoria: "Stipendi", descrizione: "Stipendio Dore", importo: 700, note: "+300 dallo stipendio di Doris" })],
+      }),
+    ]);
+
+    expect(righe[0].description).toBe("Stipendio Dore");
+    expect(righe[0].note).toBe("+300 dallo stipendio di Doris");
+  });
+
+  it("su un pagamento tracciato legge la causale da descrizione e tiene la nota separata", () => {
+    const righe = buildSpeseFisseRows([
+      registro("2026-06-30", {
+        pagamenti: [
+          pagamento({ pagamentoId: 128, categoria: "Stipendi", descrizione: "Stipendio Doris", note: "-300 versati a Dore" }),
+        ],
+      }),
+    ]);
+
+    expect(righe[0].description).toBe("Stipendio Doris");
+    expect(righe[0].note).toBe("-300 versati a Dore");
+  });
+
+  // Retrocompatibilita: prima della separazione dei campi la causale stava in `note`.
+  // Le righe non ancora migrate devono continuare a mostrarla come causale, e NON
+  // devono comparire come se avessero una nota.
+  it("su una riga non migrata usa note come causale e lascia la nota vuota", () => {
+    const righe = buildSpeseFisseRows([
+      registro("2026-06-30", {
+        pagamenti: [pagamento({ pagamentoId: 133, categoria: "Affitto", descrizione: null, note: "affito" })],
+      }),
+    ]);
+
+    expect(righe[0].description).toBe("affito");
+    expect(righe[0].note).toBeUndefined();
+  });
+
+  it("senza causale ne nota ricade sull'etichetta generica", () => {
+    const righe = buildSpeseFisseRows([
+      registro("2026-06-30", {
+        pagamenti: [pagamento({ pagamentoId: 140, categoria: "Utenze", descrizione: null, note: null })],
+      }),
+    ]);
+
+    expect(righe[0].description).toBe("Spesa fissa tracciata (Utenze)");
+    expect(righe[0].note).toBeUndefined();
   });
 });

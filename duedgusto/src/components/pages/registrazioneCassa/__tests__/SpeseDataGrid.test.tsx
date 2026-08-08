@@ -398,3 +398,35 @@ describe("SpeseDataGrid — importo del giornale dalle impostazioni", () => {
     expect(aggiungiGiornale("2026-05-04").amount).toBe(3.2);
   });
 });
+
+describe("SpeseDataGrid — colonna Note", () => {
+  it("con showNote mostra la colonna Note accanto alla Causale", () => {
+    renderGrid({ columns: { showData: true, showCategoria: true, showNote: true } });
+
+    const fields = capturedDatagridProps!.columnDefs.map((c) => c.field);
+    expect(fields).toContain("note");
+    expect(fields.indexOf("note")).toBe(fields.indexOf("description") + 1);
+  });
+
+  it("senza showNote la colonna Note non viene renderizzata", () => {
+    renderGrid({ columns: { showData: true, showCategoria: true } });
+
+    expect(capturedDatagridProps!.columnDefs.map((c) => c.field)).not.toContain("note");
+  });
+
+  it("la Note e editabile sulle spese ma non sui pagamenti origine-cassa", () => {
+    renderGrid({
+      columns: { showData: true, showCategoria: true, showNote: true, showMetodoPagamento: true },
+      isPaymentReadOnly: (row) => row.fatturaId != null,
+    });
+
+    const noteCol = capturedDatagridProps!.columnDefs.find((c) => c.field === "note")!;
+    const editable = noteCol.editable as (params: { data?: unknown }) => boolean;
+
+    expect(editable({ data: { spesaId: 1 } })).toBe(true);
+    // Serve isPagamentoFornitore: isReadOnlyPayment blocca solo le righe di pagamento.
+    expect(editable({ data: { pagamentoId: 5, isPagamentoFornitore: true, fatturaId: 9 } })).toBe(false);
+    // Pagamento senza documento (spesa fissa tracciata): resta annotabile.
+    expect(editable({ data: { pagamentoId: 6, isPagamentoFornitore: true, fatturaId: null } })).toBe(true);
+  });
+});

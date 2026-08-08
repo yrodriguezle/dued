@@ -25,6 +25,8 @@ public class PagamentoFornitoreType : ObjectGraphType<PagamentoFornitore>
         // NULL per i pagamenti documentali (fatture/DDT fornitori).
         Field<CategoriaSpesaGraphType>("categoria")
             .Resolve(context => context.Source.Categoria);
+        // Causale: campo proprio dalle spese fisse tracciate in poi (prima riusava Note).
+        Field("descrizione", x => x.Descrizione, nullable: true);
         Field("note", x => x.Note, nullable: true);
         Field("createdAt", x => x.CreatedAt, type: typeof(DateTimeGraphType));
         Field("updatedAt", x => x.UpdatedAt, type: typeof(DateTimeGraphType));

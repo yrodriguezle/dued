@@ -30,6 +30,8 @@ export interface SpeseGridRow extends Spese {
   spesaId?: number;
   /** Registro cassa di appartenenza. Informativo: NON decide la modificabilità della riga. */
   registroCassaId?: number | null;
+  /** Annotazione libera sulla riga, distinta dalla causale. */
+  note?: string;
 }
 
 // Colonne opzionali abilitabili dal chiamante.
@@ -40,6 +42,8 @@ export interface SpeseDataGridColumns {
   showCategoria?: boolean;
   /** Valori per la tendina categoria (default: Affitto/Utenze/Stipendi/Altro). */
   categoriaOptions?: CategoriaSpesa[];
+  /** Mostra la colonna "Note" (annotazione libera, distinta dalla causale). */
+  showNote?: boolean;
   /** Mostra il pulsante "Giornale" (default: attivo solo senza persistenza, cioè in cassa). */
   showGiornale?: boolean;
   /** Mostra l'azione "Pagamento fornitore", che crea documenti reali (default: true). */
@@ -121,6 +125,7 @@ const SpeseDataGrid = memo(
       const showGiornale = columns?.showGiornale ?? !hasPersistence;
       const showPagamentoFornitore = columns?.showPagamentoFornitore ?? true;
       const showMetodoPagamento = !!columns?.showMetodoPagamento;
+      const showNote = !!columns?.showNote;
       const defaultCategoria = columns?.defaultCategoria ?? "Altro";
 
       const [validationErrors, setValidationErrors] = useState<Map<number, ValidationError[]>>(new Map());
@@ -340,6 +345,21 @@ const SpeseDataGrid = memo(
               : !params.data?.isPagamentoFornitore),
         });
 
+        if (showNote) {
+          defs.push({
+            headerName: "Note",
+            field: "note",
+            flex: 2,
+            minWidth: 100,
+            // Stessa regola della Causale: e un'annotazione della riga, non del documento.
+            editable: (params) =>
+              !isLocked
+              && (showMetodoPagamento
+                ? !isReadOnlyPayment(params.data)
+                : !params.data?.isPagamentoFornitore),
+          });
+        }
+
         defs.push({
           headerName: "Importo",
           field: "amount",
@@ -362,7 +382,7 @@ const SpeseDataGrid = memo(
 
         return defs;
       }, [isLocked, openEditDialog, showData, showCategoria, categoriaOptions, isReadOnlyPayment,
-          showMetodoPagamento, showPagamentoFornitore]);
+          showMetodoPagamento, showNote, showPagamentoFornitore]);
 
       const handleCellValueChanged = useCallback(
         (event: DatagridCellValueChangedEvent<SpeseGridRow>) => {

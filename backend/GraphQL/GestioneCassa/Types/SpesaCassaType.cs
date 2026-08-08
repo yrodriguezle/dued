@@ -14,6 +14,7 @@ public class SpesaCassaType : ObjectGraphType<SpesaCassa>
         Field(x => x.Importo, type: typeof(DecimalGraphType));
         // Categoria della spesa NON tracciata (enum NOT NULL, default Altro).
         Field(x => x.Categoria, type: typeof(NonNullGraphType<CategoriaSpesaGraphType>));
+        Field(x => x.Note, nullable: true);
     }
 }
 

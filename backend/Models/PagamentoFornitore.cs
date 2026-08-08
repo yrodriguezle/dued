@@ -25,6 +25,17 @@ namespace duedgusto.Models
         [MaxLength(50)]
         public string? MetodoPagamento { get; set; }
 
+        /// <summary>
+        /// Causale della riga. Introdotta per le spese fisse tracciate, che non hanno
+        /// un documento da cui ricavarla e prima riusavano <see cref="Note"/>: quel
+        /// doppio uso impediva di annotare la riga senza sovrascriverne la causale.
+        /// </summary>
+        public string? Descrizione { get; set; }
+
+        /// <summary>
+        /// Annotazione libera. Sui pagamenti documentali lo e sempre stata; sulle spese
+        /// fisse tracciate torna a esserlo ora che la causale ha un campo proprio.
+        /// </summary>
         public string? Note { get; set; }
 
         /// <summary>

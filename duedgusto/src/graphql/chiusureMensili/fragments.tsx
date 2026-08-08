@@ -27,6 +27,7 @@ export const registroCassaMensileFragment = gql`
         descrizione
         importo
         categoria
+        note
       }
       pagamentiFornitori {
         pagamentoId
@@ -36,6 +37,7 @@ export const registroCassaMensileFragment = gql`
         importo
         metodoPagamento
         categoria
+        descrizione
         note
       }
     }

@@ -143,6 +143,8 @@ export interface SpesaCassaMutateInput {
   spesaId?: number | null;
   data: string;
   descrizione: string;
+  /** Annotazione libera, distinta dalla causale. */
+  note?: string | null;
   importo: number;
   categoria: CategoriaSpesa;
 }
@@ -153,6 +155,7 @@ interface MutateSpesaCassaData {
       id: number;
       registroCassaId: number;
       descrizione: string;
+      note: string | null;
       importo: number;
       categoria: CategoriaSpesa;
     } | null;
@@ -170,6 +173,7 @@ export const mutationMutateSpesaCassa: TypedDocumentNode<MutateSpesaCassaData, M
         id
         registroCassaId
         descrizione
+        note
         importo
         categoria
       }

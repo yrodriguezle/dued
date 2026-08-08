@@ -96,6 +96,7 @@ public class MutateSpesaCassaOrchestrator
             esistente.Descrizione = input.Descrizione;
             esistente.Importo = input.Importo;
             esistente.Categoria = input.Categoria;
+            esistente.Note = input.Note;
 
             await _unitOfWork.SaveChangesAsync();
 
