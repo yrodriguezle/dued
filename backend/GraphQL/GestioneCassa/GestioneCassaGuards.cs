@@ -84,4 +84,24 @@ public static class GestioneCassaGuards
                 $"Impossibile {azione} un registro cassa per un giorno di chiusura ({nomeGiorno} {data:dd/MM/yyyy}).");
         }
     }
+
+    /// <summary>
+    /// Verifica che l'utente appartenga a un ruolo con privilegi amministrativi.
+    /// Il privilegio è dato dal flag <see cref="Ruolo.Amministratore"/> gestito
+    /// dall'anagrafica ruoli, NON dal nome del ruolo: rinominare un ruolo non deve
+    /// spostare i permessi.
+    /// </summary>
+    public static async Task GuardUtenteAmministratore(AppDbContext dbContext, int utenteId)
+    {
+        Ruolo? ruolo = await dbContext.Utenti
+            .Where(u => u.Id == utenteId)
+            .Select(u => u.Ruolo)
+            .FirstOrDefaultAsync();
+
+        if (ruolo == null || !ruolo.Amministratore)
+        {
+            throw new ExecutionError(
+                "Operazione riservata agli amministratori: il tuo ruolo non ha i privilegi necessari.");
+        }
+    }
 }

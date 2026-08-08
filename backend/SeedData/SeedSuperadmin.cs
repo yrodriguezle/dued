@@ -16,13 +16,22 @@ public static class SeedSuperadmin
             var superAdminRole = new Ruolo
             {
                 Nome = "SuperAdmin",
-                Descrizione = "Administrator with full access"
+                Descrizione = "Administrator with full access",
+                Amministratore = true
             };
             dbContext.Ruoli.Add(superAdminRole);
             await dbContext.SaveChangesAsync();
         }
 
         Ruolo? role = dbContext.Ruoli.FirstOrDefault(r => r.Nome == "SuperAdmin");
+
+        // Il SuperAdmin deve sempre restare amministratore, anche se il ruolo
+        // esisteva già prima dell'introduzione del flag.
+        if (role != null && !role.Amministratore)
+        {
+            role.Amministratore = true;
+            await dbContext.SaveChangesAsync();
+        }
 
         if (!dbContext.Utenti.Any(u => u.NomeUtente == "superadmin"))
         {

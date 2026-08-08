@@ -58,6 +58,23 @@ public class GestioneCassaMutations : ObjectGraphType
                 return await orchestrator.ExecuteAsync(registroCassaId);
             });
 
+        // Riporta a DRAFT un giorno già chiuso per correggerne i dati.
+        // Riservata ai ruoli con flag Amministratore (verificato nell'orchestrator).
+        Field<RegistroCassaType>("riapriRegistroCassa")
+            .Argument<NonNullGraphType<IntGraphType>>("registroCassaId")
+            .ResolveAsync(async context =>
+            {
+                RiapriRegistroCassaOrchestrator orchestrator = GraphQLService.GetService<RiapriRegistroCassaOrchestrator>(context);
+                JwtHelper jwtHelper = GraphQLService.GetService<JwtHelper>(context);
+                int registroCassaId = context.GetArgument<int>("registroCassaId");
+
+                var userContext = context.UserContext as GraphQLUserContext
+                    ?? throw new ExecutionError("Utente non autenticato");
+                int utenteId = jwtHelper.GetUserID(userContext.Principal!);
+
+                return await orchestrator.ExecuteAsync(registroCassaId, utenteId);
+            });
+
         Field<BooleanGraphType>("eliminaRegistroCassa")
             .Argument<NonNullGraphType<IntGraphType>>("registroCassaId")
             .ResolveAsync(async context =>

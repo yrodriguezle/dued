@@ -91,6 +91,28 @@ export const mutationChiudiRegistroCassa: TypedDocumentNode<ChiudiRegistroCassaD
   }
 `;
 
+// Reopen cash register (change status back to DRAFT) — solo ruoli amministratori
+interface RiapriRegistroCassaData {
+  gestioneCassa: {
+    riapriRegistroCassa: RegistroCassa;
+  };
+}
+
+interface RiapriRegistroCassaValues {
+  registroCassaId: number;
+}
+
+export const mutationRiapriRegistroCassa: TypedDocumentNode<RiapriRegistroCassaData, RiapriRegistroCassaValues> = gql`
+  ${registroCassaFragment}
+  mutation RiapriRegistroCassa($registroCassaId: Int!) {
+    gestioneCassa {
+      riapriRegistroCassa(registroCassaId: $registroCassaId) {
+        ...RegistroCassaFragment
+      }
+    }
+  }
+`;
+
 // Delete cash register
 interface EliminaRegistroCassaData {
   gestioneCassa: {

@@ -15,6 +15,7 @@ function useInitializeValues({ skipInitialize }: UseInitializeValuesProps) {
       id: 0,
       nome: "",
       descrizione: "",
+      amministratore: false,
       menuIds: [],
     };
     return initialValues;

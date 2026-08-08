@@ -59,6 +59,7 @@ builder.Services.AddScoped<PagamentoFornitoreOrchestrator>();
 builder.Services.AddScoped<MutateRegistroCassaOrchestrator>();
 builder.Services.AddScoped<MutateSpesaCassaOrchestrator>();
 builder.Services.AddScoped<ChiudiRegistroCassaOrchestrator>();
+builder.Services.AddScoped<RiapriRegistroCassaOrchestrator>();
 builder.Services.AddScoped<EliminaRegistroCassaOrchestrator>();
 
 // Event Bus per GraphQL Subscriptions

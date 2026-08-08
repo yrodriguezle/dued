@@ -13,5 +13,6 @@ public class RuoloInputType : InputObjectGraphType<Ruolo>
         Field<NonNullGraphType<IntGraphType>>(nameof(Ruolo.Id));
         Field<NonNullGraphType<StringGraphType>>(nameof(Ruolo.Nome));
         Field<StringGraphType>(nameof(Ruolo.Descrizione));
+        Field<BooleanGraphType>(nameof(Ruolo.Amministratore));
     }
 }

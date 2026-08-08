@@ -7,6 +7,7 @@ import { Box, Typography, IconButton, Chip, useMediaQuery, useTheme } from "@mui
 import { ArrowBack, ArrowForward } from "@mui/icons-material";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import LockIcon from "@mui/icons-material/Lock";
+import LockOpenIcon from "@mui/icons-material/LockOpen";
 import { useParams, useNavigate } from "react-router";
 import { useApolloClient } from "@apollo/client";
 import { GridReadyEvent } from "ag-grid-community";
@@ -25,6 +26,7 @@ import useQueryRegistroCassa from "../../../graphql/registroCassa/useQueryRegist
 import useSubmitRegistroCassa from "../../../graphql/registroCassa/useSubmitRegistroCassa";
 import { PagamentoFornitoreRegistroInput, RegistroCassaInput } from "../../../graphql/registroCassa/mutations";
 import useCloseCashRegister from "../../../graphql/registroCassa/useCloseCashRegister";
+import useReopenCashRegister from "../../../graphql/registroCassa/useReopenCashRegister";
 import { getRegistroCassa } from "../../../graphql/registroCassa/queries";
 import useStore from "../../../store/useStore";
 import useRegistroCassaSubscriptions from "../../../graphql/subscriptions/useRegistroCassaSubscriptions";
@@ -150,7 +152,11 @@ function RegistroCassaDetails() {
   const setFormDirty = useStore((state) => state.setFormDirty);
   const { submitRegistroCassa } = useSubmitRegistroCassa();
   const { closeCashRegister, loading: closing } = useCloseCashRegister();
+  const { riapriRegistroCassa, loading: reopening } = useReopenCashRegister();
   const onConfirm = useConfirm();
+
+  // Il permesso viene dal flag sul ruolo, gestito nell'anagrafica ruoli.
+  const isAmministratore = Boolean(utente?.ruolo?.amministratore);
 
   // saveRegistro: salva il registro e ritorna true se il salvataggio è riuscito.
   // Estratto da onSubmit per poter salvare anche prima di navigare tra i giorni.
@@ -503,6 +509,32 @@ function RegistroCassaDetails() {
     }
   };
 
+  const handleReopenCashRegister = async () => {
+    const confirmed = await onConfirm({
+      title: "Torna a DRAFT",
+      content: "Il giorno tornerà in bozza e sarà di nuovo modificabile. Ricordati di richiuderlo dopo le correzioni.",
+      acceptLabel: "Si, riapri",
+      cancelLabel: "Annulla",
+    });
+
+    if (!confirmed || !formRef.current?.values.id) {
+      return;
+    }
+
+    try {
+      await riapriRegistroCassa(formRef.current.values.id);
+      toast.success("Registro riportato in bozza", { position: "bottom-right" });
+      formRef.current?.setStatus({
+        formStatus: formStatuses.UPDATE,
+        isFormLocked: false,
+      });
+    } catch (error) {
+      logger.error("Errore durante la riapertura:", error);
+      const graphQLMessage = error instanceof Error ? error.message : "";
+      toast.error(graphQLMessage || "Errore durante la riapertura del registro");
+    }
+  };
+
   // Redirect se il giorno corrente è non operativo
   useEffect(() => {
     const [y, m, d] = currentDate.split("-").map(Number);
@@ -607,6 +639,17 @@ function RegistroCassaDetails() {
                   color="warning"
                 >
                   Chiudi Cassa
+                </FormikToolbarButton>
+              )}
+              {isClosed && isAmministratore && (
+                <FormikToolbarButton
+                  type="button"
+                  startIcon={<LockOpenIcon />}
+                  onClick={handleReopenCashRegister}
+                  disabled={reopening}
+                  color="info"
+                >
+                  Torna a DRAFT
                 </FormikToolbarButton>
               )}
               {isClosed && (

@@ -40,6 +40,16 @@ vi.mock("../../../../graphql/registroCassa/useCloseCashRegister", () => ({
   })),
 }));
 
+const mockReopenCashRegister = vi.fn();
+vi.mock("../../../../graphql/registroCassa/useReopenCashRegister", () => ({
+  default: vi.fn(() => ({
+    riapriRegistroCassa: mockReopenCashRegister,
+    data: undefined,
+    error: undefined,
+    loading: false,
+  })),
+}));
+
 // Le 3 subscription WS: nessun evento ({ data: undefined })
 vi.mock("../../../../graphql/subscriptions/useRegistroCassaSubscription", () => ({
   default: vi.fn(() => ({ data: undefined, loading: false })),
@@ -121,10 +131,10 @@ const mockSetTitle = vi.fn();
 
 // ── Helper ─────────────────────────────────────────────────────────────
 
-function setupStore() {
+function setupStore({ amministratore = false }: { amministratore?: boolean } = {}) {
   mockUseStore.mockImplementation((selector: (state: Store) => unknown) => {
     const state = {
-      utente: mockUtente,
+      utente: { ...mockUtente, ruolo: { id: 1, nome: "Ruolo", descrizione: "", amministratore, menuIds: [] } },
       receiveUtente: mockReceiveUtente,
       isOpen: () => true,
       getNextOperatingDate: (date: Date) => date,
@@ -198,6 +208,32 @@ describe("RegistroCassaDetails (smoke)", () => {
 
     expect(screen.getByText("Chiudi Cassa")).toBeInTheDocument();
     expect(screen.getByTestId("cash-register-form-data-grid")).toBeInTheDocument();
+  });
+
+  it("mostra il bottone Torna a DRAFT su un giorno chiuso se l'utente e amministratore", () => {
+    setupStore({ amministratore: true });
+    setupQueries({ ...mockRegistroCassa, stato: "CLOSED" } as unknown as RegistroCassa);
+    renderRegistroCassaDetails("2026-06-10");
+
+    expect(screen.getByText("Torna a DRAFT")).toBeInTheDocument();
+  });
+
+  it("nasconde il bottone Torna a DRAFT se l'utente non e amministratore", () => {
+    setupStore({ amministratore: false });
+    setupQueries({ ...mockRegistroCassa, stato: "CLOSED" } as unknown as RegistroCassa);
+    renderRegistroCassaDetails("2026-06-10");
+
+    expect(screen.queryByText("Torna a DRAFT")).not.toBeInTheDocument();
+    // Il giorno resta comunque segnalato come chiuso
+    expect(screen.getByText("Giorno chiuso")).toBeInTheDocument();
+  });
+
+  it("nasconde il bottone Torna a DRAFT su un giorno gia in DRAFT anche per gli amministratori", () => {
+    setupStore({ amministratore: true });
+    setupQueries(mockRegistroCassa);
+    renderRegistroCassaDetails("2026-06-10");
+
+    expect(screen.queryByText("Torna a DRAFT")).not.toBeInTheDocument();
   });
 
   it("mostra il loader quando le query sono in caricamento", () => {

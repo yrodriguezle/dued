@@ -48,6 +48,7 @@ public class AuthMutations : ObjectGraphType
 
                 ruolo.Nome = input.Nome;
                 ruolo.Descrizione = input.Descrizione;
+                ruolo.Amministratore = input.Amministratore;
 
                 List<Menu> selectedMenus = await dbContext.Menus
                     .Where(m => menuIds.Contains(m.Id))

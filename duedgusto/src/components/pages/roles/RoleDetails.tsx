@@ -25,6 +25,7 @@ const Schema = z.object({
   id: z.number(),
   nome: z.string().nonempty("Nome ruolo è obbligatorio"),
   descrizione: z.string().optional(),
+  amministratore: z.boolean(),
   menuIds: z.array(z.number()),
 });
 
@@ -166,6 +167,7 @@ function RoleDetails() {
           id: values.id,
           nome: values.nome,
           descrizione: values.descrizione ?? "",
+          amministratore: values.amministratore,
         },
         menuIds,
       });

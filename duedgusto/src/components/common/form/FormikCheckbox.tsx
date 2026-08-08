@@ -48,7 +48,7 @@ function FormikCheckbox<Values>({ name, label, params, onChange, ...props }: For
             checked={Boolean(field.value)}
             onChange={(event) => handleChange(event, field, form, onChange)}
             color="primary"
-            disabled={form.isSubmitting}
+            disabled={form.isSubmitting || form.status?.isFormLocked}
             {...props}
           />}
           label={<Typography variant="body1">{label}</Typography>}
