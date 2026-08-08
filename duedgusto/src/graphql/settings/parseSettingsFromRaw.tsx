@@ -8,6 +8,8 @@ export interface RawBusinessSettings {
   timezone: string;
   currency: string;
   vatRate: number;
+  giornaleImportoSabato: number;
+  giornaleImportoFeriale: number;
   updatedAt?: string;
   createdAt?: string;
 }

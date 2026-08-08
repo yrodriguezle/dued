@@ -95,6 +95,46 @@ function BusinessSettingsForm({ periodi, giorniNonLavorativi }: BusinessSettings
         </div>
       </Paper>
 
+      {/* Sezione: Costo giornale — precompila la riga aggiunta dal pulsante
+          "Giornale" nella griglia spese della cassa */}
+      <Paper
+        variant="outlined"
+        sx={{ p: 2.5 }}
+      >
+        <Typography
+          variant="subtitle1"
+          fontWeight={600}
+          sx={{ mb: 0.5 }}
+        >
+          Costo giornale
+        </Typography>
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ display: "block", mb: 2 }}
+        >
+          Importo precompilato dal pulsante "Giornale" nella griglia delle spese di cassa.
+        </Typography>
+        <div className="grid grid-cols-12 gap-4">
+          <div className="col-span-6 sm:col-span-3 lg:col-span-2">
+            <FormikNumberField
+              name="giornaleImportoSabato"
+              label="Sabato (€)"
+              fullWidth
+              decimals={2}
+            />
+          </div>
+          <div className="col-span-6 sm:col-span-3 lg:col-span-2">
+            <FormikNumberField
+              name="giornaleImportoFeriale"
+              label="Altri giorni (€)"
+              fullWidth
+              decimals={2}
+            />
+          </div>
+        </div>
+      </Paper>
+
       {/* Sezione: Periodi di apertura (include orari) */}
       <PeriodoProgrammazioneSection periodi={periodi} />
 

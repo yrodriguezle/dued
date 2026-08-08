@@ -12,6 +12,8 @@ public class BusinessSettingsInput
     public string? Timezone { get; set; }
     public string? Currency { get; set; }
     public decimal? VatRate { get; set; }
+    public decimal? GiornaleImportoSabato { get; set; }
+    public decimal? GiornaleImportoFeriale { get; set; }
 }
 
 public class BusinessSettingsInputType : InputObjectGraphType<BusinessSettingsInput>
@@ -26,5 +28,7 @@ public class BusinessSettingsInputType : InputObjectGraphType<BusinessSettingsIn
         Field(x => x.Timezone, nullable: true);
         Field(x => x.Currency, nullable: true);
         Field(x => x.VatRate, nullable: true);
+        Field(x => x.GiornaleImportoSabato, nullable: true);
+        Field(x => x.GiornaleImportoFeriale, nullable: true);
     }
 }

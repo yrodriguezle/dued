@@ -448,6 +448,16 @@ public class AppDbContext : DbContext
                 .IsRequired()
                 .HasDefaultValue(0.10m);
 
+            entity.Property(x => x.GiornaleImportoSabato)
+                .HasColumnType("decimal(10,2)")
+                .IsRequired()
+                .HasDefaultValue(5.00m);
+
+            entity.Property(x => x.GiornaleImportoFeriale)
+                .HasColumnType("decimal(10,2)")
+                .IsRequired()
+                .HasDefaultValue(3.20m);
+
             entity.Property(x => x.CreatedAt)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");

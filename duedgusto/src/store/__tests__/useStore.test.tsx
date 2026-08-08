@@ -120,6 +120,8 @@ describe("useStore (root store)", () => {
       timezone: "Europe/Rome",
       currency: "EUR",
       vatRate: 0.22,
+      giornaleImportoSabato: 5,
+      giornaleImportoFeriale: 3.2,
     };
 
     useStore.getState().setSettings(settings);

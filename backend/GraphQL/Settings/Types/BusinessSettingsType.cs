@@ -15,6 +15,10 @@ public class BusinessSettingsType : ObjectGraphType<BusinessSettings>
         Field(x => x.Timezone);
         Field(x => x.Currency);
         Field(x => x.VatRate);
+        Field(x => x.GiornaleImportoSabato)
+            .Description("Costo del giornale il sabato");
+        Field(x => x.GiornaleImportoFeriale)
+            .Description("Costo del giornale negli altri giorni operativi");
         Field(x => x.CreatedAt);
         Field(x => x.UpdatedAt);
     }

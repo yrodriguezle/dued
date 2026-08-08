@@ -7,6 +7,8 @@ type BusinessSettings = {
   timezone: string; // "Europe/Rome"
   currency: string; // "EUR"
   vatRate: number; // 0.22 (22%)
+  giornaleImportoSabato: number; // costo del giornale il sabato
+  giornaleImportoFeriale: number; // costo del giornale negli altri giorni operativi
   updatedAt?: string;
   createdAt?: string;
 };
@@ -19,6 +21,8 @@ type BusinessSettingsInput = {
   timezone: string;
   currency: string;
   vatRate: number;
+  giornaleImportoSabato: number;
+  giornaleImportoFeriale: number;
 };
 
 type PeriodoProgrammazione = {

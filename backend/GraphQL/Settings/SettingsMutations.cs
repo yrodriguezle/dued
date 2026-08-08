@@ -79,6 +79,24 @@ public class SettingsMutations : ObjectGraphType
                         {
                             settings.VatRate = input.VatRate.Value;
                         }
+
+                        // Zero è un valore legittimo (giornale non acquistato), quindi
+                        // si accetta >= 0 e si rifiuta esplicitamente il negativo.
+                        if (input.GiornaleImportoSabato.HasValue)
+                        {
+                            if (input.GiornaleImportoSabato.Value < 0)
+                                throw new ExecutionError("Il costo del giornale del sabato non può essere negativo");
+
+                            settings.GiornaleImportoSabato = input.GiornaleImportoSabato.Value;
+                        }
+
+                        if (input.GiornaleImportoFeriale.HasValue)
+                        {
+                            if (input.GiornaleImportoFeriale.Value < 0)
+                                throw new ExecutionError("Il costo del giornale feriale non può essere negativo");
+
+                            settings.GiornaleImportoFeriale = input.GiornaleImportoFeriale.Value;
+                        }
                     }
 
                     settings.UpdatedAt = DateTime.UtcNow;

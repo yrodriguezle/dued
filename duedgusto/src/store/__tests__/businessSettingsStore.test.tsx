@@ -17,6 +17,8 @@ const mockSettings: BusinessSettings = {
   timezone: "Europe/Rome",
   currency: "EUR",
   vatRate: 0.22,
+  giornaleImportoSabato: 5,
+  giornaleImportoFeriale: 3.2,
 };
 
 describe("businessSettingsStore", () => {
@@ -52,6 +54,8 @@ describe("businessSettingsStore", () => {
       timezone: "Europe/London",
       currency: "GBP",
       vatRate: 0.20,
+      giornaleImportoSabato: 5,
+      giornaleImportoFeriale: 3.2,
     };
 
     store.getState().setSettings(newSettings);

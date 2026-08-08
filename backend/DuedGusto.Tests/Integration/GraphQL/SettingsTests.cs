@@ -155,5 +155,64 @@ public class SettingsTests : IDisposable
         settings.OperatingDays.Should().Be("[true,true,true,true,true,false,false]");
     }
 
+    /// <summary>
+    /// I default replicano gli importi che erano hardcoded nel frontend
+    /// (SpeseDataGrid): dopo la migrazione il comportamento deve restare identico
+    /// finché l'utente non cambia i valori da Impostazioni.
+    /// </summary>
+    [Fact]
+    public void BusinessSettings_CostoGiornale_HaIDefaultStorici()
+    {
+        var settings = new BusinessSettings();
+
+        settings.GiornaleImportoSabato.Should().Be(5.00m);
+        settings.GiornaleImportoFeriale.Should().Be(3.20m);
+    }
+
+    #endregion
+
+    #region Costo Giornale
+
+    [Fact]
+    public async Task CostoGiornale_ValoriPersonalizzati_VengonoPersistiti()
+    {
+        var settings = new BusinessSettings
+        {
+            BusinessName = "DuedGusto",
+            GiornaleImportoSabato = 7.50m,
+            GiornaleImportoFeriale = 4.10m
+        };
+        _dbContext.BusinessSettings.Add(settings);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var result = await _dbContext.BusinessSettings.FirstOrDefaultAsync();
+
+        result.Should().NotBeNull();
+        result!.GiornaleImportoSabato.Should().Be(7.50m);
+        result.GiornaleImportoFeriale.Should().Be(4.10m);
+    }
+
+    [Fact]
+    public async Task CostoGiornale_Zero_EUnValoreValido()
+    {
+        // Zero significa "giornale non acquistato": deve sopravvivere al round-trip
+        // e non essere confuso con "valore non impostato".
+        var settings = new BusinessSettings
+        {
+            BusinessName = "DuedGusto",
+            GiornaleImportoSabato = 0m,
+            GiornaleImportoFeriale = 0m
+        };
+        _dbContext.BusinessSettings.Add(settings);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var result = await _dbContext.BusinessSettings.FirstOrDefaultAsync();
+
+        result!.GiornaleImportoSabato.Should().Be(0m);
+        result.GiornaleImportoFeriale.Should().Be(0m);
+    }
+
     #endregion
 }

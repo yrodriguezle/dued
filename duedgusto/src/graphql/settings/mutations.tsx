@@ -12,6 +12,8 @@ export const UPDATE_BUSINESS_SETTINGS = gql`
         timezone
         currency
         vatRate
+        giornaleImportoSabato
+        giornaleImportoFeriale
       }
     }
   }

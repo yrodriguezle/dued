@@ -16,6 +16,7 @@ import { GridReadyEvent, RowDoubleClickedEvent, ICellRendererParams } from "ag-g
 import formatCurrency from "../../../common/bones/formatCurrency";
 import PagamentoFornitoreDialog from "./PagamentoFornitoreDialog";
 import OverflowToolbar, { OverflowAction } from "../../common/toolbar/OverflowToolbar";
+import useStore from "../../../store/useStore";
 
 // Riga della griglia spese: superset di `Spese` (usato dalla cassa) con i campi
 // aggiuntivi della chiusura mensile (data di competenza, categoria, id spesa
@@ -87,9 +88,11 @@ interface SpeseDataGridProps {
   onExpensesChange?: (totalAmount: number, receiptAmount: number) => void;
 }
 
-// Importo giornale: €5 il sabato, €3,20 negli altri giorni operativi
-const GIORNALE_SATURDAY_AMOUNT = 5;
-const GIORNALE_WEEKDAY_AMOUNT = 3.2;
+// Importo giornale: configurabile da Impostazioni → Costo giornale.
+// Questi valori restano solo come fallback se le impostazioni non sono ancora
+// arrivate dal server, e coincidono con i default lato backend.
+const GIORNALE_SATURDAY_FALLBACK = 5;
+const GIORNALE_WEEKDAY_FALLBACK = 3.2;
 
 const DEFAULT_CATEGORIE: CategoriaSpesa[] = ["Affitto", "Utenze", "Stipendi", "Altro"];
 
@@ -104,6 +107,11 @@ const SpeseDataGrid = memo(
       const muiTheme = useTheme();
       const isSmallScreen = useMediaQuery(muiTheme.breakpoints.down("sm"));
       const isMobile = isSmallScreen && navigator.maxTouchPoints > 0;
+
+      // Costo giornale da Impostazioni. `?? undefined` normalizza il null delle
+      // impostazioni non ancora caricate, così il fallback scatta correttamente.
+      const giornaleImportoSabato = useStore((state) => state.settings?.giornaleImportoSabato ?? undefined);
+      const giornaleImportoFeriale = useStore((state) => state.settings?.giornaleImportoFeriale ?? undefined);
 
       const hasPersistence = !!persistence;
       const showData = !!columns?.showData;
@@ -465,17 +473,19 @@ const SpeseDataGrid = memo(
         onCellChange?.();
       }, [isReadOnlyPayment, onCellChange, persistence, reportExpenses]);
 
-      // Spesa "GIORNALE": €5 il sabato, €3,20 gli altri giorni. Solo cassa.
+      // Spesa "GIORNALE": importo dalle impostazioni, distinto tra sabato e altri giorni. Solo cassa.
       const handleAddGiornale = useCallback(() => {
         if (!gridEventRef.current || !date) return;
         const [year, month, day] = date.split("-").map(Number);
         const isSaturday = new Date(year, month - 1, day).getDay() === 6;
-        const amount = isSaturday ? GIORNALE_SATURDAY_AMOUNT : GIORNALE_WEEKDAY_AMOUNT;
+        const amount = isSaturday
+          ? (giornaleImportoSabato ?? GIORNALE_SATURDAY_FALLBACK)
+          : (giornaleImportoFeriale ?? GIORNALE_WEEKDAY_FALLBACK);
         const giornale: SpeseGridRow = { description: "GIORNALE", amount };
         gridEventRef.current.api.applyTransaction({ add: [withDatagridStatus(giornale, DatagridStatus.Unchanged)] });
         reportExpenses(gridEventRef.current.api);
         onCellChange?.();
-      }, [date, onCellChange, reportExpenses]);
+      }, [date, onCellChange, reportExpenses, giornaleImportoSabato, giornaleImportoFeriale]);
 
       const toolbarActions = useMemo<OverflowAction[]>(() => {
         const actions: OverflowAction[] = [

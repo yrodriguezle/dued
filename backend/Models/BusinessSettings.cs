@@ -50,6 +50,17 @@ public class BusinessSettings
     public decimal VatRate { get; set; } = 0.10m;
 
     /// <summary>
+    /// Costo del giornale nei giorni di sabato. Usato dal pulsante "Giornale"
+    /// della griglia spese per precompilare l'importo della riga.
+    /// </summary>
+    public decimal GiornaleImportoSabato { get; set; } = 5.00m;
+
+    /// <summary>
+    /// Costo del giornale negli altri giorni operativi.
+    /// </summary>
+    public decimal GiornaleImportoFeriale { get; set; } = 3.20m;
+
+    /// <summary>
     /// Data di creazione della configurazione
     /// </summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

@@ -37,7 +37,15 @@ vi.mock("../PagamentoFornitoreDialog", () => ({
   default: () => <div data-testid="pagamento-dialog-stub" />,
 }));
 
+// Mock del modulo theme: useStore → themeStore usa window.matchMedia (assente in jsdom)
+vi.mock("../../../theme/theme", () => ({
+  getDefaultTheme: vi.fn(() => "light"),
+  getLastUserThemeMode: vi.fn(() => "default"),
+  setLastUserThemeMode: vi.fn(),
+}));
+
 import SpeseDataGrid, { SpeseDataGridPersistence } from "../SpeseDataGrid";
+import useStore from "../../../../store/useStore";
 
 // Fake AG Grid API: i metodi usati da SpeseDataGrid sono no-op/spy.
 function makeFakeApi(selectedRows: unknown[] = []) {
@@ -336,5 +344,57 @@ describe("SpeseDataGrid — modalità chiusura mensile (colonna metodo di pagame
 
     expect(persistence.updateExpense).toHaveBeenCalledWith(riga);
     expect(persistence.updateSupplierPayment).not.toHaveBeenCalled();
+  });
+});
+
+describe("SpeseDataGrid — importo del giornale dalle impostazioni", () => {
+  // Il pulsante "Giornale" e attivo solo in cassa (senza persistence).
+  const columnsCassa = { showData: true, showCategoria: true };
+
+  function aggiungiGiornale(date: string) {
+    renderGrid({ date, columns: columnsCassa });
+    const api = makeFakeApi();
+    act(() => capturedDatagridProps!.onGridReady!({ api }));
+
+    const giornaleAction = capturedActions.find((a) => a.key === "giornale");
+    expect(giornaleAction).toBeDefined();
+    act(() => giornaleAction!.onClick());
+
+    const [transaction] = api.applyTransaction.mock.calls[0] as [{ add: { amount: number }[] }];
+    return transaction.add[0];
+  }
+
+  beforeEach(() => {
+    useStore.setState({ settings: null });
+  });
+
+  it("usa l'importo del sabato configurato quando la data e un sabato", () => {
+    useStore.getState().setSettings({ giornaleImportoSabato: 7.5, giornaleImportoFeriale: 4.1 } as BusinessSettings);
+
+    // 2026-05-02 e un sabato
+    const riga = aggiungiGiornale("2026-05-02");
+
+    expect(riga.amount).toBe(7.5);
+  });
+
+  it("usa l'importo feriale configurato negli altri giorni", () => {
+    useStore.getState().setSettings({ giornaleImportoSabato: 7.5, giornaleImportoFeriale: 4.1 } as BusinessSettings);
+
+    // 2026-05-04 e un lunedi
+    const riga = aggiungiGiornale("2026-05-04");
+
+    expect(riga.amount).toBe(4.1);
+  });
+
+  it("accetta lo zero come importo configurato senza ricadere sul fallback", () => {
+    useStore.getState().setSettings({ giornaleImportoSabato: 0, giornaleImportoFeriale: 0 } as BusinessSettings);
+
+    expect(aggiungiGiornale("2026-05-02").amount).toBe(0);
+    expect(aggiungiGiornale("2026-05-04").amount).toBe(0);
+  });
+
+  it("ricade sui valori storici finche le impostazioni non sono caricate", () => {
+    expect(aggiungiGiornale("2026-05-02").amount).toBe(5);
+    expect(aggiungiGiornale("2026-05-04").amount).toBe(3.2);
   });
 });

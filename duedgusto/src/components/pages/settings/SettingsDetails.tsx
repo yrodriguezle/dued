@@ -33,6 +33,8 @@ const validationSchema = z.object({
   timezone: z.string(),
   currency: z.string(),
   vatRate: z.number().min(0, "IVA non può essere negativa").max(100, "IVA non può essere maggiore di 100"),
+  giornaleImportoSabato: z.number().min(0, "Il costo non può essere negativo"),
+  giornaleImportoFeriale: z.number().min(0, "Il costo non può essere negativo"),
   settingsId: z.number().optional(),
 });
 
@@ -133,6 +135,8 @@ function SettingsDetails() {
               timezone: values.timezone,
               currency: values.currency,
               vatRate: Number(values.vatRate),
+              giornaleImportoSabato: Number(values.giornaleImportoSabato),
+              giornaleImportoFeriale: Number(values.giornaleImportoFeriale),
               updatedAt: values.updatedAt,
             },
           },

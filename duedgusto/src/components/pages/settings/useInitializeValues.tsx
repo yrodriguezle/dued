@@ -17,6 +17,8 @@ function useInitializeValues({ skipInitialize }: UseInitializeValuesProps) {
       timezone: "",
       currency: "",
       vatRate: 0,
+      giornaleImportoSabato: 0,
+      giornaleImportoFeriale: 0,
       settingsId: 0,
     };
     return initialValues;
