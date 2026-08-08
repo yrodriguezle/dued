@@ -502,7 +502,7 @@ const MonthlyClosureDetails = () => {
 
       {/* Contenuto — scroll singolo */}
       <Box sx={{ flex: 1, overflow: "auto", minHeight: 0, px: 2, py: 2 }}>
-        {/* Alert giorni mancanti \u2014 bloccano la chiusura */}
+        {/* Alert giorni mancanti — bloccano la chiusura */}
         {isDraft && hasRegistriMancanti && (
           <Alert
             severity="error"
@@ -524,16 +524,15 @@ const MonthlyClosureDetails = () => {
           </Alert>
         )}
 
-        {/* Alert registri non riconciliati \u2014 informativo, non blocca la chiusura */}
+        {/* Alert registri non riconciliati — informativo, non blocca la chiusura */}
         {registriNonRiconciliati.length > 0 && (
           <Alert
             severity="info"
             sx={{ mb: 2 }}
           >
             {registriNonRiconciliati.length === 1
-              ? "1 giornata \u00E8 chiusa ma non ancora riconciliata"
-              : `${registriNonRiconciliati.length} giornate sono chiuse ma non ancora riconciliate`}{" "}
-            (verificate col contante effettivo). Puoi chiudere il mese comunque; riconciliarle prima rende i totali pi\u00F9 affidabili.
+              ? "1 giornata è chiusa ma non ancora riconciliata"
+              : `${registriNonRiconciliati.length} giornate sono chiuse ma non ancora riconciliate`}
           </Alert>
         )}
 
