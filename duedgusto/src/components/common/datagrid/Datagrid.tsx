@@ -14,6 +14,14 @@ import useZodValidation from "./validation/useZodValidation";
 import useTabNavigation from "./navigation/useTabNavigation";
 import useEnterNavigation from "./navigation/useEnterNavigation";
 import createRowNumberColumn from "./columns/createRowNumberColumn";
+import DateCellEditor from "./cellEditors/date/DateCellEditor";
+import SelectCellEditor from "./cellEditors/select/SelectCellEditor";
+
+/** Editor di serie di AG Grid rimpiazzati da versioni che non rompono la navigazione da tastiera. */
+const REPLACED_CELL_EDITORS: Record<string, React.ComponentType<never> | undefined> = {
+  agDateStringCellEditor: DateCellEditor,
+  agSelectCellEditor: SelectCellEditor,
+};
 import { withDatagridStatus } from "./datagridUtils";
 import useGridStatePersistence from "./persistence/useGridStatePersistence";
 import { getGridColumnState } from "../../../common/ui/gridStateStorage";
@@ -398,7 +406,16 @@ function Datagrid<T extends object>(props: DatagridProps<T>) {
   const enhancedColumnDefs = useMemo<DatagridColDef<T>[]>(() => {
     type SuppressParams = Parameters<NonNullable<DatagridColDef<T>["suppressKeyboardEvent"]>>[0];
 
-    const cols = columnDefs.map((col) => {
+    const cols = columnDefs.map((rawCol) => {
+      // Sostituzioni centralizzate degli editor di serie, così valgono per ogni
+      // griglia senza toccare i singoli call site:
+      // - data: quello di serie lascia il focus fuori dall'input, il Tab cammina
+      //   fra i segmenti e finisce fuori dalla griglia;
+      // - tendina: quello di serie chiude l'editing alla selezione, così il Tab
+      //   successivo non apre in editing la cella dopo.
+      const replacementEditor = REPLACED_CELL_EDITORS[rawCol.cellEditor as string];
+      const col: DatagridColDef<T> = replacementEditor ? { ...rawCol, cellEditor: replacementEditor } : rawCol;
+
       const originalSuppress = col.suppressKeyboardEvent;
       const isNumberEditor = col.cellEditor === "agNumberCellEditor";
 
