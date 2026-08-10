@@ -37,6 +37,7 @@ import useStore from "../../../../store/useStore";
 import useDashboardData from "../dashboard/useDashboardData";
 import RegistrazioneCassDashboard from "../RegistrazioneCassDashboard";
 import PageTitleContext from "../../../layout/headerBar/PageTitleContext";
+import { MESI_LABEL, periodoMesePrecedente } from "../dashboard/dashboardUtils";
 import { DataRouterTestWrapper } from "../../../../test/helpers/dataRouterTestWrapper";
 
 const mockUseStore = vi.mocked(useStore);
@@ -160,5 +161,44 @@ describe("RegistrazioneCassDashboard — Gestione errori", () => {
     expect(screen.getByTestId("sankey-flusso-cassa")).toBeInTheDocument();
     expect(screen.getByTestId("donut-distribuzione-incassi")).toBeInTheDocument();
     expect(screen.getByTestId("trend-mensile")).toBeInTheDocument();
+  });
+});
+
+describe("RegistrazioneCassDashboard — periodo di riferimento", () => {
+  const periodoIniziale = periodoMesePrecedente();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    setupStore();
+    mockUseDashboardData.mockReturnValue(statoSuccesso);
+  });
+
+  it("parte dal mese precedente (ultimo mese completo), non dal mese in corso", () => {
+    renderDashboard();
+
+    expect(mockUseDashboardData).toHaveBeenCalledWith({ anno: periodoIniziale.anno, mese: periodoIniziale.mese });
+    expect(screen.getByRole("combobox", { name: "Mese" })).toHaveTextContent(MESI_LABEL[periodoIniziale.mese - 1]);
+    expect(screen.getByRole("combobox", { name: "Anno" })).toHaveTextContent(String(periodoIniziale.anno));
+  });
+
+  it("il cambio mese dall'header aggiorna il periodo interrogato mantenendo l'anno", async () => {
+    const user = userEvent.setup();
+    renderDashboard();
+
+    await user.click(screen.getByRole("combobox", { name: "Mese" }));
+    await user.click(screen.getByRole("option", { name: "Marzo" }));
+
+    expect(mockUseDashboardData).toHaveBeenLastCalledWith({ anno: periodoIniziale.anno, mese: 3 });
+  });
+
+  it("il cambio anno dall'header mantiene il mese selezionato", async () => {
+    const user = userEvent.setup();
+    renderDashboard();
+
+    const annoPrecedente = periodoIniziale.anno - 1;
+    await user.click(screen.getByRole("combobox", { name: "Anno" }));
+    await user.click(screen.getByRole("option", { name: String(annoPrecedente) }));
+
+    expect(mockUseDashboardData).toHaveBeenLastCalledWith({ anno: annoPrecedente, mese: periodoIniziale.mese });
   });
 });

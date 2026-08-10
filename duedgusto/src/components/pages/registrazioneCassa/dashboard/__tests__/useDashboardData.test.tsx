@@ -279,6 +279,37 @@ describe("useDashboardData", () => {
     expect(result.current.riepilogo.mesi[2].totaleVendite).toBeCloseTo(300, 2);
   });
 
+  it("il mese selezionato ha la precedenza sull'euristica (anche se privo di registri)", async () => {
+    const serverMock: MockedResponse = {
+      request: { query: getRiepilogoAnnuale, variables: { anno: ANNO_FIXTURE } },
+      result: creaRiepilogoResult(ANNO_FIXTURE, [
+        creaMeseServerMock(ANNO_FIXTURE, 6, { totaleVendite: 600, registri: 2, chiusi: 2 }),
+        creaMeseServerMock(ANNO_FIXTURE, 7, { totaleVendite: 200, registri: 1, chiusi: 1 }),
+      ]),
+      maxUsageCount: Number.POSITIVE_INFINITY,
+    };
+
+    // System time = luglio: senza selezione il riferimento sarebbe luglio
+    const { result, rerender } = renderHook(({ mese }: { mese: number }) => useDashboardData({ anno: ANNO_FIXTURE, mese }), {
+      wrapper: createWrapper([serverMock]),
+      initialProps: { mese: 6 },
+    });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.meseRiferimento?.mese).toBe(6);
+    expect(result.current.meseRiferimento?.totaleVendite).toBeCloseTo(600, 2);
+    // meseCorrente resta il mese di calendario, indipendente dalla selezione
+    expect(result.current.riepilogo.meseCorrente?.mese).toBe(7);
+
+    // Mese selezionato senza registri: nessun fallback silenzioso su un altro mese
+    rerender({ mese: 2 });
+    expect(result.current.meseRiferimento?.mese).toBe(2);
+    expect(result.current.meseRiferimento?.registri).toBe(0);
+  });
+
   it("per un anno passato il mese di riferimento è l'ultimo mese con registri (e meseCorrente è null)", async () => {
     const annoPassato = ANNO_FIXTURE - 1; // 2025
     const serverMock: MockedResponse = {

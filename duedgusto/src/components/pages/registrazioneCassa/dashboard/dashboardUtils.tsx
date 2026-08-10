@@ -9,6 +9,17 @@ export const MESI_BREVI = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago
 const MESI_ANNO = 12;
 
 /**
+ * Periodo di default della dashboard: il mese PRECEDENTE a oggi.
+ * Il mese corrente è quasi sempre incompleto (registri ancora in corso), quindi
+ * i KPI del mese chiuso sono l'unico confronto sensato. A gennaio il riferimento
+ * ricade su dicembre dell'anno precedente.
+ */
+export function periodoMesePrecedente(oggi: Date = new Date()): { anno: number; mese: number } {
+  const riferimento = new Date(oggi.getFullYear(), oggi.getMonth() - 1, 1);
+  return { anno: riferimento.getFullYear(), mese: riferimento.getMonth() + 1 };
+}
+
+/**
  * Variazione % vs periodo precedente: (cur − prev) / |prev| × 100.
  * Restituisce null (indicatore omesso) se il precedente è 0 o assente:
  * niente divisioni per zero, niente "Infinity%".

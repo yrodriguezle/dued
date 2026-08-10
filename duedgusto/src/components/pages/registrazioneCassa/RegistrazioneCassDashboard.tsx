@@ -12,28 +12,39 @@ import DonutDistribuzioneIncassi from "./dashboard/DonutDistribuzioneIncassi";
 import SankeyFlussoCassaLazy from "./dashboard/SankeyFlussoCassaLazy";
 import TrendMensile from "./dashboard/TrendMensile";
 import useDashboardData from "./dashboard/useDashboardData";
+import { periodoMesePrecedente } from "./dashboard/dashboardUtils";
 
 /**
  * Orchestratore della dashboard cassa (change dashboard-charts-redesign):
- * stato anno + contratto dati unico `useDashboardData`, composizione delle
- * sezioni presentazionali (hero KPI, Sankey lazy, donut, trend) su griglia
- * 12 colonne. Layout react-best-practices §1: flex column, header fisso,
- * scroll singolo del contenuto. Depth borders-only (Paper outlined).
+ * stato periodo (mese + anno) + contratto dati unico `useDashboardData`,
+ * composizione delle sezioni presentazionali (hero KPI, Sankey lazy, donut,
+ * trend) su griglia 12 colonne. Layout react-best-practices §1: flex column,
+ * header fisso, scroll singolo del contenuto. Depth borders-only (Paper
+ * outlined).
+ *
+ * Il periodo parte dal mese precedente (l'ultimo mese completo): il mese in
+ * corso ha registri parziali e KPI non confrontabili. L'utente può comunque
+ * scegliere qualsiasi mese/anno dall'header.
  */
 function RegistrazioneCassDashboard() {
   const { setTitle } = useContext(PageTitleContext);
   const navigate = useNavigate();
   const getNextOperatingDate = useStore((state) => state.getNextOperatingDate);
 
-  const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear());
-  const { riepilogo, meseRiferimento, loading, error, refetch } = useDashboardData({ anno: selectedYear });
+  const [periodo, setPeriodo] = useState(periodoMesePrecedente);
+  const { anno: selectedYear, mese: selectedMonth } = periodo;
+  const { riepilogo, meseRiferimento, loading, error, refetch } = useDashboardData({ anno: selectedYear, mese: selectedMonth });
 
   useEffect(() => {
     setTitle("Dashboard Cassa");
   }, [setTitle]);
 
   const handleAnnoChange = useCallback((anno: number) => {
-    setSelectedYear(anno);
+    setPeriodo((precedente) => ({ ...precedente, anno }));
+  }, []);
+
+  const handleMeseChange = useCallback((mese: number) => {
+    setPeriodo((precedente) => ({ ...precedente, mese }));
   }, []);
 
   const handleRetry = useCallback(() => {
@@ -58,7 +69,9 @@ function RegistrazioneCassDashboard() {
     <Box sx={{ display: "flex", flexDirection: "column", height: "calc(100vh - 64px)" }}>
       <DashboardHeader
         anno={selectedYear}
+        mese={selectedMonth}
         onAnnoChange={handleAnnoChange}
+        onMeseChange={handleMeseChange}
       />
       {/* Altezza zero: la barra di rivalidazione non crea gap sotto l'header */}
       <Box sx={{ position: "relative", flexShrink: 0, height: 0, zIndex: 1 }}>

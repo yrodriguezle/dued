@@ -5,20 +5,23 @@ import ListIcon from "@mui/icons-material/List";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import { useNavigate } from "react-router";
 import useStore from "../../../../store/useStore";
+import { MESI_LABEL } from "./dashboardUtils";
 
 const ANNI_DISPONIBILI = 5;
 
 interface DashboardHeaderProps {
   anno: number;
+  mese: number;
   onAnnoChange: (anno: number) => void;
+  onMeseChange: (mese: number) => void;
 }
 
 /**
- * Header della dashboard cassa: titolo, select anno e azioni rapide.
+ * Header della dashboard cassa: titolo, select mese/anno e azioni rapide.
  * Non scrolla (flexShrink 0) e resta interattivo anche durante il loading
  * dei dati (react-best-practices §1).
  */
-function DashboardHeader({ anno, onAnnoChange }: DashboardHeaderProps) {
+function DashboardHeader({ anno, mese, onAnnoChange, onMeseChange }: DashboardHeaderProps) {
   const navigate = useNavigate();
   const getNextOperatingDate = useStore((state) => state.getNextOperatingDate);
 
@@ -32,6 +35,13 @@ function DashboardHeader({ anno, onAnnoChange }: DashboardHeaderProps) {
       onAnnoChange(Number(event.target.value));
     },
     [onAnnoChange]
+  );
+
+  const handleMeseChange = useCallback(
+    (event: SelectChangeEvent<number>) => {
+      onMeseChange(Number(event.target.value));
+    },
+    [onMeseChange]
   );
 
   const handleNuovaCassa = useCallback(() => {
@@ -71,6 +81,27 @@ function DashboardHeader({ anno, onAnnoChange }: DashboardHeaderProps) {
         >
           Dashboard Cassa
         </Typography>
+        <FormControl
+          size="small"
+          sx={{ minWidth: 130 }}
+        >
+          <InputLabel id="dashboard-mese-label">Mese</InputLabel>
+          <Select
+            labelId="dashboard-mese-label"
+            value={mese}
+            label="Mese"
+            onChange={handleMeseChange}
+          >
+            {MESI_LABEL.map((labelMese, indice) => (
+              <MenuItem
+                key={labelMese}
+                value={indice + 1}
+              >
+                {labelMese}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
         <FormControl
           size="small"
           sx={{ minWidth: 110 }}

@@ -118,6 +118,9 @@ function HeroKpiSection({ riepilogo, meseRiferimento, loading }: HeroKpiSectionP
   }
 
   const labelMeseRiferimento = meseRiferimento ? `${MESI_LABEL[meseRiferimento.mese - 1]} ${anno}` : null;
+  // Un mese selezionato dall'header può esistere ma essere senza registri:
+  // meglio dirlo esplicitamente che mostrare una banda di zeri.
+  const haDatiMese = meseRiferimento !== null && meseRiferimento.registri > 0;
 
   return (
     <Paper
@@ -131,7 +134,7 @@ function HeroKpiSection({ riepilogo, meseRiferimento, loading }: HeroKpiSectionP
         >
           {labelMeseRiferimento ? `KPI di ${labelMeseRiferimento}` : `KPI ${anno}`}
         </Typography>
-        {meseRiferimento && (
+        {haDatiMese && meseRiferimento && (
           <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
             <Chip
               label={`${meseRiferimento.registri} registri`}
@@ -150,7 +153,7 @@ function HeroKpiSection({ riepilogo, meseRiferimento, loading }: HeroKpiSectionP
         )}
       </Box>
 
-      {meseRiferimento ? (
+      {haDatiMese && meseRiferimento ? (
         <Box sx={{ display: "flex", gap: 2.5, flexWrap: "wrap", alignItems: "stretch" }}>
           {/* Hero: la Differenza è l'unico numero grande della pagina */}
           <Box sx={{ flex: "1 1 300px", maxWidth: { md: 420 } }}>
@@ -217,7 +220,7 @@ function HeroKpiSection({ riepilogo, meseRiferimento, loading }: HeroKpiSectionP
           variant="body2"
           color="text.secondary"
         >
-          {`Nessun registro per il ${anno}.`}
+          {labelMeseRiferimento ? `Nessun registro per ${labelMeseRiferimento}.` : `Nessun registro per il ${anno}.`}
         </Typography>
       )}
 

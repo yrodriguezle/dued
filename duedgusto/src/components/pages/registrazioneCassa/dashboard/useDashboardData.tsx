@@ -21,6 +21,8 @@ function annoDaData(data: string | null | undefined): number | null {
 
 interface UseDashboardDataProps {
   anno: number;
+  /** Mese (1-12) scelto dall'utente. Se assente vale l'euristica automatica. */
+  mese?: number | null;
 }
 
 /**
@@ -31,7 +33,7 @@ interface UseDashboardDataProps {
  * 3. refetch mirato via subscription (solo eventi dell'anno selezionato);
  * 4. derivati (totaliAnno, meseCorrente, mese di riferimento) memoizzati.
  */
-function useDashboardData({ anno }: UseDashboardDataProps) {
+function useDashboardData({ anno, mese: meseSelezionato = null }: UseDashboardDataProps) {
   const {
     mesi: mesiServer,
     loading: serverLoading,
@@ -112,14 +114,16 @@ function useDashboardData({ anno }: UseDashboardDataProps) {
     return mesi[numeroMeseCorrente - 1] ?? null;
   }, [mesi, anno, annoCorrente, numeroMeseCorrente]);
 
-  // Mese di riferimento per i KPI: mese corrente se anno corrente, altrimenti
-  // ultimo mese dell'anno con almeno un registro.
+  // Mese di riferimento per i KPI: la scelta esplicita dell'utente ha sempre la
+  // precedenza. Senza scelta vale l'euristica: mese corrente se anno corrente,
+  // altrimenti ultimo mese dell'anno con almeno un registro.
   const meseRiferimento = useMemo<RiepilogoMeseDashboard | null>(() => {
     if (mesi.length === 0) return null;
+    if (meseSelezionato != null) return mesi[meseSelezionato - 1] ?? null;
     if (anno === annoCorrente) return mesi[numeroMeseCorrente - 1] ?? null;
     const mesiConRegistri = mesi.filter((mese) => mese.registri > 0);
     return mesiConRegistri.length > 0 ? mesiConRegistri[mesiConRegistri.length - 1] : null;
-  }, [mesi, anno, annoCorrente, numeroMeseCorrente]);
+  }, [mesi, meseSelezionato, anno, annoCorrente, numeroMeseCorrente]);
 
   const riepilogo = useMemo<RiepilogoDashboard>(
     () => ({ anno, mesi, totaliAnno, meseCorrente, fonte }),

@@ -122,4 +122,17 @@ describe("HeroKpiSection", () => {
     renderSection(riepilogoVuoto, null);
     expect(screen.getByText(`Nessun registro per il ${ANNO_TEST}.`)).toBeInTheDocument();
   });
+
+  it("segnala il mese selezionato senza registri invece di una banda di zeri", () => {
+    const riepilogo = creaRiepilogo(ANNO_TEST, [meseMarzo]);
+    renderSection(riepilogo, riepilogo.mesi[4]); // maggio: mese esistente ma vuoto
+
+    expect(screen.getByText(`KPI di Maggio ${ANNO_TEST}`)).toBeInTheDocument();
+    expect(screen.getByText(`Nessun registro per Maggio ${ANNO_TEST}.`)).toBeInTheDocument();
+    // Nessun chip "0 registri" e nessun KPI mensile a zero
+    expect(screen.queryByText("0 registri")).not.toBeInTheDocument();
+    // I totali annuali restano visibili (marzo)
+    expect(screen.getByText(`Totali ${ANNO_TEST}`)).toBeInTheDocument();
+    expect(screen.getAllByText("€ 930,70").length).toBe(1);
+  });
 });
