@@ -21,6 +21,8 @@ import {
   FileText,
   Menu,
   Shield,
+  BookOpen,
+  BookText,
   type LucideIcon,
 } from "lucide-react";
 
@@ -47,4 +49,6 @@ export const iconMapping: Record<string, LucideIcon> = {
   FileText,
   Menu,
   Shield,
+  BookOpen,
+  BookText,
 };

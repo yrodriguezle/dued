@@ -26,6 +26,23 @@ public static class SeedMenus
         }
     }
 
+    /// <summary>
+    /// Assegna il menu a tutti i ruoli indicati, saltando quelli che lo hanno già.
+    /// Serve alle voci riservate agli amministratori, che non vanno al solo SuperAdmin
+    /// ma a chiunque abbia il flag <see cref="Ruolo.Amministratore"/>.
+    /// </summary>
+    private static void AssegnaRuoli(Menu menu, IEnumerable<Ruolo> ruoli, ref bool needsUpdate)
+    {
+        foreach (Ruolo ruolo in ruoli)
+        {
+            if (!menu.Ruoli.Any(r => r.Id == ruolo.Id))
+            {
+                menu.Ruoli.Add(ruolo);
+                needsUpdate = true;
+            }
+        }
+    }
+
     public static async Task Initialize(IServiceProvider serviceProvider)
     {
         using IServiceScope scope = serviceProvider.CreateScope();
@@ -815,6 +832,88 @@ public static class SeedMenus
             if (needsUpdate)
             {
                 dbContext.Menus.Update(fornitoriChild6);
+            }
+        }
+
+        // ========================================
+        // Menu Wiki — documentazione interna del sistema
+        // ========================================
+        // A differenza delle altre voci, la wiki NON va al solo SuperAdmin: va a ogni ruolo
+        // con il flag Amministratore, lo stesso che autorizza la riapertura di un registro.
+        // Il SuperAdmin è incluso esplicitamente perché la wiki resti raggiungibile anche
+        // se il flag venisse tolto per errore dall'anagrafica ruoli.
+        // La pagina si protegge comunque da sola lato client: il menu è il primo filtro,
+        // non l'unico.
+        List<Ruolo> ruoliWiki = await dbContext.Ruoli
+                .Include(r => r.Menus)
+                .Where(r => r.Amministratore || r.Nome == "SuperAdmin")
+                .ToListAsync();
+
+        Menu? wikiMenu = await dbContext.Menus
+                .Include(m => m.Ruoli)
+                .FirstOrDefaultAsync(m => m.Titolo == "Wiki" && m.Percorso == string.Empty);
+
+        if (wikiMenu == null)
+        {
+            wikiMenu = new Menu
+            {
+                Titolo = "Wiki",
+                Percorso = string.Empty,
+                Icona = "BookOpen",
+                Visibile = true,
+                Posizione = 8,
+                NomeVista = string.Empty,
+                PercorsoFile = string.Empty,
+                MenuPadreId = null
+            };
+            bool assegnazioneIniziale = false;
+            AssegnaRuoli(wikiMenu, ruoliWiki, ref assegnazioneIniziale);
+            dbContext.Menus.Add(wikiMenu);
+            await dbContext.SaveChangesAsync(); // Save per ottenere Id
+        }
+        else
+        {
+            bool needsUpdate = false;
+            UpdateMenuIfNeeded(wikiMenu, "Wiki", null, "BookOpen", true, 8, null, null, superAdminRuolo, null, ref needsUpdate);
+            AssegnaRuoli(wikiMenu, ruoliWiki, ref needsUpdate);
+            if (needsUpdate)
+            {
+                dbContext.Menus.Update(wikiMenu);
+                await dbContext.SaveChangesAsync();
+            }
+        }
+
+        // Voce: Registro Cassa e Chiusura Mensile
+        Menu? wikiChild1 = await dbContext.Menus
+                .Include(m => m.Ruoli)
+                .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/wiki/registro-cassa");
+
+        if (wikiChild1 == null)
+        {
+            wikiChild1 = new Menu
+            {
+                Titolo = "Registro Cassa e Chiusura Mensile",
+                Percorso = "/gestionale/wiki/registro-cassa",
+                Icona = "BookText",
+                Visibile = true,
+                Posizione = 1,
+                NomeVista = "RegistroCassaWiki",
+                PercorsoFile = "wiki/RegistroCassaWiki.tsx",
+                MenuPadreId = wikiMenu.Id
+            };
+            bool assegnazioneIniziale = false;
+            AssegnaRuoli(wikiChild1, ruoliWiki, ref assegnazioneIniziale);
+            dbContext.Menus.Add(wikiChild1);
+        }
+        else
+        {
+            bool needsUpdate = false;
+            UpdateMenuIfNeeded(wikiChild1, "Registro Cassa e Chiusura Mensile", "/gestionale/wiki/registro-cassa", "BookText", true, 1,
+                "RegistroCassaWiki", "wiki/RegistroCassaWiki.tsx", superAdminRuolo, wikiMenu, ref needsUpdate);
+            AssegnaRuoli(wikiChild1, ruoliWiki, ref needsUpdate);
+            if (needsUpdate)
+            {
+                dbContext.Menus.Update(wikiChild1);
             }
         }
 
