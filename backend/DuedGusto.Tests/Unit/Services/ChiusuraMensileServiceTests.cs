@@ -147,23 +147,93 @@ public class ChiusuraMensileServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task CreaChiusura_PartialMonth_IncludesOnlyClosedRegisters()
+    public async Task CreaChiusura_MeseParziale_IncludeAncheIRegistriDraft()
     {
-        // Arrange — mix of DRAFT and CLOSED registers
+        // Arrange — mix di DRAFT e CLOSED. La bozza è una vista viva su TUTTI i registri del
+        // mese: solo così i suoi totali coincidono con quelli della Vista mensile, che aggrega
+        // anche le bozze. I DRAFT su giorni operativi impediscono comunque la chiusura definitiva.
         var utente = SeedUtente();
         SeedBusinessSettings();
 
         SeedRegistroCassa(utente, new DateTime(2026, 3, 2), "CLOSED", totaleVendite: 100m);
-        SeedRegistroCassa(utente, new DateTime(2026, 3, 3), "DRAFT", totaleVendite: 200m);  // DRAFT — should be excluded
+        SeedRegistroCassa(utente, new DateTime(2026, 3, 3), "DRAFT", totaleVendite: 200m);
         SeedRegistroCassa(utente, new DateTime(2026, 3, 4), "CLOSED", totaleVendite: 300m);
-        SeedRegistroCassa(utente, new DateTime(2026, 3, 5), "RECONCILED", totaleVendite: 150m); // RECONCILED — should be included
+        SeedRegistroCassa(utente, new DateTime(2026, 3, 5), "RECONCILED", totaleVendite: 150m);
 
         // Act
         var chiusura = await _service.CreaChiusuraAsync(2026, 3);
 
         // Assert
-        chiusura.RegistriInclusi.Should().HaveCount(3); // 2 CLOSED + 1 RECONCILED
-        chiusura.RicavoTotaleCalcolato.Should().Be(550m); // 100 + 300 + 150
+        chiusura.RegistriInclusi.Should().HaveCount(4);
+        chiusura.RicavoTotaleCalcolato.Should().Be(750m); // 100 + 200 + 300 + 150
+    }
+
+    [Fact]
+    public async Task GetChiusura_Bozza_CollegaIRegistriNatiDopoLaCreazione()
+    {
+        // Arrange — il caso reale: la bozza di luglio 2026 era stata creata mentre il registro
+        // del 04/07 era ancora DRAFT, e quel giorno non è mai entrato nei totali della chiusura
+        // (12,00 di spese non tracciate in meno rispetto alla Vista mensile).
+        var utente = SeedUtente();
+        SeedBusinessSettings();
+        SeedRegistroCassa(utente, new DateTime(2026, 5, 4), "CLOSED", totaleVendite: 200m, speseGiornaliere: 12m);
+
+        var chiusura = await _service.CreaChiusuraAsync(2026, 5);
+        chiusura.RegistriInclusi.Should().HaveCount(1);
+
+        // Act — registro comparso DOPO la creazione della bozza
+        SeedRegistroCassa(utente, new DateTime(2026, 5, 5), "CLOSED", totaleVendite: 300m, speseGiornaliere: 30m);
+        var riletta = await _service.GetChiusuraConRelazioniAsync(chiusura.ChiusuraId);
+
+        // Assert — la rilettura lo aggancia da sola
+        riletta!.RegistriInclusi.Should().HaveCount(2);
+        riletta.RicavoTotaleCalcolato.Should().Be(500m);
+        riletta.SpeseGiornaliereRegistriCalcolate.Should().Be(42m);
+    }
+
+    [Fact]
+    public async Task GetChiusura_Chiusa_NonCollegaIRegistriNatiDopo()
+    {
+        // Arrange — nessun giorno operativo: la chiusura definitiva non richiede coperture
+        var utente = SeedUtente();
+        SeedBusinessSettings("[false,false,false,false,false,false,false]");
+        SeedRegistroCassa(utente, new DateTime(2026, 5, 4), "CLOSED", totaleVendite: 200m);
+
+        var chiusura = await _service.CreaChiusuraAsync(2026, 5);
+        (await _service.ChiudiMensileAsync(chiusura.ChiusuraId, utente.Id)).Should().BeTrue();
+
+        // Act — registro nato dopo il congelamento
+        SeedRegistroCassa(utente, new DateTime(2026, 5, 5), "CLOSED", totaleVendite: 300m);
+        var riletta = await _service.GetChiusuraConRelazioniAsync(chiusura.ChiusuraId);
+
+        // Assert — lo snapshot di una chiusura CHIUSA non si muove più
+        riletta!.Stato.Should().Be("CHIUSA");
+        riletta.RegistriInclusi.Should().HaveCount(1);
+        riletta.RicavoTotaleCalcolato.Should().Be(200m);
+    }
+
+    [Fact]
+    public async Task GetChiusura_Bozza_PreservaLEsclusioneManuale()
+    {
+        // Arrange
+        var utente = SeedUtente();
+        SeedBusinessSettings();
+        var escluso = SeedRegistroCassa(utente, new DateTime(2026, 5, 4), "CLOSED", totaleVendite: 200m);
+
+        var chiusura = await _service.CreaChiusuraAsync(2026, 5);
+
+        var link = await _dbContext.RegistriCassaMensili
+            .FirstAsync(l => l.ChiusuraId == chiusura.ChiusuraId && l.RegistroId == escluso.Id);
+        link.Incluso = false;
+        await _dbContext.SaveChangesAsync();
+
+        // Act — una sincronizzazione successiva non deve resuscitare il registro escluso
+        SeedRegistroCassa(utente, new DateTime(2026, 5, 5), "CLOSED", totaleVendite: 300m);
+        var riletta = await _service.GetChiusuraConRelazioniAsync(chiusura.ChiusuraId);
+
+        // Assert
+        riletta!.RegistriInclusi.Should().HaveCount(2);
+        riletta.RicavoTotaleCalcolato.Should().Be(300m);
     }
 
     [Fact]
@@ -482,7 +552,7 @@ public class ChiusuraMensileServiceTests : IDisposable
     #region Guard completezza non bloccante — registri non inclusi
 
     [Fact]
-    public async Task ChiudiMensile_RegistroChiusoDelMeseNonIncluso_ProduceWarningMaNonBlocca()
+    public async Task ChiudiMensile_RegistroDelMeseNatoDopoLaBozza_EntraNelloSnapshot()
     {
         // Arrange — mese completo (giorni 1-27 coperti alla creazione), tutti i giorni operativi
         var utente = SeedUtente();
@@ -494,22 +564,23 @@ public class ChiusuraMensileServiceTests : IDisposable
 
         var chiusura = await _service.CreaChiusuraAsync(2026, 2);
 
-        // Registro CLOSED del mese (giorno 28) creato DOPO la chiusura → NON collegato ai
-        // RegistriInclusi: dà origine al warning di completezza sopravvissuto (Decision 4).
+        // Registro CLOSED del mese (giorno 28) creato DOPO la bozza
         SeedRegistroCassa(utente, new DateTime(2026, 2, 28), "CLOSED", totaleVendite: 500m);
 
-        // Act — la chiusura NON deve essere bloccata dal warning di completezza
+        // Act
         var result = await _service.ChiudiMensileAsync(chiusura.ChiusuraId, utente.Id);
 
-        // Assert — chiusura avvenuta
+        // Assert — la sincronizzazione della bozza lo aggancia prima di congelare
         result.Should().BeTrue();
         var loaded = await _service.GetChiusuraConRelazioniAsync(chiusura.ChiusuraId);
         loaded!.Stato.Should().Be("CHIUSA");
+        loaded.RegistriInclusi.Should().HaveCount(28);
+        loaded.RicavoTotaleCalcolato.Should().Be(14000m);
 
-        // Il warning di completezza è comunque prodotto (non bloccante): registro non incluso
+        // Il warning di completezza resta come rete di sicurezza, ma ora non ha più nulla da
+        // segnalare: nessun registro del mese può restare fuori da una chiusura appena congelata.
         var warnings = await _service.ValidaCompletezzaChiusuraWarningsAsync(chiusura.ChiusuraId);
-        warnings.Should().NotBeEmpty();
-        warnings.Should().Contain(w => w.Contains("registro"));
+        warnings.Should().BeEmpty();
     }
 
     #endregion

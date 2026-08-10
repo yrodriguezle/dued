@@ -1,11 +1,8 @@
-using Microsoft.EntityFrameworkCore;
-
 using GraphQL;
 using GraphQL.Types;
 
 using duedgusto.Models;
 using duedgusto.Services.GraphQL;
-using duedgusto.DataAccess;
 using duedgusto.GraphQL.ChiusureMensili.Types;
 using duedgusto.Services.ChiusureMensili;
 
@@ -30,29 +27,17 @@ public class ChiusureMensiliQueries : ObjectGraphType
                 return result;
             });
 
-        // Get all monthly closures, optionally filtered by year - AGGIORNATA per includere nuove relazioni
+        // Get all monthly closures, optionally filtered by year.
+        // Passa dal service perché le bozze vanno riallineate ai registri del mese prima di
+        // esporre le proprietà calcolate.
         Field<ListGraphType<ChiusuraMensileType>, IEnumerable<ChiusuraMensile>>("chiusureMensili")
             .Argument<IntGraphType>("anno")
             .ResolveAsync(async context =>
             {
-                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                ChiusuraMensileService service = GraphQLService.GetService<ChiusuraMensileService>(context);
                 int? year = context.GetArgument<int?>("anno");
 
-                IQueryable<ChiusuraMensile> query = dbContext.ChiusureMensili;
-
-                if (year.HasValue)
-                {
-                    query = query.Where(c => c.Anno == year.Value);
-                }
-
-                // Includi tutte le relazioni necessarie per le proprietà calcolate
-                return await query
-                    .Include(c => c.ChiusaDaUtente)
-                    .Include(c => c.RegistriInclusi)
-                        .ThenInclude(r => r.Registro)
-                    .OrderByDescending(c => c.Anno)
-                        .ThenByDescending(c => c.Mese)
-                    .ToListAsync();
+                return await service.GetChiusureAsync(year);
             });
 
         // NUOVA QUERY: Valida completezza registri per un mese

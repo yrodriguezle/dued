@@ -36,13 +36,14 @@ public class ChiusuraMensileService
     }
 
     /// <summary>
-    /// Crea una nuova chiusura mensile con validazione completezza registri.
-    /// Associa automaticamente tutti i registri cassa chiusi del mese e i pagamenti fornitori.
+    /// Crea una nuova chiusura mensile in stato BOZZA.
+    /// I registri del mese NON vengono collegati qui: l'insieme è definito in un unico posto
+    /// (<see cref="SincronizzaRegistriBozzaAsync"/>) e viene materializzato alla prima lettura.
     /// </summary>
     /// <param name="anno">Anno della chiusura (es. 2026)</param>
     /// <param name="mese">Mese della chiusura (1-12)</param>
     /// <returns>Chiusura mensile creata con relazioni caricate</returns>
-    /// <exception cref="InvalidOperationException">Se registri mancanti o chiusura già esistente</exception>
+    /// <exception cref="InvalidOperationException">Se la chiusura del mese esiste già</exception>
     public async Task<ChiusuraMensile> CreaChiusuraAsync(int anno, int mese)
     {
         // 1. Validazione input
@@ -52,17 +53,7 @@ public class ChiusuraMensileService
         if (anno < 2000 || anno > 2100)
             throw new ArgumentException("Anno non valido", nameof(anno));
 
-        // 2. Calcolo date del mese
-        var primoGiorno = new DateTime(anno, mese, 1);
-        DateTime ultimoGiorno = primoGiorno.AddMonths(1).AddDays(-1);
-
-        // 3. Recupera registri chiusi/riconciliati del mese (senza bloccare la creazione)
-        List<RegistroCassa> registriMese = await _dbContext.RegistriCassa
-                .Where(r => r.Data >= primoGiorno && r.Data <= ultimoGiorno)
-                .Where(r => r.Stato == "CLOSED" || r.Stato == "RECONCILED")
-                .ToListAsync();
-
-        // 4. Verifica chiusura già esistente
+        // 2. Verifica chiusura già esistente
         ChiusuraMensile? esistente = await _dbContext.ChiusureMensili
                 .FirstOrDefaultAsync(c => c.Anno == anno && c.Mese == mese);
 
@@ -73,8 +64,8 @@ public class ChiusuraMensileService
             );
         }
 
-        // 5-6. Creazione chiusura + link registri in transazione esplicita:
-        // un errore a metà non deve lasciare una chiusura persistita senza link.
+        // 3. Creazione chiusura: una sola insert, nessuna transazione esplicita necessaria.
+        // Se il collegamento dei registri fallisse, la lettura successiva lo rifarebbe comunque.
         var chiusura = new ChiusuraMensile
         {
             Anno = anno,
@@ -84,35 +75,10 @@ public class ChiusuraMensileService
             UpdatedAt = DateTime.UtcNow
         };
 
-        await using IDbContextTransaction transaction = await _dbContext.Database.BeginTransactionAsync();
-        try
-        {
-            // 5. Creazione chiusura
-            _dbContext.ChiusureMensili.Add(chiusura);
-            await _dbContext.SaveChangesAsync();
+        _dbContext.ChiusureMensili.Add(chiusura);
+        await _dbContext.SaveChangesAsync();
 
-            // 6. Associazione registri cassa
-            foreach (RegistroCassa? registro in registriMese)
-            {
-                var link = new RegistroCassaMensile
-                {
-                    ChiusuraId = chiusura.ChiusuraId,
-                    RegistroId = registro.Id,
-                    Incluso = true
-                };
-                _dbContext.RegistriCassaMensili.Add(link);
-            }
-
-            await _dbContext.SaveChangesAsync();
-            await transaction.CommitAsync();
-        }
-        catch
-        {
-            await transaction.RollbackAsync();
-            throw;
-        }
-
-        // 8. Ricarica con tutte le relazioni per calcolo proprietà calcolate
+        // 4. Ricarica: la lettura sincronizza i registri e popola le proprietà calcolate
         return await GetChiusuraConRelazioniAsync(chiusura.ChiusuraId)
             ?? throw new InvalidOperationException("Errore nel recupero della chiusura appena creata");
     }
@@ -382,16 +348,172 @@ public class ChiusuraMensileService
 
     /// <summary>
     /// Recupera una chiusura con tutte le relazioni necessarie per calcolare le proprietà calcolate.
+    /// Se è in BOZZA, prima riallinea i registri collegati (vedi <see cref="SincronizzaRegistriBozzaAsync"/>).
     /// </summary>
     /// <param name="chiusuraId">ID della chiusura</param>
     /// <returns>Chiusura con relazioni caricate o null se non trovata</returns>
     public async Task<ChiusuraMensile?> GetChiusuraConRelazioniAsync(int chiusuraId)
+    {
+        ChiusuraMensile? chiusura = await CaricaConRelazioniAsync(chiusuraId);
+
+        if (chiusura == null)
+            return null;
+
+        await SincronizzaRegistriBozzaAsync(chiusura);
+        return chiusura;
+    }
+
+    /// <summary>
+    /// Recupera tutte le chiusure (opzionalmente filtrate per anno), riallineando i registri
+    /// di quelle in BOZZA. Ordinamento: anno e mese decrescenti.
+    /// </summary>
+    public async Task<List<ChiusuraMensile>> GetChiusureAsync(int? anno)
+    {
+        IQueryable<ChiusuraMensile> query = _dbContext.ChiusureMensili
+            .Include(c => c.ChiusaDaUtente)
+            .Include(c => c.RegistriInclusi)
+                .ThenInclude(r => r.Registro);
+
+        if (anno.HasValue)
+        {
+            query = query.Where(c => c.Anno == anno.Value);
+        }
+
+        List<ChiusuraMensile> chiusure = await query
+            .OrderByDescending(c => c.Anno)
+                .ThenByDescending(c => c.Mese)
+            .ToListAsync();
+
+        foreach (ChiusuraMensile chiusura in chiusure)
+        {
+            await SincronizzaRegistriBozzaAsync(chiusura);
+        }
+
+        return chiusure;
+    }
+
+    /// <summary>
+    /// Carica la chiusura con le relazioni, SENZA sincronizzare: usato internamente dove la
+    /// sincronizzazione è già avvenuta o non deve avvenire.
+    /// </summary>
+    private async Task<ChiusuraMensile?> CaricaConRelazioniAsync(int chiusuraId)
     {
         return await _dbContext.ChiusureMensili
             .Include(c => c.ChiusaDaUtente)
             .Include(c => c.RegistriInclusi)
                 .ThenInclude(r => r.Registro)
             .FirstOrDefaultAsync(c => c.ChiusuraId == chiusuraId);
+    }
+
+    /// <summary>
+    /// Riallinea i registri collegati a una chiusura in BOZZA all'insieme corrente dei registri
+    /// del suo mese — <b>tutti</b>, qualunque sia il loro stato.
+    /// <para>
+    /// È qui che vive la definizione dell'insieme, in un unico posto. La bozza non è uno
+    /// snapshot: è una vista viva sul mese, così i suoi totali coincidono per costruzione con
+    /// quelli della Vista mensile (che aggrega tutti i registri, bozze incluse). Lo snapshot
+    /// nasce alla transizione BOZZA → CHIUSA: da quel momento questo metodo non tocca più nulla
+    /// e i link persistiti restano congelati.
+    /// </para>
+    /// <para>
+    /// Include anche i registri DRAFT "leggeri" creati per ospitare una spesa fissa su un giorno
+    /// scoperto: senza di loro quelle spese sparirebbero dalla griglia della Chiusura Mensile.
+    /// Un giorno operativo ancora in DRAFT impedisce comunque la chiusura definitiva, perché
+    /// <see cref="ChiusuraMensileValidator"/> considera coperto solo un giorno CLOSED/RECONCILED.
+    /// </para>
+    /// <para>
+    /// Il flag <c>Incluso</c> dei link già esistenti non viene mai toccato: un'esclusione
+    /// manuale sopravvive alla sincronizzazione.
+    /// </para>
+    /// Precondizione: <paramref name="chiusura"/> deve avere <c>RegistriInclusi</c> già caricata.
+    /// </summary>
+    /// <returns>True se l'insieme dei link è cambiato.</returns>
+    public async Task<bool> SincronizzaRegistriBozzaAsync(ChiusuraMensile chiusura)
+    {
+        if (chiusura.Stato != "BOZZA")
+            return false;
+
+        var primoGiorno = new DateTime(chiusura.Anno, chiusura.Mese, 1);
+        DateTime ultimoGiorno = primoGiorno.AddMonths(1).AddDays(-1);
+
+        List<RegistroCassa> registriMese = await _dbContext.RegistriCassa
+            .Where(r => r.Data >= primoGiorno && r.Data <= ultimoGiorno)
+            .ToListAsync();
+
+        HashSet<int> idMese = registriMese.Select(r => r.Id).ToHashSet();
+        HashSet<int> idCollegati = chiusura.RegistriInclusi.Select(l => l.RegistroId).ToHashSet();
+
+        List<RegistroCassaMensile> daAggiungere = registriMese
+            .Where(r => !idCollegati.Contains(r.Id))
+            .Select(r => new RegistroCassaMensile
+            {
+                ChiusuraId = chiusura.ChiusuraId,
+                RegistroId = r.Id,
+                Incluso = true,
+                Registro = r,
+            })
+            .ToList();
+
+        // Link orfani: registro eliminato o spostato in un altro mese.
+        List<RegistroCassaMensile> daRimuovere = chiusura.RegistriInclusi
+            .Where(l => !idMese.Contains(l.RegistroId))
+            .ToList();
+
+        if (daAggiungere.Count == 0 && daRimuovere.Count == 0)
+            return false;
+
+        _dbContext.RegistriCassaMensili.AddRange(daAggiungere);
+        _dbContext.RegistriCassaMensili.RemoveRange(daRimuovere);
+
+        try
+        {
+            await _dbContext.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex)
+        {
+            // Due letture concorrenti possono tentare lo stesso insert: la prima vince, questa
+            // riparte dallo stato a DB. Non è un errore per il chiamante.
+            _logger?.LogWarning(ex,
+                "Sincronizzazione registri della chiusura {ChiusuraId} in conflitto: ricarico dal DB.",
+                chiusura.ChiusuraId);
+
+            daAggiungere.ForEach(link => _dbContext.Entry(link).State = EntityState.Detached);
+            daRimuovere.ForEach(link => _dbContext.Entry(link).State = EntityState.Unchanged);
+
+            await RicaricaRegistriInclusiAsync(chiusura);
+            return true;
+        }
+
+        // Allinea il grafo in memoria: le proprietà calcolate leggono da questa collezione.
+        // Il change tracker fa già il fixup delle navigazioni sulle entità che traccia, quindi
+        // entrambe le operazioni sono difensive: senza il Contains i link entrerebbero due volte
+        // e ogni totale della chiusura risulterebbe doppio.
+        daAggiungere
+            .Where(link => !chiusura.RegistriInclusi.Contains(link))
+            .ToList()
+            .ForEach(chiusura.RegistriInclusi.Add);
+
+        daRimuovere.ForEach(link => chiusura.RegistriInclusi.Remove(link));
+
+        return true;
+    }
+
+    /// <summary>
+    /// Ricarica dal DB i link della chiusura e i registri referenziati. Serve solo nel percorso
+    /// di conflitto della sincronizzazione, dove il grafo in memoria non è più attendibile.
+    /// </summary>
+    private async Task RicaricaRegistriInclusiAsync(ChiusuraMensile chiusura)
+    {
+        await _dbContext.Entry(chiusura)
+            .Collection(c => c.RegistriInclusi)
+            .LoadAsync();
+
+        foreach (RegistroCassaMensile link in chiusura.RegistriInclusi)
+        {
+            await _dbContext.Entry(link)
+                .Reference(l => l.Registro)
+                .LoadAsync();
+        }
     }
 
     /// <summary>
@@ -423,11 +545,10 @@ public class ChiusuraMensileService
     /// Collega il registro alla chiusura in BOZZA del suo mese, se ne esiste una e il link
     /// non c'è già.
     /// <para>
-    /// Serve perché <see cref="CreaChiusuraAsync"/> collega solo i registri CLOSED/RECONCILED
-    /// esistenti al momento della creazione: un registro nato dopo (tipicamente il registro
-    /// "leggero" creato dal find-or-create quando si registra una spesa fissa su un giorno
-    /// scoperto) resterebbe fuori da <c>RegistriInclusi</c>, e la spesa sarebbe invisibile in
-    /// Chiusura Mensile — che legge le spese solo attraverso i registri inclusi.
+    /// Da quando <see cref="SincronizzaRegistriBozzaAsync"/> riallinea la bozza a ogni lettura,
+    /// questo metodo non è più l'unica garanzia del link: è la scorciatoia che lo rende visibile
+    /// già dentro la transazione della scrittura, anche a chi legge la join table senza passare
+    /// dal service.
     /// </para>
     /// Non chiama SaveChanges: partecipa alla transazione del chiamante.
     /// </summary>
