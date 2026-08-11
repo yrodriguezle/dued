@@ -1,4 +1,5 @@
 using GraphQL;
+using GraphQL.Server.Transports.AspNetCore.Errors;
 
 using DuedGusto.Tests.Helpers;
 
@@ -240,5 +241,98 @@ public class PrivilegiAmministrativiTests : IDisposable
             GraphQLTestHost.Autenticato(UtenteAdminId));
 
         AssertRiuscita(result, "un amministratore deve poter leggere la libreria media");
+    }
+
+    // ---- Impostazioni della vetrina: scrittura E lettura ----
+
+    private const string LeggiImpostazioniVetrina =
+        "query { vetrina { impostazioni { insegnaPubblica turnstileSiteKey } } }";
+
+    private static string ScriviImpostazioniVetrina(string insegna) =>
+        $$"""
+        mutation {
+          vetrina {
+            mutateImpostazioniVetrina(input: {
+              insegnaPubblica: "{{insegna}}", via: "V", cap: "36016", citta: "Thiene",
+              provincia: "VI", paese: "IT", oraInizioTemaSera: "18:00",
+              prenotazioniAttive: false, prenotazioniPreavvisoOre: 2, prenotazioniCopertiMax: 20
+            }) { impostazioniVetrinaId }
+          }
+        }
+        """;
+
+    /// <summary>
+    /// 🔴 <b>Il caso che si dimentica: la LETTURA.</b> Se manca questo test, il guard sulla query
+    /// può sparire senza che nulla diventi rosso — e con lui uscirebbe
+    /// <c>turnstileSiteKey</c> insieme ai parametri delle prenotazioni, che la rotta pubblica non
+    /// espone di proposito.
+    ///
+    /// <para>⚠️ Attenzione al modo in cui si asserisce: un risultato <c>null</c> <b>non</b> è un
+    /// rifiuto. Se questo test si accontentasse di "nessun dato", passerebbe anche a guard
+    /// rimosso su un database senza impostazioni — cioè esattamente la condizione in cui gira la
+    /// CI. Si verifica quindi che l'errore sia proprio quello sui privilegi.</para>
+    /// </summary>
+    [Fact]
+    public async Task Operatore_LeggeImpostazioniVetrina_Rifiutata()
+    {
+        ExecutionResult result = await _host.EseguiAsync(
+            LeggiImpostazioniVetrina, GraphQLTestHost.Autenticato(UtenteOperatoreId));
+
+        AssertRifiutata(result,
+            "un non amministratore non deve poter leggere le impostazioni del sito: questo tipo "
+            + "espone campi che la rotta pubblica non contiene");
+    }
+
+    [Fact]
+    public async Task Operatore_ScriveImpostazioniVetrina_RifiutataESenzaEffetti()
+    {
+        ExecutionResult result = await _host.EseguiAsync(
+            ScriviImpostazioniVetrina("Insegna di un operatore"),
+            GraphQLTestHost.Autenticato(UtenteOperatoreId));
+
+        AssertRifiutata(result, "un non amministratore non deve poter scrivere le impostazioni del sito");
+
+        _dbContext.ImpostazioniVetrina.Should().BeEmpty(
+            "il guard è la prima istruzione del resolver: il rifiuto non deve lasciare alcuna "
+            + "riga creata, nemmeno vuota");
+    }
+
+    /// <summary>
+    /// L'anonimo è fermato <b>prima</b> del resolver, dalla regola di autorizzazione dello
+    /// schema: nessuna verifica di ruolo viene eseguita e nessuna scrittura parte. È il livello
+    /// che <c>this.Authorize()</c> di tipo garantisce, e che il guard dentro il resolver
+    /// <b>non</b> implica — sono due protezioni distinte, non due scritture della stessa.
+    /// </summary>
+    [Theory]
+    [InlineData(LeggiImpostazioniVetrina)]
+    [InlineData("mutation { vetrina { __typename } }")]
+    public async Task Anonimo_SulRamoDelleImpostazioniVetrina_RifiutatoComeNonAutenticato(string operazione)
+    {
+        ExecutionResult result = await _host.EseguiAsync(operazione, GraphQLTestHost.Anonimo());
+
+        result.Errors.Should().NotBeNullOrEmpty();
+        result.Errors!.Any(e => e is AccessDeniedError).Should().BeTrue(
+            "il rifiuto deve arrivare dall'autorizzazione dello schema, non da un errore "
+            + "qualsiasi del resolver: " + GraphQLTestHost.DescriviErrori(result));
+
+        _dbContext.ImpostazioniVetrina.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Amministratore_LeggeEScriveImpostazioniVetrina_Riesce()
+    {
+        // Il complemento indispensabile: senza, un guard che rifiuta *chiunque* passerebbe
+        // inosservato e la pagina non funzionerebbe per nessuno.
+        AssertRiuscita(
+            await _host.EseguiAsync(LeggiImpostazioniVetrina, GraphQLTestHost.Autenticato(UtenteAdminId)),
+            "un amministratore deve poter leggere le impostazioni del sito");
+
+        AssertRiuscita(
+            await _host.EseguiAsync(
+                ScriviImpostazioniVetrina("2D Gusto Bar"), GraphQLTestHost.Autenticato(UtenteAdminId)),
+            "un amministratore deve poter salvare le impostazioni del sito");
+
+        _dbContext.ImpostazioniVetrina.Should().ContainSingle()
+            .Which.InsegnaPubblica.Should().Be("2D Gusto Bar");
     }
 }

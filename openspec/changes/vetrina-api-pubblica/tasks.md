@@ -841,7 +841,7 @@ scoprire fra sei mesi che il TTL va deciso in un secondo posto, dove nessuno lo 
 alla natura del dato. E la policy CORS dedicata non è una questione di accesso — `localhost:4321`
 è **già** ammesso, la allowlist ignora la porta — è la proprietà di **cache a variante unica**.
 
-- [ ] 6.1 **Policy `PubblicaSenzaCredenziali`** — in `Program.cs`, accanto ad
+- [x] 6.1 **Policy `PubblicaSenzaCredenziali`** — in `Program.cs`, accanto ad
   `AllowSpecificOrigins`: `AllowAnyOrigin()`, `WithMethods("GET")`, `AllowAnyHeader()`.
   🔴 **Niente `AllowCredentials()`**: `"*"` e le credenziali sono mutuamente esclusivi per
   specifica, e qui è una virtù — questa famiglia di rotte non può diventare un vettore credenziale
@@ -850,7 +850,7 @@ alla natura del dato. E la policy CORS dedicata non è una questione di accesso 
   credenziale*): la policy globale con allowlist e credenziali resta **invariata** e continua ad
   applicarsi a `/graphql` e `/api/auth/*`.
 
-- [ ] 6.2 ⚠️ **`[EnableCors("PubblicaSenzaCredenziali")]` sul controller, e il commento che
+- [x] 6.2 ⚠️ **`[EnableCors("PubblicaSenzaCredenziali")]` sul controller, e il commento che
   protegge l'ordine** — l'attributo funziona perché il middleware CORS legge i **metadati
   dell'endpoint già selezionato**: `WebApplication` inserisce `UseRouting` all'inizio della
   pipeline quando non è chiamato esplicitamente, quindi `app.UseCors(…)` gira **dopo** la
@@ -860,7 +860,7 @@ alla natura del dato. E la policy CORS dedicata non è una questione di accesso 
   *Verifica* (spec `api-pubblica` → requisito CORS, nota ⚠️): il commento è nel file e nomina la
   conseguenza, non solo la regola.
 
-- [ ] 6.3 **`[ResponseCache]` sulle tre action** — `site` e `galleria` `Duration = 300`, `menu`
+- [x] 6.3 **`[ResponseCache]` sulle tre action** — `site` e `galleria` `Duration = 300`, `menu`
   `Duration = 60`, tutte `Location = ResponseCacheLocation.Any`. `ResponseCacheAttribute` è un
   **filtro che scrive header**: non richiede il middleware di response caching, che infatti **non**
   si registra. Il `60` di `menu` è lo stesso numero del `proxy_cache_valid 200 60s` previsto per
@@ -868,19 +868,19 @@ alla natura del dato. E la policy CORS dedicata non è una questione di accesso 
   *Verifica*: `dotnet build` esce 0; l'attributo è nella **firma** dell'action, dove un lettore lo
   vede insieme alla rotta.
 
-- [ ] 6.4 **Test riflessivo `OgniRotta_DichiaraLaSuaCache`** — `Theory` sulle tre action che legge
+- [x] 6.4 **Test riflessivo `OgniRotta_DichiaraLaSuaCache`** — `Theory` sulle tre action che legge
   `ResponseCacheAttribute` per riflessione e asserisce `Duration` e `Location.Any`.
   🔴 **Mai** confrontare una stringa letterale: ASP.NET emette `public,max-age=300` **senza spazio**
   dopo la virgola, la proposal lo scrive con lo spazio, ed è la stessa direttiva.
   *Verifica* (spec `api-pubblica` → *Durata dichiarata per ogni rotta*): `dotnet test --filter "Cache"` passa.
 
-- [ ] 6.5 **Nessuna cache lato server** — verifica che `Program.cs` non registri
+- [x] 6.5 **Nessuna cache lato server** — verifica che `Program.cs` non registri
   `AddResponseCaching` né `AddOutputCache` e che nessun middleware di caching sia in pipeline.
   *Verifica* (spec `api-pubblica` → *Nessuna cache lato server*): `grep -rn "AddResponseCaching\|AddOutputCache\|UseResponseCaching\|UseOutputCache" backend/`
   non trova nulla; due richieste consecutive alla stessa rotta producono **due** query a database
   (osservabile dai log EF).
 
-- [ ] 6.6 **Il criterio del rate limiting, scritto dove servirà** — in
+- [x] 6.6 **Il criterio del rate limiting, scritto dove servirà** — in
   `backend/Middleware/AuthRateLimitMiddleware.cs`, **solo un commento** accanto a
   `RateLimitedPaths`: le tre GET pubbliche **non** ci sono, e il criterio è **"lettura cacheabile a
   costo fisso: no; scrittura che persiste dati o invia email: sì"**. Con le tre ragioni verificate:
@@ -893,7 +893,7 @@ alla natura del dato. E la policy CORS dedicata non è una questione di accesso 
   *Verifica* (spec `sicurezza` → *Le rotte pubbliche non sono nel dizionario*): il dizionario
   contiene **esattamente** le due voci di autenticazione preesistenti, e il criterio è accanto.
 
-- [ ] 6.7 🔴 **Prova manuale: leggere l'header vero** — sulla seconda istanza:
+- [x] 6.7 🔴 **Prova manuale: leggere l'header vero** — sulla seconda istanza:
   ```bash
   curl -skI https://localhost:4012/api/public/site     | grep -i "cache-control\|set-cookie"
   curl -skI https://localhost:4012/api/public/menu     | grep -i "cache-control\|set-cookie"
@@ -907,7 +907,7 @@ alla natura del dato. E la policy CORS dedicata non è una questione di accesso 
   `Access-Control-Allow-Credentials`. Un test unitario non vede i middleware: questa prova non è
   sostituibile.
 
-- [ ] 6.8 **Il costo per richiesta non è amplificabile** — richiedi le tre rotte con parametri di
+- [x] 6.8 **Il costo per richiesta non è amplificabile** — richiedi le tre rotte con parametri di
   query arbitrari e ripetutamente.
   *Verifica* (spec `sicurezza` → *Il costo per richiesta non è amplificabile*, *Molte richieste
   consecutive non vengono rifiutate*): la risposta con parametri è identica a quella senza; il
@@ -917,6 +917,62 @@ alla natura del dato. E la policy CORS dedicata non è una questione di accesso 
 **Uscita di fase.** Le tre rotte portano gli header che il reverse proxy di Fase 6 onorerà, la
 policy credenziale è intatta dove serve, e la decisione sul rate limiting è scritta dove la
 leggerà chi dovrà prenderne una opposta. `deploy/` non è stato toccato.
+
+**Esito reale (apply del 2026-08-12).** Suite backend **608/608** → **622/622** (14 test nuovi in
+`Unit/Controllers/ContrattoDiCachePubblicaTests.cs`, file distinto da `SuperficiePubblicaTests`
+perché quello pinna **cosa** esce da una risposta pubblica e questo **come** viaggia).
+
+- 🔴 **Scoperta durante 6.7: `curl -skI` non legge l'header di queste rotte.** `-I` manda un
+  **HEAD**, le tre action sono `[HttpGet]`, quindi la selezione dell'endpoint non trova nulla e
+  risponde **405**. Su un 405 nessun endpoint è selezionato, quindi `[EnableCors]` non è
+  visibile e si applica la **policy globale credenziale**: l'output osservato con `-I` è
+  ```
+  HTTP/2 405
+  access-control-allow-credentials: true
+  access-control-allow-origin: http://localhost:4321
+  vary: Origin
+  ```
+  cioè esattamente il contrario di ciò che il task voleva verificare, e un lettore distratto
+  avrebbe concluso che la fase era rotta. La forma corretta è una **GET vera** con dump degli
+  header: `curl -sk -o /dev/null -D - <url>`.
+- *Verifica 6.7, output osservato su GET reali*:
+  ```
+  GET /api/public/site      → HTTP/2 200 ; cache-control: public,max-age=300
+  GET /api/public/menu      → HTTP/2 200 ; cache-control: public,max-age=60
+  GET /api/public/galleria  → HTTP/2 200 ; cache-control: public,max-age=300
+  ```
+  **Nessuna** delle tre porta `Set-Cookie`, `Vary`, `Expires` o `Pragma`. Il valore è
+  `public,max-age=300` **senza spazio** dopo la virgola, come la risoluzione n. 6 prevedeva: il
+  test lo verifica sui metadati (`Duration` + `Location.Any`) e non per uguaglianza di stringa.
+- *Verifica 6.7 sul CORS*: con `Origin: http://localhost:4321` la risposta porta
+  `access-control-allow-origin: *`, **nessun** `access-control-allow-credentials` e **nessun**
+  `vary`. Idem con un'origine arbitraria fuori allowlist (`https://un-dominio-qualsiasi.example`),
+  che è la prova che la policy dedicata ha davvero scavalcato quella globale. Il preflight
+  `OPTIONS` risponde `204` con `access-control-allow-methods: GET` e nient'altro.
+  **Controprova**: `OPTIONS /graphql` e `OPTIONS /api/auth/signin` con la stessa origine
+  rispondono ancora `access-control-allow-credentials: true`,
+  `access-control-allow-origin: http://localhost:4321` e `vary: Origin` — la policy credenziale
+  è intatta dove serve.
+- *Verifica 6.8*: le tre risposte con
+  `?limite=100000&take=9999&page=7&categoria=BEVANDE&order=desc&attivo=false` sono **identiche
+  byte per byte** (`cmp`) a quelle senza parametri (485 / 1269 / 332 byte). **40 richieste
+  consecutive** su ciascuna rotta: 40 × `200`, **zero** `429`.
+- *Verifica 6.5 dal vivo, non solo per scansione*: il delta di `Com_select` di MySQL attorno a
+  due richieste consecutive a `/api/public/menu` è **2 e 2** (`2313 → 2316 → 2319`, meno la
+  `SELECT` della misura stessa). Le due query sono la `CountAsync` del totale e quella del menu:
+  la seconda richiesta le rifà entrambe, quindi **non esiste alcuna cache lato server**.
+- *Verifica 6.8 sull'autenticazione*: `POST /api/auth/signin` risponde `401` ai primi cinque
+  tentativi e `429` dal sesto, con `retry-after: 900` e
+  `{"message":"Troppi tentativi. Riprova più tardi.","retryAfter":"15 minuti"}` — identico a
+  prima della change. ⚠️ La prova è stata fatta su un **bucket dedicato**
+  (`X-Forwarded-For: 203.0.113.77`) per non consumare il contatore dell'IP reale, che serviva
+  ancora per il task 8.11. È l'uso legittimo di una proprietà che resta un difetto: la stessa
+  falsificabilità è la ragione n. 1 per cui le GET pubbliche non entrano nel dizionario.
+- *Divergenza dal testo di 6.6, dichiarata*: oltre al commento è stata aggiunta la proprietà
+  `internal static IReadOnlyCollection<string> PercorsiLimitati => RateLimitedPaths.Keys`. Il
+  dizionario resta privato, ma senza un modo di leggerlo il test del criterio avrebbe potuto
+  verificare solo la **prosa** del commento — cioè fidarsi di ciò che il commento dice invece
+  che di ciò che il dizionario contiene.
 
 ---
 
@@ -931,7 +987,7 @@ solleva un errore grezzo di chiave esterna **dopo** che ① ha già cancellato g
 presente, file spariti, immagine OG rotta su ogni condivisione social, e un messaggio MySQL
 incomprensibile nell'interfaccia.
 
-- [ ] 7.1 🔴 **Il controllo del secondo referente, prima di toccare il disco** — in
+- [x] 7.1 🔴 **Il controllo del secondo referente, prima di toccare il disco** — in
   `EliminaMediaAssetAsync`, accanto alla lettura dei prodotti che lo usano e **prima** di
   `storage.EliminaAsync`:
   `bool usataComeOg = await dbContext.ImpostazioniVetrina.AnyAsync(i => i.ImmagineOgId == mediaAssetId);`
@@ -941,12 +997,12 @@ incomprensibile nell'interfaccia.
   *Verifica* (spec `media-assets` → requisito modificato): l'ordine è leggibile nel metodo
   dall'alto: **entrambe** le verifiche precedono qualunque scrittura su disco.
 
-- [ ] 7.2 **Il caso preesistente resta identico** — il rifiuto per prodotti referenzianti e il suo
+- [x] 7.2 **Il caso preesistente resta identico** — il rifiuto per prodotti referenzianti e il suo
   messaggio non cambiano di un carattere.
   *Verifica* (spec `media-assets` → *Il caso preesistente resta invariato*): i test esistenti su
   `eliminaMediaAsset` con media assegnato a due prodotti passano **senza modifiche**.
 
-- [ ] 7.3 🔴 **Test: il rifiuto lascia i file sul disco** — media assegnato come immagine OG →
+- [x] 7.3 🔴 **Test: il rifiuto lascia i file sul disco** — media assegnato come immagine OG →
   eliminazione rifiutata **e**:
   - il record del media è ancora presente;
   - 🔴 **tutti i file delle sue varianti sono ancora sul filesystem** (è l'asserzione che conta e
@@ -955,7 +1011,7 @@ incomprensibile nell'interfaccia.
   *Verifica*: `dotnet test --filter "MediaAsset"` passa; l'asserzione sui file conta gli stessi
   file di prima, non solo che la cartella esista.
 
-- [ ] 7.4 🔴 **Verifica per mutazione dell'ordine dei controlli** — **rimuovi** il controllo del
+- [x] 7.4 🔴 **Verifica per mutazione dell'ordine dei controlli** — **rimuovi** il controllo del
   task 7.1, **esegui il test e osserva quale asserzione fallisce**: deve fallire quella sui **file
   su disco**, mentre quella sul rifiuto può restare verde (la FK rifiuta comunque, solo troppo
   tardi). Poi **ripristina** il controllo e vedi il test tornare verde.
@@ -963,7 +1019,7 @@ incomprensibile nell'interfaccia.
   che verificasse solo il rifiuto resterebbe verde **con i file già cancellati** — è esattamente
   ciò che questa prova dimostra, e va annotato nell'uscita di fase.
 
-- [ ] 7.5 **Gli altri casi del referente doppio** — media assegnato a un prodotto **e** come
+- [x] 7.5 **Gli altri casi del referente doppio** — media assegnato a un prodotto **e** come
   immagine OG → rifiuto, record e file intatti; riferimento OG azzerato e poi eliminazione →
   riesce, rimuovendo record **e tutti** i file; tentativo di cancellare la riga direttamente a
   database con il riferimento presente → bloccato dal vincolo `Restrict`.
@@ -974,6 +1030,56 @@ incomprensibile nell'interfaccia.
 entrambi **prima** di toccare il disco, e la prova che il test sappia cogliere il guasto è stata
 eseguita, non argomentata.
 
+**Esito reale (apply del 2026-08-12).** **622/622** → **626/626** (4 test nuovi in
+`VetrinaMediaTests`).
+
+- *Divergenza dal testo di 7.3, e la ragione*: il test non usa `act.Should().ThrowAsync(...)` ma
+  cattura l'eccezione con `Record.ExceptionAsync` e raccoglie **tutte** le asserzioni dentro un
+  `AssertionScope`, con quella sul **disco per prima**. Nell'ordine naturale la verifica per
+  mutazione si sarebbe fermata alla prima riga rossa e avrebbe detto soltanto *"non è stata
+  sollevata alcuna eccezione"* — il sintomo invece del guasto. Con lo scope il rapporto dice
+  quali proprietà sono cadute e quali no, che è la differenza fra una prova e un'impressione.
+  Per la stessa ragione l'elenco dei file passa da un helper `FileDi(asset)` che restituisce `[]`
+  quando la cartella non esiste più: enumerarla direttamente solleverebbe
+  `DirectoryNotFoundException` proprio nel caso che il test deve saper descrivere, e il rapporto
+  direbbe "percorso non trovato" invece di "mi aspettavo quattro file e non ce n'è nessuno".
+- 🔴 *Mutazione 7.4* (rimosso il blocco `if (usataComeOg) throw …`, lasciando la sola lettura):
+  rosso **1 test su 19**, `EliminaMediaAsset_UsataComeImmagineOg_RifiutataEIFileRestanoSulDisco`,
+  con **tre** asserzioni cadute e riportate insieme:
+  1. 🔴 `Expected FileDi(asset) to be equal to {… 400.jpg, 400.webp, 800.jpg, 800.webp} …, but
+     found empty collection` — **i quattro file sono stati cancellati**. È il guasto, ed è
+     l'asserzione che il task chiedeva di veder diventare rossa;
+  2. `Expected sollevata to be GraphQL.ExecutionError, but found <null>`;
+  3. `Expected _dbContext.MediaAssets to contain 1 item(s), but found 0`.
+  ⚠️ **Le asserzioni 2 e 3 cadono solo nel test, non in produzione**, ed è la nota che rende
+  onesta questa prova: il provider InMemory **non applica le foreign key**, quindi lì
+  l'eliminazione riesce del tutto. Su MySQL la FK `Restrict` avrebbe rifiutato — e le asserzioni
+  2 e 3 sarebbero rimaste **verdi**, con i file già spariti. È esattamente lo scenario che la
+  spec descrive: *un test che verificasse solo il rifiuto resterebbe verde con i file già
+  cancellati*. La prova che la FK rifiuta davvero è quella su MySQL qui sotto.
+  ⚠️ Resta **verde** anche sotto mutazione `EliminaMediaAsset_UsataDaUnProdottoEComeImmagineOg_…`:
+  con entrambi i referenti presenti è il controllo sui prodotti a rifiutare per primo, quindi
+  quel caso **maschera** il controllo mancante. È la ragione per cui lo scenario del solo
+  referente OG esiste come test separato. Dopo il ripristino: **19/19 verdi**.
+- *Verifica 7.5 a database*, da una sessione `mysql.exe` vera sul database di sviluppo:
+  - la FK è dichiarata come attesa —
+    `CONSTRAINT FK_ImpostazioniVetrina_MediaAssets_ImmagineOgId FOREIGN KEY (ImmagineOgId)
+    REFERENCES mediaassets (MediaAssetId) ON DELETE RESTRICT`;
+  - assegnato il media **25** (`prova-cartella.jpg`, cartella `galleria`) come `ImmagineOgId`,
+    `DELETE FROM MediaAssets WHERE MediaAssetId = 25;` →
+    **`ERROR 1451 (23000): Cannot delete or update a parent row: a foreign key constraint fails`**.
+    Nemmeno una cancellazione scritta a mano può lasciare un riferimento pendente;
+  - **ripristinato**: `ImmagineOgId` è tornato a `NULL` e il media 25 è ancora presente. Il
+    database di sviluppo è nello stato in cui era.
+- *Verifica 7.2*: i due test preesistenti su `eliminaMediaAsset` con media assegnato a due
+  prodotti (`EliminaMediaAsset_InUso_RifiutatoConIProdottiNominati`) e su media libero passano
+  **senza una sola modifica**, e il messaggio nomina gli stessi prodotti di prima. Il nuovo
+  controllo si legge dopo quello dei prodotti e non ne cambia una virgola.
+- *Aggiunto oltre al testo del task*:
+  `EliminaMediaAsset_ConImpostazioniCheNeReferenzianoUnAltro_Riesce`. Senza, un controllo che
+  rifiutasse **sempre** — per esempio un `AnyAsync` senza predicato — sarebbe passato
+  inosservato e nessun media sarebbe stato più eliminabile.
+
 ---
 
 ## Fase 8 — Ramo GraphQL admin: `vetrina { impostazioni }` e la mutation
@@ -983,12 +1089,12 @@ E porta la divergenza deliberata più importante di questo change: `updateBusine
 sotto condizione `if (!string.IsNullOrEmpty(...))`, quindi **un campo non si può svuotare**.
 Copiare quello stile qui lo importerebbe in un'entità dove i campi opzionali sono la maggioranza.
 
-- [ ] 8.1 **`backend/GraphQL/Vetrina/Types/ImpostazioniVetrinaType.cs`** — output admin con tutti i
+- [x] 8.1 **`backend/GraphQL/Vetrina/Types/ImpostazioniVetrinaType.cs`** — output admin con tutti i
   campi del contratto di design.md §"Contratto GraphQL", inclusi i ganci spenti e
   `immagineOg: MediaAsset`.
   *Verifica*: `dotnet build` esce 0; l'introspezione mostra i campi attesi.
 
-- [ ] 8.2 **`ImpostazioniVetrinaInput` + `ImpostazioniVetrinaInputType`** — POCO e tipo GraphQL con
+- [x] 8.2 **`ImpostazioniVetrinaInput` + `ImpostazioniVetrinaInputType`** — POCO e tipo GraphQL con
   **esattamente** i campi scrivibili. 🔴 **Nessun identificativo** (c'è una riga sola e il resolver
   sa quale: accettare un id sarebbe invitare qualcuno a passarne un altro), **nessuna marca
   temporale**, **nessun campo di orario**.
@@ -996,7 +1102,7 @@ Copiare quello stile qui lo importerebbe in un'entità dove i campi opzionali so
   l'input li accetta*): una mutation che tenta di passare `impostazioniVetrinaId` o `openingTime`
   è rifiutata dalla **validazione dello schema**, non dal resolver.
 
-- [ ] 8.3 🔴 **`backend/GraphQL/Vetrina/VetrinaQueries.cs`** — `this.Authorize()` a livello di tipo
+- [x] 8.3 🔴 **`backend/GraphQL/Vetrina/VetrinaQueries.cs`** — `this.Authorize()` a livello di tipo
   e `Field<ImpostazioniVetrinaType>("impostazioni")` con `GuardAmministratore` come **prima
   istruzione del resolver, anche in lettura**, poi lettura per
   `ImpostazioniVetrinaId == ImpostazioniVetrina.IdSingleton` (mai `FirstOrDefaultAsync()` senza
@@ -1010,19 +1116,19 @@ Copiare quello stile qui lo importerebbe in un'entità dove i campi opzionali so
   anche in lettura*): coperto dal test 8.10; con la riga assente la query restituisce un risultato
   gestibile dal client e non un errore di infrastruttura.
 
-- [ ] 8.4 **Registrazione del ramo root** — in `backend/GraphQL/GraphQLQueries.cs`:
+- [x] 8.4 **Registrazione del ramo root** — in `backend/GraphQL/GraphQLQueries.cs`:
   `Field<VetrinaQueries>("vetrina").Resolve(context => new { })`.
   *Verifica*: l'introspezione mostra otto rami di query; le tre `Theory` enumerative di
   `AutorizzazioneAnonimaTests` coprono `vetrina` **da sole**, senza alcuna allowlist.
 
-- [ ] 8.5 ⚠️ **`SchemaEspone_TuttiIRamiRootAttesi` si aggiorna, non si aggira** — aggiungi
+- [x] 8.5 ⚠️ **`SchemaEspone_TuttiIRamiRootAttesi` si aggiorna, non si aggira** — aggiungi
   `"vetrina"` all'elenco **delle query** ([riga 100-102](../../../backend/DuedGusto.Tests/Integration/GraphQL/AutorizzazioneAnonimaTests.cs)).
   È la sveglia progettata: *"è nato un ramo root, hai verificato che sia autorizzato?"*.
   *Verifica* (spec `sicurezza` → *L'elenco atteso dei rami root viene aggiornato, non aggirato*):
   il ramo **non** viene escluso da alcuna verifica enumerativa; la modifica al test è **solo**
   l'aggiunta del nome.
 
-- [ ] 8.6 🔴 **`mutateImpostazioniVetrina` ad assegnazione totale** — nel `VetrinaMutations`
+- [x] 8.6 🔴 **`mutateImpostazioniVetrina` ad assegnazione totale** — nel `VetrinaMutations`
   esistente: `GuardAmministratore` come **prima istruzione**, come le altre tre; upsert su
   `IdSingleton` (crea la riga se manca, per l'installazione con `SEED_ON_STARTUP=false`);
   **assegnazione totale** di tutti i campi dell'input sul modello di `ApplicaCampiVetrinaAsync`
@@ -1035,7 +1141,7 @@ Copiare quello stile qui lo importerebbe in un'entità dove i campi opzionali so
   8.8; l'input possiede **esattamente** i campi scrivibili, quindi non c'è nulla da ricordarsi di
   preservare.
 
-- [ ] 8.7 **Validazioni prima della scrittura, in italiano** — `OraInizioTemaSera` formato `HH:mm`
+- [x] 8.7 **Validazioni prima della scrittura, in italiano** — `OraInizioTemaSera` formato `HH:mm`
   (lo stesso di `OpeningTime`/`ClosingTime`); `Latitudine ∈ [-90, 90]` e
   `Longitudine ∈ [-180, 180]` quando valorizzate, e valorizzate **insieme o nessuna delle due**
   (mezza coordinata è un punto sull'equatore, cioè un dato peggiore di un dato mancante); URL
@@ -1045,7 +1151,7 @@ Copiare quello stile qui lo importerebbe in un'entità dove i campi opzionali so
   chi legge il messaggio. Nessun rifiuto lascia una scrittura parziale.
   *Verifica*: coperto dai test 8.9.
 
-- [ ] 8.8 🔴 **Test dello svuotamento e verifica per mutazione** — impostazioni con
+- [x] 8.8 🔴 **Test dello svuotamento e verifica per mutazione** — impostazioni con
   `urlFacebook` valorizzato → mutation con quel campo vuoto → il valore persistito è **nullo** e la
   rilettura restituisce nullo; telefono di **soli spazi** → nullo. Poi **sostituisci**
   l'assegnazione di un campo opzionale con la forma condizionata al valore non vuoto, **vedi
@@ -1053,7 +1159,7 @@ Copiare quello stile qui lo importerebbe in un'entità dove i campi opzionali so
   *Verifica* (spec `impostazioni-vetrina` → *Verifica per mutazione dell'assegnazione totale*):
   senza questa prova, un `if` reintrodotto per distrazione passerebbe la CI.
 
-- [ ] 8.9 **Test delle validazioni e del round-trip** — `"18.00"` rifiutato e nessun campo
+- [x] 8.9 **Test delle validazioni e del round-trip** — `"18.00"` rifiutato e nessun campo
   modificato; sola latitudine rifiutata con messaggio che spiega che vanno insieme; latitudine
   `120` rifiutata; **entrambe azzerate** → successo con geolocalizzazione assente; `"@2dgusto"`
   rifiutato con richiesta di indirizzo completo; `immagineOgId` inesistente → errore esplicito e
@@ -1063,7 +1169,7 @@ Copiare quello stile qui lo importerebbe in un'entità dove i campi opzionali so
   l'identificativo fisso.
   *Verifica* (spec `impostazioni-vetrina`, dominio amministrazione): `dotnet test --filter "ImpostazioniVetrina"` passa.
 
-- [ ] 8.10 🔴 **Privilegi su tutta la nuova superficie** — in
+- [x] 8.10 🔴 **Privilegi su tutta la nuova superficie** — in
   `backend/DuedGusto.Tests/Integration/GraphQL/PrivilegiAmministrativiTests.cs`: un utente
   autenticato con `Amministratore = false` è rifiutato **sia** su `vetrina { impostazioni }`
   (lettura!) **sia** su `mutateImpostazioniVetrina`, con errore esplicito di privilegi
@@ -1072,7 +1178,7 @@ Copiare quello stile qui lo importerebbe in un'entità dove i campi opzionali so
   *Verifica* (spec `sicurezza`, scenari di rifiuto): `dotnet test --filter "Privilegi"` passa; il
   caso della **lettura** è quello che si dimentica — se manca, il task 8.3 non è chiuso.
 
-- [ ] 8.11 **Prova manuale da GraphiQL** — sulla seconda istanza (🔧 porta 4012): leggi
+- [x] 8.11 **Prova manuale da GraphiQL** — sulla seconda istanza (🔧 porta 4012): leggi
   `vetrina { impostazioni { … } }`, scrivi `mutateImpostazioniVetrina` con tutti i campi, rileggi;
   poi svuota `urlFacebook` e rileggi; poi assegna un `immagineOgId` reale.
   🔧 Il JWT scade in **5 minuti** e il signin è limitato a **5 tentativi ogni 15 minuti per IP**:
@@ -1082,6 +1188,96 @@ Copiare quello stile qui lo importerebbe in un'entità dove i campi opzionali so
 
 **Uscita di fase.** Le impostazioni si leggono e si scrivono da GraphiQL, solo da un
 amministratore, e un campo si può svuotare. Nessuna pagina esiste ancora.
+
+**Esito reale (apply del 2026-08-12).** **626/626** → **666/666** (40 test nuovi: 33 in
+`Integration/GraphQL/ImpostazioniVetrinaTests.cs`, 5 in `PrivilegiAmministrativiTests`, più i due
+rami enumerativi che `Query.vetrina` aggiunge da solo alle `Theory` di
+`AutorizzazioneAnonimaTests`). Baseline complessivo della sessione: **608 → 666**.
+
+- *Verifica 8.5, eseguita come previsto*: `SchemaEspone_TuttiIRamiRootAttesi` è diventato rosso
+  all'introduzione del ramo, e la modifica al test è stata **soltanto** l'aggiunta di
+  `"vetrina"` all'elenco delle query. Nessuna esclusione, nessuna allowlist: le tre `Theory`
+  enumerative ora coprono `Query.vetrina` **da sole**, e il conteggio del filtro
+  `--filter "Autorizzazione"` è salito di un test senza che nessuno lo abbia scritto.
+- 🔴 *Mutazione 8.8* (`impostazioni.UrlFacebook = facebook;` sostituito da
+  `if (!string.IsNullOrEmpty(facebook)) { impostazioni.UrlFacebook = facebook; }`): rosso **1
+  solo** test su 44, `Mutation_ConUnCampoOpzionaleSvuotato_PersisteLAssenza`, con
+  `Expected salvate.UrlFacebook to be <null> …, but found "https://www.facebook.com/2dgusto/"`.
+  ⚠️ **Verde il round-trip**, che pure tocca lo stesso campo: valorizzandolo la forma
+  condizionale si comporta correttamente. È la ragione per cui lo scenario dello **svuotamento**
+  esiste come test separato — senza, la CI non distinguerebbe le due forme di assegnazione.
+  Dopo il ripristino: **44/44 verdi**.
+- *Divergenza dichiarata su 8.7, e riguarda un messaggio esistente.* La spec pretende che il
+  messaggio dell'immagine non pubblicata sia *«lo stesso, alla lettera»* fra il caso prodotto e
+  il caso anteprima social. Quello esistente diceva *«non può essere assegnata **a un
+  prodotto**»*, che nel caso dell'anteprima sarebbe stato **falso**. Invece di scriverne un
+  secondo si è estratta la sede unica
+  `VetrinaMutations.VerificaImmagineAssegnabileAsync`, togliendo la clausola su **entrambi** i
+  chiamanti insieme: il messaggio è ora *«L'immagine "X" non è pubblicata e non può essere
+  assegnata. Pubblicala dalla libreria media, oppure scegline un'altra.»* Nessun test pinnava
+  la formulazione precedente (verificato). Il test
+  `Mutation_ConImmagineOgNonPubblicata_HaLoStessoMessaggioDelCasoProdotto` esegue davvero i due
+  percorsi e confronta le due stringhe con `Should().Be(...)`: non copia il testo, prova che ne
+  esiste uno solo.
+- *Divergenza dichiarata su 8.7, formato orario*: `FormatoOrario` è
+  `^([01][0-9]|2[0-3]):[0-5][0-9]$`, cioè **più stretto** del `/^\d{2}:\d{2}$/` con cui il
+  frontend valida gli orari della cassa — qui `"25:00"` e `"18:60"` sono rifiutati. È la
+  direzione giusta dell'asimmetria: la validazione del client non è l'unico controllo, e le
+  stesse regole devono valere per una chiamata GraphQL diretta.
+- *Altre due scelte da dichiarare*: (a) `GuardAmministratore` è passato da `private` a
+  `internal` perché `VetrinaQueries` usa **lo stesso** guard delle mutation — due guard che
+  verificano la stessa cosa sono due guard, e il giorno in cui uno smettesse di leggere il flag
+  del ruolo l'altro non lo saprebbe; (b) le validazioni girano **prima** di toccare il change
+  tracker e non solo prima di `SaveChanges`, così un rifiuto non lascia nemmeno un'entità
+  agganciata in stato `Added` — è pinnato dal test sui social, che asserisce
+  `ImpostazioniVetrina.Should().BeEmpty()` dopo il rifiuto.
+- *Aggiunto oltre al testo dei task*: `Input_ConUnCampoCheNonPossiede_RifiutatoDallaValidazione
+  DelloSchema`, una `Theory` su sei campi (`impostazioniVetrinaId`, `openingTime`, `closingTime`,
+  `operatingDays`, `timezone`, `createdAt`) che verifica il rifiuto a livello di **documento**,
+  non di resolver; e `ImpostazioniVetrinaInput_HaEsattamenteICampiScrivibili`, il pin per
+  riflessione che copre anche i campi che nessuno ha pensato di provare.
+
+- 🔴 **Prova 8.11 eseguita davvero, interamente da HTTP e senza una riga di frontend**, su una
+  seconda istanza (`ASPNETCORE_URLS=https://localhost:4012`, `SEED_ON_STARTUP=false`, dll
+  compilata fuori da `bin/`, content root `backend/`), con l'utente `e2e-admin`:
+  1. **Anonimo** su `query { vetrina { impostazioni } }` →
+     `Access denied for type 'VetrinaQueries' for field 'vetrina' on type 'GraphQLQueries'`,
+     codice `ACCESS_DENIED`. È `this.Authorize()` di tipo che funziona dal vivo.
+  2. **Lettura** con token amministratore → la riga completa, `impostazioniVetrinaId: 1`,
+     `insegnaPubblica: "2D Gusto Bar"`, e i campi riservati visibili (`turnstileSiteKey: null`,
+     `prenotazioni*`).
+  3. **Scrittura** di tutti e venti i campi con `immagineOgId: 25` → risposta con i valori
+     scritti **e** `immagineOg { mediaAssetId: 25, chiave: "2026/08/prova-cartella-xxuvbm",
+     nomeOriginale: "prova-cartella.jpg" }`: la navigazione viene ricaricata dopo il salvataggio.
+  4. **Rilettura** → ogni valore identico a quello inviato, comprese
+     `latitudine: 45.707500` / `longitudine: 11.478900` e `oraInizioTemaSera: "19:30"`.
+  5. 🔴 **Svuotamento**: stessa mutation con `urlFacebook: ""` e tutti gli altri campi invariati
+     → `"urlFacebook": null` nella risposta **e** nella rilettura, mentre `urlInstagram` e
+     `telefono` restano valorizzati. È il ciclo che la forma condizionale renderebbe impossibile.
+  6. **`/api/public/site`** riflette gli stessi dati letti dalla stessa riga —
+     `geo: {45.707500, 11.478900}`, `social: {instagram: …, facebook: null}`,
+     `seo.immagineOg.chiave: "2026/08/prova-cartella-xxuvbm"`, `oraInizioTemaSera: "19:30"` — e
+     **non** espone `turnstileSiteKey`, `prenotazioni*`, `vatRate`, `settingsId` (verificato con
+     una ricerca per nome su tutte e quattro le chiavi).
+  ⚠️ `curl -I` **non** va usato su queste rotte: manda un HEAD e prende 405 (vedi Fase 6).
+- *Prova della Fase 7 dal vivo*, come effetto collaterale della 8.11 e non prevista dai task:
+  - con `immagineOgId = 25` (media che è **anche** immagine di un prodotto),
+    `eliminaMediaAsset(mediaAssetId: 25)` viene rifiutata dal messaggio dei **prodotti**
+    (*«è usata da 1 prodotto: CAFFE ESPRESSO»*): il primo referente **maschera** il secondo, che
+    è esattamente ciò che il test unitario aveva già mostrato;
+  - assegnato allora il media **23** (`800.jpg`, non usato da alcun prodotto) come immagine OG,
+    `eliminaMediaAsset(mediaAssetId: 23)` risponde
+    **«L'immagine "800.jpg" è l'immagine di anteprima social del sito. Sostituiscila o rimuovila
+    dalle impostazioni del sito, poi riprova.»**, i **quattro** file
+    (`400.jpg`, `400.webp`, `800.jpg`, `800.webp`) sono **ancora sul disco** e la riga è ancora a
+    database. Il ramo nuovo funziona su un processo vero, non solo su InMemory.
+- *Stato del database di sviluppo dopo le prove: **ripristinato**.* Le impostazioni sono tornate
+  ai valori del seed (`2D Gusto Bar`, Via del Costo 99, 36016 Thiene VI IT, Instagram
+  valorizzato, tutto il resto `NULL`, `18:00`, `false/2/20`) usando la **mutation stessa** — che
+  è anche una seconda prova dello svuotamento su dodici campi in una volta — e verificati riga
+  per riga da `mysql.exe`. `ImmagineOgId` è `NULL`, i 21 media sono tutti presenti, la tabella ha
+  **una** riga. Restano a database i tre prodotti `VETR-F5-*` già dichiarati dalla Fase 5: nulla
+  di nuovo è stato lasciato.
 
 ---
 

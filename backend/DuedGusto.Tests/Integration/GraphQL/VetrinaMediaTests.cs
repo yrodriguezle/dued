@@ -1,6 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
+using FluentAssertions.Execution;
+
 using GraphQL;
 
 using duedgusto.GraphQL.Vetrina;
@@ -134,6 +136,145 @@ public class VetrinaMediaTests : IDisposable
         Func<Task> act = () => VetrinaMutations.EliminaMediaAssetAsync(_dbContext, _storage, 9999);
 
         await act.Should().ThrowAsync<ExecutionError>().WithMessage("*non trovato*");
+    }
+
+    // ── Il SECONDO referente: l'immagine di anteprima social ─────────────────────────────
+
+    private async Task<ImpostazioniVetrina> CreaImpostazioni(int? immagineOgId = null)
+    {
+        var impostazioni = new ImpostazioniVetrina
+        {
+            InsegnaPubblica = "2D Gusto Bar",
+            Via = "Via del Costo 99",
+            Cap = "36016",
+            Citta = "Thiene",
+            Provincia = "VI",
+            ImmagineOgId = immagineOgId,
+        };
+        _dbContext.ImpostazioniVetrina.Add(impostazioni);
+        await _dbContext.SaveChangesAsync();
+        return impostazioni;
+    }
+
+    /// <summary>
+    /// 🔴 <b>L'asserzione che conta è quella sui file, non quella sul rifiuto.</b>
+    ///
+    /// <para>In produzione, con il controllo rimosso, la foreign key <c>Restrict</c> rifiuterebbe
+    /// <b>comunque</b> — solo <b>dopo</b> che i file sono spariti dal disco. Un test che si
+    /// accontentasse di "l'operazione fallisce" resterebbe quindi verde certificando come
+    /// corretto lo stato «riga presente, file cancellati, immagine di anteprima rotta su ogni
+    /// condivisione social».</para>
+    ///
+    /// <para>⚠️ <b>Perché le asserzioni stanno dentro un <c>AssertionScope</c>, con il disco per
+    /// primo.</b> Nell'ordine naturale, una verifica per mutazione (task 7.4) si fermerebbe alla
+    /// prima riga rossa e direbbe soltanto "non è stata sollevata alcuna eccezione" — il sintomo
+    /// invece del guasto. Con lo scope si raccolgono <b>tutte</b> le asserzioni in un giro solo,
+    /// quindi il rapporto di fallimento dice a chi rimuove il controllo <b>quali</b> proprietà
+    /// sono cadute e quali no. È la differenza fra una prova e un'impressione.</para>
+    /// </summary>
+    [Fact]
+    public async Task EliminaMediaAsset_UsataComeImmagineOg_RifiutataEIFileRestanoSulDisco()
+    {
+        MediaAsset asset = await CreaMediaConFile("anteprima-social.jpg");
+        ImpostazioniVetrina impostazioni = await CreaImpostazioni(asset.MediaAssetId);
+
+        string[] primaDeiFile = FileDi(asset);
+        primaDeiFile.Should().HaveCount(4, "il presupposto del test è che i file esistano");
+
+        Exception? sollevata = await Record.ExceptionAsync(() =>
+            VetrinaMutations.EliminaMediaAssetAsync(_dbContext, _storage, asset.MediaAssetId));
+
+        using var scope = new AssertionScope();
+
+        // 🔴 PRIMA il disco: è l'asserzione che si dimentica e l'unica che il guasto vero fa
+        //    fallire. Il rifiuto, da solo, non prova nulla — in produzione la foreign key
+        //    rifiuta comunque, solo dopo che i file sono spariti.
+        FileDi(asset).Should().Equal(primaDeiFile,
+            "il rifiuto deve lasciare il sistema esattamente come era: nessun file toccato, "
+            + "perché entrambe le verifiche dei referenti precedono qualunque scrittura su disco");
+
+        // E poi il rifiuto: il messaggio nomina il media e dice cosa fare, come quello dei
+        // prodotti.
+        sollevata.Should().BeOfType<ExecutionError>();
+        sollevata?.Message.Should().Contain("anteprima-social.jpg")
+            .And.Contain("anteprima social")
+            .And.Contain("impostazioni del sito");
+
+        _dbContext.MediaAssets.Should().HaveCount(1);
+        _dbContext.ImpostazioniVetrina.First().ImmagineOgId
+            .Should().Be(impostazioni.ImmagineOgId, "il riferimento non deve essere stato toccato");
+    }
+
+    /// <summary>
+    /// I file delle varianti, o un elenco vuoto se la cartella non esiste più. Enumerare
+    /// direttamente solleverebbe <c>DirectoryNotFoundException</c> quando i file <b>sono</b> stati
+    /// cancellati, cioè proprio nel caso che questo test deve saper descrivere: il rapporto
+    /// direbbe "percorso non trovato" invece di "mi aspettavo quattro file e non ce n'è nessuno".
+    /// </summary>
+    private string[] FileDi(MediaAsset asset) =>
+        Directory.Exists(CartellaDi(asset))
+            ? Directory.GetFiles(CartellaDi(asset)).OrderBy(f => f).ToArray()
+            : [];
+
+    [Fact]
+    public async Task EliminaMediaAsset_UsataDaUnProdottoEComeImmagineOg_RifiutataEIntatta()
+    {
+        MediaAsset asset = await CreaMediaConFile("caffe.jpg");
+        await CreaProdotto("A1", "Caffè espresso", immagineId: asset.MediaAssetId);
+        await CreaImpostazioni(asset.MediaAssetId);
+
+        string[] primaDeiFile = Directory.GetFiles(CartellaDi(asset)).OrderBy(f => f).ToArray();
+
+        Func<Task> act = () => VetrinaMutations.EliminaMediaAssetAsync(
+            _dbContext, _storage, asset.MediaAssetId);
+
+        // Con entrambi i referenti presenti vince il messaggio dei prodotti, che è il più
+        // azionabile: chi lo legge deve comunque passare dalle schede prima di poter eliminare.
+        ExecutionError errore = (await act.Should().ThrowAsync<ExecutionError>()).Which;
+        errore.Message.Should().Contain("Caffè espresso");
+
+        Directory.GetFiles(CartellaDi(asset)).OrderBy(f => f).Should().Equal(primaDeiFile);
+        _dbContext.MediaAssets.Should().HaveCount(1);
+        _dbContext.ImpostazioniVetrina.First().ImmagineOgId.Should().Be(asset.MediaAssetId);
+    }
+
+    [Fact]
+    public async Task EliminaMediaAsset_DopoAverAzzeratoIlRiferimentoOg_RimuoveRigaETuttiIFile()
+    {
+        MediaAsset asset = await CreaMediaConFile();
+        ImpostazioniVetrina impostazioni = await CreaImpostazioni(asset.MediaAssetId);
+
+        impostazioni.ImmagineOgId = null;
+        await _dbContext.SaveChangesAsync();
+
+        bool esito = await VetrinaMutations.EliminaMediaAssetAsync(
+            _dbContext, _storage, asset.MediaAssetId);
+
+        esito.Should().BeTrue();
+        _dbContext.MediaAssets.Should().BeEmpty();
+        Directory.Exists(CartellaDi(asset)).Should().BeFalse(
+            "senza referenti l'eliminazione rimuove il record e TUTTI i file delle varianti");
+    }
+
+    /// <summary>
+    /// Il complemento indispensabile: senza, un controllo che rifiutasse <b>sempre</b>
+    /// passerebbe inosservato e nessun media sarebbe più eliminabile.
+    /// </summary>
+    [Fact]
+    public async Task EliminaMediaAsset_ConImpostazioniCheNeReferenzianoUnAltro_Riesce()
+    {
+        MediaAsset daEliminare = await CreaMediaConFile("da-eliminare.jpg");
+        MediaAsset anteprima = await CreaMediaConFile("anteprima.jpg");
+        await CreaImpostazioni(anteprima.MediaAssetId);
+
+        bool esito = await VetrinaMutations.EliminaMediaAssetAsync(
+            _dbContext, _storage, daEliminare.MediaAssetId);
+
+        esito.Should().BeTrue();
+        _dbContext.MediaAssets.Select(m => m.MediaAssetId)
+            .Should().BeEquivalentTo([anteprima.MediaAssetId]);
+        Directory.Exists(CartellaDi(daEliminare)).Should().BeFalse();
+        Directory.GetFiles(CartellaDi(anteprima)).Should().HaveCount(4);
     }
 
     // ── Metadati editoriali: i file non si toccano ───────────────────────────────────────
