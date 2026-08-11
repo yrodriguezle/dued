@@ -5,6 +5,8 @@ using duedgusto.Common;
 using duedgusto.GraphQL.GestioneCassa;
 using duedgusto.GraphQL.Vendite;
 using duedgusto.GraphQL.Vendite.Types;
+using duedgusto.GraphQL.Vetrina;
+using duedgusto.GraphQL.Vetrina.Types;
 
 namespace DuedGusto.Tests.Integration.GraphQL;
 
@@ -441,6 +443,201 @@ public class SalesTests : IDisposable
         persisted.AliquotaIva.Should().Be(22.00m);
         persisted.Imponibile.Should().Be(imponibilePre);
         persisted.ImportoIva.Should().Be(ivaPre);
+    }
+
+    #endregion
+
+    #region Confine cassa ↔ vetrina (vetrina-fondamenta-media)
+
+    /// <summary>
+    /// I dieci campi vetrina valorizzati tutti insieme, per poter asserire che NESSUNO si
+    /// perde. Un test che ne controlla tre non coglie il caso in cui il quarto viene azzerato.
+    /// </summary>
+    private static ProdottoVetrinaInput VetrinaCompleta(int? immagineId = null) => new()
+    {
+        VisibileSulSito = true,
+        NomeVetrina = "Caffè della casa",
+        DescrizioneVetrina = "Miscela arabica tostata a Thiene",
+        CategoriaVetrina = "Caffetteria",
+        PrezzoVetrina = 1.50m,
+        ImmagineId = immagineId,
+        OrdinamentoVetrina = 7,
+        Allergeni = "latte",
+        Novita = true,
+        Consigliato = true,
+    };
+
+    private static void AssertVetrinaIntatta(Prodotto prodotto, int? immagineId = null)
+    {
+        prodotto.VisibileSulSito.Should().BeTrue();
+        prodotto.NomeVetrina.Should().Be("Caffè della casa");
+        prodotto.DescrizioneVetrina.Should().Be("Miscela arabica tostata a Thiene");
+        prodotto.CategoriaVetrina.Should().Be("Caffetteria");
+        prodotto.PrezzoVetrina.Should().Be(1.50m);
+        prodotto.ImmagineId.Should().Be(immagineId);
+        prodotto.OrdinamentoVetrina.Should().Be(7);
+        prodotto.Allergeni.Should().Be("latte");
+        prodotto.Novita.Should().BeTrue();
+        prodotto.Consigliato.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task MutateProdotto_ConVetrinaValorizzata_NonAzzeraAlcunCampoVetrina()
+    {
+        // Direzione cassa → vetrina. È il caso che il confine esiste per impedire: la cassa
+        // salva un prezzo nuovo e la scheda del sito sopravvive intatta.
+        Prodotto prodotto = SeedProdotto("CAFFE01", "Caffè", 1.20m, aliquotaIva: 10m);
+        await VetrinaMutations.ApplicaCampiVetrinaAsync(_dbContext, prodotto.ProdottoId, VetrinaCompleta());
+
+        await VenditeMutations.UpsertProdottoAsync(_dbContext, new ProdottoInput
+        {
+            ProdottoId = prodotto.ProdottoId,
+            Codice = "CAFFE01",
+            Nome = "Caffè espresso",
+            Prezzo = 1.30m,
+            Categoria = "Bevande calde",
+            UnitaDiMisura = "pz",
+            Attivo = true,
+            AliquotaIva = 22m,
+        });
+
+        Prodotto dopo = await _dbContext.Prodotti.AsNoTracking()
+            .FirstAsync(p => p.ProdottoId == prodotto.ProdottoId);
+
+        // I campi contabili sono aggiornati...
+        dopo.Nome.Should().Be("Caffè espresso");
+        dopo.Prezzo.Should().Be(1.30m);
+        dopo.AliquotaIva.Should().Be(22m);
+        // ...e tutti e dieci quelli di vetrina sono intatti.
+        AssertVetrinaIntatta(dopo);
+    }
+
+    [Fact]
+    public async Task MutateProdottoVetrina_NonToccaAlcunCampoContabile()
+    {
+        // Direzione vetrina → cassa. L'assegnazione totale dei dieci campi è sicura proprio
+        // perché ProdottoVetrinaInput non possiede i campi contabili.
+        Prodotto prodotto = SeedProdotto("CAFFE02", "Caffè", 1.20m, categoria: "Bevande", aliquotaIva: 10m);
+
+        await VetrinaMutations.ApplicaCampiVetrinaAsync(_dbContext, prodotto.ProdottoId, VetrinaCompleta());
+
+        Prodotto dopo = await _dbContext.Prodotti.AsNoTracking()
+            .FirstAsync(p => p.ProdottoId == prodotto.ProdottoId);
+
+        dopo.Codice.Should().Be("CAFFE02");
+        dopo.Nome.Should().Be("Caffè");
+        dopo.Prezzo.Should().Be(1.20m);
+        dopo.Categoria.Should().Be("Bevande");
+        dopo.Attivo.Should().BeTrue();
+        dopo.AliquotaIva.Should().Be(10m);
+        AssertVetrinaIntatta(dopo);
+    }
+
+    [Fact]
+    public async Task ScrittureAlternate_NessunoDeiDueGruppiVieneMaiAzzerato()
+    {
+        // Il caso reale: la cassa aggiorna i prezzi mentre qualcuno cura le schede del sito.
+        // Un solo giro non basterebbe a scoprire un azzeramento che avviene alla seconda
+        // scrittura — per esempio se un canale leggesse valori ormai stantii dal tracking.
+        Prodotto prodotto = SeedProdotto("CAFFE03", "Caffè", 1.00m, aliquotaIva: 22m);
+
+        await Enumerable.Range(1, 3).Aggregate(Task.CompletedTask, (precedente, giro) => precedente.ContinueWith(async _ =>
+        {
+            await VetrinaMutations.ApplicaCampiVetrinaAsync(_dbContext, prodotto.ProdottoId, VetrinaCompleta());
+            await VenditeMutations.UpsertProdottoAsync(_dbContext, new ProdottoInput
+            {
+                ProdottoId = prodotto.ProdottoId,
+                Codice = "CAFFE03",
+                Nome = $"Caffè giro {giro}",
+                Prezzo = 1.00m + giro,
+                UnitaDiMisura = "pz",
+                Attivo = true,
+                AliquotaIva = 22m,
+            });
+        }).Unwrap());
+
+        Prodotto dopo = await _dbContext.Prodotti.AsNoTracking()
+            .FirstAsync(p => p.ProdottoId == prodotto.ProdottoId);
+
+        dopo.Nome.Should().Be("Caffè giro 3");
+        dopo.Prezzo.Should().Be(4.00m);
+        AssertVetrinaIntatta(dopo);
+    }
+
+    [Fact]
+    public async Task MutateProdottoVetrina_ProdottoInesistente_NonCreaNulla()
+    {
+        int primaDelTentativo = await _dbContext.Prodotti.CountAsync();
+
+        Func<Task> act = () => VetrinaMutations.ApplicaCampiVetrinaAsync(_dbContext, 9999, VetrinaCompleta());
+
+        (await act.Should().ThrowAsync<ExecutionError>()).WithMessage("*9999*");
+        (await _dbContext.Prodotti.CountAsync()).Should().Be(primaDelTentativo);
+    }
+
+    [Fact]
+    public async Task MutateProdottoVetrina_PrezzoNegativo_RifiutatoEValorePrecedenteIntatto()
+    {
+        Prodotto prodotto = SeedProdotto("CAFFE04", "Caffè", 3.80m);
+        await VetrinaMutations.ApplicaCampiVetrinaAsync(_dbContext, prodotto.ProdottoId, VetrinaCompleta());
+
+        ProdottoVetrinaInput negativo = VetrinaCompleta();
+        negativo.PrezzoVetrina = -1m;
+
+        Func<Task> act = () => VetrinaMutations.ApplicaCampiVetrinaAsync(_dbContext, prodotto.ProdottoId, negativo);
+        await act.Should().ThrowAsync<ExecutionError>();
+
+        Prodotto dopo = await _dbContext.Prodotti.AsNoTracking()
+            .FirstAsync(p => p.ProdottoId == prodotto.ProdottoId);
+        dopo.PrezzoVetrina.Should().Be(1.50m);
+    }
+
+    [Fact]
+    public async Task MutateProdottoVetrina_VisibileSuProdottoNonAttivo_AmmessoENonPubblicato()
+    {
+        // Stato ammesso e innocuo: la scheda si prepara mentre il prodotto è fuori stagione.
+        // pubblicatoSulSito resta false perché è derivato da Attivo && VisibileSulSito.
+        Prodotto prodotto = SeedProdotto("STAG01", "Granita", 2.50m);
+        prodotto.Attivo = false;
+        await _dbContext.SaveChangesAsync();
+
+        await VetrinaMutations.ApplicaCampiVetrinaAsync(_dbContext, prodotto.ProdottoId, VetrinaCompleta());
+
+        Prodotto dopo = await _dbContext.Prodotti.AsNoTracking()
+            .FirstAsync(p => p.ProdottoId == prodotto.ProdottoId);
+        dopo.Attivo.Should().BeFalse();
+        dopo.VisibileSulSito.Should().BeTrue();
+        (dopo.Attivo && dopo.VisibileSulSito).Should().BeFalse("pubblicatoSulSito deriva dai due");
+    }
+
+    [Fact]
+    public async Task MutateProdottoVetrina_AllergeniDiSoliSpazi_PersistitiComeNull()
+    {
+        // Il vuoto ha una sola rappresentazione: null. Se stringa vuota e null coesistessero,
+        // ogni consumatore dovrebbe ricordarsi di gestire entrambe le forme.
+        Prodotto prodotto = SeedProdotto("CAFFE05", "Caffè", 1.20m);
+
+        ProdottoVetrinaInput conSpazi = VetrinaCompleta();
+        conSpazi.Allergeni = "   ";
+
+        await VetrinaMutations.ApplicaCampiVetrinaAsync(_dbContext, prodotto.ProdottoId, conSpazi);
+
+        Prodotto dopo = await _dbContext.Prodotti.AsNoTracking()
+            .FirstAsync(p => p.ProdottoId == prodotto.ProdottoId);
+        dopo.Allergeni.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData("50% 40%", true)]
+    [InlineData("0% 100%", true)]
+    [InlineData("100% 0%", true)]
+    [InlineData("molto a sinistra", false)]
+    [InlineData("140% 20%", false)]
+    [InlineData("50%40%", false)]
+    [InlineData("50 40", false)]
+    public void FocaleValida_AccettaSoloLaFormaAttesa(string focale, bool atteso)
+    {
+        VetrinaMutations.FocaleValida(focale).Should().Be(atteso);
     }
 
     #endregion

@@ -6,6 +6,7 @@ using duedgusto.GraphQL.Vendite;
 using duedgusto.GraphQL.Settings;
 using duedgusto.GraphQL.Fornitori;
 using duedgusto.GraphQL.ChiusureMensili;
+using duedgusto.GraphQL.Vetrina;
 
 namespace duedgusto.GraphQL;
 
@@ -19,5 +20,6 @@ public class GraphQLMutations : ObjectGraphType
         Field<SettingsMutations>("settings").Resolve(context => new { });
         Field<FornitoriMutations>("fornitori").Resolve(context => new { });
         Field<ChiusureMensiliMutations>("chiusureMensili").Resolve(context => new { });
+        Field<VetrinaMutations>("vetrina").Resolve(context => new { });
     }
 }

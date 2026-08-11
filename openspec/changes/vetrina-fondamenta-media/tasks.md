@@ -84,37 +84,52 @@ un dettaglio implementativo: è la specifica (design.md §D11) — invertire (5)
 silenziosamente ogni foto verticale, e saltare (3) manda in OOM il container, cioè la cassa
 offline.
 
-- [ ] 2.1 **`MediaLimiti`** — crea `backend/Services/Media/MediaLimiti.cs` con `MaxByteFile = 20 * 1024 * 1024`, `MaxMegapixel = 50`, `LatoMinimoPx = 200`, `LarghezzeVarianti = [400, 800, 1200, 1600]`, `MimeAmmessi = ["image/jpeg", "image/png", "image/webp"]`, qualità WebP 80 / JPEG 82. **Unico punto** del backend in cui questi numeri esistono, con un commento incrociato verso `deploy/nginx/duedgusto.conf` (§D1).
+- [x] 2.1 **`MediaLimiti`** — crea `backend/Services/Media/MediaLimiti.cs` con `MaxByteFile = 20 * 1024 * 1024`, `MaxMegapixel = 50`, `LatoMinimoPx = 200`, `LarghezzeVarianti = [400, 800, 1200, 1600]`, `MimeAmmessi = ["image/jpeg", "image/png", "image/webp"]`, qualità WebP 80 / JPEG 82. **Unico punto** del backend in cui questi numeri esistono, con un commento incrociato verso `deploy/nginx/duedgusto.conf` (§D1).
   *Verifica*: `grep -rn "20 \* 1024 \* 1024\|20971520" backend/` trova **una sola** occorrenza.
 
-- [ ] 2.2 **`SlugGenerator`** — crea `backend/Services/Media/SlugGenerator.cs`: minuscole, diacritici rimossi, non-alfanumerici → `-`, collasso dei separatori, max 60 caratteri, fallback `"media"` se vuoto; suffisso di 6 caratteri da `RandomNumberGenerator` su un alfabeto senza `0 O 1 l I`.
+- [x] 2.2 **`SlugGenerator`** — crea `backend/Services/Media/SlugGenerator.cs`: minuscole, diacritici rimossi, non-alfanumerici → `-`, collasso dei separatori, max 60 caratteri, fallback `"media"` se vuoto; suffisso di 6 caratteri da `RandomNumberGenerator` su un alfabeto senza `0 O 1 l I`.
   *Verifica*: nessun output contiene `/`, `\` o `..` (spec `media-assets` → *Nome file ostile non esce dalla radice*). Test in 7.5.
 
-- [ ] 2.3 **Astrazione e implementazione dello storage** — crea `backend/Services/Media/IMediaStorage.cs` e `FileSystemMediaStorage.cs`: scrittura di tutte le varianti in `{chiave}.tmp/` seguita da `Directory.Move`, più la cancellazione ricorsiva della cartella di una chiave. Il processor non conosce il filesystem (domani S3 senza toccarlo).
+- [x] 2.3 **Astrazione e implementazione dello storage** — crea `backend/Services/Media/IMediaStorage.cs` e `FileSystemMediaStorage.cs`: scrittura di tutte le varianti in `{chiave}.tmp/` seguita da `Directory.Move`, più la cancellazione ricorsiva della cartella di una chiave. Il processor non conosce il filesystem (domani S3 senza toccarlo).
   *Verifica*: un fallimento simulato a metà scrittura non lascia una cartella `{chiave}/` con un sottoinsieme di varianti (spec `media-assets` → *Atomicità dell'upload*). Test in 7.6.
 
-- [ ] 2.4 **`ImmagineProcessor` — i nove passi nell'ordine di §D11** — crea `backend/Services/Media/ImmagineProcessor.cs`: (1) pre-volo MIME+lunghezza, (2) `SemaphoreSlim(2)` con timeout 30s, (3) `Image.Identify` per Mpx/lato minimo/`FrameCount == 1` **senza decode**, (4) `DecoderOptions { TargetSize = 1600 }`, (5) `AutoOrient`, (6) strip di `ExifProfile`/`Iptc`/`Xmp`/`Icc`, (7) varianti WebP+JPEG per `w <= sorgente` con fallback a **una** variante nativa se la sorgente è più stretta di 400 px, (8) LQIP 20 px WebP q40 base64, (9) persistenza tmp → `Move`. `stream.Position = 0` fra (3) e (4). `Larghezza`/`Altezza` persistiti sono quelli **dopo** AutoOrient.
+- [x] 2.4 **`ImmagineProcessor` — i nove passi nell'ordine di §D11** — crea `backend/Services/Media/ImmagineProcessor.cs`: (1) pre-volo MIME+lunghezza, (2) `SemaphoreSlim(2)` con timeout 30s, (3) `Image.Identify` per Mpx/lato minimo/`FrameCount == 1` **senza decode**, (4) `DecoderOptions { TargetSize = 1600 }`, (5) `AutoOrient`, (6) strip di `ExifProfile`/`Iptc`/`Xmp`/`Icc`, (7) varianti WebP+JPEG per `w <= sorgente` con fallback a **una** variante nativa se la sorgente è più stretta di 400 px, (8) LQIP 20 px WebP q40 base64, (9) persistenza tmp → `Move`. `stream.Position = 0` fra (3) e (4). `Larghezza`/`Altezza` persistiti sono quelli **dopo** AutoOrient.
   *Verifica*: `dotnet build` esce 0; i passi sono riconoscibili nell'ordine leggendo il metodo dall'alto. Comportamento coperto dai test 7.1-7.4.
 
-- [ ] 2.5 **`Program.cs`: `MEDIA_ROOT`, allocatore, DI** — risoluzione fail-fast di `MEDIA_ROOT` (default `ContentRootPath/media` **solo** in Development, altrimenti `InvalidOperationException` con messaggio che nomina `/app/media`), `Configuration.Default.MemoryAllocator` con `AllocationLimitMegabytes = 128` e `AccumulativeAllocationLimitMegabytes = 256`, registrazione di `MediaRoot`, `IMediaStorage`, `ImmagineProcessor`.
+- [x] 2.5 **`Program.cs`: `MEDIA_ROOT`, allocatore, DI** — risoluzione fail-fast di `MEDIA_ROOT` (default `ContentRootPath/media` **solo** in Development, altrimenti `InvalidOperationException` con messaggio che nomina `/app/media`), `Configuration.Default.MemoryAllocator` con `AllocationLimitMegabytes = 128` e `AccumulativeAllocationLimitMegabytes = 256`, registrazione di `MediaRoot`, `IMediaStorage`, `ImmagineProcessor`.
   *Verifica*: avviare con `ASPNETCORE_ENVIRONMENT=Production` e senza `MEDIA_ROOT` fallisce all'avvio con quel messaggio, non al primo upload.
 
-- [ ] 2.6 **Guard amministratore in forma booleana condivisa** — in `backend/GraphQL/GestioneCassa/GestioneCassaGuards.cs` promuovi la logica a `public static Task<bool> IsUtenteAmministratore(AppDbContext, int)` e riscrivi `GuardUtenteAmministratore` per delegarvi; fai delegare anche `IsAmministratore` privata di [`AuthMutations.cs:42-50`](../../../backend/GraphQL/Authentication/AuthMutations.cs). Una query, due forme d'errore (§D12).
+- [x] 2.6 **Guard amministratore in forma booleana condivisa** — in `backend/GraphQL/GestioneCassa/GestioneCassaGuards.cs` promuovi la logica a `public static Task<bool> IsUtenteAmministratore(AppDbContext, int)` e riscrivi `GuardUtenteAmministratore` per delegarvi; fai delegare anche `IsAmministratore` privata di [`AuthMutations.cs:42-50`](../../../backend/GraphQL/Authentication/AuthMutations.cs). Una query, due forme d'errore (§D12).
   *Verifica*: `grep -rn "Ruolo.*Amministratore" backend/GraphQL/` mostra **una sola** implementazione della lettura del flag; `dotnet test` passa senza modifiche ai test esistenti.
 
-- [ ] 2.7 **`MediaController` — `POST /api/media`** — crea `backend/Controllers/MediaController.cs` con `[Authorize]` di classe, `[RequestSizeLimit(23068672)]` + `[RequestFormLimits(MultipartBodyLengthLimit = 23068672)]` sull'action, **un solo file per richiesta** (`file`, `cartella` default `"generale"`, `alt`). Guard amministratore con `IsUtenteAmministratore` → `StatusCode(403, new { message })`. Mappa gli esiti della pipeline su `400/403/409/503`, **ogni errore con corpo JSON `{ message }` in italiano** come `AuthController`. Risposta `201` con `{ mediaAssetId, chiave, larghezza, altezza, larghezzeDisponibili, placeholder, mimeType }`.
+- [x] 2.7 **`MediaController` — `POST /api/media`** — crea `backend/Controllers/MediaController.cs` con `[Authorize]` di classe, `[RequestSizeLimit(23068672)]` + `[RequestFormLimits(MultipartBodyLengthLimit = 23068672)]` sull'action, **un solo file per richiesta** (`file`, `cartella` default `"generale"`, `alt`). Guard amministratore con `IsUtenteAmministratore` → `StatusCode(403, new { message })`. Mappa gli esiti della pipeline su `400/403/409/503`, **ogni errore con corpo JSON `{ message }` in italiano** come `AuthController`. Risposta `201` con `{ mediaAssetId, chiave, larghezza, altezza, larghezzeDisponibili, placeholder, mimeType }`.
   *Verifica*: `curl -k -H "Authorization: Bearer <token-admin>" -F "file=@foto.jpg" https://localhost:4000/api/media` risponde 201; con un token non admin risponde **403 con corpo JSON**, non 500.
 
-- [ ] 2.8 **`GET /api/media/configurazione`** — stessa classe, `[Authorize]` ma **senza** guard amministratore (espone solo costanti): restituisce `MediaConfigurazioneDto(MaxByteFile, MaxMegapixel, LarghezzeVarianti, MimeAmmessi)` letti da `MediaLimiti`.
+- [x] 2.8 **`GET /api/media/configurazione`** — stessa classe, `[Authorize]` ma **senza** guard amministratore (espone solo costanti): restituisce `MediaConfigurazioneDto(MaxByteFile, MaxMegapixel, LarghezzeVarianti, MimeAmmessi)` letti da `MediaLimiti`.
   *Verifica*: `curl` con un token di utente **non** amministratore risponde 200 con `maxByteFile: 20971520`.
 
-- [ ] 2.9 **`UseStaticFiles` per `/media` solo in Development** — in `Program.cs`, dopo `app.UseAuthorization()` e prima di `app.MapControllers()`, dentro `if (app.Environment.IsDevelopment())`: `Directory.CreateDirectory(mediaRoot)`, `FileExtensionContentTypeProvider` con mapping esplicito `.webp`, `PhysicalFileProvider(mediaRoot)`, `RequestPath = "/media"`, `ServeUnknownFileTypes = false`, `Cache-Control: public,max-age=31536000,immutable`.
+- [x] 2.9 **`UseStaticFiles` per `/media` solo in Development** — in `Program.cs`, dopo `app.UseAuthorization()` e prima di `app.MapControllers()`, dentro `if (app.Environment.IsDevelopment())`: `Directory.CreateDirectory(mediaRoot)`, `FileExtensionContentTypeProvider` con mapping esplicito `.webp`, `PhysicalFileProvider(mediaRoot)`, `RequestPath = "/media"`, `ServeUnknownFileTypes = false`, `Cache-Control: public,max-age=31536000,immutable`.
   *Verifica*: dopo l'upload del task 2.7, `https://localhost:4000/media/2026/08/<slug>-<6char>/800.webp` apre l'immagine nel browser con `Content-Type: image/webp`; in `Production` la stessa URL **non** è servita da .NET.
 
-- [ ] 2.10 **Prova end-to-end con `curl` e `exiftool`** — carica una foto reale da smartphone (con GPS) e ispeziona il risultato.
+- [x] 2.10 **Prova end-to-end con `curl` e `exiftool`** — carica una foto reale da smartphone (con GPS) e ispeziona il risultato.
   *Verifica*: `ls backend/media/2026/*/<slug>-*/` mostra **8 file** (4 larghezze × 2 formati); `exiftool backend/media/2026/*/<slug>-*/*.jpg` **non** mostra alcun tag GPS né EXIF/XMP/IPTC dell'originale; nella cartella **non** esiste alcun file che sia l'originale non elaborato.
 
 **Uscita di fase.** Un amministratore può caricare immagini con `curl` e vederle nel browser in sviluppo. Nessun frontend, nessun GraphQL nuovo. La cassa è intatta.
+
+> **Verifiche eseguite l'11 agosto 2026.** `dotnet build` 0 errori, `dotnet test` **407/407 verdi
+> senza modifiche ai test esistenti**. Upload reale: 201 da amministratore, **403 con corpo JSON**
+> da un utente autenticato non amministratore; sorgente 2508×951 con GPS/EXIF/IPTC/XMP iniettati →
+> **8 file** (400/800/1200/1600 × webp+jpg), `exiftool` non trova **alcun** gruppo EXIF/XMP/IPTC/ICC
+> né tag GPS, e nella cartella non c'è l'originale. La stessa sorgente marcata `Orientation=6` esce
+> **951×2508 con due varianti**: è la prova che AutoOrient precede lo strip — se l'ordine fosse
+> invertito uscirebbe 2508 con quattro varianti, senza alcun errore. `../../etc/passwd.jpg` →
+> chiave `2026/08/passwd-<suffisso>`, nulla creato fuori dalla radice. `MEDIA_ROOT` assente in
+> `Production` fallisce a [Program.cs:107](../../../backend/Program.cs), e con la variabile
+> impostata l'avvio supera quel punto: il fail-fast dipende esattamente da lei.
+>
+> **Due verifiche restano comportamentalmente scoperte fino alla Fase 7**, come i task stessi
+> prevedono: l'atomicità sotto fallimento simulato (2.3 → test 7.6) non è stata provocata, e la
+> matrice completa degli slug (2.2 → test 7.5) è coperta qui solo dai due casi passati per HTTP.
 
 ---
 
@@ -126,50 +141,50 @@ scrivere fuori perimetro anche volendo. È verificabile con GraphiQL da solo, pr
 esista una pagina. **I tre test che pinnano il confine (3.13-3.15) chiudono questa fase**:
 sono la ragione per cui la change esiste come fase a sé.
 
-- [ ] 3.1 **`MediaAssetType`** — crea `backend/GraphQL/Vetrina/Types/MediaAssetType.cs` con i campi di design.md §"Contratto GraphQL", incluso `larghezzeDisponibili: [Int!]!` derivato dalla stringa CSV persistita.
+- [x] 3.1 **`MediaAssetType`** — crea `backend/GraphQL/Vetrina/Types/MediaAssetType.cs` con i campi di design.md §"Contratto GraphQL", incluso `larghezzeDisponibili: [Int!]!` derivato dalla stringa CSV persistita.
   *Verifica*: `dotnet build` esce 0; la query di introspezione mostra `larghezzeDisponibili` come lista di `Int!` non nullable.
 
-- [ ] 3.2 **`MediaAssetInputType`** — crea `backend/GraphQL/Vetrina/Types/MediaAssetInputType.cs` con **esattamente** `testoAlternativo`, `didascalia`, `focale`, `cartella: String!`, `ordinamento: Int!`, `pubblicato: Boolean!`. **Nessun** campo tecnico (`chiave`, `mimeType`, `larghezza`, `altezza`, `larghezzeDisponibili`, `placeholder`, `byteTotali`).
+- [x] 3.2 **`MediaAssetInputType`** — crea `backend/GraphQL/Vetrina/Types/MediaAssetInputType.cs` con **esattamente** `testoAlternativo`, `didascalia`, `focale`, `cartella: String!`, `ordinamento: Int!`, `pubblicato: Boolean!`. **Nessun** campo tecnico (`chiave`, `mimeType`, `larghezza`, `altezza`, `larghezzeDisponibili`, `placeholder`, `byteTotali`).
   *Verifica* (spec `media-assets` → *Il tipo di input non espone i campi tecnici*): una mutation che tenta di passare `chiave` viene rifiutata dalla validazione dello schema, non dal resolver.
 
-- [ ] 3.3 **`ProdottoType`: campi vetrina e i due derivati** — in `backend/GraphQL/Vendite/Types/ProdottoType.cs` aggiungi i 10 campi vetrina in **sola lettura**, la risoluzione di `immagine` verso `MediaAssetType`, e i **due** campi derivati mai persistiti:
+- [x] 3.3 **`ProdottoType`: campi vetrina e i due derivati** — in `backend/GraphQL/Vendite/Types/ProdottoType.cs` aggiungi i 10 campi vetrina in **sola lettura**, la risoluzione di `immagine` verso `MediaAssetType`, e i **due** campi derivati mai persistiti:
   - `pubblicatoSulSito: Boolean!` → `ctx.Source.Attivo && ctx.Source.VisibileSulSito` (§D4);
   - `prezzoEffettivoVetrina: Decimal!` → `ctx.Source.PrezzoVetrina ?? ctx.Source.Prezzo` — fallback **dinamico**, valutato a ogni lettura, con `PrezzoVetrina = 0` trattato come valore valorizzato e non come assenza.
   Entrambi con `Description` che dichiara che sono la regola unica su cui filtrerà la Fase 2.
   *Verifica* (spec `vetrina-prodotti`): su un prodotto con `Prezzo = 3.80` e `PrezzoVetrina = 0.00`, `prezzoEffettivoVetrina` vale `0.00` e non `3.80`; con `PrezzoVetrina = null` vale `3.80` e segue gli aggiornamenti di listino della cassa senza alcuna scrittura vetrina.
 
-- [ ] 3.4 **`ProdottoVetrinaInput` + `ProdottoVetrinaInputType`** — crea la classe POCO e il tipo GraphQL in `backend/GraphQL/Vetrina/Types/ProdottoVetrinaInputType.cs` con **esattamente 10 proprietà**: `VisibileSulSito`, `NomeVetrina`, `DescrizioneVetrina`, `CategoriaVetrina`, `PrezzoVetrina`, `ImmagineId`, `OrdinamentoVetrina`, `Allergeni`, `Novita`, `Consigliato`. **Zero campi cassa.**
+- [x] 3.4 **`ProdottoVetrinaInput` + `ProdottoVetrinaInputType`** — crea la classe POCO e il tipo GraphQL in `backend/GraphQL/Vetrina/Types/ProdottoVetrinaInputType.cs` con **esattamente 10 proprietà**: `VisibileSulSito`, `NomeVetrina`, `DescrizioneVetrina`, `CategoriaVetrina`, `PrezzoVetrina`, `ImmagineId`, `OrdinamentoVetrina`, `Allergeni`, `Novita`, `Consigliato`. **Zero campi cassa.**
   *Verifica*: pinnata dal test strutturale 3.14.
 
-- [ ] 3.5 **`VetrinaMutations` e ramo root** — crea `backend/GraphQL/Vetrina/VetrinaMutations.cs` con `this.Authorize()` a livello di tipo, e registra il ramo in `backend/GraphQL/GraphQLMutations.cs`: `Field<VetrinaMutations>("vetrina").Resolve(context => new { })` (§D7).
+- [x] 3.5 **`VetrinaMutations` e ramo root** — crea `backend/GraphQL/Vetrina/VetrinaMutations.cs` con `this.Authorize()` a livello di tipo, e registra il ramo in `backend/GraphQL/GraphQLMutations.cs`: `Field<VetrinaMutations>("vetrina").Resolve(context => new { })` (§D7).
   *Verifica*: `AutorizzazioneAnonimaTests` — che enumera i rami **dallo schema** — copre automaticamente `vetrina` e continua a passare senza aggiungerlo ad alcuna allowlist (spec `sicurezza` → *Il nuovo ramo GraphQL non è raggiungibile in anonimo*).
 
-- [ ] 3.6 **`mutateProdottoVetrina`** — nel ramo `vetrina`: `prodottoId: Int!` di un prodotto **esistente** (nessun ramo `insert`), `input: ProdottoVetrinaInput!`. `GuardUtenteAmministratore` come **prima istruzione del resolver**, prima di qualunque lettura. Assegnazione totale dei 10 campi + `UpdatedAt`, nient'altro. Validazioni prima del save: `PrezzoVetrina` negativo → errore esplicito; `ImmagineId` valorizzato deve **esistere ed essere `Pubblicato`** → errore applicativo leggibile, non l'errore MySQL della FK; `Allergeni` vuoto o di soli spazi → persistito come **`null`** (unica rappresentazione del vuoto). Nessun rifiuto di `VisibileSulSito = true` su prodotto non attivo: è uno stato ammesso e innocuo.
+- [x] 3.6 **`mutateProdottoVetrina`** — nel ramo `vetrina`: `prodottoId: Int!` di un prodotto **esistente** (nessun ramo `insert`), `input: ProdottoVetrinaInput!`. `GuardUtenteAmministratore` come **prima istruzione del resolver**, prima di qualunque lettura. Assegnazione totale dei 10 campi + `UpdatedAt`, nient'altro. Validazioni prima del save: `PrezzoVetrina` negativo → errore esplicito; `ImmagineId` valorizzato deve **esistere ed essere `Pubblicato`** → errore applicativo leggibile, non l'errore MySQL della FK; `Allergeni` vuoto o di soli spazi → persistito come **`null`** (unica rappresentazione del vuoto). Nessun rifiuto di `VisibileSulSito = true` su prodotto non attivo: è uno stato ammesso e innocuo.
   *Verifica* (spec `vetrina-prodotti`): id inesistente → errore e `SELECT COUNT(*) FROM Prodotti` invariato; `prezzoVetrina = -1` → errore e valore precedente intatto; `visibileSulSito = true` su prodotto con `Attivo = false` → successo, `pubblicatoSulSito = false`, campi cassa invariati.
 
-- [ ] 3.7 **`mutateMediaAsset`** — nel ramo `vetrina`, guard amministratore per prima. Scrive **solo** i metadati editoriali dell'input; `Chiave`, `MimeType`, `Larghezza`, `Altezza`, `LarghezzeDisponibili`, `Placeholder`, `ByteTotali` e i file su disco restano intatti; aggiorna `UpdatedAt`. Valida il formato di `Focale` (`"<0-100>% <0-100>%"`): un valore non conforme (`"molto a sinistra"`, `"140%"`) viene **rifiutato** e il valore precedente resta. Portare `Pubblicato` a `false` su un asset referenziato da almeno un prodotto con `pubblicatoSulSito = true` **segnala** i prodotti coinvolti senza modificarli.
+- [x] 3.7 **`mutateMediaAsset`** — nel ramo `vetrina`, guard amministratore per prima. Scrive **solo** i metadati editoriali dell'input; `Chiave`, `MimeType`, `Larghezza`, `Altezza`, `LarghezzeDisponibili`, `Placeholder`, `ByteTotali` e i file su disco restano intatti; aggiorna `UpdatedAt`. Valida il formato di `Focale` (`"<0-100>% <0-100>%"`): un valore non conforme (`"molto a sinistra"`, `"140%"`) viene **rifiutato** e il valore precedente resta. Portare `Pubblicato` a `false` su un asset referenziato da almeno un prodotto con `pubblicatoSulSito = true` **segnala** i prodotti coinvolti senza modificarli.
   *Verifica* (spec `media-assets`): dopo una modifica del testo alternativo, `md5sum` di tutte le varianti su disco è invariato.
 
-- [ ] 3.8 **`eliminaMediaAsset`** — nel ramo `vetrina`, guard amministratore per prima. Se referenziato da almeno un prodotto: **rifiuto** con un errore il cui messaggio **nomina i prodotti**, senza cancellare record né file. Se non referenziato: rimuove il record **e tutti i file** della cartella della chiave, tramite `IMediaStorage`.
+- [x] 3.8 **`eliminaMediaAsset`** — nel ramo `vetrina`, guard amministratore per prima. Se referenziato da almeno un prodotto: **rifiuto** con un errore il cui messaggio **nomina i prodotti**, senza cancellare record né file. Se non referenziato: rimuove il record **e tutti i file** della cartella della chiave, tramite `IMediaStorage`.
   *Verifica* (spec `media-assets` → *Eliminazione di un asset in uso*): asset assegnato a due prodotti → l'errore contiene entrambi i nomi, il record esiste ancora e `ls` sulla cartella mostra tutte le varianti.
 
-- [ ] 3.9 **`connection { prodotti }`** — in `backend/GraphQL/Connection/ConnectionQueries.cs`, sul pattern esatto di `fornitori` (righe 123-140), con `queryConfigurator` = `query => query.Include(p => p.Immagine).OrderBy(p => p.Codice)`. **Restituisce anche i non attivi**: è l'anagrafica, non il listino operativo. L'`Include` è l'unico punto in cui va messo (senza, il thumbnail in griglia sarebbe sempre `null`).
+- [x] 3.9 **`connection { prodotti }`** — in `backend/GraphQL/Connection/ConnectionQueries.cs`, sul pattern esatto di `fornitori` (righe 123-140), con `queryConfigurator` = `query => query.Include(p => p.Immagine).OrderBy(p => p.Codice)`. **Restituisce anche i non attivi**: è l'anagrafica, non il listino operativo. L'`Include` è l'unico punto in cui va messo (senza, il thumbnail in griglia sarebbe sempre `null`).
   *Verifica* (spec `vetrina-prodotti`): con 5 prodotti attivi e 2 disattivati, la connection ne restituisce 7; `OrderBy(Codice)` rende l'ordine stabile fra due letture identiche.
 
-- [ ] 3.10 🔴 **`connection { mediaAssets }` — con il guard amministratore anche in LETTURA** — stessa `ConnectionQueries.cs`, ordinamento `(Cartella, Ordinamento)` con criterio deterministico di parità (`CreatedAt`). **Il resolver della connection chiama il guard amministratore esattamente come le mutation.**
+- [x] 3.10 🔴 **`connection { mediaAssets }` — con il guard amministratore anche in LETTURA** — stessa `ConnectionQueries.cs`, ordinamento `(Cartella, Ordinamento)` con criterio deterministico di parità (`CreatedAt`). **Il resolver della connection chiama il guard amministratore esattamente come le mutation.**
   > Questa riga è quella facile da dimenticare: il design §D12 parla di guard sulle sole scritture, la spec `sicurezza` lo richiede **anche sulla lettura** dei media — *"in questa fase non esiste alcun consumatore anonimo né non amministrativo dei media"*. **La spec è più stretta e vince.**
   *Verifica* (spec `sicurezza` → *Utente non amministratore in lettura sui media*): un utente autenticato con `Amministratore = false` che interroga `connection { mediaAssets }` riceve un errore di privilegi insufficienti, non una lista vuota e non una lista piena. Test in 7.9.
 
-- [ ] 3.11 **Fragment e query lato server verificati da GraphiQL** — prova manuale del ciclo completo: upload REST (Fase 2) → `connection { mediaAssets }` → `mutateProdottoVetrina` con quell'`immagineId` → rilettura del prodotto con `immagine { chiave larghezzeDisponibili placeholder }`.
+- [x] 3.11 **Fragment e query lato server verificati da GraphiQL** — prova manuale del ciclo completo: upload REST (Fase 2) → `connection { mediaAssets }` → `mutateProdottoVetrina` con quell'`immagineId` → rilettura del prodotto con `immagine { chiave larghezzeDisponibili placeholder }`.
   *Verifica*: il ciclo funziona interamente da GraphiQL, senza una riga di frontend.
 
-- [ ] 3.12 🔴 **Prova che il ramo cassa non è stato toccato** — controllo esplicito di fine fase.
+- [x] 3.12 🔴 **Prova che il ramo cassa non è stato toccato** — controllo esplicito di fine fase.
   *Verifica*: `git diff --stat backend/GraphQL/Vendite/VenditeMutations.cs backend/GraphQL/Vendite/Types/ProdottoInputType.cs backend/GraphQL/Vendite/VenditeQueries.cs` è **vuoto**. (`ProdottoType.cs` è invece modificato, ed è previsto.)
 
-- [ ] 3.13 🔴 **Test strutturale `ProdottoInput_NonContieneCampiVetrina`** — in `backend/DuedGusto.Tests/Unit/GraphQL/`: `typeof(ProdottoInput).GetProperties().Select(p => p.Name).Should().BeEquivalentTo("ProdottoId", "Codice", "Nome", "Descrizione", "Prezzo", "Categoria", "UnitaDiMisura", "Attivo", "AliquotaIva")`, con il commento che spiega **perché** (`UpsertProdottoAsync` assegna ogni campo esplicitamente: un campo vetrina qui verrebbe azzerato in massa dal primo upsert della cassa).
+- [x] 3.13 🔴 **Test strutturale `ProdottoInput_NonContieneCampiVetrina`** — in `backend/DuedGusto.Tests/Unit/GraphQL/`: `typeof(ProdottoInput).GetProperties().Select(p => p.Name).Should().BeEquivalentTo("ProdottoId", "Codice", "Nome", "Descrizione", "Prezzo", "Categoria", "UnitaDiMisura", "Attivo", "AliquotaIva")`, con il commento che spiega **perché** (`UpsertProdottoAsync` assegna ogni campo esplicitamente: un campo vetrina qui verrebbe azzerato in massa dal primo upsert della cassa).
   *Verifica*: aggiungendo temporaneamente `VisibileSulSito` a `ProdottoInput`, il test **fallisce**; rimosso, torna verde.
 
-- [ ] 3.14 🔴 **Test strutturale `ProdottoVetrinaInput_NonContieneCampiCassa`** — stesso file. **Deve ispezionare le proprietà del tipo via reflection**, non essere un controllo manuale in code review:
+- [x] 3.14 🔴 **Test strutturale `ProdottoVetrinaInput_NonContieneCampiCassa`** — stesso file. **Deve ispezionare le proprietà del tipo via reflection**, non essere un controllo manuale in code review:
   ```csharp
   string[] campiCassa = ["Codice", "Nome", "Descrizione", "Prezzo", "Categoria",
                          "UnitaDiMisura", "Attivo", "AliquotaIva"];
@@ -179,13 +194,44 @@ sono la ragione per cui la change esiste come fase a sé.
   È la difesa contro il giorno in cui qualcuno aggiunge un campo cassa all'input della vetrina senza aggiornare i test comportamentali — quelli passerebbero comunque.
   *Verifica*: aggiungendo temporaneamente `Prezzo` a `ProdottoVetrinaInput`, il test **fallisce**.
 
-- [ ] 3.15 🔴 **Test comportamentali del confine, nelle due direzioni** — in `backend/DuedGusto.Tests/Integration/GraphQL/SalesTests.cs`, accanto alla region prodotti esistente:
+- [x] 3.15 🔴 **Test comportamentali del confine, nelle due direzioni** — in `backend/DuedGusto.Tests/Integration/GraphQL/SalesTests.cs`, accanto alla region prodotti esistente:
   - prodotto con vetrina completamente valorizzata → `mutateProdotto` con payload di sola cassa → **tutti e dieci** i campi vetrina invariati e i campi contabili aggiornati;
   - prodotto con cassa valorizzata → `mutateProdottoVetrina` con tutti i 10 campi → **tutti** i campi contabili invariati;
   - scritture alternate ripetute dai due canali → nessuno dei due gruppi risulta mai azzerato dall'altro.
   *Verifica*: `cd backend && dotnet test --filter "FullyQualifiedName~Sales"` passa.
 
 **Uscita di fase.** Il confine con la cassa è pinnato da tre test — uno strutturale per input, uno comportamentale bidirezionale — e il ciclo media→prodotto funziona da GraphiQL. Nessuna pagina esiste ancora.
+
+> **Verifiche eseguite l'11 agosto 2026.** `dotnet test` **431/431** (erano 407: +24).
+>
+> **I test del confine sono stati verificati per mutazione, non solo eseguiti.** Aggiungendo
+> `VisibileSulSito` a `ProdottoInput` e `Prezzo` a `ProdottoVetrinaInput`, **3 test su 4
+> falliscono**; rimossi, tornano verdi. Stessa prova sul guard di `connection { mediaAssets }`:
+> commentandolo, `Operatore_LeggeConnectionMediaAssets_Rifiutata` fallisce — il task 3.10 è
+> chiuso davvero e non per costruzione.
+>
+> **`AutorizzazioneAnonimaTests` ha fatto il suo mestiere**: le Theory per-ramo hanno coperto
+> `vetrina` da sole, senza allowlist; è invece fallito `SchemaEspone_TuttiIRamiRootAttesi`, la
+> sentinella d'inventario, che ha chiesto conferma esplicita del nuovo ramo. Aggiornato.
+>
+> **Ciclo end-to-end** su istanza separata: `connection { mediaAssets }` → `mutateProdottoVetrina`
+> con `immagineId` → rilettura con `immagine { chiave larghezzeDisponibili }`. Casi limite
+> provati sul campo: `prezzoVetrina = 0` dà `prezzoEffettivoVetrina = 0` e **non** ricade sul
+> listino; la cassa che riscrive nome e prezzo lascia **tutti e dieci** i campi vetrina intatti;
+> `allergeni` di soli spazi persiste `null`; l'eliminazione di un media in uso è rifiutata con un
+> errore che **nomina il prodotto** e non tocca né record né file; l'eliminazione di uno libero
+> rimuove riga e cartella insieme.
+>
+> ⚠️ **Scelta di implementazione**: la logica delle tre mutation vive in metodi statici
+> (`ApplicaCampiVetrinaAsync`, `AggiornaMediaAssetAsync`, `EliminaMediaAssetAsync`) accanto ai
+> resolver, sul modello di `UpsertProdottoAsync`. I test del confine esercitano così la scrittura
+> vera invece del trasporto GraphQL. Il guard resta la **prima istruzione del resolver**, come
+> prescritto: non è stato spostato dentro i metodi statici.
+>
+> **Anticipata parte del task 7.9**: i cinque test di privilegio sul ramo `vetrina` — incluse le
+> due letture di `connection { mediaAssets }` — sono già in `PrivilegiAmministrativiTests`.
+> Restano da fare in Fase 7 il caso `POST /api/media` (403 con corpo JSON) e la verifica che non
+> resti alcun effetto collaterale.
 
 ---
 

@@ -103,7 +103,7 @@ public class AutorizzazioneAnonimaTests
 
         host.Schema.Mutation!.Fields.Select(f => f.Name).Should().BeEquivalentTo(
             "authentication", "gestioneCassa", "vendite",
-            "settings", "fornitori", "chiusureMensili");
+            "settings", "fornitori", "chiusureMensili", "vetrina");
 
         host.Schema.Subscription!.Fields.Select(f => f.Name).Should().BeEquivalentTo(
             "onRegistroCassaUpdated", "onVenditaCreated",

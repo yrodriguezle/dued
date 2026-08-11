@@ -162,4 +162,83 @@ public class PrivilegiAmministrativiTests : IDisposable
 
         AssertRifiutata(result, "un non amministratore non deve poter modificare la navigazione");
     }
+
+    // ---- Ramo vetrina: scritture E lettura dei media ----
+
+    [Fact]
+    public async Task Operatore_MutateProdottoVetrina_Rifiutata()
+    {
+        ExecutionResult result = await _host.EseguiAsync(
+            """
+            mutation {
+              vetrina {
+                mutateProdottoVetrina(prodottoId: 1, input: {
+                  visibileSulSito: true, ordinamentoVetrina: 0, novita: false, consigliato: false
+                }) { prodottoId }
+              }
+            }
+            """,
+            GraphQLTestHost.Autenticato(UtenteOperatoreId));
+
+        AssertRifiutata(result, "un non amministratore non deve poter modificare la vetrina");
+    }
+
+    [Fact]
+    public async Task Operatore_MutateMediaAsset_Rifiutata()
+    {
+        ExecutionResult result = await _host.EseguiAsync(
+            """
+            mutation {
+              vetrina {
+                mutateMediaAsset(mediaAssetId: 1, input: {
+                  cartella: "generale", ordinamento: 0, pubblicato: true
+                }) { mediaAssetId }
+              }
+            }
+            """,
+            GraphQLTestHost.Autenticato(UtenteOperatoreId));
+
+        AssertRifiutata(result, "un non amministratore non deve poter modificare i metadati dei media");
+    }
+
+    [Fact]
+    public async Task Operatore_EliminaMediaAsset_Rifiutata()
+    {
+        ExecutionResult result = await _host.EseguiAsync(
+            "mutation { vetrina { eliminaMediaAsset(mediaAssetId: 1) } }",
+            GraphQLTestHost.Autenticato(UtenteOperatoreId));
+
+        AssertRifiutata(result, "un non amministratore non deve poter eliminare un media");
+    }
+
+    /// <summary>
+    /// 🔴 Il caso che il design §D12 non prevedeva: il guard sui media vale anche in
+    /// <b>lettura</b>. La spec sicurezza è più stretta del design e vince — in questa fase non
+    /// esiste alcun consumatore anonimo né non amministrativo dei media.
+    ///
+    /// Attenzione al modo in cui si asserisce: una lista vuota NON è un rifiuto. Se questo
+    /// test si accontentasse di "nessun risultato", passerebbe anche a guard rimosso su un
+    /// database senza media — cioè esattamente nella condizione in cui gira la CI.
+    /// </summary>
+    [Fact]
+    public async Task Operatore_LeggeConnectionMediaAssets_Rifiutata()
+    {
+        ExecutionResult result = await _host.EseguiAsync(
+            "query { connection { mediaAssets(first: 10) { edges { node { mediaAssetId } } } } }",
+            GraphQLTestHost.Autenticato(UtenteOperatoreId));
+
+        AssertRifiutata(result, "un non amministratore non deve poter leggere la libreria media");
+    }
+
+    [Fact]
+    public async Task Amministratore_LeggeConnectionMediaAssets_Riesce()
+    {
+        // Il complemento del test qui sopra: senza, un guard che rifiuta *chiunque*
+        // passerebbe inosservato e la libreria non funzionerebbe per nessuno.
+        ExecutionResult result = await _host.EseguiAsync(
+            "query { connection { mediaAssets(first: 10) { edges { node { mediaAssetId } } } } }",
+            GraphQLTestHost.Autenticato(UtenteAdminId));
+
+        AssertRiuscita(result, "un amministratore deve poter leggere la libreria media");
+    }
 }
