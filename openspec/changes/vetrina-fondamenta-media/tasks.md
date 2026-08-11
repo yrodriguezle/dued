@@ -620,11 +620,26 @@ un `backup.sh` che ignora i file ricostruisce un database perfetto pieno di imma
 **Perché esiste.** Tre decisioni sono state prese con una raccomandazione già scritta ma
 lasciate aperte nel design: vanno confermate esplicitamente, non ereditate per silenzio.
 
-- [ ] 10.1 **Conferma delle tre Open Questions** — annota la decisione presa su: `Allergeni` testo libero (`varchar(255)`), soglia megapixel a 50, `Cartella` stringa libera con default `"generale"`. Tutte e tre sono migrabili in modo additivo in Fase 2, ed è la ragione per cui si può decidere adesso.
+- [x] 10.1 **Conferma delle tre Open Questions** — annota la decisione presa su: `Allergeni` testo libero (`varchar(255)`), soglia megapixel a 50, `Cartella` stringa libera con default `"generale"`. Tutte e tre sono migrabili in modo additivo in Fase 2, ed è la ragione per cui si può decidere adesso.
   *Verifica*: le tre voci in design.md §"Open Questions" risultano spuntate con la decisione confermata.
 
-- [ ] 10.2 **Checklist dei Success Criteria della proposal** — ripercorri i 14 criteri di [proposal.md](./proposal.md) §"Success Criteria", con la riformulazione dichiarata in §D6: *"il tentativo di eliminare un `MediaAsset` referenziato viene rifiutato, l'errore nomina i prodotti che lo usano, e nessun file né record viene cancellato"* sostituisce *"`DELETE` risponde 409"* (comportamento identico, trasporto diverso).
+- [x] 10.2 **Checklist dei Success Criteria della proposal** — ripercorri i 14 criteri di [proposal.md](./proposal.md) §"Success Criteria", con la riformulazione dichiarata in §D6: *"il tentativo di eliminare un `MediaAsset` referenziato viene rifiutato, l'errore nomina i prodotti che lo usano, e nessun file né record viene cancellato"* sostituisce *"`DELETE` risponde 409"* (comportamento identico, trasporto diverso).
   *Verifica*: ogni criterio ha un task che lo chiude o una prova eseguita che lo dimostra.
 
 - [ ] 10.3 **Pronto per `sdd-verify`** — `dotnet build`, `dotnet test`, `npm run ts:check`, `npm run lint`, `npm run test` tutti verdi sul branch della change.
   *Verifica*: la pipeline `.github/workflows/deploy.yml` passa su push.
+  > **Parzialmente chiuso l'11 agosto 2026.** I cinque comandi sono **tutti verdi in locale**
+  > sul branch `feat/vetrina-ramo-graphql`: `dotnet build` 0 errori, `dotnet test` 487/487,
+  > `ts:check` e `lint` puliti, `npm run test` 755/755. Manca solo la conferma dalla pipeline,
+  > che richiede il **push del branch** — un'azione verso l'esterno lasciata alla decisione
+  > dell'utente.
+
+**Uscita di fase.** Le tre decisioni aperte sono confermate per iscritto in design.md, i
+criteri di successo della proposal sono ripercorsi uno per uno, e ciò che resta aperto porta
+il nome del task che lo chiuderà invece di essere dichiarato raggiunto per somiglianza.
+
+> **Stato della change all'11 agosto 2026: Fasi 1-8 chiuse, 10 chiusa salvo il push.**
+> La **Fase 9 resta intera**: richiede l'accesso SSH al VPS ed è l'unica che chiude i tre
+> rischi 🔴 della proposal (media cancellati dal `rm -rf` del deploy, primo upload che
+> fallisce per permessi, ripristino con ogni immagine a 404). Non è verificabile in locale,
+> e nessuno dei suoi criteri è stato dato per buono per analogia.
