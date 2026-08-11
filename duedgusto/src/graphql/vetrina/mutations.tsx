@@ -1,5 +1,37 @@
 import { gql, TypedDocumentNode } from "@apollo/client";
-import { mediaAssetFragment, prodottoVetrinaFragment } from "./fragments";
+import { impostazioniVetrinaFragment, mediaAssetFragment, prodottoVetrinaFragment } from "./fragments";
+
+// ============ IMPOSTAZIONI VETRINA ============
+
+interface MutateImpostazioniVetrinaData {
+  vetrina: {
+    mutateImpostazioniVetrina: ImpostazioniVetrina;
+  };
+}
+
+interface MutateImpostazioniVetrinaVariables {
+  input: ImpostazioniVetrinaInput;
+}
+
+/**
+ * Scrive le impostazioni del sito con **assegnazione totale**: si inviano tutti i campi
+ * scrivibili, sempre. Non è una scomodità — è la ragione per cui un campo si può **svuotare**.
+ * Un'assegnazione condizionale (`if (valore) …`) renderebbe impossibile togliere un link
+ * social già inserito, e nessun errore lo direbbe.
+ *
+ * ⚠️ L'input **non possiede** l'identificativo della riga né alcun campo di orario: il resolver
+ * fa upsert sulla costante di dominio, e gli orari hanno una sola sorgente in `BusinessSettings`.
+ */
+export const mutationMutateImpostazioniVetrina: TypedDocumentNode<MutateImpostazioniVetrinaData, MutateImpostazioniVetrinaVariables> = gql`
+  ${impostazioniVetrinaFragment}
+  mutation MutateImpostazioniVetrina($input: ImpostazioniVetrinaInput!) {
+    vetrina {
+      mutateImpostazioniVetrina(input: $input) {
+        ...ImpostazioniVetrinaFragment
+      }
+    }
+  }
+`;
 
 // ============ PRODOTTI VETRINA ============
 

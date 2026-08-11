@@ -1,5 +1,6 @@
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useMutation } from "@apollo/client";
+import Autocomplete from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
@@ -22,7 +23,7 @@ import useGetAll from "../../../graphql/common/useGetAll";
 import { mediaAssetFragment } from "../../../graphql/vetrina/fragments";
 import { mutationEliminaMediaAsset, mutationMutateMediaAsset } from "../../../graphql/vetrina/mutations";
 
-const CARTELLA_PREDEFINITA = "generale";
+const AIUTO_CARTELLA = "Etichetta editoriale di raggruppamento: non tocca il percorso dei file su disco.";
 
 type ModuloMedia = {
   testoAlternativo: string;
@@ -49,7 +50,9 @@ function MediaLibrary() {
   const onConfirm = useConfirm();
 
   const [configurazione, setConfigurazione] = useState<MediaConfigurazione | null>(null);
-  const [cartella, setCartella] = useState(CARTELLA_PREDEFINITA);
+  // Vuota finché la configurazione non arriva: la prima cartella suggerita la decide il
+  // server. Un valore predefinito scritto qui sarebbe la copia che può divergere.
+  const [cartella, setCartella] = useState("");
   const [inModifica, setInModifica] = useState<MediaAsset | null>(null);
   const [modulo, setModulo] = useState<ModuloMedia | null>(null);
 
@@ -81,8 +84,11 @@ function MediaLibrary() {
           path: "media/configurazione",
           method: "GET",
         });
-        if (attivo) {
+        if (attivo && risposta) {
           setConfigurazione(risposta);
+          // Functional updater: se l'utente ha già digitato mentre la richiesta era in volo,
+          // la configurazione tardiva non gli riscrive il campo sotto le dita.
+          setCartella((precedente) => precedente || risposta.cartelleSuggerite[0] || "");
         }
       } catch {
         if (attivo) {
@@ -101,6 +107,20 @@ function MediaLibrary() {
       attivo = false;
     };
   }, []);
+
+  /**
+   * Suggerimenti del server ∪ cartelle già in uso fra gli asset caricati. È lo stesso modo in
+   * cui `VetrinaProdottiList` costruisce i valori di `categoriaVetrina`: nessun modello mentale
+   * nuovo, e soprattutto **nessun elenco scritto nel frontend** che possa divergere da quello
+   * del backend.
+   *
+   * 🔴 L'insieme resta **aperto**: l'`Autocomplete` è `freeSolo`, non una tendina chiusa. Una
+   * lista chiusa richiederebbe un deploy per ogni nuova cartella.
+   */
+  const opzioniCartella = useMemo(
+    () => Array.from(new Set([...(configurazione?.cartelleSuggerite ?? []), ...assets.map((asset) => asset.cartella)])).sort(),
+    [assets, configurazione]
+  );
 
   const handleEdit = useCallback((asset: MediaAsset) => {
     setInModifica(asset);
@@ -124,7 +144,9 @@ function MediaLibrary() {
             testoAlternativo: modulo.testoAlternativo || null,
             didascalia: modulo.didascalia || null,
             focale: modulo.focale || null,
-            cartella: modulo.cartella || CARTELLA_PREDEFINITA,
+            // Un valore vuoto NON viene rimpiazzato qui: il server lo normalizza sulla propria
+            // cartella predefinita. La forma canonica ha un solo proprietario.
+            cartella: modulo.cartella,
             ordinamento: Number(modulo.ordinamento) || 0,
             pubblicato: modulo.pubblicato,
           },
@@ -203,18 +225,31 @@ function MediaLibrary() {
           Libreria media
         </Typography>
 
-        <TextField
-          label="Cartella di destinazione"
-          size="small"
+        <Autocomplete
+          freeSolo
+          options={opzioniCartella}
+          // ⚠️ Sia `value` sia `inputValue`, sullo stesso stato: sono due stati distinti in MUI,
+          // e senza il primo la tendina aperta su un valore già scelto mostrerebbe **solo**
+          // quello — filtrato dal testo che c'è nel campo. Con entrambi, aprire mostra tutte le
+          // cartelle e digitare filtra, che è quello che serve per scoprire "galleria".
           value={cartella}
-          onChange={(event) => setCartella(event.target.value)}
-          helperText="Etichetta editoriale di raggruppamento: non tocca il percorso dei file su disco."
-          sx={{ mb: 2, minWidth: 280 }}
+          onChange={(_evento, valore) => setCartella(valore ?? "")}
+          inputValue={cartella}
+          onInputChange={(_evento, valore) => setCartella(valore)}
+          sx={{ mb: 2, minWidth: 280, maxWidth: 360 }}
+          renderInput={(parametri) => (
+            <TextField
+              {...parametri}
+              label="Cartella di destinazione"
+              size="small"
+              helperText={AIUTO_CARTELLA}
+            />
+          )}
         />
 
         <MediaUploadArea
           configurazione={configurazione}
-          cartella={cartella || CARTELLA_PREDEFINITA}
+          cartella={cartella}
           onCompletato={refetch}
         />
 
@@ -262,11 +297,21 @@ function MediaLibrary() {
                 onChange={(event) => setModulo({ ...modulo, didascalia: event.target.value })}
                 fullWidth
               />
-              <TextField
-                label="Cartella"
+              <Autocomplete
+                freeSolo
+                options={opzioniCartella}
                 value={modulo.cartella}
-                onChange={(event) => setModulo({ ...modulo, cartella: event.target.value })}
+                onChange={(_evento, valore) => setModulo({ ...modulo, cartella: valore ?? "" })}
+                inputValue={modulo.cartella}
+                onInputChange={(_evento, valore) => setModulo({ ...modulo, cartella: valore })}
                 fullWidth
+                renderInput={(parametri) => (
+                  <TextField
+                    {...parametri}
+                    label="Cartella"
+                    helperText={AIUTO_CARTELLA}
+                  />
+                )}
               />
               <TextField
                 label="Ordinamento"

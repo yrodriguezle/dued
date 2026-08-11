@@ -1,5 +1,29 @@
-import { gql } from "@apollo/client";
-import { mediaAssetFragment, prodottoVetrinaFragment } from "./fragments";
+import { gql, TypedDocumentNode } from "@apollo/client";
+import { impostazioniVetrinaFragment, mediaAssetFragment, prodottoVetrinaFragment } from "./fragments";
+
+interface GetImpostazioniVetrinaData {
+  vetrina: {
+    /** `null` quando la riga non esiste ancora: la pagina mostra un modulo vuoto e il primo salvataggio la crea. */
+    impostazioni: ImpostazioniVetrina | null;
+  };
+}
+
+/**
+ * Le impostazioni del sito. Il server le riserva agli amministratori **anche in lettura**,
+ * benché una parte degli stessi dati esca anonima da `/api/public/site`: non sono gli stessi
+ * dati: qui compaiono `turnstileSiteKey` e i campi delle prenotazioni, che la rotta pubblica
+ * non contiene.
+ */
+export const getImpostazioniVetrina: TypedDocumentNode<GetImpostazioniVetrinaData, Record<string, never>> = gql`
+  ${impostazioniVetrinaFragment}
+  query GetImpostazioniVetrina {
+    vetrina {
+      impostazioni {
+        ...ImpostazioniVetrinaFragment
+      }
+    }
+  }
+`;
 
 /**
  * Anagrafica prodotti con i campi vetrina. Restituisce **anche i non attivi**: è l'anagrafica,

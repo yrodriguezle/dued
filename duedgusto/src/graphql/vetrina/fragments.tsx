@@ -18,6 +18,39 @@ export const mediaAssetFragment = `fragment MediaAssetFragment on MediaAsset {
   updatedAt
 }`;
 
+/**
+ * Le impostazioni del sito nella forma amministrativa. ⚠️ Non contiene alcun campo di orario:
+ * apertura, chiusura, giorni operativi e fuso stanno in `BusinessSettings` e si leggono da lì.
+ */
+export const impostazioniVetrinaFragment = `
+  ${mediaAssetFragment}
+  fragment ImpostazioniVetrinaFragment on ImpostazioniVetrina {
+    impostazioniVetrinaId
+    insegnaPubblica
+    via
+    cap
+    citta
+    provincia
+    paese
+    latitudine
+    longitudine
+    telefono
+    email
+    urlInstagram
+    urlFacebook
+    metaTitoloDefault
+    metaDescrizioneDefault
+    immagineOgId
+    immagineOg { ...MediaAssetFragment }
+    oraInizioTemaSera
+    prenotazioniAttive
+    prenotazioniPreavvisoOre
+    prenotazioniCopertiMax
+    turnstileSiteKey
+    createdAt
+    updatedAt
+  }`;
+
 export const prodottoVetrinaFragment = `
   ${mediaAssetFragment}
   fragment ProdottoVetrinaFragment on Prodotto {

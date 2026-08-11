@@ -100,4 +100,91 @@ type MediaConfigurazione = {
   maxMegapixel: number;
   larghezzeVarianti: number[];
   mimeAmmessi: string[];
+  /**
+   * Cartelle che l'interfaccia propone nel campo di destinazione. Arrivano dal server per la
+   * stessa ragione dei limiti: il frontend non può divergere dal backend perché non ha un
+   * proprio valore da far divergere. ⚠️ L'insieme è **aperto** — è un suggerimento, non una
+   * tendina chiusa: il campo continua ad accettare un valore digitato.
+   */
+  cartelleSuggerite: string[];
+};
+
+/**
+ * Le impostazioni del sito viste da un **amministratore**: è il ramo `vetrina { impostazioni }`,
+ * non il contratto pubblico di `/api/public/site`.
+ *
+ * 🔴 **Nessun campo di orario.** Apertura, chiusura, giorni operativi e fuso vivono in
+ * `BusinessSettings` e hanno una sola sorgente: si modificano dalle impostazioni della cassa.
+ * Aggiungerli qui — anche solo in lettura — sarebbe il primo passo verso «il sito dice aperto
+ * fino alle 21, la cassa alle 19».
+ */
+type ImpostazioniVetrina = {
+  __typename?: "ImpostazioniVetrina";
+  /** Vale sempre 1: è un valore di dominio ("la riga"), non un contatore. */
+  impostazioniVetrinaId: number;
+  // ── Identità pubblica ──────────────────────────────────────────────────────
+  /** L'insegna che legge il cliente. Distinta da `businessSettings.businessName`. */
+  insegnaPubblica: string;
+  // ── Indirizzo, scomposto perché lo pretende schema.org/PostalAddress ────────
+  via: string;
+  cap: string;
+  citta: string;
+  provincia: string;
+  paese: string;
+  /** Valorizzata insieme alla longitudine o nessuna delle due: mezza coordinata è un punto sull'equatore. */
+  latitudine?: number | null;
+  longitudine?: number | null;
+  // ── Contatti e social ──────────────────────────────────────────────────────
+  telefono?: string | null;
+  email?: string | null;
+  /** URL completo del profilo, non l'identificativo: "https://www.instagram.com/2dgusto/", non "@2dgusto". */
+  urlInstagram?: string | null;
+  urlFacebook?: string | null;
+  // ── SEO ────────────────────────────────────────────────────────────────────
+  metaTitoloDefault?: string | null;
+  metaDescrizioneDefault?: string | null;
+  immagineOgId?: number | null;
+  immagineOg?: MediaAsset | null;
+  // ── Tema ───────────────────────────────────────────────────────────────────
+  /** Forma "HH:mm". È un dato, non un calcolo: il confronto con l'ora corrente resta lato client. */
+  oraInizioTemaSera: string;
+  // ── Ganci spenti: si salvano, non fanno ancora nulla sul sito ───────────────
+  prenotazioniAttive: boolean;
+  prenotazioniPreavvisoOre: number;
+  prenotazioniCopertiMax: number;
+  /** 🔴 Non esce da /api/public/site. */
+  turnstileSiteKey?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/**
+ * Esattamente i campi **scrivibili**, e nient'altro: nessun identificativo (c'è una riga sola e
+ * il resolver sa quale), nessuna marca temporale, nessun campo di orario.
+ *
+ * ⚠️ L'assegnazione del server è **totale**: si invia sempre l'intero input, mai il solo campo
+ * toccato — ed è ciò che permette di **svuotare** un campo, cosa che un'assegnazione
+ * condizionale renderebbe impossibile.
+ */
+type ImpostazioniVetrinaInput = {
+  insegnaPubblica: string;
+  via: string;
+  cap: string;
+  citta: string;
+  provincia: string;
+  paese: string;
+  latitudine?: number | null;
+  longitudine?: number | null;
+  telefono?: string | null;
+  email?: string | null;
+  urlInstagram?: string | null;
+  urlFacebook?: string | null;
+  metaTitoloDefault?: string | null;
+  metaDescrizioneDefault?: string | null;
+  immagineOgId?: number | null;
+  oraInizioTemaSera: string;
+  prenotazioniAttive: boolean;
+  prenotazioniPreavvisoOre: number;
+  prenotazioniCopertiMax: number;
+  turnstileSiteKey?: string | null;
 };
