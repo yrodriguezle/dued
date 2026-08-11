@@ -1,106 +1,30 @@
-# Sicurezza Specification
+# Delta for Sicurezza
 
-**Domain**: sicurezza
-**Status**: Active
-**Ultimo aggiornamento**: 2026-08-11
+> Change: `sicurezza-autorizzazione-graphql` — delta rispetto a `openspec/specs/sicurezza/specs.md`.
+>
+> **Change retroattiva.** Il codice è già scritto, testato e in albero: questa delta non descrive
+> lavoro da fare, codifica il contratto che il codice già rispetta perché smetta di essere un
+> aneddoto nei commit e diventi una regola verificabile. I requirement sono scritti al presente
+> normativo.
+>
+> Il dominio `sicurezza` copriva finora l'esposizione degli errori GraphQL e la gestione dei
+> secrets. Questa delta aggiunge l'asse mancante: **chi può raggiungere lo schema GraphQL, e con
+> quale privilegio**. Nessun requirement esistente viene modificato o rimosso.
 
-Change incorporate in questa spec:
+## Modifiche allo schema GraphQL
 
-| Change | Archiviata il | Contenuto |
-|--------|---------------|-----------|
-| fix-salvataggio-cassa-fase1 | 2026-06-10 | Spec iniziale del dominio: esposizione errori GraphQL, gestione secrets |
-| sicurezza-autorizzazione-graphql | 2026-08-11 | Autorizzazione dello schema GraphQL: autorizzazione di tipo sui rami root, contratto enumerato dallo schema, dati pubblici via `/api/public/*`, privilegio amministrativo, regola fine su `mutateUtente`, introspezione fuori da Development, allowlist CORS |
+Nessuna modifica alla **forma** dello schema: nessun tipo, campo o argomento aggiunto, rinominato o
+rimosso; nessuna migrazione database. Le modifiche riguardano esclusivamente:
 
-> Nessuna modifica alla **forma** dello schema GraphQL da parte di queste change: nessun tipo, campo
-> o argomento aggiunto, rinominato o rimosso, nessuna migrazione database. I requirement riguardano
-> il contenuto degli errori esposti, i metadati di autorizzazione degli `ObjectGraphType`, la
-> pipeline di validazione delle richieste e la policy CORS dell'host.
+- i **metadati di autorizzazione** applicati agli `ObjectGraphType` dei rami root (spostati dal
+  livello di campo al livello di tipo, dove mancavano del tutto sono stati introdotti);
+- la **pipeline di validazione** delle richieste (nuova validation rule sull'introspezione);
+- la **policy CORS** dell'host, che non fa parte dello schema ma ne governa la raggiungibilità
+  cross-origin.
 
-## Purpose
+Un client autenticato esistente non deve modificare una sola query per continuare a funzionare.
 
-Definire il comportamento di sicurezza del backend su tre assi:
-
-1. **Esposizione degli errori** — quali dettagli delle eccezioni raggiungono il client, in funzione
-   dell'ambiente di esecuzione (Development vs produzione).
-2. **Gestione dei secrets** di configurazione (connection string MySQL e chiave JWT).
-3. **Raggiungibilità e privilegio sullo schema GraphQL** — chi può raggiungere `/graphql`, con quale
-   privilegio, da quali origini, e cosa può scoprire dello schema.
-
-## Requirements
-
-### Requirement: Dettagli errori GraphQL esposti solo in Development
-
-Il backend MUST esporre i dettagli delle eccezioni nelle risposte GraphQL
-(`ExposeExceptionDetails`, tipo eccezione, messaggi inner exception, stack trace) SOLO
-quando l'ambiente di esecuzione è Development. In ogni altro ambiente la risposta GraphQL
-per un'eccezione non gestita MUST contenere un messaggio generico senza tipo eccezione,
-senza inner exception e senza stack trace. I dettagli completi dell'eccezione MUST essere
-sempre registrati nei log del server in tutti gli ambienti. Le eccezioni di dominio
-lanciate intenzionalmente con messaggio per l'utente (es. errore di doppia registrazione
-fattura) SHOULD continuare a recapitare il loro messaggio al client in tutti gli ambienti.
-
-#### Scenario: Eccezione non gestita in produzione
-
-- GIVEN il backend in esecuzione con ambiente diverso da Development (es. Production)
-- WHEN una mutation GraphQL solleva un'eccezione non gestita (es. `DbUpdateException`)
-- THEN la risposta GraphQL contiene un messaggio di errore generico
-- AND la risposta non contiene tipo dell'eccezione, messaggi delle inner exception né stack trace
-- AND i dettagli completi dell'eccezione sono presenti nei log del server
-
-#### Scenario: Eccezione non gestita in Development
-
-- GIVEN il backend in esecuzione con ambiente Development
-- WHEN una query o mutation GraphQL solleva un'eccezione non gestita
-- THEN la risposta GraphQL contiene i dettagli dell'eccezione utili al debug (tipo, messaggio, inner exception)
-- AND i dettagli sono presenti anche nei log del server
-
-#### Scenario: Errore di dominio con messaggio per l'utente in produzione
-
-- GIVEN il backend in produzione
-- WHEN il salvataggio del registro viene rifiutato per vera doppia registrazione di una fattura
-- THEN il client riceve il messaggio applicativo esplicito previsto dal requisito di dedup (fattura e fornitore)
-- AND nessuno stack trace viene incluso nella risposta
-
-### Requirement: Secrets fuori dal repository versionato
-
-Il file `backend/appsettings.json` versionato MUST NOT contenere secrets: né la
-connection string con credenziali del database né la chiave di firma JWT. Il backend MUST
-leggere connection string e chiave JWT da variabili d'ambiente (convenzione .NET, es.
-`ConnectionStrings__Default`; per la chiave JWT è già supportata `JWT_SECRET_KEY`).
-Un fallback con valori di sviluppo MAY esistere SOLO per l'ambiente Development (es.
-`appsettings.Development.json` NON versionato ed escluso via `.gitignore`); il fallback
-MUST NOT essere attivo negli altri ambienti. In ambiente non-Development, se un secret
-richiesto non è configurato, l'avvio MUST fallire in modo esplicito con un messaggio che
-indica la variabile mancante (fail-fast, nessun valore di default silenzioso).
-
-#### Scenario: Repository senza secrets
-
-- GIVEN la change applicata
-- WHEN si ispeziona `backend/appsettings.json` versionato
-- THEN il file non contiene la password del database (`password=root`) né la chiave JWT
-- AND il file di sviluppo contenente i valori locali è elencato in `.gitignore` e non risulta tracciato da git
-
-#### Scenario: Avvio locale in Development senza configurazione aggiuntiva
-
-- GIVEN una macchina di sviluppo con MySQL locale standard e ambiente Development
-- AND nessuna variabile d'ambiente di secrets impostata
-- WHEN si esegue `cd backend && dotnet run`
-- THEN l'applicazione si avvia correttamente usando il fallback di sviluppo (connection string e chiave JWT locali)
-- AND le migrazioni automatiche e il login funzionano come prima della change
-
-#### Scenario: Avvio in produzione con variabili d'ambiente
-
-- GIVEN ambiente non-Development con `ConnectionStrings__Default` e `JWT_SECRET_KEY` impostate
-- WHEN l'applicazione viene avviata
-- THEN connection string e chiave JWT usate sono quelle delle variabili d'ambiente
-- AND nessun valore di fallback di sviluppo viene utilizzato
-
-#### Scenario: Secret mancante in produzione
-
-- GIVEN ambiente non-Development senza `JWT_SECRET_KEY` (o senza connection string) configurata
-- WHEN l'applicazione viene avviata
-- THEN l'avvio fallisce immediatamente con un errore che indica quale configurazione manca
-- AND l'applicazione non si avvia con secrets di default hardcoded
+## ADDED Requirements
 
 ### Requirement: Autorizzazione di tipo su ogni ramo root dello schema GraphQL
 
@@ -439,17 +363,3 @@ essere propagata al container backend e documentata nel file di esempio dell'amb
 - WHEN l'host viene aggiunto a `ALLOWED_ORIGINS` e il container backend viene riavviato
 - THEN il client è ammesso
 - AND non è stato necessario alcun rebuild né deploy applicativo
-
----
-
-## Debito di copertura dichiarato
-
-Registrato al momento dell'archiviazione di `sicurezza-autorizzazione-graphql` (2026-08-11). Nessuno
-di questi punti è una violazione: sono scenari **implementati e verificati per lettura** ma privi di
-test automatico, tutti su percorsi permissivi o di transport.
-
-| Scenario | Requirement | Stato | Rischio |
-|----------|-------------|-------|---------|
-| Amministratore gestisce ruoli e menu | Privilegio amministrativo | Senza test | Funzionale: un guard troppo stretto sui 4 resolver di anagrafica non verrebbe intercettato dalla CI |
-| Operatore tenta di creare un utente | Regola fine su `mutateUtente` | Senza test | Basso: è il primo disgiunto dello stesso `if` il cui secondo disgiunto è testato |
-| Subscription in anonimo | Autorizzazione di tipo | Parziale | Il meccanismo di negazione è provato in-process; il transport WebSocket reale e `WebSocketAuthenticationService` non sono esercitati |

@@ -32,6 +32,11 @@ services:
       CONNECTION_STRING: "server=mysql;database=${MYSQL_DATABASE:-duedgusto};user=root;password=${MYSQL_ROOT_PASSWORD}"
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD}
+      # Host cross-origin autorizzati (separati da virgola, solo host).
+      # In produzione nginx serve app e API sullo stesso origin: serve per l'accesso
+      # da app.duedgusto.com e, in futuro, dal dominio della vetrina.
+      ALLOWED_ORIGINS: "${ALLOWED_ORIGINS:-app.duedgusto.com}"
+      SERVER_IP: "${SERVER_IP:-}"
       SEED_ON_STARTUP: "${SEED_ON_STARTUP:-true}"
       # Import una-tantum dello storico chiusure 2026: vuoto = OFF.
       # Si abilita temporaneamente nel .env del server (dryrun|1) e si rimuove dopo l'uso.

@@ -11,6 +11,7 @@ using duedgusto.Models;
 using duedgusto.Services.HashPassword;
 using duedgusto.Services.Jwt;
 using duedgusto.Helpers;
+using duedgusto.GraphQL.GestioneCassa;
 
 namespace duedgusto.GraphQL.Authentication;
 
@@ -26,14 +27,51 @@ public class AuthMutations : ObjectGraphType
         && DragModesAmmessi.Contains(v)
             ? v : "free";
 
+    /// <summary>
+    /// Id dell'utente autenticato. <c>this.Authorize()</c> a livello di tipo garantisce che il
+    /// principal ci sia: se manca è un errore di configurazione, non un caso d'uso.
+    /// </summary>
+    private static int UtenteCorrenteId(IResolveFieldContext<object?> context)
+    {
+        JwtHelper jwtHelper = GraphQLService.GetService<JwtHelper>(context);
+        GraphQLUserContext userContext = context.UserContext as GraphQLUserContext
+            ?? throw new ExecutionError("Utente non autenticato");
+        return jwtHelper.GetUserID(userContext.Principal!);
+    }
+
+    /// <summary>
+    /// Delega alla lettura condivisa del flag <see cref="Ruolo.Amministratore"/>: la logica
+    /// vive in un posto solo, così le due forme d'errore (eccezione GraphQL qui, 403 con corpo
+    /// JSON nei controller) non possono divergere sul <i>verdetto</i>.
+    /// </summary>
+    private static Task<bool> IsAmministratore(AppDbContext dbContext, int utenteId) =>
+        GestioneCassaGuards.IsUtenteAmministratore(dbContext, utenteId);
+
+    /// <summary>
+    /// Riusa il guard dell'anagrafica ruoli: il privilegio è il flag
+    /// <see cref="Ruolo.Amministratore"/>, non il nome del ruolo.
+    /// </summary>
+    private static Task GuardAmministratore(IResolveFieldContext<object?> context, AppDbContext dbContext) =>
+        GestioneCassaGuards.GuardUtenteAmministratore(dbContext, UtenteCorrenteId(context));
+
     public AuthMutations()
     {
+        // Tutte le mutation di questo ramo richiedono un utente autenticato.
+        // Senza, mutateUtente permetterebbe a un anonimo di riscrivere Hash/Salt
+        // di un utente esistente (incluso il superadmin) e poi accedere da /api/auth/signin.
+        //
+        // Autenticato non basta però: ruoli, menu e anagrafica utenti restano privilegio
+        // amministrativo, applicato resolver per resolver qui sotto.
+        this.Authorize();
+
         Field<RuoloType, Ruolo>("mutateRuolo")
             .Argument<NonNullGraphType<RuoloInputType>>("ruolo", "Dati del ruolo da creare o aggiornare")
             .Argument<NonNullGraphType<ListGraphType<IntGraphType>>>("menuIds", "ID dei menu associati al ruolo")
             .ResolveAsync(async context =>
             {
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                await GuardAmministratore(context, dbContext);
+
                 Ruolo input = context.GetArgument<Ruolo>("ruolo");
                 List<int> menuIds = context.GetArgument<List<int>>("menuIds");
                 Ruolo? ruolo = await dbContext.Ruoli
@@ -75,6 +113,8 @@ public class AuthMutations : ObjectGraphType
             .ResolveAsync(async context =>
             {
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                await GuardAmministratore(context, dbContext);
+
                 int id = context.GetArgument<int>("id");
 
                 bool hasUsers = await dbContext.Utenti.AnyAsync(u => u.RuoloId == id);
@@ -96,6 +136,8 @@ public class AuthMutations : ObjectGraphType
             .ResolveAsync(async context =>
             {
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                await GuardAmministratore(context, dbContext);
+
                 List<Menu> inputs = context.GetArgument<List<Menu>>("menus");
                 List<Menu> result = [];
 
@@ -132,6 +174,8 @@ public class AuthMutations : ObjectGraphType
             .ResolveAsync(async context =>
             {
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                await GuardAmministratore(context, dbContext);
+
                 List<int> ids = context.GetArgument<List<int>>("ids");
 
                 List<Menu> menus = await dbContext.Menus
@@ -157,6 +201,29 @@ public class AuthMutations : ObjectGraphType
                 string? password = userArg.ContainsKey("password") ? userArg["password"]?.ToString() : null;
 
                 Utente? existingUser = await dbContext.Utenti.FindAsync(userId);
+
+                // Chi non è amministratore può usare questa mutation SOLO per il proprio
+                // profilo (è il canale con cui ProfilePage salva preferenzaDragModale) e
+                // senza toccare ruolo o abilitazione: altrimenti si auto-promuoverebbe.
+                int utenteCorrenteId = UtenteCorrenteId(context);
+                if (!await IsAmministratore(dbContext, utenteCorrenteId))
+                {
+                    if (existingUser == null || userId != utenteCorrenteId)
+                    {
+                        throw new ExecutionError(
+                            "Operazione riservata agli amministratori: puoi modificare solo il tuo profilo.");
+                    }
+
+                    int ruoloRichiesto = Convert.ToInt32(userArg["ruoloId"]);
+                    bool disabilitatoRichiesto = userArg.ContainsKey("disabilitato")
+                        && Convert.ToBoolean(userArg["disabilitato"]);
+
+                    if (ruoloRichiesto != existingUser.RuoloId || disabilitatoRichiesto != existingUser.Disabilitato)
+                    {
+                        throw new ExecutionError(
+                            "Solo un amministratore può modificare il ruolo o l'abilitazione di un utente.");
+                    }
+                }
 
                 if (existingUser != null)
                 {

@@ -86,19 +86,35 @@ public static class GestioneCassaGuards
     }
 
     /// <summary>
-    /// Verifica che l'utente appartenga a un ruolo con privilegi amministrativi.
+    /// L'utente appartiene a un ruolo con privilegi amministrativi?
     /// Il privilegio è dato dal flag <see cref="Ruolo.Amministratore"/> gestito
     /// dall'anagrafica ruoli, NON dal nome del ruolo: rinominare un ruolo non deve
     /// spostare i permessi.
+    ///
+    /// 🔴 È la forma <b>booleana</b> del controllo, ed esiste perché il verdetto è uno solo
+    /// ma le forme d'errore sono due: <see cref="GuardUtenteAmministratore"/> lancia un
+    /// <see cref="ExecutionError"/> — che è un tipo GraphQL e dentro un controller REST
+    /// diventerebbe un 500 opaco — mentre i controller rispondono
+    /// <c>403 { message }</c> con un corpo JSON che il client sa leggere.
+    /// Una query, due presentazioni, zero duplicazione.
     /// </summary>
-    public static async Task GuardUtenteAmministratore(AppDbContext dbContext, int utenteId)
+    public static async Task<bool> IsUtenteAmministratore(AppDbContext dbContext, int utenteId)
     {
         Ruolo? ruolo = await dbContext.Utenti
             .Where(u => u.Id == utenteId)
             .Select(u => u.Ruolo)
             .FirstOrDefaultAsync();
 
-        if (ruolo == null || !ruolo.Amministratore)
+        return ruolo != null && ruolo.Amministratore;
+    }
+
+    /// <summary>
+    /// Variante GraphQL di <see cref="IsUtenteAmministratore"/>: stesso verdetto, presentato
+    /// come <see cref="ExecutionError"/> perché è ciò che i resolver sanno propagare al client.
+    /// </summary>
+    public static async Task GuardUtenteAmministratore(AppDbContext dbContext, int utenteId)
+    {
+        if (!await IsUtenteAmministratore(dbContext, utenteId))
         {
             throw new ExecutionError(
                 "Operazione riservata agli amministratori: il tuo ruolo non ha i privilegi necessari.");

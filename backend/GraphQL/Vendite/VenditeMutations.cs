@@ -20,6 +20,10 @@ public class VenditeMutations : ObjectGraphType
     {
         Name = "VenditeMutation";
 
+        // Autorizzazione a livello di tipo: copre creaVendita/aggiornaVendita/eliminaVendita,
+        // che prima erano invocabili in anonimo. Una sola regola per tutto il ramo.
+        this.Authorize();
+
         // Create sale
         Field<VenditaType>("creaVendita")
             .Argument<NonNullGraphType<CreaVenditaInputType>>("input", "Dati vendita")
@@ -38,7 +42,6 @@ public class VenditeMutations : ObjectGraphType
 
         // Create/update product (unico punto di amministrazione prodotti, UI fuori scope)
         Field<ProdottoType>("mutateProdotto")
-            .Authorize()
             .Argument<NonNullGraphType<ProdottoInputType>>("prodotto", "Dati prodotto")
             .ResolveAsync(async context => await MutateProdottoAsync(context));
     }

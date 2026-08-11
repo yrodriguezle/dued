@@ -16,6 +16,10 @@ public class VenditeQueries : ObjectGraphType
     {
         Name = "VenditeQuery";
 
+        // Ramo riservato: oltre al listino espone le vendite per registro di cassa.
+        // Il listino pubblico del sito vetrina NON passa da qui, ma da /api/public/menu.
+        this.Authorize();
+
         // Get all products (paginated)
         Field<ListGraphType<ProdottoType>>("prodotti")
             .Argument<StringGraphType>("ricerca", "Termine di ricerca")

@@ -18,6 +18,10 @@ public class ConnectionQueries : ObjectGraphType
 {
     public ConnectionQueries()
     {
+        // Ramo interamente riservato: espone anagrafiche, registri cassa, fornitori,
+        // fatture e chiusure mensili. L'app lo interroga sempre dopo il login.
+        this.Authorize();
+
         Field<ConnectionType<UtenteType>>("utenti")
             .Argument<IntGraphType>("first", "Number of items to return")
             .Argument<IntGraphType>("cursor", "Offset for pagination (deprecated, use after)")

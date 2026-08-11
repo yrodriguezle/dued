@@ -2,6 +2,8 @@ using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.Extensions.FileProviders;
 
 using GraphQL;
 using GraphQL.Types;
@@ -11,7 +13,9 @@ using GraphQL.Types.Relay;
 
 using DotNetEnv;
 
+using duedgusto.Common;
 using duedgusto.GraphQL;
+using duedgusto.GraphQL.Validation;
 using duedgusto.DataAccess;
 using duedgusto.GraphQL.Authentication;
 using duedgusto.Services.Jwt;
@@ -19,6 +23,7 @@ using duedgusto.Services.HashPassword;
 using duedgusto.Services.ChiusureMensili;
 using duedgusto.Services.Events;
 using duedgusto.Services.Fornitori;
+using duedgusto.Services.Media;
 using duedgusto.Middleware;
 using duedgusto.SeedData;
 using duedgusto.Repositories.Interfaces;
@@ -28,7 +33,6 @@ using duedgusto.GraphQL.GestioneCassa;
 using duedgusto.GraphQL.Fornitori;
 
 using GraphQL.Server.Transports.AspNetCore.WebSockets;
-using System.Net;
 using System.Security.Claims;
 using duedgusto.Models;
 
@@ -95,6 +99,32 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(connectionString, serverVersion);
 });
 
+// ── Media ────────────────────────────────────────────────────────────────────────────────
+// Radice dei binari, stessa catena fail-fast di CONNECTION_STRING: il default vale SOLO in
+// Development. In produzione una radice indovinata significherebbe scrivere i media dentro
+// il container, dove sopravvivono fino alla prima ricreazione — e accorgersene mesi dopo,
+// con il database pieno di riferimenti a file che non esistono più.
+string mediaRoot = Environment.GetEnvironmentVariable("MEDIA_ROOT")
+    ?? (builder.Environment.IsDevelopment()
+        ? Path.Combine(builder.Environment.ContentRootPath, "media")
+        : throw new InvalidOperationException(
+            "MEDIA_ROOT non impostata. In ambienti non-Development impostare la variabile " +
+            "d'ambiente MEDIA_ROOT (in Docker: /app/media, bind mount di /opt/duedgusto/media)."));
+builder.Services.AddSingleton(new MediaRoot(mediaRoot));
+
+// Tetto duro sull'allocatore di ImageSharp: limita il danno di UN file patologico.
+// È metà del doppio freno alla memoria — l'altra metà è il SemaphoreSlim(2) di
+// ImmagineProcessor, che limita quanti file si elaborano insieme. L'allocatore limita
+// l'AMPIEZZA, il semaforo la CONCORRENZA: nessuno dei due sostituisce l'altro.
+// ⚠️ ImageSharp 3.x non espone un limite cumulativo di allocazione: l'unico tetto disponibile
+//    è quello sul singolo buffer. Il totale vivo resta governato dal semaforo.
+SixLabors.ImageSharp.Configuration.Default.MemoryAllocator =
+    SixLabors.ImageSharp.Memory.MemoryAllocator.Create(
+        new SixLabors.ImageSharp.Memory.MemoryAllocatorOptions { AllocationLimitMegabytes = 128 });
+
+builder.Services.AddScoped<IMediaStorage, FileSystemMediaStorage>();
+builder.Services.AddScoped<ImmagineProcessor>();
+
 // Repository Pattern — UnitOfWork + Domain Repositories
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IRegistroCassaRepository, RegistroCassaRepository>();
@@ -110,44 +140,24 @@ builder.Services.AddScoped<IRuoloRepository, RuoloRepository>();
 builder.Services.AddScoped<IMenuRepository, MenuRepository>();
 builder.Services.AddScoped<IBusinessSettingsRepository, BusinessSettingsRepository>();
 
+// SECURITY: host esterni autorizzati, oltre a localhost e alla LAN privata.
+// Lista separata da virgole in ALLOWED_ORIGINS (solo host, senza schema né porta);
+// SERVER_IP, se impostata, viene aggiunta automaticamente.
+//
+// In produzione nginx serve frontend e API sullo STESSO origin, quindi il CORS non
+// entra quasi mai in gioco: conta per lo sviluppo (Vite su :4001 → backend su :4000)
+// e per l'accesso da app.duedgusto.com, che punta all'API sull'IP del VPS.
+// Il verdetto sulla singola origine vive in CorsOriginPolicy: è un controllo di sicurezza,
+// e come lambda inline qui sarebbe irraggiungibile dai test.
+HashSet<string> allowedOrigins = CorsOriginPolicy.CostruisciAllowlist(
+    Environment.GetEnvironmentVariable("ALLOWED_ORIGINS"),
+    Environment.GetEnvironmentVariable("SERVER_IP"));
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigins", policy =>
     {
-        policy.SetIsOriginAllowed(origin =>
-        {
-            if (Uri.TryCreate(origin, UriKind.Absolute, out Uri? uri))
-            {
-                var host = uri.Host;
-
-                // Allow localhost
-                if (host == "localhost" || host == "127.0.0.1")
-                    return true;
-
-                // Allow local network IPs (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
-                if (System.Net.IPAddress.TryParse(host, out IPAddress? ip))
-                {
-                    var bytes = ip.GetAddressBytes();
-                    if (bytes.Length == 4)
-                    {
-                        // 192.168.x.x
-                        if (bytes[0] == 192 && bytes[1] == 168) return true;
-                        // 10.x.x.x
-                        if (bytes[0] == 10) return true;
-                        // 172.16.0.0 - 172.31.255.255
-                        if (bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31) return true;
-                    }
-
-                    // Production: allow public IP access (served via Nginx on same IP)
-                    return true;
-                }
-
-                // Allow configured domain (e.g. app.duedgusto.com)
-                if (host == "app.duedgusto.com") return true;
-            }
-
-            return false;
-        })
+        policy.SetIsOriginAllowed(origin => CorsOriginPolicy.OrigineAmmessa(origin, allowedOrigins))
         .AllowAnyMethod()
         .AllowAnyHeader()
         .AllowCredentials();
@@ -177,6 +187,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddGraphQL((ctx) => ctx
     .AddSchema<GraphQLSchema>()
     .AddAutoClrMappings()
+    // Introspezione consentita solo in Development: la rule decide da sé in base
+    // all'ambiente, così la catena resta una sola per tutti gli ambienti.
+    .AddValidationRule<NoIntrospectionValidationRule>()
     .AddErrorInfoProvider(opt =>
     {
         // Dettagli eccezioni esposti al client SOLO in Development
@@ -252,6 +265,34 @@ app.UseMiddleware<AuthRateLimitMiddleware>();
 app.UseAuthentication();
 
 app.UseAuthorization();
+
+// ── Media statici: SOLO in Development ───────────────────────────────────────────────────
+// In produzione i media li serve nginx (location /media/), che ha sendfile e non paga la
+// pipeline dei middleware su ogni thumbnail. L'URL però è identica nei due ambienti senza
+// alcun "if" nel client, perché API_ENDPOINT punta già, in entrambi, all'host che serve
+// /media/: la chiave nel database non conosce l'ambiente ed è portabile fra i due.
+if (app.Environment.IsDevelopment())
+{
+    Directory.CreateDirectory(mediaRoot);
+
+    // .webp esplicito: se il provider di default non lo mappasse, con ServeUnknownFileTypes
+    // a false ogni variante WebP darebbe un 404 muto in sviluppo, e sembrerebbe un bug della
+    // pipeline immagini invece che del content-type.
+    var mediaContentTypes = new FileExtensionContentTypeProvider();
+    mediaContentTypes.Mappings[".webp"] = "image/webp";
+
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider(mediaRoot),
+        RequestPath = "/media",
+        ContentTypeProvider = mediaContentTypes,
+        ServeUnknownFileTypes = false,
+        // Cache aggressiva sicura: ogni chiave contiene un suffisso casuale e i file non
+        // vengono mai sovrascritti — "sostituire l'immagine" è un nuovo upload, nuova chiave.
+        OnPrepareResponse = ctx =>
+            ctx.Context.Response.Headers.CacheControl = "public,max-age=31536000,immutable",
+    });
+}
 
 app.MapControllers();
 
