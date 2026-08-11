@@ -10,6 +10,21 @@ Colori: inchiostro `#2B2417`, gesso `#F2EDE7`, arancio `#FD8502`.
 > locandine. Qui si è usato **quello delle locandine**, per non avere due arancioni nel
 > progetto. Se un giorno si stampa qualcosa, vale la pena riverificarlo sull'originale.
 
+## Questa cartella è il master, non la cartella del sito
+
+Qui sta **tutto** il marchio, comprese le cose che sul sito non vanno: l'insegna con le tre
+parole disegnate serve a stampa e insegne, e questo README documenta il marchio, non le
+pagine. Il sito ne prenderà un sottoinsieme quando nascerà `sito/` (Fase 2 del piano), in
+**due posti diversi** — e la distinzione non è cosmetica:
+
+| Destinazione | Cosa | Perché |
+|---|---|---|
+| `sito/public/` | `favicon.svg`, `apple-touch-icon.png`, `og-default.jpg` | servito verbatim, a URL fisse: i browser cerca­no queste risorse a percorsi precisi |
+| `sito/src/assets/` | `logo-2dgusto.svg`, `monogramma-2d.svg` | processato da Astro e inserito **inline** nella pagina — l'unico modo perché `currentColor` funzioni e il logo segua il tema |
+
+Le varianti a colori fissi servono solo dove il logo passa da `<img>` o da CSS. Se finisce
+inline, si usa la versione con `currentColor` e se ne pilota il colore dal foglio di stile.
+
 ## Quale file usare
 
 | File | Quando |
