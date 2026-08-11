@@ -1,0 +1,37 @@
+# DuedGusto - comandi privilegiati della pipeline di deploy.
+#
+# deploy/scripts/deploy.sh gira via SSH come utente "deploy", SENZA TTY: un sudo che chieda la
+# password non fallisce, resta appeso fino al timeout del job. Qui stanno gli unici comandi
+# privilegiati dello script, con gli argomenti FISSI con cui vengono invocati - sudo confronta la
+# riga di comando parola per parola, quindi un argomento diverso non corrisponde e viene rifiutato.
+#
+# Non e' un ampliamento di privilegi: "deploy" e' nel gruppo docker, che e' gia' equivalente a root
+# (basta "docker run -v /:/host"). Serve a rendere non interattivo cio' che la pipeline fa comunque,
+# e a tenere in un unico file, leggibile, tutto quello che tocca root.
+#
+# Se l'utente della pipeline non si chiama "deploy", cambiare l'ultima riga: deve corrispondere al
+# secret VPS_USER usato da .github/workflows/deploy.yml.
+#
+# Installazione (come root):
+#   install -m 0440 -o root -g root deploy/sudoers.d/duedgusto-deploy /etc/sudoers.d/duedgusto-deploy
+#   visudo -c
+# I permessi 0440 e il nome senza punti non sono cosmetici: sudo ignora in SILENZIO i drop-in con
+# permessi diversi o con un'estensione nel nome, e il deploy tornerebbe a fallire come se il file
+# non ci fosse.
+
+# La directory dei media deve appartenere all'UID del processo nel container prima che il bind
+# mount la usi: 10001 e' fissato in backend/Dockerfile.
+Cmnd_Alias DUEDGUSTO_MEDIA = \
+    /usr/bin/chown -R 10001\:10001 /opt/duedgusto/media, \
+    /usr/bin/chmod -R 755 /opt/duedgusto/media
+
+# La configurazione di nginx vive nel repo e il deploy la installa: le due cp sono l'andata e il
+# ritorno (installazione e ripristino del backup se "nginx -t" boccia la nuova versione).
+Cmnd_Alias DUEDGUSTO_NGINX = \
+    /usr/bin/cp /srv/duedgusto/deploy/nginx/duedgusto.conf /etc/nginx/sites-available/duedgusto.conf, \
+    /usr/bin/cp /opt/duedgusto/backups/nginx-duedgusto.conf.bak /etc/nginx/sites-available/duedgusto.conf, \
+    /usr/bin/rm -f /etc/nginx/sites-available/duedgusto.conf, \
+    /usr/sbin/nginx -t, \
+    /usr/bin/systemctl reload nginx
+
+deploy ALL=(root) NOPASSWD: DUEDGUSTO_MEDIA, DUEDGUSTO_NGINX

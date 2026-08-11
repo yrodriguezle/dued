@@ -328,6 +328,19 @@ fi
 # =============================================================================
 section "Fase 7/8 - Nginx"
 
+# Autorizzazioni sudo della pipeline: deploy.sh gira come utente non privilegiato e senza TTY,
+# quindi i pochi comandi che toccano root devono essere NOPASSWD. Si valida PRIMA di installare:
+# un drop-in con un errore di sintassi non viene ignorato, rende sudo inutilizzabile per tutti.
+SUDOERS_SRC="$REPO_DIR/deploy/sudoers.d/duedgusto-deploy"
+SUDOERS_DST="/etc/sudoers.d/duedgusto-deploy"
+visudo -cqf "$SUDOERS_SRC"
+install -m 0440 -o root -g root "$SUDOERS_SRC" "$SUDOERS_DST"
+if ! visudo -c > /dev/null; then
+    rm -f "$SUDOERS_DST"
+    err "sudoers non valido dopo l'installazione del drop-in. Rimosso, nulla e' cambiato."
+fi
+log "Drop-in sudoers installato in $SUDOERS_DST."
+
 cp "$REPO_DIR/deploy/nginx/duedgusto.conf" /etc/nginx/sites-available/duedgusto.conf
 ln -sf /etc/nginx/sites-available/duedgusto.conf /etc/nginx/sites-enabled/duedgusto.conf
 rm -f /etc/nginx/sites-enabled/default

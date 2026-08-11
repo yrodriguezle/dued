@@ -112,6 +112,20 @@ else
     log "Certificato self-signed gia' presente, skip."
 fi
 
+log "Autorizzazioni sudo per la pipeline di deploy..."
+SUDOERS_SRC="$REPO_DIR/deploy/sudoers.d/duedgusto-deploy"
+SUDOERS_DST="/etc/sudoers.d/duedgusto-deploy"
+# Si valida PRIMA di installare: un drop-in con un errore di sintassi non viene ignorato, rende
+# sudo inutilizzabile per tutti gli utenti finche' non lo si rimuove da una sessione root gia' aperta.
+visudo -cqf "$SUDOERS_SRC"
+install -m 0440 -o root -g root "$SUDOERS_SRC" "$SUDOERS_DST"
+if ! visudo -c > /dev/null; then
+    rm -f "$SUDOERS_DST"
+    echo "ERRORE: sudoers non valido dopo l'installazione del drop-in. Rimosso, nulla e' cambiato." >&2
+    exit 1
+fi
+log "Drop-in sudoers installato in $SUDOERS_DST."
+
 log "Configurazione Nginx..."
 cp "$REPO_DIR/deploy/nginx/duedgusto.conf" /etc/nginx/sites-available/duedgusto.conf
 ln -sf /etc/nginx/sites-available/duedgusto.conf /etc/nginx/sites-enabled/duedgusto.conf

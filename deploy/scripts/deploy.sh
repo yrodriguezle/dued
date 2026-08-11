@@ -12,6 +12,15 @@ log() {
     echo "$msg" >> "$LOG_FILE"
 }
 
+# A differenza di setup-vps.sh e first-deploy.sh, questo script gira come utente NON
+# privilegiato: le poche operazioni che toccano root (permessi dei media, configurazione di
+# nginx) passano da qui. "-n" perche' senza TTY un prompt di password bloccherebbe il job
+# della pipeline fino al timeout invece di fallire subito.
+SUDO=""
+if [[ $EUID -ne 0 ]]; then
+    SUDO="sudo -n"
+fi
+
 log "=== Inizio deploy DuedGusto ==="
 
 # Backup pre-deploy (skip se i container non esistono ancora)
@@ -66,10 +75,31 @@ log "Config generato con IP: $SERVER_IP"
 # Media della vetrina: la directory deve esistere e appartenere all'utente del container
 # PRIMA dell'avvio, altrimenti il bind mount la crea root e il primo upload fallisce con un
 # UnauthorizedAccessException — in produzione, e solo lì.
+#
+# Cambiare proprietario verso un altro UID richiede CAP_CHOWN, che questo script non ha:
+# un chown diretto esce con "Operation not permitted" e "set -e" ferma il deploy a metà —
+# frontend già sostituito, container ancora vecchi. Si tocca solo quando serve davvero: a
+# regime la directory è già assegnata, e il caso normale non richiede né privilegi né un
+# -R su migliaia di media a ogni deploy.
 log "Preparazione directory dei media..."
-mkdir -p "$APP_DIR/media"
-chown -R 10001:10001 "$APP_DIR/media"   # 10001 = UID di appuser, fissato in backend/Dockerfile
-chmod -R 755 "$APP_DIR/media"           # 755: nginx (www-data) legge, solo appuser scrive
+MEDIA_DIR="$APP_DIR/media"
+MEDIA_UID=10001   # UID e GID di appuser, fissati in backend/Dockerfile
+MEDIA_GID=10001
+
+mkdir -p "$MEDIA_DIR"
+if [[ "$(stat -c '%u:%g' "$MEDIA_DIR")" != "$MEDIA_UID:$MEDIA_GID" ]]; then
+    log "Directory media da riassegnare a $MEDIA_UID:$MEDIA_GID..."
+    # 755: nginx (www-data) legge, solo appuser scrive
+    if ! $SUDO chown -R "$MEDIA_UID:$MEDIA_GID" "$MEDIA_DIR" || ! $SUDO chmod -R 755 "$MEDIA_DIR"; then
+        log "ERRORE: impossibile assegnare $MEDIA_DIR a $MEDIA_UID:$MEDIA_GID."
+        log "Senza questo, il container non puo' scrivere i media caricati dalla vetrina."
+        log "Controllare che /etc/sudoers.d/duedgusto-deploy sia installato (0440, root:root)."
+        log "Oppure eseguire a mano sul server, come root:"
+        log "  chown -R $MEDIA_UID:$MEDIA_GID $MEDIA_DIR && chmod -R 755 $MEDIA_DIR"
+        exit 1
+    fi
+    log "Directory media assegnata a $MEDIA_UID:$MEDIA_GID."
+fi
 
 log "Build e restart container Docker..."
 cd "$REPO_DIR"
@@ -96,7 +126,52 @@ if [[ $ELAPSED -ge $TIMEOUT ]]; then
     exit 1
 fi
 
+# La configurazione di nginx vive nel repo, ma fino a qui la installavano solo setup-vps.sh e
+# first-deploy.sh, che si eseguono a mano una volta sola: una location nuova (per esempio
+# /media/) restava sul server nella versione vecchia e la pipeline diventava verde su una
+# produzione rotta — immagini che rispondono con index.html, upload respinti con un 413 nudo.
+# Il ripristino in caso di "nginx -t" fallito non è teatro: una conf non valida non impedisce
+# solo il reload, lascia il sito irraggiungibile al primo restart di nginx, anche settimane dopo.
+log "Sincronizzazione configurazione Nginx..."
+NGINX_CONF_SRC="$REPO_DIR/deploy/nginx/duedgusto.conf"
+NGINX_CONF_DST="/etc/nginx/sites-available/duedgusto.conf"
+
+# Percorso di backup FISSO, non un mktemp: è uno degli argomenti autorizzati in
+# deploy/sudoers.d/duedgusto-deploy, e sudo confronta la riga di comando parola per parola.
+NGINX_CONF_BAK="$APP_DIR/backups/nginx-duedgusto.conf.bak"
+
+if cmp -s "$NGINX_CONF_SRC" "$NGINX_CONF_DST"; then
+    log "Configurazione Nginx già aggiornata."
+else
+    log "Configurazione Nginx cambiata, installazione della nuova versione..."
+    HAD_CONF=false
+    if [[ -f "$NGINX_CONF_DST" ]]; then
+        HAD_CONF=true
+        cp "$NGINX_CONF_DST" "$NGINX_CONF_BAK"   # 644 root:root: si legge senza privilegi
+    fi
+
+    if ! $SUDO cp "$NGINX_CONF_SRC" "$NGINX_CONF_DST"; then
+        log "ERRORE: impossibile scrivere $NGINX_CONF_DST."
+        log "Controllare che /etc/sudoers.d/duedgusto-deploy sia installato (0440, root:root)."
+        log "Oppure eseguire a mano sul server, come root:"
+        log "  cp $NGINX_CONF_SRC $NGINX_CONF_DST && nginx -t && systemctl reload nginx"
+        exit 1
+    fi
+
+    if ! $SUDO nginx -t; then
+        log "ERRORE: la nuova configurazione Nginx non passa 'nginx -t'. Ripristino la precedente."
+        if [[ "$HAD_CONF" == true ]]; then
+            $SUDO cp "$NGINX_CONF_BAK" "$NGINX_CONF_DST"
+        else
+            $SUDO rm -f "$NGINX_CONF_DST"
+        fi
+        exit 1
+    fi
+
+    log "Configurazione Nginx aggiornata e validata."
+fi
+
 log "Reload Nginx..."
-sudo systemctl reload nginx
+$SUDO systemctl reload nginx
 
 log "=== Deploy completato con successo ==="
