@@ -44,3 +44,15 @@ appsettings.*.json
 # SSL Certificates
 *.pem
 cert.conf
+
+# Media caricati in sviluppo (MEDIA_ROOT di default in Development).
+# Sono contenuto, non codice: in produzione vivono in /opt/duedgusto/media, fuori
+# dal repository e fuori da frontend/dist. Versionarli significherebbe far crescere
+# la history di binari che nessun deploy legge da qui.
+#
+# 🔴 La barra iniziale è obbligatoria: ancora il pattern a backend/media/ e basta.
+# Senza, "media/" corrisponde a QUALUNQUE cartella con quel nome a ogni livello — e
+# con core.ignorecase=true (default su Windows) anche a Services/Media/, escludendo
+# in silenzio del codice sorgente. Compila in locale, i test passano, e la build in
+# CI fallisce su file che nel repository non sono mai entrati.
+/media/

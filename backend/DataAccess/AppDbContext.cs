@@ -44,6 +44,9 @@ public class AppDbContext : DbContext
     // Monthly Closure - New Referential Model
     public DbSet<RegistroCassaMensile> RegistriCassaMensili { get; set; }
 
+    // Media (vetrina del sito)
+    public DbSet<MediaAsset> MediaAssets { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (!optionsBuilder.IsConfigured)
@@ -400,6 +403,116 @@ public class AppDbContext : DbContext
             // Index on Codice for faster lookups
             entity.HasIndex(x => x.Codice)
                 .IsUnique();
+
+            // ── Campi vetrina ────────────────────────────────────────────────────────
+            // Default espliciti anche dove coinciderebbero con il default di CLR: sono ciò
+            // che rende additiva la migrazione su un listino già popolato, perché il backfill
+            // delle righe esistenti lo fa il database e non un aggiornamento di massa.
+            entity.Property(x => x.VisibileSulSito)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.NomeVetrina)
+                .HasMaxLength(255);
+
+            entity.Property(x => x.DescrizioneVetrina)
+                .HasColumnType("text");
+
+            entity.Property(x => x.CategoriaVetrina)
+                .HasMaxLength(100);
+
+            // decimal(10,2) come ogni altro importo del progetto
+            entity.Property(x => x.PrezzoVetrina)
+                .HasColumnType("decimal(10,2)");
+
+            entity.Property(x => x.OrdinamentoVetrina)
+                .HasDefaultValue(0);
+
+            entity.Property(x => x.Allergeni)
+                .HasMaxLength(255);
+
+            entity.Property(x => x.Novita)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.Consigliato)
+                .HasDefaultValue(false);
+
+            // Restrict e non Cascade: eliminare un media ancora assegnato a un prodotto deve
+            // FALLIRE. Con Cascade sparirebbe il prodotto insieme all'immagine; con SetNull il
+            // prodotto resterebbe pubblicato e muto. Il rifiuto è l'unico esito che non mente,
+            // e vale anche per una cancellazione fatta a mano direttamente a database.
+            entity.HasOne(x => x.Immagine)
+                .WithMany(x => x.Prodotti)
+                .HasForeignKey(x => x.ImmagineId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Filtro dell'API pubblica di Fase 2
+            entity.HasIndex(x => x.VisibileSulSito);
+        });
+
+        // Media Configuration (MediaAsset)
+        modelBuilder.Entity<MediaAsset>(entity =>
+        {
+            entity
+                .ToTable("MediaAssets")
+                .HasCharSet("utf8mb4")
+                .UseCollation("utf8mb4_unicode_ci")
+                .HasKey(x => x.MediaAssetId);
+
+            entity.Property(x => x.MediaAssetId)
+                .ValueGeneratedOnAdd();
+
+            entity.Property(x => x.Chiave)
+                .HasMaxLength(255)
+                .IsRequired();
+
+            // L'unicità della chiave è garantita QUI, non dal generatore di slug: il suffisso
+            // casuale rende la collisione improbabile, l'indice la rende impossibile.
+            entity.HasIndex(x => x.Chiave)
+                .IsUnique();
+
+            entity.Property(x => x.NomeOriginale)
+                .HasMaxLength(255)
+                .IsRequired();
+
+            entity.Property(x => x.MimeType)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.Property(x => x.LarghezzeDisponibili)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.Property(x => x.TestoAlternativo)
+                .HasMaxLength(500);
+
+            entity.Property(x => x.Didascalia)
+                .HasMaxLength(500);
+
+            entity.Property(x => x.Focale)
+                .HasMaxLength(20);
+
+            // text e non varchar: il LQIP base64 supera comodamente i limiti di una colonna
+            // indicizzabile, e non c'è alcuna ragione per interrogarlo.
+            entity.Property(x => x.Placeholder)
+                .HasColumnType("text");
+
+            entity.Property(x => x.Cartella)
+                .HasMaxLength(100)
+                .HasDefaultValue("generale");
+
+            entity.Property(x => x.Pubblicato)
+                .HasDefaultValue(true);
+
+            // Elenco della libreria: raggruppato per cartella e ordinato dentro ciascuna
+            entity.HasIndex(x => new { x.Cartella, x.Ordinamento });
+
+            entity.Property(x => x.CreatedAt)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.Property(x => x.UpdatedAt)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
         });
 
         // Business Settings Configuration

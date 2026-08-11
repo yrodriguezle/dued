@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using duedgusto.DataAccess;
 
@@ -11,9 +12,11 @@ using duedgusto.DataAccess;
 namespace duedgusto.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260811105331_AddMediaAsset")]
+    partial class AddMediaAsset
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -766,10 +769,6 @@ namespace duedgusto.Migrations
                         .HasColumnType("decimal(5,2)")
                         .HasDefaultValue(22.00m);
 
-                    b.Property<string>("Allergeni")
-                        .HasMaxLength(255)
-                        .HasColumnType("varchar(255)");
-
                     b.Property<bool>("Attivo")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("tinyint(1)")
@@ -779,19 +778,10 @@ namespace duedgusto.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
 
-                    b.Property<string>("CategoriaVetrina")
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
-
                     b.Property<string>("Codice")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
-
-                    b.Property<bool>("Consigliato")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(false);
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
@@ -801,35 +791,12 @@ namespace duedgusto.Migrations
                     b.Property<string>("Descrizione")
                         .HasColumnType("text");
 
-                    b.Property<string>("DescrizioneVetrina")
-                        .HasColumnType("text");
-
-                    b.Property<int?>("ImmagineId")
-                        .HasColumnType("int");
-
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
 
-                    b.Property<string>("NomeVetrina")
-                        .HasMaxLength(255)
-                        .HasColumnType("varchar(255)");
-
-                    b.Property<bool>("Novita")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(false);
-
-                    b.Property<int>("OrdinamentoVetrina")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
-
                     b.Property<decimal>("Prezzo")
-                        .HasColumnType("decimal(10,2)");
-
-                    b.Property<decimal?>("PrezzoVetrina")
                         .HasColumnType("decimal(10,2)");
 
                     b.Property<string>("UnitaDiMisura")
@@ -843,19 +810,10 @@ namespace duedgusto.Migrations
                         .HasColumnType("datetime")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
 
-                    b.Property<bool>("VisibileSulSito")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(false);
-
                     b.HasKey("ProdottoId");
 
                     b.HasIndex("Codice")
                         .IsUnique();
-
-                    b.HasIndex("ImmagineId");
-
-                    b.HasIndex("VisibileSulSito");
 
                     b.ToTable("Prodotti", (string)null);
 
@@ -1334,16 +1292,6 @@ namespace duedgusto.Migrations
                     b.Navigation("Settings");
                 });
 
-            modelBuilder.Entity("duedgusto.Models.Prodotto", b =>
-                {
-                    b.HasOne("duedgusto.Models.MediaAsset", "Immagine")
-                        .WithMany("Prodotti")
-                        .HasForeignKey("ImmagineId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Immagine");
-                });
-
             modelBuilder.Entity("duedgusto.Models.RegistroCassa", b =>
                 {
                     b.HasOne("duedgusto.Models.Utente", "Utente")
@@ -1460,11 +1408,6 @@ namespace duedgusto.Migrations
                     b.Navigation("DocumentiTrasporto");
 
                     b.Navigation("FattureAcquisto");
-                });
-
-            modelBuilder.Entity("duedgusto.Models.MediaAsset", b =>
-                {
-                    b.Navigation("Prodotti");
                 });
 
             modelBuilder.Entity("duedgusto.Models.Menu", b =>

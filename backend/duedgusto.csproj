@@ -46,6 +46,10 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.3" />
+    <!-- Six Labors Split License — gratuita sotto $1M di fatturato annuo.
+         Superata quella soglia serve una licenza commerciale: chi aggiorna le
+         dipendenze deve saperlo prima di trovarselo in un audit. -->
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.*" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
     <PackageReference Include="ClosedXML" Version="0.102.2" />
     <PackageReference Include="System.Reactive" Version="6.0.1" />
