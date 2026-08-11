@@ -1,4 +1,4 @@
-# Tasks: Fondamenta media + campi vetrina (vetrina-fondamenta-media)
+﻿# Tasks: Fondamenta media + campi vetrina (vetrina-fondamenta-media)
 
 > Artefatti di riferimento: [proposal.md](./proposal.md), [design.md](./design.md) (§D1-D12),
 > [specs/](./specs/) — 4 spec, 29 requirement, 111 scenari.
@@ -416,62 +416,91 @@ design.md §"Testing Strategy", scenario per scenario.
 
 ### Backend — unit
 
-- [ ] 7.1 **Pinning dei limiti** — `MediaLimiti.MaxByteFile == 20 * 1024 * 1024`. Cambiarlo deve diventare un gesto deliberato che ricorda di aggiornare `deploy/nginx/duedgusto.conf` (§D1); il commento nel test lo dice.
+- [x] 7.1 **Pinning dei limiti** — `MediaLimiti.MaxByteFile == 20 * 1024 * 1024`. Cambiarlo deve diventare un gesto deliberato che ricorda di aggiornare `deploy/nginx/duedgusto.conf` (§D1); il commento nel test lo dice.
   *Verifica*: `dotnet test --filter "MediaLimiti"` passa.
 
-- [ ] 7.2 **Rifiuto oltre soglia _senza decode_** — header JPEG sintetico che dichiara 12000×10000: la pipeline rifiuta sulla base del solo `Image.Identify`, e il bitmap non viene mai allocato.
+- [x] 7.2 **Rifiuto oltre soglia _senza decode_** — header JPEG sintetico che dichiara 12000×10000: la pipeline rifiuta sulla base del solo `Image.Identify`, e il bitmap non viene mai allocato.
   *Verifica* (spec `media-assets` → *Immagine con troppi pixel rifiutata senza decodifica*): il test asserisce che nessun `Image<T>` viene materializzato; nessun file e nessun record vengono creati.
 
-- [ ] 7.3 **AutoOrient prima dello strip** — JPEG con `Orientation = 6`: l'output è **ruotato correttamente** *e* privo di EXIF, e `Larghezza`/`Altezza` persistiti sono quelli **dopo** la rotazione. È l'errore classico: azzerare l'ExifProfile prima di AutoOrient lo rende un no-op silenzioso e ruota di 90° tutte le foto verticali.
+- [x] 7.3 **AutoOrient prima dello strip** — JPEG con `Orientation = 6`: l'output è **ruotato correttamente** *e* privo di EXIF, e `Larghezza`/`Altezza` persistiti sono quelli **dopo** la rotazione. È l'errore classico: azzerare l'ExifProfile prima di AutoOrient lo rende un no-op silenzioso e ruota di 90° tutte le foto verticali.
   *Verifica*: `dotnet test --filter "AutoOrient"` passa.
 
-- [ ] 7.4 **Strip completo e mai upscaling** — `ExifProfile`/`Iptc`/`Xmp`/`Icc` tutti `null` nell'output e **nessun tag GPS**; sorgente 900 px → `LarghezzeDisponibili == "400,800"`; sorgente 300 px → fallback a **una** variante nativa, `LarghezzeDisponibili == "300"`; l'insieme **non è mai vuoto**.
+- [x] 7.4 **Strip completo e mai upscaling** — `ExifProfile`/`Iptc`/`Xmp`/`Icc` tutti `null` nell'output e **nessun tag GPS**; sorgente 900 px → `LarghezzeDisponibili == "400,800"`; sorgente 300 px → fallback a **una** variante nativa, `LarghezzeDisponibili == "300"`; l'insieme **non è mai vuoto**.
   *Verifica*: `dotnet test --filter "Immagine"` passa; per ogni valore di `LarghezzeDisponibili` il file corrispondente esiste in entrambi i formati.
 
-- [ ] 7.5 **Slug** — accenti, spazi, stringa vuota (→ `"media"`), oltre 60 caratteri, e caratteri di path (`../../etc/passwd.jpg`) neutralizzati.
+- [x] 7.5 **Slug** — accenti, spazi, stringa vuota (→ `"media"`), oltre 60 caratteri, e caratteri di path (`../../etc/passwd.jpg`) neutralizzati.
   *Verifica* (spec `media-assets` → *Nome file ostile non esce dalla radice*): nessuno slug prodotto contiene `/`, `\` o `..`.
 
-- [ ] 7.6 **Atomicità** — scrittura di una variante che fallisce → nessun record `MediaAsset`, nessun file parziale sotto la radice, errore leggibile al client.
+- [x] 7.6 **Atomicità** — scrittura di una variante che fallisce → nessun record `MediaAsset`, nessun file parziale sotto la radice, errore leggibile al client.
   *Verifica*: dopo il fallimento simulato, la radice dei media è identica a prima (nessuna cartella `.tmp` residua).
 
 ### Backend — integration
 
-- [ ] 7.7 **`mutateProdottoVetrina` non può creare** — `prodottoId` inesistente → errore esplicito; conta i prodotti prima e dopo.
+- [x] 7.7 **`mutateProdottoVetrina` non può creare** — `prodottoId` inesistente → errore esplicito; conta i prodotti prima e dopo.
   *Verifica*: i due conteggi coincidono.
 
-- [ ] 7.8 **`eliminaMediaAsset` referenziato** — rifiuto, messaggio che nomina i prodotti, record e file intatti; poi azzeramento del riferimento e seconda eliminazione che va a buon fine rimuovendo **tutti** i file.
+- [x] 7.8 **`eliminaMediaAsset` referenziato** — rifiuto, messaggio che nomina i prodotti, record e file intatti; poi azzeramento del riferimento e seconda eliminazione che va a buon fine rimuovendo **tutti** i file.
   *Verifica*: `dotnet test --filter "MediaAsset"` passa.
 
-- [ ] 7.9 🔴 **Privilegi amministrativi su tutta la superficie** — in `backend/DuedGusto.Tests/Integration/GraphQL/PrivilegiAmministrativiTests.cs`: un utente autenticato con `Amministratore = false` è rifiutato su `mutateProdottoVetrina`, `mutateMediaAsset`, `eliminaMediaAsset`, **`connection { mediaAssets }` (lettura!)** e `POST /api/media` (**403 con corpo JSON**, non 500). In nessuno dei casi resta un effetto collaterale: nessun record, nessun file.
+- [x] 7.9 🔴 **Privilegi amministrativi su tutta la superficie** — in `backend/DuedGusto.Tests/Integration/GraphQL/PrivilegiAmministrativiTests.cs`: un utente autenticato con `Amministratore = false` è rifiutato su `mutateProdottoVetrina`, `mutateMediaAsset`, `eliminaMediaAsset`, **`connection { mediaAssets }` (lettura!)** e `POST /api/media` (**403 con corpo JSON**, non 500). In nessuno dei casi resta un effetto collaterale: nessun record, nessun file.
   *Verifica* (spec `sicurezza`, tutti gli scenari di rifiuto): `dotnet test --filter "Privilegi"` passa. Il caso `connection { mediaAssets }` è quello che il design §D12 non prevedeva — se manca, il task 3.10 non è chiuso.
 
-- [ ] 7.10 **`connection { prodotti }` include i non attivi + seed idempotente** — seed di 1 prodotto attivo e 1 non attivo → 2 risultati; `SeedMenusSito.Initialize` invocato 3 volte → **un** padre "Sito" e **due** figli.
+- [x] 7.10 **`connection { prodotti }` include i non attivi + seed idempotente** — seed di 1 prodotto attivo e 1 non attivo → 2 risultati; `SeedMenusSito.Initialize` invocato 3 volte → **un** padre "Sito" e **due** figli.
   *Verifica*: `dotnet test` passa.
 
 ### Frontend — unit
 
-- [ ] 7.11 **`politicaRefresh`** — crea `duedgusto/src/api/__tests__/politicaRefresh.test.tsx`: i tre esiti (`procedi` su status non-401, `abbandona` con `failOnForbidden`, `riprova` su refresh riuscito, `abbandona` + `onRefreshFails` su refresh fallito) in isolamento, con `refreshToken` mockato.
+- [x] 7.11 **`politicaRefresh`** — crea `duedgusto/src/api/__tests__/politicaRefresh.test.tsx`: i tre esiti (`procedi` su status non-401, `abbandona` con `failOnForbidden`, `riprova` su refresh riuscito, `abbandona` + `onRefreshFails` su refresh fallito) in isolamento, con `refreshToken` mockato.
   *Verifica*: `npm run test -- politicaRefresh` passa.
 
-- [ ] 7.12 **`uploadRequest`: il retry è fatto bene** — crea `duedgusto/src/api/__tests__/uploadRequest.test.tsx` con XHR mockato: 401 → refresh → **secondo XHR (istanza diversa)** con **`getAuthHeaders()` riletto** (asserire **due** istanze e **due** chiamate). È il test che coglie la classe di bug "rimando lo stesso token scaduto".
+- [x] 7.12 **`uploadRequest`: il retry è fatto bene** — crea `duedgusto/src/api/__tests__/uploadRequest.test.tsx` con XHR mockato: 401 → refresh → **secondo XHR (istanza diversa)** con **`getAuthHeaders()` riletto** (asserire **due** istanze e **due** chiamate). È il test che coglie la classe di bug "rimando lo stesso token scaduto".
   *Verifica*: `npm run test -- uploadRequest` passa.
 
-- [ ] 7.13 **`uploadRequest`: un solo retry e progresso azzerato** — 401 anche al secondo tentativo → `onRefreshFails`, **nessun terzo tentativo**; `onProgress(0)` è la prima chiamata di ogni tentativo (asserire la sequenza).
+- [x] 7.13 **`uploadRequest`: un solo retry e progresso azzerato** — 401 anche al secondo tentativo → `onRefreshFails`, **nessun terzo tentativo**; `onProgress(0)` è la prima chiamata di ogni tentativo (asserire la sequenza).
   *Verifica*: `npm run test -- uploadRequest` passa.
 
-- [ ] 7.14 **`uploadRequest`: 413 con corpo HTML** — la risposta non-JSON del web server produce *"Il file supera il limite consentito dal server"* e **nessun `SyntaxError` propagato**.
+- [x] 7.14 **`uploadRequest`: 413 con corpo HTML** — la risposta non-JSON del web server produce *"Il file supera il limite consentito dal server"* e **nessun `SyntaxError` propagato**.
   *Verifica*: `npm run test -- uploadRequest` passa.
 
-- [ ] 7.15 **`mediaUrl` / `mediaSrcSet`** — con `API_ENDPOINT` mockato: URL corretta per chiave+larghezza+formato, `srcset` con i descrittori `w` nell'ordine ricevuto.
+- [x] 7.15 **`mediaUrl` / `mediaSrcSet`** — con `API_ENDPOINT` mockato: URL corretta per chiave+larghezza+formato, `srcset` con i descrittori `w` nell'ordine ricevuto.
   *Verifica*: `npm run test -- mediaUrl` passa.
 
-- [ ] 7.16 **`VetrinaProdottiList`: il confine nella forma del componente** — Testing Library sulle `columnDefs`: `codice`, `nome`, `prezzo`, `attivo`, `pubblicatoSulSito` hanno `editable: false`; **nessun `getNewRow`** è passato al `Datagrid`; `hideNewButton` e `hideDeleteButton` sono attivi.
+- [x] 7.16 **`VetrinaProdottiList`: il confine nella forma del componente** — Testing Library sulle `columnDefs`: `codice`, `nome`, `prezzo`, `attivo`, `pubblicatoSulSito` hanno `editable: false`; **nessun `getNewRow`** è passato al `Datagrid`; `hideNewButton` e `hideDeleteButton` sono attivi.
   *Verifica*: `npm run test -- VetrinaProdottiList` passa.
 
-- [ ] 7.17 **Suite completa verde** — `cd backend && dotnet test` e `cd duedgusto && npm run test && npm run ts:check && npm run lint`.
+- [x] 7.17 **Suite completa verde** — `cd backend && dotnet test` e `cd duedgusto && npm run test && npm run ts:check && npm run lint`.
   *Verifica*: tutti e quattro escono 0, e **i ~234 test backend e ~471 frontend preesistenti passano senza modifiche**.
 
 **Uscita di fase.** La CI è verde e i tre test del confine rompono la build nel momento esatto in cui qualcuno lo attraversa.
+
+> **Verifiche eseguite l'11 agosto 2026.** `dotnet test` **487/487** (erano 431: +56).
+> Frontend: `npm run test`, `ts:check` e `lint` verdi, con **+25** test nuovi.
+>
+> **Due controlli sono stati verificati per mutazione, non solo eseguiti:**
+> - spostando `StripMetadati` **prima** di `AutoOrient`,
+>   `FotoConOrientamento6_EsceRuotataEPrivaDiExif` fallisce (esce 600×400 invece di 400×600).
+>   È il guasto silenzioso che il test esiste per cogliere: nessun errore, tutte le foto
+>   verticali ruotate di 90°;
+> - neutralizzando il guard di `MediaController.Carica`, **2 test su 5** falliscono — non solo
+>   quello sul 403, anche quello che verifica l'assenza di effetti collaterali.
+>
+> **Scelte di implementazione dei test:**
+> - il caso "troppi pixel senza decodifica" (7.2) usa un **JPEG vero la cui intestazione
+>   dichiara il falso** (SOF riscritto a 12000×10000): se la pipeline decodificasse, l'errore
+>   sarebbe "immagine danneggiata" e non quello sui megapixel — è il messaggio a distinguere i
+>   due percorsi. Asserire "nessun `Image<T>` allocato" direttamente non è possibile senza
+>   sostituire ImageSharp;
+> - l'atomicità (7.6) si provoca con una variante il cui nome non è scrivibile: il fallimento
+>   avviene **dopo** che la prima variante è già su disco, che è il caso pericoloso. Si
+>   verifica che non resti né la cartella della chiave né la `.tmp`;
+> - il seed idempotente riceve un `ServiceProvider` che crea **un contesto nuovo per scope**
+>   sullo stesso database in memoria: il seed dispone il proprio scope, e condividere una sola
+>   istanza faceva fallire il secondo giro con `ObjectDisposedException` — in produzione ogni
+>   avvio ha un contesto nuovo, quindi il test ora somiglia alla realtà invece di aggirarla.
+>
+> I casi 7.7 e parte di 7.9 erano già stati chiusi in Fase 3 (`SalesTests`,
+> `PrivilegiAmministrativiTests`): qui si aggiunge quanto mancava, cioè `POST /api/media` e
+> l'assenza di effetti collaterali.
 
 ---
 
