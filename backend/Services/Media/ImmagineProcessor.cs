@@ -453,7 +453,10 @@ public class ImmagineProcessor(
                 LarghezzeDisponibili = string.Join(',', larghezzeGenerate),
                 TestoAlternativo = TroncaOpzionale(NullSeVuoto(testoAlternativo), 500),
                 Placeholder = placeholder,
-                Cartella = Tronca(NormalizzaCartella(cartella), 100),
+                // Stessa normalizzazione del percorso di modifica: un'immagine caricata con
+                // "GALLERIA" e una modificata a "galleria" devono finire nello stesso
+                // raggruppamento, altrimenti la galleria pubblica ne mostra solo una parte.
+                Cartella = Tronca(CartelleVetrina.Normalizza(cartella), 100),
                 Ordinamento = 0,
                 Pubblicato = true,
                 ByteTotali = byteTotali,
@@ -481,9 +484,6 @@ public class ImmagineProcessor(
             EsitoElaborazione.CollisioneChiave,
             "Impossibile assegnare un identificativo univoco all'immagine: riprova.");
     }
-
-    private static string NormalizzaCartella(string? cartella) =>
-        string.IsNullOrWhiteSpace(cartella) ? "generale" : cartella.Trim();
 
     private static string? NullSeVuoto(string? valore) =>
         string.IsNullOrWhiteSpace(valore) ? null : valore.Trim();

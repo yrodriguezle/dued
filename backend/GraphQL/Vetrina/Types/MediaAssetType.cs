@@ -1,6 +1,7 @@
 using GraphQL.Types;
 
 using duedgusto.Models;
+using duedgusto.Services.Media;
 
 namespace duedgusto.GraphQL.Vetrina.Types;
 
@@ -45,15 +46,11 @@ public class MediaAssetType : ObjectGraphType<MediaAsset>
     }
 
     /// <summary>
-    /// Il CSV persistito non è mai vuoto per costruzione (la pipeline ricade sulla larghezza
-    /// nativa quando nessuna variante qualifica), ma un record scritto a mano potrebbe esserlo:
-    /// qui una stringa vuota diventa lista vuota e non un'eccezione dentro il resolver.
+    /// Delega alla sede unica <see cref="LarghezzeCsv"/>. Il CSV persistito non è mai vuoto per
+    /// costruzione (la pipeline ricade sulla larghezza nativa quando nessuna variante
+    /// qualifica), ma un record scritto a mano potrebbe esserlo: una stringa vuota diventa
+    /// lista vuota e non un'eccezione dentro il resolver. Resta un metodo perché i test possano
+    /// esercitare <b>questo</b> consumatore senza montare il motore GraphQL.
     /// </summary>
-    internal static int[] LeggiLarghezze(string? csv) =>
-        string.IsNullOrWhiteSpace(csv)
-            ? []
-            : csv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                 .Select(v => int.TryParse(v, out int larghezza) ? larghezza : 0)
-                 .Where(larghezza => larghezza > 0)
-                 .ToArray();
+    internal static int[] LeggiLarghezze(string? csv) => LarghezzeCsv.Leggi(csv);
 }

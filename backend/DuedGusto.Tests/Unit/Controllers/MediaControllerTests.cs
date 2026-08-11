@@ -159,4 +159,60 @@ public class MediaControllerTests : IDisposable
         dto.MaxByteFile.Should().Be(MediaLimiti.MaxByteFile);
         dto.MimeAmmessi.Should().BeEquivalentTo(MediaLimiti.MimeAmmessi);
     }
+
+    /// <summary>
+    /// Le cartelle suggerite viaggiano insieme alle altre costanti, per lo stesso motivo:
+    /// il frontend non può divergere dal backend perché non ha un proprio valore da far
+    /// divergere. La divergenza avrebbe qui una forma insidiosa — l'amministratore etichetta
+    /// con un valore scritto dal frontend, la rotta pubblica filtra su un altro, e la galleria
+    /// del sito resta vuota <b>senza alcun errore da nessuna parte</b>.
+    /// </summary>
+    [Fact]
+    public void Configurazione_EsponeLeCartelleSuggerite()
+    {
+        AutenticaCome(IdOperatore);
+
+        ActionResult<MediaConfigurazioneDto> risultato = _controller.Configurazione();
+
+        var ok = risultato.Result.Should().BeOfType<OkObjectResult>().Subject;
+        var dto = ok.Value.Should().BeOfType<MediaConfigurazioneDto>().Subject;
+        dto.CartelleSuggerite.Should().BeEquivalentTo(CartelleVetrina.Suggerite);
+        dto.CartelleSuggerite.Should().Contain("generale").And.Contain("galleria");
+    }
+
+    /// <summary>
+    /// Normalizzazione anche nel percorso di <b>caricamento</b>: un'immagine caricata con
+    /// <c>"GALLERIA"</c> e una modificata a <c>"galleria"</c> devono finire nello stesso
+    /// raggruppamento, altrimenti la galleria pubblica ne mostra solo una parte.
+    /// </summary>
+    [Fact]
+    public async Task Amministratore_CaricaConCartellaInMaiuscolo_PersisteLaFormaCanonica()
+    {
+        AutenticaCome(IdAmministratore);
+
+        await _controller.Carica(FotoDiProva(), "  GALLERIA ", "caffè", CancellationToken.None);
+
+        _dbContext.MediaAssets.Single().Cartella.Should().Be(CartelleVetrina.Galleria);
+    }
+
+    /// <summary>
+    /// Il corpo della risposta di upload continua a esporre le stesse larghezze di prima della
+    /// change: la conversione ora delega a <c>LarghezzeCsv</c>, ma il contratto del consumatore
+    /// non cambia.
+    /// </summary>
+    [Fact]
+    public async Task Amministratore_Carica_LaRispostaEsponeLeLarghezzeEffettive()
+    {
+        AutenticaCome(IdAmministratore);
+
+        IActionResult risultato = await _controller.Carica(
+            FotoDiProva(), CartelleVetrina.Generale, "caffè", CancellationToken.None);
+
+        var oggetto = risultato.Should().BeOfType<ObjectResult>().Subject;
+        var dto = oggetto.Value.Should().BeOfType<MediaCaricatoDto>().Subject;
+        // La sorgente è larga 900 px: si generano solo le varianti <= 900.
+        dto.LarghezzeDisponibili.Should().Equal(400, 800);
+        dto.LarghezzeDisponibili.Should().Equal(
+            LarghezzeCsv.Leggi(_dbContext.MediaAssets.Single().LarghezzeDisponibili));
+    }
 }

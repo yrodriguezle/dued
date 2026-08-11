@@ -13,7 +13,12 @@ public record MediaConfigurazioneDto(
     long MaxByteFile,
     int MaxMegapixel,
     int[] LarghezzeVarianti,
-    string[] MimeAmmessi);
+    string[] MimeAmmessi,
+    // Le cartelle che l'interfaccia propone. Arrivano da qui e non da una costante TypeScript
+    // per lo stesso motivo dei limiti: il frontend non può divergere dal backend perché non ha
+    // un proprio valore da far divergere. L'insieme resta APERTO — è un suggerimento, non una
+    // tendina chiusa: il campo continua ad accettare un valore digitato.
+    string[] CartelleSuggerite);
 
 /// <summary>Corpo della risposta 201 dell'upload.</summary>
 public record MediaCaricatoDto(
@@ -67,7 +72,8 @@ public class MediaController(
             MediaLimiti.MaxByteFile,
             MediaLimiti.MaxMegapixel,
             MediaLimiti.LarghezzeVarianti,
-            MediaLimiti.MimeAmmessi));
+            MediaLimiti.MimeAmmessi,
+            CartelleVetrina.Suggerite));
 
     /// <summary>
     /// Upload di <b>un solo</b> file per richiesta. Il limite multiplo diventerebbe "somma dei
@@ -142,8 +148,12 @@ public class MediaController(
         _ => StatusCodes.Status500InternalServerError,
     };
 
-    private static int[] LeggiLarghezze(string csv) =>
-        csv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-           .Select(int.Parse)
-           .ToArray();
+    /// <summary>
+    /// Delega alla sede unica. Prima della change questa variante usava <c>int.Parse</c> e
+    /// <b>sollevava</b> su un CSV sporco, mentre quella di <c>MediaAssetType</c> scartava e
+    /// proseguiva: due conversioni della stessa cosa, con due comportamenti diversi sullo
+    /// stesso dato. Resta un metodo (invece di chiamare <see cref="LarghezzeCsv"/> sul posto)
+    /// perché i test possano esercitare <b>questo</b> consumatore e non solo la sede unica.
+    /// </summary>
+    internal static int[] LeggiLarghezze(string? csv) => LarghezzeCsv.Leggi(csv);
 }
