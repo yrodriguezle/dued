@@ -318,6 +318,9 @@ using (IServiceScope scope = app.Services.CreateScope())
     if (seedOnStartup)
     {
         await SeedMenus.Initialize(services);
+        // Dopo SeedMenus: la sezione "Sito" riusa i ruoli amministrativi che quel seed
+        // ha già creato/aggiornato, e si aggancia in coda alle voci esistenti (Posizione 9).
+        await SeedMenusSito.Initialize(services);
         await SeedCashDenominations.Initialize(services);
         await SeedBusinessSettings.Initialize(services);
     }

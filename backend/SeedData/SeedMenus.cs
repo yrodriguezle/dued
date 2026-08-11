@@ -7,7 +7,7 @@ namespace duedgusto.SeedData;
 
 public static class SeedMenus
 {
-    private static void UpdateMenuIfNeeded(Menu menu, string titolo, string? percorso, string icona, bool visibile,
+    internal static void UpdateMenuIfNeeded(Menu menu, string titolo, string? percorso, string icona, bool visibile,
         int posizione, string? nomeVista, string? percorsoFile, Ruolo superAdminRuolo, Menu? menuPadre, ref bool needsUpdate)
     {
         if (menu.Titolo != titolo) { menu.Titolo = titolo; needsUpdate = true; }
@@ -31,7 +31,7 @@ public static class SeedMenus
     /// Serve alle voci riservate agli amministratori, che non vanno al solo SuperAdmin
     /// ma a chiunque abbia il flag <see cref="Ruolo.Amministratore"/>.
     /// </summary>
-    private static void AssegnaRuoli(Menu menu, IEnumerable<Ruolo> ruoli, ref bool needsUpdate)
+    internal static void AssegnaRuoli(Menu menu, IEnumerable<Ruolo> ruoli, ref bool needsUpdate)
     {
         foreach (Ruolo ruolo in ruoli)
         {

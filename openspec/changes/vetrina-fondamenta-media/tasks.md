@@ -242,10 +242,10 @@ sono la ragione per cui la change esiste come fase a sé.
 della Fase 6 non sono raggiungibili. E il gating va seminato **prima** che le pagine
 esistano, non dopo, altrimenti la prima cosa che si prova è una sezione visibile a tutti.
 
-- [ ] 4.1 **Promozione dei metodi condivisi del seed** — in `backend/SeedData/SeedMenus.cs` porta `UpdateMenuIfNeeded` e `AssegnaRuoli` da `private static` a `internal static`. Copiarle produrrebbe due implementazioni della stessa idempotenza destinate a divergere.
+- [x] 4.1 **Promozione dei metodi condivisi del seed** — in `backend/SeedData/SeedMenus.cs` porta `UpdateMenuIfNeeded` e `AssegnaRuoli` da `private static` a `internal static`. Copiarle produrrebbe due implementazioni della stessa idempotenza destinate a divergere.
   *Verifica*: `dotnet build` esce 0; `SeedMenus.cs` non guadagna alcuna logica nuova (`git diff` mostra solo i due modificatori).
 
-- [ ] 4.2 **`SeedMenusSito`** — crea `backend/SeedData/SeedMenusSito.cs` (file separato: `SeedMenus.cs` è già 916 righe). ⚠️ **La regola di idempotenza è diversa per padri e figli**: il padre si cerca per `Titolo == "Sito" && Percorso == string.Empty` (i menu padre hanno percorso vuoto e non sono distinguibili dal solo percorso — pattern reale di `SeedMenus.cs:854`), i figli per `Percorso`. Voci:
+- [x] 4.2 **`SeedMenusSito`** — crea `backend/SeedData/SeedMenusSito.cs` (file separato: `SeedMenus.cs` è già 916 righe). ⚠️ **La regola di idempotenza è diversa per padri e figli**: il padre si cerca per `Titolo == "Sito" && Percorso == string.Empty` (i menu padre hanno percorso vuoto e non sono distinguibili dal solo percorso — pattern reale di `SeedMenus.cs:854`), i figli per `Percorso`. Voci:
 
   | Voce | Titolo | Percorso | Icona | Pos. | `NomeVista` | `PercorsoFile` |
   |---|---|---|---|---|---|---|
@@ -256,16 +256,35 @@ esistano, non dopo, altrimenti la prima cosa che si prova è una sezione visibil
   ⚠️ **`PercorsoFile` è relativo a `src/components/pages/`** — verificato nel codice (`wiki/RegistroCassaWiki.tsx`), **non** il path completo documentato in `duedgusto/CLAUDE.md`. Si segue il codice.
   *Verifica*: `dotnet build` esce 0.
 
-- [ ] 4.3 **Gating dei ruoli nel seed** — `AssegnaRuoli` sulle tre voci filtrando `.Where(r => r.Amministratore || r.Nome == "SuperAdmin")`, esattamente come il pattern Wiki.
+- [x] 4.3 **Gating dei ruoli nel seed** — `AssegnaRuoli` sulle tre voci filtrando `.Where(r => r.Amministratore || r.Nome == "SuperAdmin")`, esattamente come il pattern Wiki.
   *Verifica* (spec `sicurezza` → *Menu della sezione riservato ai soli ruoli amministrativi*): `SELECT` sulla tabella di associazione mostra le voci "Sito" assegnate ai soli ruoli con flag amministrativo; un utente non amministratore non vede la sezione nella sidebar.
 
-- [ ] 4.4 **Invocazione in `Program.cs`** — dentro `if (seedOnStartup)`, **dopo** `SeedMenus.Initialize`.
+- [x] 4.4 **Invocazione in `Program.cs`** — dentro `if (seedOnStartup)`, **dopo** `SeedMenus.Initialize`.
   *Verifica*: il backend si avvia e la voce "Sito" compare nella sidebar di un amministratore (le pagine daranno 404 finché non esiste la Fase 6 — è atteso).
 
-- [ ] 4.5 **Prova di idempotenza** — riavvia il backend **tre volte** con `SEED_ON_STARTUP=true`.
+- [x] 4.5 **Prova di idempotenza** — riavvia il backend **tre volte** con `SEED_ON_STARTUP=true`.
   *Verifica*: `SELECT COUNT(*) FROM Menus WHERE Titolo = 'Sito'` vale **1** e i figli sono **2**, non 3 e 6. (Il cleanup dei duplicati Dashboard in `SeedMenus.cs:59-76` è la prova documentata di cosa succede sbagliando.)
 
 **Uscita di fase.** La sezione "Sito" esiste nella navigazione dei soli amministratori, con due voci che puntano a componenti non ancora scritti.
+
+> **Verifiche eseguite l'11 agosto 2026.** `dotnet build` 0 errori, `dotnet test` **431/431**
+> (nessuna variazione: il seed non è ancora coperto da test, arriverà col task 7.10).
+>
+> Il seed è stato eseguito **tre volte** su una seconda istanza (porta 4010, `SEED_ON_STARTUP=true`)
+> per non fermare il backend dell'utente. Dopo i tre giri: **un** padre `Sito` (`Percorso` vuoto,
+> `Globe`, posizione 9 — la prima libera, la Wiki occupa la 8) e **due** figli,
+> `/gestionale/sito/media` e `/gestionale/sito/prodotti`. Non 3 e 6.
+>
+> **Gating verificato a database, non per lettura del codice**: le sei righe di `ruolomenu` per le
+> tre voci nominano solo `SuperAdmin` e `Admin`; l'unico ruolo con `Amministratore = 0` in
+> anagrafica — `Gestore` — non ha **alcuna** assegnazione (query di controllo: 0 righe).
+>
+> `git diff backend/SeedData/SeedMenus.cs` mostra **solo i due modificatori** `private` →
+> `internal`, nessuna logica nuova: l'idempotenza resta scritta in un posto solo.
+>
+> ⚠️ Fino al task 5.8 le tre icone `Globe`/`Images`/`ShoppingBag` non sono in `iconMapping.tsx`
+> e la sidebar mostra il fallback; le due voci portano a componenti inesistenti fino alla Fase 6.
+> Entrambe le cose sono attese e previste dai task.
 
 ---
 
