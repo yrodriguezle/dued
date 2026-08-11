@@ -167,6 +167,53 @@ public class VetrinaMediaTests : IDisposable
         Directory.GetFiles(CartellaDi(asset)).OrderBy(f => f).Should().Equal(primaDeiFile);
     }
 
+    /// <summary>
+    /// Il ritiro di un media che il sito sta mostrando avvisa <b>nominando i soli prodotti
+    /// pubblicati</b>, non tutti quelli che usano l'immagine.
+    ///
+    /// <para>Pinna il punto in cui la regola di pubblicazione era scritta una seconda volta
+    /// (<c>AggiornaMediaAssetAsync</c>) e che ora chiama <c>RegoleVetrina.Pubblicato</c>: senza
+    /// questo test la riscrittura sarebbe stata un cambio di codice senza alcuna prova che il
+    /// comportamento fosse rimasto lo stesso. Un prodotto attivo ma non marcato per il sito, e
+    /// uno marcato ma disattivato in cassa, <b>non</b> devono comparire nell'avviso: non sono
+    /// pubblicati, quindi ritirare la foto non cambia nulla di ciò che il visitatore vede.</para>
+    /// </summary>
+    [Fact]
+    public async Task AggiornaMediaAsset_RitiroDiUnMediaInUso_AvvisaNominandoISoliProdottiPubblicati()
+    {
+        MediaAsset asset = await CreaMediaConFile("caffe.jpg");
+
+        Prodotto pubblicato = await CreaProdotto("A1", "Caffè espresso", immagineId: asset.MediaAssetId);
+        pubblicato.VisibileSulSito = true;
+        Prodotto soloAttivo = await CreaProdotto("B2", "Cappuccino", immagineId: asset.MediaAssetId);
+        soloAttivo.VisibileSulSito = false;
+        Prodotto soloVisibile = await CreaProdotto("C3", "Cornetto", attivo: false, immagineId: asset.MediaAssetId);
+        soloVisibile.VisibileSulSito = true;
+        await _dbContext.SaveChangesAsync();
+
+        var loggerMock = new Mock<ILogger>();
+        loggerMock.Setup(l => l.IsEnabled(LogLevel.Warning)).Returns(true);
+
+        MediaAsset aggiornato = await VetrinaMutations.AggiornaMediaAssetAsync(
+            _dbContext, asset.MediaAssetId,
+            new MediaAssetInput { Cartella = "generale", Ordinamento = 0, Pubblicato = false },
+            loggerMock.Object);
+
+        // Ritirare è legittimo: il media si ritira e i prodotti non si toccano.
+        aggiornato.Pubblicato.Should().BeFalse();
+        _dbContext.Prodotti.Should().OnlyContain(p => p.ImmagineId == asset.MediaAssetId);
+
+        loggerMock.Verify(l => l.Log(
+            LogLevel.Warning,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((v, t) =>
+                v.ToString()!.Contains("Caffè espresso")
+                && !v.ToString()!.Contains("Cappuccino")
+                && !v.ToString()!.Contains("Cornetto")),
+            It.IsAny<Exception?>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
     [Theory]
     [InlineData("molto a sinistra")]
     [InlineData("140% 20%")]

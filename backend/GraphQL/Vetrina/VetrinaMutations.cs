@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using GraphQL;
 using GraphQL.Types;
 
+using duedgusto.Common;
 using duedgusto.DataAccess;
 using duedgusto.GraphQL.Authentication;
 using duedgusto.GraphQL.GestioneCassa;
@@ -191,7 +192,8 @@ public partial class VetrinaMutations : ObjectGraphType
         if (asset.Pubblicato && !input.Pubblicato)
         {
             prodottiPubblicati = await dbContext.Prodotti
-                .Where(p => p.ImmagineId == mediaAssetId && p.Attivo && p.VisibileSulSito)
+                .Where(p => p.ImmagineId == mediaAssetId)
+                .Where(RegoleVetrina.Pubblicato)
                 .OrderBy(p => p.Codice)
                 .Select(p => p.Nome)
                 .ToListAsync();
@@ -200,7 +202,10 @@ public partial class VetrinaMutations : ObjectGraphType
         asset.TestoAlternativo = NullSeVuoto(input.TestoAlternativo);
         asset.Didascalia = NullSeVuoto(input.Didascalia);
         asset.Focale = focale;
-        asset.Cartella = string.IsNullOrWhiteSpace(input.Cartella) ? "generale" : input.Cartella.Trim();
+        // Normalizzazione in SCRITTURA: la cartella ha una sola forma canonica. Senza questo,
+        // "Galleria" e "galleria" sono due raggruppamenti distinti nella libreria — e sul sito
+        // ne comparirebbe uno solo, senza alcun errore da nessuna parte.
+        asset.Cartella = CartelleVetrina.Normalizza(input.Cartella);
         asset.Ordinamento = input.Ordinamento;
         asset.Pubblicato = input.Pubblicato;
         asset.UpdatedAt = DateTime.UtcNow;

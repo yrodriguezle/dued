@@ -1,5 +1,6 @@
 using GraphQL.Types;
 
+using duedgusto.Common;
 using duedgusto.GraphQL.Vetrina.Types;
 using duedgusto.Models;
 
@@ -41,16 +42,20 @@ public class ProdottoType : ObjectGraphType<Prodotto>
             .Resolve(context => context.Source.Immagine);
 
         // ── Due campi DERIVATI, mai persistiti ───────────────────────────────────────
-        // Vivono qui perché la regola deve esistere in un posto solo. Persisterli
-        // significherebbe doverli ricalcolare a ogni scrittura dei due campi da cui
-        // dipendono — e il giorno in cui uno dei due percorsi lo dimentica, il sito
-        // pubblica ciò che la cassa considera ritirato.
+        // Sono calcolati in lettura e mai scritti a database: persisterli significherebbe
+        // doverli ricalcolare a ogni scrittura dei due campi da cui dipendono — e il giorno
+        // in cui uno dei due percorsi lo dimentica, il sito pubblica ciò che la cassa
+        // considera ritirato.
+        // Le due regole NON vivono qui: vivono in Common/RegoleVetrina.cs, che è l'unico
+        // posto in cui sono scritte. Questi resolver le chiamano — un resolver non è
+        // richiamabile da un controller, quindi tenerle qui costringerebbe l'API pubblica
+        // a riscriverle.
 
         Field<NonNullGraphType<BooleanGraphType>>("pubblicatoSulSito")
             .Description("Se il prodotto è davvero visibile al pubblico: attivo in cassa E "
                 + "marcato per il sito. È la regola unica su cui filtrerà l'API pubblica — "
                 + "chiunque filtri diversamente sta inventando un secondo criterio.")
-            .Resolve(context => context.Source.Attivo && context.Source.VisibileSulSito);
+            .Resolve(context => RegoleVetrina.EPubblicato(context.Source));
 
         Field<NonNullGraphType<DecimalGraphType>>("prezzoEffettivoVetrina")
             .Description("Prezzo da mostrare sul sito: quello di vetrina se valorizzato, "
@@ -58,6 +63,6 @@ public class ProdottoType : ObjectGraphType<Prodotto>
                 + "lettura, così un aggiornamento di listino si riflette sul sito senza "
                 + "alcuna scrittura di vetrina. 0 è un prezzo valido (omaggio) e NON ricade "
                 + "sul listino: solo null è assenza.")
-            .Resolve(context => context.Source.PrezzoVetrina ?? context.Source.Prezzo);
+            .Resolve(context => RegoleVetrina.PrezzoEffettivo(context.Source));
     }
 }
