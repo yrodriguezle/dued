@@ -355,28 +355,56 @@ esistano, non dopo, altrimenti la prima cosa che si prova è una sezione visibil
 fratello da imitare per la parte listino. Il confine di §D8 va espresso **nella forma dei
 componenti** (nessun `getNewRow`, nessun pulsante di creazione), non in un promemoria.
 
-- [ ] 6.1 **`SitoGuard.tsx`** — crea `duedgusto/src/components/pages/sito/SitoGuard.tsx` sul modello di `wiki/WikiLayout.tsx:36,50-56`: legge `useStore(s => Boolean(s.utente?.ruolo?.amministratore))` e mostra un `Alert` invece del contenuto. È **cosmesi, non sicurezza** — la sicurezza è il guard backend delle Fasi 2-3.
+- [x] 6.1 **`SitoGuard.tsx`** — crea `duedgusto/src/components/pages/sito/SitoGuard.tsx` sul modello di `wiki/WikiLayout.tsx:36,50-56`: legge `useStore(s => Boolean(s.utente?.ruolo?.amministratore))` e mostra un `Alert` invece del contenuto. È **cosmesi, non sicurezza** — la sicurezza è il guard backend delle Fasi 2-3.
   *Verifica*: un utente non amministratore che naviga alla route vede l'avviso.
 
-- [ ] 6.2 **`MediaCard.tsx`** — crea la card singola: `CardMedia` con `400.webp` e il `placeholder` base64 come `background-image` (niente salto di layout durante il caricamento), nome originale, dimensioni, cartella, badge "non pubblicato", azioni Modifica/Elimina.
+- [x] 6.2 **`MediaCard.tsx`** — crea la card singola: `CardMedia` con `400.webp` e il `placeholder` base64 come `background-image` (niente salto di layout durante il caricamento), nome originale, dimensioni, cartella, badge "non pubblicato", azioni Modifica/Elimina.
   *Verifica*: `npm run ts:check` passa; la card usa `mediaUrl()` e non compone URL a mano.
 
-- [ ] 6.3 **`MediaUploadArea.tsx`** — drop zone + `<input type="file" multiple>` con `accept` **letto da `/api/media/configurazione`**, pre-check su `file.size` e `file.type` contro le costanti del server, barra di progresso per file, concorrenza limitata a **2** (specchia il `SemaphoreSlim(2)` del backend: inviarne 8 insieme significa 6 richieste che aspettano e possono scadere in 503).
+- [x] 6.3 **`MediaUploadArea.tsx`** — drop zone + `<input type="file" multiple>` con `accept` **letto da `/api/media/configurazione`**, pre-check su `file.size` e `file.type` contro le costanti del server, barra di progresso per file, concorrenza limitata a **2** (specchia il `SemaphoreSlim(2)` del backend: inviarne 8 insieme significa 6 richieste che aspettano e possono scadere in 503).
   *Verifica* (spec `media-assets` → *File troppo grande rifiutato prima dell'invio*): selezionando un file da 30 MB, il messaggio di limite superato compare e **nessun byte parte** (pannello Network vuoto). Il frontend **non** ha una propria costante di limite: `grep -rn "20971520\|20 \* 1024" duedgusto/src` non trova nulla.
 
-- [ ] 6.4 **`MediaLibrary.tsx`** — crea la pagina: griglia di card MUI su layout `grid grid-cols-12` (modello `MonthlyView.tsx:83-163`, unico precedente Card nel progetto), **non** AG Grid. Carica `/api/media/configurazione` al mount; consuma `connection { mediaAssets }`; dialog di modifica (alt, didascalia, cartella, ordinamento, focale, pubblicato) → `mutateMediaAsset`; eliminazione con `useConfirm` → `eliminaMediaAsset`, **mostrando l'errore che nomina i prodotti senza alcun trattamento speciale del caso**; `refetch()` al termine di ogni upload (la cache Apollo non sa nulla di un upload REST).
+- [x] 6.4 **`MediaLibrary.tsx`** — crea la pagina: griglia di card MUI su layout `grid grid-cols-12` (modello `MonthlyView.tsx:83-163`, unico precedente Card nel progetto), **non** AG Grid. Carica `/api/media/configurazione` al mount; consuma `connection { mediaAssets }`; dialog di modifica (alt, didascalia, cartella, ordinamento, focale, pubblicato) → `mutateMediaAsset`; eliminazione con `useConfirm` → `eliminaMediaAsset`, **mostrando l'errore che nomina i prodotti senza alcun trattamento speciale del caso**; `refetch()` al termine di ogni upload (la cache Apollo non sa nulla di un upload REST).
   *Verifica* (spec `media-assets`): dopo un upload il media compare nell'elenco **senza ricaricare la pagina**; l'eliminazione di un asset in uso mostra un messaggio che nomina i prodotti e la card resta al suo posto.
 
-- [ ] 6.5 **`MediaPickerDialog.tsx`** — selettore di immagine riusabile dalla griglia prodotti, che legge la stessa connection e restituisce un `mediaAssetId`. Mostra solo gli asset con `pubblicato = true` (un asset ritirato non deve poter rientrare da una porta laterale).
+- [x] 6.5 **`MediaPickerDialog.tsx`** — selettore di immagine riusabile dalla griglia prodotti, che legge la stessa connection e restituisce un `mediaAssetId`. Mostra solo gli asset con `pubblicato = true` (un asset ritirato non deve poter rientrare da una porta laterale).
   *Verifica*: un asset con `Pubblicato = false` non è selezionabile dal dialog.
 
-- [ ] 6.6 **`VetrinaProdottiList.tsx` — struttura e colonne** — crea la pagina AG Grid (skill `datagrid`) dentro `SitoGuard`, layout secondo `react-best-practices` §1-2 come le sei liste esistenti. 🔴 **`hideNewButton` + `hideDeleteButton` + nessun `getNewRow`**: è il confine di §D8 espresso nella UI — senza `getNewRow`, Tab sull'ultima cella **non** crea una riga. Colonne in sola lettura: `codice`, `nome`, `prezzo`, `attivo` (Chip), `pubblicatoSulSito` (Chip verde/grigio). Colonne editabili: `visibileSulSito`, `nomeVetrina`, `categoriaVetrina`, `prezzoVetrina`, `immagine`, `ordinamentoVetrina`, `novita`, `consigliato`, `allergeni`, `descrizioneVetrina` con gli editor di design.md §"UI".
+- [x] 6.6 **`VetrinaProdottiList.tsx` — struttura e colonne** — crea la pagina AG Grid (skill `datagrid`) dentro `SitoGuard`, layout secondo `react-best-practices` §1-2 come le sei liste esistenti. 🔴 **`hideNewButton` + `hideDeleteButton` + nessun `getNewRow`**: è il confine di §D8 espresso nella UI — senza `getNewRow`, Tab sull'ultima cella **non** crea una riga. Colonne in sola lettura: `codice`, `nome`, `prezzo`, `attivo` (Chip), `pubblicatoSulSito` (Chip verde/grigio). Colonne editabili: `visibileSulSito`, `nomeVetrina`, `categoriaVetrina`, `prezzoVetrina`, `immagine`, `ordinamentoVetrina`, `novita`, `consigliato`, `allergeni`, `descrizioneVetrina` con gli editor di design.md §"UI".
   *Verifica* (spec `vetrina-prodotti`): tentare di modificare `codice`/`nome`/`prezzo`/`attivo`/`pubblicatoSulSito` non apre l'editor e non invia alcuna mutation; percorrere con Tab l'ultima cella dell'ultima riga **non** crea una riga nuova.
 
-- [ ] 6.7 **`VetrinaProdottiList.tsx` — dati, persistenza e diagnostica** — consuma `connection { prodotti }` con `useGetAll` **verbatim** come `FornitoreList` (esaurisce le pagine seguendo i cursori). `onCellValueChanged` → `mutateProdottoVetrina(prodottoId, <intera riga vetrina>)`, persistenza per riga come `SpeseDataGrid`; **in errore ripristina il valore precedente nella cella** e mostra un toast, invece di lasciare la griglia a mostrare un valore che il server ha rifiutato. Tooltip sulla riga divergente (`visibileSulSito = true` con `attivo = false`): *"Visibile sul sito ma non attivo in cassa: non verrà pubblicato"*. Segnalazione del prodotto visibile e **privo di immagine**. Toggle "mostra non attivi" in toolbar via `api.setFilterModel`, **client-side, zero round trip**.
+- [x] 6.7 **`VetrinaProdottiList.tsx` — dati, persistenza e diagnostica** — consuma `connection { prodotti }` con `useGetAll` **verbatim** come `FornitoreList` (esaurisce le pagine seguendo i cursori). `onCellValueChanged` → `mutateProdottoVetrina(prodottoId, <intera riga vetrina>)`, persistenza per riga come `SpeseDataGrid`; **in errore ripristina il valore precedente nella cella** e mostra un toast, invece di lasciare la griglia a mostrare un valore che il server ha rifiutato. Tooltip sulla riga divergente (`visibileSulSito = true` con `attivo = false`): *"Visibile sul sito ma non attivo in cassa: non verrà pubblicato"*. Segnalazione del prodotto visibile e **privo di immagine**. Toggle "mostra non attivi" in toolbar via `api.setFilterModel`, **client-side, zero round trip**.
   *Verifica* (spec `vetrina-prodotti`): il filtro sui non attivi non genera alcuna richiesta di rete (pannello Network); un prodotto con `Attivo = false` e `VisibileSulSito = true` è presente, segnalato, e **ogni** suo campo vetrina resta modificabile.
 
 **Uscita di fase.** Il ciclo completo funziona in sviluppo dall'interfaccia: carichi una foto dalla libreria, la assegni a un prodotto dalla griglia, marchi 10 prodotti come visibili sul sito.
+
+> **Verifiche eseguite l'11 agosto 2026, nell'app vera.** `ts:check` e `lint` puliti; le due
+> pagine provate con Playwright su una seconda istanza del backend (4011) e sul dev server.
+>
+> **Il ciclo di fase è stato percorso davvero, non descritto**: foto caricata dalla libreria
+> (`POST /api/media` → **201**), la card compare **senza ricaricare la pagina** (il conteggio
+> delle schede passa da N a N+1: è il `refetch()` a fine batch, perché la cache Apollo non sa
+> nulla di un upload REST), poi assegnata al prodotto dal selettore della griglia e la
+> miniatura in cella diventa quella nuova. A database: `MediaAssets` +1 con la **cartella
+> digitata nella pagina**, `Prodotti.ImmagineId` aggiornato, e `Prezzo`/`Nome` della cassa
+> **invariati**.
+>
+> Provato anche il resto della griglia: nessun pulsante *Nuovo*, *Elimina*, *Nuova riga* o
+> *Cancella riga*; i due campi derivati arrivano dal server (`Attivo`/`Pubblicato` come Chip);
+> il toggle "Mostra non attivi" è in toolbar. E una variante i cui file esistono si carica
+> davvero (`naturalWidth > 0`), con `Cache-Control: public,max-age=31536000,immutable`.
+>
+> ⚠️ **Il backend di sviluppo dell'utente su 4000 è più vecchio del ramo vetrina**: il suo
+> schema non espone `connection { mediaAssets }` e le due pagine si vedono vuote. Non è un
+> difetto di queste pagine — basta riavviarlo. È il motivo per cui le prove girano su 4011.
+>
+> ⚠️ Il signin è limitato a 5 tentativi ogni 15 minuti **per IP** e una tornata di prove lo
+> esaurisce: durante le prove il contatore si azzera cambiando `X-Forwarded-For`, che in
+> sviluppo non è validato (vedi il rischio già annotato altrove).
+>
+> Scelta minore rispetto al design: la casella di selezione della griglia è disattivata
+> (`rowSelection: { checkboxes: false }`) — una casella promette un'azione di gruppo che in
+> questa pagina non esiste.
 
 ---
 

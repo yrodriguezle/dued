@@ -27,3 +27,16 @@ export function mediaUrl(chiave: string, larghezza: number, formato: FormatoMedi
 export function mediaSrcSet(chiave: string, larghezze: number[], formato: FormatoMedia = "webp"): string {
   return larghezze.map((larghezza) => `${mediaUrl(chiave, larghezza, formato)} ${larghezza}w`).join(", ");
 }
+
+/**
+ * La variante più piccola che copra la larghezza desiderata, o la più grande esistente se
+ * nessuna la raggiunge. Serve alle anteprime: chiedere sempre 400 significherebbe emettere un
+ * 404 su ogni immagine la cui sorgente era più stretta di 400 px.
+ */
+export function larghezzaAnteprima(larghezzeDisponibili: number[], desiderata = 400): number | null {
+  if (!larghezzeDisponibili.length) {
+    return null;
+  }
+  const ordinate = [...larghezzeDisponibili].sort((a, b) => a - b);
+  return ordinate.find((larghezza) => larghezza >= desiderata) ?? ordinate[ordinate.length - 1];
+}
