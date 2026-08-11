@@ -43,6 +43,10 @@ npm ci
 npm run build
 
 log "Copia frontend nella directory di serving..."
+# ATTENZIONE: questo rm -rf cancella tutto il contenuto di frontend/dist.
+# I media vivono in $APP_DIR/media, FUORI da qui, ed è deliberato: metterli
+# sotto dist significherebbe perderli tutti al deploy successivo, con il
+# database pieno di riferimenti a file inesistenti e nessun errore visibile.
 rm -rf "$APP_DIR/frontend/dist/"*
 cp -r "$REPO_DIR/duedgusto/dist/"* "$APP_DIR/frontend/dist/"
 
@@ -58,6 +62,14 @@ cat > "$APP_DIR/frontend/dist/config.json" <<EOF
 }
 EOF
 log "Config generato con IP: $SERVER_IP"
+
+# Media della vetrina: la directory deve esistere e appartenere all'utente del container
+# PRIMA dell'avvio, altrimenti il bind mount la crea root e il primo upload fallisce con un
+# UnauthorizedAccessException — in produzione, e solo lì.
+log "Preparazione directory dei media..."
+mkdir -p "$APP_DIR/media"
+chown -R 10001:10001 "$APP_DIR/media"   # 10001 = UID di appuser, fissato in backend/Dockerfile
+chmod -R 755 "$APP_DIR/media"           # 755: nginx (www-data) legge, solo appuser scrive
 
 log "Build e restart container Docker..."
 cd "$REPO_DIR"

@@ -204,7 +204,15 @@ section "Fase 3/8 - Struttura directory e firewall"
 mkdir -p "$APP_DIR/frontend/dist"
 mkdir -p "$APP_DIR/backups"
 mkdir -p "$APP_DIR/logs"
-log "Directory create: $APP_DIR/{frontend/dist, backups, logs}"
+
+# Media della vetrina: fuori da frontend/dist, che il deploy svuota a ogni giro.
+# L'UID deve coincidere con quello del processo dentro il container: sul bind mount è
+# l'unica cosa che il kernel confronta.
+mkdir -p "$APP_DIR/media"
+chown -R 10001:10001 "$APP_DIR/media"   # 10001 = UID di appuser, fissato in backend/Dockerfile
+chmod -R 755 "$APP_DIR/media"           # 755: nginx (www-data) legge, solo appuser scrive
+
+log "Directory create: $APP_DIR/{frontend/dist, backups, logs, media}"
 
 # ── Firewall ────────────────────────────────────────────────────────────────
 log "Configurazione UFW firewall..."
@@ -347,6 +355,10 @@ log "Build frontend..."
 npm run build
 
 log "Copia build in directory di serving..."
+# ATTENZIONE: questo rm -rf cancella tutto il contenuto di frontend/dist.
+# I media vivono in $APP_DIR/media, FUORI da qui, ed è deliberato: metterli
+# sotto dist significherebbe perderli tutti al deploy successivo, con il
+# database pieno di riferimenti a file inesistenti e nessun errore visibile.
 rm -rf "$APP_DIR/frontend/dist/"*
 cp -r "$REPO_DIR/duedgusto/dist/"* "$APP_DIR/frontend/dist/"
 cp "$CONFIG_FILE" "$APP_DIR/frontend/dist/config.json"

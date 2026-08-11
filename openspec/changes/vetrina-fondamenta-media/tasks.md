@@ -512,23 +512,23 @@ sbagliato fa fallire il primo upload in produzione con un `UnauthorizedAccessExc
 un `backup.sh` che ignora i file ricostruisce un database perfetto pieno di immagini 404.
 **Questa fase modifica i file e li verifica leggendoli**; la prova sul campo è la Fase 9.
 
-- [ ] 8.1 🔴 **UID/GID fissati nel `Dockerfile`** — in `backend/Dockerfile` sostituisci `groupadd -r appuser && useradd -r -g appuser appuser` con:
+- [x] 8.1 🔴 **UID/GID fissati nel `Dockerfile`** — in `backend/Dockerfile` sostituisci `groupadd -r appuser && useradd -r -g appuser appuser` con:
   ```dockerfile
   RUN groupadd -r -g 10001 appuser && useradd -r -u 10001 -g appuser appuser
   ```
   `useradd -r` assegna un UID di sistema **non deterministico** (il primo libero scendendo da 999), che può cambiare al variare dell'immagine base. Su un bind mount l'UID è l'unica cosa che il kernel confronta: un `chown` sull'UID sbagliato produce un container che non riesce a scrivere i media.
   *Verifica*: `docker build` del backend, poi `docker run --rm --entrypoint id <image>` restituisce `uid=10001 gid=10001`. Senza questo task, il primo upload in produzione fallisce e **in sviluppo non si vede**, perché in sviluppo il container non c'è.
 
-- [ ] 8.2 **Bind mount e `MEDIA_ROOT` in `docker-compose.yml`** — aggiungi al servizio `backend` (sarà il **primo** `volumes:` di quel servizio) `- /opt/duedgusto/media:/app/media` e l'env `MEDIA_ROOT: /app/media`.
+- [x] 8.2 **Bind mount e `MEDIA_ROOT` in `docker-compose.yml`** — aggiungi al servizio `backend` (sarà il **primo** `volumes:` di quel servizio) `- /opt/duedgusto/media:/app/media` e l'env `MEDIA_ROOT: /app/media`.
   *Verifica*: `docker compose config` mostra il mount e la variabile.
 
-- [ ] 8.3 **nginx: `location /media/`** — in `deploy/nginx/duedgusto.conf`, **prima** di `location / { try_files … }`: `alias /opt/duedgusto/media/;` (entrambe le barre finali), `try_files $uri =404` (nessun fallback su `index.html`: un media mancante è un 404), `expires 1y`, `add_header Cache-Control "public, immutable"`, `add_header X-Content-Type-Options "nosniff" always`, `access_log off`.
+- [x] 8.3 **nginx: `location /media/`** — in `deploy/nginx/duedgusto.conf`, **prima** di `location / { try_files … }`: `alias /opt/duedgusto/media/;` (entrambe le barre finali), `try_files $uri =404` (nessun fallback su `index.html`: un media mancante è un 404), `expires 1y`, `add_header Cache-Control "public, immutable"`, `add_header X-Content-Type-Options "nosniff" always`, `access_log off`.
   *Verifica*: `nginx -t` sul file passa.
 
-- [ ] 8.4 🔴 **nginx: `location /api/media` dedicata con `client_max_body_size 24M`** — una `location` **dedicata** alla sola rotta di upload, con un commento incrociato verso `MediaLimiti.MaxByteFile`. **Non allargare** il limite della `location /api/` esistente ([duedgusto.conf:77](../../../deploy/nginx/duedgusto.conf), `10M`): applicherebbe 24M anche a `/api/auth/signin`, che è anonimo e rate-limitato.
+- [x] 8.4 🔴 **nginx: `location /api/media` dedicata con `client_max_body_size 24M`** — una `location` **dedicata** alla sola rotta di upload, con un commento incrociato verso `MediaLimiti.MaxByteFile`. **Non allargare** il limite della `location /api/` esistente ([duedgusto.conf:77](../../../deploy/nginx/duedgusto.conf), `10M`): applicherebbe 24M anche a `/api/auth/signin`, che è anonimo e rate-limitato.
   *Verifica* (spec `media-assets` → *Le altre rotte API mantengono il limite precedente*): nel file, `location /api/` ha ancora `client_max_body_size 10M` e il valore 24M compare **solo** dentro `location /api/media`. I quattro limiti risultano in ordine decrescente di permissività: nginx 24M > Kestrel/MVC 22MB > applicazione 20MB, con il client a 20MB che rifiuta per primo.
 
-- [ ] 8.5 🔴 **Commento di protezione sul `rm -rf` — in DUE file** — accanto a `rm -rf "$APP_DIR/frontend/dist/"*` di **`deploy/scripts/deploy.sh:46`** *e* di **`deploy/scripts/first-deploy.sh:350`** (verificati entrambi):
+- [x] 8.5 🔴 **Commento di protezione sul `rm -rf` — in DUE file** — accanto a `rm -rf "$APP_DIR/frontend/dist/"*` di **`deploy/scripts/deploy.sh:46`** *e* di **`deploy/scripts/first-deploy.sh:350`** (verificati entrambi):
   ```bash
   # ATTENZIONE: questo rm -rf cancella tutto il contenuto di frontend/dist.
   # I media vivono in $APP_DIR/media, FUORI da qui, ed è deliberato: metterli
@@ -537,7 +537,7 @@ un `backup.sh` che ignora i file ricostruisce un database perfetto pieno di imma
   ```
   *Verifica*: `grep -c "I media vivono in" deploy/scripts/deploy.sh deploy/scripts/first-deploy.sh` restituisce **1 per ciascuno dei due file**. Uno solo dei due non basta: `first-deploy.sh` è quello che gira sulla macchina nuova.
 
-- [ ] 8.6 **Creazione della directory media negli script** — in `deploy.sh`, `first-deploy.sh` e `setup-vps.sh` (accanto alle righe 90-92), **prima** di `docker compose up`:
+- [x] 8.6 **Creazione della directory media negli script** — in `deploy.sh`, `first-deploy.sh` e `setup-vps.sh` (accanto alle righe 90-92), **prima** di `docker compose up`:
   ```bash
   mkdir -p "$APP_DIR/media"
   chown -R 10001:10001 "$APP_DIR/media"   # 10001 = UID di appuser, fissato in backend/Dockerfile
@@ -545,13 +545,35 @@ un `backup.sh` che ignora i file ricostruisce un database perfetto pieno di imma
   ```
   *Verifica*: `grep -n "10001" deploy/scripts/*.sh` trova il numero nei tre script, e in ognuno il blocco precede l'avvio dei container.
 
-- [ ] 8.7 🔴 **`backup.sh`: mirror `rsync` append-only, senza rotazione** — estendi `deploy/scripts/backup.sh` **dopo** il `mysqldump` (righe 33-39) con la sezione di design.md §D10: `rsync -a "$MEDIA_DIR/" "$MEDIA_BACKUP/"` **senza `--delete`**, dentro un `if` (con `set -e`, un `rsync` fallito fuori da una condizione aborterebbe lo script **dopo** un dump perfettamente riuscito), e **fuori** dalla rotazione a `RETENTION_DAYS=30`. Il commento nello script deve dichiarare **perché** le due politiche divergono: ogni dump SQL è uno snapshot completo e ridondante, i media sono contenuto **unico e immutabile** — ruotarli significa cancellare l'unica copia.
+- [x] 8.7 🔴 **`backup.sh`: mirror `rsync` append-only, senza rotazione** — estendi `deploy/scripts/backup.sh` **dopo** il `mysqldump` (righe 33-39) con la sezione di design.md §D10: `rsync -a "$MEDIA_DIR/" "$MEDIA_BACKUP/"` **senza `--delete`**, dentro un `if` (con `set -e`, un `rsync` fallito fuori da una condizione aborterebbe lo script **dopo** un dump perfettamente riuscito), e **fuori** dalla rotazione a `RETENTION_DAYS=30`. Il commento nello script deve dichiarare **perché** le due politiche divergono: ogni dump SQL è uno snapshot completo e ridondante, i media sono contenuto **unico e immutabile** — ruotarli significa cancellare l'unica copia.
   *Verifica*: `grep -n "delete" deploy/scripts/backup.sh` **non** trova `--delete`; il comando `find ... -mtime +$RETENTION_DAYS -delete` continua a puntare **solo** ai file `.sql.gz` e mai a `$BACKUP_DIR/media`. Documenta nello stesso commento la procedura di ripristino (dump + `rsync` inverso + `chown 10001:10001`).
 
-- [ ] 8.8 **Documentazione del rischio residuo** — nel commento di `backup.sh`: il mirror è sullo **stesso disco**. Protegge da cancellazione accidentale e da un ripristino di database, **non** dalla perdita del disco. Vale già oggi per i dump SQL; una copia off-site è fuori scope in questa fase, ma va detta.
+- [x] 8.8 **Documentazione del rischio residuo** — nel commento di `backup.sh`: il mirror è sullo **stesso disco**. Protegge da cancellazione accidentale e da un ripristino di database, **non** dalla perdita del disco. Vale già oggi per i dump SQL; una copia off-site è fuori scope in questa fase, ma va detta.
   *Verifica*: la frase è nel file.
 
 **Uscita di fase.** Tutti i file di infrastruttura sono modificati e leggibili; `nginx -t` e `docker compose config` passano. Nulla è ancora stato provato sul campo.
+
+> **Verifiche eseguite l'11 agosto 2026, sui file e con Docker in locale.**
+> - `docker build` dell'immagine backend, poi `docker run --rm --entrypoint id`:
+>   **`uid=10001(appuser) gid=10001(appuser)`**. Senza questo, il primo upload in produzione
+>   fallirebbe per permessi e in sviluppo non si vedrebbe nulla.
+> - `docker compose config` mostra il bind `/opt/duedgusto/media:/app/media` e
+>   `MEDIA_ROOT: /app/media`.
+> - `nginx -t` **passa** (eseguito dentro `nginx:alpine` con certificati fittizi, perché il
+>   test carica davvero il certificato). Le due sole segnalazioni sono la deprecazione di
+>   `listen ... http2`, **preesistente** e non introdotta qui.
+> - `client_max_body_size 24M` compare **solo** dentro `location /api/media`; `location /api/`
+>   e `location /graphql` restano a `10M`, quindi `POST /api/auth/signin` conserva la sua
+>   protezione.
+> - `grep -c "I media vivono in"` restituisce **1 per ciascuno** dei due script di deploy.
+> - `10001` compare in `deploy.sh`, `first-deploy.sh` e `setup-vps.sh`, sempre **prima**
+>   dell'avvio dei container.
+> - `backup.sh` non contiene `--delete`; l'unica cancellazione per anzianità continua a
+>   puntare ai soli `duedgusto_*.sql.gz`. `bash -n` pulito su tutti e quattro gli script.
+>
+> Il rischio residuo è scritto nello script, non solo qui: il mirror sta sullo **stesso
+> disco**, quindi protegge da una cancellazione accidentale e da un ripristino del database,
+> **non** dalla perdita del disco.
 
 ---
 

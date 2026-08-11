@@ -90,6 +90,11 @@ log "Creazione struttura directory..."
 mkdir -p "$APP_DIR/frontend/dist"
 mkdir -p "$APP_DIR/backups"
 mkdir -p "$APP_DIR/logs"
+
+# Media della vetrina: deliberatamente FUORI da frontend/dist, che ogni deploy svuota.
+mkdir -p "$APP_DIR/media"
+chown -R 10001:10001 "$APP_DIR/media"   # 10001 = UID di appuser, fissato in backend/Dockerfile
+chmod -R 755 "$APP_DIR/media"           # 755: nginx (www-data) legge, solo appuser scrive
 log "Generazione certificato SSL self-signed..."
 SSL_DIR="/etc/ssl/duedgusto"
 if [[ ! -f "$SSL_DIR/fullchain.pem" ]]; then

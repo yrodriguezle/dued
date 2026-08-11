@@ -14,7 +14,12 @@ LABEL version=$APP_VERSION
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
-RUN groupadd -r appuser && useradd -r -g appuser appuser
+# UID e GID FISSI, non assegnati dal sistema: "useradd -r" prende il primo identificativo
+# libero scendendo da 999, quindi può cambiare al variare dell'immagine base. Sul bind mount
+# dei media l'UID è l'unica cosa che il kernel confronta — un chown sull'UID sbagliato produce
+# un container che non riesce a scrivere, e il guasto si vede solo in produzione perché in
+# sviluppo il container non c'è. Lo stesso 10001 compare in deploy/scripts/*.sh.
+RUN groupadd -r -g 10001 appuser && useradd -r -u 10001 -g appuser appuser
 
 COPY --from=build /app/publish .
 

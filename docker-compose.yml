@@ -32,6 +32,9 @@ services:
       CONNECTION_STRING: "server=mysql;database=${MYSQL_DATABASE:-duedgusto};user=root;password=${MYSQL_ROOT_PASSWORD}"
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD}
+      # Radice dei media caricati dalla libreria del sito. Fuori da frontend/dist di
+      # proposito: quella cartella viene svuotata a ogni deploy.
+      MEDIA_ROOT: /app/media
       # Host cross-origin autorizzati (separati da virgola, solo host).
       # In produzione nginx serve app e API sullo stesso origin: serve per l'accesso
       # da app.duedgusto.com e, in futuro, dal dominio della vetrina.
@@ -43,6 +46,10 @@ services:
       SEED_REGISTRI_STORICI: "${SEED_REGISTRI_STORICI:-}"
       # Completa anche i giorni rimasti aperti e senza movimenti, invece di saltarli
       SEED_REGISTRI_STORICI_SOSTITUISCI_INCOMPLETI: "${SEED_REGISTRI_STORICI_SOSTITUISCI_INCOMPLETI:-}"
+    volumes:
+      # I media vivono sull'host e sopravvivono a ricostruzioni e deploy del container.
+      # La directory è creata e assegnata a 10001:10001 dagli script di deploy.
+      - /opt/duedgusto/media:/app/media
     ports:
       - "127.0.0.1:5000:5000"
     networks:
