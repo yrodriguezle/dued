@@ -23,6 +23,9 @@ import {
   Shield,
   BookOpen,
   BookText,
+  Globe,
+  Images,
+  ShoppingBag,
   type LucideIcon,
 } from "lucide-react";
 
@@ -51,4 +54,7 @@ export const iconMapping: Record<string, LucideIcon> = {
   Shield,
   BookOpen,
   BookText,
+  Globe,
+  Images,
+  ShoppingBag,
 };

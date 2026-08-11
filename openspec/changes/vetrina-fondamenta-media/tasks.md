@@ -296,35 +296,56 @@ esistano, non dopo, altrimenti la prima cosa che si prova è una sezione visibil
 `uploadRequest` significa due copie che divergono al primo bugfix applicato a una sola
 (§D2). Questa fase non contiene alcuna UI: è tutta infrastruttura che le pagine consumano.
 
-- [ ] 5.1 **`politicaRefresh.tsx`** — crea `duedgusto/src/api/politicaRefresh.tsx` con `valutaStatoAutenticazione(status, { failOnForbidden, refreshToken }): Promise<"procedi" | "riprova" | "abbandona">`. **Non conosce il trasporto**: riceve uno status, decide. Chiama `onRefreshFails()` prima di restituire `"abbandona"` sul refresh fallito.
+- [x] 5.1 **`politicaRefresh.tsx`** — crea `duedgusto/src/api/politicaRefresh.tsx` con `valutaStatoAutenticazione(status, { failOnForbidden, refreshToken }): Promise<"procedi" | "riprova" | "abbandona">`. **Non conosce il trasporto**: riceve uno status, decide. Chiama `onRefreshFails()` prima di restituire `"abbandona"` sul refresh fallito.
   *Verifica*: `npm run ts:check` passa; il file non importa né `fetch` né `XMLHttpRequest`.
 
-- [ ] 5.2 🔴 **`makeRequest.tsx` delega la politica** — sostituisci le righe 48-62 con una chiamata a `valutaStatoAutenticazione`. **Firma e comportamento osservabili invariati**: il retry resta la chiamata ricorsiva che rilegge gli header in cima (riga 14).
+- [x] 5.2 🔴 **`makeRequest.tsx` delega la politica** — sostituisci le righe 48-62 con una chiamata a `valutaStatoAutenticazione`. **Firma e comportamento osservabili invariati**: il retry resta la chiamata ricorsiva che rilegge gli header in cima (riga 14).
   *Verifica*: **i 4 test esistenti di `duedgusto/src/api/__tests__/makeRequest.test.tsx` passano senza una sola modifica**. Sono la rete di sicurezza del refactor: se richiedono di essere riscritti, il refactor ha cambiato più di quanto doveva ed è da rifare.
 
-- [ ] 5.3 **`uploadRequest.tsx`** — crea `duedgusto/src/api/uploadRequest.tsx` (XHR, non `fetch`: `fetch` non espone alcun evento di progresso in upload). Tre condizioni che il design impone e che sono la parte facile da sbagliare:
+- [x] 5.3 **`uploadRequest.tsx`** — crea `duedgusto/src/api/uploadRequest.tsx` (XHR, non `fetch`: `fetch` non espone alcun evento di progresso in upload). Tre condizioni che il design impone e che sono la parte facile da sbagliare:
   1. **nuovo `XMLHttpRequest` a ogni tentativo** — la funzione `invia()` lo costruisce al suo interno; un XHR già `send()`-ato non è reinviabile (il `FormData` invece si riusa: non è uno stream, non si consuma);
   2. **`getAuthHeaders()` letto _dentro_ `invia()`** — leggerlo una volta sola rimanderebbe lo stesso token scaduto, prenderebbe un secondo 401 e con `failOnForbidden: true` finirebbe in logout: file perso *e* utente buttato fuori;
   3. **`onProgress(0)` all'inizio del retry** — altrimenti la barra torna indietro dal 100% e sembra rotta.
   Nessun `Content-Type` (lo genera il browser col boundary). `JSON.parse` della risposta **dentro un try/catch**: su un 413 di nginx il corpo è HTML e deve produrre *"Il file supera il limite consentito dal server"*, non un `SyntaxError`.
   *Verifica*: `npm run ts:check` passa. Comportamento coperto dai test 7.11-7.14.
 
-- [ ] 5.4 **`mediaUrl.tsx`** — crea `duedgusto/src/components/pages/sito/mediaUrl.tsx` con `mediaUrl(chiave, larghezza, formato = "webp")` e `mediaSrcSet(chiave, larghezze, formato)`. **Unico punto del frontend che compone un URL di media**, senza alcun ramo per ambiente: `API_ENDPOINT` punta, in entrambi gli ambienti, all'host che serve `/media/` (§D3).
+- [x] 5.4 **`mediaUrl.tsx`** — crea `duedgusto/src/components/pages/sito/mediaUrl.tsx` con `mediaUrl(chiave, larghezza, formato = "webp")` e `mediaSrcSet(chiave, larghezze, formato)`. **Unico punto del frontend che compone un URL di media**, senza alcun ramo per ambiente: `API_ENDPOINT` punta, in entrambi gli ambienti, all'host che serve `/media/` (§D3).
   *Verifica*: `grep -rn "/media/" duedgusto/src --include=*.tsx` trova la composizione dell'URL **solo** in questo file.
 
-- [ ] 5.5 **Tipi TypeScript** — crea `duedgusto/src/@types/vetrina.d.ts` con `MediaAsset` e `ProdottoVetrina` allineati al contratto GraphQL, `pubblicatoSulSito` e `prezzoEffettivoVetrina` inclusi come campi di sola lettura.
+- [x] 5.5 **Tipi TypeScript** — crea `duedgusto/src/@types/vetrina.d.ts` con `MediaAsset` e `ProdottoVetrina` allineati al contratto GraphQL, `pubblicatoSulSito` e `prezzoEffettivoVetrina` inclusi come campi di sola lettura.
   *Verifica*: `npm run ts:check` passa.
 
-- [ ] 5.6 **Operazioni GraphQL della vetrina** — crea `duedgusto/src/graphql/vetrina/fragments.tsx` (`mediaAssetFragment`, `prodottoVetrinaFragment` come **template string**, non `gql` — convenzione del progetto), `queries.tsx` e `mutations.tsx` (`mutationMutateProdottoVetrina`, `mutationMutateMediaAsset`, `mutationEliminaMediaAsset`).
+- [x] 5.6 **Operazioni GraphQL della vetrina** — crea `duedgusto/src/graphql/vetrina/fragments.tsx` (`mediaAssetFragment`, `prodottoVetrinaFragment` come **template string**, non `gql` — convenzione del progetto), `queries.tsx` e `mutations.tsx` (`mutationMutateProdottoVetrina`, `mutationMutateMediaAsset`, `mutationEliminaMediaAsset`).
   *Verifica*: `npm run ts:check` e `npm run lint` passano.
 
-- [ ] 5.7 **Hook di scrittura e di upload** — crea `duedgusto/src/graphql/vetrina/useSubmitProdottoVetrina.tsx` (pattern di `useSubmitMenu.tsx`) e `useUploadMedia.tsx` (wrapper su `uploadRequest` con stato di progresso per file).
+- [x] 5.7 **Hook di scrittura e di upload** — crea `duedgusto/src/graphql/vetrina/useSubmitProdottoVetrina.tsx` (pattern di `useSubmitMenu.tsx`) e `useUploadMedia.tsx` (wrapper su `uploadRequest` con stato di progresso per file).
   *Verifica*: `npm run ts:check` passa.
 
-- [ ] 5.8 **Icone della sidebar** — aggiungi `Globe`, `Images`, `ShoppingBag` al `Record` di `duedgusto/src/components/layout/sideBar/iconMapping.tsx` (verificato: non ci sono; `lucide-react` è già dipendenza).
+- [x] 5.8 **Icone della sidebar** — aggiungi `Globe`, `Images`, `ShoppingBag` al `Record` di `duedgusto/src/components/layout/sideBar/iconMapping.tsx` (verificato: non ci sono; `lucide-react` è già dipendenza).
   *Verifica*: la sezione "Sito" nella sidebar mostra le tre icone invece del fallback, e le nuove icone compaiono nella tendina di `MenuForm`.
 
 **Uscita di fase.** `npm run ts:check`, `npm run lint` e `npm run test` passano. Il trasporto multipart esiste e la politica di refresh è in un posto solo. Nessuna pagina nuova è ancora visibile.
+
+> **Verifiche eseguite l'11 agosto 2026.** `npm run ts:check` e `npm run lint` puliti,
+> `npm run test` **730/730 su 91 file**.
+>
+> 🔴 **Il task 5.2 è passato alla sua prova**: i test di `makeRequest.test.tsx` sono verdi
+> **senza una sola modifica**. Erano la rete di sicurezza del refactor, non un contorno.
+>
+> ⚠️ **Una precisazione emersa scrivendo il codice**: `"abbandona"` copre **due** situazioni
+> che i chiamanti devono distinguere — refresh fallito (la politica ha già chiamato
+> `onRefreshFails`) e 401 sull'ultimo tentativo (non lo chiama). `makeRequest` restituisce
+> `null` solo nel primo caso e lascia il secondo scorrere nella gestione errori, che è
+> esattamente il comportamento che i test preesistenti pinnano: un 401 con
+> `failOnForbidden: true` **lancia** il messaggio del server, non restituisce `null`.
+> `uploadRequest` chiama `onRefreshFails()` da sé quando il secondo tentativo è ancora 401.
+>
+> `grep -rn "/media/" duedgusto/src --include=*.tsx` trova la composizione dell'URL **solo**
+> in `mediaUrl.tsx`; `grep -rn "20971520\|20 \* 1024" duedgusto/src` non trova **nulla** — il
+> frontend non ha una propria costante di limite da far divergere.
+>
+> Aggiunte due costanti a `httpStatusCodes.tsx` (`403`, `413`) e il tipo globale
+> `UploadRequest` accanto a `MakeRequest`, sullo stile del file.
 
 ---
 

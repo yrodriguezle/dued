@@ -19,6 +19,13 @@ type MakeRequest<InputData> = {
   failOnForbidden?: boolean;
 };
 
+type UploadRequest = {
+  path: string;
+  formData: FormData;
+  /** Avanzamento da 0 a 1. Riparte da 0 a ogni tentativo: una barra che torna indietro sembra rotta. */
+  onProgress?: (avanzamento: number) => void;
+};
+
 // AuthToken
 type AuthToken = {
   token: string;
