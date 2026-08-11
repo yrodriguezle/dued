@@ -47,6 +47,9 @@ public class AppDbContext : DbContext
     // Media (vetrina del sito)
     public DbSet<MediaAsset> MediaAssets { get; set; }
 
+    // Impostazioni del sito vetrina — UNA sola riga, imposta dal database (vedi OnModelCreating)
+    public DbSet<ImpostazioniVetrina> ImpostazioniVetrina { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (!optionsBuilder.IsConfigured)
@@ -505,6 +508,135 @@ public class AppDbContext : DbContext
 
             // Elenco della libreria: raggruppato per cartella e ordinato dentro ciascuna
             entity.HasIndex(x => new { x.Cartella, x.Ordinamento });
+
+            entity.Property(x => x.CreatedAt)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.Property(x => x.UpdatedAt)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+        });
+
+        // Impostazioni Vetrina Configuration (singleton IRRIGIDITO)
+        //
+        // 🔴 Perché qui il singleton è imposto e in BusinessSettings no. I due casi non sono
+        //    simmetrici: BusinessSettings è scritta da una schermata, da un tipo di utente, ed è
+        //    lì da anni. Questa è scritta da un amministratore, SEEDATA all'avvio, e letta da una
+        //    rotta ANONIMA. Un duplicato qui produce il guasto peggiore possibile per un dato
+        //    pubblico — il sito mostra un indirizzo e l'amministratore ne modifica un altro —
+        //    con zero errori da qualunque parte si guardi.
+        //
+        // ⚠️ DEBITO NOTO, dichiarato e non dimenticato: il singleton di BusinessSettings resta
+        //    permissivo (chiave auto-incrementale, nessun vincolo, letture con
+        //    FirstOrDefaultAsync senza criterio). Irrigidirlo è un CHANGE DEDICATO: una riga di
+        //    configurazione, ma su una tabella che cassa e chiusure mensili leggono e scrivono,
+        //    quindi con i suoi test e la sua verifica su dati reali. Non è una svista di questa
+        //    change: è un lavoro che non si fa di straforo dentro un'altra migrazione.
+        modelBuilder.Entity<ImpostazioniVetrina>(entity =>
+        {
+            entity
+                .ToTable("ImpostazioniVetrina", t => t.HasCheckConstraint(
+                    "CK_ImpostazioniVetrina_Singleton", "`ImpostazioniVetrinaId` = 1"))
+                .HasCharSet("utf8mb4")
+                .UseCollation("utf8mb4_unicode_ci")
+                .HasKey(x => x.ImpostazioniVetrinaId);
+
+            // 🔴 ValueGeneratedNever non è cosmesi: l'id è un valore di dominio ("la riga"), non
+            //    un contatore. Con l'auto-increment un INSERT senza id creerebbe la riga 2 IN
+            //    SILENZIO, e il CHECK è l'unico strato che nessuno può saltare — vale anche per
+            //    un INSERT scritto a mano in una sessione MySQL alle due di notte.
+            entity.Property(x => x.ImpostazioniVetrinaId)
+                .ValueGeneratedNever();
+
+            entity.Property(x => x.InsegnaPubblica)
+                .HasMaxLength(150)
+                .IsRequired();
+
+            entity.Property(x => x.Via)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            entity.Property(x => x.Cap)
+                .HasMaxLength(10)
+                .IsRequired();
+
+            entity.Property(x => x.Citta)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.Property(x => x.Provincia)
+                .HasMaxLength(5)
+                .IsRequired();
+
+            // ⚠️ Il default vive QUI e non solo nel seed: il seed salta quando la riga esiste,
+            //    quindi una colonna aggiunta in futuro non riceverebbe MAI il valore del seed
+            //    sulle installazioni già avviate — prenderebbe il default del database. Vale per
+            //    Paese, OraInizioTemaSera, PrenotazioniPreavvisoOre e PrenotazioniCopertiMax.
+            entity.Property(x => x.Paese)
+                .HasMaxLength(2)
+                .IsRequired()
+                .HasDefaultValue("IT");
+
+            // decimal(9,6): ~11 cm di risoluzione, più che sufficiente per un ingresso, e non
+            // un double — le coordinate si confrontano e si serializzano, non si sommano.
+            entity.Property(x => x.Latitudine)
+                .HasColumnType("decimal(9,6)");
+
+            entity.Property(x => x.Longitudine)
+                .HasColumnType("decimal(9,6)");
+
+            entity.Property(x => x.Telefono)
+                .HasMaxLength(50);
+
+            entity.Property(x => x.Email)
+                .HasMaxLength(255);
+
+            // URL completi: 500 copre qualunque profilo social reale senza diventare un campo
+            // che nessuno può indicizzare.
+            entity.Property(x => x.UrlInstagram)
+                .HasMaxLength(500);
+
+            entity.Property(x => x.UrlFacebook)
+                .HasMaxLength(500);
+
+            entity.Property(x => x.MetaTitoloDefault)
+                .HasMaxLength(200);
+
+            // text e non varchar: una meta description supera comodamente i limiti utili di una
+            // colonna indicizzabile, e non c'è alcuna ragione per interrogarla.
+            entity.Property(x => x.MetaDescrizioneDefault)
+                .HasColumnType("text");
+
+            entity.Property(x => x.OraInizioTemaSera)
+                .HasMaxLength(5)
+                .IsRequired()
+                .HasDefaultValue("18:00");
+
+            entity.Property(x => x.PrenotazioniPreavvisoOre)
+                .HasDefaultValue(2);
+
+            entity.Property(x => x.PrenotazioniCopertiMax)
+                .HasDefaultValue(20);
+
+            entity.Property(x => x.TurnstileSiteKey)
+                .HasMaxLength(255);
+
+            // 🔴 WithMany() ESPLICITO e SENZA argomento. MediaAsset ha già
+            //    ICollection<Prodotto> Prodotti: se questa seconda relazione non dichiarasse di
+            //    non avere navigazione inversa, EF potrebbe tentare di riusare quella collezione
+            //    o creare una FK ombra, e la migrazione produrrebbe una colonna su MediaAssets
+            //    che nessuno ha chiesto — su una tabella che questa change ha promesso di non
+            //    toccare.
+            //
+            //    Restrict e non Cascade/SetNull, per la stessa ragione dell'immagine di
+            //    prodotto: cancellare un media assegnato deve FALLIRE. Con Cascade sparirebbero
+            //    le impostazioni del sito insieme a una foto; con SetNull l'anteprima social si
+            //    romperebbe in silenzio su ogni condivisione.
+            entity.HasOne(x => x.ImmagineOg)
+                .WithMany()
+                .HasForeignKey(x => x.ImmagineOgId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             entity.Property(x => x.CreatedAt)
                 .HasColumnType("datetime")
