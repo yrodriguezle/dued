@@ -48,3 +48,9 @@ backups/
 
 # Deploy artifacts
 deploy/scripts/*.log
+# Materiale esplorativo di design (immagini generate da AI): pesa ~47 MB e non è
+# una fonte del marchio. I sorgenti veri — i PDF vettoriali del logo e le foto
+# del locale — sono invece versionati in docs/, perché sono insostituibili e
+# leggeri. Git conserva la storia per sempre: quello che entra non esce più.
+docs/*.png
+docs/ChatGPT*
