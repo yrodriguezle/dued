@@ -1,4 +1,4 @@
-# Tasks: API pubblica + impostazioni vetrina (vetrina-api-pubblica)
+﻿# Tasks: API pubblica + impostazioni vetrina (vetrina-api-pubblica)
 
 > Artefatti di riferimento: [proposal.md](./proposal.md), [design.md](./design.md) (§D1-D12),
 > [specs/](./specs/) — 6 spec, 39 requirement, 178 scenari.
@@ -1288,17 +1288,17 @@ la galleria**: la rotta pubblica risponderebbe `[]` per sempre e non ci sarebbe 
 nessuna parte. E la pagina delle impostazioni è ciò che rende i dati del locale modificabili da
 chi li possiede, invece che da chi sa scrivere una mutation.
 
-- [ ] 9.1 **Tipi TypeScript** — in `duedgusto/src/@types/vetrina.d.ts`: `ImpostazioniVetrina`
+- [x] 9.1 **Tipi TypeScript** — in `duedgusto/src/@types/vetrina.d.ts`: `ImpostazioniVetrina`
   allineata al contratto GraphQL e `cartelleSuggerite: string[]` su `MediaConfigurazione`.
   *Verifica*: `cd duedgusto && npm run ts:check` passa.
 
-- [ ] 9.2 **Operazioni GraphQL** — in `duedgusto/src/graphql/vetrina/`:
+- [x] 9.2 **Operazioni GraphQL** — in `duedgusto/src/graphql/vetrina/`:
   `impostazioniVetrinaFragment` in `fragments.tsx` (**template string**, non `gql` — convenzione
   del progetto), `getImpostazioniVetrina` in `queries.tsx`,
   `mutationMutateImpostazioniVetrina` in `mutations.tsx`.
   *Verifica*: `npm run ts:check` e `npm run lint` passano.
 
-- [ ] 9.3 **`MediaLibrary`: i due campi cartella diventano `Autocomplete freeSolo`** — righe
+- [x] 9.3 **`MediaLibrary`: i due campi cartella diventano `Autocomplete freeSolo`** — righe
   206-210 (caricamento) e 265-268 (dialog di modifica) di
   [`MediaLibrary.tsx`](../../../duedgusto/src/components/pages/sito/MediaLibrary.tsx). Opzioni =
   `cartelleSuggerite` **dal server** (già letto al mount da `/api/media/configurazione`) ∪ cartelle
@@ -1312,7 +1312,7 @@ chi li possiede, invece che da chi sa scrivere una mutation.
   ([riga 70](../../../duedgusto/src/components/pages/sito/MediaCard.tsx)), che è la diagnosi della
   galleria vuota.
 
-- [ ] 9.4 **`ImpostazioniVetrinaPage.tsx` — struttura** — crea
+- [x] 9.4 **`ImpostazioniVetrinaPage.tsx` — struttura** — crea
   `duedgusto/src/components/pages/sito/ImpostazioniVetrinaPage.tsx` sul pattern **verbatim** di
   [`settings/SettingsDetails.tsx`](../../../duedgusto/src/components/pages/settings/SettingsDetails.tsx):
   `Formik` + `FormikProps` ref + schema Zod + `FormikToolbar` + `useConfirm` + toast, con
@@ -1321,7 +1321,7 @@ chi li possiede, invece che da chi sa scrivere una mutation.
   contatti e social, SEO, aspetto, prenotazioni.
   *Verifica*: `npm run ts:check` passa; la pagina è dentro `SitoGuard` e non reinventa il layout.
 
-- [ ] 9.5 **Validazione Zod, incrociata sulle coordinate** — `HH:mm` sull'ora del tema sera,
+- [x] 9.5 **Validazione Zod, incrociata sulle coordinate** — `HH:mm` sull'ora del tema sera,
   `z.string().url()` sui social, e il controllo **incrociato** lat/long (entrambe o nessuna).
   ⚠️ La validazione client **non sostituisce** quella del backend (task 8.7): le stesse regole
   valgono per una chiamata GraphQL diretta.
@@ -1329,32 +1329,32 @@ chi li possiede, invece che da chi sa scrivere una mutation.
   validazione del client non è l'unico controllo*): compilando la sola latitudine la pagina segnala
   e **nessuna mutation parte** (pannello Network vuoto).
 
-- [ ] 9.6 🔴 **La sezione prenotazioni si dichiara inattiva** — `Alert severity="info"`: *"Le
+- [x] 9.6 🔴 **La sezione prenotazioni si dichiara inattiva** — `Alert severity="info"`: *"Le
   prenotazioni non sono ancora attive sul sito: questi valori vengono salvati e verranno usati
   quando la funzione sarà disponibile."* Un campo che si compila e non fa niente, senza
   spiegazione, è un bug segnalato.
   *Verifica* (spec `impostazioni-vetrina` → *La sezione prenotazioni si dichiara inattiva*):
   l'avviso è visibile senza aprire nulla.
 
-- [ ] 9.7 **Gli orari non si modificano da qui** — nessun campo di apertura/chiusura/giorni/fuso, e
+- [x] 9.7 **Gli orari non si modificano da qui** — nessun campo di apertura/chiusura/giorni/fuso, e
   una riga con link alla pagina Impostazioni della cassa che lo spiega. È §2 della proposal reso
   visibile all'utente invece che solo scritto nel design.
   *Verifica* (spec `impostazioni-vetrina` → *Gli orari non si modificano da qui*): la pagina non
   ha alcun campo di orario e indica dove si modificano.
 
-- [ ] 9.8 **Immagine OG dal `MediaPickerDialog` esistente** — nessun secondo percorso di scelta
+- [x] 9.8 **Immagine OG dal `MediaPickerDialog` esistente** — nessun secondo percorso di scelta
   delle immagini, nessun caricamento aggiuntivo dentro questa pagina.
   *Verifica*: il selettore aperto è lo stesso della griglia prodotti; la scelta valorizza
   `immagineOgId`.
 
-- [ ] 9.9 **Test React** — `ImpostazioniVetrinaPage`: Zod incrociata su lat/long, `HH:mm`, URL;
+- [x] 9.9 **Test React** — `ImpostazioniVetrinaPage`: Zod incrociata su lat/long, `HH:mm`, URL;
   `MediaLibrary`: l'`Autocomplete` propone `galleria` fra le opzioni **provenienti dal server** e
   accetta un valore digitato non presente fra le opzioni.
   *Verifica* (spec `media-assets` → *La cartella della galleria è selezionabile*, *Un valore
   digitato resta accettato*): `npm run test -- ImpostazioniVetrinaPage` e `npm run test -- MediaLibrary`
   passano.
 
-- [ ] 9.10 **Prova manuale nell'app vera** — con il dev server e la seconda istanza del backend:
+- [x] 9.10 **Prova manuale nell'app vera** — con il dev server e la seconda istanza del backend:
   carica un'immagine scegliendo `galleria` dalla tendina e verifica che compaia in
   `/api/public/galleria`; compila indirizzo, social e ora del tema sera, salva, e verifica che i
   valori compaiano in `/api/public/site`.
@@ -1369,6 +1369,87 @@ chi li possiede, invece che da chi sa scrivere una mutation.
 locale dall'interfaccia, e le due cose compaiono nelle rotte pubbliche. La voce di menu che porta
 alla pagina non esiste ancora: ci si arriva dall'URL.
 
+**Esito reale (apply del 2026-08-12).** Frontend **755/755** → **772/772** (17 test nuovi: 14 in
+`ImpostazioniVetrinaPage.test.tsx`, 3 in `MediaLibrary.test.tsx`). `ts:check` e `lint` puliti,
+**zero avvisi**. Backend invariato in questa fase.
+
+⚠️ *Nota su come si è arrivati a quel 772, perché il primo tentativo diceva un'altra cosa.* Con
+il dev server e la seconda istanza del backend **ancora accesi**, la suite ha riportato **8
+fallimenti**, tutti `Test timed out in 5000ms` e in parte su file che questa change non tocca
+(`RegistroCassaWiki.test.tsx`, `ProfilePage.test.tsx`). Non erano rotture: era la macchina
+satura. I test nuovi che interagiscono con l'interfaccia sono stati resi meno cari
+(`userEvent.setup({ delay: null })`, che toglie il ritardo fra un tasto e l'altro) e portano un
+timeout esplicito; poi la suite è stata rieseguita **a macchina scarica** — 97 file, 772 test,
+**tutti verdi**. Vale la pena saperlo: il timeout di 5 s di Vitest è stretto per i test che
+rendono una pagina MUI+Formik, e un fallimento del genere **non** va letto come una regressione
+prima di aver guardato cos'altro stava girando.
+
+- 🔴 **Prova 9.10 eseguita davvero nell'app**, con il dev server su `:4001` e la **seconda
+  istanza** del backend su `https://localhost:4012` (`SEED_ON_STARTUP=false`, dll compilata fuori
+  da `bin/`). Il frontend è stato dirottato sulla seconda istanza **intercettando
+  `/config.json`** con Playwright — nessun file del progetto è stato toccato per la prova.
+  - **Impostazioni → `/api/public/site`**: dalla pagina, `Via del Costo 99` → `Via del Costo
+    99/A`, Facebook valorizzato, tema sera `18:00` → `19:15`, coordinate `45.707500 /
+    11.478900`. La rotta pubblica **anonima** riporta esattamente quei valori
+    (`geo: {45.7075, 11.4789}`), e la ricerca per nome di `turnstileSiteKey`, `prenotazioniAttive`,
+    `vatRate`, `settingsId` sull'intero corpo non trova nulla.
+  - 🔴 **Validazione incrociata dal vivo**: svuotando la sola longitudine e premendo Salva,
+    la pagina mostra **2** segnalazioni (una per campo, come pretende il controllo incrociato) e
+    **nessuna mutation parte**.
+  - **Galleria → `/api/public/galleria`**: nella libreria media la tendina della cartella si è
+    aperta proponendo `["Piatti", "galleria", "generale", "prova-e2e-…", "verifica-fase2"]` —
+    cioè i **due suggerimenti del server** uniti alle cartelle già in uso — con valore iniziale
+    `"generale"` **letto dal server** e non da una costante del frontend. Scelta `galleria`,
+    caricata un'immagine: la rotta pubblica è passata da **1 a 2** immagini e la chiave nuova
+    (`2026/08/800-xxpt4q`) compare nell'elenco. Il giro si chiude dall'interfaccia alla rotta
+    pubblica, senza mai leggere il database.
+  - **Ripristino, che è anche la seconda prova dello svuotamento**: dalla stessa pagina si è
+    rimesso `Via del Costo 99`, **svuotato Facebook**, rimesso `18:00` e tolte entrambe le
+    coordinate. `/api/public/site` risponde `facebook: null`, `geo: null`, `instagram` ancora
+    valorizzato: svuotare un campo **dall'interfaccia** funziona, ed è ciò che
+    un'assegnazione condizionale sul server renderebbe impossibile.
+- *Divergenza dal testo di 9.3, dichiarata*: `CARTELLA_PREDEFINITA = "generale"` è stata
+  **rimossa** dal frontend invece di essere riusata. Era l'ultimo nome di cartella scritto nel
+  codice applicativo del client: `grep -rn "'galleria'\|'generale'" duedgusto/src` trova ora
+  **solo** un commento e le stringhe del test, che sono la **risposta del server simulata** —
+  cioè esattamente ciò che il test deve dichiarare. Nessun elenco, nessun valore di dominio.
+  Il valore iniziale del campo è `cartelleSuggerite[0]` letto dal server, e un
+  campo lasciato vuoto non viene più rimpiazzato dal client: lo normalizza il backend con
+  `CartelleVetrina.Normalizza`. La forma canonica ha **un solo** proprietario.
+- ⚠️ *Dettaglio MUI che ha richiesto una correzione, e vale la pena scriverlo.* `Autocomplete`
+  tiene **due** stati distinti, `value` e `inputValue`. Controllando solo `inputValue`, la
+  tendina aperta su un valore già scelto mostrava **una sola opzione** — quella filtrata dal
+  testo nel campo — e `galleria` era invisibile a chi partiva da `generale`. È esattamente il
+  guasto che questa fase esiste per prevenire: la galleria resta vuota per sempre e non c'è alcun
+  errore da nessuna parte. Il test `propone la cartella della galleria fra le opzioni` è **nato
+  rosso** su questo e si è corretto legando entrambi gli stati.
+- *Divergenza dal testo di 9.4, dichiarata*: le funzioni pure del modulo (mappatura, schema Zod,
+  `inputDaValori`) vivono in `impostazioniVetrinaModulo.tsx` e non dentro il file della pagina.
+  È lo stesso taglio di `parseSettingsFromRaw` per le impostazioni della cassa, e senza di esso
+  ESLint segnala tre `react-refresh/only-export-components`: un file di pagina che esporta anche
+  funzioni rompe il fast refresh.
+- 🔴 *Scoperta durante 9.4, non prevista dai task e non innocua.* La mutation fa **assegnazione
+  totale**, quindi un campo che la pagina non rispedisce viene **azzerato dal salvataggio**.
+  `turnstileSiteKey` non compare in alcuna sezione dell'interfaccia (§UI del design non lo
+  elenca): senza accorgimenti, il primo salvataggio dalla pagina avrebbe cancellato in silenzio
+  una chiave impostata da GraphiQL. Il modulo lo **trasporta** fra i valori del form senza
+  mostrarlo, e un test lo pinna (`trasporta la chiave antispam che la pagina non mostra`).
+- *Aggiunto oltre al testo di 9.8*: il pulsante "Scegli immagine" è **disabilitato a modulo
+  bloccato**, come tutti i campi. Senza, sarebbe stato l'unico comando capace di modificare un
+  modulo in sola lettura — la scelta scrive `immagineOgId` — e il pulsante Salva si sarebbe
+  acceso da solo su una pagina che l'utente non aveva sbloccato.
+- **Prova 9.8 eseguita dal vivo**, sempre sulla seconda istanza: a modulo bloccato il pulsante è
+  disabilitato, dopo "Modifica" è attivo, e apre il **`MediaPickerDialog` già esistente** (titolo
+  *"Scegli un'immagine"*), non un secondo selettore. Scelta l'immagine e salvato,
+  `/api/public/site` riporta
+  `seo.immagineOg = {chiave: "2026/08/800-xxpt4q", larghezzeDisponibili: [400,800], placeholder: "data:image/webp;base64,…"}`.
+  Poi "Nessuna immagine" e salva: la rotta pubblica torna a `seo.immagineOg: null`. Anche una
+  chiave esterna si **svuota** dall'interfaccia.
+- *Sull'ora del tema sera*: la validazione client usa `^([01][0-9]|2[0-3]):[0-5][0-9]$`, cioè la
+  **stessa** del backend e non il `\d{2}:\d{2}` degli orari di cassa: `"25:00"` e `"18:60"` sono
+  rifiutati da entrambe le parti, e l'asimmetria resta nella direzione giusta (il client non è
+  l'unico controllo — task 8.7).
+
 ---
 
 ## Fase 10 — Terza voce di menu e gating
@@ -1377,7 +1458,7 @@ alla pagina non esiste ancora: ci si arriva dall'URL.
 seed, la pagina della Fase 9 è raggiungibile solo digitando l'URL. E il gating va seminato insieme
 alla voce, non dopo.
 
-- [ ] 10.1 **Icona `Store` in `iconMapping.tsx`** — aggiungi `Store` al `Record` di
+- [x] 10.1 **Icona `Store` in `iconMapping.tsx`** — aggiungi `Store` al `Record` di
   `duedgusto/src/components/layout/sideBar/iconMapping.tsx` (verificato assente; `lucide-react` è
   già dipendenza).
   ⚠️ **`Settings` non si riusa**: è già la sezione Impostazioni della cassa, e le due voci
@@ -1385,7 +1466,7 @@ alla voce, non dopo.
   *Verifica* (spec `impostazioni-vetrina` → *Icona distinta*): la nuova voce mostra l'icona invece
   del fallback, e le due sezioni si distinguono a colpo d'occhio.
 
-- [ ] 10.2 **Terza voce in `SeedMenusSito.cs`** — sul pattern esatto delle due esistenti
+- [x] 10.2 **Terza voce in `SeedMenusSito.cs`** — sul pattern esatto delle due esistenti
   (lookup per `Percorso`, righe 85 e 119):
 
   | Voce | Titolo | Percorso | Icona | Pos. | `NomeVista` | `PercorsoFile` |
@@ -1396,25 +1477,25 @@ alla voce, non dopo.
   "Sito" **non** si ricrea: è già seedato e si cerca per `Titolo == "Sito" && Percorso == string.Empty`.
   *Verifica*: `dotnet build` esce 0; le due voci preesistenti non sono toccate.
 
-- [ ] 10.3 **Gating della voce** — `AssegnaRuoli` filtrando `.Where(r => r.Amministratore || r.Nome == "SuperAdmin")`,
+- [x] 10.3 **Gating della voce** — `AssegnaRuoli` filtrando `.Where(r => r.Amministratore || r.Nome == "SuperAdmin")`,
   come le due voci esistenti.
   *Verifica* (spec `sicurezza` → *La voce di menu è riservata*): le righe di `ruolomenu` per la
   terza voce nominano **solo** i ruoli con flag amministrativo e il superadmin; un ruolo con
   `Amministratore = 0` non ha alcuna assegnazione (query di controllo: 0 righe). ⚠️ E **non è
   l'unico controllo**: la chiamata GraphQL diretta resta rifiutata dal backend (task 8.10).
 
-- [ ] 10.4 **Prova di idempotenza** — su una **seconda istanza** con 🔧 `SEED_ON_STARTUP=true`,
+- [x] 10.4 **Prova di idempotenza** — su una **seconda istanza** con 🔧 `SEED_ON_STARTUP=true`,
   riavvia **tre volte**.
   *Verifica* (spec `impostazioni-vetrina` → *Tre avvii consecutivi*): i figli di "Sito" sono
   **esattamente tre**, non sei o nove; le due voci preesistenti hanno percorso, titolo e posizione
   invariati; il padre resta uno.
 
-- [ ] 10.5 **Test di integrazione del seed dei menu** — `SeedMenusSito.Initialize` invocato tre
+- [x] 10.5 **Test di integrazione del seed dei menu** — `SeedMenusSito.Initialize` invocato tre
   volte → un padre e **tre** figli.
   *Verifica*: `dotnet test --filter "SeedMenus"` passa, e il test preesistente sulle due voci non
   è stato modificato ma solo esteso.
 
-- [ ] 10.6 **Prova manuale della navigazione** — da amministratore, la voce compare in terza
+- [x] 10.6 **Prova manuale della navigazione** — da amministratore, la voce compare in terza
   posizione nella sezione "Sito" e apre la pagina; da un utente non amministratore la sezione non
   mostra la voce.
   *Verifica* (spec `impostazioni-vetrina` → *La voce apre la pagina*): il caricamento dinamico del
@@ -1422,6 +1503,44 @@ alla voce, non dopo.
 
 **Uscita di fase.** La sezione "Sito" ha tre voci, la terza è riservata agli amministratori e apre
 la pagina delle impostazioni.
+
+**Esito reale (apply del 2026-08-12).** Backend **666/666** → **667/667** (un test nuovo,
+`SeedMenusSito_TerzaVoce_PuntaAlComponenteDelleImpostazioniDelSito`).
+
+- 🔴 **Prova 10.4 eseguita davvero: tre avvii consecutivi** della seconda istanza
+  (`ASPNETCORE_URLS=https://localhost:4012`, **`SEED_ON_STARTUP=true`**), con il conteggio letto a
+  database **dopo ognuno**:
+
+  | | padri "Sito" | figli `/gestionale/sito/%` |
+  |---|---|---|
+  | prima | 1 | 2 |
+  | dopo l'avvio 1 | 1 | **3** |
+  | dopo l'avvio 2 | 1 | **3** |
+  | dopo l'avvio 3 | 1 | **3** |
+
+  Tre, **non nove**. E gli identificativi restano `27, 28, 29` a ogni giro: le voci non vengono
+  ricreate, il che è più forte del solo conteggio — un conteggio giusto potrebbe nascere anche
+  cancellando e ricreando. Le due voci preesistenti hanno percorso, titolo e posizione
+  invariati.
+- *Verifica 10.3 a database*: le righe di `ruolomenu` per `/gestionale/sito/impostazioni`
+  nominano **`SuperAdmin` e `Admin`**, entrambi con `Amministratore = 1`. La query di controllo
+  sui ruoli con `Amministratore = 0` restituisce **0 righe** dopo ognuno dei tre avvii.
+- 🔴 **Prova 10.6 eseguita nell'app vera**, sulla seconda istanza:
+  - da **amministratore** (`superadmin`), la sezione "Sito" mostra
+    `["Libreria media", "Prodotti vetrina", "Impostazioni sito"]` in quest'ordine; l'icona della
+    terza è quella dello **storefront** (`Store`), visibilmente diversa dall'ingranaggio della
+    voce "Impostazioni" della cassa poco sopra nella stessa barra. Cliccandola si apre la pagina:
+    **il caricamento dinamico funziona con il `PercorsoFile` seminato** — che è l'errore classico
+    di questo seed, e qui è stato provato cliccando, non deducendo.
+  - da **non amministratore** (`prova-non-admin`, ruolo Gestore), la barra di navigazione non
+    contiene né "Sito" né "Impostazioni sito": il gating del menu regge.
+  - 🔴 **E il menu non è l'unico controllo.** Con il token del non amministratore, la chiamata
+    GraphQL **diretta** `{ vetrina { impostazioni { insegnaPubblica } } }` risponde
+    *«Operazione riservata agli amministratori: il tuo ruolo non ha i privilegi necessari.»*
+    Digitando l'URL a mano, la pagina non si apre e **nessun dato compare a schermo**
+    (`"2D Gusto Bar"` assente dal corpo della pagina): la route non è nemmeno registrata, perché
+    le route del frontend nascono dai menu dell'utente. Il doppio gating è dimostrato su
+    entrambi gli strati.
 
 ---
 

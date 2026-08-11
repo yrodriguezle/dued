@@ -26,6 +26,7 @@ import {
   Globe,
   Images,
   ShoppingBag,
+  Store,
   type LucideIcon,
 } from "lucide-react";
 
@@ -57,4 +58,7 @@ export const iconMapping: Record<string, LucideIcon> = {
   Globe,
   Images,
   ShoppingBag,
+  // ⚠️ Non si riusa `Settings`: è già la sezione Impostazioni della cassa, e nella barra di
+  // navigazione le due voci sarebbero indistinguibili — proprio le due che non vanno confuse.
+  Store,
 };

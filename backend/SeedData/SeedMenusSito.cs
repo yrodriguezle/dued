@@ -147,6 +147,43 @@ public static class SeedMenusSito
             }
         }
 
+        // Voce: Impostazioni sito
+        // ⚠️ Icona "Store" e non "Settings": quest'ultima è già la sezione Impostazioni della
+        // cassa, e le due voci sarebbero indistinguibili nella barra di navigazione — proprio le
+        // due che non vanno confuse, dato che gli orari si modificano solo in una delle due.
+        Menu? sitoChild3 = await dbContext.Menus
+                .Include(m => m.Ruoli)
+                .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/sito/impostazioni");
+
+        if (sitoChild3 == null)
+        {
+            sitoChild3 = new Menu
+            {
+                Titolo = "Impostazioni sito",
+                Percorso = "/gestionale/sito/impostazioni",
+                Icona = "Store",
+                Visibile = true,
+                Posizione = 3,
+                NomeVista = "ImpostazioniVetrinaPage",
+                PercorsoFile = "sito/ImpostazioniVetrinaPage.tsx",
+                MenuPadreId = sitoMenu.Id
+            };
+            bool assegnazioneIniziale = false;
+            SeedMenus.AssegnaRuoli(sitoChild3, ruoliSito, ref assegnazioneIniziale);
+            dbContext.Menus.Add(sitoChild3);
+        }
+        else
+        {
+            bool needsUpdate = false;
+            SeedMenus.UpdateMenuIfNeeded(sitoChild3, "Impostazioni sito", "/gestionale/sito/impostazioni", "Store", true, 3,
+                "ImpostazioniVetrinaPage", "sito/ImpostazioniVetrinaPage.tsx", superAdminRuolo, sitoMenu, ref needsUpdate);
+            SeedMenus.AssegnaRuoli(sitoChild3, ruoliSito, ref needsUpdate);
+            if (needsUpdate)
+            {
+                dbContext.Menus.Update(sitoChild3);
+            }
+        }
+
         await dbContext.SaveChangesAsync();
     }
 }

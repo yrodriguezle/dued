@@ -431,7 +431,7 @@ public class VetrinaMediaTests : IDisposable
     }
 
     [Fact]
-    public async Task SeedMenusSito_InvocatoTreVolte_LasciaUnPadreEDueFigli()
+    public async Task SeedMenusSito_InvocatoTreVolte_LasciaUnPadreETreFigli()
     {
         (ServiceProvider provider, string nomeDatabase) = ProviderDiSeed(
             new Ruolo { Nome = "SuperAdmin", Amministratore = true },
@@ -446,7 +446,45 @@ public class VetrinaMediaTests : IDisposable
         // Il padre si cerca per Titolo + percorso vuoto: cercarlo per il solo percorso ne
         // creerebbe uno nuovo a ogni avvio, come già successo con le Dashboard duplicate.
         verifica.Menus.Count(m => m.Titolo == "Sito" && m.Percorso == string.Empty).Should().Be(1);
-        verifica.Menus.Count(m => m.Percorso.StartsWith("/gestionale/sito/")).Should().Be(2);
+        // Tre, non nove: il conteggio è ciò che distingue un seed idempotente da un seed che
+        // riscrive. Il numero cresce con le voci ed è l'unica riga che va toccata quando ne
+        // arriva una — l'elenco dei percorsi qui sotto dice quali sono, così un duplicato non
+        // può nascondersi dietro un conteggio giusto per caso.
+        verifica.Menus.Count(m => m.Percorso.StartsWith("/gestionale/sito/")).Should().Be(3);
+        verifica.Menus.Where(m => m.Percorso.StartsWith("/gestionale/sito/"))
+            .Select(m => m.Percorso)
+            .Should().BeEquivalentTo(
+                "/gestionale/sito/media", "/gestionale/sito/prodotti", "/gestionale/sito/impostazioni");
+    }
+
+    /// <summary>
+    /// Il <c>PercorsoFile</c> è ciò che <c>ProtectedRoutes.loadDynamicComponent()</c> importa a
+    /// runtime, ed è relativo a <c>src/components/pages/</c>: un percorso sbagliato non rompe
+    /// alcun test — rompe la voce di menu, con una pagina che non si apre. È l'errore classico
+    /// di questo seed, quindi si pinna qui invece di scoprirlo cliccando.
+    /// </summary>
+    [Fact]
+    public async Task SeedMenusSito_TerzaVoce_PuntaAlComponenteDelleImpostazioniDelSito()
+    {
+        (ServiceProvider provider, string nomeDatabase) = ProviderDiSeed(
+            new Ruolo { Nome = "SuperAdmin", Amministratore = true });
+
+        await SeedMenusSito.Initialize(provider);
+
+        using AppDbContext verifica = TestDbContextFactory.Create(nomeDatabase);
+        Menu voce = await verifica.Menus.FirstAsync(m => m.Percorso == "/gestionale/sito/impostazioni");
+
+        voce.Titolo.Should().Be("Impostazioni sito");
+        voce.NomeVista.Should().Be("ImpostazioniVetrinaPage");
+        voce.PercorsoFile.Should().Be("sito/ImpostazioniVetrinaPage.tsx");
+        voce.Posizione.Should().Be(3);
+        // ⚠️ Non "Settings": quella è già la sezione Impostazioni della cassa, e le due voci
+        // sarebbero indistinguibili proprio dove non vanno confuse.
+        voce.Icona.Should().Be("Store");
+        voce.Icona.Should().NotBe("Settings");
+
+        Menu padre = await verifica.Menus.FirstAsync(m => m.Titolo == "Sito" && m.Percorso == string.Empty);
+        voce.MenuPadreId.Should().Be(padre.Id);
     }
 
     [Fact]
@@ -465,7 +503,9 @@ public class VetrinaMediaTests : IDisposable
             .Where(m => m.Titolo == "Sito" || m.Percorso.StartsWith("/gestionale/sito/"))
             .ToListAsync();
 
-        vociSito.Should().HaveCount(3);
+        vociSito.Should().HaveCount(4);
+        // La terza voce non fa eccezione: il gating si semina insieme alla voce, non dopo.
+        vociSito.Should().Contain(m => m.Percorso == "/gestionale/sito/impostazioni");
         // Il ruolo Gestore non compare da nessuna parte: la sezione è riservata.
         vociSito.SelectMany(m => m.Ruoli).Select(r => r.Nome).Distinct()
             .Should().BeEquivalentTo("SuperAdmin", "Admin");
