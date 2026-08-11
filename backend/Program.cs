@@ -162,6 +162,29 @@ builder.Services.AddCors(options =>
         .AllowAnyHeader()
         .AllowCredentials();
     });
+
+    // ── Policy dedicata alle sole tre GET di PublicController ────────────────────────────
+    // Il motivo decisivo NON è l'accesso: CorsOriginPolicy.OrigineAmmessa confronta uri.Host
+    // ignorando la porta e ammette localhost, quindi la vetrina in sviluppo (:4321) è GIÀ
+    // un'origine ammessa dalla policy globale. Aggiungerla ad ALLOWED_ORIGINS sarebbe una riga
+    // che sembra fare qualcosa e non fa niente.
+    //
+    // Il motivo è la CACHE. Sotto la policy globale un browser da un'origine ammessa riceve un
+    // Access-Control-Allow-Origin VARIABILE più un Vary: Origin, su un corpo dichiarato
+    // public,max-age=300: la correttezza dipenderebbe dal fatto che ogni cache intermedia onori
+    // Vary. Con "*" l'header è una COSTANTE — nessuna variante, nessun Vary, nessuna classe di
+    // bug — e il micro-cache del reverse proxy avrà una sola variante per URL.
+    //
+    // 🔴 NIENTE AllowCredentials(): "*" e le credenziali sono mutuamente esclusivi per specifica,
+    //    e qui è una VIRTÙ — questa famiglia di rotte non può diventare un vettore credenziale
+    //    nemmeno per un errore di configurazione futuro. WithMethods("GET") per la stessa
+    //    ragione: sono tre letture, e nessuna scrittura deve poter nascere qui per distrazione.
+    options.AddPolicy("PubblicaSenzaCredenziali", policy =>
+    {
+        policy.AllowAnyOrigin()
+        .WithMethods("GET")
+        .AllowAnyHeader();
+    });
 });
 
 // SECURITY: JWT key da env var → configuration → fallback dev (dichiaratamente insicura)
@@ -257,6 +280,18 @@ if (app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
+// ⚠️ ORDINE VINCOLANTE, e il guasto sarebbe SILENZIOSO.
+// PublicController porta [EnableCors("PubblicaSenzaCredenziali")], che scavalca questa policy
+// globale. Funziona perché il middleware CORS legge i METADATI DELL'ENDPOINT GIÀ SELEZIONATO:
+// WebApplication inserisce UseRouting all'inizio della pipeline quando non lo si chiama
+// esplicitamente, quindi qui l'endpoint è già stato scelto e l'attributo è visibile.
+//
+// Il giorno in cui qualcuno aggiungesse un app.UseRouting() ESPLICITO *dopo* questa riga,
+// l'attributo smetterebbe di avere effetto senza alcun errore: le tre rotte pubbliche
+// tornerebbero sotto la policy credenziale qui sopra, con Access-Control-Allow-Origin
+// variabile e Vary: Origin su risposte dichiarate cacheabili per cinque minuti — cioè
+// esattamente la classe di bug che la policy dedicata esiste per eliminare. Nessun test
+// unitario lo vedrebbe: si accorgerebbe solo un curl con header Origin.
 app.UseCors("AllowSpecificOrigins");
 
 // Rate limiting for authentication endpoints (must be before authentication)

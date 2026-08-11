@@ -1,6 +1,7 @@
 using System.Text.Json;
 
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -41,8 +42,19 @@ namespace duedgusto.Controllers;
 /// <para>⚠️ <b>Tre action e nient'altro.</b> Nessuno stub per eventi, promozioni, contenuti o
 /// prenotazioni: una rotta che risponde <c>[]</c> è indistinguibile da una rotta rotta, e il
 /// consumatore della fase successiva la troverebbe già "esistente".</para>
+///
+/// <para>🔴 <b><c>[EnableCors]</c> con la policy dedicata, e il motivo non è l'accesso.</b>
+/// L'origine di sviluppo della vetrina è <b>già</b> ammessa dalla policy globale
+/// (<c>CorsOriginPolicy</c> confronta l'host ignorando la porta). Qui si sceglie
+/// <c>PubblicaSenzaCredenziali</c> perché emette un <c>Access-Control-Allow-Origin</c>
+/// <b>costante</b> — quindi nessun <c>Vary: Origin</c> su una risposta dichiarata cacheabile — e
+/// perché senza <c>AllowCredentials</c> questa famiglia di rotte non può diventare un vettore
+/// credenziale nemmeno per un errore di configurazione futuro. ⚠️ L'attributo dipende
+/// dall'ordine dei middleware: vedi il commento accanto ad <c>app.UseCors</c> in
+/// <c>Program.cs</c>.</para>
 /// </summary>
 [AllowAnonymous]
+[EnableCors("PubblicaSenzaCredenziali")]
 [Route("api/public")]
 [ApiController]
 public class PublicController(
@@ -78,8 +90,14 @@ public class PublicController(
     /// dopo la proiezione, che è la ragione per cui quella firma a due valori esiste;</item>
     /// <item>al superamento del limite si registra un avviso con il totale.</item>
     /// </list>
+    ///
+    /// <para><b>60 secondi</b>, e non 300 come le altre due: il listino cambia <i>durante</i> la
+    /// giornata. È lo <b>stesso numero</b> del <c>proxy_cache_valid 200 60s</c> previsto per il
+    /// reverse proxy: sono la stessa decisione, scritta due volte di proposito, e nginx onora il
+    /// <c>Cache-Control</c> dell'upstream — quindi non potranno divergere.</para>
     /// </summary>
     [HttpGet("menu")]
+    [ResponseCache(Duration = 60, Location = ResponseCacheLocation.Any)]
     public async Task<ActionResult<MenuPubblicoDto>> Menu(CancellationToken cancellationToken)
     {
         // Il totale REALE, sullo stesso predicato: è una seconda query indicizzata, non una
@@ -225,8 +243,13 @@ public class PublicController(
     /// circoscritto</b>. Tre modi di non fallire: riga assente → <c>200</c> con i default del
     /// modello e un avviso; giorni operativi illeggibili → campo <c>null</c> e un avviso;
     /// coordinate non impostate → oggetto <c>null</c>, mai una coppia di zeri.</para>
+    ///
+    /// <para><b>300 secondi</b>: l'identità del locale cambia quando l'amministratore la
+    /// modifica, cioè quasi mai. Il numero è il <b>ritardo massimo</b> fra "salvo l'indirizzo" e
+    /// "lo vedo sul sito", ed è esattamente ciò che il criterio di successo misura.</para>
     /// </summary>
     [HttpGet("site")]
+    [ResponseCache(Duration = 300, Location = ResponseCacheLocation.Any)]
     public async Task<ActionResult<SitoPubblicoDto>> Site(CancellationToken cancellationToken)
     {
         // ⚠️ Si legge la riga per identificativo, mai con un FirstOrDefault senza criterio: c'è
@@ -373,8 +396,11 @@ public class PublicController(
     ///
     /// <para>Una galleria vuota è uno <b>stato legittimo</b> — nessuno ha ancora etichettato
     /// immagini — e risponde <c>200</c> con un elenco vuoto.</para>
+    ///
+    /// <para><b>300 secondi</b>, come <c>site</c>: contenuto editoriale, cambia a mano.</para>
     /// </summary>
     [HttpGet("galleria")]
+    [ResponseCache(Duration = 300, Location = ResponseCacheLocation.Any)]
     public async Task<ActionResult<GalleriaPubblicaDto>> Galleria(CancellationToken cancellationToken)
     {
         List<RigaImmagine> righe =
