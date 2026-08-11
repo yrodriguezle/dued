@@ -321,6 +321,10 @@ using (IServiceScope scope = app.Services.CreateScope())
         // Dopo SeedMenus: la sezione "Sito" riusa i ruoli amministrativi che quel seed
         // ha già creato/aggiornato, e si aggancia in coda alle voci esistenti (Posizione 9).
         await SeedMenusSito.Initialize(services);
+        // Dopo SeedMenusSito: la sezione "Sito" esiste già quando nasce la riga che le sue
+        // pagine amministrano. 🔴 Crea e NON aggiorna, al contrario dei seed dei menu: un
+        // indirizzo riscritto a ogni riavvio è perdita di lavoro dell'amministratore.
+        await SeedImpostazioniVetrina.Initialize(services);
         await SeedCashDenominations.Initialize(services);
         await SeedBusinessSettings.Initialize(services);
     }
