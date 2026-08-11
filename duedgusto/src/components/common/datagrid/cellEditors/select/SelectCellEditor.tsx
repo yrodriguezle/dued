@@ -19,6 +19,19 @@ interface SelectCellEditorProps extends CustomCellEditorProps {
   values?: unknown[];
 }
 
+/**
+ * Colori espliciti dal tema della griglia (light e dark).
+ *
+ * Servono perche lo sfondo trasparente del select disattiva il rendering
+ * nativo della tendina: Chrome la disegna su fondo bianco mentre le voci
+ * ereditano il testo chiaro del tema scuro, e restano leggibili solo quella
+ * evidenziata e nessun'altra.
+ */
+const OPTION_STYLE = {
+  color: "var(--ag-foreground-color)",
+  backgroundColor: "var(--ag-background-color)",
+} as const;
+
 function SelectCellEditor({ value, values, onValueChange }: SelectCellEditorProps) {
   const selectRef = useRef<HTMLSelectElement>(null);
   const [draft, setDraft] = useState<string>(() => (value == null ? "" : String(value)));
@@ -53,14 +66,29 @@ function SelectCellEditor({ value, values, onValueChange }: SelectCellEditorProp
         // Nessuno stopEditing: la cella resta in editing di proposito.
         onValueChange(event.target.value);
       }}
-      style={{ width: "100%", height: "100%", border: "none", outline: "none", background: "transparent" }}
+      style={{
+        width: "100%",
+        height: "100%",
+        border: "none",
+        outline: "none",
+        background: "transparent",
+        color: "var(--ag-foreground-color)",
+      }}
     >
       {/* Un valore fuori elenco (es. dato storico) non deve sparire in silenzio. */}
-      {!options.includes(draft) && draft !== "" && <option value={draft}>{draft}</option>}
+      {!options.includes(draft) && draft !== "" && (
+        <option
+          value={draft}
+          style={OPTION_STYLE}
+        >
+          {draft}
+        </option>
+      )}
       {options.map((option) => (
         <option
           key={option}
           value={option}
+          style={OPTION_STYLE}
         >
           {option}
         </option>

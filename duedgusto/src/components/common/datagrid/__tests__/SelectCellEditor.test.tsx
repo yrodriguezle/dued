@@ -83,6 +83,18 @@ describe("SelectCellEditor", () => {
     expect(screen.getByRole("option", { name: "CategoriaDismessa" })).toBeInTheDocument();
   });
 
+  it("colora ogni voce col tema della griglia: senza, in dark mode la tendina nativa e testo bianco su bianco", () => {
+    renderEditor({ value: "CategoriaDismessa" });
+
+    // Sia le voci dell'elenco sia quella storica fuori elenco
+    const opzioni = [...CATEGORIE, "CategoriaDismessa"];
+    opzioni.forEach((etichetta) => {
+      const stile = screen.getByRole("option", { name: etichetta }).getAttribute("style") ?? "";
+      expect(stile).toContain("--ag-foreground-color");
+      expect(stile).toContain("--ag-background-color");
+    });
+  });
+
   it("regge l'assenza di values senza esplodere", () => {
     const { select } = renderEditor({ values: undefined, value: null });
 
