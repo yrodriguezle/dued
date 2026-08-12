@@ -11,6 +11,7 @@ import Logo from '../components/Logo.astro';
 import TemaSwitch from '../components/TemaSwitch.astro';
 import Immagine from '../components/Immagine.astro';
 import SchedaProdotto from '../components/SchedaProdotto.astro';
+import AvvisoDegradazione from '../components/AvvisoDegradazione.astro';
 import { leggiSito, leggiMenu, leggiGalleria } from '../lib/api.ts';
 
 // 🔴 Tre letture in parallelo con `Promise.all`, non `allSettled`: nessuna delle tre
@@ -25,7 +26,25 @@ const sito = esitoSito.stato === 'ok' ? esitoSito.dati : null;
 const menu = esitoMenu.stato === 'ok' ? esitoMenu.dati : null;
 const galleria = esitoGalleria.stato === 'ok' ? esitoGalleria.dati.immagini : [];
 
-Astro.response.headers.set('Cache-Control', 'public, max-age=60');
+// ── Tre stati, non due ────────────────────────────────────────────────────────────────
+//   1. tutto letto            → pagina intera, `public, max-age=60`
+//   2. identità sì, menu no   → identità, orari, contatti; NIENTE striscia consigliati e un
+//                               avviso al suo posto; `no-store`
+//   3. identità no            → marca, slogan, insegna — che sono asset LOCALI e quindi
+//                               contenuto vero — con l'avviso in testa e nessun orario;
+//                               `no-store`
+//
+// 🔴 `/` risponde sempre **200**, anche degradata: è l'URL che la gente digita e che i
+//    motori tengono in indice, e ciò che resta in pagina è contenuto vero. `/menu` fa
+//    l'opposto e per una ragione diversa (vedi `menu.astro`).
+//
+// 🔴 `no-store` quando è degradata: senza, il micro-cache di Fase 6 congelerebbe la pagina
+//    incompleta per sessanta secondi DOPO il ripristino del backend.
+const degradata = sito === null || menu === null;
+Astro.response.headers.set(
+  'Cache-Control',
+  degradata ? 'no-store' : 'public, max-age=60'
+);
 
 // La striscia dei consigliati viene dal payload, non da un array scritto nel template: è
 // una selezione VIVA, che l'amministratore governa dal marcatore in cassa.
@@ -61,6 +80,18 @@ const giorniAperti = sito?.orari.giorniOperativi
   </header>
 
   <main>
+    {
+      /*
+        Stato 3: l'identità non si è letta. L'avviso va IN TESTA, perché ciò che manca —
+        orari, contatti, indirizzo — è precisamente quello che la gente viene a cercare.
+      */
+      sito === null && (
+        <div class="px-6 pt-8">
+          <AvvisoDegradazione cosa="identita" forma="pagina" />
+        </div>
+      )
+    }
+
     <!-- ── Hero ─────────────────────────────────────────────────────────────────────── -->
     <section class="mx-auto max-w-5xl px-6 py-16 text-center sm:py-24">
       <Logo forma="monogramma" classe="w-24 sm:w-32" etichetta={null} />
@@ -116,6 +147,21 @@ const giorniAperti = sito?.orari.giorniOperativi
     </section>
 
     <!-- ── Consigliati ──────────────────────────────────────────────────────────────── -->
+    {
+      /*
+        Stato 2: l'identità c'è, il listino no. La striscia dei consigli non si può
+        mostrare, e al suo posto va un avviso invece del nulla: senza, la home degradata
+        somiglia a una home che ha deciso di non consigliare niente.
+      */
+      menu === null && (
+        <section class="bg-sfondo-alt border-bordo border-y">
+          <div class="mx-auto max-w-5xl px-6 py-10">
+            <AvvisoDegradazione cosa="menu" />
+          </div>
+        </section>
+      )
+    }
+
     {
       consigliati.length > 0 && (
         <section class="bg-sfondo-alt border-bordo border-y">

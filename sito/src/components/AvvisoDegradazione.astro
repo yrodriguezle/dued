@@ -1,0 +1,44 @@
+---
+// L'avviso di ciò che manca — scritto per un VISITATORE, non per chi sviluppa.
+//
+// 🔴 In SSR una `fetch` che fallisce nel frontmatter fa fallire la pagina: Astro risponde
+//    500 e in sviluppo mostra il proprio overlay. È il comportamento peggiore possibile per
+//    una vetrina, ed è il DEFAULT. Questo componente è la faccia visibile di ciò che
+//    `api.ts` fa per evitarlo: la lettura non lancia mai, e l'assenza diventa un testo.
+//
+// Chi guarda il sito vede meno; chi guarda i log sa perché. Le due cose stanno in due
+// posti: qui il visitatore, sullo stdout il motivo.
+
+interface Props {
+  /** Cosa non si è potuto leggere, dal punto di vista di chi legge la pagina. */
+  cosa: 'menu' | 'identita';
+  /** `pagina` = in testa e prominente; `riquadro` = al posto di una sezione. */
+  forma?: 'pagina' | 'riquadro';
+}
+
+const { cosa, forma = 'riquadro' } = Astro.props;
+
+const testi = {
+  menu: {
+    titolo: 'Il listino non è raggiungibile in questo momento',
+    corpo: 'Stiamo sistemando. Nel frattempo passa a trovarci: il menu del giorno è in cassa.',
+  },
+  identita: {
+    titolo: 'Alcune informazioni non sono raggiungibili',
+    corpo: 'Orari e contatti tornano a breve. Il locale è in Via del Costo 99, a Thiene.',
+  },
+};
+
+const { titolo, corpo } = testi[cosa];
+---
+
+<div
+  role="status"
+  class:list={[
+    'border-arancio bg-sfondo-alt border-l-4 px-5 py-4',
+    forma === 'pagina' ? 'mx-auto max-w-3xl rounded-lg' : 'rounded-lg',
+  ]}
+>
+  <p class="font-titolo text-lg tracking-wide">{titolo}</p>
+  <p class="text-inchiostro-tenue mt-1 text-sm">{corpo}</p>
+</div>

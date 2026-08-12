@@ -1612,11 +1612,11 @@ risponde 500 e in sviluppo mostra il proprio overlay. È il comportamento peggio
 vetrina, ed è il **default**. Questo gradino arriva per ultimo fra quelli funzionali perché ha
 bisogno di due pagine vere da degradare.
 
-- [ ] 10.1 **`sito/src/components/AvvisoDegradazione.astro`** — l'avviso **dichiarato** dello stato
+- [x] 10.1 **`sito/src/components/AvvisoDegradazione.astro`** — l'avviso **dichiarato** dello stato
   `assente`, leggibile da un visitatore e non da chi sviluppa.
   *Verifica*: il componente si rende in entrambe le pagine.
 
-- [ ] 10.2 🔴 **Tre stati per pagina, non due, e due codici di stato diversi.**
+- [x] 10.2 🔴 **Tre stati per pagina, non due, e due codici di stato diversi.**
   `/` con `site` ok e `menu` assente → identità, orari, contatti, **niente striscia consigliati** e
   un avviso al suo posto; `/` con `site` assente → marca, slogan, "Colazione Pranzo Aperitivo",
   **avviso in testa**, niente orari né "aperto ora". `/menu` → **`503` con `Retry-After: 120`** in
@@ -1629,13 +1629,13 @@ bisogno di due pagine vere da degradare.
   apertura del menu*, *Fallimento parziale — il menu non risponde e il sito sì*): i tre stati sono
   distinti e osservabili.
 
-- [ ] 10.3 🔴 **`Cache-Control: no-store` su ogni risposta degradata**, sia il `200` di `/` sia il
+- [x] 10.3 🔴 **`Cache-Control: no-store` su ogni risposta degradata**, sia il `200` di `/` sia il
   `503` di `/menu`. Senza, il micro-cache di Fase 6 congelerebbe la pagina degradata per sessanta
   secondi **dopo** che il backend è tornato su.
   *Verifica* (spec `sito-pubblico` → *Cache dichiarata nello stato normale*, *🔴 Cache negata nello
   stato degradato*, *🔴 Cache negata sulla risposta di indisponibilità*): tre header, tre stati.
 
-- [ ] 10.4 🔧 **Come si prova "il backend è giù" senza spegnere quello dell'utente** — da scrivere
+- [x] 10.4 🔧 **Come si prova "il backend è giù" senza spegnere quello dell'utente** — da scrivere
   nel README, perché è la domanda che si ripresenta ogni volta.
   Due modi: (a) puntare `API_INTERNA_URL` su una **porta libera** (nessun ascoltatore → esito
   `rete`, che è lo stesso caso); (b) avviare una **seconda istanza**
@@ -1644,7 +1644,7 @@ bisogno di due pagine vere da degradare.
   ⚠️ Il backend dell'utente su `:4000` **non si ferma mai**, in nessuno dei due modi.
   *Verifica*: il README lo dice, e i test di 10.5 usano il modo (a), che è deterministico.
 
-- [ ] 10.5 🔴 **Test automatici della degradazione.** Contro il server di prova: con l'API
+- [x] 10.5 🔴 **Test automatici della degradazione.** Contro il server di prova: con l'API
   irraggiungibile, `/` risponde **200** con `no-store` e `/menu` risponde **503** con `no-store` e
   `Retry-After`; con l'API raggiungibile, entrambe rispondono `public, max-age=60`.
   ⚠️ L'header si **legge**, non si confronta con una stringa: le direttive possono essere emesse
@@ -1652,7 +1652,7 @@ bisogno di due pagine vere da degradare.
   *Verifica* (spec `sito-pubblico` → *🔴 `/` risponde `200` degradata, `/menu` risponde `503` con
   `Retry-After`*): `npm test` passa in entrambe le condizioni.
 
-- [ ] 10.6 🔴 🧪 **VERIFICA PER MUTAZIONE del `no-store`.**
+- [x] 10.6 🔴 🧪 **VERIFICA PER MUTAZIONE del `no-store`.**
   **Cosa eseguire**: togli la scrittura di `no-store` dal ramo degradato, **esegui i test e vedi
   fallire** lo scenario che interroga l'header con il backend irraggiungibile, poi **ripristina**.
   **Cosa documentare**: che lo scenario del **caso felice è rimasto verde** — un test che verificasse
@@ -1660,7 +1660,7 @@ bisogno di due pagine vere da degradare.
   *Verifica* (spec `sito-pubblico`, §"Verifica per mutazione" del requisito della cache): rosso
   mirato, ripristino, verde.
 
-- [ ] 10.7 🧪 **La pagina degradata non resta congelata dopo il ripristino.**
+- [x] 10.7 🧪 **La pagina degradata non resta congelata dopo il ripristino.**
   **Cosa eseguire**: con il modo (b) del task 10.4 — seconda istanza su 4012 — apri le pagine con il
   backend **su**, spegnilo, ricarica, riaccendilo, ricarica.
   **Cosa documentare**: che al ritorno la pagina è **di nuovo completa**, senza attendere alcun TTL.
@@ -1668,14 +1668,14 @@ bisogno di due pagine vere da degradare.
   *Verifica* (spec `sito-pubblico` → *La pagina degradata non resta congelata dopo il ripristino*):
   il giro su → giù → su è stato fatto davvero.
 
-- [ ] 10.8 **Nessun overlay del framework, e ogni assenza lascia una traccia.**
+- [x] 10.8 **Nessun overlay del framework, e ogni assenza lascia una traccia.**
   *Verifica* (spec `sito-pubblico` → *Nessun overlay del framework*, *Ogni degradazione lascia una
   traccia nei log*): con il backend irraggiungibile **in modalità di sviluppo**, quel che si vede è
   la pagina degradata e **non** l'overlay di errore di Astro; e sullo stdout del processo Node
   compare una riga per ogni `assente`, con il motivo. **Chi guarda il sito vede meno; chi guarda i
   log sa perché.**
 
-- [ ] 10.9 **L'ora del tema in stato degradato viene dal ripiego, e solo lì.**
+- [x] 10.9 **L'ora del tema in stato degradato viene dal ripiego, e solo lì.**
   *Verifica* (spec `consumo-api-pubblica` → *Ripiego in stato degradato*, *Ripiego usato solo in
   assenza del dato*): con il backend irraggiungibile lo script riceve `"18:00"` da
   `degradazione.ts`; con il backend su riceve `oraInizioTemaSera` dall'API, anche se vale `"18:00"`
@@ -1684,6 +1684,53 @@ bisogno di due pagine vere da degradare.
 
 **Uscita di fase.** Il backend può cadere e il sito lo **dichiara** invece di rompersi, con due
 codici di stato scelti per due ragioni diverse, e nulla di degradato può finire in una cache.
+
+**Esito reale (apply del 2026-08-12).** Uscita raggiunta. `npm test` **91 → 99**, `check` a zero.
+
+- ✅ **10.5 — i tre stati, misurati contro un backend irraggiungibile e uno vivo.**
+
+  | | `/` | `/menu` |
+  |---|---|---|
+  | backend **su** | `200` `public, max-age=60` | `200` `public, max-age=60` |
+  | backend **giù** | `200` `no-store` | **`503`** `no-store` + `Retry-After: 120` |
+  | menu giù, identità su | `200` `no-store`, con orari e contatti **veri** e un avviso al posto della striscia | `503` |
+
+  Nella home degradata restano insegna, slogan e logo — asset **locali**, quindi contenuto
+  vero — e **nessun orario**: il ripiego serve alla formula del tema e non compare mai in pagina.
+- 🔴 **La mutazione 10.6 ha dato esattamente il risultato che il task voleva veder documentato.**
+  Tolto `no-store` dal ramo degradato: rossi i due scenari degradati, e **il test del caso felice
+  è rimasto VERDE**. Una suite che avesse verificato solo «con il backend su la cache è
+  dichiarata» non si sarebbe accorta di nulla — ed è la ragione per cui i casi sono tre.
+- 🔴 **10.7 — il giro su → giù → su, con la seconda istanza vera.** Backend di prova su `:4012`
+  (`SEED_ON_STARTUP=false`), sito costruito puntando lì, browser vero:
+  `200/public` → `200+503/no-store` → **`200/public`, senza attendere alcun TTL**.
+  Quello dell'utente su `:4000` non è stato toccato.
+  ⚠️ **Due trappole, e la prima ha fatto fallire il primo giro.**
+  1. 🔴 **La prova misurava la cache del BROWSER, non il server.** Spento il backend, `/` e
+     `/menu` continuavano a rispondere `200` con i prodotti veri: Chromium riusava la copia
+     buona per i 60 secondi di `max-age`. Sembrava che la degradazione non funzionasse. Quel
+     comportamento è **giusto e desiderabile**, ma non è ciò che la prova deve guardare: con
+     `Cache-Control: no-cache` fra gli header di richiesta il browser rivalida, e il server
+     mostra le sue decisioni.
+  2. `dotnet run` per la seconda istanza vuole **`--no-build`**: quella su `:4000` tiene bloccata
+     `bin/`, e senza il flag la seconda muore provando a copiarci sopra l'eseguibile
+     (`MSB3026`, «il file è bloccato da duedgusto (…)»). Scritto nel README.
+- 🔴 **10.9 — i due percorsi dell'ora del tema, distinti cambiando il valore e non la stringa.**
+  Il ripiego vale `"18:00"` e il database **oggi** vale `"18:00"`: un test che confrontasse la
+  stringa sarebbe verde anche leggendo la costante sbagliata. Il test cambia il valore nella
+  risposta a `"19:45"` e verifica che lo script lo segua; e nello stato degradato verifica che
+  i parametri siano `oraSera: "18:00"`, `oraApertura: "07:00"` e — soprattutto —
+  **`oraChiusura: null`**, perché una pagina degradata non inventa un orario di chiusura. È anche
+  il motivo per cui lì il badge «aperto ora» non compare affatto.
+- 🔧 **Scoperta sull'attrezzatura, che vale per chi scriverà altri test così.** Due server avviati
+  da build diverse ma sulla **stessa** cartella `dist/` finiscono per caricare entrambi l'ultima
+  build: l'adapter Node importa i moduli di una rotta alla **prima richiesta**, non all'avvio. Il
+  sintomo è insidioso — i test del caso felice falliscono e sembrano dire che la cache non viene
+  dichiarata. `degradazione.test.mjs` è diviso in due gruppi, ognuno con la sua build.
+- ⚠️ *Divergenza da 10.1*: l'avviso non è un componente unico ma ha due forme (`pagina` e
+  `riquadro`) e due testi (`menu` e `identita`), perché i due stati mancanti sono diversi: uno
+  toglie il listino, l'altro toglie orari e contatti — e chi legge deve sapere **quale** delle due
+  cose è successa.
 
 ---
 

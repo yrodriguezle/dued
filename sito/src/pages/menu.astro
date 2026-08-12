@@ -8,6 +8,7 @@ import Base from '../layouts/Base.astro';
 import Logo from '../components/Logo.astro';
 import TemaSwitch from '../components/TemaSwitch.astro';
 import SchedaProdotto from '../components/SchedaProdotto.astro';
+import AvvisoDegradazione from '../components/AvvisoDegradazione.astro';
 import { leggiSito, leggiMenu } from '../lib/api.ts';
 
 // 🔴 `Promise.all` e non `allSettled`: nessuna delle due letture rifiuta mai (§D4), quindi
@@ -16,11 +17,30 @@ const [esitoSito, esitoMenu] = await Promise.all([leggiSito(), leggiMenu()]);
 const sito = esitoSito.stato === 'ok' ? esitoSito.dati : null;
 const menu = esitoMenu.stato === 'ok' ? esitoMenu.dati : null;
 
+// ── Lo stato della risposta ───────────────────────────────────────────────────────────
+// 🔴 `/menu` risponde **503** quando il listino non c'è, e `/` risponde **200**: le due
+//    scelte hanno ragioni DIVERSE, e non è una simmetria da imporre.
+//    `/` è l'URL che la gente digita e che i motori tengono in indice, e la sua pagina
+//    degradata ha contenuto VERO — marca, slogan, insegna — perché quegli asset sono
+//    locali. `/menu` esiste per un dato: una pagina `200` senza prodotti sarebbe **un menu
+//    vuoto indicizzabile**, cioè la stessa classe di guasto silenzioso che il flag
+//    `troncato` esiste per evitare.
+//
+// 🔴 E `no-store` su ogni risposta degradata. Senza, il micro-cache di Fase 6
+//    congelerebbe la pagina rotta per sessanta secondi **dopo** che il backend è tornato
+//    su — cioè il guasto durerebbe più del guasto.
+//
 // Un solo punto scrive `Cache-Control`, ed è questo. Niente `routeRules`: quella è statica
-// per rotta, mentre questa cache è **condizionale sullo stato** — in Fase 10 la risposta
-// degradata dovrà dire `no-store`, e due posti che scrivono lo stesso header sulla stessa
-// risposta sono il modo più breve per non sapere più quale vince.
-Astro.response.headers.set('Cache-Control', 'public, max-age=60');
+// per rotta, mentre questa cache è **condizionale sullo stato**, e due posti che scrivono
+// lo stesso header sulla stessa risposta sono il modo più breve per non sapere più quale
+// vince.
+if (menu === null) {
+  Astro.response.status = 503;
+  Astro.response.headers.set('Retry-After', '120');
+  Astro.response.headers.set('Cache-Control', 'no-store');
+} else {
+  Astro.response.headers.set('Cache-Control', 'public, max-age=60');
+}
 
 // 🔴 L'avviso di troncamento va al VISITATORE, non solo ai log: è l'unico che può reagire,
 //    chiedendo in cassa. La riga sullo stdout è in più, non al posto.
@@ -49,6 +69,19 @@ let indiceGlobale = 0;
 
   <main class="mx-auto max-w-5xl px-6 py-10">
     <h1 class="font-titolo text-4xl tracking-wide sm:text-5xl">Menu</h1>
+
+    {
+      /*
+        Il corpo del 503 è LEGGIBILE, non una pagina di errore: chi arriva qui è un
+        visitatore, non un monitoraggio. Il codice di stato parla ai motori e ai proxy; il
+        testo parla a chi ha fame.
+      */
+      menu === null && (
+        <div class="mt-8">
+          <AvvisoDegradazione cosa="menu" forma="pagina" />
+        </div>
+      )
+    }
 
     {
       /*

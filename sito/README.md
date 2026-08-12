@@ -94,6 +94,53 @@ cd backend && dotnet run --launch-profile http
 `Secure=true`, quindi in questa modalità **l'app di cassa non fa più login**. È una sessione
 "solo vetrina" per sbloccarsi, non una configurazione alternativa permanente.
 
+## Come si prova «il backend è giù» senza spegnere quello di sviluppo
+
+È la domanda che si ripresenta ogni volta, e la risposta è che **non si spegne** quello su
+`:4000`. Ci sono due modi, e servono a cose diverse.
+
+**(a) Puntare l'API su una porta libera.** Nessun ascoltatore produce lo stesso esito `rete`
+di un backend spento, è deterministico e non tocca niente. È quello che usano i test.
+
+```bash
+API_INTERNA_URL=http://127.0.0.1:49999 npm run build && npm run start:prova
+```
+
+**(b) Una seconda istanza, e si spegne quella.** Serve per la transizione *su → giù → su*,
+che il modo (a) non può riprodurre:
+
+```bash
+cd backend
+ASPNETCORE_URLS=https://localhost:4012 SEED_ON_STARTUP=false \
+  ASPNETCORE_ENVIRONMENT=Development dotnet run --no-build --no-launch-profile
+```
+
+⚠️ **`--no-build` non è opzionale**: l'istanza su `:4000` tiene bloccata `bin/`, e senza quel
+flag la seconda muore provando a copiarci sopra l'eseguibile.
+
+⚠️ E il sito va **ricostruito** puntando a `4012`: `API_INTERNA_URL` è una variabile di
+**build**, non di runtime (vedi sopra).
+
+## Cosa succede quando il backend non risponde
+
+| | `/` | `/menu` |
+|---|---|---|
+| **Codice** | `200` | `503` con `Retry-After: 120` |
+| **Cache** | `no-store` | `no-store` |
+| **Cosa resta** | marca, insegna, slogan — asset **locali**, quindi contenuto vero | un avviso leggibile |
+
+🔴 Le due scelte hanno ragioni **diverse**, e non è una simmetria da imporre. `/` è l'URL che
+la gente digita e che i motori tengono in indice, e la sua pagina degradata ha ancora
+qualcosa da dire. `/menu` esiste per un dato: una pagina `200` senza prodotti sarebbe **un
+menu vuoto indicizzabile**.
+
+🔴 `no-store` su ogni risposta degradata: senza, il micro-cache congelerebbe la pagina rotta
+per sessanta secondi **dopo** che il backend è tornato su — il guasto durerebbe più del
+guasto.
+
+Chi guarda il sito vede meno; **chi guarda i log sa perché**: ogni assenza lascia una riga
+sullo stdout con il motivo (`rete`, `timeout`, `http`, `formato`) e l'URL.
+
 ## Comandi
 
 | Comando | Cosa fa |

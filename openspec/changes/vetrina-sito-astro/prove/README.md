@@ -35,6 +35,17 @@ nominato fallisce, serve il `default` e poi la destrutturazione.
 | 9.6 | [`9.6-consigliato-dai-dati-vivi.mjs`](./9.6-consigliato-dai-dati-vivi.mjs) | Un `consigliato` tolto e rimesso dall'amministrazione | ✅ «Caffè espresso» **presente → assente → presente**; i dieci campi vetrina tornano identici |
 | 9.7 | [`9.7-orario-dai-dati-vivi.mjs`](./9.7-orario-dai-dati-vivi.mjs) | La chiusura cambiata sul periodo di programmazione | ✅ sito `07:00 – 20:00` → **`07:00 – 21:30`** → `07:00 – 20:00`, letto **in pagina**; il periodo torna identico |
 
+| 🔴 10.7 | [`10.7-su-giu-su.mjs`](./10.7-su-giu-su.mjs) | Il giro **su → giù → su** con una seconda istanza del backend su `:4012` — quella dell'utente su `:4000` non si tocca | ✅ `200/public` → `200` + **`503`**, entrambe `no-store` e `Retry-After: 120` → `200/public` **senza attendere alcun TTL** |
+| 10.7 | [`10.7-degradata.png`](./10.7-degradata.png) | La home degradata: insegna, slogan e logo restano, gli orari no | — |
+
+⚠️ **La prova 10.7 manda `Cache-Control: no-cache` fra gli header di richiesta**, e senza quella
+riga misurerebbe la cache del *browser* invece del server: al primo giro, con il backend spento,
+Chromium riusava la copia buona per i 60 secondi di `max-age` e sembrava che la degradazione non
+funzionasse.
+
+⚠️ La seconda istanza va avviata con **`dotnet run --no-build`**: quella su `:4000` tiene bloccata
+`bin/`, e senza il flag la seconda muore con `MSB3026`.
+
 ⚠️ Le prove 9.6 e 9.7 si autenticano come **`e2e-admin`**, il SuperAdmin che il seed crea solo in
 Development per l'end-to-end, e variano `X-Forwarded-For` a ogni signin: il rate limit è di 5
 tentativi ogni 15 minuti per IP, e quando scatta il sintomo è un `429` seguito da «Access denied»
