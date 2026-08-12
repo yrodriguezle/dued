@@ -1,5 +1,14 @@
 # Tasks: progetto Astro, design system e due pagine vive (vetrina-sito-astro)
 
+> 🔴 **Leggi prima [autonomia.md](./autonomia.md).** Questa corsa si esegue **senza l'utente**:
+> quel file contiene le risposte alle domande che altrimenti faresti, il protocollo da seguire
+> quando sei davvero bloccato, e come si eseguono da sole le quindici prove di browser. Contiene
+> anche due notizie che cambiano la Fase 1: **il task 1.1 è chiuso** (la macchina è su Node
+> 22.23.2) e 🔴 **i task 1.6 e 1.7 si soddisfano in forma diversa** — su questa macchina non esiste
+> più un Node 20, ed eseguirli con l'npm di sistema li farebbe *riuscire*, cioè dimostrare
+> l'opposto di ciò che devono dimostrare. La sostituzione decisa dall'utente è in autonomia.md
+> §2.2, e vale **solo** per questi due: le mutazioni 3.9, 4.9 e 4.10 si eseguono tutte.
+>
 > Artefatti di riferimento: [proposal.md](./proposal.md), [design.md](./design.md) (§D1-D14 +
 > tabella delle divergenze), [specs/](./specs/) — 4 spec, 47 requirement, 183 scenari, 38 marcati 🔴.
 > Change precedente, completato: [`vetrina-api-pubblica`](../vetrina-api-pubblica/tasks.md), di cui
@@ -101,7 +110,7 @@ numero in `engines`: si soddisfa quando la macchina sbagliata **si rifiuta di in
 cinque task manuali una tantum dell'intero change vivono qui, e due di essi hanno bisogno di una
 macchina che fra poche ore non esisterà più.
 
-- [ ] 1.1 🔴 🚧 **Verifica bloccante: `node -v` deve valere ≥ `v22.12.0`** — nient'altro di questo
+- [x] 1.1 🔴 🚧 **Verifica bloccante: `node -v` deve valere ≥ `v22.12.0`** — nient'altro di questo
   file può iniziare finché non lo è. L'aggiornamento richiede privilegi di amministratore e
   **lo esegue l'utente**, non l'apply.
   ⚠️ **Finestra irripetibile, da leggere prima di aggiornare.** La macchina è **adesso** su
@@ -114,7 +123,7 @@ macchina che fra poche ore non esisterà più.
   `node -v` stampa `v22.12.0` o superiore. Se stampa `v20.x`, il task resta aperto e l'apply si
   ferma qui — non prosegue "intanto che".
 
-- [ ] 1.2 🔴 **`sito/package.json`** — `"private": true`, `"type": "module"`,
+- [x] 1.2 🔴 **`sito/package.json`** — `"private": true`, `"type": "module"`,
   `"engines": { "node": ">=22.12.0" }`, e le quattro dipendenze di §D1: `astro ~7.2.1`,
   `@astrojs/node ~11.1.1`, `tailwindcss ^4.2.2`, `@tailwindcss/vite ^4.2.2`.
   🔴 Il commento sopra i due Tailwind deve dire **perché il floor non è `^4.2.1` come `duedgusto`**:
@@ -127,19 +136,19 @@ macchina che fra poche ore non esisterà più.
   quello della generazione installata*, *La ragione è scritta accanto al numero*): i quattro numeri
   sono quelli sopra; `@astrojs/node` è `11.x` e non `10.x`; il commento sul floor esiste.
 
-- [ ] 1.3 🔴 **`sito/.npmrc` con `engine-strict=true`** — la riga che trasforma una dichiarazione in
+- [x] 1.3 🔴 **`sito/.npmrc` con `engine-strict=true`** — la riga che trasforma una dichiarazione in
   un vincolo. Senza, `engines` è **advisory**: npm avvisa e installa, e l'errore riappare più tardi
   e altrove, come un errore di sintassi dentro `node_modules`.
   *Verifica* (spec `sito-pubblico` → *🔴 `engine-strict` trasforma la dichiarazione in un
   vincolo*): il file esiste, contiene quella sola riga, ed è **in `sito/`** — non nella radice, dove
   cambierebbe il comportamento di `duedgusto` e del workspace.
 
-- [ ] 1.4 **`sito/.nvmrc` (`22`) e `sito/.gitignore`** (`node_modules`, `dist`, `.astro`, `.env`).
+- [x] 1.4 **`sito/.nvmrc` (`22`) e `sito/.gitignore`** (`node_modules`, `dist`, `.astro`, `.env`).
   *Verifica* (spec `sito-pubblico` → *La versione di Node ha una risposta nel repository*): la
   domanda "quale Node" ha una risposta **nel repository** e non nella memoria di chi ha configurato
   la macchina.
 
-- [ ] 1.5 **`sito/astro.config.mjs`** — `output: 'server'`, `adapter: node({ mode: 'standalone' })`,
+- [x] 1.5 **`sito/astro.config.mjs`** — `output: 'server'`, `adapter: node({ mode: 'standalone' })`,
   `server: { host: true, port: 4321 }`, `vite: { plugins: [tailwindcss()] }`.
   ⚠️ `env: { schema: … }` arriva nel task 3.1: qui il file nasce con i quattro pezzi che il gradino
   1 deve dimostrare, e nulla che non sia ancora esercitato.
@@ -152,7 +161,7 @@ macchina che fra poche ore non esisterà più.
   pezzi ci sono; nessun `export const prerender` da nessuna parte; nessuna integrazione installata
   e non usata.
 
-- [ ] 1.6 🔴 🧪 **PROVA MANUALE UNA TANTUM — l'installazione su Node 20 fallisce dicendo perché.**
+- [x] 1.6 🔴 🧪 **PROVA MANUALE UNA TANTUM — l'installazione su Node 20 fallisce dicendo perché.**
   Con `.npmrc` presente, su **Node `v20.19.0`**, esegui `npm install` in `sito/`.
   **Cosa eseguire**: `cd sito && npm install` (oppure, se Node è già stato aggiornato,
   `docker run --rm -v "$PWD/sito:/s" -w /s node:20-alpine npm install`).
@@ -162,7 +171,7 @@ macchina che fra poche ore non esisterà più.
   *Verifica* (spec `sito-pubblico` → *🔴 Installazione su una macchina con Node inferiore al
   minimo*): l'errore nomina la versione richiesta, non un file di `node_modules`.
 
-- [ ] 1.7 🔴 🧪 **CONTROPROVA MANUALE UNA TANTUM — senza `.npmrc` la macchina sbagliata
+- [x] 1.7 🔴 🧪 **CONTROPROVA MANUALE UNA TANTUM — senza `.npmrc` la macchina sbagliata
   installerebbe.** È ciò che dimostra che il file del task 1.3 non è decorativo.
   **Cosa eseguire**: rinomina `sito/.npmrc` in `.npmrc.off`, ripeti l'install **sulla stessa Node
   20**, poi **ripristina il nome**.
@@ -173,13 +182,13 @@ macchina che fra poche ore non esisterà più.
   installerebbe*): l'esito è **opposto** a quello di 1.6, sulla stessa macchina, a un solo file di
   distanza. E `.npmrc` è tornato al suo nome.
 
-- [ ] 1.8 **Installazione sulla macchina conforme** — con Node ≥ 22.12, `cd sito && npm install`.
+- [x] 1.8 **Installazione sulla macchina conforme** — con Node ≥ 22.12, `cd sito && npm install`.
   *Verifica* (spec `sito-pubblico` → *Installazione su una macchina conforme*, *Il progetto non
   contiene residui di un template*): l'install completa senza errori di engine; `npx astro
   --version` stampa `7.2.1`; **non esiste** alcuna pagina, componente o foglio di stile di esempio —
   il progetto è nato a mano, non da `npm create astro@latest`.
 
-- [ ] 1.9 🔴 🧪 **MUTAZIONE MANUALE UNA TANTUM — il floor di `@tailwindcss/vite` protegge davvero.**
+- [x] 1.9 🔴 🧪 **MUTAZIONE MANUALE UNA TANTUM — il floor di `@tailwindcss/vite` protegge davvero.**
   **Cosa eseguire**: abbassa il floor a `^4.2.1` in `sito/package.json`, **forza la risoluzione
   all'estremo inferiore** (`npm install @tailwindcss/vite@4.2.1 --save-exact`), poi tenta
   `npm run build`. Infine **ripristina** `^4.2.2` e reinstalla.
@@ -193,10 +202,10 @@ macchina che fra poche ore non esisterà più.
   tornato `^4.2.2`, il lockfile non contiene `4.2.1`, e `duedgusto/package.json` **non è stato
   toccato** per simmetria.
 
-- [ ] 1.10 **`sito/tsconfig.json`** — `extends: "astro/tsconfigs/strict"`.
+- [x] 1.10 **`sito/tsconfig.json`** — `extends: "astro/tsconfigs/strict"`.
   *Verifica*: il file esiste e non ridefinisce a mano opzioni che il preset già dà.
 
-- [ ] 1.11 🔴 ⚠️ **Il controllo dei tipi copre davvero l'uso nei template? Va deciso ora, non in
+- [x] 1.11 🔴 ⚠️ **Il controllo dei tipi copre davvero l'uso nei template? Va deciso ora, non in
   Fase 7.** La spec `immagini-vetrina` pretende che **omettere `sizes` sia un errore di tipo**
   (§D12). Quell'obbligo vive nell'`interface Props` di un componente `.astro`, e **nessuno ha ancora
   dimostrato** che il controllo dei tipi di questo progetto lo veda quando il componente è *usato*
@@ -219,6 +228,87 @@ macchina che fra poche ore non esisterà più.
 macchina conforme, e **tre prove distruttive hanno dimostrato che le difese sanno fallire**: su Node
 20 l'install si rifiuta, senza `.npmrc` riesce, e il floor di Tailwind abbassato rompe qualcosa di
 nominabile. Nessuna riga di sito è stata ancora scritta — ed è corretto.
+
+**Esito reale (apply del 2026-08-12).** `sito/` esiste con **otto** file versionati — `.gitignore`,
+`.npmrc`, `.nvmrc`, `astro.config.mjs`, `package.json`, `package-lock.json`, `tsconfig.json` e
+`test/vincolo-di-node.test.mjs` —, `npm install` completa su Node `v22.23.2`,
+`npx astro --version` stampa **7.2.1**, e la prima suite del progetto è **2/2 verde**. Nessuna
+pagina, nessun componente, nessun foglio di stile: i quattro file usa-e-getta creati per le prove
+sono stati cancellati e `src/` è tornata a non esistere.
+
+Delle tre prove distruttive previste, **una sola si è comportata come il design prevedeva**. Le
+altre due hanno prodotto un risultato diverso, ed è la parte di questa fase che vale la pena
+leggere.
+
+- *Task 1.1 — chiuso prima dell'apply.* `npm version` riporta `node: '22.23.2'` (LTS *Jod*, la
+  stessa linea della CI). L'aggiornamento l'ha eseguito l'utente il 12 agosto 2026, **al posto**
+  della 20: su questa macchina non esiste più alcun Node 20.
+- 🔁 *Task 1.6 e 1.7 — soddisfatti in forma diversa*, per decisione dell'utente
+  ([autonomia.md §2.2](./autonomia.md)). La finestra si era chiusa con i due task ancora aperti, e
+  **eseguirli oggi li farebbe riuscire entrambi** — cioè dimostrare l'opposto di ciò che devono
+  dimostrare. La sostituzione conserva la logica discriminante (due esiti opposti a un solo file di
+  distanza) e prova ciò che conta, perché il soggetto sotto esame non è Node 20, è `.npmrc`:
+  `npm config get engine-strict` in `sito/` → **`true`**; rinominato il file in `.npmrc.off` →
+  **`false`**; ripristinato → **`true`**. 🔴 **Promossa a test automatico**
+  (`test/vincolo-di-node.test.mjs`, due casi, ripristino in `t.after()` così il nome torna anche se
+  l'assert fallisce): 1.6 e 1.7 erano due prove che nessuno avrebbe più rieseguito, questa gira a
+  ogni `npm test`. ⚠️ **Il limite, scritto e non nascosto**: il test verifica la *configurazione
+  attiva*, non l'*install che aborta* — un anello più corto della catena. Se npm cambiasse il
+  significato di `engine-strict`, questo resterebbe verde e l'originale no.
+  🔴 **E il difetto che il task 1.7 esisteva per escludere è ricomparso da un'altra porta.** Il
+  test scritto in modo ovvio passava lanciato con `node --test` e **falliva** con `npm test`
+  (`'true' !== 'false'`): npm esporta la propria configurazione ai figli come
+  `npm_config_engine_strict=true`, e per npm **l'ambiente batte il file** — il processo figlio
+  rispondeva `true` anche con `.npmrc` rinominato, ereditandolo dal padre. Fosse successo al
+  contrario (verde da `npm test`, che è come gira in CI) la prova sarebbe stata verde per
+  costruzione e nessuno se ne sarebbe accorto. La funzione `ambientePulito()` cancella ogni
+  `npm_config_*` prima di invocare il figlio; verificato **verde in entrambi i modi**.
+- 🔴 *Mutazione 1.9 — il floor di `@tailwindcss/vite` **non** protegge da un guasto osservabile.*
+  È il risultato opposto a quello che design.md §D1 prevedeva («rompe la build con un errore di
+  peer dependency su `vite@8`»), ed è stato cercato per **due strade**:
+  1. floor abbassato a `^4.2.1` e risoluzione inchiodata (`npm install @tailwindcss/vite@4.2.1
+     --save-exact`): **l'install riesce**, exit 0, nessun `ERESOLVE`. npm soddisfa il peer
+     **issando una seconda Vite** — `node_modules/vite@7.3.6` per il plugin, `astro/node_modules/
+     vite@8.2.1` per Astro. Poi `npm run build` su una pagina che importa `@import "tailwindcss"`:
+     **riesce**, e il CSS generato contiene `.text-2xl` (4556 byte).
+  2. sospettando che il guasto si nascondesse dietro le due copie, ripetuto con
+     `overrides: { "vite": "8.2.1" }` — **una sola Vite in albero**, la 8, usata anche dal plugin
+     (`npm ls vite` → `vite@8.2.1 overridden`). Install: **riesce**. Build: **riesce**, e produce
+     un CSS **identico byte per byte** (stesso hash di contenuto `C_RWu73V`, stessi 4556 byte).
+
+  **Conclusione, che va scritta perché contraddice un artefatto**: il floor `^4.2.2` non è una
+  difesa che si vede fallire, è una **dichiarazione onesta di compatibilità**. Il danno che evita è
+  silenzioso — due copie di Vite in `node_modules` e un plugin che gira su un'istanza di bundler
+  diversa da quella che costruisce il sito — non un errore rosso. La risoluzione n. 2 **resta
+  valida** (il floor non si abbassa: `4.2.1` dichiara `peer vite ^5.2.0 || ^6 || ^7`, e dichiarare
+  una compatibilità che non si ha è sbagliato comunque), ma il commento in `package.json` è stato
+  riscritto: prometteva un errore che non arriva, e chi ci contasse verrebbe tradito. Ripristino
+  verificato: floor `^4.2.2`, risoluzione **4.3.3**, `npm ls vite` → **una sola** `8.2.1`,
+  `package-lock.json` senza alcuna occorrenza di `"4.2.1"`, `duedgusto/package.json` **non
+  toccato**.
+- ✅ *Task 1.11 — `astro check` vede la prop mancante nell'**uso**, non solo nella definizione.*
+  Componente usa-e-getta con `interface Props { obbligatoria: string }`, usato in una pagina senza
+  quella prop:
+  ```
+  src/pages/prova-tipi.astro:4:24 - error ts(2322): Type '{}' is not assignable to type
+    'IntrinsicAttributes & Props'.
+    Property 'obbligatoria' is missing in type '{}' but required in type 'Props'.
+  ```
+  Riga, colonna e **nome della prop**. Exit `1`. Quindi: `@astrojs/check` + `typescript` entrano
+  nelle `devDependencies`, lo script è `npm run check`, e **il task 7.3 si chiude con quello** —
+  non con una scansione del markup. Il checker non ricade nel divieto di tooling di Fase 7 (browser,
+  audit di accessibilità, DOM simulato): è un controllore di tipi, e sarà esercitato. Da riportare
+  in **12.12**.
+- ⚠️ *Divergenza da 1.2 — lo script `test`.* `node --test test/` è la forma scritta nel task, e su
+  Node 22.23.2 **non funziona**: un argomento posizionale è un *glob*, non una directory, e il
+  comando muore con `Cannot find module 'C:\…\sito\test'` prima di eseguire alcunché (provate anche
+  `./test` e `test`, stesso esito). Lo script è `node --test "test/**/*.test.mjs"`, che è anche più
+  stretto di `node --test` senza argomenti — quello scandaglierebbe tutto il progetto, `src/`
+  compresa.
+- ⚠️ *Divergenza da 1.4 — `.gitignore` ha più righe delle quattro previste.* Alle quattro
+  (`node_modules`, `dist`, `.astro`, `.env`) sono aggiunte `.env.*` con l'eccezione
+  `!.env.esempio` (il file di esempio è documentazione e va versionato, §D2) e `*.pem` (il
+  certificato esportato in Fase 2, che si rigenera e non è un segreto condiviso).
 
 ---
 

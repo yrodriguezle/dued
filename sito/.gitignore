@@ -1,0 +1,17 @@
+# Dipendenze e artefatti di build
+node_modules
+dist
+
+# Cache di Astro (tipi generati, moduli pre-bundled)
+.astro
+
+# Variabili d'ambiente: API_INTERNA_URL e PUBLIC_MEDIA_BASE_URL cambiano da macchina a
+# macchina, e in produzione arrivano dal container. Il file di esempio (.env.esempio) è
+# invece versionato: è la documentazione di quali variabili esistono.
+.env
+.env.*
+!.env.esempio
+
+# Il certificato esportato dallo script di sviluppo (Fase 2): è una CA locale, non un
+# segreto condiviso, e si rigenera con `npm run dev`.
+*.pem

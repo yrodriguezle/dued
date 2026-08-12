@@ -1,0 +1,41 @@
+{
+  "name": "sito",
+  "//version": "⚠️ Non serve a pubblicare (il pacchetto è private) ma serve a farsi nominare: senza, l'errore EBADENGINE del task 1.6 stampa «Not compatible with your version of node/npm: undefined» invece di «sito@0.0.0», e chi lo legge non sa quale pacchetto stia rifiutando la macchina.",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "//engines": "🔴 La versione di Node è un vincolo, non un consiglio: senza .npmrc questo campo è decorativo e npm installa lo stesso su Node 20, per fallire più tardi e altrove — un errore di sintassi dentro node_modules durante `astro dev`, che nessuno collega alla versione di Node (§D1).",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "astro build",
+    "preview": "astro preview",
+    "start:prova": "node scripts/dev.mjs --prova",
+    "test": "node --test \"test/**/*.test.mjs\"",
+    "check": "astro check",
+    "scarica-font": "node scripts/scarica-font.mjs"
+  },
+  "//scripts": "`dev` e `start:prova` passano da scripts/dev.mjs e non invocano `astro dev` direttamente: NODE_EXTRA_CA_CERTS va nell'ambiente PRIMA che Node parta, e da un file .env non viene letta (§D3). Nessuna devDependencies di test: il runner è node:test, del runtime (§D14).",
+  "//test": "⚠️ `node --test \"test/**/*.test.mjs\"` e non `node --test test/`, che è la forma scritta in tasks.md §1.2: su Node 22.23.2 un argomento posizionale è un GLOB, non una directory, e `node --test test/` muore con «Cannot find module …\\sito\\test» prima di eseguire alcunché. Il glob esplicito è anche più stretto di `node --test` senza argomenti, che scandaglierebbe tutto il progetto (src/ compreso) cercando file dal nome di test.",
+  "//dependencies": {
+    "astro": "~ e non ^: le patch entrano, il minor no. Un minor di Astro può cambiare il comportamento del dev server o dell'adapter, e qui non c'è ancora una suite di regressione visiva a raccogliere il pezzo (è Fase 7 del progetto).",
+    "@astrojs/node": "🔴 L'11 è l'adapter DELLA 7: peer `astro ^7.0.0`. Il 10.x è quello della 6 e non si installa insieme alla 7 — è il primo errore che si incontra copiando una configurazione trovata in giro, perché la maggior parte è ancora della 6.",
+    "tailwindcss": "🔴 ^4.2.2 e NON ^4.2.1 come duedgusto/. Vedi la riga di @tailwindcss/vite qui sotto: è lo stesso floor per la stessa ragione, e i due pacchetti vanno tenuti allineati fra loro.",
+    "@tailwindcss/vite": "🔴 ^4.2.2 e NON ^4.2.1 come duedgusto/. Astro 7 gira su Vite 8 (astro@7.2.1 dipende da vite ^8.0.13), e @tailwindcss/vite@4.2.1 dichiara peer `vite ^5.2.0 || ^6 || ^7` — senza Vite 8. La 4.2.2 è la PRIMA che lo aggiunge. duedgusto/ gira su Vite 6 e non ha lo stesso vincolo, quindi il suo ^4.2.1 è corretto lì e sbagliato qui: stesso pacchetto, due minimi diversi, per due ragioni entrambe corrette (§D1).",
+    "//@tailwindcss/vite—cosa succede davvero se lo si abbassa": "⚠️ MISURATO il 12 agosto 2026 (mutazione del task 1.9), e NON è quello che il design prevedeva. Abbassare il floor a ^4.2.1 e inchiodare la risoluzione a 4.2.1 esatto NON rompe niente di visibile: l'install riesce (npm soddisfa il peer issando una SECONDA Vite, la 7.3.6, accanto a quella di Astro), e `astro build` riesce producendo un CSS identico byte per byte. Ripetuto forzando una Vite 8 unica in albero (`overrides`): riesce anche così. Quindi il floor NON è una difesa che si vede fallire — è una DICHIARAZIONE onesta di compatibilità, e il danno che evita è silenzioso: due copie di Vite nell'albero, e un plugin che gira su un'istanza di bundler diversa da quella che costruisce il sito. Resta ^4.2.2 per la ragione sopra; ma chi legge questa riga aspettandosi che un abbassamento produca un errore rosso sappia che non lo produce."
+  },
+  "dependencies": {
+    "@astrojs/node": "~11.1.1",
+    "@tailwindcss/vite": "^4.2.2",
+    "astro": "~7.2.1",
+    "tailwindcss": "^4.2.2"
+  },
+  "//devDependencies": "⚠️ @astrojs/check + typescript non sono «tooling di Fase 7» (browser, audit di accessibilità, DOM simulato), che la spec vieta: sono un CONTROLLORE DI TIPI, ed è esercitato — `npm run check` gira in Fase 7 sul task 7.3. La loro adozione è decisa qui, in Fase 1, invece di essere scoperta più avanti: il 12 agosto 2026 l'esperimento del task 1.11 ha mostrato che `astro check` vede la prop mancante NELL'USO in un template, non solo nella definizione del componente («Property 'obbligatoria' is missing in type '{}' but required in type 'Props'», ts(2322), riga e colonna del tag). È la condizione che rende `sizes` obbligatorio per davvero (§D12). Il runner dei test resta node:test, del runtime: nessuna devDependency di test.",
+  "//formato": "⚠️ package.json è JSON stretto: npm NON accetta i commenti `//` del blocco jsonc di design.md §D1 (fallisce con JSONParseError prima ancora di leggere engines, il che annullerebbe la prova del task 1.6). I commenti vivono quindi nelle chiavi `//…` qui sopra, che npm ignora, ciascuna adiacente al campo che spiega.",
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "typescript": "^6.0.3"
+  }
+}
