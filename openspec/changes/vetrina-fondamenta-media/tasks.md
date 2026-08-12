@@ -727,9 +727,44 @@ un `backup.sh` che ignora i file ricostruisce un database perfetto pieno di imma
   >
   > Quello che si può dire dall'esterno, e che è stato verificato il 12 agosto: il ramo
   > GraphQL della cassa è invariato, `/graphql` risponde regolarmente sull'host del
-  > gestionale, il `config.json` continua a puntare all'IP e la SPA si carica (`200`). Nessuna
-  > delle modifiche di questa sessione tocca `duedgusto/`, `VenditeMutations.cs`,
-  > `ProdottoInputType.cs` o `VenditeQueries.cs`.
+  > gestionale, e la SPA si carica (`200`). Nessuna delle modifiche di questa sessione tocca
+  > `duedgusto/`, `VenditeMutations.cs`, `ProdottoInputType.cs` o `VenditeQueries.cs`.
+  >
+  > ### ① Il confine cassa/vetrina: **provato in produzione** il 12 agosto 2026
+  >
+  > È la metà del task che si poteva chiudere senza scrivere contabilità, ed è quella che
+  > protegge dal guasto *silenzioso*: un salvataggio ordinario dalla cassa che azzera i campi
+  > vetrina: nessun errore, nessun avviso, e un giorno il sito è vuoto.
+  >
+  > 🔴 **Scoperta che precede la prova: l'anagrafica prodotti in produzione era VUOTA.**
+  > `connection { prodotti }` (che include anche i non attivi) restituiva `totalCount = 0`.
+  > La cassa lavora su totali giornalieri — 607 registri storici, chiusure mensili, spese —
+  > e il catalogo prodotti non le è mai servito. **Conseguenza per il progetto: la pagina
+  > `/menu` del sito resta vuota finché il catalogo non viene costruito.** Non è un difetto
+  > del sito: è lavoro editoriale che nessuno ha ancora fatto.
+  >
+  > Su decisione dell'utente è stato creato il primo prodotto vero — `CAFFE-ESP`,
+  > «Caffè espresso», €1,20, IVA 10% — e su quello è stata eseguita la prova.
+  > ⚠️ La creazione è **irreversibile**: non esiste alcuna mutation che elimini un prodotto,
+  > si può solo disattivarlo (`attivo: false`). È stato detto prima di crearlo, non dopo.
+  >
+  > **Esito**: impostati i dieci campi vetrina con `mutateProdottoVetrina`, poi eseguito
+  > `mutateProdotto` — la mutation della **cassa** — e riletti. **Tutti e dieci identici.**
+  >
+  > 🔴 **Il primo giro non contava, e va detto.** Il salvataggio rispediva valori *identici*:
+  > EF Core può non emettere alcun `UPDATE` quando nulla cambia, e allora la prova sarebbe
+  > stata verde perché non era successo niente — lo stesso vizio dei tre falsi verdi della
+  > Fase 9. È stato rifatto **cambiando davvero il listino** (1,20 → 1,30), con `updatedAt`
+  > usato come testimone: è cambiato, quindi la scrittura è avvenuta. I dieci campi vetrina
+  > sono rimasti intatti anche così. Il prezzo è stato poi riportato a 1,20.
+  >
+  > Effetto collaterale utile: il prezzo pubblico ha seguito il listino 1,20 → 1,30 → 1,20,
+  > cioè `prezzoEffettivoVetrina` con `prezzoVetrina` a `null` ricade sul listino **dal vivo**
+  > e non solo nei test. `https://duedgusto.it/menu` rende il prodotto con la categoria, la
+  > descrizione di vetrina e il prezzo formattato all'italiana (`1,20`).
+  >
+  > ### ② Il giro contabile: **resta aperto**, ed è il motivo per cui il task non è spuntato
+  > Registro, vendite, chiusura mensile, fornitori.
 
 **Uscita di fase.** I tre rischi 🔴 della proposal sono chiusi con prove eseguite, non con argomenti.
 
