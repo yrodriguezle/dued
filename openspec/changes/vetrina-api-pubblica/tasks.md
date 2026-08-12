@@ -1551,12 +1551,19 @@ raggiungibilità anonima vera, il bootstrap dell'app e il giro completo admin �
 decisioni sono state prese con una raccomandazione già scritta ma lasciate aperte nel design:
 vanno confermate esplicitamente, non ereditate per silenzio.
 
-- [ ] 11.1 🔴 **`curl` anonimo in produzione** 🔒 — la stessa prova del task 5.17, ripetuta contro
+- [x] 11.1 🔴 **`curl` anonimo in produzione** — la stessa prova del task 5.17, ripetuta contro
   l'ambiente reale dopo il deploy.
   *Verifica* (spec `sicurezza` → *Prova manuale dell'accesso anonimo*, che dice esplicitamente *"in
   sviluppo **e** in produzione"*): le tre rotte rispondono `200` a una shell senza credenziali.
-  🔒 Richiede il deploy: finché non è stato fatto, questo task resta **aperto e dichiarato tale**,
-  non chiuso per analogia con il task 5.17.
+  > **Chiuso il 12 agosto 2026.** Eseguito da una shell senza alcuna credenziale contro
+  > `https://217.154.173.33`, dopo il deploy di `c89b768`:
+  > `/api/public/site` → `200 application/json` 485 byte, con dati **veri** (insegna «2D Gusto
+  > Bar», Via del Costo 99, orari 07:00–20:00 su sei giorni, Instagram);
+  > `/api/public/menu` → `200`, `{"categorie":[],"totaleProdottiPubblicati":0,"limiteApplicato":300,"troncato":false}`;
+  > `/api/public/galleria` → `200`, `{"immagini":[]}`.
+  > ⚠️ Le ultime due sono **vuote di contenuto, non di risposta**: in produzione nessun prodotto
+  > è ancora marcato visibile in vetrina e nessun media sta in cartella `galleria`. Il criterio
+  > del task è la raggiungibilità anonima, ed è dimostrata; il popolamento è il task 9.2.
 
 - [x] 11.2 🔴 **`/api/public/business-name` e il bootstrap dell'app** — la minimal API di
   [`Program.cs:358`](../../../backend/Program.cs) è **invariata** e non è stata spostata dentro

@@ -37,8 +37,9 @@ services:
       MEDIA_ROOT: /app/media
       # Host cross-origin autorizzati (separati da virgola, solo host).
       # In produzione nginx serve app e API sullo stesso origin: serve per l'accesso
-      # da app.duedgusto.com e, in futuro, dal dominio della vetrina.
-      ALLOWED_ORIGINS: "${ALLOWED_ORIGINS:-app.duedgusto.com}"
+      # da app.duedgusto.it. La vetrina NON va aggiunta qui — nginx la serve sullo stesso
+      # origin dell'API, quindi le sue richieste non sono cross-origin.
+      ALLOWED_ORIGINS: "${ALLOWED_ORIGINS:-app.duedgusto.it}"
       SERVER_IP: "${SERVER_IP:-}"
       SEED_ON_STARTUP: "${SEED_ON_STARTUP:-true}"
       # Import una-tantum dello storico chiusure 2026: vuoto = OFF.
@@ -52,6 +53,44 @@ services:
       - /opt/duedgusto/media:/app/media
     ports:
       - "127.0.0.1:5000:5000"
+    networks:
+      - duedgusto-net
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  # Sito vetrina pubblico (Astro SSR, adapter Node standalone).
+  #
+  # 🔴 I DUE PREFISSI SONO ARGOMENTI DI BUILD, NON VARIABILI D'AMBIENTE. `astro:env` li
+  #    inlina nel bundle: metterli sotto `environment:` non darebbe alcun errore e non
+  #    avrebbe alcun effetto — il sito continuerebbe a servire i valori con cui e' stato
+  #    costruito. Chi cambia uno di questi due valori DEVE ricostruire l'immagine.
+  #    (sito/Dockerfile lo spiega per esteso; astro.config.mjs e' la fonte.)
+  sito:
+    build:
+      context: ./sito
+      dockerfile: Dockerfile
+      args:
+        # Il SERVER Astro legge le tre rotte pubbliche sulla rete interna di Docker.
+        # Non passa da nginx e non esce dall'host: e' il backend, per nome di servizio.
+        API_INTERNA_URL: "http://backend:5000"
+        # Il BROWSER del visitatore scarica le foto da qui. Deve essere l'host PUBBLICO
+        # del sito, con https: finisce dentro src/srcset e dentro og:image.
+        # Nessun default: un valore inventato qui sarebbe indistinguibile da uno scelto,
+        # e il Dockerfile si ferma con un messaggio che dice quale argomento manca.
+        PUBLIC_MEDIA_ORIGINE: "${SITO_ORIGINE_PUBBLICA}"
+    container_name: duedgusto-sito
+    restart: unless-stopped
+    # `depends_on` senza condizione: ordina l'avvio e basta. Non si aspetta il backend in
+    # salute, perche' il sito e' progettato per degradare — `/` risponde 200 con marca,
+    # slogan e orari anche se l'API non risponde. Legarlo a un health check
+    # trasformerebbe una degradazione voluta in un container che non parte.
+    depends_on:
+      - backend
+    ports:
+      - "127.0.0.1:4321:4321"
     networks:
       - duedgusto-net
     logging:

@@ -146,7 +146,7 @@ builder.Services.AddScoped<IBusinessSettingsRepository, BusinessSettingsReposito
 //
 // In produzione nginx serve frontend e API sullo STESSO origin, quindi il CORS non
 // entra quasi mai in gioco: conta per lo sviluppo (Vite su :4001 → backend su :4000)
-// e per l'accesso da app.duedgusto.com, che punta all'API sull'IP del VPS.
+// e per l'accesso da app.duedgusto.it, che punta all'API sull'IP del VPS.
 // Il verdetto sulla singola origine vive in CorsOriginPolicy: è un controllo di sicurezza,
 // e come lambda inline qui sarebbe irraggiungibile dai test.
 HashSet<string> allowedOrigins = CorsOriginPolicy.CostruisciAllowlist(

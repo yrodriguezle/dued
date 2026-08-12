@@ -212,7 +212,16 @@ mkdir -p "$APP_DIR/media"
 chown -R 10001:10001 "$APP_DIR/media"   # 10001 = UID di appuser, fissato in backend/Dockerfile
 chmod -R 755 "$APP_DIR/media"           # 755: nginx (www-data) legge, solo appuser scrive
 
-log "Directory create: $APP_DIR/{frontend/dist, backups, logs, media}"
+# Le due directory che la configurazione nginx della vetrina pretende gia' esistenti.
+# Stanno QUI e non in deploy.sh: crearle richiede root, e deploy.sh gira come "deploy"
+# con una lista di comandi sudo a corrispondenza esatta (deploy/sudoers.d/duedgusto-deploy).
+# Un mkdir privilegiato in piu' la' dentro non fallirebbe il test — fallirebbe il deploy.
+mkdir -p /var/cache/nginx/vetrina        # micro-cache di 60s della vetrina
+chown -R www-data:www-data /var/cache/nginx/vetrina
+mkdir -p /var/www/certbot                # webroot della sfida ACME, servita in HTTP
+chmod 755 /var/www/certbot
+
+log "Directory create: $APP_DIR/{frontend/dist, backups, logs, media}, /var/cache/nginx/vetrina, /var/www/certbot"
 
 # ── Firewall ────────────────────────────────────────────────────────────────
 log "Configurazione UFW firewall..."
