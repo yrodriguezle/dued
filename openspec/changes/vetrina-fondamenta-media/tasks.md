@@ -587,8 +587,31 @@ un `backup.sh` che ignora i file ricostruisce un database perfetto pieno di imma
 >
 > Prerequisito: Fasi 1-8 chiuse e mergiate; la chiave SSH sbloccata.
 
-- [ ] 9.1 **Primo deploy e proprietà della directory** — esegui il deploy e ispeziona `/opt/duedgusto/media` **prima di fidarsi dello script**.
+- [x] 9.1 **Primo deploy e proprietà della directory** — esegui il deploy e ispeziona `/opt/duedgusto/media` **prima di fidarsi dello script**.
   *Verifica* (spec `media-assets` → *La proprietà della directory coincide con il processo*): `stat -c '%u:%g %a' /opt/duedgusto/media` restituisce `10001:10001 755`, e lo stesso numero è l'UID del processo backend dentro il container (`docker compose exec backend id`).
+  > **Chiuso il 12 agosto 2026, e il «prima di fidarsi dello script» ha pagato.**
+  > La produzione era a **`10001:10001 775`**, non 755. Il proprietario era giusto e coincideva
+  > con l'UID del processo (`docker compose exec backend id` → `uid=10001(appuser)`), ma il modo
+  > no — e nessuno se ne era accorto perché **lo script non poteva più correggerlo**.
+  >
+  > 🔴 **Causa, ricostruita dal log del deploy.** Il `chmod -R 755` viveva *dentro* l'`if` che
+  > confronta il proprietario. L'11 agosto alle 20:56 un deploy fallì proprio lì
+  > (`ERRORE: impossibile assegnare … a 10001:10001`: i sudoers non erano ancora installati),
+  > lasciando la directory appena creata da `mkdir -p` a **775** — il modo che l'umask 002
+  > dell'utente `deploy` produce. Qualcuno sistemò a mano il **solo** `chown`. Da quel momento il
+  > confronto sul proprietario riusciva, il blocco veniva saltato per intero, e il modo sbagliato
+  > è rimasto in produzione per un giorno **con lo script convinto di averlo assegnato**.
+  >
+  > La correzione (commit `8c2cd02`) separa i due controlli. La prova non è che il codice sia
+  > cambiato: è la riga del log del deploy delle 14:16:52 del 12 agosto —
+  > *«Directory media da riportare a 755 (ora: 775)… Directory media riportata a 755.»* —
+  > seguita da `stat` che restituisce `10001:10001 755`.
+  >
+  > ⚠️ Onestà sulla procedura: durante il pre-volo ho eseguito `sudo -n chmod -R 755` per
+  > verificare che i sudoers lo ammettessero, e **quel comando non era a secco** — ha corretto
+  > la directory prima del deploy. Ho riportato il modo a 775 come root per ripristinare la
+  > condizione di prova, e solo dopo ho lanciato il deploy. Il valore osservato dopo è quindi
+  > frutto dello script, non del mio comando.
 
 - [ ] 9.2 **Primo upload reale in produzione** — carica un'immagine dalla `MediaLibrary` in produzione.
   *Verifica* (spec `media-assets` → *Il primo upload dopo un deploy pulito riesce*): l'upload va a buon fine, `ls /opt/duedgusto/media/2026/*/` mostra **8 file**, e nei log del container **non** compare alcun `UnauthorizedAccessException`.
