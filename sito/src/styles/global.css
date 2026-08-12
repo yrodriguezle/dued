@@ -1,0 +1,168 @@
+@import "tailwindcss";
+
+/* 🔴 I test NON sono una sorgente di classi, e senza questa riga lo sono.
+   Tailwind 4 rileva le sorgenti da solo, partendo dalla radice del progetto e saltando
+   ciò che `.gitignore` esclude — quindi legge anche `test/`, dove i nomi delle utility
+   compaiono come stringhe dentro le asserzioni. L'effetto misurato il 12 agosto 2026: una
+   pagina che usa due sole classi produceva comunque il CSS di tutte e otto, perché le
+   altre sei erano nominate in `css-tema.test.mjs`.
+   È il CSS SPEDITO a essere modellato dai test, cioè esattamente al contrario. */
+@source not "../../test";
+
+/* ═══════════════════════════════════════════════════════════════════════════════════════
+   I DUE REGISTRI DEL LOCALE
+
+   Non sono "chiaro e scuro": sono i due modi in cui 2 D Gusto si presenta già oggi, e i
+   valori sono CAMPIONATI dalle locandine social — non scelti a tavolino, non ritoccati per
+   stare meglio insieme. Il giorno viene dalla locandina dello spazio esterno; la sera dalla
+   lavagna dell'Aperitivo Apericosto.
+
+   Sono custom properties di RUNTIME, riassegnate da un attributo sull'elemento: è ciò che
+   permette a un sottoalbero di vivere in un registro diverso dalla pagina che lo contiene
+   (la fascia "Aperitivo" in home), e a un toggle di cambiarli senza ricaricare.
+   ═══════════════════════════════════════════════════════════════════════════════════════ */
+
+:root,
+[data-tema="giorno"] {
+  --c-sfondo: #F2EDE7;            /* crema */
+  --c-sfondo-alt: #EAE4DC;
+  --c-superficie: #FDFDFC;
+  --c-inchiostro: #020302;
+  --c-inchiostro-tenue: #4A562A;
+  --c-accento: #41511E;           /* oliva — 7.45 sulla crema: porta testo */
+  --c-bordo: #D8D2C8;
+}
+
+[data-tema="sera"] {
+  /* ⚠️ Carboncino CALDO, non nero neutro: la lavagna del locale ha una dominante marrone,
+        e un #1A1A1A neutro accanto alle foto vere si legge subito come "tema scuro
+        generico" invece che come quella lavagna. */
+  --c-sfondo: #251C19;
+  --c-sfondo-alt: #2C221D;
+  --c-superficie: #342A23;
+  --c-inchiostro: #F2EDE7;        /* la crema fa doppio lavoro: di sera è il gesso */
+  --c-inchiostro-tenue: #C9BCAE;
+  --c-accento: #FDDB5B;           /* gesso giallo — 12.28 sulla lavagna: porta testo */
+  --c-bordo: #4C3B33;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────────────────
+   🔴 L'ARANCIO STA QUI, E NON DENTRO @theme — ed è una decisione, non una svista.
+
+   L'arancio è l'unico colore comune ai due registri, ed è il colore della marca. Ma le sue
+   due misure di contrasto sono agli antipodi:
+
+       sulla lavagna di sera  →  6.78   ✅ porta testo
+       sulla crema di giorno  →  2.11   ❌ sotto persino la soglia del testo GRANDE (3.0)
+
+   Il guasto reale non è che qualcuno scelga l'arancio sapendolo: è che scriva
+   `text-arancio` PER ANALOGIA con `bg-arancio`, che esiste ed è legittima. Un commento non
+   lo impedirebbe — nessuno legge un commento prima di scrivere una classe.
+
+   Tenendo il token fuori dalla namespace del tema, Tailwind non genera NESSUNA delle sue
+   utility: si dichiarano a mano solo le tre ammesse, qui sotto. Chi scrive `text-arancio`
+   non produce CSS, e il testo resta del colore ereditato — cioè leggibile.
+   🔴 Il default del guasto è sicuro, che è l'unica difesa che funziona davvero.
+
+   Chi cerca "l'accento per un titolo" cerca --c-accento: oliva di giorno, gesso di sera,
+   entrambi ampiamente sopra soglia in entrambi i registri.
+   ─────────────────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --c-arancio: #FD8502;
+  --logo-arancio: var(--c-arancio);
+
+  /* §D9 — misurato confrontando nove candidati sull'insegna reale, non arrotondato.
+     Compare in un token solo perché il numero serve DUE volte: allo `scaleX` e alla
+     riserva di spazio, che `transform` non partecipa al layout. */
+  --stiramento-insegna: 1.55;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────────────────
+   COSA DIVENTA UTILITY
+
+   🔴 `inline` è load-bearing, e la differenza NON si vede alla radice del documento.
+
+   Con `@theme` semplice, `.bg-sfondo` verrebbe generata leggendo la variabile DEL TEMA
+   (il nome con prefisso `color`), dichiarata su `:root` con il valore letto in QUEL
+   momento. Alla radice il risultato è identico. Ma dentro un sottoalbero con
+   `data-tema="sera"` la catena si spezza: la variabile del tema resta quella di `:root`, e
+   la fascia serale continuerebbe a essere crema — senza un errore da nessuna parte, senza
+   nulla di rosso, in un modo che nessuno guardando la home noterebbe come bug invece che
+   come scelta.
+
+   Con `inline`, `.bg-sfondo` diventa `background-color: var(--c-sfondo)`, cioè punta al
+   nome di runtime: la riassegnazione del sottoalbero la raggiunge.
+
+   ⚠️ CONSEGUENZA DA CONOSCERE PRIMA DI SCRIVERE UNA RIGA DI CSS A MANO: con `inline` la
+      variabile del tema non è più il canale attraverso cui passa il valore. Il CSS scritto
+      a mano usa `--c-sfondo`, sempre.
+
+   ⚠️ E QUESTO COMMENTO NON PUÒ SCRIVERE QUEL NOME PER ESTESO dentro un `var(…)`. Misurato
+      il 12 agosto 2026: Tailwind decide quali variabili del tema emettere cercando i
+      `var(…)` nel CSS, e **guarda anche dentro i commenti**. La prima stesura di queste
+      righe nominava `var(` + il nome del tema, e faceva comparire quella sola variabile
+      su `:root` nel foglio spedito — un commento che cambiava il CSS generato. Cambiando
+      il nome citato nel commento, cambiava la variabile emessa.
+   ─────────────────────────────────────────────────────────────────────────────────────── */
+
+@theme inline {
+  --color-sfondo: var(--c-sfondo);
+  --color-sfondo-alt: var(--c-sfondo-alt);
+  --color-superficie: var(--c-superficie);
+  --color-inchiostro: var(--c-inchiostro);
+  --color-inchiostro-tenue: var(--c-inchiostro-tenue);
+  --color-accento: var(--c-accento);
+  --color-bordo: var(--c-bordo);
+}
+
+/* Questi non cambiano mai fra i due registri: `@theme` semplice basta, e `inline` qui non
+   avrebbe alcun effetto osservabile.
+
+   ⚠️ Mai `--font-display`: genererebbe l'utility `.font-display`, e `font-display` è anche
+      il descrittore di `@font-face` che governa il comportamento durante il caricamento.
+      Chi cercasse l'uno troverebbe l'altro, in un file di stile in cui esistono entrambi.
+      I quattro ruoli si chiamano per quello che fanno. */
+@theme {
+  --font-titolo: 'Anton', sans-serif;
+  --font-firma: 'Allura', cursive;
+  --font-insegna: 'Playfair Display', Georgia, serif;
+  --font-corpo: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+}
+
+/* Per i casi che i token non coprono (un'ombra, un'opacità, un bordo che esiste solo di
+   sera). Legata all'ATTRIBUTO e non a una classe `.dark`, coerentemente con il resto.
+   `:where()` tiene la specificità a zero, così la variante non vince su nulla per caso. */
+@custom-variant sera (&:where([data-tema="sera"], [data-tema="sera"] *));
+
+/* Le tre sole forme ammesse dell'arancio: superfici e bordi, mai testo. */
+@utility bg-arancio {
+  background-color: var(--c-arancio);
+}
+@utility border-arancio {
+  border-color: var(--c-arancio);
+}
+@utility fill-arancio {
+  fill: var(--c-arancio);
+}
+
+html {
+  /* 🔴 Non è cosmesi. Senza, un `font-weight: 700` su Anton — che ha solo il Regular —
+     produce un grassetto FINTO, sintetizzato dal browser ingrassando le aste, e diverso
+     fra Chrome, Safari e Firefox. Rovina precisamente ciò che rende Anton un carattere da
+     insegna. Con questa riga `font-weight: 700` NON FA NULLA — e "non fa nulla" si nota
+     subito, mentre un grassetto sintetizzato *sembra funzionare*. */
+  font-synthesis: none;
+
+  /* Il primissimo pixel dipinto è già del tema giusto: lo script del tema gira prima del
+     body, e questo sfondo segue --c-sfondo qualunque registro abbia scelto. */
+  background-color: var(--c-sfondo);
+}
+
+/* Finché lo script del tema non ha finito, nessuna transizione: senza questa riga il
+   cambio di registro all'avvio si vede come una dissolvenza da un tema all'altro, che è
+   esattamente il lampo che lo script serve a evitare. */
+html:not([data-pronto]) *,
+html:not([data-pronto]) *::before {
+  transition: none !important;
+}

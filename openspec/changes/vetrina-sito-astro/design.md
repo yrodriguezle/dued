@@ -1498,13 +1498,23 @@ vederlo, quindi un rollback non produce link rotti verso Internet.
 Nessuna bloccante. Cinque punti da chiudere in fase di apply, ciascuno con la raccomandazione già
 presa.
 
-- [ ] **`@theme inline` emette ancora `--color-*` su `:root`?** La documentazione mostra il CSS
-      generato della sola utility e non dice se la variabile venga comunque dichiarata.
-      **Raccomandazione: non dipenderne.** Il CSS scritto a mano usa `--c-*`, il nome di runtime, e
-      il test di §D6 asserisce **positivamente** su `var(--c-sfondo)` e **negativamente** su
-      `var(--color-sfondo)`: qualunque sia il comportamento, il design non ci poggia sopra.
-      Da verificare al primo `npm run build`, e se `--color-*` c'è, aggiungere una riga al test che
-      la pinna — perché la sua presenza è una tentazione.
+- [x] **`@theme inline` emette ancora `--color-*` su `:root`?** ✅ **CHIUSA in apply il 2026-08-12:
+      NO.** Con `inline` il valore viene inlinato nelle utility e la variabile del tema non viene
+      dichiarata affatto. La raccomandazione — *non dipenderne* — resta valida e ora è anche
+      **superflua**: non c'è niente da cui dipendere.
+
+      ⚠️ **Ma la prima misura diceva il contrario, e come si è scoperto l'inganno vale più della
+      risposta.** Il primo build mostrava **una** `--color-*` su `:root` (`--color-sfondo`), e
+      sembrava la risposta "sì, le emette comunque". Non era Tailwind: era un **commento** di
+      `global.css` che nominava quel nome dentro un `var(…)`. **Tailwind decide quali variabili
+      del tema emettere cercando i `var(…)` nel CSS, e guarda anche dentro i commenti.** Provato
+      per mutazione: cambiando *solo il nome citato nel commento*, cambiava la variabile emessa
+      (`--color-bordo` al posto di `--color-sfondo`). Un test scritto sulla prima osservazione
+      avrebbe pinnato un artefatto di un commento credendo di pinnare il comportamento di Tailwind.
+
+      Il commento è stato riscritto per non nominare quella forma, e il test ora asserisce
+      l'assenza **di tutte**: risponde alla domanda e impedisce che un commento futuro rimetta per
+      sbaglio una variabile inutile nel foglio spedito.
 
 - [ ] **`astro:env` richiede il prefisso `PUBLIC_` per le variabili di contesto client?** Con lo
       schema il contesto è già dichiarato, quindi il prefisso potrebbe non essere obbligatorio.

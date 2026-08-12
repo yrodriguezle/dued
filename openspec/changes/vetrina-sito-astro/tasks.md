@@ -684,7 +684,7 @@ identico alla radice, e l'arancio su testo *si legge benissimo* — è solo 2.11
 browser: è una **regex sul CSS generato**, e arriva prima che esista un colore in una pagina. È il
 gradino che dimostra che il metodo funziona.
 
-- [ ] 4.1 **I due registri come custom properties di runtime** — in `sito/src/styles/global.css`:
+- [x] 4.1 **I due registri come custom properties di runtime** — in `sito/src/styles/global.css`:
   `@import "tailwindcss"`, poi `:root, [data-tema="giorno"]` e `[data-tema="sera"]` con i sette
   token `--c-*` di §"Interfaces / Contracts", **i valori misurati** e non riscelti.
   ⚠️ Il fondo sera è **carboncino caldo `#251C19`**, non nero neutro; la crema `#F2EDE7` fa doppio
@@ -692,7 +692,7 @@ gradino che dimostra che il metodo funziona.
   *Verifica*: `npm run build` esce 0; i due blocchi definiscono **gli stessi sette nomi**, così che
   nessun token esista in un solo registro.
 
-- [ ] 4.2 🔴 **`@theme inline` per i token che cambiano, `@theme` semplice per quelli che non
+- [x] 4.2 🔴 **`@theme inline` per i token che cambiano, `@theme` semplice per quelli che non
   cambiano mai.** I sette colori vanno in `@theme inline`; le quattro famiglie di font in `@theme`.
   ⚠️ **Mai `--font-display`**: `.font-display` sarebbe una utility e `font-display` è anche il
   descrittore di `@font-face` — chi cercasse l'uno troverebbe l'altro. I quattro ruoli si chiamano
@@ -703,7 +703,7 @@ gradino che dimostra che il metodo funziona.
   *Verifica* (spec `temi-e-identita` → *Il CSS scritto a mano usa il nome di runtime*):
   `grep -rn "var(--color-" sito/src/` non trova nulla.
 
-- [ ] 4.3 🔴 **L'arancio esce dalla namespace del tema, e le sue tre sole forme.**
+- [x] 4.3 🔴 **L'arancio esce dalla namespace del tema, e le sue tre sole forme.**
   `:root { --c-arancio: #FD8502; --logo-arancio: var(--c-arancio); }` **fuori** da `@theme`, con il
   commento che riporta **le due misure** (6.78 sulla lavagna, 2.11 sulla crema) e indirizza al token
   giusto: *"l'accento che porta testo esiste e si chiama `--c-accento`"*. Poi le tre sole utility:
@@ -716,13 +716,13 @@ gradino che dimostra che il metodo funziona.
   *Il commento indirizza al token giusto*): dopo la build, `.text-arancio` **non compare** nel CSS
   generato; le altre tre sì.
 
-- [ ] 4.4 **`@custom-variant sera`** — `(&:where([data-tema="sera"], [data-tema="sera"] *))`, per i
+- [x] 4.4 **`@custom-variant sera`** — `(&:where([data-tema="sera"], [data-tema="sera"] *))`, per i
   casi che i token non coprono. Il `:where()` tiene la specificità a zero.
   *Verifica* (spec `temi-e-identita` → *La variante del registro serale è legata a un attributo*):
   la variante è legata all'**attributo**, non a una classe `.dark`, coerentemente con
   `data-tema="sera"`.
 
-- [ ] 4.5 **`html { font-synthesis: none; background-color: var(--c-sfondo); }`** e la regola
+- [x] 4.5 **`html { font-synthesis: none; background-color: var(--c-sfondo); }`** e la regola
   anti-transizione `html:not([data-pronto]) *, html:not([data-pronto]) *::before { transition: none !important }`.
   🔴 `font-synthesis: none` **non è cosmesi**: senza, un `font-weight: 700` su Anton produce un
   grassetto **finto**, diverso fra Chrome, Safari e Firefox, che rovina proprio le aste che rendono
@@ -731,7 +731,7 @@ gradino che dimostra che il metodo funziona.
   Il `background-color` su `html` fa sì che **il primissimo pixel dipinto sia già del tema giusto**.
   *Verifica*: `npm run build` esce 0.
 
-- [ ] 4.6 🔴 **Test sul CSS generato: le utility inlinano il token di runtime.** In
+- [x] 4.6 🔴 **Test sul CSS generato: le utility inlinano il token di runtime.** In
   `sito/test/css-tema.test.mjs`, dopo la build, sul CSS di `dist/client/`:
   `assert.match(css, /\.bg-sfondo\s*\{[^}]*var\(--c-sfondo\)/)` **e**
   `assert.doesNotMatch(css, /\.bg-sfondo\s*\{[^}]*var\(--color-sfondo\)/)`.
@@ -740,11 +740,11 @@ gradino che dimostra che il metodo funziona.
   *Verifica* (spec `temi-e-identita` → *🔴 Le utility di colore inlinano il token di runtime*):
   entrambe le asserzioni passano.
 
-- [ ] 4.7 **Test sul CSS generato: `font-synthesis: none` c'è.**
+- [x] 4.7 **Test sul CSS generato: `font-synthesis: none` c'è.**
   *Verifica* (spec `temi-e-identita` → *🔴 La sintesi dei caratteri è disattivata nel CSS
   generato*): la dichiarazione compare nel CSS di `dist/`, non solo nel sorgente.
 
-- [ ] 4.8 🔴 **Test di scansione: nessun testo arancione, in nessuna forma.** L'utility mancante
+- [x] 4.8 🔴 **Test di scansione: nessun testo arancione, in nessuna forma.** L'utility mancante
   non ferma i **valori arbitrari**: il test cerca
   `/text-\[?#?[Ff][Dd]8502|text-\[var\(--c-arancio\)\]|color:\s*var\(--c-arancio\)/` e pretende zero
   occorrenze.
@@ -757,7 +757,7 @@ gradino che dimostra che il metodo funziona.
   con il commento di §D7 presente nell'albero — cioè la difesa contro i falsi positivi è
   **esercitata**, non teorica.
 
-- [ ] 4.9 🔴 🧪 **VERIFICA PER MUTAZIONE dell'arancio.** Un requisito che si limitasse a documentare
+- [x] 4.9 🔴 🧪 **VERIFICA PER MUTAZIONE dell'arancio.** Un requisito che si limitasse a documentare
   il divieto non produrrebbe **alcuna differenza osservabile**.
   **Cosa eseguire**: **sposta** `--c-arancio` dentro `@theme` (diventando `--color-arancio`),
   esegui la build, **esegui i test e vedi comparire `.text-arancio` nel CSS generato** con il test
@@ -768,7 +768,7 @@ gradino che dimostra che il metodo funziona.
   *Verifica* (spec `temi-e-identita`, §"Verifica per mutazione" del requisito dell'arancio): rosso
   con la mutazione, verde dopo il ripristino.
 
-- [ ] 4.10 🔴 🧪 **VERIFICA PER MUTAZIONE di `@theme inline`.**
+- [x] 4.10 🔴 🧪 **VERIFICA PER MUTAZIONE di `@theme inline`.**
   **Cosa eseguire**: togli la parola `inline` dal blocco dei colori, ricostruisci, **esegui i test e
   vedi fallire** l'asserzione negativa di 4.6 (il CSS ora contiene `var(--color-sfondo)`), poi
   **rimetti `inline`**.
@@ -778,7 +778,7 @@ gradino che dimostra che il metodo funziona.
   *Verifica* (spec `temi-e-identita` → *🔴 Le utility di colore inlinano il token di runtime*):
   rosso mirato con la mutazione, verde dopo il ripristino.
 
-- [ ] 4.11 **Open Question n. 1 — `@theme inline` emette ancora `--color-*` su `:root`?** Va
+- [x] 4.11 **Open Question n. 1 — `@theme inline` emette ancora `--color-*` su `:root`?** Va
   guardato al primo `npm run build`, e la risposta annotata in design.md.
   *Verifica* (design.md §"Open Questions"): se `--color-*` **c'è**, si aggiunge una riga al test di
   4.6 che ne pinna la presenza — perché una variabile che esiste ed è inutile è una **tentazione**.
@@ -788,6 +788,77 @@ gradino che dimostra che il metodo funziona.
 generato**, e le due mutazioni hanno dimostrato che le prove sanno fallire. Nessuna pagina usa
 ancora un colore — ed è esattamente il punto: la dimostrazione non ha avuto bisogno di guardare
 nulla.
+
+**Esito reale (apply del 2026-08-12).** Uscita raggiunta: `npm test` **23 → 34**, `npm run check`
+a zero. Nessuna pagina usa un colore, e le due decisioni invisibili sono provate sul CSS emesso.
+
+- 🔧 **Come si prova il CSS generato quando nessuna pagina usa una classe.** Tailwind genera
+  on-demand: senza un uso, `.bg-sfondo` non esiste e non c'è niente su cui asserire. Il test
+  `css-tema.test.mjs` scrive quindi una **pagina sonda** che usa tutte le classi, esegue
+  `astro build`, legge il CSS e **cancella la sonda**. Non resta nell'albero deliberatamente: se
+  restasse, il foglio spedito conterrebbe per sempre utility che nessuna pagina usa, e la prova
+  avrebbe cambiato il prodotto per potersi eseguire.
+  ⚠️ **Trappola costata un giro**: il nome della sonda non può iniziare con `_`. Astro esclude dal
+  routing i file che lo fanno, la pagina non viene costruita, e il CSS non viene emesso affatto —
+  un fallimento che si presenta come «nessun file CSS trovato» e manda a cercare altrove.
+- 🔴 **Scoperta non prevista da nessun artefatto: i test erano una sorgente di classi.** Tailwind 4
+  rileva le sorgenti da solo partendo dalla radice del progetto, quindi legge anche `test/`, dove i
+  nomi delle utility compaiono come stringhe nelle asserzioni. Misurato: una pagina che usava
+  **due** classi produceva il CSS di **otto**, perché le altre sei erano nominate in
+  `css-tema.test.mjs`. Era **il CSS spedito a essere modellato dai test**, cioè esattamente al
+  contrario. Chiuso con `@source not "../../test"` in cima a `global.css`; riverificato: ora la
+  pagina che usa due classi ne genera due.
+- 🔴 **La verifica per mutazione 4.9 ha dimostrato l'intero argomento di §D7.** Spostato
+  `--c-arancio` dentro `@theme` come `--color-arancio` e tolte le tre `@utility`, la build genera:
+  ```
+  .text-arancio{color:var(--color-arancio)}
+  .bg-arancio{background-color:var(--color-arancio)}
+  .border-arancio{border-color:var(--color-arancio)}
+  .fill-arancio{fill:var(--color-arancio)}
+  ```
+  **Quattro famiglie da una sola dichiarazione**: non si può avere `bg-arancio` dal tema senza
+  avere anche `text-arancio`, che è precisamente perché il token vive fuori e le tre ammesse si
+  scrivono a mano. Rossi i test 4.3 e 4.2 (`--logo-arancio` finiva a leggere una `--color-*`);
+  dopo il ripristino, 34/34.
+- 🔴 **La mutazione 4.10 ha dato un risultato più forte del previsto, e il previsto era sbagliato.**
+  Tolta la parola `inline`, `.bg-sfondo` diventa `background-color:var(--color-sfondo)`. Il task
+  prevedeva che l'asserzione **positiva** restasse verde — «ed è la ragione per cui sono due».
+  **Non è andata così: sono diventate rosse entrambe**, perché la positiva è scritta stretta
+  (`/\.bg-sfondo\s*\{[^}]*var\(--c-sfondo\)/`) e quindi vede anche il cambio di canale.
+  L'argomento del design regge lo stesso, e la misura lo rende preciso — sul CSS **mutato**:
+
+  | Forma dell'asserzione positiva | Esito sul CSS rotto |
+  |---|---|
+  | `/--c-sfondo/` (il token è comunque dichiarato su `:root`) | **verde** ❌ non vede niente |
+  | `/\.bg-sfondo/` | **verde** ❌ non vede niente |
+  | `/\.bg-sfondo\s*\{[^}]*var\(--c-sfondo\)/` (quella scritta) | rossa ✅ |
+  | l'asserzione **negativa** | rossa ✅ |
+
+  Cioè: la negativa serve contro la stesura **lasca** della positiva, che è la stesura che uno
+  scrive naturalmente. Con la positiva stretta sono ridondanti — e restano entrambe, perché la
+  ridondanza costa una riga e la lascamento è il difetto che ricompare.
+- 🔴 **Open Question n. 1 chiusa, e la prima risposta era un artefatto nostro.** `@theme inline`
+  **non** emette variabili del tema su `:root`. Il primo build ne mostrava una (`--color-sfondo`)
+  e sembrava dire il contrario: non era Tailwind, era un **commento** di `global.css` che nominava
+  quel nome dentro un `var(…)`. **Tailwind cerca i `var(…)` anche dentro i commenti** — provato
+  cambiando *solo il testo del commento* e vedendo cambiare la variabile emessa
+  (`--color-bordo` al posto di `--color-sfondo`). Il commento è stato riscritto, e il test ora
+  asserisce l'**assenza di tutte**: risponde alla domanda e impedisce che un commento futuro
+  rimetta una variabile inutile nel foglio spedito. Annotata in `design.md` §Open Questions.
+- 🔴 **Il falso positivo previsto dal task 4.8 era reale, ma non dove il task lo cercava.** La
+  regex `color:\s*var\(--c-arancio\)` corrisponde anche dentro `background-color: var(--c-arancio)`
+  e `border-color: var(--c-arancio)` — cioè dentro **le due utility ammesse, che devono esistere**:
+  il test sarebbe fallito su se stesso. Chiuso con un negative lookbehind `(?<![-\w])`. L'altro
+  falso positivo, quello che il task nominava (il commento con `#FD8502`, `text-arancio` e
+  `--c-arancio`), è coperto dall'esclusione dei commenti già scritta in Fase 2 — ed è ora
+  **esercitata**, non teorica.
+- ➕ *Test in più*: che i due registri dichiarino **gli stessi sette nomi** (un token presente in un
+  solo registro sparirebbe cambiando tema ereditando dalla radice, senza segnalare nulla), e che il
+  fattore di stiramento dell'insegna compaia in **una riga sola** (§D9 — serve due volte, allo
+  `scaleX` e alla riserva di spazio, e due numeri un giorno divergerebbero).
+- ⚠️ *Nota operativa*: lo script `test` è ora `node --test --test-concurrency=1 …`. Il test del CSS
+  scrive un file in `src/pages/` e ne costruisce il progetto; in parallelo con gli altri file di
+  test — che scansionano `src/` — l'albero cambierebbe sotto i piedi della scansione.
 
 ---
 
