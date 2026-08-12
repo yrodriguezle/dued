@@ -51,6 +51,22 @@ export default defineConfig({
   // scritto per errore in un file server-side è legale e silenzioso. Qui l'import
   // sbagliato è un errore di build in una direzione, e nell'altra il file che potrebbe
   // sbagliare è uno solo e ha un test sopra.
+  // 🔴 ENTRAMBE SONO VARIABILI DI BUILD, NON DI RUNTIME — anche quella di contesto
+  //    `server`. `astro:env` inlina nel bundle ogni variabile con `access: 'public'`, di
+  //    qualunque contesto; solo i `secret` restano letti a runtime. Misurato il 12 agosto
+  //    2026 e confermato dalla documentazione: «Public server variables are in the server
+  //    bundle».
+  //
+  // ⚠️ Il modo in cui inganna: passare API_INTERNA_URL all'AMBIENTE del server costruito non
+  //    dà alcun errore e non ha alcun effetto — il sito continua a leggere l'origine con cui
+  //    è stato costruito. È successo nella suite di prova, dove i test puntavano a un
+  //    backend finto e leggevano quello vero, restando verdi per la ragione sbagliata.
+  //
+  // 🔧 CONSEGUENZA PER IL DEPLOY (Fase 6 del progetto): l'immagine del container va
+  //    COSTRUITA con l'origine di produzione; la stessa immagine non si riusa fra ambienti
+  //    passando una variabile. Se un giorno servisse, `API_INTERNA_URL` andrebbe portata ad
+  //    `access: 'secret'` e letta con `getSecret()` — ma non è un segreto, e finché il
+  //    deploy costruisce per ambiente questa forma è più semplice e più verificabile.
   env: {
     schema: {
       // Il SERVER, e solo il server: la `fetch` in frontmatter verso /api/public/…

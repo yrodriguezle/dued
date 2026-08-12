@@ -281,6 +281,17 @@ env: {
 },
 ```
 
+🔧 **Scoperta in apply il 2026-08-12, e riguarda il deploy: entrambe sono variabili di BUILD.**
+`astro:env` inlina nel bundle ogni variabile con `access: 'public'`, **di qualunque contesto** —
+quindi anche `API_INTERNA_URL`, che è di contesto *server*. Solo i `secret` restano letti a runtime
+(*«Public server variables are in the server bundle»*, documentazione di Astro; misurato).
+⚠️ Il modo in cui inganna: passare `API_INTERNA_URL` all'**ambiente** del server costruito non dà
+errori e non ha alcun effetto — il sito continua a leggere l'origine con cui è stato costruito.
+**Conseguenza per la Fase 6**: l'immagine del container va **costruita** con l'origine di
+produzione, e la stessa immagine non si riusa fra ambienti passando una variabile. Se servisse,
+`API_INTERNA_URL` andrebbe portata ad `access: 'secret'` con `getSecret()` — ma non è un segreto, e
+finché il deploy costruisce per ambiente questa forma è più semplice e più verificabile.
+
 ⚠️ **I nomi non condividono un solo morfema**: `API` ≠ `MEDIA`, `INTERNA` ≠ `PUBLIC`, `URL` ≠
 `ORIGINE`. Non è vezzo: `API_BASE_URL` e `MEDIA_BASE_URL` — la coppia che il design precedente
 suggeriva in tabella (§D11) — differiscono per **una** parola in mezzo, e una copia-incolla

@@ -1,0 +1,93 @@
+---
+// Il menu pubblicato — il deliverable di questa fase del progetto.
+//
+// Le categorie sono quelle **di vetrina** e si rendono nell'ordine in cui l'API le manda:
+// l'ordinamento è una decisione dell'amministratore (`OrdinamentoVetrina`), non del sito.
+
+import Base from '../layouts/Base.astro';
+import Logo from '../components/Logo.astro';
+import TemaSwitch from '../components/TemaSwitch.astro';
+import SchedaProdotto from '../components/SchedaProdotto.astro';
+import { leggiSito, leggiMenu } from '../lib/api.ts';
+
+// 🔴 `Promise.all` e non `allSettled`: nessuna delle due letture rifiuta mai (§D4), quindi
+//    non c'è nulla da cortocircuitare e un fallimento parziale resta parziale.
+const [esitoSito, esitoMenu] = await Promise.all([leggiSito(), leggiMenu()]);
+const sito = esitoSito.stato === 'ok' ? esitoSito.dati : null;
+const menu = esitoMenu.stato === 'ok' ? esitoMenu.dati : null;
+
+// Un solo punto scrive `Cache-Control`, ed è questo. Niente `routeRules`: quella è statica
+// per rotta, mentre questa cache è **condizionale sullo stato** — in Fase 10 la risposta
+// degradata dovrà dire `no-store`, e due posti che scrivono lo stesso header sulla stessa
+// risposta sono il modo più breve per non sapere più quale vince.
+Astro.response.headers.set('Cache-Control', 'public, max-age=60');
+
+// 🔴 L'avviso di troncamento va al VISITATORE, non solo ai log: è l'unico che può reagire,
+//    chiedendo in cassa. La riga sullo stdout è in più, non al posto.
+if (menu?.troncato) {
+  console.log(
+    `[vetrina] menu troncato: mostrati ${menu.limiteApplicato} di ` +
+      `${menu.totaleProdottiPubblicati} prodotti pubblicati`
+  );
+}
+
+const nessunProdotto = menu !== null && menu.categorie.length === 0;
+let indiceGlobale = 0;
+---
+
+<Base
+  titolo={`Menu — ${sito?.insegna ?? '2 D Gusto'}`}
+  descrizione="Caffetteria, pranzo e aperitivo a Thiene. Il listino aggiornato di 2 D Gusto."
+  sito={sito}
+>
+  <header class="border-bordo border-b">
+    <div class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-5">
+      <a href="/" aria-label="Torna alla home"><Logo classe="w-40" /></a>
+      <TemaSwitch />
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-5xl px-6 py-10">
+    <h1 class="font-titolo text-4xl tracking-wide sm:text-5xl">Menu</h1>
+
+    {
+      /*
+        Categorie vuote è uno stato LEGITTIMO — nessuno ha ancora pubblicato — e produce un
+        messaggio, mai una pagina bianca né un 503. È diverso dalla degradazione, dove il
+        dato non è arrivato: lì la pagina lo dichiara in un altro modo (Fase 10).
+      */
+      nessunProdotto && (
+        <p class="text-inchiostro-tenue mt-8">
+          Il listino non è ancora pubblicato. Passa a trovarci: te lo raccontiamo di persona.
+        </p>
+      )
+    }
+
+    {
+      menu?.categorie.map((categoria) => (
+        <section class="mt-12">
+          <h2 class="font-titolo text-accento text-2xl tracking-wide">{categoria.nome}</h2>
+          <div class="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {categoria.prodotti.map((prodotto) => (
+              <SchedaProdotto prodotto={prodotto} priorita={indiceGlobale++ === 0} />
+            ))}
+          </div>
+        </section>
+      ))
+    }
+
+    {
+      /*
+        🔴 I due numeri vengono dalla RISPOSTA, non da una costante del sito: il consumatore
+           non deve indovinare né il limite né il totale. È l'unico modo in cui il visitatore
+           sa QUANTO manca.
+      */
+      menu?.troncato && (
+        <p class="border-arancio bg-sfondo-alt mt-12 rounded-lg border-l-4 px-4 py-3 text-sm">
+          Sono mostrati i primi {menu.limiteApplicato} prodotti di{' '}
+          {menu.totaleProdottiPubblicati}. Per il listino completo chiedi in cassa.
+        </p>
+      )
+    }
+  </main>
+</Base>

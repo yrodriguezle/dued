@@ -1309,21 +1309,21 @@ foto reali, nei due temi. Arriva **prima della home** perché è la pagina che i
 perché è il primo markup con abbastanza immagini vere da rendere significativa la prova con l'host
 sentinella — la prova che chiude il rischio centrale del change.
 
-- [ ] 8.1 **`sito/src/components/SchedaProdotto.astro`** — nome, descrizione, prezzo, allergeni e i
+- [x] 8.1 **`sito/src/components/SchedaProdotto.astro`** — nome, descrizione, prezzo, allergeni e i
   due marcatori (`novita`, `consigliato`).
   ⚠️ La descrizione è `descrizione` del DTO, che è `DescrizioneVetrina` **senza fallback** sulla
   descrizione contabile: un prodotto senza descrizione di vetrina non ne mostra alcuna.
   ⚠️ Il prezzo è **già risolto** dal backend: `0` è un omaggio e si stampa, non si nasconde.
   *Verifica*: la scheda si costruisce e rende un prodotto con e senza immagine.
 
-- [ ] 8.2 **`sito/src/pages/menu.astro`** — categorie di vetrina nell'ordine in cui l'API le manda,
+- [x] 8.2 **`sito/src/pages/menu.astro`** — categorie di vetrina nell'ordine in cui l'API le manda,
   ciascuna con i suoi prodotti, foto tramite `Immagine.astro` con un `sizes` **scritto per il
   layout reale** della griglia. `Cache-Control: public, max-age=60` nello stato normale.
   *Verifica* (spec `sito-pubblico` → *Un solo punto scrive l'header di cache*): l'header si scrive
   in **un solo punto** (`Astro.response.headers`), mai in due — niente `routeRules`, che è statica
   per rotta mentre questa cache è **condizionale sullo stato** (§D1).
 
-- [ ] 8.3 🔴 **Il troncamento è dichiarato al visitatore.** Con `troncato === true`, in coda al
+- [x] 8.3 🔴 **Il troncamento è dichiarato al visitatore.** Con `troncato === true`, in coda al
   listino: *"Sono mostrati i primi {limiteApplicato} prodotti di {totaleProdottiPubblicati}. Per il
   listino completo chiedi in cassa."* + una riga sullo stdout.
   🔴 **I due numeri vengono dal server e non sono costanti del sito**: il consumatore non li
@@ -1332,18 +1332,18 @@ sentinella — la prova che chiude il rischio centrale del change.
   *Verifica* (spec `sito-pubblico` → *🔴 Menu troncato*, *I due numeri non sono costanti del sito*,
   *Menu non troncato*): `grep -rn "300" sito/src/` non trova il limite scritto a mano.
 
-- [ ] 8.4 **`categorie` vuoto è uno stato legittimo, non un guasto.** Nessun prodotto pubblicato →
+- [x] 8.4 **`categorie` vuoto è uno stato legittimo, non un guasto.** Nessun prodotto pubblicato →
   messaggio dichiarato, **mai** una pagina bianca né un 503: è diverso dalla degradazione, dove il
   dato **non è arrivato**.
   *Verifica* (spec `sito-pubblico` → *Nessun prodotto pubblicato*): con una risposta a categorie
   vuote la pagina risponde `200` con un messaggio.
 
-- [ ] 8.5 **Test del troncamento con risposta simulata.** `troncato: true` → l'avviso compare e
+- [x] 8.5 **Test del troncamento con risposta simulata.** `troncato: true` → l'avviso compare e
   contiene **i due numeri della risposta**; `troncato: false` → non compare.
   *Verifica* (spec `sito-pubblico` → *🔴 Menu troncato*): `npm test` passa senza bisogno di 301
   prodotti a database.
 
-- [ ] 8.6 🔴 🧪 **IL DELIVERABLE — `/menu` nel browser, confrontata uno per uno con l'API.**
+- [x] 8.6 🔴 🧪 **IL DELIVERABLE — `/menu` nel browser, confrontata uno per uno con l'API.**
   **Cosa eseguire**: apri `http://localhost:4321/menu` nei **due temi**, e affianca
   `curl -sk https://localhost:4000/api/public/menu`.
   **Cosa documentare**: i **tre prodotti `VETR-F5-*`** confrontati **uno per uno** — nome, prezzo,
@@ -1353,7 +1353,7 @@ sentinella — la prova che chiude il rischio centrale del change.
   proposal §Success Criteria, primo criterio): nessuna differenza fra ciò che l'API dice e ciò che
   la pagina mostra.
 
-- [ ] 8.7 🔴 **Prova A automatizzata — l'host sentinella.** Build con
+- [x] 8.7 🔴 **Prova A automatizzata — l'host sentinella.** Build con
   `PUBLIC_MEDIA_ORIGINE=https://media.sentinella.invalid`, avvio del server di prova, richiesta a
   `/menu`: l'HTML contiene `media.sentinella.invalid` **e zero occorrenze** dell'host dell'API.
   ⚠️ La verifica **non richiede che l'host sentinella risolva**: è un'asserzione sul **markup**, non
@@ -1361,7 +1361,7 @@ sentinella — la prova che chiude il rischio centrale del change.
   *Verifica* (spec `consumo-api-pubblica` → *🔴 Prova A — host sentinella nel markup*, *L'HTML
   servito non contiene mai l'host di lettura delle rotte*): il test è verde.
 
-- [ ] 8.8 🔴 🧪 **CONTROPROVA MANUALE UNA TANTUM — con un prefisso solo l'asserzione trova l'host
+- [x] 8.8 🔴 🧪 **CONTROPROVA MANUALE UNA TANTUM — con un prefisso solo l'asserzione trova l'host
   interno.** È ciò che **dimostra** che una prova ingenua (pagina che si renderizza, markup
   presente, nessun test rosso) sarebbe passata lo stesso.
   **Cosa eseguire**: modifica `mediaUrl.ts` per comporre gli URL delle immagini da `API_INTERNA_URL`
@@ -1373,7 +1373,7 @@ sentinella — la prova che chiude il rischio centrale del change.
   *Verifica* (spec `consumo-api-pubblica` → *🔴 Controprova — con un prefisso solo l'asserzione
   trova l'host interno*): il fallimento è documentato con il testo esatto, e il ripristino verificato.
 
-- [ ] 8.9 🧪 **Prova B — due valori diversi, entrambi funzionanti.** Avvia con
+- [x] 8.9 🧪 **Prova B — due valori diversi, entrambi funzionanti.** Avvia con
   `PUBLIC_MEDIA_ORIGINE` sull'**IP di rete locale** (es. `https://192.168.1.42:4000`) e
   `API_INTERNA_URL` su `localhost:4000`.
   ⚠️ Il certificato ha `localhost` come solo SAN: l'IP nel prefisso **media** va bene perché quel
@@ -1384,13 +1384,13 @@ sentinella — la prova che chiude il rischio centrale del change.
   *Verifica* (spec `consumo-api-pubblica` → *Prova B — due valori diversi, entrambi funzionanti*):
   entrambe le metà osservate, non dedotte.
 
-- [ ] 8.10 **Test: nessun campo contabile o interno nell'HTML servito.**
+- [x] 8.10 **Test: nessun campo contabile o interno nell'HTML servito.**
   *Verifica* (spec `sito-pubblico` → *Ricerca dei campi riservati nella pagina renderizzata*):
   `Codice`, `AliquotaIva`, `unitaDiMisura`, `Attivo`, `CreatedAt`, `UpdatedAt` non compaiono nella
   pagina renderizzata. Il contratto pubblico non li possiede: il test verifica che il sito **non li
   abbia presi da altrove**.
 
-- [ ] 8.11 **Test: nessun orario scritto nei sorgenti.**
+- [x] 8.11 **Test: nessun orario scritto nei sorgenti.**
   *Verifica* (spec `sito-pubblico` → *Nessun orario nei sorgenti*): `grep -rn "20:00" sito/src/` non
   trova **nulla**. Gli orari vengono dall'API, non dai template. ⚠️ `"18:00"` è invece **atteso** in
   `degradazione.ts`, ed è l'unica occorrenza legittima di un orario: il test la nomina come
@@ -1399,6 +1399,69 @@ sentinella — la prova che chiude il rischio centrale del change.
 **Uscita di fase.** 🎯 **Il deliverable del piano è chiuso**: il menu reale con le foto reali, nei
 due temi, confrontato uno per uno con l'API. E il rischio centrale del change è chiuso con una
 prova **e** la sua controprova. La home non esiste ancora.
+
+**Esito reale (apply del 2026-08-12).** 🎯 **Deliverable chiuso, con zero differenze fra API e
+pagina.** `npm test` **71 → 85**, `check` a zero.
+
+- 🎯 **8.6 — il confronto uno per uno, e non è uno screenshot che «sembra giusto».**
+  [`prove/8.6-menu-contro-api.mjs`](./prove/8.6-menu-contro-api.mjs) legge la risposta dell'API e
+  cerca in pagina ogni prodotto con **nome, prezzo, descrizione, allergeni e marcatori**, più lo
+  stato di rete di ogni immagine. Esito sui tre prodotti reali:
+  ```
+  ok  Caffetteria │ Caffè espresso  1,20 €  «Miscela della casa, tostatura media»  consigliato  immagine 200
+  ok  Altro       │ Mojito cubano   0,00 €  novità + consigliato                   immagine 200
+  ok  Aperitivi   │ SPRITZ APEROL   4,00 €  allergeni «solfiti»  novità
+  DIFFERENZE FRA API E PAGINA: 0
+  ```
+  🔴 **Il caso `0,00 €` è quello che vale**: `Mojito cubano` ha `PrezzoVetrina = 0`, ed è un
+  **omaggio**. In pagina si stampa `0,00 €`. Chi avesse scritto `prezzo || '—'` avrebbe trasformato
+  una decisione dell'amministratore in un buco, e la prova sarebbe sembrata a posto.
+  Le due schermate nei due registri sono in [`prove/`](./prove/8.6-menu-sera.png).
+- 🔴 **8.7 / 8.8 — la prova A e la sua controprova.** Con
+  `PUBLIC_MEDIA_ORIGINE=https://media.sentinella.invalid` il markup contiene la sentinella e
+  **zero** occorrenze dell'host dell'API. Riscrivendo `mediaUrl.ts` per comporre da
+  `API_INTERNA_URL` — cioè da **un** prefisso solo — la prova A fallisce con:
+  ```
+  l'host interno dell'API compare 5 volte nel markup servito.
+  ```
+  ⚠️ **Ma il resto NON è rimasto tutto verde, e la differenza va scritta.** Il task prevedeva che
+  solo la prova A se ne accorgesse. Con la mutazione la suite chiude **75/83**, e i rossi vengono
+  da **tre difese indipendenti**:
+
+  | Difesa | Test rossi | Cosa ha visto |
+  |---|---|---|
+  | prova A (§8.7) | 3 | l'host interno nel markup |
+  | test di unicità (§3.8) | 2 | `astro:env/server` in **due** file, `astro:env/client` in **zero** |
+  | unità di `mediaUrl` (§3.7) | 3 | l'origine del browser non è più quella che compongono |
+
+  È esattamente ciò che §D2 dichiarava — *«nessuno dei tre strati basta da solo»* — osservato
+  invece che previsto. La previsione del task valeva per un progetto **senza** quegli strati: lì
+  la pagina si renderizza, le immagini caricano (i due prefissi coincidono!) e nulla diventa rosso.
+- ✅ **8.9 — la prova B, con i due valori davvero diversi.** Build con
+  `PUBLIC_MEDIA_ORIGINE=https://192.168.1.232:4000` e `API_INTERNA_URL=https://localhost:4000`:
+  la pagina si renderizza (il **server** ha letto da `localhost`) **e** le due immagini rispondono
+  `200` da `192.168.1.232` (il **browser** ha letto da un altro host). `naturalWidth` delle `<img>`
+  è `320`, non `0`: non sono icone di immagine rotta. E il markup **non nomina mai** `localhost:4000`.
+- 🔴 **Scoperta che cambia il deploy: entrambe le variabili sono di BUILD, non di runtime** — anche
+  `API_INTERNA_URL`, che è di contesto *server*. `astro:env` inlina nel bundle ogni variabile con
+  `access: 'public'`; solo i `secret` restano letti a runtime.
+  ⚠️ **Come è emersa**: i primi test del menu passavano puntando a un backend finto… e leggevano
+  quello **vero**. `costruisci()` senza la variabile e `avviaSito({API_INTERNA_URL})` non davano
+  errore, e il sito continuava a leggere `localhost:4000` — la categoria «Caffetteria» e il prodotto
+  «Caffè espresso» che i test cercavano **esistono davvero a database**, quindi due asserzioni erano
+  verdi per la ragione sbagliata. Se ne è accorto solo il caso del menu troncato, che a database non
+  esiste.
+  🔧 **Conseguenza per la Fase 6**: l'immagine del container va **costruita** con l'origine di
+  produzione; la stessa immagine non si riusa fra ambienti passando una variabile. Annotato in
+  `astro.config.mjs` accanto allo schema e in `design.md` §D2.
+- ➕ *Attrezzatura riusabile*: `test/_sito-di-prova.mjs` — un backend finto e il bundle costruito
+  che lo legge. I casi che contano (menu troncato, listino vuoto, e in Fase 10 il backend giù) a
+  database non esistono: il primo vorrebbe 301 prodotti, il secondo svuotare la vetrina di un locale
+  vero. Qui sono tre righe di JSON.
+- ⚠️ *Nota di stile motivata*: la pillola «NOVITÀ» ha il testo scritto a mano (`#020302`) invece di
+  `text-inchiostro`. L'arancio è **lo stesso nei due registri**, ma l'inchiostro no: di sera è la
+  crema, che sull'arancio dà 1.9 — illeggibile. È l'unica occorrenza di un colore per esteso fuori
+  da `global.css`, e ha questa ragione scritta accanto.
 
 ---
 

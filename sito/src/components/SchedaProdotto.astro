@@ -1,0 +1,92 @@
+---
+// Un prodotto come lo vede il cliente.
+//
+// ⚠️ `descrizione` è la descrizione **di vetrina** e non ha alcun fallback su quella
+//    contabile: un prodotto senza scheda di vetrina non mostra descrizione. Ricadere
+//    sull'altra farebbe comparire sul sito una nota interna scritta per la cassa — cosa che
+//    il DTO del backend evita apposta, e che sarebbe un peccato riportare qui.
+
+import Immagine from './Immagine.astro';
+import type { ProdottoPubblico } from '../lib/tipi.ts';
+
+interface Props {
+  prodotto: ProdottoPubblico;
+  /** `true` solo per la prima scheda della pagina: è l'immagine sopra la piega. */
+  priorita?: boolean;
+}
+
+const { prodotto, priorita = false } = Astro.props;
+
+// 🔴 `0` è un OMAGGIO, non un'assenza. Il prezzo arriva già risolto dal backend, dove la
+//    regola condivisa distingue i due casi: solo `null` sarebbe assenza, e il DTO lo
+//    direbbe. Chi scrive `prezzo || '—'` o `prezzo > 0 ? … : …` trasforma in silenzio un
+//    omaggio in un prezzo mancante — ed è il bug che la regola del backend esiste per
+//    evitare, riportato dal consumatore.
+const prezzo = new Intl.NumberFormat('it-IT', {
+  style: 'currency',
+  currency: 'EUR',
+}).format(prodotto.prezzo);
+---
+
+<article class="border-bordo bg-superficie flex flex-col overflow-hidden rounded-lg border">
+  {
+    prodotto.immagine && (
+      <div class="bg-sfondo-alt aspect-[4/3] w-full">
+        <Immagine
+          immagine={prodotto.immagine}
+          sizes="(min-width: 1024px) 20rem, (min-width: 640px) 45vw, 92vw"
+          priorita={priorita}
+        />
+      </div>
+    )
+  }
+
+  <div class="flex flex-1 flex-col gap-2 p-4">
+    <div class="flex items-baseline justify-between gap-3">
+      <h3 class="font-titolo text-xl leading-tight tracking-wide">{prodotto.nome}</h3>
+      <span class="text-accento shrink-0 text-lg">{prezzo}</span>
+    </div>
+
+    {prodotto.descrizione && <p class="text-inchiostro-tenue text-sm">{prodotto.descrizione}</p>}
+
+    {
+      (prodotto.novita || prodotto.consigliato) && (
+        <ul class="mt-auto flex flex-wrap gap-2 pt-2">
+          {/*
+            L'arancio come SUPERFICIE, mai come testo: su crema il contrasto è 2.11, sotto
+            persino la soglia del testo grande.
+
+            ⚠️ E il testo SOPRA l'arancio non è `text-inchiostro`: quello di sera è la crema
+               #F2EDE7, che sull'arancio dà 1.9 — illeggibile. L'arancio è lo stesso nei due
+               registri, quindi il testo che ci sta sopra deve esserlo altrettanto, ed è
+               l'inchiostro del giorno (#020302, contrasto 8.9 su arancio) fissato a mano.
+               È l'unica occorrenza di un colore scritto per esteso fuori da global.css, e
+               ha questa ragione.
+          */}
+          {prodotto.novita && (
+            <li class="bg-arancio rounded-full px-3 py-1 text-xs tracking-wide text-[#020302] uppercase">
+              Novità
+            </li>
+          )}
+          {prodotto.consigliato && (
+            <li class="border-arancio text-inchiostro rounded-full border px-3 py-1 text-xs tracking-wide uppercase">
+              Consigliato
+            </li>
+          )}
+        </ul>
+      )
+    }
+
+    {
+      prodotto.allergeni && (
+        <p class="text-inchiostro-tenue border-bordo mt-2 border-t pt-2 text-xs">
+          <span class="sr-only">Allergeni: </span>
+          <abbr title="Allergeni" class="no-underline">
+            ⓘ
+          </abbr>{' '}
+          {prodotto.allergeni}
+        </p>
+      )
+    }
+  </div>
+</article>
