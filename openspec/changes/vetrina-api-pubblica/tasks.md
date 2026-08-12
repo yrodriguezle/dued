@@ -1558,7 +1558,7 @@ vanno confermate esplicitamente, non ereditate per silenzio.
   🔒 Richiede il deploy: finché non è stato fatto, questo task resta **aperto e dichiarato tale**,
   non chiuso per analogia con il task 5.17.
 
-- [ ] 11.2 🔴 **`/api/public/business-name` e il bootstrap dell'app** — la minimal API di
+- [x] 11.2 🔴 **`/api/public/business-name` e il bootstrap dell'app** — la minimal API di
   [`Program.cs:358`](../../../backend/Program.cs) è **invariata** e non è stata spostata dentro
   `PublicController`. Prova **dall'interfaccia**, non solo con `curl`: apri l'app, completa il
   login, osserva l'intestazione.
@@ -1567,7 +1567,7 @@ vanno confermate esplicitamente, non ereditate per silenzio.
   ([main.tsx:43](../../../duedgusto/src/main.tsx), prima del login), ed è irraggiungibile da un
   test unitario: è una minimal API nei top-level statements.
 
-- [ ] 11.3 **Giro completo: admin salva → il sito lo mostra** — dall'interfaccia modifica
+- [x] 11.3 **Giro completo: admin salva → il sito lo mostra** — dall'interfaccia modifica
   l'indirizzo, salva, e dopo il tempo di cache richiedi `/api/public/site`. Poi modifica l'orario
   di **chiusura** dalle impostazioni della **cassa** e verifica che il sito lo riporti, senza che
   alcun dato delle impostazioni della vetrina sia cambiato.
@@ -1576,7 +1576,7 @@ vanno confermate esplicitamente, non ereditate per silenzio.
   rotta pubblica**, mai leggendo il database. È la dimostrazione che gli orari hanno **una sola
   sorgente**.
 
-- [ ] 11.4 🔴 **La cassa e il deploy sono invariati alla lettera** — controllo finale.
+- [x] 11.4 🔴 **La cassa e il deploy sono invariati alla lettera** — controllo finale.
   *Verifica* (spec `gestione-cassa` → *Confronto testuale vuoto sui file della cassa*; proposal
   §Success Criteria): `git diff --stat` **vuoto** su
   `backend/GraphQL/Vendite/VenditeMutations.cs`, `backend/GraphQL/Vendite/Types/ProdottoInputType.cs`
@@ -1585,7 +1585,7 @@ vanno confermate esplicitamente, non ereditate per silenzio.
   toccati** — un test del confine che va adattato per far passare una change è un confine che è
   stato spostato.
 
-- [ ] 11.5 **Conferma delle quattro Open Questions** — annota in design.md §"Open Questions" la
+- [x] 11.5 **Conferma delle quattro Open Questions** — annota in design.md §"Open Questions" la
   decisione presa: `/api/public/site` con la tabella vuota → **`200` con i default e un warning**;
   telefono ed email → **esposti** (dati di un'attività commerciale, già stampati sulle locandine);
   ordinamento delle categorie → **confermato** quello di §D7; irrigidimento del singleton di
@@ -1593,7 +1593,7 @@ vanno confermate esplicitamente, non ereditate per silenzio.
   *Verifica*: le quattro voci risultano spuntate con la decisione confermata, e la quarta ha un
   riferimento al punto del codice in cui il debito è scritto.
 
-- [ ] 11.6 **Checklist dei Success Criteria della proposal** — ripercorri i 16 criteri di
+- [x] 11.6 **Checklist dei Success Criteria della proposal** — ripercorri i 16 criteri di
   [proposal.md](./proposal.md) §"Success Criteria" uno per uno, con la precisazione di §D4 già
   dichiarata: `public,max-age=300` **senza spazio** è la stessa direttiva di
   `public, max-age=300`, e il criterio si verifica leggendo l'header (task 6.7), non confrontando
@@ -1602,7 +1602,7 @@ vanno confermate esplicitamente, non ereditate per silenzio.
   dimostra; ciò che resta aperto porta il nome del task che lo chiuderà invece di essere dichiarato
   raggiunto per somiglianza.
 
-- [ ] 11.7 **Suite completa verde e nessun test preesistente sacrificato** —
+- [x] 11.7 **Suite completa verde e nessun test preesistente sacrificato** —
   ```bash
   dotnet test backend/DuedGusto.Tests/DuedGusto.Tests.csproj -o /tmp/dued-test
   cd duedgusto && npm run ts:check && npm run lint && npm run test
@@ -1618,3 +1618,105 @@ vanno confermate esplicitamente, non ereditate per silenzio.
 **Uscita di fase.** Le tre prove non automatizzabili sono state eseguite invece che argomentate, le
 quattro decisioni aperte sono confermate per iscritto, e la suite è verde con i conteggi
 confrontati con il baseline.
+
+**Esito reale (apply del 2026-08-12).** Questa fase **non aggiunge codice**: verifica e
+documentazione. L'unico contenuto del commit sono i tre artefatti (`tasks.md`, `proposal.md`,
+`design.md`). Suite invariata rispetto alla Fase 10 — backend **667/667**, frontend **772/772**,
+`ts:check` e `lint` puliti. ⚠️ La suite frontend è stata eseguita **tre volte** perché un test
+preesistente si è rivelato intermittente: vedi l'ultima nota della fase.
+
+- 🔒 **11.1 resta aperto, e non per dimenticanza.** Le tre rotte sono provate anonime **in
+  sviluppo** (task 5.17, ripetuto oggi: `site` `200`, `menu` `200`, `galleria` `200` da una shell
+  senza `Authorization` e senza cookie). La spec dice *"in sviluppo **e** in produzione"*, e la
+  seconda metà **non è dimostrabile da qui**: richiede che il backend con questo change sia
+  distribuito sul VPS. Lo chiuderà **il primo deploy in produzione di questo change**, ripetendo
+  gli stessi tre `curl` contro l'host reale. Fino ad allora è aperto, non "chiuso per analogia".
+- 🔴 **Prova 11.2 eseguita nel browser, con la controprova.** Sulla seconda istanza (4012) e il
+  dev server (4001), con `config.json` intercettato a runtime invece che riscritto su disco:
+  - la chiamata di bootstrap si osserva a **`200`** su `/api/public/business-name`, **prima del
+    login**;
+  - `window.BUSINESS_NAME` vale `"duedgusto"` e la pagina di accesso mostra `"duedgusto"`;
+  - dopo il login l'header mostra lo stesso valore.
+  - **Controprova**, che è ciò che rende la prova una prova: bloccando la sola rotta di bootstrap,
+    la stessa pagina mostra il ripiego `"DuedGusto"` (con la maiuscola, letterale in
+    [`LogoSection.tsx:9`](../../../duedgusto/src/components/common/logo/LogoSection.tsx)) e
+    `window.BUSINESS_NAME` è `undefined`. Il valore giusto viene davvero da lì.
+  La minimal API di `Program.cs` non è stata toccata e non è stata spostata dentro
+  `PublicController`.
+- 🔴 **Prova 11.3 eseguita dall'interfaccia, in due giri, mai leggendo il database.**
+  1. *Vetrina*: `ImpostazioniVetrinaPage` → Modifica → "Via e numero civico" = `Via della Prova 11`
+     → Salva → `GET /api/public/site` risponde `"via":"Via della Prova 11"`, e il blocco `orari`
+     è **identico** a prima. Ripristinato a `Via del Costo 99`.
+  2. *Cassa*: chiusura portata a **`21:00`** dalla pagina delle impostazioni della cassa →
+     `GET /api/public/site` risponde `"chiusura":"21:00"` e **tutto il resto della risposta è
+     invariato byte per byte**. Ripristinata a `20:00`; il JSON finale della rotta pubblica
+     **coincide carattere per carattere** con quello letto prima di iniziare.
+  ⚠️ **Scoperta durante 11.3, e va detta invece che aggiustata**: nella pagina delle impostazioni
+  della cassa **non esiste alcun campo di apertura/chiusura**. Il componente che li contiene,
+  [`OperatingHoursSection.tsx`](../../../duedgusto/src/components/pages/settings/OperatingHoursSection.tsx),
+  **non è importato da nessuno** — `SettingsDetails` rende `BusinessSettingsForm`, che espone nome
+  attività, valuta, fuso, IVA e costi del giornale. Gli orari si scrivono dal **periodo di
+  programmazione in corso**, il cui salvataggio riallinea `BusinessSettings.OpeningTime`,
+  `ClosingTime` e `OperatingDays`
+  ([`SettingsMutations.cs:333-341`](../../../backend/GraphQL/Settings/SettingsMutations.cs)).
+  È quello il percorso vero dell'interfaccia, ed è quello che è stato usato: la card "In corso" è
+  passata da `07:00 - 20:00` a `07:00 - 21:00` e la rotta pubblica l'ha seguita. Il task 9.7
+  (*"gli orari non si modificano da qui"*) resta corretto e questa nota lo completa dicendo **da
+  dove** si modificano.
+  ⚠️ **Osservazione aperta, non un difetto di questo change**: il riallineamento avviene alla
+  **scrittura** di un periodo **senza data di fine**. Un periodo *chiuso* (con `DataFine`
+  valorizzata) che copra la data odierna cambierebbe gli orari effettivi mostrati dalla cassa
+  ([`businessSettingsStore.tsx:115-130`](../../../duedgusto/src/store/businessSettingsStore.tsx),
+  che applica l'override del periodo) **senza** toccare `BusinessSettings`, e quindi senza
+  comparire su `/api/public/site`. È lo scenario in cui la promessa "una sola sorgente" della
+  proposal §2 si incrina — non per come è scritta questa change, ma per come la cassa modella i
+  periodi. Va saputo prima che la Fase 3 generi `openingHoursSpecification` nel JSON-LD.
+- *Verifica 11.4*: `git diff --stat` **vuoto** su `VenditeMutations.cs`, `ProdottoInputType.cs` e
+  `VenditeQueries.cs` dalla base del change (`7839f97`) a `HEAD`; nell'intero ramo
+  `backend/GraphQL/Vendite/` l'unico file toccato è `ProdottoType.cs` (+11/−6), previsto dal task
+  1.2. `ConfineVetrinaCassaTests` passa **4/4** e `git diff --name-status` conferma che **non è
+  fra i file modificati**.
+  ⚠️ **Precisazione sul confronto di `deploy/`**: `git diff --stat c5f9874..HEAD -- deploy/` non è
+  vuoto, ma **non è il confronto giusto**. Fra il commit finale del change precedente e il primo
+  di questo esistono due commit che non gli appartengono, uno dei quali è `c0fb942`
+  (*fix(deploy): la pipeline smette di chiedere privilegi che non ha*). Dalla base vera del change
+  — `7839f97`, il commit che precede `7e92ca2 docs(vetrina): artefatti SDD del change API
+  pubblica` — `git diff --stat 7839f97..HEAD -- deploy/ docker-compose.yml` è **vuoto**.
+- *11.5*: le quattro Open Questions sono spuntate in [design.md](./design.md) §"Open Questions",
+  ciascuna con **come è stata effettivamente implementata** e cosa la rende migrabile più avanti.
+  La quarta nomina il punto del codice in cui il debito è scritto,
+  [`AppDbContext.cs:521-536`](../../../backend/DataAccess/AppDbContext.cs).
+- *11.6*: i 16 criteri di [proposal.md](./proposal.md) sono ripercorsi uno per uno. **Quindici
+  chiusi** con la prova che li chiude; **uno parziale** — le tre rotte anonime, chiuse in sviluppo
+  e 🔒 in produzione dal task 11.1.
+- ⚠️ **Divergenza dal testo di 11.7, dichiarata.** Il task prevedeva **due** modifiche a test
+  esistenti; sono **quattro** i file toccati, e nessuno è stato indebolito:
+  `AutorizzazioneAnonimaTests` +1/−1 (task 8.5), `PrivilegiAmministrativiTests` +94/−0 (task 8.10),
+  `MediaControllerTests` +56/−0 (task 2.3, additivo) e `VetrinaMediaTests` +231/−3. Le tre righe
+  rimosse dall'ultimo sono i **conteggi** del seed dei menu — due figli → tre, tre righe di ruolo →
+  quattro — che questo change fa crescere per progetto, ed è lo stesso numero che il criterio di
+  successo sul riavvio pretende; le asserzioni sono state anche **rafforzate**, elencando i
+  percorsi invece del solo conteggio.
+- ⚠️ 🔴 **Un test frontend è intermittente, e non per colpa di questa change — ma va scritto.**
+  La suite completa è stata eseguita **tre volte**: **771/772**, **771/772**, poi **772/772 con
+  uscita 0**. Le prime due volte il rosso è sempre lo stesso —
+  `useFetchData > smontare durante un fetch in corso annulla la subscription prima della risposta`,
+  `expected false to be true` su `result.current.loading`
+  ([useFetchData.test.tsx:696](../../../duedgusto/src/graphql/common/__tests__/useFetchData.test.tsx)).
+  È un'asserzione **a tempo**: attende che `loading` sia ancora `true` entro 2s, e su una macchina
+  carica il fetch simulato si risolve prima. Eseguito da solo, il file passa **17/17 in 7,9s**;
+  nella suite completa le tre esecuzioni hanno impiegato 392s, 374s e 379s.
+  Il file **non è stato toccato da questa change** (ultimo commit che lo tocca: `d21eec7`, del 10
+  giugno 2026) e **non è stato modificato per farlo passare**. Resta come **difetto noto della
+  suite**, non di questo change: due esecuzioni su tre rosse è una probabilità troppo alta per
+  chiamarla rumore, e prima o poi tingerà di rosso una CI che non c'entra nulla. Il rimedio non è
+  di questa fase: l'asserzione va riscritta in modo da non dipendere dalla velocità della
+  macchina.
+- *Stato del database di sviluppo dopo le prove*: **ripristinato**, e verificato da una sessione
+  `mysql.exe` vera, non solo dalla risposta della rotta.
+  `BusinessSettings` → `OpeningTime='07:00'`, `ClosingTime='20:00'`,
+  `OperatingDays=[lun–sab]`, `Timezone='Europe/Rome'`; il periodo in corso (id 2) → `07:00`–`20:00`
+  con gli stessi giorni; `ImpostazioniVetrina` → `2D Gusto Bar`, Via del Costo 99, 36016 Thiene
+  (VI), Instagram valorizzato, `OraInizioTemaSera='18:00'`. Restano — **dichiarati e attesi** — i
+  tre prodotti `VETR-F5-*` (Fase 5), i media 25 e 26 in cartella `galleria` (Fasi 2 e 9) e la voce
+  di menu 29 (Fase 10).

@@ -326,59 +326,139 @@ davvero.
 
 Ogni criterio dice **come si prova**. Nessuno si chiude per somiglianza.
 
-- [ ] `dotnet build` e `dotnet test` passano; `npm run ts:check`, `npm run lint` e `npm run test`
+> **Stato al 12 agosto 2026.** Le Fasi 1-10 sono chiuse e la Fase 11 è stata eseguita. L'unico
+> criterio che si chiude soltanto in produzione è segnato 🔒 e nomina il task che lo chiuderà
+> (11.1): non è stato dichiarato raggiunto per analogia con la prova in sviluppo.
+
+- [x] `dotnet build` e `dotnet test` passano; `npm run ts:check`, `npm run lint` e `npm run test`
       passano. → Conteggi confrontati con il baseline della Fase 1 (487 backend, 755 frontend):
       nessun test preesistente modificato per farlo passare.
-- [ ] La migrazione si applica su un database con dati di cassa reali senza perdita.
+  → **667/667** backend (487 → 667, +180) e **772/772** frontend (755 → 772, +17), `ts:check` e
+  `lint` puliti (task 11.7). Quattro file di test preesistenti risultano modificati e **nessuno**
+  è stato indebolito: `AutorizzazioneAnonimaTests` +1/−1 (la sola aggiunta di `"vetrina"`, task
+  8.5), `PrivilegiAmministrativiTests` +94/−0 e `MediaControllerTests` +56/−0 (puramente
+  additivi), `VetrinaMediaTests` +231/−3 — le tre righe sono i **conteggi** del seed dei menu, che
+  passano da 2 a 3 figli e da 3 a 4 righe di ruolo perché questo change aggiunge una voce per
+  progetto, ed è lo stesso numero che il criterio sul riavvio pretende qui sotto. Divergenza
+  dichiarata: il task 11.7 prevedeva **due** modifiche a test esistenti, non tre.
+  ⚠️ La suite frontend è stata eseguita **tre volte** — 771, 771, poi **772 con uscita 0**: il
+  rosso ripetuto è un test **preesistente** e sensibile ai tempi (`useFetchData`, non toccato da
+  questo change) che da solo passa 17/17 in 7,9s. È annotato come difetto noto della suite nel
+  task 11.7, e non è stato modificato per farlo passare.
+- [x] La migrazione si applica su un database con dati di cassa reali senza perdita.
       → `dotnet ef migrations script` mostra **solo** `CREATE TABLE`; conteggio di `Prodotti`,
       `BusinessSettings` e `MediaAssets` identico prima e dopo.
-- [ ] 🔴 Le tre rotte rispondono **200 con JSON a un client senza alcun token**.
+  → Task 3.5 e 3.6: lo script contiene solo `CREATE TABLE`, `CREATE INDEX` e la riga di storico;
+  applicata su un database con 607 registri storici, conteggi identici e `SHOW CREATE TABLE` di
+  `MediaAssets`, `Prodotti` e `BusinessSettings` **identici byte per byte** prima e dopo.
+- [~] 🔴 Le tre rotte rispondono **200 con JSON a un client senza alcun token**.
       → `curl -sk https://<host>/api/public/{site,menu,galleria}` da una shell senza header
       `Authorization` e senza cookie, in Development e in produzione.
-- [ ] 🔴 **Lo stesso dato non è raggiungibile via GraphQL anonimo**: `AutorizzazioneAnonimaTests`
+  → **In sviluppo: chiuso** (task 5.17, ripetuto il 12 agosto in Fase 11 — `site`, `menu` e
+  `galleria` rispondono `200`); le tre risposte con un token amministratore sono identiche byte
+  per byte a quelle anonime. 🔒 **In produzione lo chiude il task 11.1**, che richiede il deploy.
+- [x] 🔴 **Lo stesso dato non è raggiungibile via GraphQL anonimo**: `AutorizzazioneAnonimaTests`
       resta verde **e** copre il nuovo ramo `vetrina` query. → Il test enumera dallo schema, quindi
       il ramo nuovo compare nella lista dei casi senza che nessuno lo aggiunga a mano: si verifica
       leggendo l'output di `dotnet test --logger "console;verbosity=detailed"`.
-- [ ] 🔴 **La risposta di `/api/public/menu` non contiene mai `codice`, `aliquotaIva`, `createdAt`,
+  → Task 8.5: il test è diventato rosso all'introduzione del ramo e l'unica modifica è stata
+  aggiungere `"vetrina"` all'elenco; le tre `Theory` enumerative coprono `Query.vetrina` da sole.
+  Prova dal vivo in 8.11: anonimo su `query { vetrina { impostazioni } }` →
+  `ACCESS_DENIED`.
+- [x] 🔴 **La risposta di `/api/public/menu` non contiene mai `codice`, `aliquotaIva`, `createdAt`,
       `updatedAt`, `unitaDiMisura`, `categoria` (contabile) né `attivo`.** → Due prove indipendenti:
       `curl … | jq 'paths | join(".")' | sort -u` sull'output reale, **e** un test strutturale che
       asserisce l'elenco **esatto** delle property del DTO — il primo prova oggi, il secondo
       impedisce domani.
-- [ ] Un prodotto con `VisibileSulSito = true` e `Attivo = false` **non compare** in
+  → Entrambe eseguite. Sul JSON reale (task 5.17): nessuna delle **54** chiavi delle tre risposte
+  appartiene all'elenco riservato. Sulla struttura (task 5.10): pin esatto per riflessione,
+  ricorsivo sui tipi annidati, **verificato per mutazione** (5.11) — un `AliquotaIva` aggiunto a
+  un record di secondo livello rende rossi 2 test su 18 e il messaggio nomina
+  `CategoriaMenuDto.AliquotaIva`.
+- [x] Un prodotto con `VisibileSulSito = true` e `Attivo = false` **non compare** in
       `/api/public/menu`. → Test che ne crea uno e conta gli elementi della risposta; e la
       controprova, `Attivo = true, VisibileSulSito = false`, altrettanto assente.
-- [ ] 🔴 **La regola di pubblicazione esiste in un punto solo.**
+  → Task 5.12, più la controprova **sul dominio vero** in 5.17: il prodotto `VETR-F5-902`
+  (`Attivo = 0`) non compare nel menu della rotta viva e **non è conteggiato**
+  (`totaleProdottiPubblicati: 3` su 4 righe marcate visibili).
+- [x] 🔴 **La regola di pubblicazione esiste in un punto solo.**
       → `grep -rn "VisibileSulSito" backend/ --include=*.cs` restituisce l'entità, la
       configurazione EF, la mutation che la scrive e **una sola** espressione di filtro; nessuna
       seconda congiunzione `Attivo && VisibileSulSito` nel controller.
-- [ ] `PrezzoVetrina = null` → il DTO espone il `Prezzo` di listino; `PrezzoVetrina = 0` → il DTO
+  → Task 1.7, e non come `grep` manuale ma come test permanente
+  (`RegolaPubblicazioneUnicaTests`), **verificato per mutazione** (1.8): una seconda congiunzione
+  aggiunta in un file del ramo vetrina lo rende rosso **nominando il file di troppo**.
+- [x] `PrezzoVetrina = null` → il DTO espone il `Prezzo` di listino; `PrezzoVetrina = 0` → il DTO
       espone **0**. → Due test distinti: il secondo è quello che si dimentica, ed è quello che
       trasforma un omaggio in un prezzo pieno sul sito.
-- [ ] Con più di 300 prodotti pubblicabili la risposta ne contiene 300, **dichiara il troncamento**
+  → Due volte: sulla regola (1.5, mutazione 1.6) e sul percorso completo del controller (5.13,
+  con la sua mutazione). E sul JSON reale: `VETR-PROVA` ha `PrezzoVetrina = 0.00` e
+  `Prezzo = 8.00`, e la rotta espone **`"prezzo":0.00`**. ⚠️ Scoperta del task 5.13: il test
+  strutturale di unicità **non** protegge da questa mutazione (la riscrittura con `> 0` non
+  contiene alcun `??`) — è la ragione per cui le due prove sono separate.
+- [x] Con più di 300 prodotti pubblicabili la risposta ne contiene 300, **dichiara il troncamento**
       e ne resta un warning nei log. → Test con 301 prodotti che asserisce conteggio, campo di
       troncamento e messaggio.
-- [ ] Gli header di cache sono quelli dichiarati. → `curl -I` mostra
+  → Task 5.14. Il troncamento avviene **in SQL** (`ORDER BY OrdinamentoVetrina, ProdottoId LIMIT
+  300`, ordine totale): con 301 prodotti si perde sempre lo stesso, l'ultimo per ordinamento, e
+  non un'intera categoria a caso.
+- [x] Gli header di cache sono quelli dichiarati. → `curl -I` mostra
       `Cache-Control: public, max-age=300` su `site` e `galleria`, `max-age=60` su `menu`, e
       **nessun `Set-Cookie`** su nessuna delle tre.
-- [ ] `GET /api/public/business-name` risponde ancora, e **l'app si avvia**: login completato e
+  → Task 6.7, e con una correzione al metodo: **`curl -I` non va usato** su queste rotte — manda
+  un HEAD, le action sono `[HttpGet]` e la risposta è `405` con la policy CORS **globale**, cioè
+  l'opposto di ciò che si voleva leggere. Su GET vere (`curl -sk -o /dev/null -D -`):
+  `public,max-age=300` su `site` e `galleria`, `public,max-age=60` su `menu`, **nessun**
+  `Set-Cookie`, `Vary`, `Expires` o `Pragma`. Riletto il 12 agosto in Fase 11, identico.
+  `public,max-age=300` **senza spazio** dopo la virgola è la stessa direttiva di
+  `public, max-age=300`: ASP.NET la emette così, e il criterio si legge, non si confronta con una
+  stringa.
+- [x] `GET /api/public/business-name` risponde ancora, e **l'app si avvia**: login completato e
       titolo dell'attività visibile in header. → Prova dall'interfaccia, non solo con `curl`: è il
       bootstrap di `main.tsx` a doverne uscire intatto.
-- [ ] Un amministratore compila indirizzo, social e ora del tema sera da
+  → Task 11.2, provato **nel browser**: la chiamata di bootstrap si osserva a `200`, prima del
+  login `window.BUSINESS_NAME` vale `"duedgusto"` e il titolo mostrato è `"duedgusto"`; dopo il
+  login l'header mostra lo stesso valore. **Con controprova**: bloccando la rotta, la stessa
+  pagina mostra il ripiego `"DuedGusto"` e `window.BUSINESS_NAME` è `undefined` — il valore
+  giusto viene da lì e non è una coincidenza.
+- [x] Un amministratore compila indirizzo, social e ora del tema sera da
       `ImpostazioniVetrinaPage`, salva, e i valori **compaiono in `/api/public/site`** entro il
       tempo di cache. → Giro completo dall'interfaccia + `curl` sulla rotta pubblica, non lettura
       del database.
-- [ ] Un utente autenticato **non amministratore** riceve un errore su
+  → Task 11.3, dall'interfaccia e mai dal database: indirizzo scritto nella pagina →
+  `"via":"Via della Prova 11"` sulla rotta pubblica → ripristinato a `"Via del Costo 99"`. E il
+  giro speculare sugli **orari**, che appartengono alla cassa: chiusura portata a `21:00` dalla
+  pagina delle impostazioni della cassa → `"chiusura":"21:00"` sulla rotta pubblica, con **tutto
+  il resto della risposta invariato** → ripristinata a `20:00`. È la dimostrazione che gli orari
+  hanno una sola sorgente. (Task 9.10 aveva già chiuso il giro su geo, social, SEO e immagine OG.)
+- [x] Un utente autenticato **non amministratore** riceve un errore su
       `mutateImpostazioniVetrina` e sulla query `vetrina { impostazioni }`, chiamando GraphQL
       direttamente. → Due casi nel gruppo dei test sui privilegi amministrativi, con verifica che
       **nessuna scrittura** sia avvenuta.
-- [ ] Un riavvio del backend con `SEED_ON_STARTUP=true` **non duplica** la terza voce di menu e
+  → Task 8.10 (5 casi nuovi in `PrivilegiAmministrativiTests`) e prova dal vivo in 10.6: con il
+  token di un utente Gestore la chiamata GraphQL **diretta** risponde *«Operazione riservata agli
+  amministratori»*, e la pagina non si apre nemmeno digitando l'URL a mano perché le route del
+  frontend nascono dai menu dell'utente. Doppio gating dimostrato su entrambi gli strati.
+- [x] Un riavvio del backend con `SEED_ON_STARTUP=true` **non duplica** la terza voce di menu e
       **non sovrascrive** le impostazioni già editate dall'admin. → Tre avvii consecutivi: conteggio
       dei figli di "Sito" fermo a 3 e campo modificato a mano ancora al suo valore.
-- [ ] 🔴 **La cassa è invariata, alla lettera.** → `git diff --stat` **vuoto** su
+  → Task 10.4: tre avvii reali, un padre e **tre** figli dopo ognuno (non nove), e gli
+  identificativi restano `27, 28, 29` — le voci non vengono ricreate, che è più forte del solo
+  conteggio. Task 4.4: indirizzo, Instagram e telefono modificati a mano sopravvivono a tre
+  riavvii, mentre l'insegna che nessuno aveva toccato non viene riscritta.
+- [x] 🔴 **La cassa è invariata, alla lettera.** → `git diff --stat` **vuoto** su
       `VenditeMutations.cs`, `ProdottoInputType.cs` e `VenditeQueries.cs`; i test strutturali del
       confine della Fase 1 passano senza modifiche.
-- [ ] **Nessun file sotto `deploy/` né `docker-compose.yml` è stato toccato.**
+  → Task 11.4: `git diff --stat <base>..HEAD` **vuoto** su tutti e tre; nel ramo
+  `backend/GraphQL/Vendite/` l'unico file toccato è `ProdottoType.cs` (+11/−6), previsto dal task
+  1.2. `ConfineVetrinaCassaTests` passa **4/4 senza essere stato toccato**.
+- [x] **Nessun file sotto `deploy/` né `docker-compose.yml` è stato toccato.**
       → `git diff --stat deploy/ docker-compose.yml` vuoto (§4).
+  → Task 11.4: vuoto dalla base del change (`7839f97`) a `HEAD`. ⚠️ Precisazione necessaria: fra
+  il commit finale del change precedente e il primo di questo esiste `c0fb942`
+  (*fix(deploy): la pipeline smette di chiedere privilegi che non ha*), che tocca `deploy/` e
+  **non appartiene a questo change**. Un confronto fatto partire da lì mostrerebbe quattro file
+  modificati e sarebbe una lettura sbagliata.
 
 ---
 
