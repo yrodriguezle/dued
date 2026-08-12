@@ -1739,10 +1739,10 @@ codici di stato scelti per due ragioni diverse, e nulla di degradato può finire
 **Perché esiste.** È **l'unica modifica a un file preesistente** di tutto il change, e va per ultima
 proprio per questo: isolata nel diff, dove chiunque la veda sappia che è tutta lì.
 
-- [ ] 11.1 **`"dev:sito": "cd sito && npm run dev"`** in `package.json` di radice.
+- [x] 11.1 **`"dev:sito": "cd sito && npm run dev"`** in `package.json` di radice.
   *Verifica*: `npm run dev:sito` dalla radice avvia il sito su `:4321`.
 
-- [ ] 11.2 **`dev:sito` dentro il `concurrently` di `dev`** — l'elenco dei nomi diventa
+- [x] 11.2 **`dev:sito` dentro il `concurrently` di `dev`** — l'elenco dei nomi diventa
   `backend,frontend,sito` e quello dei colori acquista una terza voce.
   ⚠️ **Ordine di avvio**: i tre processi partono insieme, quindi il sito può fare la sua prima
   lettura **prima** che il backend sia in ascolto. Il risultato è una pagina degradata al primo
@@ -1750,7 +1750,7 @@ proprio per questo: isolata nel diff, dove chiunque la veda sappia che è tutta 
   perché altrimenti sembra un difetto.
   *Verifica*: `npm run dev` dalla radice avvia **tre** processi etichettati.
 
-- [ ] 11.3 🔴 **Il diff sui file preesistenti è quello dichiarato, e nient'altro.**
+- [x] 11.3 🔴 **Il diff sui file preesistenti è quello dichiarato, e nient'altro.**
   *Verifica* (spec `sito-pubblico` → *La radice cambia di due righe e non di più*, *Il rollback è la
   rimozione di una cartella*): `git diff --stat` fuori da `sito/` tocca **`package.json` di radice**
   (due righe: una aggiunta, una modificata) e — se il task 2.2 ha concluso che serviva —
@@ -1760,6 +1760,37 @@ proprio per questo: isolata nel diff, dove chiunque la veda sappia che è tutta 
 
 **Uscita di fase.** Un comando solo avvia tutto, e il costo sul repository esistente è **due righe in
 un file** (più eventualmente una riga in un secondo).
+
+**Esito reale (apply del 2026-08-12).** Uscita raggiunta, e **il costo è di due righe in UN file
+solo**.
+
+- ✅ *11.3 — il diff sui file preesistenti è esattamente quello dichiarato.* Fuori da `sito/` e da
+  `openspec/`:
+  ```
+  package.json | 3 ++-
+  1 file changed, 2 insertions(+), 1 deletion(-)
+  ```
+  Una riga aggiunta (`dev:sito`) e una modificata (`dev`, che passa a tre processi). **Nessun
+  secondo file**: `backend/.gitignore` non è servito, perché `*.pem` e `*.key` già coprivano il
+  certificato esportato (task 2.2). La divergenza n. 15 del design è stata corretta lì.
+  🔴 **Il rollback è quindi `rm -rf sito/` più due righe da togliere.**
+- ✅ *11.1 e 11.2 provati davvero*: `npm run dev:sito` dalla radice porta il sito su `:4321`, e
+  `/` e `/menu` rispondono `200`.
+- ⚠️ **Due comportamenti di Astro 7 che rendono `concurrently` meno ovvio di quanto sembri**, ed
+  entrambi sono finiti nel README perché altrimenti si scoprono nel modo peggiore.
+  1. **Il dev server si sgancia quando l'output non è un terminale** — cioè proprio sotto
+     `concurrently`. Il comando stampa l'indirizzo e **ritorna**, ma il server resta vivo: il
+     pannello di `concurrently` risulterà concluso mentre il sito continua a rispondere, e
+     `Ctrl+C` non lo ferma. Si ferma con `npx astro dev stop`.
+  2. 🔴 **Un server orfano su `:4321` non fa fallire il successivo**: Astro prende la porta libera
+     dopo (`4322`, poi `4323`…) e lo dice in una riga facile da non leggere. Osservato in questa
+     fase — `dev:sito` è partito su `4322` per un dev server rimasto acceso da una fase precedente.
+     Il sintomo è che «le modifiche non si vedono», perché il browser guarda il server vecchio.
+- ⚠️ *L'avvertimento del task 11.2 è corretto e resta*: i tre processi partono insieme, quindi il
+  sito fa la sua prima lettura mentre il backend sale, e la prima schermata può essere **degradata**
+  — home con l'avviso, `/menu` a `503`. Sparisce al primo reload, ed è coperto dalla Fase 10.
+  Scritto nel README, con la ragione per cui non resta appiccicato: le risposte degradate dicono
+  `no-store`.
 
 ---
 

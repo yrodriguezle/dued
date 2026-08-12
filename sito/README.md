@@ -45,6 +45,19 @@ npm install
 npm run dev          # http://localhost:4321
 ```
 
+### Dalla radice, tutto insieme
+
+```bash
+npm run dev          # backend :4000, app di cassa :4001, sito :4321
+npm run dev:sito     # solo il sito
+```
+
+⚠️ **La prima schermata del sito può essere degradata, ed è atteso.** I tre processi partono
+insieme, quindi il sito fa la sua prima lettura mentre il backend sta ancora salendo: la home
+mostra marca e slogan con l'avviso «alcune informazioni non sono raggiungibili», e `/menu`
+risponde `503`. Sparisce al primo reload. Non è un difetto, è la degradazione che funziona —
+e visto che le risposte degradate dicono `no-store`, non resta niente in cache a ricordarsene.
+
 ## I due prefissi, e l'avviso che vedrai ogni giorno
 
 Il sito ha **due** origini configurate, non una, perché due sono i lettori:
@@ -151,6 +164,12 @@ sullo stdout con il motivo (`rete`, `timeout`, `http`, `formato`) e l'URL.
 | `npm test` | I test, con `node:test` del runtime — nessuna dipendenza di test |
 | `npm run check` | Controllo dei tipi, `.astro` compresi |
 
-⚠️ Il dev server di Astro 7 **si sgancia dal terminale**: `npm run dev` stampa l'indirizzo e
-ritorna. Si ferma con `npx astro dev stop`, si ispeziona con `npx astro dev status` e
-`npx astro dev logs`.
+⚠️ Il dev server di Astro 7 **si sgancia quando l'output non è un terminale** — cioè sotto
+`concurrently`, in uno script, in CI. `npm run dev` stampa l'indirizzo e **ritorna**, ma il
+server resta vivo. Si ferma con `npx astro dev stop`, si ispeziona con `npx astro dev status`
+e `npx astro dev logs`.
+
+⚠️ **Conseguenza da conoscere**: se resta un server orfano su `:4321`, il successivo **non
+fallisce** — Astro prende la porta libera dopo (`4322`, poi `4323`…) e lo dice in una riga che
+è facile non leggere. Il sintomo è che le modifiche «non si vedono», perché il browser sta
+guardando il server vecchio. `npx astro dev status` risponde in un secondo.
