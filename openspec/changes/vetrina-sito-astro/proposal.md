@@ -409,71 +409,78 @@ con il go-live (Fase 6).
 
 Ogni criterio dice **come si prova**. Nessuno si chiude per somiglianza.
 
-- [ ] 🔴 **Il deliverable della Fase 2 del piano, alla lettera**: `localhost:4321` mostra **il menu
+✅ **Ripercorsi uno per uno in apply il 2026-08-12** (task 12.14). La tabella che associa ogni
+criterio alla prova che lo chiude — con il numero del task e il risultato misurato — è
+nell'"Esito reale" della Fase 12 di [tasks.md](./tasks.md).
+
+⚠️ Le voci sono **diciotto**, non diciassette come le contava il task 12.15: la differenza è
+un errore di conteggio dell'artefatto, non un criterio comparso dopo.
+
+- [x] 🔴 **Il deliverable della Fase 2 del piano, alla lettera**: `localhost:4321` mostra **il menu
       reale con le foto reali, nei due temi**. → Non uno screenshot della home: `/menu` aperta nel
       browser, i prodotti confrontati **uno per uno** con la risposta di
       `curl -sk https://localhost:4000/api/public/menu`, e le immagini che caricano davvero
       (`200` nella scheda di rete, non l'`alt` di un `404`).
-- [ ] `npm run build` produce un bundle SSR e `node dist/server/entry.mjs` serve entrambe le pagine.
+- [x] `npm run build` produce un bundle SSR e `node dist/server/entry.mjs` serve entrambe le pagine.
       → Non solo `npm run dev`: il server di sviluppo e il bundle di produzione falliscono in modi
       diversi, e la Fase 6 spedirà il secondo.
-- [ ] 🔴 **I due prefissi sono distinti, e lo si prova dove naturalmente coinciderebbero.** → Il
+- [x] 🔴 **I due prefissi sono distinti, e lo si prova dove naturalmente coinciderebbero.** → Il
       sito si avvia con il prefisso API e quello media **puntati a due valori diversi**, la pagina
       si renderizza e le immagini caricano. Controprova che chiude il criterio: con un prefisso
       solo, il markup generato contiene l'host interno — cioè si **dimostra** che la prova sarebbe
       passata lo stesso, ed è per questo che serve quella con i due valori.
-- [ ] **Nessun `Codice`, `AliquotaIva` o categoria contabile compare nell'HTML servito.** →
+- [x] **Nessun `Codice`, `AliquotaIva` o categoria contabile compare nell'HTML servito.** →
       `curl` sulla pagina renderizzata e ricerca delle stringhe: il contratto pubblico non li
       possiede, quindi il criterio verifica che il sito non li abbia presi da altrove.
-- [ ] 🔴 **Nessun FOUC**, provato in condizioni sfavorevoli. → Hard reload ripetuti (almeno dieci)
+- [x] 🔴 **Nessun FOUC**, provato in condizioni sfavorevoli. → Hard reload ripetuti (almeno dieci)
       con cache disabilitata e throttling di rete, su **entrambi** i temi, partendo da ognuno dei
       tre stati del toggle. Un solo lampo bianco all'apertura in tema sera fa fallire il criterio.
-- [ ] Il tema segue l'ora **di Roma**, non quella del visitatore. → Cambio del fuso orario del
+- [x] Il tema segue l'ora **di Roma**, non quella del visitatore. → Cambio del fuso orario del
       sistema (o del profilo del browser) a un fuso lontano: il tema **non** cambia. È l'unico modo
       di distinguere una lettura di `Europe/Rome` da un `new Date()` che oggi darebbe lo stesso
       risultato.
-- [ ] Il toggle a tre stati funziona e **sopravvive al reload**: giorno → sera → auto, con la
+- [x] Il toggle a tre stati funziona e **sopravvive al reload**: giorno → sera → auto, con la
       preferenza esplicita che vince sull'ora e "auto" che vi ritorna. → Giro completo nel browser
       con un reload dopo ogni stato.
-- [ ] 🔴 **L'HTML servito è identico nei due temi.** → `curl` due volte sulla stessa pagina e
+- [x] 🔴 **L'HTML servito è identico nei due temi.** → `curl` due volte sulla stessa pagina e
       confronto **byte per byte**: se il tema fosse finito server-side, i due corpi
       differirebbero. È la prova che il micro-cache di Fase 6 non verrà frammentato, e si può fare
       solo adesso che il sito nasce.
-- [ ] **Contrasto misurato, non stimato, su entrambi i temi.** → Strumento di accessibilità del
+- [x] **Contrasto misurato, non stimato, su entrambi i temi.** → Strumento di accessibilità del
       browser su `/` e `/menu` nei due temi: nessuna coppia testo/sfondo sotto 4.5:1 (3:1 per il
       testo grande). In particolare: **nessun testo arancione sul tema giorno**, verificato
       ispezionando gli elementi che usano quel token e non solo leggendo il CSS.
-- [ ] **I font sono serviti dal sito, mai da un CDN.** → Scheda di rete: zero richieste verso
+- [x] **I font sono serviti dal sito, mai da un CDN.** → Scheda di rete: zero richieste verso
       `fonts.googleapis.com` o `fonts.gstatic.com`, e i `.woff2` caricati da un percorso locale.
       In più: `grep` per quei domini nell'HTML e nel CSS generati.
-- [ ] **Il logo segue il tema.** → Toggle giorno/sera con il logo visibile: il segno resta leggibile
+- [x] **Il logo segue il tema.** → Toggle giorno/sera con il logo visibile: il segno resta leggibile
       su entrambi i fondi. Controprova diagnostica: l'SVG del logo è **inline nel DOM** (ispezione
       dell'elemento mostra `<svg>`, non `<img>`), che è l'unica condizione in cui `currentColor`
       può funzionare.
-- [ ] Gli orari mostrati e lo stato "aperto ora" vengono **dall'API**, non dal template. → Modifica
+- [x] Gli orari mostrati e lo stato "aperto ora" vengono **dall'API**, non dal template. → Modifica
       dell'orario di chiusura dalla pagina delle impostazioni della cassa → il sito lo riflette
       entro il tempo di cache → ripristino. È il giro già dimostrato nel change precedente, qui
       chiuso **sul sito** invece che su `curl`. In più: `grep` di `"20:00"` nei sorgenti di `sito/`
       non trova nulla.
-- [ ] Un prodotto marcato `consigliato` compare in home; togliendo il marcatore **sparisce**. →
+- [x] Un prodotto marcato `consigliato` compare in home; togliendo il marcatore **sparisce**. →
       Giro dall'admin, non modifica del database: è la prova che la home legge dati vivi e non una
       lista scritta a mano.
-- [ ] Il flag di troncamento del menu è **onorato**, non ignorato. → Prova con la risposta
+- [x] Il flag di troncamento del menu è **onorato**, non ignorato. → Prova con la risposta
       dell'API che dichiara `troncato: true` (anche simulata): la pagina lo comunica invece di
       mostrare un menu incompleto in silenzio.
-- [ ] La pagina **degrada in modo dichiarato** se il backend non risponde. → Backend spento, poi
+- [x] La pagina **degrada in modo dichiarato** se il backend non risponde. → Backend spento, poi
       apertura di `/` e `/menu`: quel che si vede è ciò che la decisione aperta n. 6 avrà stabilito
       — e **non** una pagina di errore di Astro né un 500 nudo.
-- [ ] 🔴 **Il backend e l'admin sono invariati, alla lettera.** → `git diff --stat` **vuoto** su
+- [x] 🔴 **Il backend e l'admin sono invariati, alla lettera.** → `git diff --stat` **vuoto** su
       `backend/` e `duedgusto/` dalla base del change a `HEAD`; `dotnet test` e
       `npm run test`/`ts:check`/`lint` del frontend passano **senza che un solo file di test sia
       stato toccato**.
-- [ ] **Nessun file sotto `deploy/`, `docker-compose.yml` o `.github/` è stato toccato.** →
+- [x] **Nessun file sotto `deploy/`, `docker-compose.yml` o `.github/` è stato toccato.** →
       `git diff --stat deploy/ docker-compose.yml .github/` vuoto. ⚠️ Il confronto parte dalla base
       **di questo change**, non dall'ultimo commit del precedente: nella storia del progetto esiste
       già un commit di `deploy/` che non appartiene ad alcun change della vetrina, e farlo partire
       da lì produrrebbe una lettura sbagliata.
-- [ ] La versione di Astro e quella di Node sono **dichiarate**, non implicite. → `engines` in
+- [x] La versione di Astro e quella di Node sono **dichiarate**, non implicite. → `engines` in
       `sito/package.json` coerente con la versione di Astro installata, e `npm install` che
       completa su una macchina che rispetta quel vincolo. È il criterio che impedisce alla decisione
       aperta n. 1 di tornare fra un mese come un errore di installazione.

@@ -1537,23 +1537,34 @@ presa.
       l'assenza **di tutte**: risponde alla domanda e impedisce che un commento futuro rimetta per
       sbaglio una variabile inutile nel foglio spedito.
 
-- [ ] **`astro:env` richiede il prefisso `PUBLIC_` per le variabili di contesto client?** Con lo
-      schema il contesto è già dichiarato, quindi il prefisso potrebbe non essere obbligatorio.
-      **Raccomandazione: tenerlo comunque.** È la parola che qualcuno legge nel `.env` mentre decide
-      quale valore mettere, e "PUBLIC" significa letteralmente *il browser lo vedrà*. Se risultasse
-      obbligatorio, non cambia niente; se risultasse superfluo, resta per la ragione per cui è stato
-      scelto.
+- [x] **`astro:env` richiede il prefisso `PUBLIC_` per le variabili di contesto client?**
+      ✅ **CHIUSA in apply il 2026-08-12 (task 3.1): NON è obbligatorio, e si tiene lo stesso.**
+      Lo schema dichiara già il contesto, e le build sono passate senza che Astro chiedesse nulla
+      sul nome. Resta per la ragione per cui era stato scelto: è la parola che qualcuno legge nel
+      `.env` mentre decide quale valore mettere, e *PUBLIC* significa letteralmente **il browser lo
+      vedrà**.
 
-- [ ] **`Astro.url.origin` dietro nginx**: dipende da `Host` e `X-Forwarded-Proto`, che la
-      configurazione esistente inoltra già, ma il proxy davanti alla **vetrina** non esiste ancora.
-      **Raccomandazione: usarlo comunque** — è corretto in sviluppo ed è l'unica sorgente di origine
-      assoluta senza `site:` — e **verificarlo in Fase 6**, quando il server block nascerà. Il
-      sintomo di un guasto sarebbe un `og:image` in `http://` su un sito in `https://`.
+      ➕ Ed è emersa una seconda ragione che il design non aveva: `access: 'public'` significa
+      anche **inlinato nella build**, per entrambi i contesti (vedi §D2). Il prefisso `PUBLIC_` nel
+      nome è l'unico posto in cui quella parola compare a chi legge il `.env`, e ora ne segnala due
+      cose invece di una.
 
-- [ ] **Il fallback `og-default.jpg` conviene?** L'immagine OG dall'API è il caso normale e
-      `ImpostazioniVetrina.ImmagineOg` è già compilabile dall'admin. **Raccomandazione: tenere il
-      ripiego.** Il costo è un file già esistente in `docs/brand/` e tre righe; l'alternativa è un
-      link condiviso senza anteprima nel giorno in cui nessuno ha ancora scelto l'immagine.
+- [x] **`Astro.url.origin` dietro nginx** ✅ **CHIUSA in apply il 2026-08-12 (task 6.9): usato,
+      con il rischio residuo dichiarato.** È l'unica sorgente di origine assoluta senza `site:`, e
+      in sviluppo è corretto — misurato: `og:image` vale
+      `http://127.0.0.1:4399/og-default.jpg` sul bundle servito da quella porta, cioè segue l'host
+      della richiesta.
+
+      🔧 **Resta da riverificare in Fase 6**, quando davanti alla vetrina nascerà un server block:
+      il sintomo di un guasto sarebbe un `og:image` in `http://` su un sito in `https://`, e
+      dipende da `Host` e `X-Forwarded-Proto` — che la configurazione nginx esistente **già
+      inoltra**, ma per l'app, non per un host che ancora non c'è.
+
+- [x] **Il fallback `og-default.jpg` conviene?** ✅ **CHIUSA in apply il 2026-08-12 (task 6.9):
+      tenuto, e serve già adesso.** `ImpostazioniVetrina.ImmagineOg` è `null` a database in questo
+      momento: senza il ripiego, ogni link condiviso del sito oggi non avrebbe anteprima. Il costo
+      è stato esattamente quello previsto — un file già esistente (`docs/brand/og-default.jpg`,
+      1200×630, 35 kB, copiato in `public/`) e tre righe.
 
 - [x] **La fascia "Aperitivo" in registro sera fissa: scelta editoriale o solo dimostrazione
       tecnica?** ✅ **CHIUSA in apply il 2026-08-12: si tiene**, e non solo per la ragione tecnica.

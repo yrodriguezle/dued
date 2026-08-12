@@ -1801,13 +1801,13 @@ automatizzano in questa fase — l'automazione dell'audit e della regressione vi
 progetto. Se non hanno un task proprio, non verranno fatte: verranno *dichiarate fatte* per
 somiglianza, che è il modo in cui un criterio di successo smette di significare qualcosa.
 
-- [ ] 12.1 **`sito/README.md` — stesura finale, con le cinque verifiche manuali e come eseguirle.**
+- [x] 12.1 **`sito/README.md` — stesura finale, con le cinque verifiche manuali e come eseguirle.**
   Assenza di FOUC, misura del contrasto, indipendenza dal fuso orario, immagini che caricano davvero,
   zero richieste ai domini dei font.
   *Verifica* (spec `sito-pubblico` → *L'elenco manuale è scritto*): il README elenca le cinque
   verifiche **con il modo di eseguirle**, non solo con il loro nome.
 
-- [ ] 12.2 🔴 🧪 **Build SSR reale, non solo `npm run dev`.**
+- [x] 12.2 🔴 🧪 **Build SSR reale, non solo `npm run dev`.**
   **Cosa eseguire**: `cd sito && npm run build && node dist/server/entry.mjs`, poi apri **entrambe**
   le pagine.
   **Cosa documentare**: che il bundle serve `/` e `/menu`, e qualunque differenza rispetto al dev
@@ -1815,7 +1815,7 @@ somiglianza, che è il modo in cui un criterio di successo smette di significare
   *Verifica* (spec `sito-pubblico` → *Build e avvio del bundle*; proposal §Success Criteria): le due
   pagine rispondono dal bundle di produzione.
 
-- [ ] 12.3 🔴 🧪 **Nessun FOUC, in condizioni sfavorevoli.**
+- [x] 12.3 🔴 🧪 **Nessun FOUC, in condizioni sfavorevoli.**
   **Cosa eseguire**: **dieci** hard reload con **cache disabilitata** e **throttling di rete**, su
   **entrambi** i temi, partendo da **ognuno dei tre stati** del toggle.
   **Cosa documentare**: il numero di reload fatti per combinazione e l'esito. 🔴 **Un solo lampo
@@ -1824,7 +1824,7 @@ somiglianza, che è il modo in cui un criterio di successo smette di significare
   *Verifica* (spec `temi-e-identita` → *🔴 Dieci hard reload in tema sera*, *Nessun lampo dai tre
   stati del selettore*): nessun lampo, in nessuna delle combinazioni.
 
-- [ ] 12.4 🔴 🧪 **Contrasto misurato, non stimato, sui due temi.**
+- [x] 12.4 🔴 🧪 **Contrasto misurato, non stimato, sui due temi.**
   **Cosa eseguire**: strumento di accessibilità del browser su `/` e `/menu`, in **entrambi** i temi.
   **Cosa documentare**: le coppie testo/sfondo misurate e i loro valori; nessuna sotto 4.5:1 (3:1 per
   il testo grande). 🔴 In particolare: **nessun testo arancione sul tema giorno**, verificato
@@ -1834,7 +1834,7 @@ somiglianza, che è il modo in cui un criterio di successo smette di significare
   passano in entrambi i registri*): le CTA passano in **entrambi** i registri — oliva pieno con testo
   crema di giorno, arancio o giallo pieno con testo lavagna di sera.
 
-- [ ] 12.5 🧪 **Confronto visivo dei due temi, affiancati.** Le stesse due pagine, negli stessi punti,
+- [x] 12.5 🧪 **Confronto visivo dei due temi, affiancati.** Le stesse due pagine, negli stessi punti,
   nei due registri.
   **Cosa documentare**: che i due registri sono **due momenti della giornata** e non due preferenze —
   cioè che la lavagna non è "la home in dark mode" — e qualunque punto in cui uno dei due si legge
@@ -1843,19 +1843,19 @@ somiglianza, che è il modo in cui un criterio di successo smette di significare
   il suo esito scritto. Se un punto stona, va aperto un debito con il suo nome — non chiuso qui con
   un aggiustamento improvvisato, che sarebbe una decisione di design presa in fondo a un change.
 
-- [ ] 12.6 🧪 **Il fuso del visitatore non cambia il tema.**
+- [x] 12.6 🧪 **Il fuso del visitatore non cambia il tema.**
   **Cosa eseguire**: porta il fuso orario **di sistema** (o del profilo del browser) a un fuso
   lontano — es. `America/Los_Angeles` — e ricarica.
   **Cosa documentare**: che il tema **non cambia**. È l'unico modo di distinguere una lettura di
   `Europe/Rome` da un `new Date()` che **oggi darebbe lo stesso risultato**.
   *Verifica* (spec `temi-e-identita` → *Il fuso del visitatore non cambia il tema*).
 
-- [ ] 12.7 🧪 **Il toggle sopravvive al reload — giro completo.** giorno → sera → auto, con **un
+- [x] 12.7 🧪 **Il toggle sopravvive al reload — giro completo.** giorno → sera → auto, con **un
   reload dopo ogni stato**: la preferenza esplicita vince sull'ora, e "auto" vi ritorna.
   *Verifica* (spec `temi-e-identita` → *Giro completo dei tre stati con reload*): tre stati, tre
   reload, tre esiti corretti.
 
-- [ ] 12.8 🧪 **Il logo segue il tema, e l'ispezione lo spiega.** Toggle con il logo visibile.
+- [x] 12.8 🧪 **Il logo segue il tema, e l'ispezione lo spiega.** Toggle con il logo visibile.
   **Cosa documentare**: che il segno resta leggibile su entrambi i fondi, e che l'ispezione mostra
   **`<svg>` e non `<img>`** — che è l'unica condizione in cui `currentColor` può funzionare, e quindi
   la **diagnosi** del perché funziona invece della sola constatazione.
@@ -1864,7 +1864,7 @@ somiglianza, che è il modo in cui un criterio di successo smette di significare
   **stesso** giro di toggle — la leggibilità senza l'ispezione non distingue un logo che funziona da
   uno che funziona per caso su un fondo che gli somiglia.
 
-- [ ] 12.9 🔴 **Il backend e l'app di cassa sono invariati, alla lettera.**
+- [x] 12.9 🔴 **Il backend e l'app di cassa sono invariati, alla lettera.**
   ```bash
   dotnet test backend/DuedGusto.Tests/DuedGusto.Tests.csproj -o /tmp/dued-test
   cd duedgusto && npm run ts:check && npm run lint && npm run test
@@ -1875,19 +1875,19 @@ somiglianza, che è il modo in cui un criterio di successo smette di significare
   0221ddf..HEAD -- backend/ duedgusto/` è **vuoto** salvo `backend/.gitignore`, se il task 2.2 lo ha
   toccato; le quattro suite passano **senza che un solo file di test sia stato modificato**.
 
-- [ ] 12.10 🔴 **L'infrastruttura è invariata.**
+- [x] 12.10 🔴 **L'infrastruttura è invariata.**
   *Verifica* (spec `sito-pubblico` → *L'infrastruttura è invariata*): `git diff --stat 0221ddf..HEAD
   -- deploy/ docker-compose.yml .github/` è **vuoto**. ⚠️ Il confronto parte da **`0221ddf`**, la
   base di *questo* change: nella storia del progetto esiste già un commit di `deploy/` che non
   appartiene ad alcun change della vetrina, e far partire il confronto da più indietro produrrebbe
   una lettura sbagliata.
 
-- [ ] 12.11 **Nessun modulo del repository importa `sito/`.**
+- [x] 12.11 **Nessun modulo del repository importa `sito/`.**
   *Verifica* (spec `sito-pubblico` → *Nessun riferimento in ingresso*): `grep -rn "sito/"
   backend/ duedgusto/ deploy/ .github/` non trova alcun import né alcun percorso di build. Il
   rollback è `rm -rf sito/` **perché nulla ci punta**, non per intenzione.
 
-- [ ] 12.12 **Le dieci verifiche automatiche esistono, e nessun tooling di Fase 7 è entrato.**
+- [x] 12.12 **Le dieci verifiche automatiche esistono, e nessun tooling di Fase 7 è entrato.**
   *Verifica* (spec `sito-pubblico` → *La suite gira senza dipendenze aggiunte*, *Le dieci verifiche
   esistono*, *Nessun tooling di Fase 7 anticipato*): ognuna delle dieci voci della tabella ha almeno
   un test corrispondente; `sito/package.json` non contiene alcun runner di test, framework di
@@ -1895,19 +1895,19 @@ somiglianza, che è il modo in cui un criterio di successo smette di significare
   del task 1.11 va **nominato** qui con la ragione per cui non ricade nel divieto — o rimosso, se il
   task 7.3 ha ripiegato sulla scansione.
 
-- [ ] 12.13 **Conferma delle cinque Open Questions.** Annota in design.md la decisione presa:
+- [x] 12.13 **Conferma delle cinque Open Questions.** Annota in design.md la decisione presa:
   `--color-*` (esito osservato al task 4.11); prefisso `PUBLIC_` **tenuto**; `Astro.url.origin`
   **usato** e da riverificare in Fase 6; ripiego `og-default.jpg` **tenuto**; fascia "Aperitivo"
   come deciso al task 9.8.
   *Verifica*: le cinque voci risultano spuntate con la decisione effettivamente presa e, dove
   pertinente, con il **numero del task** che l'ha chiusa.
 
-- [ ] 12.14 **Checklist dei 17 Success Criteria della proposal.** Ripercorrili uno per uno.
+- [x] 12.14 **Checklist dei 17 Success Criteria della proposal.** Ripercorrili uno per uno.
   *Verifica*: ogni criterio ha **il numero del task** che lo chiude o una prova eseguita che lo
   dimostra; ciò che resta aperto porta il nome di ciò che lo chiuderà — un criterio chiuso per
   somiglianza è un criterio non chiuso.
 
-- [ ] 12.15 **Riepilogo delle ventisei prove 🧪.** Raccogli in un punto solo l'esito delle prove
+- [x] 12.15 **Riepilogo delle ventisei prove 🧪.** Raccogli in un punto solo l'esito delle prove
   manuali e delle mutazioni. Le **undici** che dopo l'apply non saranno più eseguibili nelle stesse
   condizioni: 1.6, 1.7, 1.9, 2.6, 3.9, 4.9, 4.10, 6.8, 7.2, 8.8, 10.6. Le **quindici** di browser e
   di dati vivi: 5.8, 7.8, 8.6, 8.9, 9.3, 9.6, 9.7, 10.7 e 12.2-12.8.
@@ -1918,3 +1918,180 @@ somiglianza, che è il modo in cui un criterio di successo smette di significare
 **Uscita di fase.** Le prove che nessun test farà sono state **eseguite** invece che argomentate, le
 cinque Open Questions sono confermate per iscritto, i 17 criteri sono ripercorsi uno per uno, e
 `backend/` e `duedgusto/` sono **byte per byte** come prima.
+
+**Esito reale (apply del 2026-08-12).** Uscita raggiunta. **113/113 task chiusi**, `npm test`
+**99/99**, `npm run check` a zero.
+
+### 12.2 — il bundle, non il dev server
+
+`npm run build` → `node dist/server/entry.mjs`: `/` e `/menu` rispondono **200 `text/html`**.
+Tutte le verifiche di questa fase girano **contro il bundle**, non contro il dev server: i due
+falliscono in modi diversi, e la Fase 6 del progetto spedirà il secondo.
+
+### 12.3 – 12.8 — le verifiche di browser, misurate
+
+[`prove/12-verifiche-di-browser.mjs`](./prove/12-verifiche-di-browser.mjs), **0 fallite**:
+
+| Prova | Esito misurato |
+|---|---|
+| **12.3** FOUC | **0 lampi** su 3 stati × 10 hard reload × 8 campioni = **240 osservazioni**, con cache disattivata e rete a 400 kbit/400 ms di latenza. I registri visti nella finestra sono solo `—` (documento non ancora costruito) e quello giusto: mai `sera` con il fondo chiaro |
+| **12.4** contrasto | **0 coppie sotto soglia** su `/` e `/menu`, in entrambi i registri, calcolando il rapporto WCAG di ogni nodo di testo risalendo allo sfondo opaco effettivo. E **0 testi** che risolvono a `rgb(253,133,2)` — l'arancio — ispezionando gli elementi |
+| **12.5** confronto visivo | quattro schermate a piena pagina: [`12.5-home-giorno`](./prove/12.5-home-giorno.png), [`-sera`](./prove/12.5-home-sera.png), [`12.5-menu-giorno`](./prove/12.5-menu-giorno.png), [`-sera`](./prove/12.5-menu-sera.png) |
+| **12.6** fuso | quattro fusi — Roma, Los Angeles (`04:53` locali), Tokyo (`20:53`), Kiritimati (`01:53`) — e il registro resta **`giorno`** in tutti e quattro, perché a Roma erano le `13:53` |
+| **12.7** toggle | `giorno → sera → auto`, **con un reload dopo ognuno**: `localStorage`, `data-tema` ed etichetta coerenti in tutti e tre; `auto` torna a seguire l'ora |
+| **12.8** logo | nell'intestazione è **`svg`** e non `img`; contrasto del tracciato **17.75** di giorno e **14.33** di sera |
+
+🔴 **Il primo giro di 12.4 ha segnalato un falso positivo, e capirlo vale più della prova.** Il
+selettore del tema risultava a **2.11** di contrasto in registro sera — che è esattamente il
+numero dell'arancio su crema, il che lo rendeva credibilissimo. Non era un difetto: la misura
+correva contro `transition-colors` e catturava il colore **a metà strada** fra i due registri
+(`rgb(78, 89, 46)`), mentre la variabile CSS era già quella giusta (`--c-inchiostro-tenue:
+#c9bcae`). Il contrasto si misura sullo **stato stabile**, che è quello che il visitatore legge:
+lo script ora attende 600 ms, e il README lo dice a chi rifà la prova a mano.
+
+### 12.5 — il confronto visivo, guardato
+
+I due registri **non sono la stessa pagina in chiaro e in scuro**. Di giorno la crema e l'oliva
+vengono dalla locandina dello spazio esterno, e lo slogan in Allura è oliva come lì; di sera la
+lavagna e il gesso giallo vengono dalla locandina dell'Apericosto. La fascia «Aperitivo» tiene il
+registro serale **in entrambe**, e in tema giorno è la cosa che si legge come *la lavagna
+appoggiata fuori*. L'arancio compare solo come superficie — pillola «Novità», bordo dell'avviso,
+filetto sotto l'Apericosto — e mai come testo.
+
+⚠️ **Due punti guardati e non aggiustati**, per la regola che un aggiustamento di design in fondo
+a un change non si improvvisa. Sono in [`DEBITI.md`](./DEBITI.md): la tinta della lavagna
+rispetto alle due lavagne fotografate, e la delicatezza dell'apostrofo di Allura nello slogan.
+
+### 12.9 – 12.11 — l'invarianza, verificata e non promessa
+
+```
+git diff --stat 0221ddf..HEAD -- backend/ duedgusto/           → vuoto
+git diff --stat 0221ddf..HEAD -- deploy/ docker-compose.yml .github/ → vuoto
+```
+
+Le quattro suite, **senza che un solo file di test sia stato toccato**:
+
+| Suite | Esito |
+|---|---|
+| `dotnet test` (con `-o`, perché il backend in esecuzione blocca `bin/`) | **667/667** |
+| `duedgusto` `npm run ts:check` | pulito |
+| `duedgusto` `npm run lint` | pulito |
+| `duedgusto` `npm run test` | **772/772** su 97 file |
+
+⚠️ **12.11 — il `grep` letterale su `sito/` produce falsi positivi, e vanno letti.** In
+`backend/` compaiono `"/gestionale/sito/media"` e `"sito/MediaLibrary.tsx"`: sono le **rotte e i
+percorsi di file dell'app di cassa**, creati dal change precedente, e la parola `sito` lì è la
+sezione dell'amministrazione — non questa cartella. Cercando ciò che conta davvero — un import,
+un percorso di build, una voce di `workspaces`, una menzione in `deploy/` o `.github/` — non c'è
+**nulla**. 🔴 Il rollback è `rm -rf sito/` **perché nulla ci punta**, non per intenzione.
+
+### 12.12 — le verifiche automatiche, e il tooling che non è entrato
+
+Le **diciannove** righe della tabella di §"Testing Strategy" hanno tutte almeno un test
+corrispondente, distribuiti su dodici file e **99 casi**. `sito/package.json` dichiara **sei**
+dipendenze in tutto:
+
+```
+astro, @astrojs/node, tailwindcss, @tailwindcss/vite     (produzione)
+@astrojs/check, typescript                               (sviluppo)
+```
+
+Nessun runner di test (il runner è `node:test`, del runtime), nessun framework di asserzioni,
+nessun DOM simulato, nessun automatore di browser, nessun motore di audit — verificato anche
+sull'albero **installato**, non solo sul manifesto.
+
+🔴 **`@astrojs/check` va nominato, come il task chiede.** Non ricade nel divieto di tooling di
+Fase 7 — che riguarda browser, audit di accessibilità e DOM simulato — perché è un **controllore
+di tipi**, ed è **esercitato**: `npm run check` chiude il task 7.3, ed è la cosa che rende
+`sizes` obbligatoria per davvero. La sua adozione è stata decisa in **Fase 1** (task 1.11) con
+un esperimento, non scoperta strada facendo.
+
+⚠️ E Playwright **non è in `sito/`**: gli script di prova vivono in `prove/`, fuori dal
+perimetro del progetto, e lo importano da `duedgusto/node_modules` per percorso esplicito.
+
+### 12.13 — le cinque Open Questions, chiuse per iscritto
+
+| # | Domanda | Decisione | Chiusa da |
+|---|---|---|---|
+| 1 | `@theme inline` emette `--color-*`? | **No** — e la prima misura diceva di sì per colpa di un nostro commento | 4.11 |
+| 2 | Serve il prefisso `PUBLIC_`? | **Non è obbligatorio, si tiene** — e ora segnala due cose invece di una | 3.1 |
+| 3 | `Astro.url.origin` dietro nginx | **Usato**, corretto in sviluppo; da riverificare in Fase 6 | 6.9 |
+| 4 | Ripiego `og-default.jpg` | **Tenuto**, e serve già: `ImmagineOg` è `null` a database | 6.9 |
+| 5 | La fascia «Aperitivo» | **Tenuta**, e non solo per la ragione tecnica | 9.8 |
+
+### 12.14 — i criteri della proposal, uno per uno
+
+Sono **diciotto**, non diciassette (il task 12.15 li contava male). Nessuno chiuso per
+somiglianza:
+
+| # | Criterio | Chiuso da | Esito misurato |
+|---|---|---|---|
+| 1 | 🔴 Il deliverable: `/menu` reale nei due temi | 8.6 | **0 differenze** fra API e pagina su 3 prodotti; immagini `200` |
+| 2 | Bundle SSR che serve entrambe le pagine | 12.2 | `200 text/html` su `/` e `/menu` da `entry.mjs` |
+| 3 | 🔴 I due prefissi distinti, con controprova | 8.7 / 8.8 / 8.9 | sentinella nel markup e **0** occorrenze dell'host API; con un prefisso solo ne compaiono **5** |
+| 4 | Nessun campo contabile nell'HTML | 8.10 | 7 stringhe cercate, 0 trovate |
+| 5 | 🔴 Nessun FOUC | 12.3 | **0 lampi** su 240 osservazioni |
+| 6 | Il tema segue l'ora di Roma | 12.6 | 4 fusi, stesso registro |
+| 7 | Il toggle sopravvive al reload | 12.7 | 3 stati, 3 reload, 3 esiti corretti |
+| 8 | 🔴 HTML identico nei due temi | 6.7 / 6.8 | 4 asserzioni verdi; la mutazione ne fa fallire **solo la quarta** |
+| 9 | Contrasto misurato | 12.4 | 0 coppie sotto soglia, 0 testi arancioni |
+| 10 | Font serviti dal sito | 5.7 / 5.8 | **1** richiesta di carattere, verso `localhost`; 0 verso CDN |
+| 11 | Il logo segue il tema | 7.8 / 12.8 | `<svg>` e 0 `<img>`; contrasto 17.75 / 14.33 |
+| 12 | Orari dall'API | 9.7 / 8.11 | `20:00` → `21:30` → `20:00` letto **in pagina**; 0 orari nei sorgenti fuori dai ripieghi |
+| 13 | `consigliato` vivo | 9.6 | presente → assente → presente, e il prodotto torna identico |
+| 14 | Troncamento onorato | 8.3 / 8.5 | l'avviso porta i due numeri **della risposta** |
+| 15 | Degradazione dichiarata | 10.2 / 10.5 / 10.7 | `/` a 200, `/menu` a 503 + `Retry-After`, entrambe `no-store`; giro su → giù → su |
+| 16 | 🔴 Backend e admin invariati | 12.9 | due `git diff` vuoti; 667 + 772 test verdi |
+| 17 | Infrastruttura invariata | 12.10 | `git diff` vuoto |
+| 18 | Versioni dichiarate, non implicite | 1.2 / 1.3 / 1.8 | `engines >= 22.12`, `engine-strict` pinnato da un test, `astro --version` → `7.2.1` |
+
+⚠️ **La coda dichiarata è una sola**, ed è nel criterio 3: la prova B usa un IP di rete che il
+certificato di sviluppo non nomina fra i SAN, quindi il browser accetta l'avviso una volta
+(`ignoreHTTPSErrors`). È in `DEBITI.md` e non tocca il codice.
+
+### 12.15 — le ventisei prove 🧪, con cosa è diventato rosso
+
+**Le undici che dopo l'apply non sono più eseguibili nelle stesse condizioni:**
+
+| # | Prova | Cosa è diventato rosso, cosa è rimasto verde |
+|---|---|---|
+| 1.6 | install su Node 20 | 🔁 **sostituita** (autonomia §2.2): la finestra si era chiusa, e su questa macchina Node 20 non esiste più. `npm config get engine-strict` → `true` |
+| 1.7 | controprova senza `.npmrc` | 🔁 **sostituita**: file rinominato → `false`. Promossa a **test automatico**, con il limite scritto: verifica la configurazione attiva, non l'install che aborta |
+| 1.9 | floor di `@tailwindcss/vite` | ⚠️ **nessun rosso**: l'install riesce e la build pure, anche forzando una Vite 8 unica. Il floor è una dichiarazione onesta, non una difesa che si vede fallire. Commento riscritto |
+| 2.6 | `NODE_EXTRA_CA_CERTS` dal `.env` | coppia di esiti opposti: `DEPTH_ZERO_SELF_SIGNED_CERT` / `OK 200`. L'errore atteso dal design era un altro nome per la stessa causa |
+| 3.9 | i due test di unicità | due mutazioni, **due rossi mirati**, ogni volta il file di troppo nominato; gli altri verdi |
+| 4.9 | l'arancio dentro `@theme` | `.text-arancio` **compare** nel CSS generato, insieme alle altre tre famiglie: quattro utility da una dichiarazione |
+| 4.10 | `@theme` senza `inline` | rosse **entrambe** le asserzioni, non solo la negativa: la positiva era scritta stretta. Misurate le tre forme — le due lasche non vedono niente |
+| 6.8 | tema sul tag radice | **solo la quarta** asserzione rossa; le prime tre verdi. Riverificata dopo che la fascia ha cambiato la forma della quarta |
+| 7.2 | `srcset` dalla costante | rossi i casi dell'immagine **piccola**, **verde** quello dell'immagine grande — che è il punto |
+| 8.8 | un prefisso solo | prova A rossa (`l'host interno compare 5 volte`), e con lei **altre due difese**: i test di unicità e le unità di `mediaUrl`. §D2 diceva che nessuno strato basta da solo |
+| 10.6 | `no-store` tolto | rossi i due scenari degradati, **verde il caso felice** — la ragione per cui i casi sono tre |
+
+**Le quindici di browser e di dati vivi**, tutte in [`prove/`](./prove/README.md) con lo script
+che le rifà: 5.8 (una richiesta di font, verso `localhost`), 7.8 (due media reali `200`, logo
+`<svg>`, `currentColor` che cambia), 8.6 (**0 differenze** con l'API), 8.9 (due prefissi
+divergenti, `naturalWidth` 320), 9.3 (fascia lavagna dentro pagina crema), 9.6 e 9.7 (i due giri
+sui dati vivi, entrambi ripristinati), 10.7 (su → giù → su senza congelamenti), 12.2-12.8 (le sei
+di chiusura, **0 fallite**).
+
+⚠️ **Due prove hanno fallito la prima volta per la ragione sbagliata, e in entrambi i casi
+l'errore era nella prova.** 10.7 misurava la cache del **browser** invece del server; 12.4
+misurava un colore **a metà transizione**. Sono annotate dove sono, perché è il tipo di errore
+che si ripete.
+
+---
+
+## Come rifare tutto questo
+
+```bash
+# la suite
+cd sito && npm install && npm test && npm run check && npm run build
+
+# le prove di browser (serve il bundle in ascolto e il backend su :4000)
+PORT=4399 NODE_EXTRA_CA_CERTS=../backend/.certs/aspnet-dev.pem node dist/server/entry.mjs &
+cd ../openspec/changes/vetrina-sito-astro/prove && node 12-verifiche-di-browser.mjs
+```
+
+L'indice di tutte le prove, con l'esito di ciascuna, è in
+[`prove/README.md`](./prove/README.md). I debiti aperti sono in [`DEBITI.md`](./DEBITI.md).
+**Non c'è alcun `BLOCCHI.md`**: nessun blocco è stato dichiarato.

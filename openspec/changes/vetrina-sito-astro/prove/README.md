@@ -46,6 +46,15 @@ funzionasse.
 ⚠️ La seconda istanza va avviata con **`dotnet run --no-build`**: quella su `:4000` tiene bloccata
 `bin/`, e senza il flag la seconda muore con `MSB3026`.
 
+| 🔴 12.3–12.8 | [`12-verifiche-di-browser.mjs`](./12-verifiche-di-browser.mjs) | Le sei verifiche di chiusura in un colpo solo, contro il **bundle costruito** | ✅ **0 fallite**. FOUC: **0 lampi** su 240 osservazioni (3 stati × 10 reload × 8 campioni, cache off, rete a 400 kbit). Contrasto: **0 coppie** sotto soglia su 2 pagine × 2 registri, **0 testi** in arancio. Fuso: 4 fusi, stesso registro. Toggle: 3 stati e 3 reload coerenti. Logo: `svg`, contrasto 17.75 / 14.33 |
+| 12.5 | [`12.5-home-giorno.png`](./12.5-home-giorno.png), [`-sera`](./12.5-home-sera.png), [`12.5-menu-giorno.png`](./12.5-menu-giorno.png), [`-sera`](./12.5-menu-sera.png) | Le due pagine nei due registri, negli stessi punti | — |
+| 12.8 | [`12.8-logo-giorno.png`](./12.8-logo-giorno.png), [`12.8-logo-sera.png`](./12.8-logo-sera.png) | Il logo nell'intestazione, nei due registri | — |
+
+⚠️ **La misura del contrasto va fatta sullo stato stabile.** Al primo giro il selettore del tema
+risultava a **2.11** — lo stesso numero dell'arancio su crema, il che lo rendeva credibile — e non
+era un difetto: la misura correva contro `transition-colors` e leggeva un colore a metà strada fra
+i due registri. Lo script attende 600 ms dopo ogni cambio.
+
 ⚠️ Le prove 9.6 e 9.7 si autenticano come **`e2e-admin`**, il SuperAdmin che il seed crea solo in
 Development per l'end-to-end, e variano `X-Forwarded-For` a ogni signin: il rate limit è di 5
 tentativi ogni 15 minuti per IP, e quando scatta il sintomo è un `429` seguito da «Access denied»

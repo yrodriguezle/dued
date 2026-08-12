@@ -164,6 +164,44 @@ sullo stdout con il motivo (`rete`, `timeout`, `http`, `formato`) e l'URL.
 | `npm test` | I test, con `node:test` del runtime — nessuna dipendenza di test |
 | `npm run check` | Controllo dei tipi, `.astro` compresi |
 
+## Le cinque verifiche che restano manuali
+
+🔴 **Non sono un elenco di buoni propositi: se non hanno un modo di essere eseguite, verranno
+dichiarate fatte per somiglianza** — che è il modo in cui un criterio di successo smette di
+significare qualcosa. Ognuna qui sotto ha il comando che la esegue.
+
+L'automazione dell'audit e della regressione visiva è **Fase 7 del progetto**: qui non entra
+alcun automatore di browser, alcun motore di audit e alcun DOM simulato — sarebbero tre
+dipendenze pesanti esercitate da nessuno. Gli script di prova vivono **fuori** da `sito/`, in
+`openspec/changes/vetrina-sito-astro/prove/`, e importano Playwright da `duedgusto/` per
+percorso esplicito.
+
+Si eseguono contro il **bundle costruito**, non contro il dev server: i due falliscono in modi
+diversi, e in produzione va il secondo.
+
+```bash
+cd sito && npm run build
+PORT=4399 NODE_EXTRA_CA_CERTS=../backend/.certs/aspnet-dev.pem node dist/server/entry.mjs
+
+cd ../openspec/changes/vetrina-sito-astro/prove
+node 12-verifiche-di-browser.mjs     # 1, 2, 3 e il logo
+node 5.8-richieste-font.mjs          # 5
+node 8.6-menu-contro-api.mjs         # 4
+```
+
+| # | Verifica | Come si esegue | Cosa la fa fallire |
+|---|---|---|---|
+| 1 | **Assenza di FOUC** | `12-verifiche-di-browser.mjs` — dieci hard reload per ognuno dei tre stati del selettore, con **cache disattivata** e **rete rallentata**, campionando il fondo ogni 50 ms nei primi 400 | 🔴 **un solo** lampo chiaro all'apertura in registro sera. Non «quasi mai», non «solo la prima volta» |
+| 2 | **Misura del contrasto** | Idem — calcola il rapporto WCAG di ogni nodo di testo risalendo allo sfondo effettivo, su **entrambe** le pagine e **entrambi** i registri | una coppia sotto 4.5:1 (3:1 per il testo grande), o un testo che risolve al colore dell'arancio |
+| 3 | **Indipendenza dal fuso** | Idem — quattro fusi (`Europe/Rome`, `America/Los_Angeles`, `Asia/Tokyo`, `Pacific/Kiritimati`) | il registro che cambia con il fuso del visitatore: significherebbe che si legge l'orologio locale invece di quello di Roma |
+| 4 | **Immagini che caricano davvero** | `8.6-menu-contro-api.mjs` — confronta la pagina con la risposta dell'API prodotto per prodotto, e legge lo **stato di rete** di ogni immagine | un `404`, che a colpo d'occhio somiglia a «non è ancora stata caricata» |
+| 5 | **Zero richieste ai CDN dei font** | `5.8-richieste-font.mjs` — filtra le richieste per `resourceType === 'font'` e ne stampa gli host | una sola richiesta verso `fonts.gstatic.com` o `fonts.googleapis.com` |
+
+⚠️ **Le verifiche 2 e 3 vanno fatte sullo stato stabile.** Il selettore del tema ha
+`transition-colors`: misurando subito dopo il cambio di registro si legge un colore **a metà
+strada** fra i due, e il contrasto risulta fuori soglia senza che nulla sia rotto. Lo script
+attende 600 ms; se lo si rifà a mano, aspettare.
+
 ⚠️ Il dev server di Astro 7 **si sgancia quando l'output non è un terminale** — cioè sotto
 `concurrently`, in uno script, in CI. `npm run dev` stampa l'indirizzo e **ritorna**, ma il
 server resta vivo. Si ferma con `npx astro dev stop`, si ispeziona con `npx astro dev status`
