@@ -1,0 +1,88 @@
+---
+// Un'immagine della vetrina — `<picture>` puro, niente framework, niente elaborazione.
+//
+// ─────────────────────────────────────────────────────────────────────────────────────
+// 🔴 PERCHÉ NON `<Image>` DI `astro:assets`
+//
+// Rifarebbe **a runtime** l'ottimizzazione che il backend ha già fatto in fase di caricamento
+// (due formati per ogni larghezza, generati una volta), richiederebbe di autorizzare
+// `image.domains`/`remotePatterns` per ogni origine da cui arrivano i media, e porterebbe
+// **sharp con i suoi binari nativi** dentro il container. Il tutto per riottenere ciò che
+// c'è già.
+//
+// ⚠️ È una regola che NESSUN comportamento osservabile rivelerebbe — la pagina funzionerebbe
+//    benissimo — ed è per questo che è pinnata da un test invece che documentata e basta.
+// ─────────────────────────────────────────────────────────────────────────────────────
+
+import { mediaUrl, srcSet } from '../lib/mediaUrl.ts';
+import type { ImmaginePubblica } from '../lib/tipi.ts';
+
+interface Props {
+  immagine: ImmaginePubblica;
+
+  /**
+   * 🔴 **OBBLIGATORIA, e deliberatamente senza default.**
+   *
+   * Ometterla non è un errore per il browser: assume `100vw` e scarica la variante più
+   * grande **anche per una miniatura**. Un default silenzioso che triplica il peso della
+   * pagina è peggio di un errore di compilazione — e questo componente non può indovinare
+   * il layout di chi lo usa. Che sia obbligatoria è verificato da `npm run check`, che
+   * nomina la prop mancante nel punto in cui il componente viene usato.
+   */
+  sizes: string;
+
+  /** Solo per l'immagine più grande sopra la piega: `eager` + `fetchpriority="high"`. */
+  priorita?: boolean;
+  classe?: string;
+}
+
+const { immagine, sizes, priorita = false, classe = '' } = Astro.props;
+
+// La più grande che ESISTE. Non la più grande della scala: la pipeline non fa upscaling, e
+// chiedere una variante che non c'è è un 404.
+const piuGrande = Math.max(...immagine.larghezzeDisponibili);
+
+// Il placeholder è un data URI completo (`data:image/webp;base64,…`, ≤ 2 kB): sta inline e
+// non costa una richiesta. Quando manca, nessuno sfondo — non un colore inventato.
+const sfondo = immagine.placeholder
+  ? `background-image:url(${immagine.placeholder});background-size:cover;`
+  : '';
+
+// Il campo focale arriva già nella forma di destinazione (`"50% 40%"`): si copia VERBATIM,
+// non si ricompone da due numeri. In assenza, il centro.
+const stile = `object-position:${immagine.focale ?? '50% 50%'};${sfondo}`;
+---
+
+<picture class={classe}>
+  {/*
+    ⚠️ Auto-chiusi: nella 7 il compilatore Rust è l'unico e un void element non chiuso è un
+       errore di build, non più una correzione silenziosa.
+    Due formati e non uno: sono esattamente quelli che il backend genera per ogni larghezza.
+    Nessun avif, nessun altro: un formato inventato qui è un 404 per ogni immagine.
+  */}
+  <source type="image/webp" srcset={srcSet(immagine, 'webp')} sizes={sizes} />
+  <img
+    src={mediaUrl(immagine.chiave, piuGrande, 'jpg')}
+    srcset={srcSet(immagine, 'jpg')}
+    sizes={sizes}
+    width={immagine.larghezza}
+    height={immagine.altezza}
+    alt={immagine.testoAlternativo ?? ''}
+    loading={priorita ? 'eager' : 'lazy'}
+    fetchpriority={priorita ? 'high' : 'auto'}
+    decoding="async"
+    style={stile}
+    class="h-full w-full object-cover"
+  />
+</picture>
+
+{/*
+  🔴 `alt={testoAlternativo ?? ''}` e non `alt={testoAlternativo}`: la stringa vuota dichiara
+     agli screen reader che l'immagine è DECORATIVA e viene saltata; l'attributo assente li
+     fa leggere l'URL del file ad alta voce. Sono due esperienze molto diverse, e la
+     differenza è un `?? ''`.
+
+  `width`/`height` vengono dall'ORIGINALE, non dalla variante servita: servono a dichiarare
+  il rapporto d'aspetto e azzerare lo spostamento del contenuto durante il caricamento, e il
+  rapporto è lo stesso per tutte le varianti.
+*/}

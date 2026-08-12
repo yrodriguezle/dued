@@ -1098,6 +1098,16 @@ interface Props {
 l'ottimizzazione che il backend ha già fatto, richiederebbe `image.domains`/`remotePatterns` per
 ogni origine, e porterebbe **`sharp` e i suoi binari nativi** nel container di Fase 6.
 
+⚠️ **Correzione misurata in apply il 2026-08-12 — l'ultima metà di quella frase era sbagliata.**
+Non usare `<Image>` **non** tiene `sharp` fuori dall'albero: `astro@7.2.1` lo dichiara fra le
+proprie `optionalDependencies`, e un `npm install` normale lo installa con i binari nativi di ogni
+piattaforma — **29 MB** misurati (1,1 MB in `sharp`, 28 MB in `@img`). Il guadagno reale è un
+altro, e resta: sharp non viene mai **caricato** a runtime, e poiché è *opzionale* l'immagine del
+container può ometterlo con **`npm ci --omit=optional`**. 🔧 **Fase 6 deve scrivere quel flag nel
+Dockerfile**, o i 29 MB entrano comunque. Un test di `sito/test/immagini.test.mjs` pinna che
+`sharp` resti `optional: true` nel lockfile, perché è la condizione che rende quel flag
+sufficiente.
+
 **Alternatives considered.**
 - *`<img>` senza `<picture>`*: perde il WebP (−25/35% di byte), che il backend ha già generato.
 - *`sizes` con un default `"100vw"`*: è precisamente il guasto del punto 2, reso ufficiale.

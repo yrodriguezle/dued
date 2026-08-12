@@ -1,0 +1,11 @@
+# Il sito vetrina È fatto per essere trovato: qui si indicizza tutto.
+#
+# ⚠️ Il `Disallow: /` va sull'host dell'APP di cassa, che è un'altra cosa e un'altra fase.
+#    Scriverlo qui deindicizzerebbe esattamente il sito che stiamo costruendo — ed è un
+#    errore che si scopre settimane dopo, guardando perché nessuno arriva.
+User-agent: *
+Allow: /
+
+# La sitemap nasce in Fase 3 del progetto, insieme al dominio e a `site:` nella
+# configurazione di Astro. Oggi il dominio non esiste, e una riga che punta a un host
+# inventato è peggio di una riga assente.

@@ -1160,7 +1160,7 @@ invece che letto emette URL che rispondono 404 in modo diverso da browser a brow
 `<img>` **sparisce sul fondo lavagna** perché `currentColor` non attraversa il confine di un
 documento isolato. Nessuno dei due rompe una build.
 
-- [ ] 7.1 🔴 **`sito/src/components/Immagine.astro`** — `<picture>` con una `<source type="image/webp">`
+- [x] 7.1 🔴 **`sito/src/components/Immagine.astro`** — `<picture>` con una `<source type="image/webp">`
   e un `<img>` di ripiego in `jpg`, i due formati che il backend **ha già generato**
   ([`ImmagineProcessor.cs:376-377`](../../../backend/Services/Media/ImmagineProcessor.cs)).
   ⚠️ `<source …/>` va scritto **auto-chiuso**: nella 7 il compilatore Rust è l'unico e i void element
@@ -1169,7 +1169,7 @@ documento isolato. Nessuno dei due rompe una build.
   markup compila con il compilatore severo*): la build riesce; `grep` sui sorgenti trova **solo** le
   due estensioni che il backend produce.
 
-- [ ] 7.2 🔴 🧪 **VERIFICA PER MUTAZIONE — `srcset` solo da `larghezzeDisponibili`, mai dedotto.**
+- [x] 7.2 🔴 🧪 **VERIFICA PER MUTAZIONE — `srcset` solo da `larghezzeDisponibili`, mai dedotto.**
   **Cosa eseguire**: sostituisci l'elenco del DTO con la **costante** delle larghezze standard
   (`[400, 800, 1200, 1600]`), **esegui i test e vedi fallire** lo scenario dell'**immagine piccola**
   (quella con due sole varianti), poi **ripristina**.
@@ -1180,7 +1180,7 @@ documento isolato. Nessuno dei due rompe una build.
   larghezze disponibili*, *Nessuna variante inesistente viene richiesta*): rosso mirato, ripristino,
   verde.
 
-- [ ] 7.3 🔴 **`sizes` è una prop obbligatoria, senza alcun default.** Ometterla non è un errore per
+- [x] 7.3 🔴 **`sizes` è una prop obbligatoria, senza alcun default.** Ometterla non è un errore per
   il browser: assume `100vw` e scarica la variante più grande **anche per una miniatura**.
   ⚠️ **La forma della verifica è quella decisa nel task 1.11**, non un'altra: `npm run check` se il
   controllo dei tipi nomina davvero la prop mancante **in un uso dentro un template**; altrimenti un
@@ -1191,7 +1191,7 @@ documento isolato. Nessuno dei due rompe una build.
   *Nessun default nel componente*, *La dimensione di resa compare su entrambe le sorgenti*): la
   verifica scelta fallisce davvero su un uso senza `sizes` — provato una volta, non assunto.
 
-- [ ] 7.4 **Le quattro proprietà che azzerano lo spostamento del contenuto.** `width`/`height`
+- [x] 7.4 **Le quattro proprietà che azzerano lo spostamento del contenuto.** `width`/`height`
   **dall'originale** (il rapporto d'aspetto resta corretto anche se la variante servita ha larghezza
   diversa); `object-position` dal campo focale **verbatim** (`"50% 40%"`, già nella forma giusta) con
   `"50% 50%"` in assenza; `background-image` dal placeholder (data URI completo) con `cover`;
@@ -1203,7 +1203,7 @@ documento isolato. Nessuno dei due rompe una build.
   assente*, *Caricamento differito tranne la principale*): ogni caso di assenza ha il suo
   comportamento, e nessuno solleva.
 
-- [ ] 7.5 🔴 **Test: il componente immagine del framework non compare, e `sharp` non è una
+- [x] 7.5 🔴 **Test: il componente immagine del framework non compare, e `sharp` non è una
   dipendenza.** `<Image>` di `astro:assets` rifarebbe a runtime l'ottimizzazione che il backend ha
   già fatto, richiederebbe `image.domains`/`remotePatterns` per ogni origine, e porterebbe **sharp e
   i suoi binari nativi** nel container di Fase 6.
@@ -1216,7 +1216,7 @@ documento isolato. Nessuno dei due rompe una build.
   elaborazione immagini fra le dipendenze*): il test è verde e ha dimostrato di saper diventare
   rosso.
 
-- [ ] 7.6 🔴 **`sito/src/components/Logo.astro` — l'SVG entra nel DOM come markup.**
+- [x] 7.6 🔴 **`sito/src/components/Logo.astro` — l'SVG entra nel DOM come markup.**
   `import logo from '../assets/logo-2dgusto.svg?raw'` e
   `<span class="text-inchiostro" style="--logo-arancio: var(--c-arancio)" set:html={logo} />`.
   🔴 **Un `<img src={logo}>` qui è la riga che fa sparire il logo di sera**: un SVG dentro `<img>` è
@@ -1227,7 +1227,7 @@ documento isolato. Nessuno dei due rompe una build.
   *Verifica* (spec `temi-e-identita` → *🔴 Il logo è inline nel DOM*, *L'SVG inserito come stringa
   non è soggetto alla regola*): l'HTML servito contiene `<svg`, e **nessun** `<img` per il logo.
 
-- [ ] 7.7 **Il sottoinsieme del master, nelle due cartelle giuste.** In `sito/public/`:
+- [x] 7.7 **Il sottoinsieme del master, nelle due cartelle giuste.** In `sito/public/`:
   `favicon.svg`, `apple-touch-icon.png`, `og-default.jpg`, `robots.txt` — serviti **verbatim** a URL
   fisse, perché il browser li cerca a percorsi precisi e un hash di contenuto li renderebbe
   introvabili. In `sito/src/assets/`: `logo-2dgusto.svg`, `monogramma-2d.svg` — perché vanno inline.
@@ -1239,7 +1239,7 @@ documento isolato. Nessuno dei due rompe una build.
   sottoinsieme del master è stato copiato*, *Il `robots.txt` è permissivo*; spec `sito-pubblico` →
   *Il master del marchio non viene modificato*): `git diff --stat docs/brand/` è **vuoto**.
 
-- [ ] 7.8 🧪 **Prova visiva su una pagina di prova, con un'immagine reale.** Usa **uno dei due media
+- [x] 7.8 🧪 **Prova visiva su una pagina di prova, con un'immagine reale.** Usa **uno dei due media
   in cartella `galleria`** già a database — non un file inventato — e il logo, nei due temi.
   **Cosa documentare**: che l'immagine risponde **`200`** nella scheda di rete (non l'`alt` di un
   404), che l'ispezione dell'elemento del logo mostra `<svg>` e **non** `<img>`, e che il segno
@@ -1249,6 +1249,56 @@ documento isolato. Nessuno dei due rompe una build.
 
 **Uscita di fase.** I due componenti esistono e sono provati **su un dato reale**, con due mutazioni
 che hanno dimostrato che le regole invisibili sono sorvegliate. Le pagine vere non esistono ancora.
+
+**Esito reale (apply del 2026-08-12).** Uscita raggiunta. `npm test` **60 → 71**, `check` a zero,
+`git diff --stat docs/brand/` **vuoto**. La pagina di prova è stata cancellata: le pagine vere non
+esistono ancora.
+
+- 🔴 **La mutazione 7.2 ha mostrato esattamente il buco che esisteva per mostrare.** Sostituito
+  `larghezzeDisponibili` con la costante `[400, 800, 1200, 1600]`:
+
+  | Test | Esito con la mutazione |
+  |---|---|
+  | immagine **piccola** (due varianti) | **rosso** ✅ |
+  | una sola variante | **rosso** ✅ |
+  | elenco vuoto | **rosso** ✅ |
+  | immagine **grande** (quattro varianti) | **verde** ❌ |
+
+  Il test dell'immagine grande resta verde perché le sue varianti **coincidono** con la costante.
+  Una suite scritta solo su un'immagine grande — che è la cosa naturale da fare, perché è
+  l'immagine bella — non avrebbe visto niente, e il guasto sarebbe arrivato in produzione come
+  404 sugli schermi densi, cioè su quasi tutti i telefoni.
+- 🔴 **La mutazione 7.5 discrimina**: introdotto un `<Image>` di `astro:assets` in
+  `src/components/MutazioneImage.astro`, rosso **solo** il primo test, con il file di troppo
+  nominato. Rimosso: **11/11**.
+- ✅ **7.3 — `sizes` è un errore di tipo, provato una volta e non assunto.** Un uso senza la prop
+  fa fallire `npm run check` con riga, colonna e nome:
+  ```
+  src/pages/prova-sizes.astro:6:24 - error ts(2322):
+    Property 'sizes' is missing in type '{ immagine: {…} }' but required in type 'Props'.
+  ```
+  È la forma decisa nel task 1.11, non un ripiego sulla scansione del markup.
+- 🔴 **Correzione a design.md §D12: `sharp` arriva comunque, e non usare `<Image>` non lo tiene
+  fuori dall'albero.** Misurato: `astro@7.2.1` lo dichiara fra le **`optionalDependencies`**, e un
+  `npm install` normale lo installa con i binari nativi di **ogni** piattaforma — **29 MB**
+  (1,1 MB in `sharp`, 28 MB in `@img`). Il guadagno di evitare `<Image>` resta reale ma è un
+  altro: sharp non viene mai **caricato** a runtime, e — poiché è *opzionale* — l'immagine del
+  container di Fase 6 può ometterlo con **`npm ci --omit=optional`**. Un test pinna che resti
+  opzionale, perché è la condizione che rende quel flag sufficiente; il giorno in cui Astro lo
+  promuovesse a dipendenza normale, quel test diventerebbe rosso e la Fase 6 saprebbe perché.
+- ✅ *7.8 — provato su dato reale, non su un file inventato.* Le due immagini della cartella
+  `galleria` a database rispondono **200** (`400.webp` per entrambe: il browser sceglie il ramo
+  WebP di `<picture>`, che è il punto di averlo). Il logo è **`<svg>`** nel DOM e gli `<img>` per
+  il logo sono **zero**; il `color` calcolato passa da `rgb(2, 3, 2)` a `rgb(242, 237, 231)`
+  cambiando registro — cioè `currentColor` attraversa davvero, che è ciò che un `<img src>`
+  impedirebbe **senza alcun errore**. Le due schermate sono in
+  [`prove/`](./prove/7.8-sera.png).
+- ➕ *Test in più*: che il `robots.txt` **non** vieti tutto (il `Disallow: /` va sull'host
+  dell'app, e qui deindicizzerebbe il sito che stiamo costruendo); che i due SVG copiati siano
+  **byte per byte identici** al master di `docs/brand/`; che i due file importati contengano
+  davvero `currentColor`, perché inlinearli non servirebbe a niente altrimenti; e che nessun
+  sorgente nomini un formato che il backend non genera (`avif`, `jxl`, `heic`), che sarebbe un
+  404 nel ramo di `<picture>` che i browser provano **per primo**.
 
 ---
 
