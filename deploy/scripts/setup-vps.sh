@@ -104,6 +104,21 @@ chown -R www-data:www-data /var/cache/nginx/vetrina
 mkdir -p /var/www/certbot                # webroot della sfida ACME, servita in HTTP
 chmod 755 /var/www/certbot
 
+# 🔴 L'hook che rende il rinnovo VERAMENTE automatico. Senza, certbot rinnova il file su
+#    disco e nginx continua a servire il certificato VECCHIO: lo tiene in memoria dall'ultimo
+#    avvio e non rilegge il file da solo. Il guasto si manifesta il giorno della scadenza,
+#    tre mesi dopo, quando nessuno collega piu' le due cose.
+#    La cartella renewal-hooks/deploy/ vale per QUALUNQUE certificato rinnovato, quindi non
+#    va rifatta se un domani se ne aggiunge un secondo.
+mkdir -p /etc/letsencrypt/renewal-hooks/deploy
+cat > /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh <<'HOOK'
+#!/bin/sh
+# Eseguito da certbot dopo OGNI rinnovo andato a buon fine.
+# "reload" e non "restart": ricarica la configurazione senza chiudere le connessioni in corso.
+systemctl reload nginx
+HOOK
+chmod +x /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh
+
 log "Generazione certificato SSL self-signed..."
 SSL_DIR="/etc/ssl/duedgusto"
 if [[ ! -f "$SSL_DIR/fullchain.pem" ]]; then
