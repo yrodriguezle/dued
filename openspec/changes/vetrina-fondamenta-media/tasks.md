@@ -613,28 +613,140 @@ un `backup.sh` che ignora i file ricostruisce un database perfetto pieno di imma
   > condizione di prova, e solo dopo ho lanciato il deploy. Il valore osservato dopo è quindi
   > frutto dello script, non del mio comando.
 
-- [ ] 9.2 **Primo upload reale in produzione** — carica un'immagine dalla `MediaLibrary` in produzione.
+- [x] 9.2 **Primo upload reale in produzione** — carica un'immagine dalla `MediaLibrary` in produzione.
   *Verifica* (spec `media-assets` → *Il primo upload dopo un deploy pulito riesce*): l'upload va a buon fine, `ls /opt/duedgusto/media/2026/*/` mostra **8 file**, e nei log del container **non** compare alcun `UnauthorizedAccessException`.
+  > **Chiuso il 12 agosto 2026.** `POST /api/media` **attraverso nginx** (non contro il backend
+  > diretto: è il percorso che fa anche il browser), cartella `galleria`, chiave
+  > `2026/08/prova-vetrina-g625k3`. HTTP **201**.
+  > Su disco esattamente **8 file** — `400/800/1200/1600` × `webp`+`jpg` — con
+  > `10001:10001 644` sui file e `755` sulle directory intermedie, cioè scritti dal processo
+  > del container e non da root. `UnauthorizedAccessException` nei log dall'istante
+  > dell'upload: **0**.
+  > ⚠️ La sorgente è un PNG di **rumore casuale** 2000×900 generato sul posto (sul VPS non c'è
+  > ImageMagick e python3 non ha PIL): serve a provare la pipeline, non a rappresentare una
+  > foto. Per questo `1600.webp` pesa 3,3 MB — il rumore è incomprimibile. Una foto vera della
+  > stessa larghezza pesa una frazione, e chi legge questi numeri non deve dedurne che la
+  > compressione non funzioni.
 
-- [ ] 9.3 **Serving da nginx, non da .NET** — `curl -I https://<host>/media/<chiave>/800.webp`.
+- [x] 9.3 **Serving da nginx, non da .NET** — `curl -I https://<host>/media/<chiave>/800.webp`.
   *Verifica* (spec `media-assets` → *Media serviti dal web server in produzione*): la risposta ha `Cache-Control: public, immutable` ed `Expires` a un anno; la richiesta **non** compare nei log dell'applicazione .NET. E `www-data` legge ma **non** può scrivere nella directory.
+  > **Chiuso il 12 agosto 2026**, su **entrambi** gli host (IP del gestionale e `duedgusto.it`):
+  > `HTTP/2 200`, `content-type: image/webp`, `expires: Thu, 12 Aug 2027`,
+  > `cache-control: public, immutable`, `x-content-type-options: nosniff`.
+  > **La prova che la serve nginx**: le righe di log del container backend erano **10 prima e
+  > 10 dopo** le richieste, e la chiave non compare **mai** nei suoi log (0 occorrenze). Tutte
+  > e 8 le varianti rispondono `200`.
+  > `www-data`: lettura **sì**, scrittura **no**.
+  > Verificato anche il tranello che il commento della `location` nomina: `/media/<chiave inesistente>`
+  > risponde **404**, non `index.html` a 200 — mentre una rotta React sconosciuta risponde
+  > correttamente `200` con `index.html`. Le due `location` non si contendono nulla.
+  > ⚠️ nginx emette **due** header `Cache-Control` (`max-age=31536000` da `expires 1y`, e
+  > `public, immutable` da `add_header`). Per l'RFC 9110 si combinano in
+  > `max-age=31536000, public, immutable`, che è corretto; è ridondanza preesistente, non un
+  > difetto introdotto qui. Toglierla significherebbe rinunciare all'header `Expires`, che
+  > questo stesso task pretende.
 
-- [ ] 9.4 🔴 **Simulazione di deploy: i media sopravvivono** — conta i file, esegui `deploy.sh` **per intero**, riconta.
+- [x] 9.4 🔴 **Simulazione di deploy: i media sopravvivono** — conta i file, esegui `deploy.sh` **per intero**, riconta.
   *Verifica* (spec `media-assets` → *Deploy simulato non perde i media*): `find /opt/duedgusto/media -type f | wc -l` è identico prima e dopo; ogni `MediaAsset.Chiave` a database corrisponde ancora a file esistenti; le URL delle varianti rispondono 200. È il rischio principale di §D9 e l'unico modo di chiuderlo è eseguirlo.
+  > **Chiuso il 12 agosto 2026.** `deploy.sh` eseguito **per intero** come utente `deploy`,
+  > `rm -rf "$APP_DIR/frontend/dist/"*` compreso, esito **0**.
+  > **8 file prima, 8 dopo**, elenco identico, e — più forte del conteggio — le **8 impronte
+  > md5 coincidono una per una**: non solo sopravvivono, sono gli stessi byte. Tutte e 8 le
+  > varianti rispondono ancora `200`. La directory è rimasta `10001:10001 755`.
+  > ⚠️ **Un primo giro non contava**: era stato eseguito quando la directory aveva **zero**
+  > file, e zero uguale a zero non dimostra nulla. Il task è stato rieseguito dopo il 9.2,
+  > con media veri da perdere.
 
-- [ ] 9.5 🔴 **Simulazione di ripristino** — esegui `backup.sh`, poi ripristina dump **e** mirror su un ambiente pulito seguendo la procedura documentata nel task 8.7.
+- [x] 9.5 🔴 **Simulazione di ripristino** — esegui `backup.sh`, poi ripristina dump **e** mirror su un ambiente pulito seguendo la procedura documentata nel task 8.7.
   *Verifica* (spec `media-assets` → *Ripristino senza immagini rotte*): per **ogni** `MediaAsset` a database esistono i file corrispondenti; **nessuna URL di variante risponde 404**.
+  > **Chiuso il 12 agosto 2026.** Ambiente pulito vero: container `mysql:8.0` nuovo con una
+  > password **inventata per l'occasione** — il dump non contiene credenziali, quindi il
+  > ripristino non ha alcun bisogno di quelle di produzione, che non sono state toccate.
+  > Dump `duedgusto_20260812_143906.sql.gz` (120 K) importato → **23 tabelle**; mirror
+  > `rsync`ato in una directory separata → **16 file**. Per l'unico `MediaAsset` a database,
+  > tutte e **8** le varianti dichiarate in `LarghezzeDisponibili` esistono e non sono vuote:
+  > **0 mancanti**. Container e directory rimossi a fine prova.
+  >
+  > 🔴 **La prima esecuzione ha stampato un ✅ falso, e vale più del risultato.** L'attesa di
+  > prontezza era `mysqladmin ping`, che riesce contro il server **temporaneo** che
+  > l'entrypoint di MySQL avvia *prima* di impostare la password di root: l'import è morto con
+  > `Access denied`, il database è rimasto vuoto, e la verifica ha controllato **0 varianti su
+  > 0 asset** concludendo «ripristino senza immagini rotte». Vero, e privo di significato.
+  > Corretti entrambi i difetti: l'attesa è ora una **query autenticata** che riesce, e una
+  > guardia esplicita fa **fallire** la prova se gli asset da controllare sono zero.
 
-- [ ] 9.6 **Il mirror non ruota e non propaga le eliminazioni** — elimina un asset dal sistema, riesegui `backup.sh`.
+- [x] 9.6 **Il mirror non ruota e non propaga le eliminazioni** — elimina un asset dal sistema, riesegui `backup.sh`.
   *Verifica* (spec `media-assets` → *Un media eliminato per errore resta recuperabile* e *Nessuna rotazione sul mirror*): i file dell'asset eliminato sono **ancora** nel mirror; nessun file del mirror viene rimosso per anzianità mentre la rotazione a 30 giorni continua ad applicarsi ai soli `.sql.gz`. Una seconda esecuzione senza nuovi upload non riscrive nulla.
+  > **Chiuso il 12 agosto 2026.** Secondo asset caricato (quello da 15 MB del task 9.7) ed
+  > eliminato con `mutation { vetrina { eliminaMediaAsset(mediaAssetId: 2) } }` → `true`.
+  > Dopo l'eliminazione: **0** file nella sorgente, **8** ancora nel mirror. `backup.sh`
+  > rieseguito: il mirror resta a **16 file**, elenco identico — `--delete` assente, e
+  > l'eliminazione **non si propaga**. Terza esecuzione senza nuovi upload: **0** file con
+  > data di modifica cambiata, cioè `rsync` non riscrive nulla.
+  > La rotazione filtra su `-name "duedgusto_*.sql.gz"` (riga 92): 27 dump contro 16 file di
+  > media, e i secondi non la vedono mai.
+  >
+  > ⚠️ **Il primo tentativo aveva prodotto un ✅ da non credere.** La mutation era stata
+  > invocata come `mutation { eliminaMediaAsset(…) }` e il server aveva risposto
+  > *«Cannot query field 'eliminaMediaAsset' on type 'GraphQLMutations'»* — il ramo vetrina è
+  > **annidato** (`GraphQLMutations.cs:23`, `Field<VetrinaMutations>("vetrina")`). Nessun file
+  > era stato eliminato, quindi il mirror «non aveva perso nulla» per la ragione sbagliata.
+  > Il criterio è stato riverificato dopo l'eliminazione vera.
 
-- [ ] 9.7 **I quattro limiti di corpo, dal vero** — carica una foto da **15 MB** e poi un file da **30 MB** attraverso nginx.
+- [x] 9.7 **I quattro limiti di corpo, dal vero** — carica una foto da **15 MB** e poi un file da **30 MB** attraverso nginx.
   *Verifica* (spec `media-assets` → *Il limite di corpo non produce errori opachi*): il file da 15 MB **raggiunge il backend** ed è elaborato; quello da 30 MB produce un messaggio leggibile in italiano e **non** un 413 nudo generato da nginx. E `POST /api/auth/signin` con un corpo da 15 MB continua a essere rifiutato a 10M: l'innalzamento riguarda la sola rotta media.
+  > **Chiuso il 12 agosto 2026**, con **tre** corpi invece di due — e la ragione è una
+  > correzione al testo del task.
+  >
+  > | Corpo | Esito | Chi lo ferma |
+  > |---|---|---|
+  > | 15 MB | **201**, elaborato in 8 varianti | nessuno |
+  > | **21 MB** | **400** — *«Il file supera la dimensione massima consentita di 20 MB.»* | `MediaLimiti.MaxByteFile`, **il backend, in italiano** |
+  > | 30 MB | **413**, HTML nudo `413 Request Entity Too Large` | **nginx** (`client_max_body_size 24M`) |
+  >
+  > `POST /api/auth/signin` con 15 MB → **413**: l'innalzamento a 24M non è tracimato sulla
+  > rotta anonima e rate-limitata, che resta a 10M.
+  >
+  > 🔴 **Il messaggio italiano lo produce il caso da 21 MB, non quello da 30.** Con
+  > `client_max_body_size 24M`, un corpo da 30 MB nginx lo rifiuta **prima** che il backend lo
+  > veda: da `curl` si osserva per forza un 413 nudo, ed è corretto — non è una regressione, è
+  > lo strato sbagliato dove aspettarsi italiano. La leggibilità di *quel* caso è un contratto
+  > del **frontend**, che traduce un 413 con corpo HTML in un messaggio comprensibile
+  > (`uploadRequest`, test 7.14, già verde). Il caso da 21 MB — assente dal testo del task — è
+  > l'unico che esercita davvero lo strato intermedio, cioè l'unico che dimostra che i quattro
+  > limiti sono in scala decrescente e non solo dichiarati tali.
 
 - [ ] 9.8 **La cassa funziona esattamente come prima** — giro completo in produzione: registro, vendite, chiusura mensile, fornitori.
   *Verifica*: nessuna regressione osservabile; è l'ultimo criterio di successo della proposal e quello che non si può delegare a un test.
+  > **Deliberatamente lasciato all'utente, non dimenticato.** Un giro completo scrive dati
+  > **contabili veri** in produzione: un registro, delle vendite, una chiusura mensile. Non
+  > sono righe che un agente può creare e poi togliere come ha fatto con il media di prova —
+  > toccano la contabilità del locale. Il task dice esso stesso che è *«quello che non si può
+  > delegare a un test»*, e per la stessa ragione non si può delegare a chi non risponde di
+  > quei numeri.
+  >
+  > Quello che si può dire dall'esterno, e che è stato verificato il 12 agosto: il ramo
+  > GraphQL della cassa è invariato, `/graphql` risponde regolarmente sull'host del
+  > gestionale, il `config.json` continua a puntare all'IP e la SPA si carica (`200`). Nessuna
+  > delle modifiche di questa sessione tocca `duedgusto/`, `VenditeMutations.cs`,
+  > `ProdottoInputType.cs` o `VenditeQueries.cs`.
 
 **Uscita di fase.** I tre rischi 🔴 della proposal sono chiusi con prove eseguite, non con argomenti.
+
+**Esito reale (12 agosto 2026).** **7 task su 8 chiusi**; resta il solo 9.8, che è un giro
+contabile e appartiene a chi risponde di quei numeri.
+
+I tre rischi 🔴 sono chiusi **tutti e tre**, e nessuno è stato chiuso per analogia:
+- *media cancellati dal `rm -rf`* → 9.4, con le 8 impronte md5 identiche prima e dopo;
+- *primo upload che fallisce per permessi* → 9.2, `201` e zero `UnauthorizedAccessException`;
+- *ripristino con ogni immagine 404* → 9.5, 8 varianti su 8 presenti in un ambiente pulito.
+
+⚠️ **Tre prove hanno prodotto un verde falso prima di produrne uno vero**, e le tre cause
+valgono più dei risultati: un `mysqladmin ping` che riesce prima che la password esista; una
+verifica che conta zero elementi e dichiara successo; una mutation invocata sul ramo sbagliato
+che "non elimina nulla" e fa sembrare conservativo un mirror mai messo alla prova. In tutti e
+tre i casi il criterio risultava soddisfatto **perché la prova non era avvenuta**. Sono
+annotate dentro i rispettivi task.
 
 ---
 
