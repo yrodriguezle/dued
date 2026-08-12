@@ -66,7 +66,18 @@ cd "$REPO_DIR"
 if git rev-parse --abbrev-ref --symbolic-full-name @{u} &>/dev/null; then
     log "Pull ultime modifiche da git..."
     git stash --include-untracked -q 2>/dev/null || true
-    git pull origin main
+    # --ff-only e non un pull nudo: senza, git che trova i rami divergenti non fallisce
+    # con un messaggio, stampa dieci righe di suggerimenti su pull.rebase e muore con 128
+    # a meta' deploy. Diverge piu' spesso di quanto sembri: la pipeline pusha su main un
+    # commit di versione ("chore: vX.Y.Z [skip ci]"), quindi qualunque branch nato da un
+    # main locale non aggiornato e' gia' divergente in partenza.
+    if ! git pull --ff-only origin main; then
+        log "ERRORE: 'git pull --ff-only origin main' non e' un avanzamento lineare."
+        log "Il ramo su cui gira il deploy ha commit che main non ha, o viceversa."
+        log "Ramo corrente: $(git rev-parse --abbrev-ref HEAD)"
+        log "Riallineare a mano (dal repository, non da qui) e rilanciare."
+        exit 1
+    fi
 else
     log "Nessun upstream configurato, skip git pull."
 fi
