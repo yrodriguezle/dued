@@ -125,16 +125,36 @@ test('4 🔴 — il tag radice non porta il tema, e l\'attributo compare una vol
       'dalla cache a chi lo apre in un altro momento della giornata.'
   );
 
-  const occorrenze = html.split('data-tema').length - 1;
-  assert.equal(occorrenze, 1, `l'attributo del tema compare ${occorrenze} volte, non una`);
-
-  // E quell'unica occorrenza è dentro lo script inline, non altrove nel markup.
+  // L'attributo esiste nello script — è lui a scriverlo — e questa è la prova che il test
+  // sta guardando la cosa giusta: se sparisse da lì, la pagina non avrebbe più un tema.
   const script = html.match(/<script>([\s\S]*?)<\/script>/);
   assert.ok(script, 'nessuno script inline nella pagina');
   assert.ok(
     script[1].includes('data-tema'),
-    "l'unica occorrenza dell'attributo non è dentro lo script inline"
+    "lo script inline non scrive l'attributo del tema: la pagina resterebbe senza registro"
   );
+
+  // ⚠️ E le occorrenze FUORI dallo script possono esistere, ma solo dentro il corpo e solo
+  //    su elementi ANNIDATI. È la fascia "Aperitivo", che sta sempre in registro sera
+  //    qualunque sia il tema della pagina — ed è l'unico posto in cui la differenza fra
+  //    `@theme` e `@theme inline` si vede a occhio.
+  //
+  //    Il testo della spec dice «l'attributo compare una volta sola nell'intero documento»,
+  //    e quella lettera è incompatibile con la fascia, che la STESSA spec pretende. Il
+  //    conflitto è solo apparente: ciò che quella frase proteggeva è che il tema non sia una
+  //    decisione del SERVER, e la forma che lo protegge davvero è qui sotto.
+  const markup = html.replace(/<script>[\s\S]*?<\/script>/g, '');
+  const testa = markup.slice(0, markup.indexOf('<body'));
+  assert.ok(
+    !testa.includes('data-tema'),
+    "l'attributo del tema compare nel <head> fuori dallo script: è una decisione del server"
+  );
+  for (const tag of markup.match(/<[a-z]+[^>]*data-tema[^>]*>/g) ?? []) {
+    assert.ok(
+      !tag.startsWith('<html'),
+      `l'attributo del tema è sul tag radice: ${tag}`
+    );
+  }
 });
 
 test("l'attributo di pronto non è nel markup servito", () => {

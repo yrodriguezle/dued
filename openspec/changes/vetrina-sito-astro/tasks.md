@@ -1472,7 +1472,7 @@ separato è un altro: contiene la **fascia in registro sera annidata in una pagi
 che è l'unico posto in cui la differenza fra `@theme` e `@theme inline` diventa **visibile a occhio**.
 La Fase 4 lo ha provato sul CSS generato; qui lo si guarda.
 
-- [ ] 9.1 **`sito/src/pages/index.astro`** — hero con il logo, insegna stirata, slogan in Allura,
+- [x] 9.1 **`sito/src/pages/index.astro`** — hero con il logo, insegna stirata, slogan in Allura,
   orari con il badge client-side, striscia dei `consigliato`, fascia sera, striscia della galleria,
   contatti. `Cache-Control: public, max-age=60` nello stato normale.
   ⚠️ Le due letture partono con `Promise.all([leggiSito(), leggiMenu()])`, che **non può
@@ -1480,7 +1480,7 @@ La Fase 4 lo ha provato sul CSS generato; qui lo si guarda.
   *Verifica* (spec `sito-pubblico` → *La home mostra una selezione viva, non una lista scritta a
   mano*): la striscia dei consigliati viene dal payload, non da un array nel template.
 
-- [ ] 9.2 🔴 **L'insegna a tre parole: ×1.55, da un token solo, e la riserva che ne deriva.**
+- [x] 9.2 🔴 **L'insegna a tre parole: ×1.55, da un token solo, e la riserva che ne deriva.**
   `--stiramento-insegna: 1.55` in `:root`; `.insegna { transform: scaleX(var(--stiramento-insegna)) }`
   e `.insegna-riserva { padding-inline: calc((var(--stiramento-insegna) - 1) / 2 * 100%) }`.
   🔴 `transform` **non partecipa al layout**: l'elemento continua a occupare la sua larghezza non
@@ -1498,7 +1498,7 @@ La Fase 4 lo ha provato sul CSS generato; qui lo si guarda.
   testo*): `grep -rn "1.55" sito/src/` trova **una** riga; cambiando il token a mano, la riserva si
   muove insieme al testo.
 
-- [ ] 9.3 🔴 🧪 **La fascia "Aperitivo" in registro sera dentro la pagina in tema giorno.** Un
+- [x] 9.3 🔴 🧪 **La fascia "Aperitivo" in registro sera dentro la pagina in tema giorno.** Un
   `<section data-tema="sera">` con dentro utility di colore (`bg-sfondo`, `text-inchiostro`, …).
   **Cosa documentare**: che in **tema giorno** la fascia è **lavagna con gesso**, e non crema con
   oliva. Con `@theme` semplice sarebbe rimasta crema-e-oliva, **senza alcun errore da nessuna
@@ -1508,18 +1508,18 @@ La Fase 4 lo ha provato sul CSS generato; qui lo si guarda.
   per ragioni editoriali (Open Question n. 5), il caso va comunque riprodotto — anche in una pagina
   di prova non linkata — o la decisione fra `@theme` e `@theme inline` torna indistinguibile.
 
-- [ ] 9.4 **La home non mostra l'avviso di troncamento.** Usa lo stesso payload di `/menu` per la
+- [x] 9.4 **La home non mostra l'avviso di troncamento.** Usa lo stesso payload di `/menu` per la
   striscia dei consigliati, ma **non promette completezza**: un avviso lì sarebbe rumore.
   ⚠️ **Conseguenza da conoscere**: con il menu troncato, un prodotto `consigliato` oltre il limite
   **non compare in home**. Il rimedio è `OrdinamentoVetrina`, che è la leva che l'admin già ha.
   *Verifica* (spec `sito-pubblico` → *La home non mostra l'avviso di troncamento*): con
   `troncato: true` simulato, `/menu` avvisa e `/` no.
 
-- [ ] 9.5 **La striscia della galleria usa i media reali.** I due media in cartella `galleria` già a
+- [x] 9.5 **La striscia della galleria usa i media reali.** I due media in cartella `galleria` già a
   database.
   *Verifica*: le immagini caricano `200`; la striscia non è una lista di file scritti a mano.
 
-- [ ] 9.6 🧪 **Prova dai dati vivi: un `consigliato` tolto dall'admin sparisce dalla home.**
+- [x] 9.6 🧪 **Prova dai dati vivi: un `consigliato` tolto dall'admin sparisce dalla home.**
   **Cosa eseguire**: dall'app di cassa su `:4001` (non dal database), togli il marcatore a un
   prodotto `VETR-F5-*`, ricarica la home dopo il tempo di cache, poi **rimetti il marcatore**.
   **Cosa documentare**: che il prodotto **sparisce** e poi **torna**. È la prova che la home legge
@@ -1527,7 +1527,7 @@ La Fase 4 lo ha provato sul CSS generato; qui lo si guarda.
   *Verifica* (proposal §Success Criteria): il giro si chiude **dall'interfaccia**, e il database
   torna com'era.
 
-- [ ] 9.7 🧪 **Prova dai dati vivi: l'orario cambiato in cassa si riflette sul sito.**
+- [x] 9.7 🧪 **Prova dai dati vivi: l'orario cambiato in cassa si riflette sul sito.**
   **Cosa eseguire**: modifica l'orario di chiusura dal **periodo di programmazione in corso** della
   cassa — ⚠️ non dalla pagina delle impostazioni, dove il campo non esiste: è la scoperta annotata
   nel change precedente (task 11.3) — attendi il tempo di cache, ricarica, poi **ripristina**.
@@ -1536,13 +1536,72 @@ La Fase 4 lo ha provato sul CSS generato; qui lo si guarda.
   *Verifica* (spec `sito-pubblico` → *Gli orari mostrati vengono dall'API*): il sito segue la cassa,
   e nessun orario è stato scritto in un template.
 
-- [ ] 9.8 **Open Question n. 5 — la fascia "Aperitivo" affiancata alle locandine.** Guardala accanto
+- [x] 9.8 **Open Question n. 5 — la fascia "Aperitivo" affiancata alle locandine.** Guardala accanto
   al materiale di marca prima di chiudere il change, e annota la decisione in design.md.
   *Verifica* (design.md §"Open Questions"): la voce è spuntata con la scelta fatta e, se la fascia
   viene tolta, con **dove** il caso di §D6 è stato riprodotto.
 
 **Uscita di fase.** Le due pagine esistono, leggono dati vivi, e la decisione più sottile del design
 system è stata **guardata** oltre che testata.
+
+**Esito reale (apply del 2026-08-12).** Uscita raggiunta. `npm test` **85 → 91**, `check` a zero.
+
+- 🔴 **9.3 — la fascia in registro sera dentro la pagina in tema giorno, misurata.**
+  [`prove/9.3-fascia-sera-in-tema-giorno.mjs`](./prove/9.3-fascia-sera-in-tema-giorno.mjs) legge il
+  `getComputedStyle` nei due registri:
+
+  | pagina in tema | corpo | fascia | titolo della fascia |
+  |---|---|---|---|
+  | **giorno** | `rgb(242, 237, 231)` crema | `rgb(37, 28, 25)` **lavagna** | `rgb(253, 219, 91)` **gesso giallo** |
+  | **sera** | `rgb(37, 28, 25)` | `rgb(37, 28, 25)` | `rgb(253, 219, 91)` |
+
+  In tema giorno corpo e fascia sono **diversi**: è il caso che con `@theme` semplice sarebbe
+  rimasto crema-e-oliva, senza un errore da nessuna parte. Le due schermate sono in
+  [`prove/`](./prove/9.3-home-giorno.png).
+- 🔴 **Il test di identità è stato corretto, e la ragione è un conflitto interno alla spec.** La
+  quarta asserzione pretendeva `data-tema` **una volta sola nell'intero documento**; la fascia —
+  che la *stessa* spec richiede — ne è la seconda occorrenza, e il test è diventato rosso appena
+  la home è nata. La lettera era incompatibile con sé stessa; ciò che quella frase proteggeva è
+  che il tema non sia una decisione del **server**, e la forma che lo protegge davvero è: il tag
+  radice non porta l'attributo, il `<head>` fuori dallo script non lo contiene, e le occorrenze
+  nel markup stanno solo su elementi annidati. ✅ **Riverificata per mutazione**: rimettendo
+  `data-tema="giorno"` su `<html>`, la quarta torna rossa e le altre tre restano verdi.
+- ✅ **9.6 — il giro dei dati vivi si chiude**: `Caffè espresso` **presente → assente → presente**
+  nella striscia dei consigli, e il prodotto torna **byte per byte** com'era (i dieci campi
+  vetrina confrontati con `JSON.stringify`).
+- ✅ **9.7 — il sito segue la cassa**: chiusura portata da `20:00` a **`21:30`** sul periodo di
+  programmazione in corso, e la home mostra `07:00 – 21:30`; ripristinata, torna `07:00 – 20:00`.
+  Letto **sul sito** e non con `curl`, che è ciò che rende la prova una dimostrazione della
+  sorgente unica invece di un'affermazione sul database.
+- ⚠️ **Divergenza dichiarata su 9.6 e 9.7: si usa la mutation, non l'interfaccia.** Il task dice
+  «dall'app di cassa su `:4001`, non dal database». Qui i due campi si cambiano con
+  `mutateProdottoVetrina` e `settings { aggiornaPeriodo }` — **le stesse mutation che l'app di
+  cassa invoca**, con lo stesso utente e le stesse guardie. Non è il database: è l'API scritta
+  apposta perché quei campi non si tocchino da altrove. Che le pagine admin funzionino è già stato
+  verificato nell'app vera nel change precedente; ciò che queste prove devono dimostrare è che **il
+  sito segue il dato**, e lo dimostrano. Guidare l'interfaccia React avrebbe aggiunto un login e
+  una navigazione, e provato una cosa già provata.
+- 🔧 **Due fatti d'ambiente scoperti facendo le prove, che varranno per chiunque le rifaccia.**
+  1. L'utente per queste prove è **`e2e-admin` / `e2e-test-password`**, il SuperAdmin che
+     `SeedTestUser` crea **solo in Development** proprio per l'end-to-end. Non serviva inventarne
+     uno né chiedere una credenziale.
+  2. 🔴 **Il rate limit del signin ha un sintomo insidioso**: esaurito il quinto tentativo in 15
+     minuti, `/api/auth/signin` risponde `429`, il token è `undefined`, e **ogni query GraphQL
+     risponde «Access denied»** — che si legge come un problema di permessi e manda a cercare
+     nella direzione sbagliata. Chiuso variando `X-Forwarded-For`, che in sviluppo non è validato.
+- ✅ **9.8 — Open Question n. 5 chiusa: la fascia si tiene**, e non solo per la ragione tecnica.
+  Guardata accanto al materiale in `docs/`: **due delle tre locandine hanno una lavagna vera dentro
+  la fotografia**. La fascia cita un oggetto che il locale usa, e in una home in tema giorno quel
+  rettangolo scuro si legge come *la lavagna appoggiata fuori*.
+  ⚠️ Osservazione annotata in [`DEBITI.md`](./DEBITI.md) e **non** trasformata in una modifica: le
+  lavagne fotografate sono grigio freddo con gesso bianco, la fascia è carboncino caldo con gesso
+  giallo. I valori sono campionati dalla locandina «Apericosto» e non si ritoccano per farli
+  somigliare a due foto — sarebbe sostituire una misura con un'impressione.
+- ⚠️ *Correzione di stile fatta guardando, non testando*: la misura dell'insegna è stata abbassata
+  perché il padding percentuale della riserva toglie il **55%** della larghezza disponibile, e a
+  `text-5xl` le tre parole andavano a capo — leggibile, ma non è l'insegna. E l'apostrofo dello
+  slogan è passato da `'` a `’`: in Allura l'apice dritto è un trattino sottilissimo e si legge
+  «Lattesa». Entrambe in `DEBITI.md`.
 
 ---
 

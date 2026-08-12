@@ -1555,9 +1555,19 @@ presa.
       ripiego.** Il costo è un file già esistente in `docs/brand/` e tre righe; l'alternativa è un
       link condiviso senza anteprima nel giorno in cui nessuno ha ancora scelto l'immagine.
 
-- [ ] **La fascia "Aperitivo" in registro sera fissa: scelta editoriale o solo dimostrazione
-      tecnica?** Nasce da §D6 come il caso che rende `@theme inline` necessario, ma è anche il modo
-      in cui i due registri del locale convivono in una pagina. **Raccomandazione: tenerla, e
-      guardarla affiancata alle locandine prima di chiudere il change.** Se stonasse, il caso di
-      §D6 va comunque riprodotto — anche solo in una pagina di prova non linkata — perché senza un
-      sottoalbero con tema proprio la decisione fra `@theme` e `@theme inline` torna indistinguibile.
+- [x] **La fascia "Aperitivo" in registro sera fissa: scelta editoriale o solo dimostrazione
+      tecnica?** ✅ **CHIUSA in apply il 2026-08-12: si tiene**, e non solo per la ragione tecnica.
+
+      Guardata affiancata al materiale in `docs/`: **due delle tre locandine hanno una lavagna
+      vera dentro la fotografia** — la lavagna del menu cubano nello spazio esterno, e quella
+      «Cocktail Cubani e Italiani» dietro il vassoio. La lavagna non è un espediente grafico per
+      avere una fascia scura: è un oggetto che il locale usa, e la fascia lo cita. Con la home in
+      tema giorno, quel rettangolo scuro in mezzo alla crema si legge come *la lavagna appoggiata
+      fuori*, che è esattamente il registro che serve all'aperitivo.
+
+      ⚠️ **Un'osservazione da non trasformare in una modifica.** Le lavagne fotografate sono grigio
+      **freddo** con gesso **bianco**; la fascia è carboncino **caldo** con gesso **giallo**. I
+      valori vengono dalla locandina «Aperitivo Apericosto», campionati e non scelti, e **non si
+      toccano** per farli somigliare di più a queste due foto: sarebbe sostituire una misura con
+      un'impressione. Annotato in `DEBITI.md` come cosa da guardare insieme all'utente, non come
+      un aggiustamento da fare in fondo a un change.

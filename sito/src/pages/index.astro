@@ -1,13 +1,43 @@
 ---
-// La home vera nasce in Fase 9. Per ora esercita ciò che la Fase 6 deve dimostrare: il
-// guscio, il registro deciso client-side, il toggle, e gli orari resi dal server con lo
-// stato di apertura che invece non c'è.
-import Base from '../layouts/Base.astro';
-import TemaSwitch from '../components/TemaSwitch.astro';
-import { leggiSito } from '../lib/api.ts';
+// La home — la pagina che la gente digita.
+//
+// Il motivo per cui esiste come gradino a sé è però un altro: contiene la **fascia
+// "Aperitivo" in registro sera annidata in una pagina in tema giorno**, che è l'unico posto
+// in cui la differenza fra `@theme` e `@theme inline` diventa visibile a occhio. Il test
+// sul CSS generato lo ha provato; qui lo si guarda.
 
-const esito = await leggiSito();
-const sito = esito.stato === 'ok' ? esito.dati : null;
+import Base from '../layouts/Base.astro';
+import Logo from '../components/Logo.astro';
+import TemaSwitch from '../components/TemaSwitch.astro';
+import Immagine from '../components/Immagine.astro';
+import SchedaProdotto from '../components/SchedaProdotto.astro';
+import { leggiSito, leggiMenu, leggiGalleria } from '../lib/api.ts';
+
+// 🔴 Tre letture in parallelo con `Promise.all`, non `allSettled`: nessuna delle tre
+//    rifiuta mai (§D4), quindi non c'è nulla da cortocircuitare. Un fallimento parziale
+//    resta parziale — se il menu non risponde, l'identità del locale resta in pagina.
+const [esitoSito, esitoMenu, esitoGalleria] = await Promise.all([
+  leggiSito(),
+  leggiMenu(),
+  leggiGalleria(),
+]);
+const sito = esitoSito.stato === 'ok' ? esitoSito.dati : null;
+const menu = esitoMenu.stato === 'ok' ? esitoMenu.dati : null;
+const galleria = esitoGalleria.stato === 'ok' ? esitoGalleria.dati.immagini : [];
+
+Astro.response.headers.set('Cache-Control', 'public, max-age=60');
+
+// La striscia dei consigliati viene dal payload, non da un array scritto nel template: è
+// una selezione VIVA, che l'amministratore governa dal marcatore in cassa.
+//
+// ⚠️ E la home NON mostra l'avviso di troncamento, deliberatamente: espone per natura una
+//    selezione, non un listino, quindi non promette completezza e un avviso lì sarebbe
+//    rumore. Conseguenza da conoscere: con il menu troncato, un `consigliato` oltre il
+//    limite non compare qui. Il rimedio è l'ordinamento di vetrina, che l'admin già ha.
+const consigliati = (menu?.categorie ?? [])
+  .flatMap((c) => c.prodotti)
+  .filter((p) => p.consigliato)
+  .slice(0, 3);
 
 const GIORNI = ['lun', 'mar', 'mer', 'gio', 'ven', 'sab', 'dom'];
 const giorniAperti = sito?.orari.giorniOperativi
@@ -15,28 +45,180 @@ const giorniAperti = sito?.orari.giorniOperativi
   : null;
 ---
 
-<Base titolo={sito?.insegna ?? '2 D Gusto'} sito={sito}>
-  <main class="mx-auto max-w-2xl px-6 py-16">
-    <h1 class="font-titolo text-5xl tracking-wide">{sito?.insegna ?? '2 D Gusto'}</h1>
+<Base
+  titolo={sito?.insegna ?? '2 D Gusto'}
+  descrizione="Caffetteria italiana con anima cubana a Thiene. Colazione, pranzo e aperitivo."
+  sito={sito}
+>
+  <header class="border-bordo border-b">
+    <div class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-5">
+      <Logo classe="w-40" />
+      <nav class="flex items-center gap-4">
+        <a href="/menu" class="hover:text-accento text-sm tracking-wide uppercase">Menu</a>
+        <TemaSwitch />
+      </nav>
+    </div>
+  </header>
 
+  <main>
+    <!-- ── Hero ─────────────────────────────────────────────────────────────────────── -->
+    <section class="mx-auto max-w-5xl px-6 py-16 text-center sm:py-24">
+      <Logo forma="monogramma" classe="w-24 sm:w-32" etichetta={null} />
+
+      <h1 class="mt-8 text-lg sm:text-3xl">
+        {/*
+          🔴 Le tre parole sono TESTO, mai l'SVG dell'insegna: devono poter essere lette,
+             tradotte e indicizzate. La riserva di spazio e lo stiramento derivano dallo
+             stesso token, perché `transform` non partecipa al layout.
+
+          ⚠️ La misura del carattere è tarata SULLA RISERVA, non scelta a occhio: il padding
+             percentuale di `.insegna-riserva` toglie il 55% della larghezza disponibile, e
+             un corpo troppo grande manda le tre parole a capo — che è leggibile, ma non è
+             l'insegna. Su schermo stretto il ritorno a capo resta ammesso: meglio due righe
+             che un testo che sborda.
+        */}
+        <span class="insegna-riserva">
+          <span class="font-insegna insegna block leading-tight font-black sm:whitespace-nowrap">
+            Colazione Pranzo Aperitivo
+          </span>
+        </span>
+      </h1>
+
+      {/*
+        Lo slogan in Allura, di giorno legato all'accento (oliva) come nelle locandine e mai
+        all'inchiostro. Mai maiuscolo, mai sui prezzi o sugli orari.
+
+        ⚠️ L'apostrofo è quello TIPOGRAFICO (U+2019), non l'apice dritto: in un corsivo
+           inglese come Allura l'apice dritto è un trattino verticale sottilissimo che a
+           schermo sparisce — si legge «Lattesa». U+2019 è dentro il subset latino
+           (U+2000-206F), quindi non costa un byte in più.
+      */}
+      <p class="font-firma text-accento mt-8 text-3xl leading-snug sm:text-4xl">
+        L’attesa del piacere è essa stessa il piacere
+      </p>
+
+      {
+        sito && (
+          <p class="text-inchiostro-tenue mt-10 flex flex-wrap items-center justify-center gap-x-3 gap-y-2">
+            {/* Gli ORARI sono dato: server-side. Lo STATO è orologio: servito nascosto. */}
+            <span>
+              {sito.orari.apertura} – {sito.orari.chiusura}
+            </span>
+            {giorniAperti && <span>{giorniAperti.join(' · ')}</span>}
+            <span
+              id="stato-apertura"
+              class="bg-sfondo-alt rounded-full px-3 py-1 text-sm"
+              hidden
+            />
+          </p>
+        )
+      }
+    </section>
+
+    <!-- ── Consigliati ──────────────────────────────────────────────────────────────── -->
     {
-      sito && (
-        <p class="text-inchiostro-tenue mt-4">
-          {/* Gli ORARI sono dato: server-side, e nell'HTML. */}
-          <span>{sito.orari.apertura} – {sito.orari.chiusura}</span>
-          {giorniAperti && <span>, {giorniAperti.join(' ')}</span>}
-          {/*
-            Lo STATO è orologio: servito vuoto e `hidden`, riempito e svelato dallo script.
-            Senza JavaScript restano gli orari veri e nessun badge — l'informazione c'è,
-            manca la comodità.
-          */}
-          <span id="stato-apertura" class="bg-sfondo-alt ml-3 rounded-full px-3 py-1 text-sm" hidden />
-        </p>
+      consigliati.length > 0 && (
+        <section class="bg-sfondo-alt border-bordo border-y">
+          <div class="mx-auto max-w-5xl px-6 py-14">
+            <h2 class="font-titolo text-2xl tracking-wide sm:text-3xl">I nostri consigli</h2>
+            <div class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {consigliati.map((p, n) => (
+                <SchedaProdotto prodotto={p} priorita={n === 0} />
+              ))}
+            </div>
+            <p class="mt-8">
+              <a href="/menu" class="text-accento underline underline-offset-4">
+                Tutto il menu
+              </a>
+            </p>
+          </div>
+        </section>
       )
     }
 
-    <div class="mt-10">
-      <TemaSwitch />
-    </div>
+    <!--
+      ── La fascia Aperitivo, SEMPRE in registro sera ────────────────────────────────────
+      🔴 `data-tema="sera"` su questa sezione, dentro una pagina che può essere in tema
+         giorno. È la lavagna del locale, e i due registri sono due momenti della giornata,
+         non due preferenze del visitatore.
+
+      È anche l'unico posto in cui la differenza fra `@theme` e `@theme inline` si vede a
+      occhio: con `@theme` semplice ogni utility qui dentro resterebbe crema-e-oliva — una
+      fascia scura con dentro i colori del giorno — e non ci sarebbe alcun errore da nessuna
+      parte. Se un giorno questa fascia venisse tolta per ragioni editoriali, il caso va
+      riprodotto altrove, o quella decisione torna indistinguibile.
+    -->
+    <section data-tema="sera" class="bg-sfondo text-inchiostro">
+      <div class="mx-auto max-w-5xl px-6 py-16 text-center">
+        <p class="text-inchiostro-tenue text-sm tracking-[0.2em] uppercase">Ogni sera</p>
+        <h2 class="font-titolo text-accento mt-3 text-3xl tracking-wide sm:text-4xl">
+          Aperitivo Apericosto
+        </h2>
+        <p class="font-firma mt-4 text-3xl">dieci euro</p>
+        <p class="text-inchiostro-tenue mx-auto mt-6 max-w-md">
+          Cocktail cubani, taglieri e la lavagna del giorno. Dalle
+          {' '}{sito?.oraInizioTemaSera ?? ''} fino alla chiusura.
+        </p>
+        <span class="bg-arancio mx-auto mt-8 block h-1 w-24 rounded-full"></span>
+      </div>
+    </section>
+
+    <!-- ── Galleria ─────────────────────────────────────────────────────────────────── -->
+    {
+      galleria.length > 0 && (
+        <section class="mx-auto max-w-5xl px-6 py-16">
+          <h2 class="font-titolo text-2xl tracking-wide sm:text-3xl">Il locale</h2>
+          <div class="mt-6 grid gap-4 sm:grid-cols-2">
+            {galleria.map((immagine) => (
+              <figure class="border-bordo aspect-[4/3] overflow-hidden rounded-lg border">
+                <Immagine immagine={immagine} sizes="(min-width: 640px) 30rem, 92vw" />
+              </figure>
+            ))}
+          </div>
+        </section>
+      )
+    }
+
+    <!-- ── Contatti ─────────────────────────────────────────────────────────────────── -->
+    {
+      sito && (
+        <footer class="border-bordo border-t">
+          <div class="mx-auto grid max-w-5xl gap-8 px-6 py-14 sm:grid-cols-2">
+            <div>
+              <h2 class="font-titolo text-xl tracking-wide">{sito.insegna}</h2>
+              {/* Scomposto perché lo pretende schema.org, e perché è già scomposto nell'API. */}
+              <address class="text-inchiostro-tenue mt-3 not-italic">
+                {sito.indirizzo.via}
+                <br />
+                {sito.indirizzo.cap} {sito.indirizzo.citta} ({sito.indirizzo.provincia})
+              </address>
+            </div>
+            <div class="text-inchiostro-tenue flex flex-col gap-2">
+              {sito.contatti.telefono && (
+                <a href={`tel:${sito.contatti.telefono.replace(/\s/g, '')}`} class="hover:text-accento">
+                  {sito.contatti.telefono}
+                </a>
+              )}
+              {sito.contatti.email && (
+                <a href={`mailto:${sito.contatti.email}`} class="hover:text-accento">
+                  {sito.contatti.email}
+                </a>
+              )}
+              {/* URL completi dall'API: il sito non sa come si costruisce un indirizzo social. */}
+              {sito.social.instagram && (
+                <a href={sito.social.instagram} rel="me noopener" class="hover:text-accento">
+                  Instagram
+                </a>
+              )}
+              {sito.social.facebook && (
+                <a href={sito.social.facebook} rel="me noopener" class="hover:text-accento">
+                  Facebook
+                </a>
+              )}
+            </div>
+          </div>
+        </footer>
+      )
+    }
   </main>
 </Base>

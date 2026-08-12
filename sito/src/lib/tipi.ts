@@ -102,6 +102,16 @@ export interface MenuPubblico {
   troncato: boolean;
 }
 
+/**
+ * La galleria: i media della cartella dedicata e pubblicati, nell'ordine editoriale.
+ *
+ * Un elenco **vuoto è uno stato legittimo** — nessuno ha ancora etichettato immagini — e
+ * produce `200`, non un errore.
+ */
+export interface GalleriaPubblica {
+  immagini: ImmaginePubblica[];
+}
+
 /** L'identità del locale come la legge un visitatore. */
 export interface SitoPubblico {
   insegna: string;

@@ -11,7 +11,7 @@
 //    sapere prima che a qualcuno venga in mente di "semplificare" spostandolo lì.
 
 import { API_INTERNA_URL } from 'astro:env/server';
-import type { MenuPubblico, SitoPubblico } from './tipi.ts';
+import type { GalleriaPubblica, MenuPubblico, SitoPubblico } from './tipi.ts';
 
 /**
  * 🔴 **L'unico valore di timeout del progetto.** Non è una costante "di stile": duplicarlo
@@ -145,5 +145,18 @@ export function leggiSito(): Promise<Esito<SitoPubblico>> {
 export function leggiMenu(): Promise<Esito<MenuPubblico>> {
   return leggiJson<MenuPubblico>(`${API_INTERNA_URL}/api/public/menu`, (v) =>
     haLeChiavi(v, ['categorie', 'totaleProdottiPubblicati', 'limiteApplicato', 'troncato'])
+  );
+}
+
+/**
+ * Le immagini della galleria, nell'ordine editoriale.
+ *
+ * ⚠️ Un elenco **vuoto** è un esito `ok`, non un'assenza: significa che nessuno ha ancora
+ *    etichettato immagini con quella cartella. È diverso da «non sono riuscito a leggere»,
+ *    e le due cose producono due pagine diverse.
+ */
+export function leggiGalleria(): Promise<Esito<GalleriaPubblica>> {
+  return leggiJson<GalleriaPubblica>(`${API_INTERNA_URL}/api/public/galleria`, (v) =>
+    haLeChiavi(v, ['immagini'])
   );
 }

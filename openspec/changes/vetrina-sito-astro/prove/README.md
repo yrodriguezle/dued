@@ -30,3 +30,12 @@ nominato fallisce, serve il `default` e poi la destrutturazione.
 | 🎯 8.6 | [`8.6-menu-giorno.png`](./8.6-menu-giorno.png), [`8.6-menu-sera.png`](./8.6-menu-sera.png) | Il menu reale nei due registri | — |
 | 8.9 | [`8.9-due-prefissi-diversi.mjs`](./8.9-due-prefissi-diversi.mjs) | Prova B: `API_INTERNA_URL` su `localhost`, `PUBLIC_MEDIA_ORIGINE` sull'IP di rete | ✅ la pagina si renderizza (il **server** ha letto) **e** le immagini caricano `200` da `192.168.1.232` (il **browser** ha letto, da un altro host); `naturalWidth` 320 e non 0; il markup non nomina mai `localhost:4000` |
 | 8.9 | [`8.9-due-prefissi-diversi.png`](./8.9-due-prefissi-diversi.png) | La stessa pagina con le due origini divergenti | — |
+| 🔴 9.3 | [`9.3-fascia-sera-in-tema-giorno.mjs`](./9.3-fascia-sera-in-tema-giorno.mjs) | La fascia «Aperitivo» misurata con `getComputedStyle` nei due registri | ✅ in **tema giorno** il corpo è crema `rgb(242,237,231)` e la fascia è lavagna `rgb(37,28,25)` con il titolo in gesso giallo `rgb(253,219,91)`. È il caso che con `@theme` semplice sarebbe rimasto crema-e-oliva senza alcun errore |
+| 🔴 9.3 | [`9.3-home-giorno.png`](./9.3-home-giorno.png), [`9.3-home-sera.png`](./9.3-home-sera.png) | La home intera nei due registri | — |
+| 9.6 | [`9.6-consigliato-dai-dati-vivi.mjs`](./9.6-consigliato-dai-dati-vivi.mjs) | Un `consigliato` tolto e rimesso dall'amministrazione | ✅ «Caffè espresso» **presente → assente → presente**; i dieci campi vetrina tornano identici |
+| 9.7 | [`9.7-orario-dai-dati-vivi.mjs`](./9.7-orario-dai-dati-vivi.mjs) | La chiusura cambiata sul periodo di programmazione | ✅ sito `07:00 – 20:00` → **`07:00 – 21:30`** → `07:00 – 20:00`, letto **in pagina**; il periodo torna identico |
+
+⚠️ Le prove 9.6 e 9.7 si autenticano come **`e2e-admin`**, il SuperAdmin che il seed crea solo in
+Development per l'end-to-end, e variano `X-Forwarded-For` a ogni signin: il rate limit è di 5
+tentativi ogni 15 minuti per IP, e quando scatta il sintomo è un `429` seguito da «Access denied»
+su ogni query GraphQL — che si legge come un problema di permessi.

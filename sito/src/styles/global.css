@@ -227,3 +227,32 @@ html:not([data-pronto]) *,
 html:not([data-pronto]) *::before {
   transition: none !important;
 }
+
+/* ───────────────────────────────────────────────────────────────────────────────────────
+   L'INSEGNA: «Colazione Pranzo Aperitivo» stirata come sul locale
+
+   Il fattore è MISURATO sull'insegna vera confrontando nove candidati, non scelto: le tre
+   parole del sito devono poter stare accanto alla foto dell'insegna senza che la differenza
+   si veda. Il README di marca suggerisce `scaleX(1.5)` nella stessa riga in cui dichiara
+   ×1.55: è quel numero arrotondato, e su una riga di 600 px la differenza sono 20 px.
+
+   🔴 `transform` NON PARTECIPA AL LAYOUT. L'elemento continua a occupare la larghezza che
+      avrebbe senza la trasformazione, quindi il testo stirato SBORDA sui vicini e non si
+      centra da solo. La larghezza va riservata a mano — e la riserva deve derivare DALLO
+      STESSO token, o il giorno in cui il fattore cambia lo spazio resta quello vecchio e
+      nessuno collega le due cose.
+
+   ⚠️ Le tre parole restano TESTO selezionabile, mai l'SVG dell'insegna: devono poter essere
+      lette da uno screen reader, tradotte e indicizzate.
+   ─────────────────────────────────────────────────────────────────────────────────────── */
+
+.insegna {
+  display: inline-block;
+  transform: scaleX(var(--stiramento-insegna));
+  transform-origin: center;
+}
+
+.insegna-riserva {
+  display: inline-block;
+  padding-inline: calc((var(--stiramento-insegna) - 1) / 2 * 100%);
+}
