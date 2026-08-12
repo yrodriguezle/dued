@@ -93,14 +93,21 @@ if (apiInterna && mediaOrigine && apiInterna === mediaOrigine) {
 }
 
 // ── (4) Il figlio ─────────────────────────────────────────────────────────────────────
-const [comando, argomenti] = prova
-  ? [process.execPath, ['dist/server/entry.mjs']]
-  : ['npx', ['astro', 'dev']];
+//
+// ⚠️ `shell` è deciso per ramo, e non una volta sola per piattaforma. Su Windows serve per
+//    `npx`, che è un `.cmd` e da Node 20 non si esegue senza shell. Ma con la shell il
+//    comando viene ri-parsato, e `process.execPath` è
+//    `C:\Program Files\nodejs\node.exe`: `cmd` lo spezza sullo spazio e risponde
+//    «"C:\Program" non è riconosciuto come comando interno o esterno». Il ramo del bundle
+//    di prova invoca quindi Node direttamente, senza shell.
+const [comando, argomenti, conShell] = prova
+  ? [process.execPath, ['dist/server/entry.mjs'], false]
+  : ['npx', ['astro', 'dev'], process.platform === 'win32'];
 
 const figlio = spawn(comando, argomenti, {
   cwd: radiceSito,
   stdio: 'inherit',
-  shell: process.platform === 'win32', // `npx` su Windows è `npx.cmd`
+  shell: conShell,
   env: process.env,
 });
 

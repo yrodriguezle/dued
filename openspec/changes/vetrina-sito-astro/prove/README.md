@@ -1,0 +1,23 @@
+# Prove del change `vetrina-sito-astro`
+
+Le prove 🧪 che **nessun test rieseguirà**: quelle che hanno bisogno di un browser, e quelle
+distruttive che dopo l'apply non si ripetono nelle stesse condizioni. Ogni file inizia col
+numero del task che lo motiva.
+
+Gli script si eseguono con Node dalla cartella `prove/`, e prendono l'indirizzo come primo
+argomento (default `http://localhost:4321/`):
+
+```bash
+cd openspec/changes/vetrina-sito-astro/prove
+node 5.8-richieste-font.mjs
+```
+
+⚠️ **Playwright arriva da `duedgusto/node_modules/` per percorso esplicito**, e non è
+installato in `sito/`: il criterio 12.12 pretende che `sito/package.json` non contenga alcun
+automatore di browser, e `duedgusto/` non si tocca. Playwright è **CommonJS**: l'import
+nominato fallisce, serve il `default` e poi la destrutturazione.
+
+| # | Prova | Cosa mostra | Esito |
+|---|---|---|---|
+| 5.8 | [`5.8-richieste-font.mjs`](./5.8-richieste-font.mjs) | Le richieste di carattere del browser vero, con il loro host | ✅ **una sola** richiesta, `localhost:4321/_astro/Anton-latin.Byf51wtH.woff2`; **zero** verso domini Google. Allura e Playfair non partono, perché la pagina non li usa ancora |
+| 5.8 | [`5.8-pagina-con-anton.png`](./5.8-pagina-con-anton.png) | La pagina con Anton applicato | — |

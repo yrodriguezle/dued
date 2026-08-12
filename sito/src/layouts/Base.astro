@@ -1,0 +1,50 @@
+---
+// Il guscio di ogni pagina del sito.
+//
+// Prima stesura (Fase 5): `<head>`, foglio di stile e preload. Lo script del tema e il
+// toggle arrivano in Fase 6 — nasce minimo perché il preload va provato ADESSO, mentre è
+// l'unica cosa nel `<head>` e un errore non si confonde con altro.
+
+import '../styles/global.css';
+
+// 🔴 L'URL del preload viene dalla BUILD, non scritta a mano.
+//    Vite riscrive l'`url()` del CSS in un percorso con hash di contenuto. Un preload
+//    scritto a mano su `/fonts/Anton.woff2` punterebbe a un file DIVERSO da quello che il
+//    CSS chiede: il browser ne scaricherebbe due, e negli strumenti il preload comparirebbe
+//    come «inutile» invece che come sbagliato — cioè verrebbe tolto, che è la reazione
+//    opposta a quella giusta. Con `?url` la stringa è la stessa che finisce nel CSS.
+import antonUrl from '../assets/fonts/Anton-latin.woff2?url';
+
+interface Props {
+  titolo: string;
+  descrizione?: string;
+}
+
+const { titolo, descrizione } = Astro.props;
+---
+
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{titolo}</title>
+    {descrizione && <meta name="description" content={descrizione} />}
+
+    <!--
+      Solo Anton: è il display sopra la piega di entrambe le pagine. Allura e Playfair sono
+      decorativi e non bloccano la lettura — preloadarli ruberebbe banda a ciò che serve.
+
+      ⚠️ `crossorigin` è OBBLIGATORIO anche same-origin: i caratteri si recuperano in
+         modalità CORS, e senza l'attributo il preload NON viene riusato dal caricamento
+         vero. Il font si scarica due volte, e la pagina sembra solo un po' più lenta.
+
+      ⚠️ Auto-chiuso: nella 7 il compilatore è più severo e un void element non chiuso è un
+         errore di build, non più una correzione silenziosa.
+    -->
+    <link rel="preload" href={antonUrl} as="font" type="font/woff2" crossorigin />
+  </head>
+  <body class="bg-sfondo text-inchiostro font-corpo">
+    <slot />
+  </body>
+</html>

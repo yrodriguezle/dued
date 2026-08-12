@@ -869,14 +869,14 @@ licenza, la loro provenienza, e la prova che nessuna richiesta esce verso Google
 `Base.astro` perché il preload è l'unica parte del `<head>` che dipende da **come la build nomina i
 file**, e sbagliarla produce un font scaricato due volte senza che nulla sia rosso.
 
-- [ ] 5.1 **`sito/scripts/scarica-font.mjs`** — zero dipendenze (`fetch` + `node:crypto`): scarica i
+- [x] 5.1 **`sito/scripts/scarica-font.mjs`** — zero dipendenze (`fetch` + `node:crypto`): scarica i
   tre `latin.woff2` dagli URL `gstatic` registrati e **verifica gli sha256** contro quelli in
   `PROVENIENZA.md`.
   *Verifica* (spec `temi-e-identita` → *Lo script di scarico verifica le impronte*, *Lo script non
   gira durante la build*): lo script **non** è invocato da `build`; è uno script a sé, e il suo
   output è riproducibile.
 
-- [ ] 5.2 **I tre file, la licenza e la provenienza** — `Anton-latin.woff2` (18 612 B),
+- [x] 5.2 **I tre file, la licenza e la provenienza** — `Anton-latin.woff2` (18 612 B),
   `Allura-latin.woff2` (26 488 B), `PlayfairDisplay-900-latin.woff2` (22 372 B) in
   `sito/src/assets/fonts/`, più 🔴 **`OFL.txt`** (la licenza **richiede** che accompagni i file) e
   `PROVENIENZA.md` con famiglia, versione, URL gstatic esatta, sha256 e data.
@@ -885,7 +885,7 @@ file**, e sbagliarla produce un font scaricato due volte senza che nulla sia ros
   *Verifica* (spec `temi-e-identita` → *I tre file esistono con licenza e provenienza*): i tre file
   sono committati, gli sha256 nel documento corrispondono, il totale è ~67 kB.
 
-- [ ] 5.3 **I tre `@font-face` scritti a mano, con l'`unicode-range` copiato verbatim** da Google, e
+- [x] 5.3 **I tre `@font-face` scritti a mano, con l'`unicode-range` copiato verbatim** da Google, e
   `font-display: swap` — mai `block`: il titolo **è** il contenuto.
   ⚠️ Senza `unicode-range` il browser scarica il font anche per testo che non ha glifi in quel
   range — per esempio un nome di prodotto in cirillico.
@@ -893,18 +893,18 @@ file**, e sbagliarla produce un font scaricato due volte senza che nulla sia ros
   range copre le accentate italiane, **€ (U+20AC — senza, sarebbero i prezzi)**, l'apostrofo
   tipografico, i trattini e il grado.
 
-- [ ] 5.4 **Il corpo non scarica nulla** — `--font-corpo` è uno stack di sistema (con Roboto
+- [x] 5.4 **Il corpo non scarica nulla** — `--font-corpo` è uno stack di sistema (con Roboto
   dentro, che su Android e ChromeOS dà proprio quel carattere, gratis).
   *Verifica* (spec `temi-e-identita` → *Il corpo non scarica alcun file*): nessun `@font-face` per
   il corpo, zero byte.
 
-- [ ] 5.5 **`Base.astro`, prima stesura: solo il `<head>` e il preload.** Il layout nasce qui con
+- [x] 5.5 **`Base.astro`, prima stesura: solo il `<head>` e il preload.** Il layout nasce qui con
   `<meta charset>`, il titolo, il foglio di stile e il preload; lo script del tema e il toggle
   arrivano nella Fase 6. Nasce minimo perché il preload va provato **adesso**, mentre è l'unica cosa
   nel `<head>`.
   *Verifica*: una pagina che usa `Base.astro` si costruisce e si serve.
 
-- [ ] 5.6 🔴 **Preload di Anton, con `crossorigin` e con l'URL prodotta dalla build.**
+- [x] 5.6 🔴 **Preload di Anton, con `crossorigin` e con l'URL prodotta dalla build.**
   `import antonUrl from '../assets/fonts/Anton-latin.woff2?url'` e
   `<link rel="preload" href={antonUrl} as="font" type="font/woff2" crossorigin />`.
   🔴 **Due trappole, entrambe silenziose.** (1) Vite riscrive l'`url()` del CSS in un percorso con
@@ -919,12 +919,12 @@ file**, e sbagliarla produce un font scaricato due volte senza che nulla sia ros
   preload nell'HTML servito con l'`url()` del CSS generato e pretende che siano **la stessa
   stringa**.
 
-- [ ] 5.7 **Test: zero domini dei font esterni nei file generati.**
+- [x] 5.7 **Test: zero domini dei font esterni nei file generati.**
   *Verifica* (spec `temi-e-identita` → *I domini esterni non compaiono nei file generati*):
   `grep -r "fonts.gstatic.com\|fonts.googleapis.com" sito/dist/` non trova **nulla**, né nell'HTML
   né nel CSS.
 
-- [ ] 5.8 🧪 **Prova manuale: la scheda di rete.** Apri la pagina, guarda la scheda di rete filtrata
+- [x] 5.8 🧪 **Prova manuale: la scheda di rete.** Apri la pagina, guarda la scheda di rete filtrata
   su `font`.
   **Cosa documentare**: quante richieste di font partono (devono essere **una**, quella di Anton, e
   le altre due solo quando compaiono in pagina), e che **nessuna** ha come host un dominio Google.
@@ -934,6 +934,56 @@ file**, e sbagliarla produce un font scaricato due volte senza che nulla sia ros
 
 **Uscita di fase.** Tre file locali, 67 kB, una licenza, una provenienza rifacibile, un preload che
 punta **esattamente** al file che il CSS chiede, e zero richieste verso Internet.
+
+**Esito reale (apply del 2026-08-12).** Uscita raggiunta. `npm test` **34 → 41**, `check` a zero.
+I tre file pesano **esattamente** ciò che il design aveva misurato — 18 612 + 26 488 + 22 372 =
+**67 472 B** — e le versioni sono quelle previste (Anton v27, Allura v23, Playfair Display v40).
+
+- ✅ *5.1 — le impronte non stanno nello script.* `scarica-font.mjs` le **legge da
+  `PROVENIENZA.md`**, che è il documento che un umano guarda: se stessero in due posti un giorno
+  divergerebbero e vincerebbe quello che nessuno legge. Lo script ha anche `--verifica`, che
+  controlla l'albero senza toccare la rete. Riscaricati e riverificati: le tre impronte
+  corrispondono, l'operazione è riproducibile.
+  🔴 **Quando un'impronta non corrisponde, il file NON viene sovrascritto.** Se Google pubblica
+  una revisione, la versione dentro l'URL cambia: un'impronta diversa a URL invariata è un fatto
+  da guardare, non da accettare in silenzio.
+- ⚠️ *Lo user-agent è parte del contratto, non un dettaglio.* `fonts.googleapis.com/css2` fa
+  negoziazione del contenuto: con un UA vecchio la stessa richiesta risponde con `.ttf` invece che
+  con `.woff2`. Senza quella riga si scaricherebbero file dieci volte più grandi e di un altro
+  formato, **senza alcun errore**. Scritto sia nello script sia in `PROVENIENZA.md`.
+- ✅ *5.2 — `OFL.txt` è uno solo per tre famiglie, e si può.* Verificato scaricando le tre licenze
+  dal repository `google/fonts` e confrontandole: il **corpo è identico** (differiscono solo per i
+  fine riga, CRLF contro LF). Sono riportate tutte e tre le note di copyright e il corpo una volta
+  sola.
+- ✅ *5.6 — la prova che conta è un confronto fra due mondi diversi.* L'`href` del preload sta
+  nell'**HTML**, che con `output: 'server'` è generato a ogni richiesta e non esiste come file;
+  l'`url()` sta nel **CSS**, che è un artefatto. Il test costruisce, avvia il bundle su una porta
+  libera, fa una `fetch` e confronta le due stringhe: `/_astro/Anton-latin.Byf51wtH.woff2` in
+  entrambi. Più l'asserzione che l'hash ci sia davvero, così il confronto non è fra due stringhe
+  scritte a mano identiche per caso.
+- 🔴 *Bug trovato in `scripts/dev.mjs`, e trovato solo perché il preload andava provato sul bundle
+  costruito.* `npm run start:prova` moriva con **«"C:\Program" non è riconosciuto come comando
+  interno o esterno»**: lo `spawn` passava `shell: true` su Windows per entrambi i rami, e con la
+  shell `cmd` ri-parsa il comando spezzando `C:\Program Files\nodejs\node.exe` sullo spazio. La
+  shell serve solo al ramo `npx` (che è un `.cmd`); il ramo del bundle invoca Node direttamente.
+  ⚠️ **Il ramo `--prova` non era mai stato eseguito in Fase 2** — la fase provava il dev server —
+  quindi il difetto era già lì, dormiente, e questa fase l'ha svegliato.
+- ✅ *5.7 e 5.8 — due prove dello stesso fatto, e servono entrambe.* Il test automatico guarda gli
+  **artefatti**: nessun `fonts.gstatic.com`/`fonts.googleapis.com` in alcun file di `dist/` né
+  nell'HTML servito. La prova 🧪 [`prove/5.8-richieste-font.mjs`](./prove/5.8-richieste-font.mjs)
+  guarda il **runtime** con un browser vero: **una sola** richiesta di carattere,
+  `localhost:4321/_astro/Anton-latin.Byf51wtH.woff2` — lo stesso file del preload e del CSS —,
+  **zero** verso domini Google. Allura e Playfair non partono, perché la pagina non li usa ancora:
+  è l'`unicode-range` e la generazione on-demand che funzionano.
+  ⚠️ *Prima trappola del primo script Playwright*: il pacchetto è **CommonJS**, quindi
+  `import { chromium } from '…/playwright/index.js'` fallisce. Serve il default e poi la
+  destrutturazione. Annotato in [`prove/README.md`](./prove/README.md), che è l'indice delle prove.
+- ⚠️ *Divergenza minima da 5.4*: lo stack del corpo è quello di **§D8** (con `'Helvetica Neue'`),
+  non quello di §"Interfaces / Contracts" dello stesso documento, che lo omette. I due punti del
+  design non concordavano; ha vinto la sezione che argomenta la scelta.
+- ➕ *Test in più*: che i tre `@font-face` siano esattamente tre (nessuno per il corpo, che è a zero
+  byte), e che ogni intervallo Unicode contenga `U+0000-00FF`, `U+2000-206F` e **`U+20AC`** —
+  quest'ultimo perché senza l'euro sarebbero i **prezzi** a restare senza glifo.
 
 ---
 
