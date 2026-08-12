@@ -196,9 +196,18 @@ Un JPEG 12 Mpx decompresso occupa ~48MB in RAM. Upload concorrenti su un VPS pic
 
 ## Success Criteria
 
-> **Stato all'11 agosto 2026.** Le Fasi 1-8 sono chiuse; resta la **Fase 9**, che richiede
-> l'accesso SSH al VPS. I criteri che si chiudono soltanto in produzione sono segnati 🔒 e
-> nominano il task che li chiuderà: non sono stati dichiarati raggiunti per somiglianza.
+> **Stato al 12 agosto 2026: tutte le fasi chiuse, Fase 9 compresa.** I criteri segnati 🔒
+> si chiudevano soltanto in produzione e nominavano il task che li avrebbe chiusi: nessuno è
+> stato dichiarato raggiunto per somiglianza, e ora ognuno porta la prova che lo chiude.
+>
+> ⚠️ **Due criteri non poggiano su una prova eseguita**, e vanno letti sapendolo:
+> - *«La cassa funziona esattamente come prima»* — la metà contabile (registro, vendite,
+>   chiusura mensile, fornitori) è **dichiarata conclusa dall'amministratore**, che è
+>   l'autorità giusta per quel criterio ma non è un comando ripetibile. La metà del confine
+>   cassa/vetrina è invece provata in produzione (task 9.8 ①).
+> - *«10 prodotti in vetrina»* resta `[~]`: il meccanismo è provato, i dieci prodotti sono
+>   contenuto editoriale. Il 12 agosto l'anagrafica prodotti in produzione è risultata
+>   **vuota** — la cassa lavora su totali giornalieri — e ne è stato creato **uno**.
 
 - [x] `dotnet build` e `dotnet test` passano; `npm run ts:check`, `npm run lint` e `npm run test` passano
   → **487/487** backend, **755/755** frontend, `ts:check` e `lint` puliti.
@@ -208,8 +217,8 @@ Un JPEG 12 Mpx decompresso occupa ~48MB in RAM. Upload concorrenti su un VPS pic
   → In sviluppo: 8 file per una sorgente 2508×951 (task 2.10) e caricamento **dall'interfaccia** con record creato (Fase 6). 🔒 Su `/opt/duedgusto/media` lo chiude il task 9.2.
 - [x] `exiftool` sui file generati **non** mostra GPS né alcun metadato EXIF
   → Provato con `exiftool` su una sorgente con GPS/EXIF/IPTC/XMP iniettati (task 2.10) e pinnato dal test `Elaborazione_RimuoveOgniProfiloEIlGps`.
-- [ ] 🔒 L'immagine è raggiungibile via `https://<host>/media/…` servita da **nginx** (non da .NET) con `expires 1y` → task 9.3. In sviluppo la serve .NET con lo stesso `Cache-Control: public,max-age=31536000,immutable`, e `nginx -t` sulla `location /media/` passa.
-- [ ] 🔒 Un upload da 15MB non produce un 413 opaco ma un errore leggibile → task 9.7. I quattro limiti sono in ordine decrescente dall'esterno verso l'interno e `uploadRequest` traduce un 413 con corpo HTML in un messaggio leggibile (test 7.14).
+- [x] 🔒 L'immagine è raggiungibile via `https://<host>/media/…` servita da **nginx** (non da .NET) con `expires 1y` → task 9.3. In sviluppo la serve .NET con lo stesso `Cache-Control: public,max-age=31536000,immutable`, e `nginx -t` sulla `location /media/` passa.
+- [x] 🔒 Un upload da 15MB non produce un 413 opaco ma un errore leggibile → task 9.7. I quattro limiti sono in ordine decrescente dall'esterno verso l'interno e `uploadRequest` traduce un 413 con corpo HTML in un messaggio leggibile (test 7.14).
 - [x] Un'immagine oltre la soglia di megapixel viene rifiutata **senza** che la memoria del container esploda
   → Rifiuto sulla sola intestazione, provato con un JPEG la cui intestazione dichiara 12000×10000 (test 7.2).
 - [x] Il tentativo di eliminare un `MediaAsset` referenziato viene **rifiutato**, l'errore **nomina i prodotti** che lo usano, e nessun file né record viene cancellato
@@ -220,11 +229,11 @@ Un JPEG 12 Mpx decompresso occupa ~48MB in RAM. Upload concorrenti su un VPS pic
   → Tre test in Fase 3, **verificati per mutazione**: iniettando le violazioni falliscono davvero.
 - [x] Un utente autenticato **non amministratore** riceve un errore dal backend su ogni scrittura media/vetrina, anche chiamando GraphQL e REST direttamente
   → Cinque casi GraphQL (incluse le due letture di `connection { mediaAssets }`) e `POST /api/media` con **403 e corpo JSON**, senza alcun effetto collaterale (test 7.9).
-- [ ] 🔒 🔴 **Simulazione di deploy**: dopo `deploy.sh` i file in `/opt/duedgusto/media` sono ancora tutti lì → task 9.4.
-- [ ] 🔒 🔴 **Simulazione di ripristino**: `backup.sh` produce un mirror che contiene i media, e un restore ricostruisce DB **e** file senza 404 → task 9.5.
+- [x] 🔒 🔴 **Simulazione di deploy**: dopo `deploy.sh` i file in `/opt/duedgusto/media` sono ancora tutti lì → task 9.4.
+- [x] 🔒 🔴 **Simulazione di ripristino**: `backup.sh` produce un mirror che contiene i media, e un restore ricostruisce DB **e** file senza 404 → task 9.5.
 - [x] Un riavvio del backend con `SEED_ON_STARTUP=true` **non** duplica il menu "Sito"
   → Tre avvii reali: un padre e due figli a database (Fase 4), più il test di idempotenza 7.10.
-- [~] La cassa funziona esattamente come prima: registro, vendite, chiusura mensile, fornitori
+- [x] La cassa funziona esattamente come prima: registro, vendite, chiusura mensile, fornitori
   → I 431 test preesistenti passano senza modifiche e il ramo GraphQL della cassa è invariato (`git diff --stat` vuoto sui tre file, task 3.12). 🔒 Il giro completo in produzione è il task 9.8.
 
 ---

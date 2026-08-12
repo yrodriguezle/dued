@@ -716,9 +716,13 @@ un `backup.sh` che ignora i file ricostruisce un database perfetto pieno di imma
   > l'unico che esercita davvero lo strato intermedio, cioè l'unico che dimostra che i quattro
   > limiti sono in scala decrescente e non solo dichiarati tali.
 
-- [ ] 9.8 **La cassa funziona esattamente come prima** — giro completo in produzione: registro, vendite, chiusura mensile, fornitori.
+- [x] 9.8 **La cassa funziona esattamente come prima** — giro completo in produzione: registro, vendite, chiusura mensile, fornitori.
   *Verifica*: nessuna regressione osservabile; è l'ultimo criterio di successo della proposal e quello che non si può delegare a un test.
-  > **Deliberatamente lasciato all'utente, non dimenticato.** Un giro completo scrive dati
+  > **Chiuso il 12 agosto 2026 in due metà, con due autorità diverse.** La ① è una prova
+  > eseguita e osservabile; la ② è una **dichiarazione dell'amministratore**, ed è corretto
+  > che lo sia — ma le due cose non vanno confuse leggendo questo file fra un anno.
+  >
+  > **Perché la ② non poteva essere eseguita da un agente.** Un giro completo scrive dati
   > **contabili veri** in produzione: un registro, delle vendite, una chiusura mensile. Non
   > sono righe che un agente può creare e poi togliere come ha fatto con il media di prova —
   > toccano la contabilità del locale. Il task dice esso stesso che è *«quello che non si può
@@ -727,14 +731,64 @@ un `backup.sh` che ignora i file ricostruisce un database perfetto pieno di imma
   >
   > Quello che si può dire dall'esterno, e che è stato verificato il 12 agosto: il ramo
   > GraphQL della cassa è invariato, `/graphql` risponde regolarmente sull'host del
-  > gestionale, il `config.json` continua a puntare all'IP e la SPA si carica (`200`). Nessuna
-  > delle modifiche di questa sessione tocca `duedgusto/`, `VenditeMutations.cs`,
-  > `ProdottoInputType.cs` o `VenditeQueries.cs`.
+  > gestionale, e la SPA si carica (`200`). Nessuna delle modifiche di questa sessione tocca
+  > `duedgusto/`, `VenditeMutations.cs`, `ProdottoInputType.cs` o `VenditeQueries.cs`.
+  >
+  > ### ① Il confine cassa/vetrina: **provato in produzione** il 12 agosto 2026
+  >
+  > È la metà del task che si poteva chiudere senza scrivere contabilità, ed è quella che
+  > protegge dal guasto *silenzioso*: un salvataggio ordinario dalla cassa che azzera i campi
+  > vetrina: nessun errore, nessun avviso, e un giorno il sito è vuoto.
+  >
+  > 🔴 **Scoperta che precede la prova: l'anagrafica prodotti in produzione era VUOTA.**
+  > `connection { prodotti }` (che include anche i non attivi) restituiva `totalCount = 0`.
+  > La cassa lavora su totali giornalieri — 607 registri storici, chiusure mensili, spese —
+  > e il catalogo prodotti non le è mai servito. **Conseguenza per il progetto: la pagina
+  > `/menu` del sito resta vuota finché il catalogo non viene costruito.** Non è un difetto
+  > del sito: è lavoro editoriale che nessuno ha ancora fatto.
+  >
+  > Su decisione dell'utente è stato creato il primo prodotto vero — `CAFFE-ESP`,
+  > «Caffè espresso», €1,20, IVA 10% — e su quello è stata eseguita la prova.
+  > ⚠️ La creazione è **irreversibile**: non esiste alcuna mutation che elimini un prodotto,
+  > si può solo disattivarlo (`attivo: false`). È stato detto prima di crearlo, non dopo.
+  >
+  > **Esito**: impostati i dieci campi vetrina con `mutateProdottoVetrina`, poi eseguito
+  > `mutateProdotto` — la mutation della **cassa** — e riletti. **Tutti e dieci identici.**
+  >
+  > 🔴 **Il primo giro non contava, e va detto.** Il salvataggio rispediva valori *identici*:
+  > EF Core può non emettere alcun `UPDATE` quando nulla cambia, e allora la prova sarebbe
+  > stata verde perché non era successo niente — lo stesso vizio dei tre falsi verdi della
+  > Fase 9. È stato rifatto **cambiando davvero il listino** (1,20 → 1,30), con `updatedAt`
+  > usato come testimone: è cambiato, quindi la scrittura è avvenuta. I dieci campi vetrina
+  > sono rimasti intatti anche così. Il prezzo è stato poi riportato a 1,20.
+  >
+  > Effetto collaterale utile: il prezzo pubblico ha seguito il listino 1,20 → 1,30 → 1,20,
+  > cioè `prezzoEffettivoVetrina` con `prezzoVetrina` a `null` ricade sul listino **dal vivo**
+  > e non solo nei test. `https://duedgusto.it/menu` rende il prodotto con la categoria, la
+  > descrizione di vetrina e il prezzo formattato all'italiana (`1,20`).
+  >
+  > ### ② Il giro contabile: **dato per concluso dall'amministratore** il 12 agosto 2026
+  >
+  > Registro, vendite, chiusura mensile, fornitori: nessuna regressione riscontrata.
+  >
+  > ⚠️ **Chi legge deve sapere su cosa poggia questa riga.** Non è una prova eseguita in
+  > questa sessione né un'osservazione registrata: è la dichiarazione di chi usa la cassa
+  > tutti i giorni e risponde di quei numeri. È l'autorità giusta — il task stesso dice che
+  > questo criterio *«non si può delegare a un test»*, e per la stessa ragione non si delega
+  > a chi non risponde della contabilità. Ma è una fonte diversa da tutte le altre righe di
+  > questa fase, e va contata per quello che è.
+  >
+  > Se un giorno emergesse una regressione nella cassa, questo è il punto da riaprire per
+  > primo: è l'unico criterio della Fase 9 che nessun comando può rieseguire.
 
 **Uscita di fase.** I tre rischi 🔴 della proposal sono chiusi con prove eseguite, non con argomenti.
 
-**Esito reale (12 agosto 2026).** **7 task su 8 chiusi**; resta il solo 9.8, che è un giro
-contabile e appartiene a chi risponde di quei numeri.
+**Esito reale (12 agosto 2026).** **Fase 9 chiusa, 8 task su 8.**
+
+⚠️ Sette sono chiusi da prove eseguite e ripetibili. L'ottavo — il ② del 9.8, il giro
+contabile — è chiuso da una **dichiarazione dell'amministratore**, che è l'autorità giusta
+per quel criterio ma non è la stessa cosa di un comando che si può rilanciare. La fase è
+completa; le due fonti non sono intercambiabili.
 
 I tre rischi 🔴 sono chiusi **tutti e tre**, e nessuno è stato chiuso per analogia:
 - *media cancellati dal `rm -rf`* → 9.4, con le 8 impronte md5 identiche prima e dopo;
@@ -761,13 +815,24 @@ lasciate aperte nel design: vanno confermate esplicitamente, non ereditate per s
 - [x] 10.2 **Checklist dei Success Criteria della proposal** — ripercorri i 14 criteri di [proposal.md](./proposal.md) §"Success Criteria", con la riformulazione dichiarata in §D6: *"il tentativo di eliminare un `MediaAsset` referenziato viene rifiutato, l'errore nomina i prodotti che lo usano, e nessun file né record viene cancellato"* sostituisce *"`DELETE` risponde 409"* (comportamento identico, trasporto diverso).
   *Verifica*: ogni criterio ha un task che lo chiude o una prova eseguita che lo dimostra.
 
-- [ ] 10.3 **Pronto per `sdd-verify`** — `dotnet build`, `dotnet test`, `npm run ts:check`, `npm run lint`, `npm run test` tutti verdi sul branch della change.
+- [x] 10.3 **Pronto per `sdd-verify`** — `dotnet build`, `dotnet test`, `npm run ts:check`, `npm run lint`, `npm run test` tutti verdi sul branch della change.
   *Verifica*: la pipeline `.github/workflows/deploy.yml` passa su push.
-  > **Parzialmente chiuso l'11 agosto 2026.** I cinque comandi sono **tutti verdi in locale**
+  > **Parzialmente chiuso l'11 agosto 2026.** I cinque comandi erano **tutti verdi in locale**
   > sul branch `feat/vetrina-ramo-graphql`: `dotnet build` 0 errori, `dotnet test` 487/487,
-  > `ts:check` e `lint` puliti, `npm run test` 755/755. Manca solo la conferma dalla pipeline,
-  > che richiede il **push del branch** — un'azione verso l'esterno lasciata alla decisione
-  > dell'utente.
+  > `ts:check` e `lint` puliti, `npm run test` 755/755. Mancava la conferma dalla pipeline,
+  > che richiedeva il **push** — un'azione verso l'esterno lasciata all'utente.
+  >
+  > **Chiuso il 12 agosto 2026.** Il merge della PR #12 ha fatto girare
+  > `.github/workflows/deploy.yml` su `main`, ed è **passata**. Non è un timbro: quel workflow
+  > esegue `dotnet test` (riga 56) e `npx vitest run` (riga 62) **prima** dello step di deploy,
+  > quindi un test rosso avrebbe fermato la pipeline prima che toccasse il server.
+  > In locale, dopo tutte le modifiche di questa sessione: `dotnet test` **667/667**,
+  > `ts:check` e `lint` **puliti**, `astro check` in `sito/` **37 file, 0 errori**.
+  >
+  > ⚠️ **Cosa la pipeline NON copre**, e va saputo invece che dedotto: non esegue `ts:check`,
+  > non esegue `lint`, e non esegue i test di `sito/`. Quei tre sono stati lanciati a mano qui.
+  > I test di `sito/` non sono stati rieseguiti perché questa sessione non ha toccato una riga
+  > di `sito/src`: ha aggiunto soltanto `Dockerfile` e `.dockerignore`, che nessun test copre.
 
 **Uscita di fase.** Le tre decisioni aperte sono confermate per iscritto in design.md, i
 criteri di successo della proposal sono ripercorsi uno per uno, e ciò che resta aperto porta
