@@ -20,13 +20,13 @@ public class CorsOriginPolicyTests
     #region Scenario: Origine dichiarata nell'allowlist
 
     [Theory]
-    [InlineData("https://app.duedgusto.com")]
-    [InlineData("https://app.duedgusto.com:8443")]
-    [InlineData("http://app.duedgusto.com")]
+    [InlineData("https://app.duedgusto.it")]
+    [InlineData("https://app.duedgusto.it:8443")]
+    [InlineData("http://app.duedgusto.it")]
     public void HostDichiaratoInAllowedOrigins_Ammesso(string origin)
     {
         HashSet<string> allowlist =
-            CorsOriginPolicy.CostruisciAllowlist("app.duedgusto.com", null);
+            CorsOriginPolicy.CostruisciAllowlist("app.duedgusto.it", null);
 
         CorsOriginPolicy.OrigineAmmessa(origin, allowlist).Should().BeTrue(
             "l'host è dichiarato in ALLOWED_ORIGINS, che elenca soli host senza schema né porta");
@@ -35,19 +35,19 @@ public class CorsOriginPolicyTests
     [Fact]
     public void AllowedOrigins_NonImpostata_AmmetteIlDominioDiDefault()
     {
-        CorsOriginPolicy.OrigineAmmessa("https://app.duedgusto.com", AllowlistDiDefault())
-            .Should().BeTrue("senza ALLOWED_ORIGINS vale il default 'app.duedgusto.com'");
+        CorsOriginPolicy.OrigineAmmessa("https://app.duedgusto.it", AllowlistDiDefault())
+            .Should().BeTrue("senza ALLOWED_ORIGINS vale il default 'app.duedgusto.it'");
     }
 
     [Fact]
     public void AllowedOrigins_ElencoMultiplo_AmmetteOgniHostConSpaziIgnorati()
     {
         HashSet<string> allowlist = CorsOriginPolicy.CostruisciAllowlist(
-            " app.duedgusto.com , vetrina.duedgusto.com ", null);
+            " app.duedgusto.it , vetrina.duedgusto.it ", null);
 
-        CorsOriginPolicy.OrigineAmmessa("https://app.duedgusto.com", allowlist).Should().BeTrue();
-        CorsOriginPolicy.OrigineAmmessa("https://vetrina.duedgusto.com", allowlist).Should().BeTrue();
-        CorsOriginPolicy.OrigineAmmessa("https://altro.duedgusto.com", allowlist).Should().BeFalse(
+        CorsOriginPolicy.OrigineAmmessa("https://app.duedgusto.it", allowlist).Should().BeTrue();
+        CorsOriginPolicy.OrigineAmmessa("https://vetrina.duedgusto.it", allowlist).Should().BeTrue();
+        CorsOriginPolicy.OrigineAmmessa("https://altro.duedgusto.it", allowlist).Should().BeFalse(
             "un host non elencato non è dichiarato");
     }
 
@@ -55,12 +55,12 @@ public class CorsOriginPolicyTests
     public void ConfrontoHost_CaseInsensitive()
     {
         HashSet<string> allowlistMaiuscola =
-            CorsOriginPolicy.CostruisciAllowlist("APP.DUEDGUSTO.COM", null);
+            CorsOriginPolicy.CostruisciAllowlist("APP.DUEDGUSTO.IT", null);
 
-        CorsOriginPolicy.OrigineAmmessa("https://app.duedgusto.com", allowlistMaiuscola)
+        CorsOriginPolicy.OrigineAmmessa("https://app.duedgusto.it", allowlistMaiuscola)
             .Should().BeTrue("il confronto fra host è OrdinalIgnoreCase");
 
-        CorsOriginPolicy.OrigineAmmessa("https://App.DuedGusto.Com", AllowlistDiDefault())
+        CorsOriginPolicy.OrigineAmmessa("https://App.DuedGusto.It", AllowlistDiDefault())
             .Should().BeTrue("il case dell'header Origin non deve cambiare il verdetto");
     }
 
@@ -134,7 +134,7 @@ public class CorsOriginPolicyTests
     public void ServerIp_AmmessoSenzaDuplicarloInAllowedOrigins()
     {
         HashSet<string> allowlist =
-            CorsOriginPolicy.CostruisciAllowlist("app.duedgusto.com", "203.0.113.10");
+            CorsOriginPolicy.CostruisciAllowlist("app.duedgusto.it", "203.0.113.10");
 
         CorsOriginPolicy.OrigineAmmessa("https://203.0.113.10", allowlist).Should().BeTrue(
             "SERVER_IP entra da sola nell'allowlist");
@@ -159,9 +159,9 @@ public class CorsOriginPolicyTests
     public void ServerIp_NonValorizzata_NonAggiungeNulla(string? serverIp)
     {
         HashSet<string> allowlist =
-            CorsOriginPolicy.CostruisciAllowlist("app.duedgusto.com", serverIp);
+            CorsOriginPolicy.CostruisciAllowlist("app.duedgusto.it", serverIp);
 
-        allowlist.Should().BeEquivalentTo(["app.duedgusto.com"]);
+        allowlist.Should().BeEquivalentTo(["app.duedgusto.it"]);
     }
 
     #endregion
@@ -171,13 +171,13 @@ public class CorsOriginPolicyTests
     [Fact]
     public void HostAggiuntoAdAllowedOrigins_PassaDaRifiutatoAdAmmesso()
     {
-        const string origin = "https://nuovo-client.duedgusto.com";
+        const string origin = "https://nuovo-client.duedgusto.it";
 
         CorsOriginPolicy.OrigineAmmessa(origin, AllowlistDiDefault()).Should().BeFalse(
             "prima dell'autorizzazione l'host non è dichiarato");
 
         HashSet<string> allowlistAggiornata = CorsOriginPolicy.CostruisciAllowlist(
-            "app.duedgusto.com,nuovo-client.duedgusto.com", null);
+            "app.duedgusto.it,nuovo-client.duedgusto.it", null);
 
         CorsOriginPolicy.OrigineAmmessa(origin, allowlistAggiornata).Should().BeTrue(
             "basta aggiungere l'host a ALLOWED_ORIGINS e riavviare il container: "
@@ -189,9 +189,9 @@ public class CorsOriginPolicyTests
     #region Origini non parsabili
 
     /// <remarks>
-    /// Non è asserito il caso <c>"//app.duedgusto.com"</c>: su Windows
+    /// Non è asserito il caso <c>"//app.duedgusto.it"</c>: su Windows
     /// <c>Uri.TryCreate(UriKind.Absolute)</c> lo interpreta come percorso UNC e produce
-    /// <c>file://app.duedgusto.com/</c>, con <c>Host</c> valorizzato — quindi il verdetto
+    /// <c>file://app.duedgusto.it/</c>, con <c>Host</c> valorizzato — quindi il verdetto
     /// dipende dalla piattaforma. Non è una falla sfruttabile (un browser non fa mai match
     /// fra la propria origin e un <c>Access-Control-Allow-Origin</c> senza schema), ma
     /// un'asserzione qui renderebbe il test rosso su Linux o su Windows a seconda di dove gira.
@@ -202,7 +202,7 @@ public class CorsOriginPolicyTests
     [InlineData("   ")]
     [InlineData("not-a-uri")]
     // Host senza schema: ALLOWED_ORIGINS elenca host, ma l'header Origin è un URI assoluto
-    [InlineData("app.duedgusto.com")]
+    [InlineData("app.duedgusto.it")]
     [InlineData("/graphql")]
     public void OrigineNonParsabileComeUri_Rifiutata(string? origin)
     {

@@ -18,8 +18,17 @@ namespace duedgusto.Common;
 /// </summary>
 public static class CorsOriginPolicy
 {
-    /// <summary>Host ammesso quando <c>ALLOWED_ORIGINS</c> non è impostata.</summary>
-    public const string AllowlistDefault = "app.duedgusto.com";
+    /// <summary>
+    /// Host ammesso quando <c>ALLOWED_ORIGINS</c> non è impostata.
+    ///
+    /// <para>⚠️ È il default <b>reale</b> in produzione, non un segnaposto: <c>docker-compose.yml</c>
+    /// passa <c>${ALLOWED_ORIGINS:-app.duedgusto.it}</c>, quindi finché quella variabile manca dal
+    /// <c>.env</c> del server è questa costante a decidere. Il dominio è <c>duedgusto.it</c>,
+    /// acquistato il 12 agosto 2026, e il gestionale vive sul sottodominio <c>app</c>. La vetrina
+    /// sta sull'apice e <b>non</b> compare qui: nginx la serve sullo stesso origin dell'API, quindi
+    /// le sue richieste non sono cross-origin e CORS non entra mai in gioco.</para>
+    /// </summary>
+    public const string AllowlistDefault = "app.duedgusto.it";
 
     /// <summary>
     /// Costruisce l'allowlist degli host dichiarati.
