@@ -21,3 +21,6 @@ nominato fallisce, serve il `default` e poi la destrutturazione.
 |---|---|---|---|
 | 5.8 | [`5.8-richieste-font.mjs`](./5.8-richieste-font.mjs) | Le richieste di carattere del browser vero, con il loro host | ✅ **una sola** richiesta, `localhost:4321/_astro/Anton-latin.Byf51wtH.woff2`; **zero** verso domini Google. Allura e Playfair non partono, perché la pagina non li usa ancora |
 | 5.8 | [`5.8-pagina-con-anton.png`](./5.8-pagina-con-anton.png) | La pagina con Anton applicato | — |
+| 6.4–6.6 | [`6.5-tema-e-badge.mjs`](./6.5-tema-e-badge.mjs) | L'altra metà della prova di identità: ciò che nell'HTML **non** c'è, nel browser **c'è** | ✅ all'apertura `data-tema="giorno"`, etichetta «Auto», badge «Aperto ora» **svelato**; il toggle gira `giorno → sera → auto`; la scelta sopravvive al reload; `data-pronto` compare dopo il primo frame |
+| 6.4–6.6 | `6.5-auto.png`, [`6.5-giorno.png`](./6.5-giorno.png), [`6.5-sera.png`](./6.5-sera.png) | I due registri sulla stessa pagina | — |
+| 12.6 (in anticipo) | la stessa prova | Il contesto ha `timezoneId: 'America/Los_Angeles'` — nove ore indietro | ✅ il registro segue **l'ora di Roma**: alle 12:42 italiane il tema automatico è `giorno`, benché a Los Angeles sia notte |

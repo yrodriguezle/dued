@@ -17,3 +17,15 @@
  * una costante e non un problema.
  */
 export const ORA_TEMA_SERA_DI_RIPIEGO = '18:00';
+
+/**
+ * L'ora di apertura usata **solo** come estremo di uscita del registro serale quando
+ * l'identità del locale non si legge.
+ *
+ * ⚠️ Vale tutto quello scritto sopra, e una cosa in più: questo valore **non compare mai
+ *    in pagina**. Gli orari mostrati al visitatore vengono dall'API o non vengono affatto —
+ *    una pagina degradata dichiara di non saperli, non ne inventa. Serve unicamente perché
+ *    la formula del registro serale ha due estremi (§D5) e senza il secondo il tema
+ *    resterebbe "giorno" alle due di notte anche in degradazione.
+ */
+export const ORA_APERTURA_DI_RIPIEGO = '07:00';

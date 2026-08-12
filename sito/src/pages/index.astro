@@ -1,9 +1,42 @@
 ---
-// La home vera nasce in Fase 9. Per ora è la pagina minima che serve a far girare la build
-// e a esercitare `Base.astro` — cioè il preload, che è l'unica cosa da provare adesso.
+// La home vera nasce in Fase 9. Per ora esercita ciò che la Fase 6 deve dimostrare: il
+// guscio, il registro deciso client-side, il toggle, e gli orari resi dal server con lo
+// stato di apertura che invece non c'è.
 import Base from '../layouts/Base.astro';
+import TemaSwitch from '../components/TemaSwitch.astro';
+import { leggiSito } from '../lib/api.ts';
+
+const esito = await leggiSito();
+const sito = esito.stato === 'ok' ? esito.dati : null;
+
+const GIORNI = ['lun', 'mar', 'mer', 'gio', 'ven', 'sab', 'dom'];
+const giorniAperti = sito?.orari.giorniOperativi
+  ? GIORNI.filter((_, i) => sito.orari.giorniOperativi![i])
+  : null;
 ---
 
-<Base titolo="2 D Gusto">
-  <p class="font-titolo">In costruzione.</p>
+<Base titolo={sito?.insegna ?? '2 D Gusto'} sito={sito}>
+  <main class="mx-auto max-w-2xl px-6 py-16">
+    <h1 class="font-titolo text-5xl tracking-wide">{sito?.insegna ?? '2 D Gusto'}</h1>
+
+    {
+      sito && (
+        <p class="text-inchiostro-tenue mt-4">
+          {/* Gli ORARI sono dato: server-side, e nell'HTML. */}
+          <span>{sito.orari.apertura} – {sito.orari.chiusura}</span>
+          {giorniAperti && <span>, {giorniAperti.join(' ')}</span>}
+          {/*
+            Lo STATO è orologio: servito vuoto e `hidden`, riempito e svelato dallo script.
+            Senza JavaScript restano gli orari veri e nessun badge — l'informazione c'è,
+            manca la comodità.
+          */}
+          <span id="stato-apertura" class="bg-sfondo-alt ml-3 rounded-full px-3 py-1 text-sm" hidden />
+        </p>
+      )
+    }
+
+    <div class="mt-10">
+      <TemaSwitch />
+    </div>
+  </main>
 </Base>

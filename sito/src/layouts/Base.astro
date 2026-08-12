@@ -1,11 +1,18 @@
 ---
 // Il guscio di ogni pagina del sito.
 //
-// Prima stesura (Fase 5): `<head>`, foglio di stile e preload. Lo script del tema e il
-// toggle arrivano in Fase 6 — nasce minimo perché il preload va provato ADESSO, mentre è
-// l'unica cosa nel `<head>` e un errore non si confonde con altro.
+// 🔴 Il server emette UNA SOLA PAGINA, PRIVA DI TEMA. `<html>` non porta `data-tema`, il
+//    badge "aperto ora" non è nell'HTML, e `data-pronto` non c'è. Tutto ciò che dipende
+//    dall'orologio o dalle preferenze del visitatore lo decide lo script inline, prima del
+//    primo paint. La ragione è §D5 e si paga in Fase 6 del progetto: davanti a queste
+//    pagine ci sarà un micro-cache, e una risposta che dipende dal lettore o frammenta la
+//    chiave o serve a metà dei visitatori il tema di chi ha riempito la cache.
 
 import '../styles/global.css';
+import { eSera, eAperto, oraDiRoma, giornoDiRoma } from '../lib/tema.ts';
+import { ORA_TEMA_SERA_DI_RIPIEGO, ORA_APERTURA_DI_RIPIEGO } from '../lib/degradazione.ts';
+import { mediaUrl } from '../lib/mediaUrl.ts';
+import type { SitoPubblico } from '../lib/tipi.ts';
 
 // 🔴 L'URL del preload viene dalla BUILD, non scritta a mano.
 //    Vite riscrive l'`url()` del CSS in un percorso con hash di contenuto. Un preload
@@ -18,18 +25,134 @@ import antonUrl from '../assets/fonts/Anton-latin.woff2?url';
 interface Props {
   titolo: string;
   descrizione?: string;
+  /** L'identità del locale, o `null` se non si è potuta leggere. */
+  sito: SitoPubblico | null;
 }
 
-const { titolo, descrizione } = Astro.props;
+const { titolo, descrizione, sito } = Astro.props;
+
+// I PARAMETRI dello script — non una decisione già presa. In degradazione si ripiega, e il
+// ripiego non compare mai in pagina: serve solo perché la formula del registro serale ha
+// due estremi e senza il secondo il tema resterebbe "giorno" alle due di notte.
+const parametri = {
+  oraSera: sito?.oraInizioTemaSera ?? ORA_TEMA_SERA_DI_RIPIEGO,
+  oraApertura: sito?.orari.apertura ?? ORA_APERTURA_DI_RIPIEGO,
+  oraChiusura: sito?.orari.chiusura ?? null,
+  giorniOperativi: sito?.orari.giorniOperativi ?? null,
+};
+
+// ⚠️ Le quattro funzioni arrivano nel browser SERIALIZZATE, invece di essere riscritte qui:
+//    la formula del registro serale deve esistere in un solo posto del progetto, ed è
+//    `src/lib/tema.ts`, dove i test la esercitano. Riscriverla dentro questo script
+//    significherebbe due copie che un giorno divergono — e quella sbagliata sarebbe questa,
+//    che nessun test può importare perché non è un modulo.
+//    Il prezzo è che quelle funzioni devono restare autosufficienti; è scritto in cima a
+//    `tema.ts`, ed è pinnato da un test che valuta davvero la sorgente serializzata.
+const sorgenteScript = `
+const P = ${JSON.stringify(parametri)};
+const oraDiRoma = ${oraDiRoma.toString()};
+const giornoDiRoma = ${giornoDiRoma.toString()};
+const eSera = ${eSera.toString()};
+const eAperto = ${eAperto.toString()};
+
+const radice = document.documentElement;
+
+function registroAutomatico() {
+  return eSera(oraDiRoma(), P.oraSera, P.oraApertura) ? 'sera' : 'giorno';
+}
+
+function applica(scelta) {
+  // ⚠️ \`setAttribute\` e non \`dataset\`, deliberatamente: la quarta prova di identità cerca
+  //    la stringa dell'attributo del tema nel documento e pretende di trovarla UNA volta,
+  //    QUI. Con \`dataset.tema\` quella stringa non comparirebbe da nessuna parte e la prova
+  //    sarebbe verde anche se il server scrivesse il tema sul tag radice.
+  //    Sotto, per l'attributo di pronto, vale l'opposto e infatti si usa \`dataset\`: quella
+  //    prova pretende di NON trovarlo affatto nel markup servito.
+  radice.setAttribute('data-tema', scelta === 'auto' ? registroAutomatico() : scelta);
+  const etichetta = document.getElementById('tema-etichetta');
+  if (etichetta) etichetta.textContent = { giorno: 'Giorno', sera: 'Sera', auto: 'Auto' }[scelta];
+}
+
+let scelta = 'auto';
+try { scelta = localStorage.getItem('tema') || 'auto'; } catch (e) { /* modalità privata */ }
+if (scelta !== 'giorno' && scelta !== 'sera') scelta = 'auto';
+applica(scelta);
+
+document.addEventListener('DOMContentLoaded', function () {
+  // ⚠️ Il tema è già applicato — succede in <head>, prima del primo paint, ed è il punto.
+  //    Ma l'ETICHETTA no: quando questo script gira la prima volta il bottone non esiste
+  //    ancora, quindi \`applica\` non l'ha trovato. Senza questa seconda chiamata il toggle
+  //    resta con l'etichetta neutra del server finché non lo si clicca — cioè proprio chi
+  //    non lo tocca non sa mai in quale registro sta.
+  applica(scelta);
+
+  const bottone = document.getElementById('tema-switch');
+  if (bottone) {
+    bottone.addEventListener('click', function () {
+      scelta = { giorno: 'sera', sera: 'auto', auto: 'giorno' }[scelta];
+      try { localStorage.setItem('tema', scelta); } catch (e) { /* modalità privata */ }
+      applica(scelta);
+    });
+  }
+
+  // Lo STATO di apertura: orologio, quindi qui. Gli ORARI sono già in pagina, resi dal
+  // server, perché quelli sono dato. L'elemento è servito \`hidden\` e viene SVELATO, così
+  // non c'è salto di layout — e senza JavaScript restano gli orari veri e nessun badge.
+  const badge = document.getElementById('stato-apertura');
+  if (badge && P.oraChiusura) {
+    const aperto = eAperto(oraDiRoma(), giornoDiRoma(), P.oraApertura, P.oraChiusura, P.giorniOperativi);
+    badge.textContent = aperto ? 'Aperto ora' : 'Chiuso ora';
+    badge.dataset.aperto = String(aperto);
+    badge.hidden = false;
+  }
+});
+
+// Le transizioni restano spente finché non è dipinto il primo frame: senza, il registro
+// scelto qui sopra si vedrebbe arrivare come una dissolvenza dall'altro.
+requestAnimationFrame(function () { radice.dataset.pronto = ''; });
+`;
+
+// ── Anteprima social ─────────────────────────────────────────────────────────────────
+// 🔴 Assoluta in entrambi i rami: `mediaUrl` lo è per costruzione, e il ripiego locale si
+//    rende assoluto con `Astro.url`. Un `og:image` relativo non viene risolto da nessuno
+//    dei consumatori (Facebook, WhatsApp, Telegram): l'anteprima resta semplicemente vuota.
+// ⚠️ `og:url` e `<link rel="canonical">` NON si scrivono qui: sono Fase 3 del progetto,
+//    insieme a `site:` e alla sitemap, e oggi il dominio non esiste ancora.
+const immagineOg = sito?.seo.immagineOg;
+const urlOg = immagineOg
+  ? mediaUrl(immagineOg.chiave, Math.max(...immagineOg.larghezzeDisponibili, 0) || 1200, 'jpg')
+  : new URL('/og-default.jpg', Astro.url).href;
+
+const titoloPagina = titolo || sito?.seo.titoloDefault || '2 D Gusto';
+const descrizionePagina = descrizione ?? sito?.seo.descrizioneDefault ?? undefined;
 ---
 
 <!doctype html>
 <html lang="it">
   <head>
     <meta charset="utf-8" />
+
+    <!--
+      🔴 PRIMO, prima di qualunque foglio di stile: così gira senza nemmeno aspettare che
+         la richiesta del CSS parta, e il registro è deciso prima del primo pixel.
+         `is:inline` è già implicito qui, ma resta scritto: chi un domani cambiasse il modo
+         di passare i parametri non deve riportare il lampo come effetto collaterale.
+    -->
+    <script is:inline set:html={sorgenteScript} />
+
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{titolo}</title>
-    {descrizione && <meta name="description" content={descrizione} />}
+    <title>{titoloPagina}</title>
+    {descrizionePagina && <meta name="description" content={descrizionePagina} />}
+
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={sito?.insegna ?? '2 D Gusto'} />
+    <meta property="og:title" content={titoloPagina} />
+    {descrizionePagina && <meta property="og:description" content={descrizionePagina} />}
+    <meta property="og:image" content={urlOg} />
+    <meta name="twitter:card" content="summary_large_image" />
 
     <!--
       Solo Anton: è il display sopra la piega di entrambe le pagine. Allura e Playfair sono

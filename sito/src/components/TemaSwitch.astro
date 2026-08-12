@@ -1,0 +1,25 @@
+---
+// Il selettore del registro: giorno → sera → auto → giorno.
+//
+// Vanilla, otto righe di comportamento, zero runtime di framework. Un'isola React per
+// questo costerebbe il runtime di React su ogni pagina, contro un budget dichiarato di
+// meno di 60 kB di JavaScript.
+//
+// 🔴 L'etichetta che il SERVER rende è NEUTRA, e non è pigrizia: un'etichetta renderizzata
+//    server-side rivelerebbe lo stato, e lo stato è client-side. Se il server scrivesse
+//    «sera» perché sono le nove di sera per lui, quella parola finirebbe nel micro-cache e
+//    verrebbe servita a chi apre la pagina la mattina dopo. La scrive lo script, insieme al
+//    tema, prima del primo paint.
+//
+// `aria-live="polite"` perché l'etichetta cambia dopo il caricamento: senza, chi usa uno
+// screen reader sente «tema» e non saprebbe mai cosa è stato scelto.
+---
+
+<button
+  id="tema-switch"
+  type="button"
+  class="border-bordo text-inchiostro-tenue hover:text-inchiostro cursor-pointer rounded-full border px-4 py-2 text-sm transition-colors"
+  aria-label="Cambia registro visivo"
+>
+  <span id="tema-etichetta" aria-live="polite">Tema</span>
+</button>

@@ -995,7 +995,7 @@ quando il micro-cache servirà il tema di chi ha riempito la cache a metà dei v
 è **su una pagina ancora priva di dati**, ed è composta da quattro asserzioni di cui **solo la
 quarta** distingue davvero il giusto dallo sbagliato.
 
-- [ ] 6.1 🔴 **Lo script `is:inline` con `define:vars`, primo nel `<head>` dopo `<meta charset>`.**
+- [x] 6.1 🔴 **Lo script `is:inline` con `define:vars`, primo nel `<head>` dopo `<meta charset>`.**
   Riceve `oraSera`, `oraApertura`, `oraChiusura`, `giorniOperativi` **come parametri** — non una
   decisione già presa.
   🔴 Il commento deve dire che **chi sposta il confronto sul server rompe il micro-cache di Fase 6
@@ -1011,7 +1011,7 @@ quarta** distingue davvero il giusto dallo sbagliato.
   arrivano dall'API, non dal template*): l'HTML servito mostra lo script **prima** del foglio di
   stile, e i quattro valori vengono dall'esito di `leggiSito()`.
 
-- [ ] 6.2 🔴 **Il confine del registro serale ha due estremi, entrambi dall'API.**
+- [x] 6.2 🔴 **Il confine del registro serale ha due estremi, entrambi dall'API.**
   `sera ⟺ ora >= oraInizioTemaSera ∨ ora < orari.apertura`. La sola prima metà dà il tema **giorno
   alle due di notte**. L'estremo di uscita **non è una costante inventata**: è l'orario di apertura,
   che l'API già espone — nessun secondo posto in cui un orario possa divergere dal database.
@@ -1019,7 +1019,7 @@ quarta** distingue davvero il giusto dallo sbagliato.
   *Verifica* (spec `temi-e-identita` → *🔴 Il confine del registro serale ha due estremi*): la
   formula compare **una volta sola** nel progetto.
 
-- [ ] 6.3 **Test unitari del confine orario.** `"01:00"` con `oraSera="18:00"` e `apertura="07:00"`
+- [x] 6.3 **Test unitari del confine orario.** `"01:00"` con `oraSera="18:00"` e `apertura="07:00"`
   → **sera**; `"07:00"` → giorno; `"18:00"` → sera; `"17:59"` → giorno; e il caso di mezzanotte che
   **non** produce `"24:00"`.
   *Verifica* (spec `temi-e-identita` → *🔴 Le due di notte sono registro serale*, *Il registro
@@ -1027,14 +1027,14 @@ quarta** distingue davvero il giusto dallo sbagliato.
   un'ora fuori scala*): `npm test` passa, e il caso delle due di notte è un test **a sé** — deve
   poter fallire da solo.
 
-- [ ] 6.4 **`TemaSwitch.astro` — tre stati, vanilla, etichetta scritta dallo script.**
+- [x] 6.4 **`TemaSwitch.astro` — tre stati, vanilla, etichetta scritta dallo script.**
   `giorno → sera → auto`, chiave `tema` in `localStorage`. Il server rende un'etichetta **neutra**:
   un'etichetta renderizzata server-side **rivelerebbe lo stato**, e lo stato è client-side.
   *Verifica* (spec `temi-e-identita` → *L'etichetta servita è neutra*, *Nessun runtime di framework
   UI*): l'HTML servito non contiene la parola del tema corrente; `dist/client/` non contiene alcun
   runtime di framework.
 
-- [ ] 6.5 🔴 **Lo stato "aperto ora" è client-side, per la stessa ragione del tema.** Gli **orari**
+- [x] 6.5 🔴 **Lo stato "aperto ora" è client-side, per la stessa ragione del tema.** Gli **orari**
   sono dato e si renderizzano server-side; lo **stato** è orologio e si calcola nello stesso script,
   in un elemento reso `hidden` dal server e **svelato** dallo script — quindi senza salto di layout.
   ⚠️ **`giorniOperativi` può essere `null`**: in quel caso si mostrano apertura e chiusura **senza**
@@ -1045,12 +1045,12 @@ quarta** distingue davvero il giusto dallo sbagliato.
   *Gli orari invece ci sono*, *Il badge compare nel browser*, *Senza JavaScript restano gli orari*):
   `curl` non trova "aperto"/"chiuso" nel corpo; trova gli orari.
 
-- [ ] 6.6 **`data-pronto` non esiste nell'HTML servito** — lo aggiunge lo script al frame
+- [x] 6.6 **`data-pronto` non esiste nell'HTML servito** — lo aggiunge lo script al frame
   successivo, e serve solo a spegnere le transizioni fino al primo paint.
   *Verifica* (spec `temi-e-identita` → *L'attributo di pronto non è nell'HTML servito*): `curl` non
   lo trova; il browser sì, dopo il primo frame.
 
-- [ ] 6.7 🔴 **Le quattro asserzioni di identità byte per byte.** In `sito/test/identita.test.mjs`,
+- [x] 6.7 🔴 **Le quattro asserzioni di identità byte per byte.** In `sito/test/identita.test.mjs`,
   contro il server di prova: (1) due richieste alla stessa URL a **un minuto di distanza** →
   `Buffer.equals`; (2) `Cookie: tema=sera` vs `tema=giorno` → identici; (3)
   `Sec-CH-Prefers-Color-Scheme: dark` vs `light` → identici; (4) 🔴 la stringa `data-tema` compare
@@ -1063,7 +1063,7 @@ quarta** distingue davvero il giusto dallo sbagliato.
   non cambia la risposta*; spec `sito-pubblico` → *Le verifiche sull'HTML cercano sottostringhe*):
   tutte e quattro passano.
 
-- [ ] 6.8 🔴 🧪 **CONTROPROVA MANUALE UNA TANTUM — le prime tre prove non bastano.** È la
+- [x] 6.8 🔴 🧪 **CONTROPROVA MANUALE UNA TANTUM — le prime tre prove non bastano.** È la
   dimostrazione che la quarta asserzione è quella che porta l'informazione.
   **Cosa eseguire**: fai scrivere al server `data-tema="giorno"` sul tag `<html>` — cioè simula
   esattamente il guasto che il gradino esiste per escludere — ed esegui le quattro prove. Poi
@@ -1074,7 +1074,7 @@ quarta** distingue davvero il giusto dallo sbagliato.
   *Verifica* (spec `temi-e-identita` → *🔴 Controprova — le prime tre prove non bastano*): tre verdi
   e un rosso, documentati per nome.
 
-- [ ] 6.9 **Meta OG dai campi SEO, con il ripiego locale.** `seo.titoloDefault`,
+- [x] 6.9 **Meta OG dai campi SEO, con il ripiego locale.** `seo.titoloDefault`,
   `seo.descrizioneDefault`, `seo.immagineOg` composta da `mediaUrl` (assoluta per costruzione); in
   assenza, `og-default.jpg` reso assoluto con `new URL('/og-default.jpg', Astro.url)`.
   ⚠️ `Astro.url.origin` dietro nginx dipenderà da `Host` e `X-Forwarded-Proto`: entrambi già
@@ -1089,6 +1089,67 @@ quarta** distingue davvero il giusto dallo sbagliato.
 **Uscita di fase.** Il server emette **una sola pagina, priva di tema**, e lo ha dimostrato con
 quattro asserzioni di cui una — provata per mutazione — è l'unica che distingue davvero. Il toggle
 funziona su una pagina che non ha ancora né dati né immagini.
+
+**Esito reale (apply del 2026-08-12).** Uscita raggiunta. `npm test` **41 → 60**, `check` a zero.
+Il tag radice servito è `<html lang="it">` e nient'altro.
+
+- 🔴 **La controprova 6.8 ha dato esattamente il risultato che il design prevedeva, e serviva
+  vederlo.** Scritto `data-tema="giorno"` sul tag radice nel layout — cioè simulato il guasto —:
+
+  | Asserzione | Con il guasto |
+  |---|---|
+  | 1 — due richieste a cavallo di un minuto | **verde** ❌ |
+  | 2 — cookie `tema=sera` vs `tema=giorno` | **verde** ❌ |
+  | 3 — `Sec-CH-Prefers-Color-Scheme` dark vs light | **verde** ❌ |
+  | 4 — il tag radice non porta il tema | **rossa** ✅ |
+
+  Le prime tre restano verdi perché il server scrive *sempre* lo stesso tema: i corpi sono
+  identici fra loro, e l'identità è proprio ciò che misurano. Senza la quarta, il gradino sarebbe
+  stato dichiarato chiuso con il guasto dentro.
+- 🔴 **La formula del registro serale esiste in un posto solo, e ci è voluta una decisione per
+  ottenerlo.** Lo script del tema è `is:inline`: non è un modulo, nessun test può importarlo, e
+  riscrivere `eSera` lì dentro avrebbe significato **due copie** — con quella sbagliata proprio nel
+  file che nessun test guarda. Le quattro funzioni vivono quindi in `src/lib/tema.ts` e arrivano
+  nel browser **serializzate** con `Function.prototype.toString()`.
+  ⚠️ Il prezzo è che devono restare **autosufficienti**: un import o una costante esterna
+  diventerebbero un `ReferenceError` nel browser, e in nessun test si vedrebbe niente. C'è un test
+  che **valuta davvero la sorgente serializzata** con `new Function`, e sarebbe lui a diventare
+  rosso.
+  ✅ Verificato sul bundle reale: la serializzazione sopravvive alla build (nel `dist` le funzioni
+  compaiono come JS valido, con i tipi già rimossi da esbuild).
+- 🔴 **`setAttribute('data-tema')` e non `dataset.tema`, deliberatamente — e per due prove
+  opposte.** La quarta asserzione cerca la stringa dell'attributo e pretende di trovarla **una
+  volta, dentro lo script**: con `dataset.tema` quella stringa non comparirebbe da nessuna parte e
+  la prova sarebbe verde **anche con il guasto**. Per `data-pronto` vale l'opposto — la prova
+  pretende di **non trovarlo affatto** nel markup — e infatti lì si usa `dataset`. L'asimmetria è
+  scritta nel codice accanto alle due righe.
+- 🔴 **Bug trovato dal browser, che nessun test automatico avrebbe visto.** All'apertura
+  l'etichetta del toggle restava **«Tema»**, quella neutra del server, e cambiava solo al primo
+  clic: `applica()` gira in `<head>`, quando `#tema-etichetta` non esiste ancora, quindi
+  `getElementById` restituiva `null`. Il tema era giusto — è sul `documentElement`, che esiste — ma
+  chi non toccava il bottone non sapeva mai in che registro fosse. Chiuso richiamando `applica()`
+  su `DOMContentLoaded`. ⚠️ **Le prove automatiche di questa fase erano tutte verdi con il difetto
+  presente**: quella sull'etichetta pretende che il server la renda *neutra*, e lo faceva.
+- ✅ *6.5 — la divisione fra dato e orologio si vede nell'HTML.* Il corpo servito contiene
+  `07:00 – 20:00, lun mar mer gio ven sab` (dato, dall'API) e **non** contiene «aperto»/«chiuso»;
+  l'elemento che li ospiterà è servito `hidden` e viene **svelato**, non inserito, quindi non c'è
+  salto di layout. Senza JavaScript restano gli orari veri e nessun badge.
+- ➕ *Prova di browser* [`prove/6.5-tema-e-badge.mjs`](./prove/6.5-tema-e-badge.mjs): è l'altra metà
+  della dimostrazione, e senza di essa «non è nell'HTML» sarebbe compatibile con «non c'è affatto».
+  Registro applicato, etichetta scritta, badge svelato, tre stati del toggle, scelta che sopravvive
+  al reload, `data-pronto` presente dopo il primo frame.
+  ✅ **E chiude in anticipo la prova 12.6**: il contesto del browser ha
+  `timezoneId: 'America/Los_Angeles'`, nove ore indietro, e il registro automatico segue comunque
+  **l'ora di Roma** — alle 12:42 italiane il tema è `giorno` benché a Los Angeles sia notte.
+- ⚠️ *Divergenza minima da 6.1*: i parametri arrivano allo script dentro una costante JSON che
+  precede le funzioni, invece che con `define:vars`. La ragione è che lo script è composto come
+  stringa per poter serializzare le funzioni, e `define:vars` su un `set:html` non ha effetto. La
+  proprietà che contava — **i valori sono parametri e non una decisione già presa** — è intatta e
+  visibile nella prima riga dello script servito.
+- ⚠️ *Aggiunta a `degradazione.ts`*: `ORA_APERTURA_DI_RIPIEGO = '07:00'`, perché la formula del
+  registro serale ha **due** estremi e senza il secondo il tema resterebbe «giorno» alle due di
+  notte anche in degradazione. Come l'altro ripiego, **non compare mai in pagina**: una pagina
+  degradata dichiara di non sapere gli orari, non ne inventa.
 
 ---
 
