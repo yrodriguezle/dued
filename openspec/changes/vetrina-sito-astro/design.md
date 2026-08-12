@@ -1489,7 +1489,7 @@ vederlo, quindi un rollback non produce link rotti verso Internet.
 | 12 | Utente | *"si convertono in woff2 con subset latino"* | Si **scaricano già** in woff2 `latin` da Google: 18.6 + 26.5 + 22.4 kB, misurati | §D8 — l'esito richiesto è identico, senza una toolchain Python che nessun altro pezzo del repo usa |
 | 13 | Piano §6 | *"`preload` sul solo Anton"* | Preload di Anton **con `crossorigin`** e con l'**URL hashato** importato via `?url` | §D8 — senza `crossorigin` il font si scarica due volte; con un percorso scritto a mano, due file diversi |
 | 14 | Proposal, Affected Areas | Nessun test dichiarato in `sito/` | **`node:test`**, zero dipendenze nuove; Playwright/axe restano Fase 7 | §D14 — quattro decisioni chiudono con "un test lo scopre" |
-| 15 | Proposal, Rollback | *"unica modifica a un file preesistente: due righe nel `package.json` di radice"* | Sono **due file**: anche una riga di `.gitignore` per `backend/.certs/` | §D3 |
+| 15 | Proposal, Rollback | *"unica modifica a un file preesistente: due righe nel `package.json` di radice"* | ~~Sono **due file**: anche una riga di `.gitignore` per `backend/.certs/`~~ → ✅ **CORRETTA in apply il 2026-08-12: la proposal aveva ragione, il file preesistente toccato è UNO.** Il certificato esportato è **già ignorato** e non serve alcuna riga nuova | §D3 — verificato con `git check-ignore -v`, non assunto: `backend/.certs/aspnet-dev.pem` è coperto da `backend/.gitignore:45:*.pem`, e `backend/.certs/aspnet-dev.key` — il **secondo** file, che il design non nominava — da `.gitignore:42:*.key` della radice. `git status --porcelain backend/.certs/` è vuoto |
 
 ---
 

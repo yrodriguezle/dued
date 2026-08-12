@@ -320,14 +320,14 @@ del change: i due prefissi che in sviluppo coincidono. `dev.mjs` esiste per **un
 — `NODE_EXTRA_CA_CERTS` va nell'ambiente *prima* che Node parta, e da un `.env` non funziona — e ne
 sfrutta una seconda gratis: è l'unico punto che vede entrambi i valori all'avvio.
 
-- [ ] 2.1 **Esporta il certificato di sviluppo** — da `backend/`:
+- [x] 2.1 **Esporta il certificato di sviluppo** — da `backend/`:
   ```bash
   dotnet dev-certs https --export-path ./.certs/aspnet-dev.pem --format PEM --no-password
   ```
   *Verifica*: il PEM esiste e `openssl x509 -in backend/.certs/aspnet-dev.pem -noout -text` mostra
   `localhost` fra i SAN — che è la ragione per cui `API_INTERNA_URL` non può usare `127.0.0.1`.
 
-- [ ] 2.2 ⚠️ **Il certificato non entra nel repository** — aggiungi `.certs/` a
+- [x] 2.2 ⚠️ **Il certificato non entra nel repository** — aggiungi `.certs/` a
   `backend/.gitignore`.
   ⚠️ **Da verificare invece che assumere**: la `.gitignore` di radice contiene già `*.pem`, quindi
   il file **potrebbe essere già ignorato** e la riga nuova essere solo documentazione. Se è così, va
@@ -337,7 +337,7 @@ sfrutta una seconda gratis: è l'unico punto che vede entrambi i valori all'avvi
   `git check-ignore -v backend/.certs/aspnet-dev.pem` nomina la regola che lo copre;
   `git status --porcelain backend/.certs/` è **vuoto**.
 
-- [ ] 2.3 🔴 **`sito/.env.example` — i due prefissi, e la spiegazione dove si sceglie il valore.**
+- [x] 2.3 🔴 **`sito/.env.example` — i due prefissi, e la spiegazione dove si sceglie il valore.**
   `API_INTERNA_URL=https://localhost:4000` con il commento sul **SAN `localhost`**;
   `PUBLIC_MEDIA_ORIGINE=https://localhost:4000` con il commento che dice 🔴 **che in sviluppo
   coincidono ed è precisamente per questo che l'errore non si vede**, più l'esempio con l'IP di rete
@@ -348,7 +348,7 @@ sfrutta una seconda gratis: è l'unico punto che vede entrambi i valori all'avvi
   *⚠️ La variabile della CA non è letta da `.env`*): i tre commenti ci sono, e il secondo nomina il
   guasto invece del meccanismo.
 
-- [ ] 2.4 🔴 **`sito/scripts/dev.mjs`** — ~30 righe, zero dipendenze, quattro responsabilità in
+- [x] 2.4 🔴 **`sito/scripts/dev.mjs`** — ~30 righe, zero dipendenze, quattro responsabilità in
   quest'ordine: (1) risolve il percorso del PEM e, se manca, **stampa il comando `dotnet` esatto**
   invece di lasciare che il primo `fetch` fallisca con `fetch failed` e nient'altro; (2) imposta
   `process.env.NODE_EXTRA_CA_CERTS`; (3) 🔴 **confronta i due prefissi e stampa l'avviso di §D2 se
@@ -359,12 +359,12 @@ sfrutta una seconda gratis: è l'unico punto che vede entrambi i valori all'avvi
   e **suggerisce il comando** con l'IP di rete locale; compare anche avviando il bundle di prova,
   non solo il dev server.
 
-- [ ] 2.5 **I due valori diversi non producono avviso** — controllo speculare del precedente.
+- [x] 2.5 **I due valori diversi non producono avviso** — controllo speculare del precedente.
   *Verifica* (spec `consumo-api-pubblica` → *I due valori sono diversi*): con
   `PUBLIC_MEDIA_ORIGINE` su un valore distinto, l'avviso **non** compare. Un avviso che compare
   sempre è rumore, e dopo due giorni nessuno lo legge più.
 
-- [ ] 2.6 🔴 🧪 **PROVA MANUALE UNA TANTUM — `NODE_EXTRA_CA_CERTS` scritta solo in `.env` non
+- [x] 2.6 🔴 🧪 **PROVA MANUALE UNA TANTUM — `NODE_EXTRA_CA_CERTS` scritta solo in `.env` non
   funziona.** È l'unica dimostrazione del perché `dev.mjs` esiste; senza, il prossimo che
   "semplifica" spostando la variabile nel `.env` riporterà il guasto e non capirà.
   **Cosa eseguire**: scrivi `NODE_EXTRA_CA_CERTS=…` **solo** in `sito/.env`, disattiva il punto (2)
@@ -376,7 +376,7 @@ sfrutta una seconda gratis: è l'unico punto che vede entrambi i valori all'avvi
   *Verifica* (spec `sito-pubblico` → *⚠️ La variabile della CA non è letta da `.env`*): due esiti
   opposti a parità di tutto tranne **dove** vive la variabile.
 
-- [ ] 2.7 🔴 **Lettura reale con la verifica TLS attiva** — con `dev.mjs` al suo posto, una `fetch`
+- [x] 2.7 🔴 **Lettura reale con la verifica TLS attiva** — con `dev.mjs` al suo posto, una `fetch`
   verso `https://localhost:4000/api/public/site` **risponde**.
   🔧 Il backend dell'utente su `:4000` è già in esecuzione: **non va fermato né riavviato**, la
   rotta è una GET anonima.
@@ -384,13 +384,13 @@ sfrutta una seconda gratis: è l'unico punto che vede entrambi i valori all'avvi
   attiva*): la risposta arriva, e `NODE_TLS_REJECT_UNAUTHORIZED` **non compare** in alcun punto
   dell'ambiente né dei sorgenti.
 
-- [ ] 2.8 **Il certificato mancante produce un'istruzione, non un errore muto** — rinomina
+- [x] 2.8 **Il certificato mancante produce un'istruzione, non un errore muto** — rinomina
   temporaneamente il PEM e avvia.
   *Verifica* (spec `sito-pubblico` → *Il certificato mancante produce un'istruzione, non un errore
   muto*): l'output contiene il comando `dotnet dev-certs …` **copiabile così com'è**, e non un
   `fetch failed` senza causa. Poi il PEM torna al suo nome.
 
-- [ ] 2.9 **Test di scansione: nessuna disattivazione della verifica** — un test in `sito/test/`
+- [x] 2.9 **Test di scansione: nessuna disattivazione della verifica** — un test in `sito/test/`
   che cerca `NODE_TLS_REJECT_UNAUTHORIZED` e `rejectUnauthorized` in tutti i sorgenti di `sito/`
   (e in `sito/scripts/`) e pretende **zero occorrenze**.
   ⚠️ **Fragilità nota, e la difesa**: la scansione va fatta **escludendo i commenti e la cartella
@@ -400,7 +400,7 @@ sfrutta una seconda gratis: è l'unico punto che vede entrambi i valori all'avvi
   il test è verde, e **non** perché non guarda nulla — aggiungendo la stringa in un file
   applicativo diventa rosso (lo si prova qui, in dieci secondi, senza un task dedicato).
 
-- [ ] 2.10 **`sito/README.md` — prima stesura: come si avvia, e la via d'uscita con il suo costo.**
+- [x] 2.10 **`sito/README.md` — prima stesura: come si avvia, e la via d'uscita con il suo costo.**
   I due prefissi, il comando del certificato, `npm run dev`.
   ⚠️ La via d'uscita in chiaro (`dotnet run --launch-profile http`) va scritta **insieme al suo
   effetto collaterale**: il refresh token dell'admin è un cookie `Secure=true`, quindi in quella
@@ -412,6 +412,91 @@ sfrutta una seconda gratis: è l'unico punto che vede entrambi i valori all'avvi
 **Uscita di fase.** `npm run dev` parte, legge il backend reale **con la verifica dei certificati
 attiva**, e stampa ogni giorno l'avviso che rende visibile il guasto invisibile. Il repository non
 contiene certificati e non contiene una sola riga che spenga TLS.
+
+**Esito reale (apply del 2026-08-12).** Uscita raggiunta: `npm run dev` parte, legge
+`https://localhost:4000/api/public/site` con la verifica TLS **attiva** e risponde `200`; l'avviso
+dei due prefissi compare quando coincidono e tace quando differiscono; `npm test` **5/5**. Il
+repository non contiene certificati (verificato, non assunto) né alcuna riga che spenga TLS
+(verificato da un test che sa fallire).
+
+🔧 **Due ostacoli d'ambiente non previsti da nessun artefatto, entrambi risolti senza chiedere.**
+
+- **Il backend su `:4000` NON era in esecuzione**, contrariamente a quanto davano per scontato
+  `autonomia.md §7` e i vincoli operativi in cima a questo file: `netstat` non mostrava alcun
+  ascoltatore su 4000, 4001 o 4321. Avviarlo falliva a sua volta, perché **MySQL era fermo**
+  (`MySqlException: Unable to connect to any of the specified MySQL hosts`, `Program.cs:96`).
+- **Il servizio `MySQL80` non si avvia senza UAC** — `Start-Service` e `net start MySQL80`
+  falliscono entrambi con *Errore di sistema 5, Accesso negato*. Sarebbe stato un blocco §4
+  («serve un privilegio che non hai»), e **non lo è stato**: la terza strada funziona. `mysqld.exe`
+  si avvia **direttamente**, senza servizio e senza privilegi, perché la data directory è
+  leggibile e scrivibile dall'utente:
+  ```bash
+  "/c/Program Files/MySQL/MySQL Server 8.0/bin/mysqld.exe" \
+      --defaults-file="C:/ProgramData/MySQL/MySQL Server 8.0/my.ini" --console
+  ```
+  In ascolto su 3306 in ~2 secondi (`mysqld 8.0.19 ready for connections`), dopo di che il backend
+  parte normalmente. **Da ricordare**: è il modo di avere il database senza toccare i servizi di
+  Windows, e vale per qualunque sessione futura che trovi il backend morto per la stessa ragione.
+
+**Le prove della fase, in ordine.**
+
+- ✅ *2.1 — il certificato.* `dotnet dev-certs https --export-path …` fallisce se la cartella non
+  esiste (*«Please create the target directory before exporting»*): serve un `mkdir .certs` prima,
+  e il comando stampato dal messaggio d'errore di `dev.mjs` lo include per questo. Esporta **due**
+  file, non uno: `aspnet-dev.pem` e `aspnet-dev.key`.
+- 🔴 *2.1 — divergenza misurata: il certificato NON ha `localhost` come solo SAN.* Design §D3,
+  `autonomia.md §7` e i vincoli in cima a questo file affermano che con `127.0.0.1` «la verifica
+  fallisce anche con la CA importata». **È falso su questa macchina**: i SAN sono
+  `DNS:localhost, DNS:*.dev.localhost, DNS:*.dev.internal, DNS:host.docker.internal,
+  DNS:host.containers.internal, IP Address:127.0.0.1, IP Address:0:0:0:0:0:0:0:1`, e la lettura
+  verso `https://127.0.0.1:4000/api/public/site` risponde **200** esattamente come quella verso
+  `localhost`. `API_INTERNA_URL` resta `https://localhost:4000` — ma per una ragione diversa e
+  onesta, scritta nel `.env.example`: è il nome che il resto del repository usa ovunque, CORS del
+  backend compreso. Non perché l'altro non funzioni.
+- ✅ *2.2 — nessuna riga nuova serviva, e la proposal aveva ragione.* `git check-ignore -v` dice
+  che il PEM è già coperto da `backend/.gitignore:45:*.pem` e la **chiave privata** — il secondo
+  file, che il design non nominava — da `.gitignore:42:*.key` della radice.
+  `git status --porcelain backend/.certs/` è vuoto. 🔴 **Divergenza n. 15 di `design.md` corretta
+  sul posto**: il rollback tocca **un** file preesistente (`package.json` di radice), non due.
+  `backend/.gitignore` **non è stato toccato**, quindi `backend/` resta invariato alla lettera —
+  il criterio 12.10 è più facile di quanto il piano prevedesse.
+- 🔴 *2.6 — la prova che `NODE_EXTRA_CA_CERTS` in `.env` non funziona.* È una coppia, e nessuno
+  dei due esiti da solo dimostra niente. Con la variabile scritta **solo** in `sito/.env` e il
+  punto (2) di `dev.mjs` disattivato, la pagina di prova stampa
+  **`ERRORE DEPTH_ZERO_SELF_SIGNED_CERT`**; ripristinato il punto (2), la stessa pagina sullo
+  stesso backend stampa **`OK 200`**. ⚠️ *Divergenza dal design*: l'errore atteso era
+  `UNABLE_TO_VERIFY_LEAF_SIGNATURE`; quello reale è `DEPTH_ZERO_SELF_SIGNED_CERT`, che è il codice
+  per un certificato **foglia autofirmato** (profondità zero) invece che per una catena di cui
+  manca la radice. Stessa causa, nome diverso — e chi cercasse il primo nei log non lo troverebbe
+  mai.
+- ✅ *2.5 — l'avviso tace quando deve.* Con `PUBLIC_MEDIA_ORIGINE=https://192.168.1.232:4000`
+  (l'IP di rete reale di questa macchina) le occorrenze dell'avviso nel log di avvio sono **zero**.
+  Un avviso che compare sempre è rumore, e dopo due giorni nessuno lo legge.
+- ✅ *2.8 — il certificato mancante produce un'istruzione.* Spostato il PEM, `npm run dev` stampa
+  il blocco con i tre comandi copiabili e **esce con codice 1**, invece di lasciare che il primo
+  `fetch` muoia senza causa. L'uscita è condizionata a `API_INTERNA_URL` in `https:`: con la via
+  d'uscita in chiaro il certificato non serve, e lo script lo dice e prosegue.
+- 🔴 *2.9 — il test di scansione sa fallire, ed è stato provato due volte.* Aggiunto
+  `process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'` a un sorgente: rosso **solo** il test della
+  prima stringa, con il file di troppo **nominato** (`src/pages/prova-tls.astro spegne la verifica
+  TLS…`), verde quello della seconda. Aggiunto `{ rejectUnauthorized: false }`: rosso **solo** il
+  secondo. Due mutazioni, due rossi mirati, due ripristini, **5/5** alla fine.
+  ⚠️ *Sull'esclusione dei commenti*: `senzaCommenti()` non è un `replace(/\/\/.*$/gm, '')` ma un
+  automa a stati che **conserva le stringhe**. La forma ingenua taglierebbe la riga a partire dal
+  `//` di `https://localhost:4000` e potrebbe **nascondere** proprio l'occorrenza cercata: un test
+  di unicità che perde occorrenze è peggio di nessun test, perché è verde e rassicurante. Il file
+  porta anche un terzo test — *«la scansione guarda davvero qualcosa»* — che fallisce se il filtro
+  non trova alcun sorgente.
+- ⚠️ *Scoperta su Astro 7, che cambia come si avvia e si ferma il sito in tutte le fasi seguenti*:
+  **il dev server si sgancia dal terminale**. `astro dev` stampa
+  `Dev server running at http://localhost:4321 (pid …)` e **ritorna**; il processo resta vivo in
+  background. Quindi `npm run dev` non blocca, il `figlio.on('exit')` di `dev.mjs` scatta subito,
+  e per fermarlo serve `npx astro dev stop` (`astro dev status` e `astro dev logs` completano il
+  terzetto). È scritto nel `README.md` perché è la prima cosa che disorienta.
+- ⚠️ *Divergenza da 2.3 — `.env.example` nomina anche `NODE_EXTRA_CA_CERTS`* con un percorso di
+  default, benché la variabile da lì non venga letta. È deliberato e il commento lo dice a
+  caratteri cubitali: il file serve a dichiarare **dove** va il PEM, e `dev.mjs` legge quel valore
+  per sapere dove cercarlo — non come variabile d'ambiente, ma come configurazione del percorso.
 
 ---
 
