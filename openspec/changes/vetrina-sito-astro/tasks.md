@@ -507,7 +507,7 @@ del change — e la forma della lettura che **non lancia mai**. Entrambi si dimo
 `npm test` **su una pagina sola e vuota**: nessun colore, nessun font, nessuna immagine. Se la
 verifica di questo gradino avesse bisogno di una pagina vera, sarebbe la verifica del gradino 8.
 
-- [ ] 3.1 🔴 **`env.schema` in `astro.config.mjs`** — due `envField.string`, due contesti:
+- [x] 3.1 🔴 **`env.schema` in `astro.config.mjs`** — due `envField.string`, due contesti:
   `API_INTERNA_URL` con `context: 'server'`, `PUBLIC_MEDIA_ORIGINE` con `context: 'client'`,
   entrambi `access: 'public'`.
   ⚠️ **I due nomi non condividono un solo morfema**: `API` ≠ `MEDIA`, `INTERNA` ≠ `PUBLIC`, `URL` ≠
@@ -519,7 +519,7 @@ verifica di questo gradino avesse bisogno di una pagina vera, sarebbe la verific
   *I due nomi non si trasformano l'uno nell'altro*): i due contesti sono diversi; nessuno dei due
   nomi si ottiene dall'altro cambiando una parola.
 
-- [ ] 3.2 **`sito/src/lib/tipi.ts` — lo specchio dei DTO.** Le quattro interfacce di
+- [x] 3.2 **`sito/src/lib/tipi.ts` — lo specchio dei DTO.** Le quattro interfacce di
   §"Interfaces / Contracts", con il commento di testa che dichiara la regola: *un campo qui che il
   DTO non ha sarà sempre `undefined`; un campo del DTO che manca qui è un dato che il sito ignora*.
   ⚠️ **`giorniOperativi` è `boolean[] | null`** e la nullabilità **va gestita**, non aggirata: il
@@ -530,7 +530,7 @@ verifica di questo gradino avesse bisogno di una pagina vera, sarebbe la verific
   assenti*, *Il modulo dei tipi non inventa campi*, *Il commento di testa dichiara la regola*): ogni
   campo ha un corrispondente in `backend/Controllers/Public/Dto/`, e nessun campo in più.
 
-- [ ] 3.3 🔴 **`sito/src/lib/api.ts` — l'unico importatore di `astro:env/server`, e non lancia
+- [x] 3.3 🔴 **`sito/src/lib/api.ts` — l'unico importatore di `astro:env/server`, e non lancia
   mai.** `Esito<T> = { stato:'ok'; dati:T } | { stato:'assente'; motivo:'timeout'|'rete'|'http'|'formato'; dettaglio:string }`,
   `leggiSito()`, `leggiMenu()`, `AbortSignal.timeout(3000)` con **una sola** costante di timeout in
   tutto il progetto, e una riga sullo stdout per ogni `assente`.
@@ -545,7 +545,7 @@ verifica di questo gradino avesse bisogno di una pagina vera, sarebbe la verific
   dove deve*, *Il nome riservato non è occupato*): `grep -rn "3000" sito/src/` mostra **una sola**
   definizione; `sito/src/fetch.ts` non esiste.
 
-- [ ] 3.4 🔴 **`sito/src/lib/mediaUrl.ts` — l'unico compositore di URL di media.** Importa
+- [x] 3.4 🔴 **`sito/src/lib/mediaUrl.ts` — l'unico compositore di URL di media.** Importa
   `PUBLIC_MEDIA_ORIGINE` da `astro:env/client` ed espone `mediaUrl(chiave, larghezza, formato)` e
   `srcSet(immagine, formato)`.
   🔴 Il commento deve dire **perché questo file non è condiviso** con
@@ -559,14 +559,14 @@ verifica di questo gradino avesse bisogno di una pagina vera, sarebbe la verific
   compone URL*): `duedgusto/` non è stato toccato; il DTO del backend continua a esporre la
   **chiave**, non un URL.
 
-- [ ] 3.5 **`sito/src/lib/degradazione.ts`** — `ORA_TEMA_SERA_DI_RIPIEGO = "18:00"`, **con il
+- [x] 3.5 **`sito/src/lib/degradazione.ts`** — `ORA_TEMA_SERA_DI_RIPIEGO = "18:00"`, **con il
   commento che dice cos'è e cosa non è**: non una seconda sorgente di verità, ma un ripiego per un
   backend irraggiungibile, il cui unico effetto se sbagliato è spostare di qualche ora un tema
   automatico su una pagina che sta già **dichiarando** di essere incompleta.
   *Verifica* (spec `consumo-api-pubblica` → *Il commento dice cosa non è*, *Ripiego usato solo in
   assenza del dato*): il valore è letto **solo** nel ramo `assente`; nel ramo `ok` viene dall'API.
 
-- [ ] 3.6 **Test unitari di `api.ts` — i quattro motivi.** Backend non in ascolto → `rete`; risposta
+- [x] 3.6 **Test unitari di `api.ts` — i quattro motivi.** Backend non in ascolto → `rete`; risposta
   oltre il timeout → `timeout`; codice di errore → `http`; corpo inatteso → `formato`. E un test che
   `Promise.all` di due letture di cui una fallisce **restituisce entrambi gli esiti**, invece di
   rifiutare.
@@ -576,7 +576,7 @@ verifica di questo gradino avesse bisogno di una pagina vera, sarebbe la verific
   cortocircuita*, *Ogni assenza lascia una riga nei log*): `npm test` passa; ogni caso produce
   **una riga di log** con il motivo.
 
-- [ ] 3.7 **Test unitari di `mediaUrl` e `srcSet` — puri, senza rete.** Con
+- [x] 3.7 **Test unitari di `mediaUrl` e `srcSet` — puri, senza rete.** Con
   `larghezzeDisponibili: [400, 800]` l'insieme delle sorgenti ha **due** voci e non quattro; con
   `[400,800,1200,1600]` ne ha quattro; con `[]` il markup degrada senza sorgenti multiple e **non
   solleva**; nessuna larghezza viene dedotta.
@@ -585,7 +585,7 @@ verifica di questo gradino avesse bisogno di una pagina vera, sarebbe la verific
   un URL di variante*): `npm test` passa, e i test usano **un'immagine piccola** — con la sola
   immagine grande resterebbero verdi anche con la regola rotta (è il punto del task 7.2).
 
-- [ ] 3.8 🔴 **I due test che leggono i sorgenti.** In `sito/test/moduli.test.mjs`: `astro:env/server`
+- [x] 3.8 🔴 **I due test che leggono i sorgenti.** In `sito/test/moduli.test.mjs`: `astro:env/server`
   compare **solo** in `src/lib/api.ts`; la stringa `"/media/"` compare **solo** in
   `src/lib/mediaUrl.ts`. Idioma verbatim di
   [`RegolaPubblicazioneUnicaTests`](../../../backend/DuedGusto.Tests/Unit/Common/RegolaPubblicazioneUnicaTests.cs).
@@ -598,7 +598,7 @@ verifica di questo gradino avesse bisogno di una pagina vera, sarebbe la verific
   solo*, *🔴 Il percorso dei media si compone in un file solo*): entrambi verdi con l'albero reale,
   commenti compresi.
 
-- [ ] 3.9 🔴 🧪 **VERIFICA PER MUTAZIONE dei due test di scansione.** Un test di unicità appena
+- [x] 3.9 🔴 🧪 **VERIFICA PER MUTAZIONE dei due test di scansione.** Un test di unicità appena
   scritto è verde **per costruzione**: nessuno ha ancora provato che sappia fallire.
   **Cosa eseguire**: (1) **aggiungi** `import { API_INTERNA_URL } from 'astro:env/server';` in un
   secondo file applicativo, **esegui i test e vedi fallire** quello dell'ambiente server **con il
@@ -610,7 +610,7 @@ verifica di questo gradino avesse bisogno di una pagina vera, sarebbe la verific
   *Verifica* (spec `consumo-api-pubblica` → *🔴 Un secondo compositore fa fallire il test*): due
   mutazioni, due rossi mirati, due ripristini, e i test finali verdi.
 
-- [ ] 3.10 **Una pagina sola e vuota, e la suite verde.** Crea la pagina minima che serve a far
+- [x] 3.10 **Una pagina sola e vuota, e la suite verde.** Crea la pagina minima che serve a far
   girare la build (nessun colore, nessun componente) ed esegui `npm test`.
   *Verifica* (gradino 3 di §"Migration / Rollout"): `npm test` è **verde con una pagina sola e
   vuota** — cioè il confine dei due prefissi è dimostrato **prima** che esista qualcosa da guardare.
@@ -618,6 +618,61 @@ verifica di questo gradino avesse bisogno di una pagina vera, sarebbe la verific
 **Uscita di fase.** I due prefissi vivono in due file, due moduli virtuali e due test che hanno
 dimostrato di saper fallire nominando il colpevole; la lettura non lancia mai e il suo timeout è un
 numero solo. Nessun pixel è stato ancora dipinto.
+
+**Esito reale (apply del 2026-08-12).** Uscita raggiunta. `npm test` **5 → 23**, `npm run build`
+esce 0, `npm run check` è **0 errori / 0 warning / 0 hint** su 16 file. `grep -rn "3000" src/`
+trova **una riga sola**; `src/fetch.ts` non esiste. La pagina è una sola, vuota, senza un colore.
+
+- 🔴 **L'ostacolo vero della fase, e come è stato risolto senza rompere la spec.**
+  `astro:env/server` e `astro:env/client` sono moduli **virtuali**: esistono solo dentro la build
+  di Astro, e importarli da `node:test` fallisce con `ERR_MODULE_NOT_FOUND` prima che una sola
+  asserzione parta. I task 3.6 e 3.7 chiedono test unitari proprio dei due file che li importano.
+
+  La strada ovvia — spostare la logica in un file "puro" senza quell'import — è stata **scritta e
+  poi buttata**, perché **viola la spec**: `consumo-api-pubblica` pretende che il modulo dei media
+  sia *lo stesso file* che contiene il segmento `/media/` **e** che importa dal contesto client.
+  Separarli per rendere il codice testabile avrebbe smontato proprio la cosa che i test devono
+  proteggere.
+
+  La strada presa è insegnare a Node cosa sono quei due moduli: `test/_hook-astro-env.mjs` è un
+  hook di risoluzione registrato con `module.register()` che li serve come sorgente sintetica, con
+  i due valori come **live binding** riassegnabili. Così `api.ts` e `mediaUrl.ts` restano
+  **esattamente** i file che il design descrive, e un test può spostare l'origine fra un caso e
+  l'altro senza ricaricare il modulo — che è ciò che serve per provare i quattro motivi contro
+  quattro server diversi. ✅ Conseguenza: **nessuna divergenza** dalla struttura di file del design.
+- ✅ *3.6 — i quattro motivi, provati contro server veri.* `rete` (porta senza ascoltatore),
+  `timeout`, `http` (503), `formato` (200 con corpo inatteso **e** 200 con corpo non JSON: sono
+  due strade allo stesso motivo, e la seconda è il proxy che risponde al posto del backend).
+  Ognuno lascia **esattamente una** riga di log con il motivo. Più il test che `Promise.all` di due
+  letture, una riuscita e una fallita, **restituisce entrambi gli esiti**.
+  ⚠️ *Trappola trovata scrivendo il caso `rete`*: la prima stesura puntava su `http://127.0.0.1:1`,
+  e `fetch` rifiutava con **`bad port`** invece di `ECONNREFUSED` — la porta 1 è nell'elenco dei
+  *bad ports*, respinta **prima** di tentare la connessione. Il test sarebbe stato verde
+  verificando la lista di Node invece del nostro codice. Ora la porta libera se la fa assegnare dal
+  sistema (`listen(0)` e chiusura immediata), e l'asserzione pretende `ECONNREFUSED` **nel
+  dettaglio** — cioè che il log nomini la causa vera e non il «fetch failed» che la avvolge.
+- ✅ *3.7 — i test dei media usano un'immagine piccola*, con due varianti e non quattro: con la
+  sola immagine grande sarebbero rimasti verdi anche con la regola rotta, perché scala fissa e
+  larghezze reali coinciderebbero.
+- 🔴 *3.9 — le due mutazioni discriminano.* (1) `import { API_INTERNA_URL } from 'astro:env/server'`
+  aggiunto in `src/lib/mutazione-prova.ts`: **rosso solo** il test dell'ambiente server, con il file
+  di troppo nominato (`+ 'src/lib/mutazione-prova.ts'`); verdi gli altri tre. (2) una seconda
+  composizione `` `…/media/…` `` in `src/pages/mutazione-prova.astro`: **rosso solo** il test del
+  percorso dei media (`+ 'src/pages/mutazione-prova.astro'`). Due mutazioni, due rossi mirati, due
+  ripristini, **23/23** alla fine.
+- ➕ *Due test in più di quelli chiesti da 3.8*, entrambi per chiudere un modo di restare verdi
+  senza significare niente: che `astro:env/client` sia importato **dallo stesso** file che compone
+  gli URL (la spec pretende un file solo, non due), e un controllo incrociato che i due contesti
+  **non** finiscano nello stesso file — se un giorno i due moduli venissero fusi, i primi due test
+  resterebbero verdi e il confine sarebbe sparito.
+- ⚠️ *Divergenza da 3.2 — le interfacce dichiarate sono cinque, non quattro*: c'è anche
+  `CategoriaMenu`, estratta invece di restare anonima dentro `MenuPubblico`. È lo stesso contratto
+  (`CategoriaMenuDto` esiste come record a sé nel backend), scritto in modo che `/menu` possa
+  tipizzare la variabile di ciclo. `GalleriaPubblica` **non** nasce qui: la striscia della galleria
+  è Fase 9, e un tipo non esercitato è un tipo che nessuno verifica.
+- ⚠️ *Nota su `console.log`*: le righe di assenza vanno su **stdout** come chiede il task, non su
+  `console.warn`/stderr. In un container finiscono comunque nello stesso posto; il test le cattura
+  sostituendo `console.log`, quindi la scelta è pinnata e non estetica.
 
 ---
 

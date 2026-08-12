@@ -1,11 +1,9 @@
 // @ts-check
-import { defineConfig } from 'astro/config';
+import { defineConfig, envField } from 'astro/config';
 import node from '@astrojs/node';
 import tailwindcss from '@tailwindcss/vite';
 
-// Configurazione del sito vetrina. Nasce con i quattro pezzi che il gradino 1 deve
-// dimostrare, e nient'altro: `env: { schema: … }` arriva in Fase 3 (§D2), quando le due
-// variabili che descrive esistono davvero e vengono lette.
+// Configurazione del sito vetrina.
 //
 // ⚠️ Cosa NON entra, e va lasciato fuori deliberatamente (§D1). Le ultime tre sono
 //    stabili nella 7, ed è il motivo per cui vanno nominate: sono scelte, non omissioni.
@@ -45,4 +43,32 @@ export default defineConfig({
   // Tailwind 4 è un plugin di Vite, non un'integrazione di Astro: non esiste più
   // @astrojs/tailwind, e non esiste un tailwind.config.js — il tema vive nel CSS (§D6).
   vite: { plugins: [tailwindcss()] },
+
+  // ── 🔴 I DUE PREFISSI (§D2) ────────────────────────────────────────────────────────
+  // Due variabili, due CONTESTI, e quindi due moduli virtuali diversi da cui importarle.
+  // Non è una preferenza stilistica rispetto a `import.meta.env`: lì tutto vive nello
+  // stesso oggetto e nello stesso namespace, e un `import.meta.env.PUBLIC_MEDIA_ORIGINE`
+  // scritto per errore in un file server-side è legale e silenzioso. Qui l'import
+  // sbagliato è un errore di build in una direzione, e nell'altra il file che potrebbe
+  // sbagliare è uno solo e ha un test sopra.
+  env: {
+    schema: {
+      // Il SERVER, e solo il server: la `fetch` in frontmatter verso /api/public/…
+      // In produzione sarà la rete interna di Docker, irraggiungibile da un browser.
+      API_INTERNA_URL: envField.string({ context: 'server', access: 'public' }),
+
+      // Il BROWSER: l'origine dentro src/srcset delle foto.
+      //
+      // ⚠️ I due nomi non condividono un solo morfema — API ≠ MEDIA, INTERNA ≠ PUBLIC,
+      //    URL ≠ ORIGINE. Non è vezzo: `API_BASE_URL` e `MEDIA_BASE_URL`, la coppia che
+      //    il design precedente proponeva, differiscono per UNA parola in mezzo, e una
+      //    copia-incolla distratta le confonde. Qui non esiste una copia-incolla che
+      //    produca l'altra.
+      //
+      // ⚠️ Il prefisso PUBLIC_ è tenuto DELIBERATAMENTE anche se lo schema dichiara già
+      //    il contesto: è la parola che qualcuno legge nel .env mentre decide quale
+      //    valore mettere, e "PUBLIC" significa letteralmente *il browser lo vedrà*.
+      PUBLIC_MEDIA_ORIGINE: envField.string({ context: 'client', access: 'public' }),
+    },
+  },
 });
