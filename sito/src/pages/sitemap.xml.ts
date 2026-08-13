@@ -18,16 +18,28 @@
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 import type { APIRoute } from 'astro';
-import { ROTTE } from '../lib/rotte.ts';
+import { rotteDisponibili } from '../lib/rotte.ts';
+import { leggiSito } from '../lib/api.ts';
 
-export const GET: APIRoute = ({ site, url }) => {
+export const GET: APIRoute = async ({ site, url }) => {
+  // 🔴 La sitemap **legge l'identità**, e non è uno spreco: due rotte esistono solo se il loro
+  //    testo è stato scritto, e senza questa lettura la sitemap dichiarerebbe ai motori due
+  //    URL che rispondono 404. È il tipo di errore che non produce alcun sintomo — nessuna
+  //    build fallisce, nessuna pagina si rompe — e che si scopre nella Search Console
+  //    settimane dopo, se qualcuno la guarda.
+  //
+  // ⚠️ In degradazione (`sito === null`) si elencano tutte: non si sa cosa esiste, e una
+  //    sitemap dimezzata perché l'API era giù per un minuto è peggio di una che elenca troppo.
+  const esito = await leggiSito();
+  const sito = esito.stato === 'ok' ? esito.dati : null;
+
   // ⚠️ `site` viene da `astro.config.mjs` ed è l'origine PUBBLICA. Il ripiego su `url` esiste
   //    solo perché il tipo lo ammette: in produzione `url` è l'host interno visto da dietro
   //    nginx, e una sitemap che elencasse quello manderebbe i motori su un host che per
   //    nessun visitatore esiste.
   const origine = site ?? new URL('/', url);
 
-  const voci = ROTTE.map((rotta) => {
+  const voci = rotteDisponibili(sito).map((rotta) => {
     const indirizzo = new URL(rotta.percorso, origine).href;
     return `  <url>
     <loc>${indirizzo}</loc>

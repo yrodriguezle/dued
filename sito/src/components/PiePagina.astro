@@ -6,7 +6,7 @@
 //    l'insegna e i collegamenti interni, che sono comunque utili — un piè di pagina che
 //    sparisce lascia il visitatore in fondo a una pagina senza uscite.
 
-import { ROTTE } from '../lib/rotte.ts';
+import { rotteDisponibili } from '../lib/rotte.ts';
 import { riassumiGiorni } from '../lib/formato.ts';
 import type { SitoPubblico } from '../lib/tipi.ts';
 
@@ -48,7 +48,7 @@ const anno = new Date().getFullYear();
 
       <nav class="flex flex-wrap gap-x-5 gap-y-2" aria-label="Piè di pagina">
         {
-          ROTTE.map((rotta) => (
+          rotteDisponibili(sito).map((rotta) => (
             <a
               href={rotta.percorso}
               class="text-inchiostro-tenue hover:text-inchiostro text-sm transition-colors"

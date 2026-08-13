@@ -15,7 +15,7 @@
 
 import Base from '../layouts/Base.astro';
 import Freccia from '../components/Freccia.astro';
-import { ROTTE } from '../lib/rotte.ts';
+import { rotteDisponibili } from '../lib/rotte.ts';
 import { leggiSito } from '../lib/api.ts';
 
 const esitoSito = await leggiSito();
@@ -34,7 +34,9 @@ const sito = esitoSito.stato === 'ok' ? esitoSito.dati : null;
 
     <nav class="mt-10 flex flex-wrap justify-center gap-3" aria-label="Dove andare">
       {
-        ROTTE.map((rotta, indice) => (
+        /* ⚠️ Filtrate anche qui, e vale doppio: una pagina «non trovato» che propone due
+           collegamenti che portano ad altri due «non trovato» è la peggiore delle uscite. */
+        rotteDisponibili(sito).map((rotta, indice) => (
           <a
             href={rotta.percorso}
             class:list={[

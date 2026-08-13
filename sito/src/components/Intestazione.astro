@@ -20,7 +20,7 @@
 import Logo from './Logo.astro';
 import TemaSwitch from './TemaSwitch.astro';
 import StatoApertura from './StatoApertura.astro';
-import { ROTTE, eCorrente } from '../lib/rotte.ts';
+import { rotteDisponibili, eCorrente } from '../lib/rotte.ts';
 import type { SitoPubblico } from '../lib/tipi.ts';
 
 interface Props {
@@ -29,6 +29,10 @@ interface Props {
 
 const { sito } = Astro.props;
 const qui = Astro.url.pathname;
+
+// 🔴 Le rotte DISPONIBILI, non tutte: due pagine esistono solo se il loro testo è stato
+//    scritto, e una voce che porta a un 404 è peggio di una voce in meno.
+const rotte = rotteDisponibili(sito);
 
 // `tel:` non tollera spazi né separatori: il numero in anagrafica è scritto per essere
 // letto («0445 000 000»), qui serve componibile.
@@ -62,7 +66,7 @@ const telefono = sito?.contatti.telefono?.replace(/[^\d+]/g, '') || null;
     {/* Da lg in su la navigazione sta qui, come nel mockup. */}
     <nav class="hidden flex-1 items-center justify-center gap-1 lg:flex" aria-label="Principale">
       {
-        ROTTE.map((rotta) => (
+        rotte.map((rotta) => (
           <a
             href={rotta.percorso}
             aria-current={eCorrente(rotta.percorso, qui) ? 'page' : undefined}
@@ -101,7 +105,7 @@ const telefono = sito?.contatti.telefono?.replace(/[^\d+]/g, '') || null;
     aria-label="Principale"
   >
     {
-      ROTTE.map((rotta) => (
+      rotte.map((rotta) => (
         <a
           href={rotta.percorso}
           aria-current={eCorrente(rotta.percorso, qui) ? 'page' : undefined}
