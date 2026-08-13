@@ -305,7 +305,9 @@ public class ChiusuraMensileService
 
     /// <summary>
     /// Calcola gli avvisi di completezza NON bloccanti per una chiusura:
-    /// (a) registri cassa CLOSED/RECONCILED del mese NON inclusi in RegistriInclusi.
+    /// (a) registri cassa CLOSED/RECONCILED del mese NON inclusi in RegistriInclusi;
+    /// (b) pagamenti fornitori datati nel mese che non confluiscono in nessun registro della
+    /// chiusura — orfani (<c>RegistroCassaId</c> NULL) o collegati a un registro estraneo.
     /// È di sola segnalazione: NON impedisce la chiusura.
     /// </summary>
     /// <returns>Lista di messaggi di avviso (vuota se tutto completo).</returns>
@@ -340,6 +342,49 @@ public class ChiusuraMensileService
             var giorni = string.Join(", ", registriMancanti.Select(r => r.Data.ToString("dd/MM/yyyy")));
             avvisi.Add(
                 $"Attenzione: {registriMancanti.Count} registro/i cassa chiuso/i del mese non incluso/i nella chiusura ({giorni})."
+            );
+        }
+
+        // (b) Pagamenti fornitori datati nel mese che non arrivano in chiusura.
+        // La chiusura somma SpeseFornitori dei registri inclusi, quindi il legame è la FK
+        // RegistroCassaId e non la data: un pagamento orfano vale zero in qualunque mese e
+        // spariva senza lasciare traccia. I registri esclusi a mano restano fuori dall'avviso:
+        // quella è una scelta esplicita dell'operatore, non un buco.
+        List<PagamentoFornitore> pagamentiMese = await _dbContext.PagamentiFornitori
+            .Where(p => p.DataPagamento >= primoGiorno && p.DataPagamento <= ultimoGiorno)
+            .ToListAsync();
+
+        var pagamentiOrfani = pagamentiMese
+            .Where(p => p.RegistroCassaId == null)
+            .OrderBy(p => p.DataPagamento)
+            .ToList();
+
+        if (pagamentiOrfani.Count > 0)
+        {
+            var giorni = string.Join(", ", pagamentiOrfani
+                .Select(p => p.DataPagamento.ToString("dd/MM/yyyy"))
+                .Distinct());
+            decimal totale = pagamentiOrfani.Sum(p => p.Importo);
+            avvisi.Add(
+                $"Attenzione: {pagamentiOrfani.Count} pagamento/i fornitore del mese per {totale:N2} € " +
+                $"non collegato/i ad alcun registro di cassa ({giorni}): non rientra/no in questa chiusura."
+            );
+        }
+
+        var pagamentiFuoriChiusura = pagamentiMese
+            .Where(p => p.RegistroCassaId != null && !registriInclusiIds.Contains(p.RegistroCassaId.Value))
+            .OrderBy(p => p.DataPagamento)
+            .ToList();
+
+        if (pagamentiFuoriChiusura.Count > 0)
+        {
+            var giorni = string.Join(", ", pagamentiFuoriChiusura
+                .Select(p => p.DataPagamento.ToString("dd/MM/yyyy"))
+                .Distinct());
+            decimal totale = pagamentiFuoriChiusura.Sum(p => p.Importo);
+            avvisi.Add(
+                $"Attenzione: {pagamentiFuoriChiusura.Count} pagamento/i fornitore del mese per {totale:N2} € " +
+                $"collegato/i a un registro estraneo alla chiusura ({giorni}): verificare la data del pagamento."
             );
         }
 

@@ -4,19 +4,22 @@ using duedgusto.Common;
 using duedgusto.Models;
 using duedgusto.Repositories.Interfaces;
 using duedgusto.GraphQL.Fornitori.Types;
+using duedgusto.Services.Fornitori;
 
 namespace duedgusto.GraphQL.Fornitori;
 
 public class FatturaAcquistoOrchestrator
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly RegistroCassaSyncService _syncService;
 
-    public FatturaAcquistoOrchestrator(IUnitOfWork unitOfWork)
+    public FatturaAcquistoOrchestrator(IUnitOfWork unitOfWork, RegistroCassaSyncService syncService)
     {
         _unitOfWork = unitOfWork;
+        _syncService = syncService;
     }
 
-    public async Task<FatturaAcquisto> MutateAsync(FatturaAcquistoInput input)
+    public async Task<FatturaAcquisto> MutateAsync(FatturaAcquistoInput input, int utenteId)
     {
         return await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
@@ -58,8 +61,20 @@ public class FatturaAcquistoOrchestrator
             // Crea pagamenti se forniti (INSERT con fattura già pagata)
             if (input.Pagamenti?.Count > 0)
             {
+                // Il pagamento entra in chiusura solo attraverso il registro cassa del giorno
+                // (la chiusura mensile aggrega per RegistroCassaId, mai per DataPagamento):
+                // senza questo collegamento la spesa resta orfana e invisibile a qualsiasi mese.
+                var registriPerData = new Dictionary<DateTime, RegistroCassa>();
+
                 foreach (PagamentoFornitoreInput pagInput in input.Pagamenti)
                 {
+                    DateTime dataKey = pagInput.DataPagamento.Date;
+                    if (!registriPerData.TryGetValue(dataKey, out RegistroCassa? registro))
+                    {
+                        registro = await _syncService.FindOrCreateRegistroCassaAsync(pagInput.DataPagamento, utenteId);
+                        registriPerData[dataKey] = registro;
+                    }
+
                     _unitOfWork.PagamentiFornitori.Add(new PagamentoFornitore
                     {
                         FatturaId = fattura.FatturaId,
@@ -67,10 +82,17 @@ public class FatturaAcquistoOrchestrator
                         Importo = pagInput.Importo,
                         MetodoPagamento = pagInput.MetodoPagamento,
                         Note = pagInput.Note,
+                        RegistroCassaId = registro.Id,
                     });
                 }
 
                 await _unitOfWork.SaveChangesAsync();
+
+                // Ricalcola SpeseFornitori per ogni registro coinvolto
+                foreach (RegistroCassa registro in registriPerData.Values)
+                {
+                    await _syncService.RecalculateSpeseFornitoriAsync(registro.Id);
+                }
 
                 // Ricalcola stato fattura dopo i pagamenti
                 fattura.Pagamenti = (await _unitOfWork.PagamentiFornitori

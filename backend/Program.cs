@@ -373,6 +373,10 @@ using (IServiceScope scope = app.Services.CreateScope())
     // esistenti alla formula del KPI giornaliero. No-op quando tutto è già allineato.
     await SeedRicalcoloTotaleVendite.Initialize(services);
 
+    // Data-fix idempotente: riaggancia i pagamenti fornitori rimasti senza registro cassa,
+    // che nessuna chiusura mensile può vedere. No-op quando non ci sono orfani.
+    await SeedRiparaPagamentiOrfani.Initialize(services);
+
     // Rettifica gestionale una-tantum (issue #6) del residuo IVA stimato: OFF per default,
     // si abilita con RICALCOLO_IVA_STIMA=dryrun|1. Vedi SeedRicalcoloIvaVenditeStima.
     await SeedRicalcoloIvaVenditeStima.Initialize(services);
