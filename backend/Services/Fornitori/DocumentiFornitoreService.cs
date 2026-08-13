@@ -46,6 +46,9 @@ public class DocumentiFornitoreService
     /// <param name="DataDocumento">Data del documento; se null usa <c>dataDefault</c>.</param>
     /// <param name="Importo">Importo lordo (IVA inclusa) del documento.</param>
     /// <param name="AliquotaIva">Aliquota IVA in PERCENTUALE (es. 22); se null usa quella del fornitore o 22.</param>
+    /// <param name="ImportoIva">IVA letta dalla fattura, quando l'operatore la digita invece di
+    /// farla calcolare dall'aliquota (fattura multialiquota). Se valorizzata PREVALE su
+    /// <paramref name="AliquotaIva"/>. Ignorata per i DDT, che non hanno scorporo.</param>
     /// <param name="FatturaIdCollegata">Se valorizzato, collega a una fattura esistente senza crearne una.</param>
     /// <param name="DdtIdCollegato">Se valorizzato, collega a un DDT esistente senza crearne uno.</param>
     public sealed record DatiDocumento(
@@ -56,7 +59,8 @@ public class DocumentiFornitoreService
         decimal Importo,
         decimal? AliquotaIva,
         int? FatturaIdCollegata,
-        int? DdtIdCollegato);
+        int? DdtIdCollegato,
+        decimal? ImportoIva = null);
 
     /// <summary>
     /// Crea (o riusa/collega) il documento fornitore per la riga indicata e ritorna gli id risultanti.
@@ -144,10 +148,7 @@ public class DocumentiFornitoreService
             }
         }
 
-        decimal aliquota = await RisolviAliquotaPercentualeAsync(dati.AliquotaIva, dati.FornitoreId);
-
-        RisultatoIva scorporo = IvaCalculator.ScorporaDaLordo(
-            dati.Importo, IvaCalculator.AliquotaDaPercentuale(aliquota));
+        RisultatoIva scorporo = await RipartisciImportoFatturaAsync(dati);
 
         if (existing != null)
         {
@@ -156,6 +157,7 @@ public class DocumentiFornitoreService
             existing.Imponibile = scorporo.Imponibile;
             existing.ImportoIva = scorporo.Iva;
             existing.TotaleConIva = scorporo.Totale;
+            existing.IvaCalcolata = dati.ImportoIva is null;
             existing.UpdatedAt = DateTime.UtcNow;
             await _dbContext.SaveChangesAsync();
             fattureConsumate.Add(existing.FatturaId);
@@ -170,6 +172,7 @@ public class DocumentiFornitoreService
             Imponibile = scorporo.Imponibile,
             ImportoIva = scorporo.Iva,
             TotaleConIva = scorporo.Totale,
+            IvaCalcolata = dati.ImportoIva is null,
             Stato = "PAGATA",
         };
         _dbContext.FattureAcquisto.Add(fattura);
@@ -244,6 +247,22 @@ public class DocumentiFornitoreService
         await _dbContext.SaveChangesAsync();
         ddtConsumati.Add(ddt.DdtId);
         return ddt.DdtId;
+    }
+
+    /// <summary>
+    /// Ripartisce l'importo lordo della riga tra imponibile e IVA. Se l'operatore ha digitato
+    /// l'IVA presa dalla fattura (multialiquota) quella è un DATO e va usata tale e quale;
+    /// altrimenti si scorpora dall'aliquota (input → fornitore → 22).
+    /// </summary>
+    private async Task<RisultatoIva> RipartisciImportoFatturaAsync(DatiDocumento dati)
+    {
+        if (dati.ImportoIva is decimal ivaDaDocumento)
+        {
+            return IvaCalculator.RipartisciConIvaNota(dati.Importo, ivaDaDocumento);
+        }
+
+        decimal aliquota = await RisolviAliquotaPercentualeAsync(dati.AliquotaIva, dati.FornitoreId);
+        return IvaCalculator.ScorporaDaLordo(dati.Importo, IvaCalculator.AliquotaDaPercentuale(aliquota));
     }
 
     /// <summary>

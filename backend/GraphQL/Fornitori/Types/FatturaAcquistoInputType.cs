@@ -10,6 +10,14 @@ public class FatturaAcquistoInput
     public DateTime DataFattura { get; set; }
     public decimal Imponibile { get; set; }
     public decimal AliquotaIva { get; set; }
+
+    /// <summary>
+    /// IVA letta dal documento, quando l'operatore la digita invece di farla calcolare
+    /// dall'aliquota (fattura multialiquota: Cash &amp; Carry e simili). Se valorizzata
+    /// PREVALE su <see cref="AliquotaIva"/>, che viene ignorata.
+    /// </summary>
+    public decimal? ImportoIva { get; set; }
+
     public DateTime? DataScadenza { get; set; }
     public string? Note { get; set; }
     public string Stato { get; set; } = "DA_PAGARE";
@@ -28,6 +36,7 @@ public class FatturaAcquistoInputType : InputObjectGraphType<FatturaAcquistoInpu
         Field(x => x.DataFattura, type: typeof(DateGraphType));
         Field(x => x.Imponibile);
         Field(x => x.AliquotaIva);
+        Field(x => x.ImportoIva, nullable: true);
         Field(x => x.DataScadenza, type: typeof(DateGraphType));
         Field(x => x.Note, nullable: true);
         Field(x => x.Stato);

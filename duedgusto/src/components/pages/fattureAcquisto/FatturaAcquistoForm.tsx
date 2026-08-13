@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { Paper, Box, Chip, IconButton, useTheme } from "@mui/material";
+import { Paper, Box, Chip, IconButton, Typography, useTheme } from "@mui/material";
 import LinkOffIcon from "@mui/icons-material/LinkOff";
-import { useFormikContext } from "formik";
+import { FormikProps, useFormikContext } from "formik";
 import { useMutation } from "@apollo/client";
 import { CellValueChangedEvent, GridReadyEvent } from "ag-grid-community";
 
 import FormikTextField from "../../common/form/FormikTextField";
 import FormikDateField from "../../common/form/FormikDateField";
 import FormikNumberField from "../../common/form/FormikNumberField";
+import FormikCheckbox from "../../common/form/FormikCheckbox";
 import NumberField from "../../common/form/NumberField";
 import FormikSearchbox from "../../common/form/searchbox/FormikSearchbox";
 import fornitoreSearchboxOption, { FornitoreSearchbox } from "../../common/form/searchbox/searchboxOptions/fornitoreSearchboxOptions";
@@ -17,6 +18,7 @@ import { DatagridColDef, DatagridData } from "../../common/datagrid/@types/Datag
 import { formStatuses } from "../../../common/globals/constants";
 import showToast from "../../../common/toast/showToast";
 import { mutationMutateDocumentoTrasporto, mutationMutatePagamentoFornitore } from "../../../graphql/fornitori/mutations";
+import { aliquotaImplicita, arrotondaCentesimi, defaultAliquotaIva } from "../../../common/iva/aliquote";
 import { FormikFatturaAcquistoValues } from "./FatturaAcquistoDetails";
 import { PrelevaDdtItem } from "./PrelevaDdtDialog";
 
@@ -97,8 +99,29 @@ function FatturaAcquistoForm({ onSelectFornitore, onSelectInvoice, documentiTras
     });
   }, [onRegisterGetPaymentRows]);
 
-  const taxableAmount = values.totalAmount / (1 + values.vatRate / 100);
-  const vatAmount = values.totalAmount - taxableAmount;
+  // Spunta ON: l'IVA discende dall'aliquota. Spunta OFF: l'IVA è il dato digitato e
+  // l'imponibile è ciò che resta — l'aliquota diventa un'informazione derivata, non un input.
+  const taxableAmount = values.vatFromRate
+    ? values.totalAmount / (1 + values.vatRate / 100)
+    : values.totalAmount - values.vatAmount;
+  const vatAmount = values.vatFromRate ? values.totalAmount - taxableAmount : values.vatAmount;
+  const effectiveVatRate = values.vatFromRate
+    ? values.vatRate
+    : (aliquotaImplicita(taxableAmount, vatAmount) ?? 0);
+
+  // Al cambio modalità si riallinea il campo che sta per diventare editabile, così gli
+  // importi mostrati non saltano nel momento in cui si toglie o rimette la spunta.
+  const handleToggleVatFromRate = useCallback(
+    (_name: string, checked: boolean, _field: unknown, form: FormikProps<FormikFatturaAcquistoValues>) => {
+      form.setFieldValue("vatFromRate", checked);
+      if (checked) {
+        form.setFieldValue("vatRate", aliquotaImplicita(taxableAmount, vatAmount) ?? defaultAliquotaIva);
+      } else {
+        form.setFieldValue("vatAmount", arrotondaCentesimi(vatAmount));
+      }
+    },
+    [taxableAmount, vatAmount]
+  );
 
   // === DDT Grid ===
   const hasPendingDdt = (pendingDdt?.length ?? 0) > 0;
@@ -347,6 +370,22 @@ function FatturaAcquistoForm({ onSelectFornitore, onSelectInvoice, documentiTras
               sx={{ "& input": { colorScheme: dateColorScheme } }}
             />
           </div>
+          <div className="col-span-12">
+            <FormikCheckbox<FormikFatturaAcquistoValues>
+              name="vatFromRate"
+              label="Calcola IVA dall'aliquota"
+              onChange={handleToggleVatFromRate}
+            />
+            {!values.vatFromRate && (
+              <Typography
+                variant="body2"
+                color="text.secondary"
+              >
+                IVA presa dalla fattura: inserisci l'importo, l'imponibile è la differenza.
+                L'aliquota mostrata è solo indicativa (media ponderata).
+              </Typography>
+            )}
+          </div>
           <div className="col-span-12 md:col-span-3">
             <FormikNumberField
               name="totalAmount"
@@ -356,12 +395,23 @@ function FatturaAcquistoForm({ onSelectFornitore, onSelectInvoice, documentiTras
             />
           </div>
           <div className="col-span-12 md:col-span-3">
-            <FormikNumberField
-              name="vatRate"
-              label="Aliquota IVA %"
-              fullWidth
-              slotProps={{ htmlInput: { step: "0.01", min: "0", max: "100" } }}
-            />
+            {values.vatFromRate ? (
+              <FormikNumberField
+                name="vatRate"
+                label="Aliquota IVA %"
+                fullWidth
+                slotProps={{ htmlInput: { step: "0.01", min: "0", max: "100" } }}
+              />
+            ) : (
+              <NumberField
+                name="_effectiveVatRate"
+                label="Aliquota IVA % (media)"
+                fullWidth
+                disabled
+                value={effectiveVatRate}
+                decimals={2}
+              />
+            )}
           </div>
           <div className="col-span-12 md:col-span-3">
             <NumberField
@@ -374,14 +424,23 @@ function FatturaAcquistoForm({ onSelectFornitore, onSelectInvoice, documentiTras
             />
           </div>
           <div className="col-span-12 md:col-span-3">
-            <NumberField
-              name="_vatAmount"
-              label="IVA"
-              fullWidth
-              disabled
-              value={vatAmount}
-              decimals={2}
-            />
+            {values.vatFromRate ? (
+              <NumberField
+                name="_vatAmount"
+                label="IVA"
+                fullWidth
+                disabled
+                value={vatAmount}
+                decimals={2}
+              />
+            ) : (
+              <FormikNumberField
+                name="vatAmount"
+                label="IVA *"
+                fullWidth
+                slotProps={{ htmlInput: { step: "0.01", min: "0" } }}
+              />
+            )}
           </div>
           <div className="col-span-12">
             <FormikTextField

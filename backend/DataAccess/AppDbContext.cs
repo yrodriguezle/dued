@@ -1068,6 +1068,12 @@ public class AppDbContext : DbContext
             entity.Property(x => x.TotaleConIva)
                 .HasColumnType("decimal(10,2)");
 
+            // Default true: lo storico precedente al campo è tutto IVA calcolata da aliquota
+            // (l'inserimento manuale dell'IVA non esisteva), quindi il backfill è esatto.
+            entity.Property(x => x.IvaCalcolata)
+                .IsRequired()
+                .HasDefaultValue(true);
+
             entity.Property(x => x.Stato)
                 .HasMaxLength(20)
                 .HasDefaultValue("DA_PAGARE");

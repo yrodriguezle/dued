@@ -76,6 +76,8 @@ type PagamentoFornitoreRegistro = {
     numeroFattura: string;
     dataFattura?: string;
     imponibile?: number;
+    importoIva?: number | null;
+    ivaCalcolata?: boolean;
     totaleConIva?: number | null;
     stato?: string;
     fornitore: {
@@ -286,6 +288,8 @@ interface Spese {
   dataFattura?: string;
   dataDdt?: string;
   aliquotaIva?: number | null;
+  /** IVA presa dalla fattura invece che calcolata dall'aliquota (fattura multialiquota). */
+  importoIva?: number | null;
 }
 
 interface CashCountRow {

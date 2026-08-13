@@ -88,6 +88,8 @@ export const registroCassaFragment = `
         numeroFattura
         dataFattura
         imponibile
+        importoIva
+        ivaCalcolata
         totaleConIva
         stato
         fornitore {

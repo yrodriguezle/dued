@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Button, TextField, Box, ToggleButtonGroup, ToggleButton, FormControl, InputLabel, Select, MenuItem, Autocomplete, CircularProgress, Typography, Stack } from "@mui/material";
+import { Button, TextField, Box, ToggleButtonGroup, ToggleButton, FormControl, FormControlLabel, Checkbox, InputLabel, Select, MenuItem, Autocomplete, CircularProgress, Typography, Stack } from "@mui/material";
 import { useLazyQuery } from "@apollo/client";
 import NumberField from "../../common/form/NumberField";
 import FormikSearchbox from "../../common/form/searchbox/FormikSearchbox";
@@ -8,8 +8,9 @@ import showToast from "../../../common/toast/showToast";
 import { Formik, Form } from "formik";
 import { getFattureNonPagatePerFornitore, getDdtNonPagatiPerFornitore } from "../../../graphql/registroCassa/queries";
 import AppDialog from "../../common/dialog/AppDialog";
+import { arrotondaCentesimi, defaultAliquotaIva } from "../../../common/iva/aliquote";
 
-const DEFAULT_ALIQUOTA_IVA = 22;
+const DEFAULT_ALIQUOTA_IVA = defaultAliquotaIva;
 
 interface PagamentoFornitoreDialogProps {
   open: boolean;
@@ -57,6 +58,11 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
 
   // Aliquota IVA (solo per fatture)
   const [aliquotaIva, setAliquotaIva] = useState<number>(DEFAULT_ALIQUOTA_IVA);
+
+  // Spunta ON: l'IVA si calcola dall'aliquota. Spunta OFF: l'IVA è quella stampata sulla
+  // fattura, digitata a mano (Cash & Carry: righe a più aliquote, un solo totale IVA).
+  const [calcolaIvaDaAliquota, setCalcolaIvaDaAliquota] = useState(true);
+  const [importoIva, setImportoIva] = useState<number>(0);
 
   // Nuovi campi per collegamento fatture/DDT
   const [fatturaId, setFatturaId] = useState<number | undefined>(undefined);
@@ -110,6 +116,8 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
       setPaymentMethod(initialData.paymentMethod ?? "Contanti");
       setCategoria(initialData.categoria ?? "");
       setAliquotaIva(initialData.aliquotaIva ?? DEFAULT_ALIQUOTA_IVA);
+      setCalcolaIvaDaAliquota(initialData.importoIva == null);
+      setImportoIva(initialData.importoIva ?? 0);
       setFatturaId(initialData.fatturaId);
       setDdtId(initialData.ddtId);
       setDataFattura(initialData.dataFattura);
@@ -131,6 +139,8 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
     setPaymentMethod("Contanti");
     setCategoria("");
     setAliquotaIva(DEFAULT_ALIQUOTA_IVA);
+    setCalcolaIvaDaAliquota(true);
+    setImportoIva(0);
     setFatturaId(undefined);
     setDdtId(undefined);
     setDataFattura(undefined);
@@ -147,8 +157,11 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
   const handleSelectFornitore = useCallback((item: FornitoreSearchbox) => {
     setFornitoreId(item.fornitoreId);
     setNomeFornitore(item.ragioneSociale);
-    // Pre-compila aliquota IVA dal fornitore selezionato (se disponibile)
+    // Pre-compila aliquota IVA dal fornitore selezionato (se disponibile) e torna alla
+    // modalità aliquota: l'IVA digitata valeva per la fattura del fornitore precedente.
     setAliquotaIva(item.aliquotaIva ?? DEFAULT_ALIQUOTA_IVA);
+    setCalcolaIvaDaAliquota(true);
+    setImportoIva(0);
     // Reset selezione documento quando cambia fornitore
     setSelectedFattura(null);
     setSelectedDdt(null);
@@ -204,6 +217,17 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
       return;
     }
 
+    if (documentType === "FA" && !calcolaIvaDaAliquota && importoIva > amount) {
+      showToast({
+        type: "warning",
+        position: "bottom-right",
+        message: "L'IVA non può superare l'importo pagato",
+        autoClose: 2000,
+        toastId: "warning-payment",
+      });
+      return;
+    }
+
     const docNumber = documentType === "FA" ? invoiceNumber : ddtNumber;
     const docLabel = docNumber ? ` - ${documentType} ${docNumber}` : "";
     const description = `Pagamento ${nomeFornitore}${docLabel}`;
@@ -223,11 +247,13 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
       dataFattura: documentType === "FA" ? dataFattura : undefined,
       dataDdt: documentType === "DDT" ? dataDdt : undefined,
       aliquotaIva: documentType === "FA" ? aliquotaIva : undefined,
+      // Valorizzato solo a spunta OFF: al backend dice "questa IVA è un dato, non ricalcolarla".
+      importoIva: documentType === "FA" && !calcolaIvaDaAliquota ? arrotondaCentesimi(importoIva) : undefined,
       categoria: categoria || undefined,
     });
     resetForm();
     onClose();
-  }, [fornitoreId, amount, ddtNumber, invoiceNumber, nomeFornitore, paymentMethod, documentType, onConfirm, resetForm, onClose, initialData?.pagamentoId, fatturaId, ddtId, dataFattura, dataDdt, aliquotaIva, categoria]);
+  }, [fornitoreId, amount, ddtNumber, invoiceNumber, nomeFornitore, paymentMethod, documentType, onConfirm, resetForm, onClose, initialData?.pagamentoId, fatturaId, ddtId, dataFattura, dataDdt, aliquotaIva, calcolaIvaDaAliquota, importoIva, categoria]);
 
   // initialValues calcolati da initialData per pre-riempire FormikSearchbox (enableReinitialize)
   const initialValues: PaymentFormValues = {
@@ -441,22 +467,55 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
                   />
                 </div>
 
-                {/* Aliquota IVA - solo per fatture */}
+                {/* Aliquota IVA oppure IVA digitata - solo per fatture */}
                 {documentType === "FA" && (
                   <div className="col-span-12 md:col-span-6">
-                    <NumberField
-                      name="aliquotaIva"
-                      label="Aliquota IVA %"
-                      fullWidth
-                      value={aliquotaIva}
-                      onChange={(_name, value) => setAliquotaIva(value)}
-                      decimals={0}
+                    {calcolaIvaDaAliquota ? (
+                      <NumberField
+                        name="aliquotaIva"
+                        label="Aliquota IVA %"
+                        fullWidth
+                        value={aliquotaIva}
+                        onChange={(_name, value) => setAliquotaIva(value)}
+                        decimals={0}
+                      />
+                    ) : (
+                      <NumberField
+                        name="importoIva"
+                        label="IVA da fattura *"
+                        fullWidth
+                        value={importoIva}
+                        onChange={(_name, value) => setImportoIva(value)}
+                        emitOnChange
+                        decimals={2}
+                      />
+                    )}
+                  </div>
+                )}
+
+                {documentType === "FA" && (
+                  <div className="col-span-12">
+                    <FormControlLabel
+                      control={<Checkbox
+                        checked={calcolaIvaDaAliquota}
+                        onChange={(event) => {
+                          const checked = event.target.checked;
+                          setCalcolaIvaDaAliquota(checked);
+                          // Riallinea il campo che sta per diventare editabile, così gli
+                          // importi mostrati non saltano al cambio di modalità.
+                          if (!checked) {
+                            setImportoIva(arrotondaCentesimi(amount - amount / (1 + aliquotaIva / 100)));
+                          }
+                        }}
+                        color="primary"
+                      />}
+                      label={<Typography variant="body1">Calcola IVA dall'aliquota</Typography>}
                     />
                   </div>
                 )}
 
                 {/* Preview calcolo IVA - solo per fatture con importo > 0 */}
-                {documentType === "FA" && amount > 0 && aliquotaIva > 0 && (
+                {documentType === "FA" && amount > 0 && (calcolaIvaDaAliquota ? aliquotaIva > 0 : importoIva > 0) && (
                   <div className="col-span-12">
                     <Typography
                       variant="body2"
@@ -464,8 +523,8 @@ function PagamentoFornitoreDialog({ open, onClose, onConfirm, initialData }: Pag
                       sx={{ mt: -1 }}
                     >
                       {(() => {
-                        const imponibile = amount / (1 + aliquotaIva / 100);
-                        const ivaAmount = amount - imponibile;
+                        const ivaAmount = calcolaIvaDaAliquota ? amount - amount / (1 + aliquotaIva / 100) : importoIva;
+                        const imponibile = amount - ivaAmount;
                         return `Imponibile: €${imponibile.toFixed(2)} | IVA: €${ivaAmount.toFixed(2)}`;
                       })()}
                     </Typography>

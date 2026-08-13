@@ -11,7 +11,8 @@ namespace DuedGusto.Tests.Unit.Common;
 public class IvaBreakdownCreditoCalculatorTests
 {
     private static PagamentoFornitore PagamentoDaFattura(
-        decimal importo, decimal imponibileFattura, decimal? ivaFattura, decimal aliquotaFornitore = 22m)
+        decimal importo, decimal imponibileFattura, decimal? ivaFattura, decimal aliquotaFornitore = 22m,
+        bool ivaCalcolata = true)
         => new()
         {
             Importo = importo,
@@ -20,6 +21,7 @@ public class IvaBreakdownCreditoCalculatorTests
             {
                 Imponibile = imponibileFattura,
                 ImportoIva = ivaFattura,
+                IvaCalcolata = ivaCalcolata,
                 Fornitore = new Fornitore { AliquotaIva = aliquotaFornitore },
             },
         };
@@ -93,6 +95,24 @@ public class IvaBreakdownCreditoCalculatorTests
 
         righe.Should().ContainSingle();
         righe[0].Aliquota.Should().Be(15.30m);
+        righe[0].AliquotaMista.Should().BeTrue();
+        righe[0].Stimato.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Calcola_FatturaConIvaDigitataPariA22_AliquotaMistaComunqueFlaggata()
+    {
+        // IVA digitata dall'operatore (IvaCalcolata=false) che per caso dà esattamente il 22%:
+        // resta una media ponderata di una fattura multialiquota, non un'aliquota reale.
+        var pagamenti = new[]
+        {
+            PagamentoDaFattura(122.00m, imponibileFattura: 100m, ivaFattura: 22m, ivaCalcolata: false),
+        };
+
+        IReadOnlyList<RigaBreakdownIvaCredito> righe = IvaBreakdownCreditoCalculator.Calcola(pagamenti);
+
+        righe.Should().ContainSingle();
+        righe[0].Aliquota.Should().Be(22.00m);
         righe[0].AliquotaMista.Should().BeTrue();
         righe[0].Stimato.Should().BeFalse();
     }

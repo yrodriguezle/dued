@@ -33,6 +33,20 @@ namespace duedgusto.Models
         [Column(TypeName = "decimal(10,2)")]
         public decimal? TotaleConIva { get; set; }
 
+        /// <summary>
+        /// True (default): <see cref="ImportoIva"/> è stato CALCOLATO da un'aliquota.
+        /// False: è l'importo LETTO dal documento e digitato dall'operatore — fattura
+        /// multialiquota (Cash &amp; Carry: righe a 4/10/22% e un solo totale IVA stampato),
+        /// dove nessuna aliquota unica esiste. Chi ricalcola gli importi della fattura
+        /// (prelievo DDT) deve congelare l'IVA invece di riscorporarla.
+        ///
+        /// <para>Serve perché gli importi da soli non bastano: 22,00 su 100,00 è identico
+        /// che sia calcolato o digitato. Lo storico precedente all'introduzione del campo
+        /// è tutto calcolato, quindi il default true è corretto per retrocompatibilità.</para>
+        /// </summary>
+        [Required]
+        public bool IvaCalcolata { get; set; } = true;
+
         [Required]
         [MaxLength(20)]
         public string Stato { get; set; } = "DA_PAGARE"; // DA_PAGARE, PARZIALMENTE_PAGATA, PAGATA

@@ -19,36 +19,58 @@ import { mutationMutateFatturaAcquisto, mutationAssociaDdtAFattura, mutationDisa
 import useInitializeValues from "./useInitializeValues";
 import setInitialFocus from "./setInitialFocus";
 import sleep from "../../../common/bones/sleep";
+import { aliquotaImplicita, arrotondaCentesimi, defaultAliquotaIva } from "../../../common/iva/aliquote";
 import { FornitoreSearchbox } from "../../common/form/searchbox/searchboxOptions/fornitoreSearchboxOptions";
 import { FatturaAcquistoSearchbox } from "../../common/form/searchbox/searchboxOptions/fatturaAcquistoSearchboxOptions";
 
-const Schema = z.object({
-  invoiceId: z.number().optional(),
-  fornitoreId: z.number({ required_error: "Fornitore obbligatorio" }),
-  nomeFornitore: z.string().nonempty("Fornitore obbligatorio"),
-  invoiceNumber: z.string().nonempty("Numero fattura obbligatorio"),
-  invoiceDate: z.string().nonempty("Data fattura obbligatoria"),
-  dueDate: z.string().optional(),
-  totalAmount: z.number().min(0, "Importo non valido"),
-  vatRate: z.number().min(0).max(100),
-  notes: z.string().optional(),
-  invoiceStatus: z.string().optional(),
-});
+const Schema = z
+  .object({
+    invoiceId: z.number().optional(),
+    fornitoreId: z.number({ required_error: "Fornitore obbligatorio" }),
+    nomeFornitore: z.string().nonempty("Fornitore obbligatorio"),
+    invoiceNumber: z.string().nonempty("Numero fattura obbligatorio"),
+    invoiceDate: z.string().nonempty("Data fattura obbligatoria"),
+    dueDate: z.string().optional(),
+    totalAmount: z.number().min(0, "Importo non valido"),
+    // Spunta ON: l'IVA si calcola dall'aliquota. Spunta OFF: l'IVA è quella digitata,
+    // presa dalla fattura (Cash & Carry e simili, righe a più aliquote e un solo totale IVA).
+    vatFromRate: z.boolean(),
+    vatRate: z.number().min(0).max(100),
+    vatAmount: z.number().min(0, "IVA non valida"),
+    notes: z.string().optional(),
+    invoiceStatus: z.string().optional(),
+  })
+  .superRefine((values, ctx) => {
+    if (!values.vatFromRate && values.vatAmount > values.totalAmount) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["vatAmount"],
+        message: "L'IVA non può superare il totale",
+      });
+    }
+  });
 
 export type FormikFatturaAcquistoValues = z.infer<typeof Schema>;
 
-const mapFatturaToFormValues = (invoice: FatturaAcquisto): Partial<FormikFatturaAcquistoValues> => ({
-  invoiceId: invoice.fatturaId,
-  fornitoreId: invoice.fornitoreId,
-  nomeFornitore: invoice.fornitore?.ragioneSociale ?? "",
-  invoiceNumber: invoice.numeroFattura,
-  invoiceDate: invoice.dataFattura ? invoice.dataFattura.split("T")[0] : "",
-  dueDate: invoice.dataScadenza ? invoice.dataScadenza.split("T")[0] : "",
-  totalAmount: invoice.imponibile + (invoice.importoIva ?? 0),
-  vatRate: invoice.importoIva != null && invoice.imponibile ? Math.round((invoice.importoIva / invoice.imponibile) * 100 * 100) / 100 : 22,
-  notes: invoice.note ?? "",
-  invoiceStatus: invoice.stato,
-});
+const mapFatturaToFormValues = (invoice: FatturaAcquisto): Partial<FormikFatturaAcquistoValues> => {
+  const importoIva = invoice.importoIva ?? 0;
+
+  return {
+    invoiceId: invoice.fatturaId,
+    fornitoreId: invoice.fornitoreId,
+    nomeFornitore: invoice.fornitore?.ragioneSociale ?? "",
+    invoiceNumber: invoice.numeroFattura,
+    invoiceDate: invoice.dataFattura ? invoice.dataFattura.split("T")[0] : "",
+    dueDate: invoice.dataScadenza ? invoice.dataScadenza.split("T")[0] : "",
+    totalAmount: invoice.imponibile + importoIva,
+    // Modalità letta dal campo persistito, non dedotta dagli importi.
+    vatFromRate: invoice.ivaCalcolata,
+    vatRate: aliquotaImplicita(invoice.imponibile, invoice.importoIva) ?? defaultAliquotaIva,
+    vatAmount: importoIva,
+    notes: invoice.note ?? "",
+    invoiceStatus: invoice.stato,
+  };
+};
 
 const mapFormValuesToInput = (
   values: FormikFatturaAcquistoValues
@@ -58,8 +80,12 @@ const mapFormValuesToInput = (
   numeroFattura: values.invoiceNumber,
   dataFattura: values.invoiceDate,
   dataScadenza: values.dueDate || undefined,
-  imponibile: values.totalAmount / (1 + values.vatRate / 100),
+  imponibile: values.vatFromRate
+    ? values.totalAmount / (1 + values.vatRate / 100)
+    : arrotondaCentesimi(values.totalAmount - values.vatAmount),
   aliquotaIva: values.vatRate,
+  // Valorizzato solo a spunta OFF: al backend dice "questa IVA è un dato, non ricalcolarla".
+  importoIva: values.vatFromRate ? undefined : arrotondaCentesimi(values.vatAmount),
   note: values.notes || undefined,
   stato: values.invoiceStatus || "DA_PAGARE",
 });
