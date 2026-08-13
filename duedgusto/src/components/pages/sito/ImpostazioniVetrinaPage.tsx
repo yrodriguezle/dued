@@ -389,6 +389,157 @@ function ImpostazioniVetrinaPage() {
                   </div>
                 </SezioneImpostazioni>
 
+                <SezioneImpostazioni
+                  titolo="Testi del sito"
+                  descrizione="Quello che il sito dice del locale. Nessuna di queste frasi è scritta nel codice: se le lasci vuote, il sito non le inventa — la sezione semplicemente non compare."
+                >
+                  <div className="grid grid-cols-12 gap-4">
+                    <div className="col-span-12">
+                      <FormikTextField
+                        name="claimVetrina"
+                        label="Frase sotto il titolo della home"
+                        placeholder="Espresso alle sette, congrì a mezzogiorno, mojito al tramonto."
+                        fullWidth
+                        multiline
+                        minRows={2}
+                        helperText="Una o due frasi. Vuota: la home mostra solo il titolo."
+                      />
+                    </div>
+                  </div>
+                </SezioneImpostazioni>
+
+                {/* 🔴 Queste due sezioni non riempiono una pagina: DECIDONO SE ESISTE. Un campo
+                    che fa comparire o sparire una rotta dalla navigazione, senza dirlo, è il
+                    tipo di cosa che si scopre da un 404 segnalato da un cliente. */}
+                <SezioneImpostazioni
+                  titolo="Pagina «Il locale»"
+                  descrizione="La vostra storia, con nomi e date veri. Righe vuote fra un capoverso e l'altro: il sito le rende come paragrafi."
+                >
+                  <Alert
+                    severity="warning"
+                    sx={{ mb: 2 }}
+                  >
+                    Senza il testo, la pagina <strong>Il locale</strong> non esiste sul sito: chi ci arriva riceve un «pagina non trovata». È voluto — una pagina che si apre su un titolo e nient&apos;altro promette qualcosa che non mantiene.
+                  </Alert>
+                  <div className="grid grid-cols-12 gap-4">
+                    <div className="col-span-12 sm:col-span-7">
+                      <FormikTextField
+                        name="storiaTitolo"
+                        label="Titolo"
+                        placeholder="Due mani italiane, una ricetta cubana"
+                        fullWidth
+                      />
+                    </div>
+                    <div className="col-span-12">
+                      <FormikTextField
+                        name="storiaTesto"
+                        label="Testo"
+                        fullWidth
+                        multiline
+                        minRows={5}
+                        helperText="Lascia una riga vuota per andare a capoverso."
+                      />
+                    </div>
+                  </div>
+                </SezioneImpostazioni>
+
+                <SezioneImpostazioni
+                  titolo="Pagina «Aperitivo»"
+                  descrizione="La pagina che la gente cerca per nome. Il richiamo in home e il riquadro sulla foto compaiono solo se questo testo c'è."
+                >
+                  <Alert
+                    severity="warning"
+                    sx={{ mb: 2 }}
+                  >
+                    Senza il testo, la pagina <strong>Aperitivo</strong> non esiste sul sito.
+                  </Alert>
+                  <div className="grid grid-cols-12 gap-4">
+                    <div className="col-span-12 sm:col-span-7">
+                      <FormikTextField
+                        name="aperitivoTitolo"
+                        label="Titolo"
+                        placeholder="Aperitivo Apericosto"
+                        fullWidth
+                      />
+                    </div>
+                    <div className="col-span-12">
+                      <FormikTextField
+                        name="aperitivoTesto"
+                        label="Testo"
+                        fullWidth
+                        multiline
+                        minRows={3}
+                      />
+                    </div>
+                    <div className="col-span-12 sm:col-span-6">
+                      <FormikTextField
+                        name="aperitivoPunti"
+                        label="Cosa è compreso"
+                        fullWidth
+                        multiline
+                        minRows={4}
+                        placeholder={"Un cocktail cubano a scelta\nIl tagliere del giorno\nTavoli sotto la pergola"}
+                        helperText="Una voce per riga. Ne vengono pubblicate al massimo sei."
+                      />
+                    </div>
+                    <div className="col-span-12 sm:col-span-6">
+                      <FormikTextField
+                        name="aperitivoCategorie"
+                        label="Categorie del listino da mostrare"
+                        fullWidth
+                        multiline
+                        minRows={4}
+                        placeholder={"Cocktail\nAperitivo"}
+                        // ⚠️ Il nome deve corrispondere ESATTAMENTE alla categoria di vetrina
+                        //    scritta sui prodotti. Non è irrigidibile — sono due campi di testo
+                        //    libero — quindi la cosa va detta qui, che è l'unico posto in cui
+                        //    qualcuno la leggerà prima di sbagliarla.
+                        helperText="Una per riga, col nome esatto usato nella griglia prodotti. Una riga che non corrisponde a nulla non dà errore: semplicemente non porta prodotti."
+                      />
+                    </div>
+                  </div>
+                </SezioneImpostazioni>
+
+                <SezioneImpostazioni
+                  titolo="Recensioni su Google"
+                  descrizione="I due numeri che compaiono sopra le citazioni in home. Si aggiornano a mano, ed è il loro limite: invecchiano."
+                >
+                  <div className="grid grid-cols-12 gap-4">
+                    <div className="col-span-6 sm:col-span-3">
+                      <FormikTextField
+                        name="punteggioGoogle"
+                        label="Punteggio medio"
+                        placeholder="4.7"
+                        fullWidth
+                      />
+                    </div>
+                    <div className="col-span-6 sm:col-span-3">
+                      <FormikTextField
+                        name="numeroRecensioniGoogle"
+                        label="Numero di recensioni"
+                        placeholder="180"
+                        fullWidth
+                      />
+                    </div>
+                    <div className="col-span-12 sm:col-span-6">
+                      <FormikTextField
+                        name="urlProfiloGoogle"
+                        label="Link al profilo Google"
+                        placeholder="https://maps.app.goo.gl/…"
+                        fullWidth
+                      />
+                    </div>
+                    <div className="col-span-12">
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                      >
+                        Le citazioni si scrivono nella pagina <strong>Recensioni</strong>. Il punteggio e il numero vanno insieme: da soli dicono meno di quanto sembra — «4,7» senza conteggio nasconde che le recensioni potrebbero essere tre.
+                      </Typography>
+                    </div>
+                  </div>
+                </SezioneImpostazioni>
+
                 <SezioneImpostazioni titolo="Prenotazioni">
                   {/* 🔴 Un campo che si compila e non fa niente, senza spiegazione, è un bug
                       segnalato. L'avviso è visibile senza aprire nulla. */}

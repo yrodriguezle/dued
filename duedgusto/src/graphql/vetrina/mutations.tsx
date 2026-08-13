@@ -1,5 +1,5 @@
 import { gql, TypedDocumentNode } from "@apollo/client";
-import { impostazioniVetrinaFragment, mediaAssetFragment, prodottoVetrinaFragment } from "./fragments";
+import { impostazioniVetrinaFragment, mediaAssetFragment, prodottoVetrinaFragment, recensioneVetrinaFragment } from "./fragments";
 
 // ============ IMPOSTAZIONI VETRINA ============
 
@@ -58,6 +58,65 @@ export const mutationMutateProdottoVetrina: TypedDocumentNode<MutateProdottoVetr
       mutateProdottoVetrina(prodottoId: $prodottoId, input: $input) {
         ...ProdottoVetrinaFragment
       }
+    }
+  }
+`;
+
+// ============ RECENSIONI RIPORTATE ============
+
+interface MutateRecensioneVetrinaData {
+  vetrina: {
+    mutateRecensioneVetrina: RecensioneVetrina;
+  };
+}
+
+interface MutateRecensioneVetrinaVariables {
+  /** Assente o `null` per crearne una nuova. */
+  recensioneVetrinaId?: number | null;
+  input: RecensioneVetrinaInput;
+}
+
+/**
+ * Crea o aggiorna una recensione riportata, con **assegnazione totale** come le impostazioni.
+ *
+ * ⚠️ Qui esiste un ramo di **creazione**, al contrario di `mutateProdottoVetrina`. Non è
+ * un'incoerenza: i prodotti nascono in cassa dal listino, e una vetrina che sapesse crearli
+ * diventerebbe un secondo listino. Una citazione non ha alcuna controparte in cassa — non nasce
+ * da nessun'altra parte, quindi deve nascere qui.
+ */
+export const mutationMutateRecensioneVetrina: TypedDocumentNode<MutateRecensioneVetrinaData, MutateRecensioneVetrinaVariables> = gql`
+  ${recensioneVetrinaFragment}
+  mutation MutateRecensioneVetrina($recensioneVetrinaId: Int, $input: RecensioneVetrinaInput!) {
+    vetrina {
+      mutateRecensioneVetrina(recensioneVetrinaId: $recensioneVetrinaId, input: $input) {
+        ...RecensioneVetrinaFragment
+      }
+    }
+  }
+`;
+
+interface EliminaRecensioneVetrinaData {
+  vetrina: {
+    eliminaRecensioneVetrina: boolean;
+  };
+}
+
+interface EliminaRecensioneVetrinaVariables {
+  recensioneVetrinaId: number;
+}
+
+/**
+ * Elimina davvero, al contrario dei prodotti — che si possono solo disattivare.
+ *
+ * La differenza ha una ragione: un prodotto è referenziato dalle vendite e dalla contabilità,
+ * quindi cancellarlo riscriverebbe la storia. Una citazione non è referenziata da nulla, e
+ * tenersi per sempre una recensione inserita per sbaglio — magari attribuita a una persona che
+ * ha chiesto di toglierla — sarebbe il difetto, non la prudenza.
+ */
+export const mutationEliminaRecensioneVetrina: TypedDocumentNode<EliminaRecensioneVetrinaData, EliminaRecensioneVetrinaVariables> = gql`
+  mutation EliminaRecensioneVetrina($recensioneVetrinaId: Int!) {
+    vetrina {
+      eliminaRecensioneVetrina(recensioneVetrinaId: $recensioneVetrinaId)
     }
   }
 `;

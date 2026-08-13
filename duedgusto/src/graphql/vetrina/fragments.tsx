@@ -43,6 +43,16 @@ export const impostazioniVetrinaFragment = `
     immagineOgId
     immagineOg { ...MediaAssetFragment }
     oraInizioTemaSera
+    claimVetrina
+    storiaTitolo
+    storiaTesto
+    aperitivoTitolo
+    aperitivoTesto
+    aperitivoPunti
+    aperitivoCategorie
+    punteggioGoogle
+    numeroRecensioniGoogle
+    urlProfiloGoogle
     prenotazioniAttive
     prenotazioniPreavvisoOre
     prenotazioniCopertiMax
@@ -50,6 +60,23 @@ export const impostazioniVetrinaFragment = `
     createdAt
     updatedAt
   }`;
+
+/**
+ * Una recensione riportata, nella forma amministrativa: include anche le **non pubblicate** e le
+ * marche temporali, che la rotta pubblica non contiene. È la stessa asimmetria delle
+ * impostazioni, ed è la ragione per cui la lettura resta dietro il guard amministratore.
+ */
+export const recensioneVetrinaFragment = `fragment RecensioneVetrinaFragment on RecensioneVetrina {
+  recensioneVetrinaId
+  autore
+  testo
+  fonte
+  punteggio
+  ordinamento
+  pubblicata
+  createdAt
+  updatedAt
+}`;
 
 export const prodottoVetrinaFragment = `
   ${mediaAssetFragment}
@@ -72,6 +99,7 @@ export const prodottoVetrinaFragment = `
     allergeni
     novita
     consigliato
+    inLavagnaDal
     pubblicatoSulSito
     prezzoEffettivoVetrina
     createdAt

@@ -184,6 +184,43 @@ public static class SeedMenusSito
             }
         }
 
+        // Voce: Recensioni sito
+        // ⚠️ È una voce a sé e non una scheda dentro le impostazioni, e non per abbondanza: le
+        // impostazioni sono UNA riga che si compila e si salva insieme, le recensioni sono una
+        // lista che si aggiunge e si riordina nel tempo. Due gesti diversi, due pagine.
+        Menu? sitoChild4 = await dbContext.Menus
+                .Include(m => m.Ruoli)
+                .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/sito/recensioni");
+
+        if (sitoChild4 == null)
+        {
+            sitoChild4 = new Menu
+            {
+                Titolo = "Recensioni sito",
+                Percorso = "/gestionale/sito/recensioni",
+                Icona = "Star",
+                Visibile = true,
+                Posizione = 4,
+                NomeVista = "RecensioniVetrinaList",
+                PercorsoFile = "sito/RecensioniVetrinaList.tsx",
+                MenuPadreId = sitoMenu.Id
+            };
+            bool assegnazioneIniziale = false;
+            SeedMenus.AssegnaRuoli(sitoChild4, ruoliSito, ref assegnazioneIniziale);
+            dbContext.Menus.Add(sitoChild4);
+        }
+        else
+        {
+            bool needsUpdate = false;
+            SeedMenus.UpdateMenuIfNeeded(sitoChild4, "Recensioni sito", "/gestionale/sito/recensioni", "Star", true, 4,
+                "RecensioniVetrinaList", "sito/RecensioniVetrinaList.tsx", superAdminRuolo, sitoMenu, ref needsUpdate);
+            SeedMenus.AssegnaRuoli(sitoChild4, ruoliSito, ref needsUpdate);
+            if (needsUpdate)
+            {
+                dbContext.Menus.Update(sitoChild4);
+            }
+        }
+
         await dbContext.SaveChangesAsync();
     }
 }

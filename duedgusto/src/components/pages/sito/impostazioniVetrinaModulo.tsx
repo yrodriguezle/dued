@@ -45,6 +45,24 @@ export type ValoriImpostazioniVetrina = {
   metaDescrizioneDefault: string;
   immagineOgId: number | null;
   oraInizioTemaSera: string;
+  // ── I testi che il sito scrive in prima persona ─────────────────────────────────────
+  // Ogni sezione del sito che li usa NON si rende quando sono vuoti, e le due pagine
+  // editoriali rispondono 404: sono campi che decidono se una rotta esiste.
+  claimVetrina: string;
+  storiaTitolo: string;
+  storiaTesto: string;
+  aperitivoTitolo: string;
+  aperitivoTesto: string;
+  aperitivoPunti: string;
+  aperitivoCategorie: string;
+  // ── Reputazione ────────────────────────────────────────────────────────────────────
+  /**
+   * Testuali per la stessa ragione delle coordinate: `""` è l'unica rappresentazione onesta
+   * di «non inserito», e uno `0` non lo è — zero recensioni è un'affermazione, non un vuoto.
+   */
+  punteggioGoogle: string;
+  numeroRecensioniGoogle: string;
+  urlProfiloGoogle: string;
   prenotazioniAttive: boolean;
   prenotazioniPreavvisoOre: number;
   prenotazioniCopertiMax: number;
@@ -73,6 +91,16 @@ export const VALORI_VUOTI: ValoriImpostazioniVetrina = {
   metaDescrizioneDefault: "",
   immagineOgId: null,
   oraInizioTemaSera: "",
+  claimVetrina: "",
+  storiaTitolo: "",
+  storiaTesto: "",
+  aperitivoTitolo: "",
+  aperitivoTesto: "",
+  aperitivoPunti: "",
+  aperitivoCategorie: "",
+  punteggioGoogle: "",
+  numeroRecensioniGoogle: "",
+  urlProfiloGoogle: "",
   prenotazioniAttive: false,
   prenotazioniPreavvisoOre: 0,
   prenotazioniCopertiMax: 0,
@@ -109,6 +137,16 @@ export function valoriDaImpostazioni(impostazioni?: ImpostazioniVetrina | null):
     metaDescrizioneDefault: testo(impostazioni.metaDescrizioneDefault),
     immagineOgId: impostazioni.immagineOgId ?? null,
     oraInizioTemaSera: testo(impostazioni.oraInizioTemaSera),
+    claimVetrina: testo(impostazioni.claimVetrina),
+    storiaTitolo: testo(impostazioni.storiaTitolo),
+    storiaTesto: testo(impostazioni.storiaTesto),
+    aperitivoTitolo: testo(impostazioni.aperitivoTitolo),
+    aperitivoTesto: testo(impostazioni.aperitivoTesto),
+    aperitivoPunti: testo(impostazioni.aperitivoPunti),
+    aperitivoCategorie: testo(impostazioni.aperitivoCategorie),
+    punteggioGoogle: numeroTestuale(impostazioni.punteggioGoogle),
+    numeroRecensioniGoogle: numeroTestuale(impostazioni.numeroRecensioniGoogle),
+    urlProfiloGoogle: testo(impostazioni.urlProfiloGoogle),
     prenotazioniAttive: Boolean(impostazioni.prenotazioniAttive),
     prenotazioniPreavvisoOre: impostazioni.prenotazioniPreavvisoOre ?? 0,
     prenotazioniCopertiMax: impostazioni.prenotazioniCopertiMax ?? 0,
@@ -149,6 +187,20 @@ export function inputDaValori(valori: ValoriImpostazioniVetrina): ImpostazioniVe
     metaDescrizioneDefault: nullSeVuoto(valori.metaDescrizioneDefault),
     immagineOgId: valori.immagineOgId,
     oraInizioTemaSera: valori.oraInizioTemaSera.trim(),
+    claimVetrina: nullSeVuoto(valori.claimVetrina),
+    storiaTitolo: nullSeVuoto(valori.storiaTitolo),
+    storiaTesto: nullSeVuoto(valori.storiaTesto),
+    aperitivoTitolo: nullSeVuoto(valori.aperitivoTitolo),
+    aperitivoTesto: nullSeVuoto(valori.aperitivoTesto),
+    // ⚠️ Le due aree «una voce per riga» NON si normalizzano qui: si manda ciò che è stato
+    //    scritto, e le righe vuote le toglie il DTO pubblico. Ripulirle in due posti
+    //    significherebbe due regole di pulizia che un giorno divergono — e quella che conta è
+    //    l'altra, perché è quella che il sito legge.
+    aperitivoPunti: nullSeVuoto(valori.aperitivoPunti),
+    aperitivoCategorie: nullSeVuoto(valori.aperitivoCategorie),
+    punteggioGoogle: numeroONull(valori.punteggioGoogle),
+    numeroRecensioniGoogle: numeroONull(valori.numeroRecensioniGoogle),
+    urlProfiloGoogle: nullSeVuoto(valori.urlProfiloGoogle),
     prenotazioniAttive: Boolean(valori.prenotazioniAttive),
     prenotazioniPreavvisoOre: Number(valori.prenotazioniPreavvisoOre) || 0,
     prenotazioniCopertiMax: Number(valori.prenotazioniCopertiMax) || 0,
@@ -178,6 +230,16 @@ const schemaValidazione = z
     metaTitoloDefault: z.string(),
     metaDescrizioneDefault: z.string(),
     oraInizioTemaSera: z.string().regex(FORMATO_ORARIO, 'Formato orario non valido: serve "HH:mm" fra "00:00" e "23:59"'),
+    claimVetrina: z.string(),
+    storiaTitolo: z.string(),
+    storiaTesto: z.string(),
+    aperitivoTitolo: z.string(),
+    aperitivoTesto: z.string(),
+    aperitivoPunti: z.string(),
+    aperitivoCategorie: z.string(),
+    punteggioGoogle: z.string(),
+    numeroRecensioniGoogle: z.string(),
+    urlProfiloGoogle: urlFacoltativo("Serve l'URL completo del profilo Google del locale"),
     prenotazioniPreavvisoOre: z.number().min(0, "Il preavviso non può essere negativo"),
     prenotazioniCopertiMax: z.number().min(0, "I coperti non possono essere negativi"),
   })
@@ -200,6 +262,28 @@ const schemaValidazione = z
     }
     if (longitudine !== "" && !(Number(longitudine) >= -180 && Number(longitudine) <= 180)) {
       contesto.addIssue({ code: z.ZodIssueCode.custom, path: ["longitudine"], message: "La longitudine deve stare fra -180 e 180" });
+    }
+
+    // 🔴 Stesso controllo incrociato delle coordinate, per la stessa ragione: presi da soli
+    //    questi due numeri non sono un dato incompleto, sono un dato FUORVIANTE. «4,7» senza
+    //    conteggio nasconde che le recensioni potrebbero essere tre; «180 recensioni» senza
+    //    media nasconde che la media potrebbe essere 2,1. Il sito li mostra insieme o non li
+    //    mostra, quindi è qui che l'appaiamento va imposto.
+    const punteggio = valori.punteggioGoogle.trim();
+    const numero = valori.numeroRecensioniGoogle.trim();
+    const messaggioReputazione = "Il punteggio e il numero di recensioni vanno inseriti insieme, oppure lasciati entrambi vuoti";
+
+    if ((punteggio === "") !== (numero === "")) {
+      contesto.addIssue({ code: z.ZodIssueCode.custom, path: ["punteggioGoogle"], message: messaggioReputazione });
+      contesto.addIssue({ code: z.ZodIssueCode.custom, path: ["numeroRecensioniGoogle"], message: messaggioReputazione });
+      return;
+    }
+
+    if (punteggio !== "" && !(Number(punteggio) >= 1 && Number(punteggio) <= 5)) {
+      contesto.addIssue({ code: z.ZodIssueCode.custom, path: ["punteggioGoogle"], message: "Il punteggio deve stare fra 1 e 5" });
+    }
+    if (numero !== "" && !(Number.isInteger(Number(numero)) && Number(numero) >= 0)) {
+      contesto.addIssue({ code: z.ZodIssueCode.custom, path: ["numeroRecensioniGoogle"], message: "Il numero di recensioni deve essere un intero non negativo" });
     }
   });
 

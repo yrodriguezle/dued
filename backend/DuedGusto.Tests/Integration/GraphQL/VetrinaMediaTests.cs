@@ -450,11 +450,14 @@ public class VetrinaMediaTests : IDisposable
         // riscrive. Il numero cresce con le voci ed è l'unica riga che va toccata quando ne
         // arriva una — l'elenco dei percorsi qui sotto dice quali sono, così un duplicato non
         // può nascondersi dietro un conteggio giusto per caso.
-        verifica.Menus.Count(m => m.Percorso.StartsWith("/gestionale/sito/")).Should().Be(3);
+        verifica.Menus.Count(m => m.Percorso.StartsWith("/gestionale/sito/")).Should().Be(4);
         verifica.Menus.Where(m => m.Percorso.StartsWith("/gestionale/sito/"))
             .Select(m => m.Percorso)
             .Should().BeEquivalentTo(
-                "/gestionale/sito/media", "/gestionale/sito/prodotti", "/gestionale/sito/impostazioni");
+                "/gestionale/sito/media",
+                "/gestionale/sito/prodotti",
+                "/gestionale/sito/impostazioni",
+                "/gestionale/sito/recensioni");
     }
 
     /// <summary>
@@ -485,6 +488,15 @@ public class VetrinaMediaTests : IDisposable
 
         Menu padre = await verifica.Menus.FirstAsync(m => m.Titolo == "Sito" && m.Percorso == string.Empty);
         voce.MenuPadreId.Should().Be(padre.Id);
+
+        // La quarta voce, stessa verifica e stesso motivo: il percorso del file è ciò che il
+        // frontend importa a runtime, e un errore lì non rompe alcun test — rompe la pagina.
+        Menu recensioni = await verifica.Menus.FirstAsync(m => m.Percorso == "/gestionale/sito/recensioni");
+        recensioni.Titolo.Should().Be("Recensioni sito");
+        recensioni.NomeVista.Should().Be("RecensioniVetrinaList");
+        recensioni.PercorsoFile.Should().Be("sito/RecensioniVetrinaList.tsx");
+        recensioni.Posizione.Should().Be(4);
+        recensioni.MenuPadreId.Should().Be(padre.Id);
     }
 
     [Fact]
@@ -503,9 +515,10 @@ public class VetrinaMediaTests : IDisposable
             .Where(m => m.Titolo == "Sito" || m.Percorso.StartsWith("/gestionale/sito/"))
             .ToListAsync();
 
-        vociSito.Should().HaveCount(4);
-        // La terza voce non fa eccezione: il gating si semina insieme alla voce, non dopo.
+        vociSito.Should().HaveCount(5);
+        // Le voci nuove non fanno eccezione: il gating si semina insieme alla voce, non dopo.
         vociSito.Should().Contain(m => m.Percorso == "/gestionale/sito/impostazioni");
+        vociSito.Should().Contain(m => m.Percorso == "/gestionale/sito/recensioni");
         // Il ruolo Gestore non compare da nessuna parte: la sezione è riservata.
         vociSito.SelectMany(m => m.Ruoli).Select(r => r.Nome).Distinct()
             .Should().BeEquivalentTo("SuperAdmin", "Admin");

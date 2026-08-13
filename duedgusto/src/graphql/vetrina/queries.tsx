@@ -1,5 +1,5 @@
 import { gql, TypedDocumentNode } from "@apollo/client";
-import { impostazioniVetrinaFragment, mediaAssetFragment, prodottoVetrinaFragment } from "./fragments";
+import { impostazioniVetrinaFragment, mediaAssetFragment, prodottoVetrinaFragment, recensioneVetrinaFragment } from "./fragments";
 
 interface GetImpostazioniVetrinaData {
   vetrina: {
@@ -20,6 +20,34 @@ export const getImpostazioniVetrina: TypedDocumentNode<GetImpostazioniVetrinaDat
     vetrina {
       impostazioni {
         ...ImpostazioniVetrinaFragment
+      }
+    }
+  }
+`;
+
+interface GetRecensioniVetrinaData {
+  vetrina: {
+    /** Pubblicate **e non**, nell'ordine in cui compaiono sul sito. */
+    recensioni: RecensioneVetrina[];
+  };
+}
+
+/**
+ * Le recensioni riportate.
+ *
+ * ⚠️ Nessuna paginazione, e deliberatamente: sono citazioni scelte a mano per una home — tre o
+ * quattro, non un archivio. Una connection qui porterebbe cursori e pagine per una lista che
+ * sta in una schermata, e nasconderebbe il fatto che l'ordine è **manuale**.
+ *
+ * L'ordine è lo **stesso** che usa il sito (`OrdineRecensioni` sul server): l'anteprima con cui
+ * si riordinano non servirebbe a niente se l'ordine di pagina fosse un altro.
+ */
+export const getRecensioniVetrina: TypedDocumentNode<GetRecensioniVetrinaData, Record<string, never>> = gql`
+  ${recensioneVetrinaFragment}
+  query GetRecensioniVetrina {
+    vetrina {
+      recensioni {
+        ...RecensioneVetrinaFragment
       }
     }
   }
