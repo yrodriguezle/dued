@@ -372,6 +372,10 @@ using (IServiceScope scope = app.Services.CreateScope())
     // modifica mai una riga esistente — i prodotti non si possono eliminare.
     await SeedProdottiListino.Initialize(services);
 
+    // Porta in vetrina il listino appena caricato: OFF per default, si abilita con
+    // SEED_VETRINA_LISTINO=dryrun|1. Tocca solo i prodotti mai curati a mano.
+    await SeedVetrinaListino.Initialize(services);
+
     // Import una-tantum dello storico chiusure 2026 dal foglio Excel: OFF per default,
     // si abilita con SEED_REGISTRI_STORICI=dryrun|1. Salta le date già presenti.
     // Deve girare dopo denominazioni e BusinessSettings, che usa entrambi.
