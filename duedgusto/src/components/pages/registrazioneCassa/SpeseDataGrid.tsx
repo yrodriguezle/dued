@@ -1,5 +1,5 @@
 
-import { useMemo, useState, forwardRef, useCallback, useRef, memo } from "react";
+import { useMemo, useState, forwardRef, useCallback, useEffect, useRef, memo } from "react";
 import { Box, Typography, useMediaQuery, useTheme } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
@@ -105,6 +105,21 @@ const speseSchema = z.object({
   amount: z.number().min(0, "L'importo deve essere maggiore o uguale a 0"),
 });
 
+// Totali riportati al riepilogo: `total` è l'intera griglia, `receiptTotal` la sola
+// quota non-fornitore (le "spese ecc" del riepilogo giornaliero).
+function sumSpese(rows: SpeseGridRow[]) {
+  return rows.reduce(
+    (acc, row) => {
+      const amount = row.amount || 0;
+      return {
+        total: acc.total + amount,
+        receiptTotal: acc.receiptTotal + (row.isPagamentoFornitore ? 0 : amount),
+      };
+    },
+    { total: 0, receiptTotal: 0 }
+  );
+}
+
 const SpeseDataGrid = memo(
   forwardRef<GridReadyEvent<DatagridData<SpeseGridRow>>, SpeseDataGridProps>(
     ({ initialExpenses, isLocked, date, columns, persistence, isPaymentReadOnly, onCellChange, onExpensesChange }, ref) => {
@@ -148,16 +163,13 @@ const SpeseDataGrid = memo(
       const reportExpenses = useCallback(
         (api: GridReadyEvent<DatagridData<SpeseGridRow>>["api"]) => {
           if (!onExpensesChange) return;
-          let total = 0;
-          let receiptTotal = 0;
+          const rows: SpeseGridRow[] = [];
           api.forEachNode((node) => {
             if (node.data) {
-              total += node.data.amount || 0;
-              if (!node.data.isPagamentoFornitore) {
-                receiptTotal += node.data.amount || 0;
-              }
+              rows.push(node.data);
             }
           });
+          const { total, receiptTotal } = sumSpese(rows);
           onExpensesChange(total, receiptTotal);
         },
         [onExpensesChange]
@@ -242,6 +254,16 @@ const SpeseDataGrid = memo(
       );
 
       const items = useMemo(() => initialExpenses || [], [initialExpenses]);
+
+      // Cambiando giorno la griglia NON si rimonta (Apollo serve dalla cache quando si
+      // torna su un giorno già visitato, quindi il parent non passa dallo stato di
+      // caricamento): senza questo effetto onGridReady non riparte e il riepilogo
+      // resterebbe fermo sulle spese del giorno precedente.
+      useEffect(() => {
+        if (!onExpensesChange) return;
+        const { total, receiptTotal } = sumSpese(items);
+        onExpensesChange(total, receiptTotal);
+      }, [items, onExpensesChange]);
 
       const columnDefs = useMemo<DatagridColDef<SpeseGridRow>[]>(() => {
         const defs: DatagridColDef<SpeseGridRow>[] = [];

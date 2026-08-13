@@ -430,3 +430,64 @@ describe("SpeseDataGrid — colonna Note", () => {
     expect(editable({ data: { pagamentoId: 6, isPagamentoFornitore: true, fatturaId: null } })).toBe(true);
   });
 });
+
+describe("SpeseDataGrid — totali riportati al riepilogo", () => {
+  const giornoConSpese = [
+    { description: "Pagamento Rossi - DDT 12", amount: 100, isPagamentoFornitore: true },
+    { description: "GIORNALE", amount: 3.2 },
+    { description: "Cancelleria", amount: 6.8 },
+  ];
+
+  it("cambiando giorno ricalcola i totali senza attendere un nuovo onGridReady", () => {
+    const onExpensesChange = vi.fn();
+    const { rerender } = render(
+      <SpeseDataGrid
+        initialExpenses={giornoConSpese}
+        isLocked={false}
+        date="2026-05-01"
+        onExpensesChange={onExpensesChange}
+      />
+    );
+
+    // totale 110, di cui 10 non-fornitore ("spese ecc")
+    expect(onExpensesChange).toHaveBeenLastCalledWith(110, 10);
+
+    // Tornando su un giorno già visitato Apollo risponde dalla cache: il parent non
+    // passa dallo stato di caricamento e la griglia non si rimonta.
+    onExpensesChange.mockClear();
+    rerender(
+      <SpeseDataGrid
+        initialExpenses={[{ description: "GIORNALE", amount: 5 }]}
+        isLocked={false}
+        date="2026-05-02"
+        onExpensesChange={onExpensesChange}
+      />
+    );
+
+    expect(onExpensesChange).toHaveBeenLastCalledWith(5, 5);
+  });
+
+  it("su un giorno senza spese azzera i totali invece di lasciare quelli precedenti", () => {
+    const onExpensesChange = vi.fn();
+    const { rerender } = render(
+      <SpeseDataGrid
+        initialExpenses={giornoConSpese}
+        isLocked={false}
+        date="2026-05-01"
+        onExpensesChange={onExpensesChange}
+      />
+    );
+    onExpensesChange.mockClear();
+
+    rerender(
+      <SpeseDataGrid
+        initialExpenses={[]}
+        isLocked={false}
+        date="2026-05-03"
+        onExpensesChange={onExpensesChange}
+      />
+    );
+
+    expect(onExpensesChange).toHaveBeenLastCalledWith(0, 0);
+  });
+});

@@ -1,4 +1,4 @@
-import { useMemo, forwardRef, useCallback, memo } from "react";
+import { useMemo, forwardRef, useCallback, useEffect, memo } from "react";
 import { Box, Typography } from "@mui/material";
 import Datagrid from "../../common/datagrid/Datagrid";
 import { DatagridColDef, DatagridCellValueChangedEvent, DatagridData } from "../../common/datagrid/@types/Datagrid";
@@ -11,6 +11,8 @@ interface IncomesDataGridProps {
   onCellChange?: () => void;
   onIncomesChange?: (incomes: IncassiGiornalieri[]) => void;
 }
+
+const toIncassi = (rows: Income[]): IncassiGiornalieri[] => rows.map((row) => ({ tipo: row.type, importo: row.amount }));
 
 const IncomesDataGrid = memo(
   forwardRef<GridReadyEvent<DatagridData<Income>>, IncomesDataGridProps>(({ initialIncomes, isLocked, onCellChange, onIncomesChange }, ref) => {
@@ -50,16 +52,24 @@ const IncomesDataGrid = memo(
     const reportIncomes = useCallback(
       (api: GridReadyEvent<DatagridData<Income>>["api"]) => {
         if (!onIncomesChange) return;
-        const entries: IncassiGiornalieri[] = [];
+        const entries: Income[] = [];
         api.forEachNode((node) => {
           if (node.data) {
-            entries.push({ tipo: node.data.type, importo: node.data.amount });
+            entries.push(node.data);
           }
         });
-        onIncomesChange(entries);
+        onIncomesChange(toIncassi(entries));
       },
       [onIncomesChange]
     );
+
+    // Cambiando giorno la griglia NON si rimonta (Apollo serve dalla cache quando si
+    // torna su un giorno già visitato, quindi il parent non passa dallo stato di
+    // caricamento): senza questo effetto onGridReady non riparte e il riepilogo
+    // resterebbe fermo sugli incassi del giorno precedente.
+    useEffect(() => {
+      onIncomesChange?.(toIncassi(items));
+    }, [items, onIncomesChange]);
 
     const handleCellValueChanged = useCallback(
       (event: DatagridCellValueChangedEvent<Income>) => {
