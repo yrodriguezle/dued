@@ -19,6 +19,7 @@ public class VenditaType : ObjectGraphType<Vendita>
         Field("importoIva", x => x.ImportoIva);
         Field("note", x => x.Note, nullable: true);
         Field("dataOra", x => x.DataOra);
+        Field("metodoPagamento", x => x.MetodoPagamento);
         Field("createdAt", x => x.CreatedAt, type: typeof(DateTimeGraphType));
         Field("updatedAt", x => x.UpdatedAt, type: typeof(DateTimeGraphType));
 

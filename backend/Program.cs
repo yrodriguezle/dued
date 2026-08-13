@@ -353,6 +353,10 @@ using (IServiceScope scope = app.Services.CreateScope())
     if (seedOnStartup)
     {
         await SeedMenus.Initialize(services);
+        // Dopo SeedMenus: la voce si aggancia al menu padre "Cassa" che quel seed crea, e
+        // senza padre non fa nulla — è idempotente e riprova al prossimo avvio.
+        await SeedMenusProdotti.Initialize(services);
+        await SeedMenusVendita.Initialize(services);
         // Dopo SeedMenus: la sezione "Sito" riusa i ruoli amministrativi che quel seed
         // ha già creato/aggiornato, e si aggancia in coda alle voci esistenti (Posizione 9).
         await SeedMenusSito.Initialize(services);
@@ -363,6 +367,15 @@ using (IServiceScope scope = app.Services.CreateScope())
         await SeedCashDenominations.Initialize(services);
         await SeedBusinessSettings.Initialize(services);
     }
+
+    // Caricamento una-tantum del listino 2026 dal foglio Excel: OFF per default,
+    // si abilita con SEED_LISTINO_2026=dryrun|1. Salta i codici già presenti e non
+    // modifica mai una riga esistente — i prodotti non si possono eliminare.
+    await SeedProdottiListino.Initialize(services);
+
+    // Porta in vetrina il listino appena caricato: OFF per default, si abilita con
+    // SEED_VETRINA_LISTINO=dryrun|1. Tocca solo i prodotti mai curati a mano.
+    await SeedVetrinaListino.Initialize(services);
 
     // Import una-tantum dello storico chiusure 2026 dal foglio Excel: OFF per default,
     // si abilita con SEED_REGISTRI_STORICI=dryrun|1. Salta le date già presenti.
