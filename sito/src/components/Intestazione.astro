@@ -35,9 +35,25 @@ const qui = Astro.url.pathname;
 const telefono = sito?.contatti.telefono?.replace(/[^\d+]/g, '') || null;
 ---
 
-<header
-  class="border-bordo bg-sfondo/85 sticky top-0 z-50 border-b backdrop-blur-md"
->
+{/*
+  ⚠️ Fondo OPACO, non `bg-sfondo/85` con la sfocatura. Due ragioni, e la seconda l'ha
+     trovata la misura:
+
+     1. il mockup di riferimento («2D Gusto — Sito») ha l'intestazione opaca. È la stesura
+        precedente, quella della sola home, ad averla translucida — e dove i due divergono
+        vince il riferimento;
+     2. sotto un'intestazione translucida il contrasto del testo **dipende da cosa ci scorre
+        sotto**, cioè non è una proprietà verificabile una volta per tutte. Con una foto
+        chiara alle spalle, «Aperto · fino alle 20:00» in grigio scende sotto soglia per
+        qualche centinaio di pixel di scorrimento e poi risale — un difetto che non si
+        riproduce fermando la pagina.
+
+  ⚠️ E il misuratore di contrasto non sa leggere `oklab()`: Tailwind rende `bg-sfondo/85`
+     come `color-mix(in oklab, …)`, e lo script — che estrae tre numeri da una stringa —
+     leggeva `0.968072 0.00123 0.0073` come se fossero componenti RGB. Il risultato era un
+     3.72 identico su ogni pagina: un numero sbagliato che sembrava un difetto vero.
+*/}
+<header class="border-bordo bg-sfondo sticky top-0 z-50 border-b">
   <div class="mx-auto flex max-w-6xl items-center gap-4 px-5 py-3 sm:px-8">
     <a href="/" class="shrink-0" aria-label={`${sito?.insegna ?? '2 D Gusto'} — home`}>
       <Logo classe="w-32 sm:w-36" etichetta={null} />

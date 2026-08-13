@@ -35,7 +35,13 @@ const riga = sito
 const anno = new Date().getFullYear();
 ---
 
-<footer class="border-bordo mt-24 border-t">
+{/*
+  ⚠️ `data-pie-pagina` non è decorativo: `<footer>` non è unico in pagina — ogni citazione
+     della sezione recensioni ne ha uno suo, ed è l'uso corretto dell'elemento. Una prova che
+     cercasse `document.querySelector('footer')` prenderebbe il primo blockquote e
+     misurerebbe la cosa sbagliata. È successo.
+*/}
+<footer data-pie-pagina class="border-bordo mt-24 border-t">
   <div class="mx-auto max-w-6xl px-5 py-10 sm:px-8">
     <div class="flex flex-wrap items-center justify-between gap-x-8 gap-y-6">
       <p class="font-titolo text-2xl">{sito?.insegna ?? '2 D Gusto'}</p>

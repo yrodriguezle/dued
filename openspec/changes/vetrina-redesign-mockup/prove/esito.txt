@@ -1,0 +1,76 @@
+
+━━ 1 — dieci hard reload per combinazione, cache off e rete lenta ━━
+  ok   stato «auto»: 10 reload × 8 campioni — lampi: 0 (registri visti: —, giorno)
+  ok   stato «giorno»: 10 reload × 8 campioni — lampi: 0 (registri visti: —, giorno)
+  ok   stato «sera»: 10 reload × 8 campioni — lampi: 0 (registri visti: —, sera)
+
+━━ 2 — contrasto sulle coppie testo/sfondo reali, 5 pagine × 2 registri × 2 larghezze ━━
+  ok   largo     /           giorno  coppie sotto soglia = 0
+  ok   largo     /           giorno  testi nell'arancio di marca = 0
+  ok   largo     /           sera    coppie sotto soglia = 0
+  ok   largo     /menu       giorno  coppie sotto soglia = 0
+  ok   largo     /menu       giorno  testi nell'arancio di marca = 0
+  ok   largo     /menu       sera    coppie sotto soglia = 0
+  ok   largo     /aperitivo  giorno  coppie sotto soglia = 0
+  ok   largo     /aperitivo  giorno  testi nell'arancio di marca = 0
+  ok   largo     /aperitivo  sera    coppie sotto soglia = 0
+  ok   largo     /locale     giorno  coppie sotto soglia = 0
+  ok   largo     /locale     giorno  testi nell'arancio di marca = 0
+  ok   largo     /locale     sera    coppie sotto soglia = 0
+  ok   largo     /contatti   giorno  coppie sotto soglia = 0
+  ok   largo     /contatti   giorno  testi nell'arancio di marca = 0
+  ok   largo     /contatti   sera    coppie sotto soglia = 0
+  ok   telefono  /           giorno  coppie sotto soglia = 0
+  ok   telefono  /           giorno  testi nell'arancio di marca = 0
+  ok   telefono  /           sera    coppie sotto soglia = 0
+  ok   telefono  /menu       giorno  coppie sotto soglia = 0
+  ok   telefono  /menu       giorno  testi nell'arancio di marca = 0
+  ok   telefono  /menu       sera    coppie sotto soglia = 0
+  ok   telefono  /aperitivo  giorno  coppie sotto soglia = 0
+  ok   telefono  /aperitivo  giorno  testi nell'arancio di marca = 0
+  ok   telefono  /aperitivo  sera    coppie sotto soglia = 0
+  ok   telefono  /locale     giorno  coppie sotto soglia = 0
+  ok   telefono  /locale     giorno  testi nell'arancio di marca = 0
+  ok   telefono  /locale     sera    coppie sotto soglia = 0
+  ok   telefono  /contatti   giorno  coppie sotto soglia = 0
+  ok   telefono  /contatti   giorno  testi nell'arancio di marca = 0
+  ok   telefono  /contatti   sera    coppie sotto soglia = 0
+
+━━ 3 — la comparsa allo scorrimento, e le schermate ━━
+  ok   /           giorno  sezioni rimaste invisibili dopo lo scorrimento = 0
+  ok   /           sera    sezioni rimaste invisibili dopo lo scorrimento = 0
+  ok   /menu       giorno  sezioni rimaste invisibili dopo lo scorrimento = 0
+  ok   /menu       sera    sezioni rimaste invisibili dopo lo scorrimento = 0
+  ok   /aperitivo  giorno  sezioni rimaste invisibili dopo lo scorrimento = 0
+  ok   /aperitivo  sera    sezioni rimaste invisibili dopo lo scorrimento = 0
+  ok   /locale     giorno  sezioni rimaste invisibili dopo lo scorrimento = 0
+  ok   /locale     sera    sezioni rimaste invisibili dopo lo scorrimento = 0
+  ok   /contatti   giorno  sezioni rimaste invisibili dopo lo scorrimento = 0
+  ok   /contatti   sera    sezioni rimaste invisibili dopo lo scorrimento = 0
+  dieci schermate salvate in C:/Users/yalian/Projects/dued/openspec/changes/vetrina-redesign-mockup/prove/
+
+━━ 4 — la barra fissa del telefono non copre il piè di pagina ━━
+  ok   l'ultima riga del piè di pagina («© 2026») sta sopra la barra fissa
+
+━━ 5 — il fuso del visitatore non decide il registro ━━
+  ok   fuso Europe/Rome            ora locale 09:58  →  registro giorno (atteso giorno, a Roma sono le 09:58)
+  ok   fuso America/Los_Angeles    ora locale 00:58  →  registro giorno (atteso giorno, a Roma sono le 09:58)
+  ok   fuso Asia/Tokyo             ora locale 16:58  →  registro giorno (atteso giorno, a Roma sono le 09:58)
+  ok   fuso Pacific/Kiritimati     ora locale 21:58  →  registro giorno (atteso giorno, a Roma sono le 09:58)
+
+━━ 6 — tre stati, tre reload, e una sola icona visibile ━━
+  ok   clic 1 → «giorno»: localStorage=giorno, data-tema=giorno, data-scelta=giorno, etichetta=«Registro giorno», icone visibili=[giorno]
+  ok   clic 2 → «sera»: localStorage=sera, data-tema=sera, data-scelta=sera, etichetta=«Registro sera», icone visibili=[sera]
+  ok   clic 3 → «auto»: localStorage=auto, data-tema=giorno, data-scelta=auto, etichetta=«Registro automatico», icone visibili=[auto]
+
+━━ 7 — nessun → come carattere ━━
+  ok   /           frecce come carattere = 0
+  ok   /menu       frecce come carattere = 0
+  ok   /aperitivo  frecce come carattere = 0
+  ok   /locale     frecce come carattere = 0
+  ok   /contatti   frecce come carattere = 0
+
+━━ 8 — i caratteri sono nostri: zero richieste a Google ━━
+  ok   host dei caratteri richiesti: 127.0.0.1:4399 — esterni: 0
+
+═══ VERIFICHE FALLITE: 0 ═══

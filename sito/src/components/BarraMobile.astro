@@ -33,8 +33,11 @@ const azioni = [
 ].filter(Boolean) as { href: string; etichetta: string; icona: string; esterno: boolean }[];
 ---
 
+{/* Opaca, come l'intestazione e per la stessa ragione: sotto una barra translucida il
+    contrasto delle tre etichette dipende da cosa ci scorre sotto — cioè non è una proprietà
+    verificabile una volta per tutte. */}
 <nav
-  class="border-bordo bg-sfondo/95 fixed inset-x-0 bottom-0 z-50 border-t backdrop-blur-md lg:hidden"
+  class="border-bordo bg-sfondo fixed inset-x-0 bottom-0 z-50 border-t lg:hidden"
   style="padding-bottom:env(safe-area-inset-bottom)"
   aria-label="Azioni rapide"
 >
