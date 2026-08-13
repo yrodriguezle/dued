@@ -12,6 +12,7 @@ interface UseInitializeValuesProps {
 
 function useInitializeValues({ skipInitialize, utenteId, currentDate }: UseInitializeValuesProps) {
   const initialized = useRef(false);
+  const cancelInitialFocus = useRef<(() => void) | null>(null);
 
   const getDefaultInitialValues = useCallback(() => {
     const initialValues: FormikRegistroCassaValues = {
@@ -30,7 +31,8 @@ function useInitializeValues({ skipInitialize, utenteId, currentDate }: UseIniti
   const handleInitializeValues = useCallback(async (values?: FormikRegistroCassaValues) => {
     setInitialValues((prev) => mergeWithDefaults(values, prev));
     if (!values) {
-      setInitialFocus();
+      cancelInitialFocus.current?.();
+      cancelInitialFocus.current = setInitialFocus();
     }
 
     return true;
@@ -42,6 +44,10 @@ function useInitializeValues({ skipInitialize, utenteId, currentDate }: UseIniti
       initialized.current = true;
     }
   }, [handleInitializeValues, skipInitialize]);
+
+  // Il focus è differito: senza questo annullamento il timer scatta a componente
+  // già smontato (nei test, a jsdom smontato: "document is not defined").
+  useEffect(() => () => cancelInitialFocus.current?.(), []);
 
   return {
     initialValues,
