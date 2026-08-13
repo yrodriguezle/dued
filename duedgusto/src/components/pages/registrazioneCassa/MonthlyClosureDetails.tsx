@@ -339,8 +339,17 @@ const MonthlyClosureDetails = () => {
 
     try {
       // Le spese/pagamenti sono già persistiti per-riga: qui basta chiudere il mese.
-      await chiudiChiusura({ variables: { chiusuraId: chiusuraMensile.chiusuraId } });
+      const { data } = await chiudiChiusura({ variables: { chiusuraId: chiusuraMensile.chiusuraId } });
       showToast({ type: "success", position: "bottom-right", message: "Mese chiuso con successo", autoClose: 2000, toastId: "close-success" });
+
+      // Avvisi non bloccanti: il mese è già chiuso, ma qui emergono gli importi che la chiusura
+      // non ha contato (tipicamente pagamenti senza registro cassa). Restano finché non si chiudono:
+      // sono l'unico segnale che qualcosa del mese è rimasto fuori dai totali.
+      const avvisi = data?.chiusureMensili.chiudiChiusuraMensile.avvisiCompletezza ?? [];
+      avvisi.forEach((avviso, index) =>
+        showToast({ type: "warn", position: "bottom-right", message: avviso, autoClose: false, toastId: `close-warning-${index}` })
+      );
+
       refetch();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Errore nella chiusura del mese";

@@ -584,4 +584,128 @@ public class ChiusuraMensileServiceTests : IDisposable
     }
 
     #endregion
+
+    #region Guard completezza non bloccante — pagamenti fornitori fuori chiusura
+
+    /// <summary>
+    /// Un pagamento fornitore senza <c>RegistroCassaId</c> non entra in nessuna chiusura, perché
+    /// il totale del mese somma <c>SpeseFornitori</c> dei registri inclusi e non guarda mai
+    /// <c>DataPagamento</c>. Prima questo caso spariva in silenzio.
+    /// </summary>
+    [Fact]
+    public async Task Warnings_PagamentoOrfanoNelMese_VieneSegnalato()
+    {
+        var utente = SeedUtente();
+        SeedRegistroCassa(utente, new DateTime(2026, 7, 30), "CLOSED", totaleVendite: 500m);
+        var chiusura = await _service.CreaChiusuraAsync(2026, 7);
+
+        _dbContext.PagamentiFornitori.Add(new PagamentoFornitore
+        {
+            DataPagamento = new DateTime(2026, 7, 31),
+            Importo = 122m,
+            RegistroCassaId = null,
+        });
+        await _dbContext.SaveChangesAsync();
+
+        var warnings = await _service.ValidaCompletezzaChiusuraWarningsAsync(chiusura.ChiusuraId);
+
+        warnings.Should().ContainSingle(w => w.Contains("non collegato/i ad alcun registro"));
+        warnings.Should().ContainSingle(w => w.Contains("31/07/2026") && w.Contains("122"));
+    }
+
+    [Fact]
+    public async Task Warnings_PagamentoCollegatoAUnRegistroIncluso_NonSegnalaNulla()
+    {
+        var utente = SeedUtente();
+        var registro = SeedRegistroCassa(utente, new DateTime(2026, 7, 31), "CLOSED", speseFornitori: 122m);
+        var chiusura = await _service.CreaChiusuraAsync(2026, 7);
+
+        _dbContext.PagamentiFornitori.Add(new PagamentoFornitore
+        {
+            DataPagamento = new DateTime(2026, 7, 31),
+            Importo = 122m,
+            RegistroCassaId = registro.Id,
+        });
+        await _dbContext.SaveChangesAsync();
+
+        var warnings = await _service.ValidaCompletezzaChiusuraWarningsAsync(chiusura.ChiusuraId);
+
+        warnings.Should().BeEmpty();
+    }
+
+    /// <summary>
+    /// Pagamento datato nel mese ma agganciato al registro di un altro mese: l'importo viene
+    /// contato altrove, quindi la chiusura corrente deve dirlo invece di tacere.
+    /// </summary>
+    [Fact]
+    public async Task Warnings_PagamentoSuRegistroDiUnAltroMese_SegnalaRegistroEstraneo()
+    {
+        var utente = SeedUtente();
+        SeedRegistroCassa(utente, new DateTime(2026, 7, 30), "CLOSED", totaleVendite: 500m);
+        var registroAgosto = SeedRegistroCassa(utente, new DateTime(2026, 8, 1), "CLOSED", speseFornitori: 122m);
+        var chiusura = await _service.CreaChiusuraAsync(2026, 7);
+
+        _dbContext.PagamentiFornitori.Add(new PagamentoFornitore
+        {
+            DataPagamento = new DateTime(2026, 7, 31),
+            Importo = 122m,
+            RegistroCassaId = registroAgosto.Id,
+        });
+        await _dbContext.SaveChangesAsync();
+
+        var warnings = await _service.ValidaCompletezzaChiusuraWarningsAsync(chiusura.ChiusuraId);
+
+        warnings.Should().ContainSingle(w => w.Contains("registro estraneo alla chiusura"));
+    }
+
+    /// <summary>
+    /// Un registro linkato ma con <c>Incluso = false</c> è un'esclusione deliberata: le sue spese
+    /// restano fuori senza generare rumore, altrimenti l'avviso perde credibilità. Oggi nessuna
+    /// mutation abbassa il flag (lo si forza qui), ma il modello lo prevede e la chiusura lo onora.
+    /// </summary>
+    [Fact]
+    public async Task Warnings_PagamentoSuRegistroEsclusoDallaChiusura_NonSegnalaNulla()
+    {
+        var utente = SeedUtente();
+        var registro = SeedRegistroCassa(utente, new DateTime(2026, 7, 31), "CLOSED", speseFornitori: 122m);
+        var chiusura = await _service.CreaChiusuraAsync(2026, 7);
+
+        _dbContext.PagamentiFornitori.Add(new PagamentoFornitore
+        {
+            DataPagamento = new DateTime(2026, 7, 31),
+            Importo = 122m,
+            RegistroCassaId = registro.Id,
+        });
+
+        RegistroCassaMensile link = await _dbContext.RegistriCassaMensili
+            .FirstAsync(r => r.ChiusuraId == chiusura.ChiusuraId && r.RegistroId == registro.Id);
+        link.Incluso = false;
+        await _dbContext.SaveChangesAsync();
+
+        var warnings = await _service.ValidaCompletezzaChiusuraWarningsAsync(chiusura.ChiusuraId);
+
+        warnings.Should().NotContain(w => w.Contains("pagamento/i fornitore"));
+    }
+
+    [Fact]
+    public async Task Warnings_PagamentoOrfanoDiUnAltroMese_NonSegnalaNulla()
+    {
+        var utente = SeedUtente();
+        SeedRegistroCassa(utente, new DateTime(2026, 7, 30), "CLOSED", totaleVendite: 500m);
+        var chiusura = await _service.CreaChiusuraAsync(2026, 7);
+
+        _dbContext.PagamentiFornitori.Add(new PagamentoFornitore
+        {
+            DataPagamento = new DateTime(2026, 8, 1),
+            Importo = 122m,
+            RegistroCassaId = null,
+        });
+        await _dbContext.SaveChangesAsync();
+
+        var warnings = await _service.ValidaCompletezzaChiusuraWarningsAsync(chiusura.ChiusuraId);
+
+        warnings.Should().NotContain(w => w.Contains("pagamento/i fornitore"));
+    }
+
+    #endregion
 }
