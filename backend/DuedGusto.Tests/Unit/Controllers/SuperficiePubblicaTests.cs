@@ -161,7 +161,7 @@ public class SuperficiePubblicaTests
         {
             typeof(SitoPubblicoDto),
             [
-                "Insegna", "Indirizzo", "Geo", "Contatti", "Social", "Orari", "Seo",
+                "Insegna", "Indirizzo", "Geo", "Contatti", "Social", "Orari", "Chiusure", "Seo",
                 "OraInizioTemaSera", "Testi", "Reputazione", "Recensioni",
             ]
         },
@@ -170,6 +170,10 @@ public class SuperficiePubblicaTests
         { typeof(ContattiPubbliciDto), ["Telefono", "Email"] },
         { typeof(SocialPubbliciDto), ["Instagram", "Facebook"] },
         { typeof(OrariPubbliciDto), ["Apertura", "Chiusura", "GiorniOperativi", "Timezone"] },
+        // ⚠️ Tre campi e nessun identificativo: `GiornoId` e `SettingsId` sono chiavi della cassa
+        //    e non dicono niente a un visitatore. `Ricorrente` nemmeno — la ricorrenza è già stata
+        //    risolta dal server, e ciò che esce sono date vere.
+        { typeof(ChiusuraPubblicaDto), ["Data", "Descrizione", "Motivo"] },
         { typeof(SeoPubblicaDto), ["TitoloDefault", "DescrizioneDefault", "ImmagineOg"] },
         { typeof(GalleriaPubblicaDto), ["Immagini"] },
 

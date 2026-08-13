@@ -5,11 +5,15 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { eSera, eAperto, oraDiRoma, giornoDiRoma } from '../src/lib/tema.ts';
+import { eSera, eAperto, oraDiRoma, giornoDiRoma, dataDiRoma } from '../src/lib/tema.ts';
 
 const SERA = '18:00';
 const APERTURA = '07:00';
 const CHIUSURA = '20:00';
+
+/** Un giorno qualunque, e nessuna chiusura: i due parametri che quasi ogni caso non esercita. */
+const OGGI = '2026-08-13';
+const APERTI = [];
 
 test('🔴 le due di notte sono registro serale', () => {
   // È il caso che la sola prima metà della formula sbaglia: `"01:00" >= "18:00"` è FALSO,
@@ -63,24 +67,57 @@ test('il giorno ha lunedì a zero, come l\'array del backend', () => {
 test('aperto solo dentro la fascia oraria', () => {
   const lun = 0;
   const settimana = [true, true, true, true, true, true, false];
-  assert.equal(eAperto('06:59', lun, APERTURA, CHIUSURA, settimana), false);
-  assert.equal(eAperto('07:00', lun, APERTURA, CHIUSURA, settimana), true);
-  assert.equal(eAperto('19:59', lun, APERTURA, CHIUSURA, settimana), true);
-  assert.equal(eAperto('20:00', lun, APERTURA, CHIUSURA, settimana), false, 'alla chiusura è chiuso');
+  assert.equal(eAperto('06:59', lun, APERTURA, CHIUSURA, settimana, OGGI, APERTI), false);
+  assert.equal(eAperto('07:00', lun, APERTURA, CHIUSURA, settimana, OGGI, APERTI), true);
+  assert.equal(eAperto('19:59', lun, APERTURA, CHIUSURA, settimana, OGGI, APERTI), true);
+  assert.equal(
+    eAperto('20:00', lun, APERTURA, CHIUSURA, settimana, OGGI, APERTI),
+    false,
+    'alla chiusura è chiuso'
+  );
 });
 
 test('un giorno non operativo è chiuso a qualunque ora', () => {
   const dom = 6;
   const settimana = [true, true, true, true, true, true, false];
-  assert.equal(eAperto('10:00', dom, APERTURA, CHIUSURA, settimana), false);
+  assert.equal(eAperto('10:00', dom, APERTURA, CHIUSURA, settimana, OGGI, APERTI), false);
 });
 
 test('⚠️ giorniOperativi nullo: ci si limita al confronto orario', () => {
   // Il backend lo espone `null` quando il JSON persistito non è leggibile come sette
   // booleani: omettere gli orari settimanali è meglio che dichiararne di sbagliati. Il
   // badge non deve indovinare i giorni, e nemmeno sollevare.
-  assert.equal(eAperto('10:00', 6, APERTURA, CHIUSURA, null), true);
-  assert.equal(eAperto('22:00', 6, APERTURA, CHIUSURA, null), false);
+  assert.equal(eAperto('10:00', 6, APERTURA, CHIUSURA, null, OGGI, APERTI), true);
+  assert.equal(eAperto('22:00', 6, APERTURA, CHIUSURA, null, OGGI, APERTI), false);
+});
+
+test('🔴 un giorno di ferie è chiuso, anche se è operativo e siamo dentro la fascia', () => {
+  // ─────────────────────────────────────────────────────────────────────────────────────
+  // È IL BUG. Il 13 agosto 2026 il bar era in ferie dal 10 al 22, registrate in cassa: un
+  // giovedì (indice 3, operativo) alle dieci del mattino, dentro 07:00–20:00. La pastiglia
+  // si accendeva verde e diceva «Aperto · fino alle 20:00».
+  //
+  // Le tre condizioni sono indipendenti e nessuna implica le altre: questo test fallisce da
+  // solo se qualcuno togliesse la prima riga di `eAperto`.
+  // ─────────────────────────────────────────────────────────────────────────────────────
+  const gio = 3;
+  const settimana = [true, true, true, true, true, true, false];
+  const ferie = ['2026-08-13', '2026-08-14'];
+
+  assert.equal(eAperto('10:00', gio, APERTURA, CHIUSURA, settimana, '2026-08-13', ferie), false);
+  assert.equal(
+    eAperto('10:00', gio, APERTURA, CHIUSURA, settimana, '2026-08-20', ferie),
+    true,
+    'un giorno FUORI dalle ferie resta aperto: la chiusura è per data, non per periodo dedotto'
+  );
+});
+
+test('la data di Roma è quella di Roma, e nella forma dell\'API', () => {
+  // Le 23:30 UTC del 12 agosto sono già l'1:30 del 13 a Roma: chi guarda da Londra deve
+  // vedere il giorno di Thiene, altrimenti il confronto con le chiusure scivola di uno.
+  assert.equal(dataDiRoma(new Date('2026-08-12T23:30:00Z')), '2026-08-13');
+  assert.equal(dataDiRoma(new Date('2026-01-05T09:00:00Z')), '2026-01-05');
+  assert.match(dataDiRoma(new Date('2026-08-12T15:30:00Z')), /^\d{4}-\d{2}-\d{2}$/);
 });
 
 test('🔴 le funzioni serializzate restano codice funzionante', () => {
@@ -93,9 +130,14 @@ test('🔴 le funzioni serializzate restano codice funzionante', () => {
     const eAperto = ${eAperto.toString()};
     const oraDiRoma = ${oraDiRoma.toString()};
     const giornoDiRoma = ${giornoDiRoma.toString()};
-    return [eSera('01:00','18:00','07:00'), eAperto('10:00',0,'07:00','20:00',null),
-            oraDiRoma(new Date('2026-08-12T15:30:00Z')), giornoDiRoma(new Date('2026-08-10T12:00:00Z'))];
+    const dataDiRoma = ${dataDiRoma.toString()};
+    return [eSera('01:00','18:00','07:00'),
+            eAperto('10:00',0,'07:00','20:00',null,'2026-08-13',[]),
+            eAperto('10:00',3,'07:00','20:00',null,'2026-08-13',['2026-08-13']),
+            oraDiRoma(new Date('2026-08-12T15:30:00Z')),
+            giornoDiRoma(new Date('2026-08-10T12:00:00Z')),
+            dataDiRoma(new Date('2026-08-12T23:30:00Z'))];
   `;
   const risultato = new Function(sorgente)();
-  assert.deepEqual(risultato, [true, true, '17:30', 0]);
+  assert.deepEqual(risultato, [true, true, false, '17:30', 0, '2026-08-13']);
 });

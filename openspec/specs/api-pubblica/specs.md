@@ -66,6 +66,9 @@ GET /api/public/site
   "orari":     { "apertura": "07:00", "chiusura": "21:00",
                  "giorniOperativi": [true,true,true,true,true,true,false],   // null se illeggibile
                  "timezone": "Europe/Rome" },                     // ← da BusinessSettings
+  "chiusure":  [ { "data": "2026-08-13", "descrizione": "Ferie", "motivo": "FERIE" } ],
+                                                                  // ← da GiorniNonLavorativi;
+                                                                  //   una voce per DATA, [] se non ce ne sono
   "seo":       { "titoloDefault": "…", "descrizioneDefault": "…",
                  "immagineOg": { …immagine } },                   // null se non impostata
   "oraInizioTemaSera": "18:00"
@@ -639,6 +642,57 @@ dati. In particolare:
   nullo;
 - se la geolocalizzazione non è impostata, l'oggetto corrispondente MUST essere `null` e MUST NOT
   contenere valori inventati come zero.
+
+### Requirement: Le eccezioni all'orario settimanale fanno parte del contratto pubblico
+
+L'orario settimanale da solo NON è l'orario del locale. Le eccezioni — ferie, festività,
+chiusure straordinarie — vivono nel calendario che la cassa già usa per non pretendere il
+registro dei giorni chiusi, e `/api/public/site` MUST esporle: senza, il sito non ha **alcun**
+modo di sapere che il locale è chiuso, e dichiara aperto un giorno di ferie senza un errore da
+nessuna parte.
+
+> Il guasto è documentato e non ipotetico: il 13 agosto 2026, con il bar in ferie dal 10 al 22
+> registrate in cassa, la vetrina scriveva «Giovedì 07:00 — 20:00» e accendeva «Aperto».
+> L'orario settimanale arrivava vivo e corretto — mancava il campo in cui l'eccezione potesse
+> viaggiare.
+
+La rotta MUST esporre **date già proiettate su un calendario**, una voce per data, in ordine
+crescente, da oggi in avanti e per un orizzonte fisso. Il consumatore MUST NOT dover conoscere
+il concetto di ricorrenza: la regola con cui una riga ricorrente diventa una data MUST essere la
+**stessa** che usa la chiusura mensile, e MUST vivere in un solo punto del sistema. Due copie di
+quella condizione sono due lati che devono concordare, e il giorno in cui divergessero la cassa
+non pretenderebbe il registro del 25 dicembre mentre il sito direbbe «aperto».
+
+Il giorno «oggi» MUST essere calcolato nel **fuso del locale** e non in quello del processo.
+
+La rotta MUST NOT esporre gli identificativi del calendario (chiave del giorno, chiave delle
+impostazioni) né il flag di ricorrenza, che è già stato risolto: ciò che esce sono una data, la
+descrizione scritta dall'amministratore e il codice del motivo.
+
+#### Scenario: Le ferie in corso arrivano al sito
+
+- GIVEN un calendario con le ferie registrate da oggi ai prossimi giorni
+- WHEN un client anonimo richiede `/api/public/site`
+- THEN la risposta elenca quelle date, una per giorno, con la descrizione scritta in cassa
+
+#### Scenario: Una chiusura passata non compare
+
+- GIVEN una chiusura registrata per ieri
+- WHEN un client anonimo richiede `/api/public/site`
+- THEN quella data non compare: annunciare una chiusura già finita è un'informazione falsa
+
+#### Scenario: Una festività ricorrente cade nell'anno corrente
+
+- GIVEN una festività registrata con un anno passato e il flag di ricorrenza
+- WHEN quella ricorrenza cade dentro l'orizzonte
+- THEN la risposta la riporta con la data **di quest'anno**
+
+#### Scenario: Nessuna chiusura è lo stato normale
+
+- GIVEN un calendario senza chiusure nell'orizzonte
+- WHEN un client anonimo richiede `/api/public/site`
+- THEN il campo è un elenco vuoto e MUST NOT essere `null`: «non ce ne sono» non deve avere due
+  forme
 
 #### Scenario: Nessuna riga di impostazioni
 

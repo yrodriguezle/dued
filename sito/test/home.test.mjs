@@ -130,6 +130,103 @@ test('🔴 lavagna vuota: la sezione non c\'è affatto', async () => {
   assert.ok(!/<div[^>]+data-tema="sera"/.test(html));
 });
 
+// ── Le chiusure ──────────────────────────────────────────────────────────────────────────
+//
+// 🔴 Il guasto che questi test chiudono: il 13 agosto 2026, con il bar in ferie dal 10 al 22
+//    registrate in cassa, la home scriveva «Giovedì 07:00 — 20:00» e la pastiglia si
+//    accendeva su «Aperto». L'orario settimanale arrivava vivo e corretto — il guasto era
+//    che le eccezioni a quell'orario non erano nel contratto pubblico.
+
+/** Rimette il payload dell'identità com'era, così i test successivi non lo ereditano. */
+async function conChiusure(chiusure) {
+  const originale = api.stato.risposte['/api/public/site'];
+  api.stato.risposte['/api/public/site'] = { ...originale, chiusure };
+  const html = await (await fetch(`${sito.base}/`)).text();
+  api.stato.risposte['/api/public/site'] = originale;
+  return html;
+}
+
+test('🔴 le ferie compaiono in home come un periodo, non come tredici righe', async () => {
+  const html = await conChiusure(
+    Array.from({ length: 13 }, (_, i) => ({
+      data: `2026-08-${String(10 + i).padStart(2, '0')}`,
+      descrizione: 'Ferie',
+      motivo: 'FERIE',
+    }))
+  );
+
+  const avvisi = [...html.matchAll(/data-periodo-chiuso="([^"]+)"/g)].map((m) => m[1]);
+  assert.deepEqual(avvisi, ['2026-08-10'], 'tredici giorni contigui sono UN avviso');
+  assert.match(html, /Ferie/);
+  assert.match(html, /dal 10 al 22 agosto/);
+});
+
+test('🔴 lo script riceve le date chiuse: è ciò che spegne «Aperto»', async () => {
+  // La pastiglia è orologio e vive nel browser, quindi qui non si può leggerne il testo. Si
+  // prova la cosa da cui dipende: che le date arrivino ai parametri dello script. Senza,
+  // `eAperto` non ha modo di sapere che oggi è un giorno di ferie.
+  const html = await conChiusure([
+    { data: '2026-08-13', descrizione: 'Ferie', motivo: 'FERIE' },
+  ]);
+
+  const parametri = JSON.parse(
+    html.match(/<script>([\s\S]*?)<\/script>/)[1].match(/const P = (\{.*?\});/)[1]
+  );
+  assert.deepEqual(parametri.chiusure, [{ data: '2026-08-13', descrizione: 'Ferie' }]);
+});
+
+test('⚠️ una descrizione lunga arriva alla pastiglia accorciata, non intera', async () => {
+  // La pastiglia sta accanto al selettore del tema e si accende dopo il primo paint: una
+  // descrizione lunga spingerebbe fuori l'intestazione nel momento peggiore.
+  const html = await conChiusure([
+    {
+      data: '2026-08-13',
+      descrizione: 'Chiusura straordinaria per lavori di ristrutturazione',
+      motivo: 'CHIUSURA_STRAORDINARIA',
+    },
+  ]);
+
+  const parametri = JSON.parse(
+    html.match(/<script>([\s\S]*?)<\/script>/)[1].match(/const P = (\{.*?\});/)[1]
+  );
+  assert.ok(parametri.chiusure[0].descrizione.length <= 22);
+  assert.match(parametri.chiusure[0].descrizione, /…$/);
+});
+
+test('🔴 i dati strutturati dichiarano le date chiuse, non solo la settimana', async () => {
+  // È la copia che i motori mostrano nella scheda del locale. Senza le eccezioni,
+  // `openingHoursSpecification` da sola dichiara il bar aperto ogni giovedì, ferie comprese.
+  const html = await conChiusure([
+    { data: '2026-08-13', descrizione: 'Ferie', motivo: 'FERIE' },
+    { data: '2026-08-14', descrizione: 'Ferie', motivo: 'FERIE' },
+  ]);
+
+  const dati = JSON.parse(
+    html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1]
+  );
+  assert.deepEqual(dati.specialOpeningHoursSpecification, [
+    {
+      '@type': 'OpeningHoursSpecification',
+      opens: '00:00',
+      closes: '00:00',
+      validFrom: '2026-08-13',
+      validThrough: '2026-08-14',
+    },
+  ]);
+});
+
+test('senza chiusure non c\'è nessuna fascia e nessuna eccezione nei dati strutturati', async () => {
+  // È lo stato di quasi tutto l'anno: una sezione senza il suo dato non si rende affatto.
+  const { html } = await home();
+
+  assert.ok(!html.includes('data-avviso-chiusura'), 'la fascia si rende con l\'elenco vuoto');
+  const dati = JSON.parse(
+    html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1]
+  );
+  assert.equal(dati.specialOpeningHoursSpecification, undefined);
+  assert.ok(Array.isArray(dati.openingHoursSpecification), 'la settimana ricorrente resta');
+});
+
 test('la home dichiara la cache come il menu', async () => {
   const { intestazioni } = await home();
   const direttive = intestazioni.get('cache-control').split(',').map((d) => d.trim());
