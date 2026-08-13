@@ -1,0 +1,99 @@
+{
+  "_LEGGERE_PRIMA": [
+    "🔴 QUESTE 39 VOCI VENGONO DAL MOCKUP, NON DAL LISTINO VERO DEL LOCALE.",
+    "Un mockup di design scrive prezzi plausibili perché la pagina abbia l'aria giusta: non",
+    "sono stati letti da una cassa né confermati da nessuno. Caricarli così com'è significa",
+    "pubblicare sul sito di un locale reale dei prezzi inventati.",
+    "",
+    "🔴 E NESSUNA MUTATION ELIMINA UN PRODOTTO: si può solo disattivarlo (attivo: false).",
+    "Un prodotto creato per sbaglio resta in anagrafica per sempre. Questo file esiste per",
+    "essere corretto PRIMA, non dopo.",
+    "",
+    "⚠️ aliquotaIva: 10 è la somministrazione al banco, ed è quella del solo prodotto vero",
+    "oggi in produzione (CAFFE-ESP). NON è una verifica: è una copia. Va confermata da chi",
+    "tiene la contabilità, prodotto per prodotto — il listino tocca la cassa, non solo il",
+    "sito, e un'aliquota sbagliata sbaglia gli scontrini, non le foto.",
+    "",
+    "⚠️ categoriaVetrina è il testo che compare come intestazione sul sito. `aperitivo` della",
+    "pagina dedicata mostra le categorie elencate in ImpostazioniVetrina.AperitivoCategorie:",
+    "con questo file sono «Cocktail» e «Aperitivo».",
+    "",
+    "COME SI USA: si corregge, si fa approvare, poi si carica — creando i prodotti dalla",
+    "cassa (mutateProdotto) e assegnando i campi di vetrina con mutateProdottoVetrina.",
+    "I due canali sono separati apposta: un upsert della cassa che portasse anche i campi",
+    "vetrina li azzererebbe in massa."
+  ],
+
+  "prodotti": [
+    { "codice": "CAF-ESPRESSO", "nome": "Caffè espresso", "prezzo": 1.2, "categoriaVetrina": "Caffetteria", "aliquotaIva": 10, "ordinamentoVetrina": 10, "consigliato": true },
+    { "codice": "CAF-CORRETTO", "nome": "Caffè corretto", "prezzo": 1.5, "categoriaVetrina": "Caffetteria", "aliquotaIva": 10, "ordinamentoVetrina": 11 },
+    { "codice": "CAF-DECA", "nome": "Caffè decaffeinato", "prezzo": 1.2, "categoriaVetrina": "Caffetteria", "aliquotaIva": 10, "ordinamentoVetrina": 12 },
+    { "codice": "CAF-AMERICANO", "nome": "Caffè americano", "prezzo": 1.3, "categoriaVetrina": "Caffetteria", "aliquotaIva": 10, "ordinamentoVetrina": 13 },
+    { "codice": "CAF-CAPPUCCINO", "nome": "Cappuccino", "prezzo": 1.6, "categoriaVetrina": "Caffetteria", "aliquotaIva": 10, "ordinamentoVetrina": 14 },
+    { "codice": "CAF-CAPPU-VEG", "nome": "Cappuccino soia o Zymil", "prezzo": 1.8, "categoriaVetrina": "Caffetteria", "aliquotaIva": 10, "ordinamentoVetrina": 15 },
+    { "codice": "CAF-MACCHIATONE", "nome": "Macchiatone", "prezzo": 1.4, "categoriaVetrina": "Caffetteria", "aliquotaIva": 10, "ordinamentoVetrina": 16 },
+    { "codice": "CAF-LATTE-MACC", "nome": "Latte macchiato", "prezzo": 2.0, "categoriaVetrina": "Caffetteria", "aliquotaIva": 10, "ordinamentoVetrina": 17 },
+    { "codice": "CAF-ORZO", "nome": "Orzo", "prezzo": 1.4, "categoriaVetrina": "Caffetteria", "aliquotaIva": 10, "ordinamentoVetrina": 18 },
+    { "codice": "CAF-GINSENG", "nome": "Ginseng", "prezzo": 1.5, "categoriaVetrina": "Caffetteria", "aliquotaIva": 10, "ordinamentoVetrina": 19 },
+    { "codice": "CAF-SHAKERATO", "nome": "Shakerato", "prezzo": 2.0, "categoriaVetrina": "Caffetteria", "aliquotaIva": 10, "ordinamentoVetrina": 20 },
+    { "codice": "CAF-CIOCCOLATA", "nome": "Cioccolata calda", "prezzo": 2.5, "categoriaVetrina": "Caffetteria", "aliquotaIva": 10, "ordinamentoVetrina": 21 },
+
+    { "codice": "COL-CROISSANT", "nome": "Croissant vuoto", "prezzo": 1.2, "categoriaVetrina": "Colazione", "aliquotaIva": 10, "ordinamentoVetrina": 30 },
+    { "codice": "COL-CROISS-FARC", "nome": "Croissant crema o albicocca", "prezzo": 1.4, "categoriaVetrina": "Colazione", "aliquotaIva": 10, "ordinamentoVetrina": 31 },
+    { "codice": "COL-FAGOTTINO", "nome": "Fagottino tre cioccolati", "prezzo": 1.5, "categoriaVetrina": "Colazione", "aliquotaIva": 10, "ordinamentoVetrina": 32 },
+    { "codice": "COL-KRAPFEN", "nome": "Krapfen", "prezzo": 1.5, "categoriaVetrina": "Colazione", "aliquotaIva": 10, "ordinamentoVetrina": 33 },
+    { "codice": "COL-SFOGLIATINA", "nome": "Sfogliatina della casa", "prezzo": 1.6, "categoriaVetrina": "Colazione", "aliquotaIva": 10, "ordinamentoVetrina": 34 },
+    { "codice": "COL-SPREMUTA", "nome": "Spremuta d'arancia", "prezzo": 3.0, "categoriaVetrina": "Colazione", "aliquotaIva": 10, "ordinamentoVetrina": 35 },
+
+    { "codice": "CUB-CONGRI", "nome": "Congrì con pollo", "prezzo": 9.0, "categoriaVetrina": "Cucina cubana", "aliquotaIva": 10, "ordinamentoVetrina": 40, "consigliato": true, "descrizioneVetrina": "Riso e fagioli neri, pollo, cipolla rossa, chips di platano." },
+    { "codice": "CUB-POLLO-PEP", "nome": "Pollo ai peperoni con riso", "prezzo": 9.5, "categoriaVetrina": "Cucina cubana", "aliquotaIva": 10, "ordinamentoVetrina": 41, "descrizioneVetrina": "Riso alla cubana, avocado e insalata di stagione." },
+    { "codice": "CUB-RISO-AVOC", "nome": "Riso alla cubana e avocado", "prezzo": 8.0, "categoriaVetrina": "Cucina cubana", "aliquotaIva": 10, "ordinamentoVetrina": 42 },
+    { "codice": "CUB-TAMALES", "nome": "Tamales", "prezzo": 7.0, "categoriaVetrina": "Cucina cubana", "aliquotaIva": 10, "ordinamentoVetrina": 43 },
+    { "codice": "CUB-PLATANO", "nome": "Chips di platano", "prezzo": 3.0, "categoriaVetrina": "Cucina cubana", "aliquotaIva": 10, "ordinamentoVetrina": 44 },
+    { "codice": "CUB-INSALATONA", "nome": "Insalatona di stagione", "prezzo": 7.5, "categoriaVetrina": "Cucina cubana", "aliquotaIva": 10, "ordinamentoVetrina": 45 },
+
+    { "codice": "PAN-CUBANO", "nome": "Panino cubano", "prezzo": 6.5, "categoriaVetrina": "Panini e tramezzini", "aliquotaIva": 10, "ordinamentoVetrina": 50, "consigliato": true, "descrizioneVetrina": "Pane croccante, maiale, chips di platano." },
+    { "codice": "PAN-BANCO", "nome": "Panino del banco", "prezzo": 5.0, "categoriaVetrina": "Panini e tramezzini", "aliquotaIva": 10, "ordinamentoVetrina": 51 },
+    { "codice": "PAN-TRAMEZZINO", "nome": "Tramezzino", "prezzo": 2.5, "categoriaVetrina": "Panini e tramezzini", "aliquotaIva": 10, "ordinamentoVetrina": 52 },
+    { "codice": "PAN-TOAST", "nome": "Toast", "prezzo": 3.0, "categoriaVetrina": "Panini e tramezzini", "aliquotaIva": 10, "ordinamentoVetrina": 53 },
+    { "codice": "PAN-PIADINA", "nome": "Piadina", "prezzo": 5.5, "categoriaVetrina": "Panini e tramezzini", "aliquotaIva": 10, "ordinamentoVetrina": 54 },
+
+    { "codice": "CKT-MOJITO", "nome": "Mojito", "prezzo": 7.0, "categoriaVetrina": "Cocktail", "aliquotaIva": 10, "ordinamentoVetrina": 60, "consigliato": true, "descrizioneVetrina": "Rum, lime, menta pestata a mano, zucchero di canna." },
+    { "codice": "CKT-CUBA-LIBRE", "nome": "Cuba libre", "prezzo": 6.5, "categoriaVetrina": "Cocktail", "aliquotaIva": 10, "ordinamentoVetrina": 61 },
+    { "codice": "CKT-DAIQUIRI", "nome": "Daiquiri", "prezzo": 7.0, "categoriaVetrina": "Cocktail", "aliquotaIva": 10, "ordinamentoVetrina": 62 },
+    { "codice": "CKT-PINA", "nome": "Piña colada nell'ananas", "prezzo": 9.0, "categoriaVetrina": "Cocktail", "aliquotaIva": 10, "ordinamentoVetrina": 63, "descrizioneVetrina": "Servita dentro il frutto." },
+    { "codice": "CKT-SPRITZ", "nome": "Spritz", "prezzo": 4.0, "categoriaVetrina": "Cocktail", "aliquotaIva": 10, "ordinamentoVetrina": 64 },
+    { "codice": "CKT-ANALCOLICO", "nome": "Analcolico della casa", "prezzo": 4.0, "categoriaVetrina": "Cocktail", "aliquotaIva": 10, "ordinamentoVetrina": 65 },
+
+    { "codice": "APE-APERICOSTO", "nome": "Apericosto (cocktail + tagliere)", "prezzo": 10.0, "categoriaVetrina": "Aperitivo", "aliquotaIva": 10, "ordinamentoVetrina": 70, "consigliato": true },
+    { "codice": "APE-TAGLIERE-2", "nome": "Tagliere per due", "prezzo": 14.0, "categoriaVetrina": "Aperitivo", "aliquotaIva": 10, "ordinamentoVetrina": 71 },
+    { "codice": "APE-BIRRA-04", "nome": "Birra alla spina 0,4", "prezzo": 4.5, "categoriaVetrina": "Aperitivo", "aliquotaIva": 10, "ordinamentoVetrina": 72 },
+    { "codice": "APE-CALICE-VINO", "nome": "Calice di vino", "prezzo": 3.5, "categoriaVetrina": "Aperitivo", "aliquotaIva": 10, "ordinamentoVetrina": 73 }
+  ],
+
+  "_impostazioniVetrina": {
+    "_nota": "Da incollare nella sezione Sito. AperitivoCategorie usa i nomi ESATTI di categoriaVetrina qui sopra.",
+    "aperitivoCategorie": "Cocktail\nAperitivo"
+  },
+
+  "_foto": {
+    "_nota": [
+      "Le otto foto stanno in docs/Redesign mockup Duedgusto/assets/ e vanno caricate dalla",
+      "libreria media con cartella «galleria», testo alternativo e punto focale.",
+      "⚠️ Verificare PRIMA che mojito-havana.jpg e mojito-ron.jpg non siano lo stesso media",
+      "già in produzione (2026/08/mojito-gx9ch4, il mojito con la bandiera cubana).",
+      "⚠️ L'ORDINE della galleria è editoriale e il sito lo usa: la prima è l'eroe della home,",
+      "la seconda il ritratto di /locale, le successive le griglie."
+    ],
+    "ordineSuggerito": [
+      "mojito-ron.jpg",
+      "banco-ananas.jpg",
+      "dehors-pergola.jpg",
+      "banco-panino-cubano.jpg",
+      "congri-pollo.jpg",
+      "vitrina-colazione.jpg",
+      "pollo-peperoni.jpg",
+      "mojito-havana.jpg"
+    ]
+  }
+}
