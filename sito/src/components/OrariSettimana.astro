@@ -1,0 +1,52 @@
+---
+// La tabella dei sette giorni, con oggi in evidenza.
+//
+// 🔴 **Oggi lo marca lo SCRIPT, non il server.** Gli orari sono dato e vengono resi qui;
+//    *quale giorno è oggi* dipende da quando si guarda la pagina, e queste pagine stanno
+//    dietro un micro-cache: marcare la riga sul server significherebbe evidenziare martedì
+//    per tutta la giornata di mercoledì a chiunque non abbia riempito la cache per primo.
+//    Lo script usa `giornoDiRoma()` — non il giorno del visitatore.
+//
+// ⚠️ Il giorno chiuso non è «la domenica»: è ogni indice falso in `giorniOperativi`. Un
+//    locale che chiude il lunedì esiste, e scriverlo a mano lo renderebbe falso in silenzio.
+//
+// ⚠️ `giorniOperativi` può essere `null` — il DTO lo prevede quando il JSON persistito non è
+//    leggibile come sette booleani. In quel caso questa tabella **non si rende affatto** e
+//    chi la usa mostra i soli apertura/chiusura: omettere gli orari settimanali è meglio che
+//    dichiararne di sbagliati.
+
+import { GIORNI_ESTESI } from '../lib/formato.ts';
+import type { SitoPubblico } from '../lib/tipi.ts';
+
+interface Props {
+  sito: SitoPubblico;
+  classe?: string;
+}
+
+const { sito, classe = '' } = Astro.props;
+const { apertura, chiusura, giorniOperativi } = sito.orari;
+---
+
+{
+  giorniOperativi && (
+    <div class:list={['grid', classe]} data-orari-settimana>
+      {GIORNI_ESTESI.map((giorno, indice) => {
+        const aperto = giorniOperativi[indice];
+        return (
+          <div
+            data-giorno={indice}
+            class:list={[
+              'border-bordo flex items-baseline justify-between gap-6 border-b py-3 text-[15px]',
+              !aperto && 'text-inchiostro-tenue',
+            ]}
+          >
+            <span data-nome-giorno>{giorno}</span>
+            <span data-ore-giorno class="font-mono text-inchiostro-tenue text-sm">
+              {aperto ? `${apertura} — ${chiusura}` : 'chiuso'}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  )
+}

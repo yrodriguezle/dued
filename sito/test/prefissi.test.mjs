@@ -39,14 +39,26 @@ before(async () => {
       totaleProdottiPubblicati: 1,
       limiteApplicato: 300,
       troncato: false,
+      lavagna: [],
     },
+    // ⚠️ Anche la galleria, e non è ridondanza: dal redesign le foto dei **prodotti**
+    //    compaiono in home (l'eroe e i pannelli dei momenti), mentre `/menu` è un listino
+    //    tipografico e mostra solo le foto della galleria in coda. Le due pagine esercitano
+    //    quindi due percorsi diversi verso `mediaUrl`, e la prova le guarda entrambe: con la
+    //    sola `/menu` resterebbe verde anche se le immagini dei prodotti componessero l'URL
+    //    con il prefisso sbagliato.
+    '/api/public/galleria': { immagini: [immagineFinta('2026/08/galleria-prova')] },
   });
 
   // 🔴 Entrambe alla BUILD: `astro:env` inlina le variabili `public` nel bundle, di
   //    qualunque contesto. Darle solo all'ambiente del server non fallisce e non fa nulla.
   costruisci({ API_INTERNA_URL: api.origine, PUBLIC_MEDIA_ORIGINE: SENTINELLA });
   sito = await avviaSito();
-  html = await (await fetch(`${sito.base}/menu`)).text();
+  html = (
+    await Promise.all(
+      ['/', '/menu'].map(async (percorso) => (await fetch(`${sito.base}${percorso}`)).text())
+    )
+  ).join('\n');
 });
 
 after(async () => {

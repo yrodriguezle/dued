@@ -14,6 +14,7 @@
 
    Zero richieste verso `fonts.gstatic.com` e `fonts.googleapis.com`: è un criterio di
    successo esplicito, ed è anche due connessioni a terzi e un problema GDPR in meno.
+   ⚠️ Il mockup, in cima, ha tre `<link href="fonts.googleapis.com">`: NON vanno copiati.
    I file sono in `../assets/fonts/`, con licenza e provenienza accanto.
 
    ⚠️ L'`unicode-range` è COPIATO VERBATIM da Google e non va accorciato "perché tanto il
@@ -23,42 +24,55 @@
 
    ⚠️ `font-display: swap` e mai `block`: qui il titolo È il contenuto, e `block` lo
       terrebbe invisibile fino a fine scaricamento.
-
-   Il quarto ruolo — il corpo — non ha un @font-face: è uno stack di sistema, zero byte.
    ═══════════════════════════════════════════════════════════════════════════════════════ */
 
+/* Il display. Non ha pesi: ha un tondo e un corsivo, ed è tutto — vedi PROVENIENZA.md. */
 @font-face {
-  font-family: 'Anton';
+  font-family: 'Instrument Serif';
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url('../assets/fonts/Anton-latin.woff2') format('woff2');
+  src: url('../assets/fonts/InstrumentSerif-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
+    U+FEFF, U+FFFD;
+}
+
+/* 🔴 Il corsivo è un FILE, non un'inclinazione. Lo porta l'`<em>aperitivo</em>` del titolo
+      della home, che è il gesto tipografico più visibile del sito: un corsivo sintetizzato
+      inclinando il tondo non somiglia a un corsivo, somiglia a un errore di rendering. */
+@font-face {
+  font-family: 'Instrument Serif';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../assets/fonts/InstrumentSerif-italic-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
+    U+FEFF, U+FFFD;
+}
+
+/* ⚠️ VARIABILE, e l'intervallo nel descrittore è load-bearing: `font-weight: 400 700` dice
+      al browser che questo file COPRE quei pesi. Scrivendo `400` il browser lo tratterebbe
+      come un peso solo e sintetizzerebbe gli altri ingrassando le aste — cioè lo stesso
+      grassetto finto che `font-synthesis: none` esiste per impedire, per la via opposta. */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('../assets/fonts/Manrope-400-700-latin.woff2') format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
     U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
     U+FEFF, U+FFFD;
 }
 
 @font-face {
-  font-family: 'Allura';
+  font-family: 'JetBrains Mono';
   font-style: normal;
-  font-weight: 400;
+  font-weight: 400 500;
   font-display: swap;
-  src: url('../assets/fonts/Allura-latin.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
-    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
-    U+FEFF, U+FFFD;
-}
-
-/* ⚠️ Un peso solo, il 900, e Google a una richiesta con peso singolo risponde con
-      un'ISTANZA STATICA invece del file variabile. È la ragione per cui il file si chiama
-      `-900-`: se un giorno servisse un secondo peso, non basta usare `font-weight` — serve
-      un altro file. */
-@font-face {
-  font-family: 'Playfair Display';
-  font-style: normal;
-  font-weight: 900;
-  font-display: swap;
-  src: url('../assets/fonts/PlayfairDisplay-900-latin.woff2') format('woff2');
+  src: url('../assets/fonts/JetBrainsMono-400-500-latin.woff2') format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
     U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
     U+FEFF, U+FFFD;
@@ -67,70 +81,63 @@
 /* ═══════════════════════════════════════════════════════════════════════════════════════
    I DUE REGISTRI DEL LOCALE
 
-   Non sono "chiaro e scuro": sono i due modi in cui 2 D Gusto si presenta già oggi, e i
-   valori sono CAMPIONATI dalle locandine social — non scelti a tavolino, non ritoccati per
-   stare meglio insieme. Il giorno viene dalla locandina dello spazio esterno; la sera dalla
-   lavagna dell'Aperitivo Apericosto.
+   I valori vengono dal mockup «2D Gusto — Sito» (`docs/Redesign mockup Duedgusto/`), dove
+   sono espressi come `rgba(…)` su fondo: qui sono OPACHI, composti una volta sola. Un token
+   semitrasparente si comporta diversamente sopra una foto, e metà di questi finiscono
+   proprio lì.
 
    Sono custom properties di RUNTIME, riassegnate da un attributo sull'elemento: è ciò che
    permette a un sottoalbero di vivere in un registro diverso dalla pagina che lo contiene
-   (la fascia "Aperitivo" in home), e a un toggle di cambiarli senza ricaricare.
+   (la fascia della lavagna in home, sempre scura), e a un toggle di cambiarli senza
+   ricaricare.
    ═══════════════════════════════════════════════════════════════════════════════════════ */
 
 :root,
 [data-tema="giorno"] {
-  --c-sfondo: #F2EDE7;            /* crema */
-  --c-sfondo-alt: #EAE4DC;
-  --c-superficie: #FDFDFC;
-  --c-inchiostro: #020302;
-  --c-inchiostro-tenue: #4A562A;
-  --c-accento: #41511E;           /* oliva — 7.45 sulla crema: porta testo */
-  --c-bordo: #D8D2C8;
+  --c-sfondo: #F7F4EF;            /* crema */
+  --c-sfondo-alt: #EEEBE6;
+  --c-superficie: #FFFFFF;
+  --c-inchiostro: #16130F;
+  --c-inchiostro-tenue: #6E665D;  /* 5.14 sulla crema */
+  --c-accento: #A34E00;           /* vedi il blocco qui sotto: NON è #FD8502 */
+  --c-bordo: #DCD9D4;
 }
 
 [data-tema="sera"] {
-  /* ⚠️ Carboncino CALDO, non nero neutro: la lavagna del locale ha una dominante marrone,
-        e un #1A1A1A neutro accanto alle foto vere si legge subito come "tema scuro
-        generico" invece che come quella lavagna. */
-  --c-sfondo: #251C19;
-  --c-sfondo-alt: #2C221D;
-  --c-superficie: #342A23;
-  --c-inchiostro: #F2EDE7;        /* la crema fa doppio lavoro: di sera è il gesso */
-  --c-inchiostro-tenue: #C9BCAE;
-  --c-accento: #FDDB5B;           /* gesso giallo — 12.28 sulla lavagna: porta testo */
-  --c-bordo: #4C3B33;
+  --c-sfondo: #16130F;
+  --c-sfondo-alt: #23201C;
+  --c-superficie: #1F1B16;
+  --c-inchiostro: #F4F0E9;
+  --c-inchiostro-tenue: #A09C96;  /* 6.78 sul fondo scuro */
+  --c-accento: #FD8502;           /* 7.53 sul fondo scuro: di sera l'arancio porta testo */
+  --c-bordo: #373430;
 }
 
 /* ───────────────────────────────────────────────────────────────────────────────────────
-   🔴 L'ARANCIO STA QUI, E NON DENTRO @theme — ed è una decisione, non una svista.
+   🔴 L'ARANCIO DI MARCA NON È L'ACCENTO DI TESTO, E DI GIORNO NON PUÒ ESSERLO
 
-   L'arancio è l'unico colore comune ai due registri, ed è il colore della marca. Ma le sue
-   due misure di contrasto sono agli antipodi:
+   Il mockup usa `#FD8502` come colore di testo in otto punti — l'occhiello mono a 11,5 px,
+   l'`<em>aperitivo</em>` del titolo, i prezzi, le stelline. Su fondo chiaro le misure WCAG
+   sono queste, e non sono un'opinione:
 
-       sulla lavagna di sera  →  6.78   ✅ porta testo
-       sulla crema di giorno  →  2.11   ❌ sotto persino la soglia del testo GRANDE (3.0)
+       #FD8502 su #F7F4EF (la crema del mockup)  →  2.24   ❌ sotto persino il testo GRANDE (3.0)
+       #FD8502 su #16130F (lo scuro del mockup)  →  7.53   ✅
 
-   Il guasto reale non è che qualcuno scelga l'arancio sapendolo: è che scriva
-   `text-arancio` PER ANALOGIA con `bg-arancio`, che esiste ed è legittima. Un commento non
-   lo impedirebbe — nessuno legge un commento prima di scrivere una classe.
+   La soluzione NON è rinunciare all'arancio, ed è tutta dentro `--c-accento`: di sera vale
+   l'arancio pieno, di giorno vale un arancio bruciato più scuro (#A34E00 → **5.24** sulla
+   crema). Chi scrive `text-accento` ottiene sempre un testo leggibile, in entrambi i
+   registri, senza doverci pensare. È la stessa classe: cambia il valore sotto.
 
-   Tenendo il token fuori dalla namespace del tema, Tailwind non genera NESSUNA delle sue
-   utility: si dichiarano a mano solo le tre ammesse, qui sotto. Chi scrive `text-arancio`
-   non produce CSS, e il testo resta del colore ereditato — cioè leggibile.
-   🔴 Il default del guasto è sicuro, che è l'unica difesa che funziona davvero.
-
-   Chi cerca "l'accento per un titolo" cerca --c-accento: oliva di giorno, gesso di sera,
-   entrambi ampiamente sopra soglia in entrambi i registri.
+   E `--c-arancio` — il colore di marca puro, identico nei due registri — resta FUORI dalla
+   namespace del tema. Tailwind non genera nessuna delle sue utility, e si dichiarano a mano
+   solo le tre ammesse, qui sotto. Chi scrive `text-arancio` per analogia con `bg-arancio`
+   (che esiste ed è legittima) non produce CSS, e il testo resta del colore ereditato — cioè
+   leggibile. 🔴 Il default del guasto è sicuro, che è l'unica difesa che funziona davvero.
    ─────────────────────────────────────────────────────────────────────────────────────── */
 
 :root {
   --c-arancio: #FD8502;
   --logo-arancio: var(--c-arancio);
-
-  /* §D9 — misurato confrontando nove candidati sull'insegna reale, non arrotondato.
-     Compare in un token solo perché il numero serve DUE volte: allo `scaleX` e alla
-     riserva di spazio, che `transform` non partecipa al layout. */
-  --stiramento-insegna: 1.55;
 }
 
 /* ───────────────────────────────────────────────────────────────────────────────────────
@@ -171,24 +178,23 @@
   --color-bordo: var(--c-bordo);
 }
 
-/* Questi non cambiano mai fra i due registri: `@theme` semplice basta, e `inline` qui non
-   avrebbe alcun effetto osservabile.
+/* I tre ruoli tipografici. Non cambiano fra i registri: `@theme` semplice basta, e `inline`
+   qui non avrebbe alcun effetto osservabile.
+
+   ⚠️ `--font-mono` SOVRASCRIVE deliberatamente quella di Tailwind invece di aggiungersi con
+      un nome nuovo. Un ruolo `--font-etichetta` accanto alla `--font-mono` predefinita
+      lascerebbe in piedi due classi quasi sinonime, di cui una — proprio quella dal nome
+      ovvio — darebbe il monospaziato di sistema. Chi scrive `font-mono` deve ottenere
+      JetBrains Mono, perché è quello che crede di aver scritto.
 
    ⚠️ Mai `--font-display`: genererebbe l'utility `.font-display`, e `font-display` è anche
       il descrittore di `@font-face` che governa il comportamento durante il caricamento.
-      Chi cercasse l'uno troverebbe l'altro, in un file di stile in cui esistono entrambi.
-      I quattro ruoli si chiamano per quello che fanno. */
+      Chi cercasse l'uno troverebbe l'altro, in un file di stile in cui esistono entrambi. */
 @theme {
-  --font-titolo: 'Anton', sans-serif;
-  --font-firma: 'Allura', cursive;
-  --font-insegna: 'Playfair Display', Georgia, serif;
-  /* Zero byte: nessun @font-face, nessuna richiesta. Il piano prescriveva Roboto «già
-     dipendenza» — vero per l'app di cassa, falso per questo progetto, che è indipendente.
-     Roboto resta nello stack: su Android e ChromeOS il visitatore ottiene proprio quel
-     carattere, gratis. Il corpo qui deve essere neutro al limite dell'anonimo — il
-     carattere lo portano gli altri tre. */
-  --font-corpo: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+  --font-titolo: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+  --font-corpo: 'Manrope', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
     'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Mono', Consolas, monospace;
 }
 
 /* Per i casi che i token non coprono (un'ombra, un'opacità, un bordo che esiste solo di
@@ -196,7 +202,7 @@
    `:where()` tiene la specificità a zero, così la variante non vince su nulla per caso. */
 @custom-variant sera (&:where([data-tema="sera"], [data-tema="sera"] *));
 
-/* Le tre sole forme ammesse dell'arancio: superfici e bordi, mai testo. */
+/* Le tre sole forme ammesse dell'arancio puro: superfici e bordi, mai testo. */
 @utility bg-arancio {
   background-color: var(--c-arancio);
 }
@@ -208,16 +214,20 @@
 }
 
 html {
-  /* 🔴 Non è cosmesi. Senza, un `font-weight: 700` su Anton — che ha solo il Regular —
-     produce un grassetto FINTO, sintetizzato dal browser ingrassando le aste, e diverso
-     fra Chrome, Safari e Firefox. Rovina precisamente ciò che rende Anton un carattere da
-     insegna. Con questa riga `font-weight: 700` NON FA NULLA — e "non fa nulla" si nota
-     subito, mentre un grassetto sintetizzato *sembra funzionare*. */
+  /* 🔴 Non è cosmesi. Instrument Serif non ha alcun grassetto — ha un tondo e un corsivo —
+     quindi un `font-weight: 700` su un titolo produrrebbe un grassetto FINTO, sintetizzato
+     dal browser ingrassando le aste, e diverso fra Chrome, Safari e Firefox. Rovina
+     precisamente ciò che rende un didone un didone. Con questa riga `font-weight: 700` NON
+     FA NULLA — e "non fa nulla" si nota subito, mentre un grassetto sintetizzato *sembra
+     funzionare*. Vale nell'altro verso per Manrope, che i pesi ce li ha davvero. */
   font-synthesis: none;
 
   /* Il primissimo pixel dipinto è già del tema giusto: lo script del tema gira prima del
      body, e questo sfondo segue --c-sfondo qualunque registro abbia scelto. */
   background-color: var(--c-sfondo);
+
+  /* Il salto dell'ancora non finisce sotto l'intestazione appiccicata. */
+  scroll-behavior: smooth;
 }
 
 /* Finché lo script del tema non ha finito, nessuna transizione: senza questa riga il
@@ -229,30 +239,59 @@ html:not([data-pronto]) *::before {
 }
 
 /* ───────────────────────────────────────────────────────────────────────────────────────
-   L'INSEGNA: «Colazione Pranzo Aperitivo» stirata come sul locale
+   IL MOVIMENTO — e il suo interruttore
 
-   Il fattore è MISURATO sull'insegna vera confrontando nove candidati, non scelto: le tre
-   parole del sito devono poter stare accanto alla foto dell'insegna senza che la differenza
-   si veda. Il README di marca suggerisce `scaleX(1.5)` nella stessa riga in cui dichiara
-   ×1.55: è quel numero arrotondato, e su una riga di 600 px la differenza sono 20 px.
-
-   🔴 `transform` NON PARTECIPA AL LAYOUT. L'elemento continua a occupare la larghezza che
-      avrebbe senza la trasformazione, quindi il testo stirato SBORDA sui vicini e non si
-      centra da solo. La larghezza va riservata a mano — e la riserva deve derivare DALLO
-      STESSO token, o il giorno in cui il fattore cambia lo spazio resta quello vecchio e
-      nessuno collega le due cose.
-
-   ⚠️ Le tre parole restano TESTO selezionabile, mai l'SVG dell'insegna: devono poter essere
-      lette da uno screen reader, tradotte e indicizzate.
+   Due sole animazioni in tutto il sito: il nastro che scorre e la comparsa delle sezioni.
+   🔴 Entrambe si spengono con `prefers-reduced-motion: reduce`. Un nastro che scorre in
+      loop infinito è esattamente ciò che quella preferenza esiste per fermare, e chi la
+      imposta lo fa per motivi che vanno dal fastidio all'emicrania vestibolare.
    ─────────────────────────────────────────────────────────────────────────────────────── */
 
-.insegna {
-  display: inline-block;
-  transform: scaleX(var(--stiramento-insegna));
-  transform-origin: center;
+@keyframes scorri {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
 }
 
-.insegna-riserva {
-  display: inline-block;
-  padding-inline: calc((var(--stiramento-insegna) - 1) / 2 * 100%);
+.nastro-scorre {
+  animation: scorri 34s linear infinite;
+}
+
+/* La comparsa: lo stato di partenza lo scrive lo SCRIPT, non questa regola.
+   🔴 Se `opacity: 0` stesse qui, una pagina senza JavaScript resterebbe bianca — il
+      contenuto ci sarebbe, invisibile. Qui c'è solo COME si muove, mai da dove parte. */
+[data-comparsa] {
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nastro-scorre {
+    animation: none;
+  }
+  /* E la comparsa diventa istantanea invece di essere annullata: lo script ha comunque
+     messo l'elemento a `opacity: 0`, e senza transizione arriva a destinazione subito. */
+  [data-comparsa] {
+    transition: none;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* ───────────────────────────────────────────────────────────────────────────────────────
+   IL FILETTO PUNTEGGIATO DEL LISTINO
+
+   Nel mockup ogni voce del menu ha il nome a sinistra, il prezzo a destra e i puntini che
+   li uniscono. Il filetto è un elemento vuoto che si allarga: non `border-bottom` su tutta
+   la riga (unirebbe anche sotto il testo), non `overflow: hidden` con una fila di punti
+   (che si disallineano fra i browser).
+   ─────────────────────────────────────────────────────────────────────────────────────── */
+
+.filetto {
+  flex: 1 1 auto;
+  align-self: baseline;
+  border-bottom: 1px dotted var(--c-bordo);
+  /* ⚠️ Senza questo il filetto sparisce: un elemento senza contenuto e senza altezza non
+     disegna il proprio bordo dove il baseline lo vorrebbe. */
+  min-width: 1rem;
+  transform: translateY(-0.25em);
 }

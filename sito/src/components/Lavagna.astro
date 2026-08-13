@@ -1,0 +1,62 @@
+---
+// «La lavagna di oggi» — quella vera, all'ingresso, che cambia ogni mattina.
+//
+// 🔴 **Sempre in registro sera, dentro una pagina che può essere in tema giorno.** È la
+//    lavagna del locale: nera con il gesso sopra, a qualunque ora la si guardi. È anche
+//    l'unico posto del sito in cui la differenza fra `@theme` e `@theme inline` si vede a
+//    occhio — con `@theme` semplice ogni utility qui dentro resterebbe crema-e-oliva, una
+//    fascia scura con dentro i colori del giorno, e non ci sarebbe alcun errore da nessuna
+//    parte. Se un giorno questa fascia venisse tolta per ragioni editoriali, il caso va
+//    riprodotto altrove o quella decisione torna indistinguibile.
+//
+// ⚠️ **Vuota è lo stato normale**, non un guasto: significa che stamattina non ci ha messo
+//    niente nessuno. A database il campo è una DATA e non un interruttore, quindi la sezione
+//    scade da sola — dimenticarsene la fa sparire invece di lasciare online il piatto di
+//    venerdì scorso.
+//
+// ⚠️ Il giorno della settimana **non si scrive qui**: sarebbe una stringa d'orologio resa dal
+//    server, dentro una pagina che sta dietro un micro-cache. Lo scrive lo script del guscio,
+//    come per la riga di oggi negli orari.
+
+import { euro } from '../lib/formato.ts';
+import type { ProdottoPubblico } from '../lib/tipi.ts';
+
+interface Props {
+  prodotti: ProdottoPubblico[];
+}
+
+const { prodotti } = Astro.props;
+---
+
+{
+  prodotti.length > 0 && (
+    <section data-comparsa class="mx-auto max-w-6xl px-5 pt-20 sm:px-8">
+      <div data-tema="sera" class="bg-sfondo text-inchiostro overflow-hidden rounded-2xl">
+        <div class="p-9 sm:p-13">
+          <div class="mb-6 flex items-center gap-3">
+            <span class="bg-arancio h-2 w-2 shrink-0 rounded-full" aria-hidden="true" />
+            <p class="font-mono text-inchiostro-tenue text-[11.5px] tracking-[0.2em] uppercase">
+              La lavagna di oggi
+            </p>
+          </div>
+
+          <div class="grid">
+            {prodotti.map((prodotto) => (
+              <div class="border-bordo flex items-baseline justify-between gap-6 border-b border-dashed py-4 last:border-b-0">
+                <span class="font-titolo text-[27px] leading-tight">{prodotto.nome}</span>
+                <span class="font-mono text-accento shrink-0 text-sm">
+                  {euro(prodotto.prezzo)}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <p class="font-mono text-inchiostro-tenue mt-7 text-[11.5px] leading-relaxed tracking-[0.04em]">
+            Aggiornata ogni mattina dal pannello di gestione — chi guarda il sito vede la
+            stessa lavagna che c'è all'ingresso.
+          </p>
+        </div>
+      </div>
+    </section>
+  )
+}

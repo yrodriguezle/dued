@@ -30,6 +30,7 @@ const CATALOGO = {
   totaleProdottiPubblicati: 3,
   limiteApplicato: 300,
   troncato: false,
+  lavagna: [],
 };
 
 before(async () => {
@@ -49,29 +50,42 @@ async function home(menu = CATALOGO) {
   return { stato: r.status, intestazioni: r.headers, html: await r.text() };
 }
 
-test('la striscia dei consigli viene dal payload, non da una lista scritta a mano', async () => {
+test('🔴 le linguette dei momenti sono le categorie del payload, non tre parole del mockup', async () => {
   const { stato, html } = await home();
   assert.equal(stato, 200);
-  const striscia = html.slice(html.indexOf('I nostri consigli'), html.indexOf('Ogni sera'));
 
-  assert.match(striscia, /Caffè espresso/);
-  assert.match(striscia, /Spritz cubano/);
-  // E chi non è consigliato NON c'è: se la striscia fosse una lista nel template, ci
-  // sarebbe tutto o ci sarebbe altro.
-  assert.ok(!striscia.includes('Cappuccino'), 'un prodotto non consigliato è nella striscia');
+  // È la regressione che questo test esiste per impedire: il mockup ha «Colazione / Pranzo /
+  // Aperitivo» scritte nel componente, con i piatti elencati a mano. Copiate così, il giorno
+  // in cui il locale smette di fare il congri il sito continua a proporlo — e nessuno
+  // collegherebbe mai quella riga al listino.
+  const linguette = [...html.matchAll(/data-linguetta="([^"]+)"/g)].map((m) => m[1]);
+  assert.deepEqual(linguette, ['Caffetteria', 'Aperitivi']);
 });
 
-test('cambiare il marcatore nel payload cambia la striscia', async () => {
-  const senza = {
-    ...CATALOGO,
-    categorie: CATALOGO.categorie.map((c) => ({
-      ...c,
-      prodotti: c.prodotti.map((p) => ({ ...p, consigliato: false })),
-    })),
-  };
-  const { html } = await home(senza);
-  assert.ok(!html.includes('I nostri consigli'), 'la striscia esiste senza alcun consigliato');
-  await home(); // ripristina lo stato per i test seguenti
+test('dentro un momento i consigliati vengono per primi', async () => {
+  const { html } = await home();
+  const pannello = html.slice(
+    html.indexOf('data-pannello="Caffetteria"'),
+    html.indexOf('data-pannello="Aperitivi"')
+  );
+
+  const espresso = pannello.indexOf('Caffè espresso');
+  const cappuccino = pannello.indexOf('Cappuccino');
+  assert.ok(espresso >= 0 && cappuccino >= 0, 'il pannello non contiene i due prodotti');
+  assert.ok(
+    espresso < cappuccino,
+    'il consigliato non viene per primo: è il marcatore che l\'amministratore governa dalla ' +
+      'cassa, ed è l\'unica leva che ha su cosa si vede sopra la piega'
+  );
+});
+
+test('il nastro ripiega sulle categorie quando i consigliati sono meno di tre', async () => {
+  // Due consigliati nel catalogo di prova: un nastro di due parole non è un nastro, e le
+  // categorie sono comunque dato vero.
+  const { html } = await home();
+  const nastro = html.slice(html.indexOf('nastro-scorre'));
+  assert.match(nastro, /Caffetteria/);
+  assert.match(nastro, /Aperitivi/);
 });
 
 test('🔴 la home NON mostra l\'avviso di troncamento, il menu sì', async () => {
@@ -88,14 +102,32 @@ test('🔴 la home NON mostra l\'avviso di troncamento, il menu sì', async () =
   await home();
 });
 
-test('la fascia Aperitivo porta il registro serale come attributo', async () => {
-  const { html } = await home();
+test('la lavagna porta il registro serale come attributo', async () => {
+  const conLavagna = { ...CATALOGO, lavagna: [prodottoFinto(903, 'Congri con pollo')] };
+  const { html } = await home(conLavagna);
+
+  assert.match(html, /Congri con pollo/);
   assert.match(
     html,
-    /<section[^>]+data-tema="sera"/,
-    'la fascia non dichiara il proprio registro: senza, il caso che rende `@theme inline` ' +
-      'necessario non esiste più in nessuna pagina'
+    /<div[^>]+data-tema="sera"/,
+    'la lavagna non dichiara il proprio registro: senza, il caso che rende `@theme inline` ' +
+      'necessario non esiste più in nessuna pagina, e la differenza fra le due forme torna ' +
+      'indistinguibile'
   );
+  await home();
+});
+
+test('🔴 lavagna vuota: la sezione non c\'è affatto', async () => {
+  // È la proprietà che rende sicura la scelta di persistere una DATA invece di un
+  // interruttore: dimenticarsi di aggiornarla fa sparire la sezione, invece di lasciare
+  // online il piatto di venerdì scorso con l'aria di essere quello di oggi.
+  const { html } = await home();
+  assert.ok(
+    !html.includes('La lavagna di oggi'),
+    'con la lavagna vuota la sezione si rende comunque: mostrerebbe un titolo «di oggi» ' +
+      'sopra il nulla'
+  );
+  assert.ok(!/<div[^>]+data-tema="sera"/.test(html));
 });
 
 test('la home dichiara la cache come il menu', async () => {

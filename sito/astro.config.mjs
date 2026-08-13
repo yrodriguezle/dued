@@ -10,11 +10,8 @@ import tailwindcss from '@tailwindcss/vite';
 //
 //  | Assente                            | Perché                                              |
 //  |------------------------------------|-----------------------------------------------------|
-//  | site: 'https://…'                  | Il dominio non esiste. Un valore inventato oggi      |
-//  |                                    | produrrebbe canonical e OG verso un host inesistente |
 //  | integrations: [react()]            | Nessuna isola in questo change. Una dipendenza       |
 //  |                                    | installata e non usata è una che nessuno verifica    |
-//  | integrations: [sitemap()]          | Ha bisogno di `site`, e la SEO è Fase 3 del progetto |
 //  | export const prerender             | Con output: 'server' l'on-demand è già il default:   |
 //  |                                    | entrambe le pagine leggono dati vivi                 |
 //  | routeRules                         | La cache di questo sito è CONDIZIONALE sullo stato   |
@@ -28,8 +25,21 @@ import tailwindcss from '@tailwindcss/vite';
 //  | logger: logHandlers.json()         | Candidato di Fase 6, quando i log saranno quelli di  |
 //  |                                    | un container e non di un terminale che si guarda     |
 export default defineConfig({
-  // On-demand per entrambe le pagine: leggono dati vivi dal backend a ogni richiesta.
+  // On-demand per tutte le pagine: leggono dati vivi dal backend a ogni richiesta.
   output: 'server',
+
+  // 🔴 L'ORIGINE PUBBLICA, e non quella con cui il processo si vede addosso.
+  //    Serve a `<link rel="canonical">`, a `og:url` e alla sitemap. In produzione il sito
+  //    gira dietro nginx: `Astro.url` è l'host interno del container, e un canonical
+  //    costruito su quello punterebbe a un host che per nessun visitatore esiste — senza
+  //    che nulla si rompa e senza che nessuno se ne accorga, se non nella Search Console
+  //    settimane dopo.
+  //
+  // ⚠️ Il dominio è stato acquistato il 12 agosto 2026 su IONOS e il go-live è fatto: la
+  //    vetrina sta sull'apice, il gestionale su `app.`. Questa riga era assente proprio
+  //    perché il dominio non esisteva, ed è la ragione per cui non c'erano né canonical né
+  //    sitemap.
+  site: 'https://duedgusto.it',
 
   // 🔴 L'11 è l'adapter DELLA 7 (peer `astro ^7.0.0`); il 10.x è quello della 6.
   //    'standalone' produce dist/server/entry.mjs, che si avvia con `node` e basta:

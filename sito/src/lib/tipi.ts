@@ -90,6 +90,18 @@ export interface MenuPubblico {
   categorie: CategoriaMenu[];
 
   /**
+   * I piatti che stanno sulla **lavagna** all'ingresso **oggi**.
+   *
+   * 🔴 Sono gli stessi prodotti che compaiono anche in `categorie`: la lavagna è una
+   *    **vista**, non un secondo listino.
+   *
+   * ⚠️ **Vuota è lo stato normale, non un guasto**: significa che stamattina non ci ha messo
+   *    niente nessuno, e la sezione non si rende affatto. È il modo giusto di sbagliare per
+   *    un dato che scade da solo — a database è una *data*, non un interruttore.
+   */
+  lavagna: ProdottoPubblico[];
+
+  /**
    * Il conteggio **reale**, con lo stesso predicato di pubblicazione — non la lunghezza
    * della lista restituita. Se coincidesse con la lista, non direbbe nulla.
    */
@@ -167,4 +179,62 @@ export interface SitoPubblico {
 
   /** `"HH:mm"` — il parametro del tema serale, deciso dall'amministratore (§D5). */
   oraInizioTemaSera: string;
+
+  /**
+   * I testi che il sito scrive **in prima persona** sul locale.
+   *
+   * 🔴 Ogni campo può essere `null`, e chi riceve `null` **non rende la sezione** — non la
+   *    riempie con un ripiego scritto qui. È la sola forma che tiene l'informazione onesta:
+   *    una frase sul locale dentro un componente Astro è una verità che invecchia lontano da
+   *    chi la conosce, e il giorno in cui smette di essere vera chi lo sa non ha modo di
+   *    dirlo. Meglio una sezione in meno che una sezione che mente.
+   */
+  testi: {
+    /** Il paragrafo sotto il titolo della home. */
+    claim: string | null;
+    /** Esiste solo se c'è il testo: un titolo da solo non è una storia. */
+    storia: { titolo: string | null; testo: string } | null;
+    aperitivo: {
+      titolo: string | null;
+      testo: string;
+      /** Già normalizzati dal backend: niente righe vuote, ordine conservato, al massimo sei. */
+      punti: string[];
+      /**
+       * I nomi delle **categorie di vetrina** che la pagina dell'aperitivo mostra.
+       *
+       * 🔴 Sono **dichiarati** dall'amministratore, non dedotti dal sito. Cercare la parola
+       *    «cocktail» nel nome di una categoria smette di funzionare il giorno in cui si
+       *    chiama «Drink»; prendere «le ultime due» smette il giorno in cui se ne aggiunge
+       *    una. Nessuna delle due deduzioni lascerebbe traccia — la pagina mostrerebbe le
+       *    cose sbagliate, e nessuno lo collegherebbe a una rinomina.
+       *
+       * ⚠️ Un nome che non corrisponde ad alcuna categoria **non è un errore**: semplicemente
+       *    non porta prodotti.
+       */
+      categorie: string[];
+    } | null;
+  };
+
+  /**
+   * Il giudizio medio, quando c'è.
+   *
+   * 🔴 L'oggetto **intero** è `null` se manca uno dei due numeri, per la stessa ragione per
+   *    cui lo è `geo` quando manca una coordinata: presi da soli non sono un dato incompleto,
+   *    sono un dato **fuorviante**. «4,7» senza conteggio nasconde che le recensioni
+   *    potrebbero essere tre.
+   */
+  reputazione: { punteggio: number; numero: number; urlProfilo: string | null } | null;
+
+  /**
+   * Le recensioni **riportate**: citazioni scelte dall'amministratore da ciò che i clienti
+   * hanno scritto altrove. Il sito non raccoglie giudizi e non esiste alcuna rotta che
+   * scriva. Lista vuota — mai `null` — quando non ce ne sono di pubblicate.
+   */
+  recensioni: {
+    id: number;
+    autore: string;
+    testo: string;
+    fonte: string | null;
+    punteggio: number;
+  }[];
 }

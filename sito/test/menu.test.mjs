@@ -57,6 +57,7 @@ const CATALOGO = {
   totaleProdottiPubblicati: 2,
   limiteApplicato: 300,
   troncato: false,
+  lavagna: [],
 };
 
 test('il menu rende categorie e prodotti nell\'ordine dell\'API', async () => {
@@ -80,6 +81,7 @@ test('🔴 menu troncato: l\'avviso c\'è e porta i due numeri della RISPOSTA', 
     totaleProdottiPubblicati: 412,
     limiteApplicato: 300,
     troncato: true,
+    lavagna: [],
   });
   assert.match(html, /Sono mostrati i primi\s*300\s*prodotti di\s*412/);
   assert.match(html, /chiedi in cassa/i);
@@ -98,6 +100,7 @@ test("i due numeri non sono costanti del sito", async () => {
     totaleProdottiPubblicati: 57,
     limiteApplicato: 25,
     troncato: true,
+    lavagna: [],
   });
   assert.match(html, /primi\s*25\s*prodotti di\s*57/);
 });
@@ -108,6 +111,7 @@ test('nessun prodotto pubblicato: 200 con un messaggio, mai una pagina bianca', 
     totaleProdottiPubblicati: 0,
     limiteApplicato: 300,
     troncato: false,
+    lavagna: [],
   });
   // ⚠️ È uno stato LEGITTIMO — nessuno ha ancora pubblicato — ed è diverso dalla
   //    degradazione, dove il dato non è arrivato: quella risponde 503 (Fase 10).
@@ -142,12 +146,30 @@ test('nessun campo contabile o interno nella pagina renderizzata', async () => {
   }
 });
 
-test("l'immagine di un prodotto passa dal componente, con srcset e sizes", async () => {
+test('🔴 il listino NON scarica una foto per riga', async () => {
+  // ⚠️ È la differenza che pesa di più fra questa pagina e quella che c'era prima, e non è
+  //    estetica: il listino era una griglia di card con la foto di ogni prodotto. Con
+  //    quaranta voci sono quaranta immagini da scaricare **per leggere dei prezzi** — su un
+  //    telefono, in strada, mentre si decide se entrare.
+  //
+  //    Le foto restano, ma sono quelle della galleria e stanno in coda: un numero fisso,
+  //    indipendente da quanto è lungo il listino.
+  api.stato.risposte['/api/public/galleria'] = { immagini: [immagineFinta()] };
   const { html } = await menuCon(CATALOGO);
-  assert.match(html, /<picture/);
+
+  const immagini = [...html.matchAll(/<picture/g)].length;
+  assert.ok(
+    immagini <= 3,
+    `la pagina del menu rende ${immagini} immagini: il listino è tornato a card, e il peso ` +
+      'della pagina cresce con il numero di prodotti'
+  );
+
+  // Quelle che ci sono passano comunque dal componente, con srcset e sizes.
   assert.match(html, /type="image\/webp"/);
   // Due varianti, non quattro: l'immagine finta ne dichiara due.
   const srcset = html.match(/srcset="([^"]*webp[^"]*)"/)[1];
   assert.equal(srcset.split(',').length, 2, srcset);
   assert.match(html, /sizes="/);
+
+  api.stato.risposte['/api/public/galleria'] = { immagini: [] };
 });

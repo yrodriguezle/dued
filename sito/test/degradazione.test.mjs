@@ -29,6 +29,7 @@ const CATALOGO = {
   totaleProdottiPubblicati: 1,
   limiteApplicato: 300,
   troncato: false,
+  lavagna: [],
 };
 
 /** Le direttive di `Cache-Control`, lette e non confrontate con una stringa. */
@@ -59,8 +60,17 @@ describe('con il backend irraggiungibile', () => {
 
     const html = await r.text();
     // Ciò che resta è contenuto VERO, perché quegli asset sono locali.
-    assert.match(html, /Colazione Pranzo Aperitivo/);
-    assert.match(html, /L’attesa del piacere/);
+    //
+    // ⚠️ Le tre parole sono il TITOLO della home e non più l'insegna riprodotta: dal redesign
+    //    stanno su due righe con l'ultima in corsivo, quindi la stringa contigua «Colazione
+    //    Pranzo Aperitivo» non esiste più nel markup. Restano testo, che è la proprietà che
+    //    conta — leggibile, traducibile, indicizzabile — e questa forma lo verifica insieme
+    //    al fatto che il corsivo sia un `<em>` e non un'inclinazione applicata a mano.
+    assert.match(
+      html,
+      /Colazione,\s*<br[^>]*>\s*pranzo e <em[^>]*>aperitivo<\/em>/,
+      'il titolo della home non è in pagina: era ciò che restava di vero quando manca tutto'
+    );
     assert.match(html, /<svg/, 'il logo è locale e deve esserci comunque');
     // E ciò che manca è dichiarato, non semplicemente assente.
     assert.match(html, /non sono raggiungibili/i);

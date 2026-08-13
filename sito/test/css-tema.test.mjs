@@ -34,7 +34,7 @@ import '../styles/global.css';
 ---
 <html lang="it"><body class="bg-sfondo text-inchiostro border-bordo font-titolo">
   <span class="bg-sfondo-alt bg-superficie bg-accento text-inchiostro-tenue text-accento border-inchiostro"></span>
-  <span class="bg-arancio border-arancio fill-arancio font-firma font-insegna font-corpo"></span>
+  <span class="bg-arancio border-arancio fill-arancio font-corpo font-mono"></span>
   <span class="text-arancio sera:bg-superficie"></span>
 </body></html>
 `;
@@ -86,6 +86,19 @@ test('🔴 le utility di colore inlinano il token di RUNTIME', () => {
 });
 
 test('le sette utility di sfondo, testo e bordo esistono e puntano tutte a --c-*', () => {
+  // ⚠️ Il confronto NON può essere `css.includes('.classe{prop:var(--token)}')`, e la ragione
+  //    è il minificatore: quando in pagina compare anche una variante di opacità
+  //    (`border-bordo/60`), lightningcss **raggruppa i selettori** e la regola diventa
+  //    `.border-bordo,.border-bordo\/60{…}`. La stringa esatta sparisce, il CSS è corretto, e
+  //    il test fallirebbe dicendo «manca .border-bordo» — mandando a cercare un guasto che
+  //    non c'è. Qui si cerca la classe **dentro la lista di selettori** della regola.
+  const regola = (classe, proprieta, token) => {
+    const schema = new RegExp(
+      `(^|[,}])\\.${classe}(\\\\\\/\\d+)?\\s*[,{][^}]*${proprieta}:\\s*var\\(${token}\\)`
+    );
+    return schema.test(css);
+  };
+
   for (const [classe, proprieta, token] of [
     ['bg-sfondo', 'background-color', '--c-sfondo'],
     ['bg-sfondo-alt', 'background-color', '--c-sfondo-alt'],
@@ -96,25 +109,39 @@ test('le sette utility di sfondo, testo e bordo esistono e puntano tutte a --c-*
     ['text-accento', 'color', '--c-accento'],
     ['border-bordo', 'border-color', '--c-bordo'],
   ]) {
-    assert.ok(
-      css.includes(`.${classe}{${proprieta}:var(${token})}`),
-      `manca o non è inline: .${classe}`
-    );
+    assert.ok(regola(classe, proprieta, token), `manca o non è inline: .${classe}`);
   }
 });
 
 test('🔴 la classe di testo arancione NON esiste nel CSS generato', () => {
   // La sonda la scrive (`class="text-arancio"`). Se il token fosse dentro @theme,
-  // Tailwind la genererebbe: è precisamente la mutazione del task 4.9.
+  // Tailwind la genererebbe.
   assert.doesNotMatch(
     css,
     /\.text-arancio\b/,
-    "l'arancio è rientrato nella namespace del tema: `text-arancio` ora esiste, e porta " +
-      'testo a contrasto 2.11 sulla crema — sotto persino la soglia del testo grande.'
+    "l'arancio di marca è rientrato nella namespace del tema: `text-arancio` ora esiste, e " +
+      'porta testo a contrasto 2.24 sulla crema — sotto persino la soglia del testo grande. ' +
+      "L'accento di testo è `text-accento`, che nei due registri vale due arancioni diversi."
   );
   // Scriverla non produce alcun effetto: nessuna regola, quindi il testo resta del colore
   // ereditato. Il default del guasto è sicuro.
   assert.ok(!css.includes('text-arancio'));
+});
+
+test("🔴 di giorno l'accento di testo NON è l'arancio di marca", () => {
+  // La decisione D1 del redesign, e l'unica difesa contro la sua regressione più probabile:
+  // qualcuno allinea `--c-accento` del registro giorno all'arancio del mockup «perché è il
+  // colore di marca» e ottiene 2.24 su tutto il testo d'accento della pagina chiara, in un
+  // modo che a occhio sembra soltanto più acceso.
+  const giorno = css.match(/(?::root|\[data-tema=giorno\])[^{]*\{([^}]*--c-accento:[^}]*)\}/);
+  assert.ok(giorno, 'blocco del registro giorno non trovato');
+  const valore = giorno[1].match(/--c-accento:\s*([^;}]+)/)[1].trim().toLowerCase();
+  assert.notEqual(
+    valore,
+    '#fd8502',
+    "--c-accento di giorno è l'arancio di marca puro: 2.24 sulla crema. Serve un arancio " +
+      'bruciato più scuro (#A34E00 → 5.24). Di sera invece #FD8502 è giusto: fa 7.53.'
+  );
 });
 
 test('le tre utility ammesse dell\'arancio esistono', () => {

@@ -1,0 +1,92 @@
+---
+// Il piè di pagina: insegna, dove e quando, i profili, l'anno.
+//
+// ⚠️ Si rende **anche in degradazione**, con quello che c'è. Il mockup ci mette
+//    l'indirizzo e gli orari, che vengono dall'API: quando l'API non risponde restano
+//    l'insegna e i collegamenti interni, che sono comunque utili — un piè di pagina che
+//    sparisce lascia il visitatore in fondo a una pagina senza uscite.
+
+import { ROTTE } from '../lib/rotte.ts';
+import { riassumiGiorni } from '../lib/formato.ts';
+import type { SitoPubblico } from '../lib/tipi.ts';
+
+interface Props {
+  sito: SitoPubblico | null;
+}
+
+const { sito } = Astro.props;
+
+const giorni = riassumiGiorni(sito?.orari.giorniOperativi);
+const orario = sito ? `${sito.orari.apertura}—${sito.orari.chiusura}` : null;
+
+// L'indirizzo su una riga, saltando i pezzi che mancano invece di lasciare virgole vuote.
+const riga = sito
+  ? [
+      `${sito.indirizzo.via} · ${sito.indirizzo.cap} ${sito.indirizzo.citta} (${sito.indirizzo.provincia})`,
+      giorni && orario ? `${giorni} ${orario}` : orario,
+    ]
+      .filter(Boolean)
+      .join(' · ')
+  : null;
+
+// L'anno viene dall'orologio del **server**, che è quello di Roma nel container. È l'unico
+// dato d'orologio reso server-side in tutto il sito, e va bene: un anno non cambia dentro i
+// sessanta secondi del micro-cache, e non dipende da dove sta il visitatore.
+const anno = new Date().getFullYear();
+---
+
+<footer class="border-bordo mt-24 border-t">
+  <div class="mx-auto max-w-6xl px-5 py-10 sm:px-8">
+    <div class="flex flex-wrap items-center justify-between gap-x-8 gap-y-6">
+      <p class="font-titolo text-2xl">{sito?.insegna ?? '2 D Gusto'}</p>
+
+      <nav class="flex flex-wrap gap-x-5 gap-y-2" aria-label="Piè di pagina">
+        {
+          ROTTE.map((rotta) => (
+            <a
+              href={rotta.percorso}
+              class="text-inchiostro-tenue hover:text-inchiostro text-sm transition-colors"
+            >
+              {rotta.etichetta}
+            </a>
+          ))
+        }
+      </nav>
+
+      <div class="flex flex-wrap gap-x-5 gap-y-2">
+        {
+          /* URL completi dall'API: il sito non sa come si costruisce un indirizzo social. */
+          sito?.social.instagram && (
+            <a
+              href={sito.social.instagram}
+              rel="me noopener"
+              target="_blank"
+              class="text-inchiostro-tenue hover:text-inchiostro text-sm transition-colors"
+            >
+              Instagram
+            </a>
+          )
+        }
+        {
+          sito?.social.facebook && (
+            <a
+              href={sito.social.facebook}
+              rel="me noopener"
+              target="_blank"
+              class="text-inchiostro-tenue hover:text-inchiostro text-sm transition-colors"
+            >
+              Facebook
+            </a>
+          )
+        }
+      </div>
+    </div>
+
+    <div
+      class="border-bordo text-inchiostro-tenue mt-8 flex flex-wrap items-center justify-between gap-4 border-t pt-6 text-[13px]"
+    >
+      {riga && <p>{riga}</p>}
+      <p class="font-mono tracking-[0.08em]">© {anno}</p>
+    </div>
+  </div>
+</footer>

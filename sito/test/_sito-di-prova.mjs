@@ -37,6 +37,33 @@ export const SITO_FINTO = {
   },
   seo: { titoloDefault: null, descrizioneDefault: null, immagineOg: null },
   oraInizioTemaSera: '18:00',
+  // ⚠️ `testi` e `recensioni` sono fra le chiavi che `leggiSito` PRETENDE, quindi non sono
+  //    facoltative nemmeno qui: senza, ogni pagina di ogni test cadrebbe in degradazione e i
+  //    fallimenti direbbero «manca la striscia dei consigli» invece di «manca una chiave».
+  //    Tutti i testi sono `null` di proposito — è lo stato di un'installazione nuova, ed è
+  //    quello in cui le sezioni editoriali NON devono rendersi.
+  testi: { claim: null, storia: null, aperitivo: null },
+  reputazione: null,
+  recensioni: [],
+};
+
+/** L'identità con i testi editoriali compilati, per i casi che li esercitano. */
+export const SITO_FINTO_CON_TESTI = {
+  ...SITO_FINTO,
+  testi: {
+    claim: 'Espresso alle sette, mojito al tramonto.',
+    storia: { titolo: 'Due mani italiane', testo: 'Primo capoverso.\n\nSecondo capoverso.' },
+    aperitivo: {
+      titolo: 'Apericosto',
+      testo: 'Un cocktail e il tagliere del giorno.',
+      punti: ['Un cocktail a scelta', 'Il tagliere del giorno'],
+      categorie: ['Cocktail'],
+    },
+  },
+  reputazione: { punteggio: 4.7, numero: 180, urlProfilo: null },
+  recensioni: [
+    { id: 1, autore: 'Recensione Google', testo: 'Il mojito è fatto come si deve.', fonte: 'Google', punteggio: 5 },
+  ],
 };
 
 export function immagineFinta(chiave = '2026/08/foto-prova', larghezze = [400, 800]) {
@@ -74,7 +101,14 @@ export async function backendFinto(risposteIniziali = {}) {
   const stato = {
     risposte: {
       '/api/public/site': SITO_FINTO,
-      '/api/public/menu': { categorie: [], totaleProdottiPubblicati: 0, limiteApplicato: 300, troncato: false },
+      // `lavagna` è anch'essa fra le chiavi pretese da `leggiMenu`: vuota è lo stato normale.
+      '/api/public/menu': {
+        categorie: [],
+        totaleProdottiPubblicati: 0,
+        limiteApplicato: 300,
+        troncato: false,
+        lavagna: [],
+      },
       '/api/public/galleria': { immagini: [] },
       ...risposteIniziali,
     },

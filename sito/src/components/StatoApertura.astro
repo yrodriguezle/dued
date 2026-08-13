@@ -1,0 +1,43 @@
+---
+// La pastiglia «Aperto · fino alle 20:00» dell'intestazione.
+//
+// 🔴 **Gli ORARI sono dato, lo STATO è orologio.** Gli orari li rende il server, perché
+//    vengono dall'API e sono uguali per tutti; «aperto» o «chiuso» dipende da *quando* si
+//    guarda la pagina, e queste pagine stanno dietro un micro-cache: renderizzarlo sul
+//    server significherebbe servire «Aperto» alle undici di sera a chiunque apra la pagina
+//    dopo chi ha riempito la cache.
+//
+// ⚠️ E il confronto lo fa `eAperto` sull'ora **di Roma**, non su quella del visitatore: chi
+//    guarda il sito da Tokyo deve leggere se il bar è aperto adesso a Thiene. È in
+//    `lib/tema.ts`, serializzato nello script del guscio.
+//
+// 🔴 La larghezza è RISERVATA (`min-w`), e non è cosmesi: la pastiglia nasce trasparente e
+//    lo script la accende. Senza riserva, all'accensione il bottone del tema e il richiamo
+//    accanto slitterebbero — uno spostamento di layout nel punto più guardato della pagina,
+//    e per giunta dopo il primo paint, cioè quello che pesa di più.
+//
+// Senza JavaScript la pastiglia resta invisibile e non lascia un buco: gli orari veri sono
+// comunque in pagina, resi dal server.
+
+interface Props {
+  classe?: string;
+}
+
+const { classe = '' } = Astro.props;
+---
+
+<span
+  id="stato-apertura"
+  class:list={[
+    'border-bordo text-inchiostro-tenue font-mono inline-flex min-w-[19ch] items-center',
+    'justify-center gap-2 rounded-full border px-3 py-2 text-[11px] tracking-[0.06em]',
+    'whitespace-nowrap uppercase opacity-0 transition-opacity duration-300',
+    classe,
+  ]}
+>
+  <span
+    id="stato-pallino"
+    class="bg-inchiostro-tenue h-[7px] w-[7px] shrink-0 rounded-full"
+    aria-hidden="true"></span>
+  <span id="stato-testo"></span>
+</span>

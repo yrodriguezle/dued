@@ -17,25 +17,15 @@
 
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { execFileSync, spawn } from 'node:child_process';
-import { createServer } from 'node:http';
 import { readdirSync, statSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { radiceSito } from './_scansione.mjs';
+import { backendFinto, costruisci, avviaSito } from './_sito-di-prova.mjs';
 
 let base = '';
-let server;
+let api;
+let sito;
 let html = '';
-
-function portaLibera() {
-  return new Promise((risolvi) => {
-    const s = createServer();
-    s.listen(0, '127.0.0.1', () => {
-      const { port } = s.address();
-      s.close(() => risolvi(port));
-    });
-  });
-}
 
 async function scarica(intestazioni = {}) {
   const r = await fetch(base, { headers: intestazioni });
@@ -43,39 +33,24 @@ async function scarica(intestazioni = {}) {
 }
 
 before(async () => {
-  execFileSync('npx', ['astro', 'build'], { cwd: radiceSito, shell: true, stdio: 'pipe' });
-
-  const porta = await portaLibera();
-  server = spawn(process.execPath, ['dist/server/entry.mjs'], {
-    cwd: radiceSito,
-    env: {
-      ...process.env,
-      PORT: String(porta),
-      HOST: '127.0.0.1',
-      // Il server legge il backend in HTTPS: senza la CA la pagina nascerebbe degradata, e
-      // le prove girerebbero su un HTML che non è quello vero.
-      NODE_EXTRA_CA_CERTS: join(radiceSito, '..', 'backend', '.certs', 'aspnet-dev.pem'),
-    },
-    stdio: 'ignore',
-  });
-  base = `http://127.0.0.1:${porta}/`;
-
-  for (let i = 0; i < 60; i++) {
-    try {
-      const r = await fetch(base);
-      if (r.ok) {
-        html = await r.text();
-        return;
-      }
-    } catch {
-      /* non ancora in ascolto */
-    }
-    await new Promise((r) => setTimeout(r, 100));
-  }
-  throw new Error(`il server di prova non ha risposto su ${base}`);
+  // ⚠️ **Il backend FINTO, non quello di sviluppo su :4000.** Fino al redesign questa prova
+  //    leggeva il backend vero, e la cosa si è rivelata una trappola precisa: il giorno in
+  //    cui il DTO pubblico è cresciuto, l'istanza che l'utente aveva acceso da prima —
+  //    quindi con lo schema vecchio — ha fatto nascere la pagina **degradata**, e le
+  //    asserzioni fallivano dicendo «gli orari non sono stati resi dal server». Il guasto
+  //    non era nel sito: era che la prova dipendeva da quale build stava girando su un'altra
+  //    finestra. È lo stesso motivo per cui le altre prove della suite non lo usano.
+  api = await backendFinto();
+  costruisci({ API_INTERNA_URL: api.origine });
+  sito = await avviaSito();
+  base = `${sito.base}/`;
+  html = await (await fetch(base)).text();
 });
 
-after(() => server?.kill());
+after(() => {
+  sito?.ferma();
+  api?.chiudi();
+});
 
 test('1 — due richieste a cavallo di un minuto sono identiche byte per byte', async () => {
   // ⚠️ Non due richieste ravvicinate: DUE MINUTI DIVERSI. Una stringa che dipende
@@ -169,13 +144,49 @@ test('🔴 lo stato di apertura non compare nel corpo, gli orari sì', () => {
   // ⚠️ Si guarda il CORPO: le due parole esistono nello script (è lui a scriverle), e
   //    cercarle in tutto il documento renderebbe questa prova impossibile da soddisfare.
   const corpo = html.slice(html.indexOf('<body'));
-  assert.ok(!/aperto ora|chiuso ora/i.test(corpo), 'lo stato è già deciso nel markup');
 
-  // L'elemento che le ospiterà è servito nascosto: niente salto di layout quando compare.
-  assert.match(corpo, /id="stato-apertura"[^>]*hidden/);
+  // Il contenitore del testo è servito VUOTO: è lui a ricevere «Aperto · fino alle 20:00».
+  const testoStato = corpo.match(/id="stato-testo"[^>]*>([^<]*)</);
+  assert.ok(testoStato, 'manca il contenitore del testo di stato');
+  assert.equal(
+    testoStato[1].trim(),
+    '',
+    `il server ha già scritto lo stato («${testoStato[1]}»): finirebbe nel micro-cache e ` +
+      'verrebbe servito a chi apre la pagina in un altro momento della giornata'
+  );
+
+  // ⚠️ La pastiglia è servita TRASPARENTE con la larghezza già riservata, e non con
+  //    `hidden`, come faceva la versione precedente. Non è un dettaglio di stile: dal
+  //    redesign quell'elemento sta nell'intestazione, in mezzo al bottone del tema e al
+  //    richiamo. Con `display:none` l'accensione li farebbe slittare — uno spostamento di
+  //    layout nel punto più guardato della pagina, e dopo il primo paint, cioè quello che
+  //    pesa di più nella metrica.
+  const pastiglia = corpo.match(/<span[^>]*id="stato-apertura"[^>]*>/)[0];
+  assert.match(pastiglia, /opacity-0/, 'la pastiglia di stato è servita già visibile');
+  assert.match(
+    pastiglia,
+    /min-w-\[/,
+    'la pastiglia non riserva la propria larghezza: accendendosi sposterebbe il resto ' +
+      "dell'intestazione"
+  );
 
   // Gli orari invece ci sono: sono dato, non orologio.
   assert.match(corpo, /\d{2}:\d{2}/, 'gli orari non sono stati resi dal server');
+});
+
+test('🔴 nemmeno la scelta del registro è nel markup servito', () => {
+  // `data-scelta` è il secondo attributo che lo script scrive sulla radice — è quello che
+  // permette al CSS di dipingere l'icona giusta del selettore prima del primo paint. Vale la
+  // stessa regola di `data-tema`: deciderlo sul server significa servirlo dalla cache a chi
+  // ha una preferenza diversa.
+  const tagRadice = html.match(/<html[^>]*>/)[0];
+  assert.ok(!tagRadice.includes('data-scelta'), `il tag radice porta la scelta: ${tagRadice}`);
+
+  const markup = html.replace(/<script>[\s\S]*?<\/script>/g, '');
+  assert.ok(
+    !markup.slice(0, markup.indexOf('<body')).includes('data-scelta'),
+    "la scelta del registro compare nel <head> fuori dallo script: è una decisione del server"
+  );
 });
 
 test("l'etichetta del toggle servita è neutra", () => {

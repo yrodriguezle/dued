@@ -1,0 +1,73 @@
+---
+// Il riquadro «dove siamo». Non è una mappa: è ciò che sta al posto di una mappa, e il
+// perché sta per esteso in cima a `lib/mappa.ts` — nessuna terza parte, nessun consenso,
+// nessun JavaScript, e il gesto utile a un tocco.
+
+import Freccia from './Freccia.astro';
+import { urlIndicazioni, urlLuogo } from '../lib/mappa.ts';
+import type { SitoPubblico } from '../lib/tipi.ts';
+
+interface Props {
+  sito: SitoPubblico;
+  classe?: string;
+}
+
+const { sito, classe = '' } = Astro.props;
+const { via, cap, citta, provincia } = sito.indirizzo;
+---
+
+<div
+  class:list={[
+    'border-bordo bg-sfondo-alt relative flex flex-col justify-between overflow-hidden rounded-2xl border p-7',
+    classe,
+  ]}
+>
+  {/*
+    Il reticolo: due gradienti ripetuti, zero richieste. Non finge di essere la pianta di
+    Thiene — sarebbe una mappa sbagliata, che è peggio di nessuna mappa.
+  */}
+  <div
+    class="pointer-events-none absolute inset-0 opacity-[0.55]"
+    style="background-image:repeating-linear-gradient(0deg,var(--c-bordo) 0 1px,transparent 1px 44px),repeating-linear-gradient(90deg,var(--c-bordo) 0 1px,transparent 1px 44px)"
+    aria-hidden="true"
+  >
+  </div>
+
+  <div class="relative">
+    <svg
+      class="fill-arancio mb-4 h-9 w-9"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        d="M12 2c-3.9 0-7 3.1-7 7 0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z"
+      ></path>
+    </svg>
+    <p class="font-mono text-inchiostro-tenue text-[11px] tracking-[0.18em] uppercase">
+      Dove siamo
+    </p>
+    <address class="font-titolo mt-2 text-3xl leading-tight not-italic">
+      {via}<br />{cap} {citta} ({provincia})
+    </address>
+  </div>
+
+  <div class="relative mt-8 flex flex-wrap gap-3">
+    <a
+      href={urlIndicazioni(sito)}
+      target="_blank"
+      rel="noopener"
+      class="bg-inchiostro text-sfondo inline-flex items-center gap-2 rounded-full px-6 py-3.5 text-[15px] font-semibold transition-opacity hover:opacity-90"
+    >
+      Indicazioni <Freccia />
+    </a>
+    <a
+      href={urlLuogo(sito)}
+      target="_blank"
+      rel="noopener"
+      class="border-bordo hover:border-inchiostro-tenue inline-flex items-center gap-2 rounded-full border px-6 py-3.5 text-[15px] font-semibold transition-colors"
+    >
+      Apri la mappa
+    </a>
+  </div>
+</div>

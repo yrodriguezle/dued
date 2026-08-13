@@ -1,0 +1,61 @@
+---
+// Una riga del listino: nome, filetto punteggiato, prezzo.
+//
+// Sostituisce `SchedaProdotto.astro`, che rendeva ogni prodotto come una card con foto. Il
+// mockup impagina il menu come un listino tipografico, e non è solo estetica: con quaranta
+// voci, quaranta card sono quaranta immagini da scaricare per leggere dei prezzi.
+//
+// ⚠️ `descrizione` è quella **di vetrina** e non ha alcun fallback su quella contabile: un
+//    prodotto senza scheda di vetrina non mostra descrizione. Ricadere sull'altra farebbe
+//    comparire sul sito una nota interna scritta per la cassa — cosa che il DTO del backend
+//    evita apposta, e che sarebbe un peccato reintrodurre qui.
+
+import { euro } from '../lib/formato.ts';
+import type { ProdottoPubblico } from '../lib/tipi.ts';
+
+interface Props {
+  prodotto: ProdottoPubblico;
+  /** `distesa` aggiunge la descrizione sotto; `compatta` è la sola riga nome/prezzo. */
+  forma?: 'compatta' | 'distesa';
+}
+
+const { prodotto, forma = 'compatta' } = Astro.props;
+---
+
+<div class="border-bordo border-b py-3 last:border-b-0">
+  <div class="flex items-baseline gap-3">
+    <span class="text-[15px] font-medium">
+      {prodotto.nome}
+      {
+        prodotto.novita && (
+          <span class="bg-arancio ml-2 rounded-full px-2 py-0.5 align-[0.1em] text-[10px] font-bold tracking-wider text-[#16130F] uppercase">
+            novità
+          </span>
+        )
+      }
+    </span>
+    <span class="filetto" aria-hidden="true"></span>
+    <span class="font-mono text-inchiostro-tenue shrink-0 text-sm">{euro(prodotto.prezzo)}</span>
+  </div>
+
+  {
+    forma === 'distesa' && prodotto.descrizione && (
+      <p class="text-inchiostro-tenue mt-1 text-sm leading-relaxed text-pretty">
+        {prodotto.descrizione}
+      </p>
+    )
+  }
+
+  {
+    /*
+      Gli allergeni non sono un vezzo: per un locale che serve cibo sono un'informazione di
+      sicurezza. Restano piccoli ma leggibili — `text-inchiostro-tenue` è sopra 4.5 in
+      entrambi i registri.
+    */
+    prodotto.allergeni && (
+      <p class="text-inchiostro-tenue mt-1 text-xs">
+        <span class="font-mono tracking-wider uppercase">Allergeni:</span> {prodotto.allergeni}
+      </p>
+    )
+  }
+</div>

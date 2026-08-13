@@ -1,0 +1,64 @@
+---
+// Il nastro arancione che scorre sotto l'eroe.
+//
+// 🔴 **Le parole sono DATO, non un array scritto qui.** Nel mockup sono sei parole fisse
+//    («Espresso · Congri · Mojito · Panino cubano…»). Scriverle nel componente vorrebbe dire
+//    che il giorno in cui il locale smette di fare il congri, il sito continua a gridarlo —
+//    e nessuno collegherebbe mai quella riga al listino. Qui vengono dai prodotti che
+//    l'amministratore ha marcato **consigliati**, che è esattamente la lista che il mockup
+//    ha scritto a mano: i piatti che il locale mette in vetrina.
+//
+// Con meno di tre consigliati si ripiega sulle **categorie di vetrina**, che sono comunque
+// vere; senza nemmeno quelle il nastro **non si rende affatto**. Un nastro vuoto che scorre
+// è peggio di nessun nastro.
+//
+// ⚠️ La lista è **duplicata** nel markup, ed è ciò che rende il ciclo continuo: l'animazione
+//    trasla di `-50%`, cioè esattamente della prima copia, e al termine si ritrova nella
+//    posizione di partenza. Con una copia sola si vedrebbe il salto a ogni giro.
+//
+// ⚠️ `prefers-reduced-motion: reduce` ferma l'animazione (in `global.css`). Fermo, il nastro
+//    resta leggibile: è una riga di parole, non un carosello che nasconde metà del contenuto.
+
+import type { MenuPubblico } from '../lib/tipi.ts';
+
+interface Props {
+  menu: MenuPubblico | null;
+}
+
+const { menu } = Astro.props;
+
+const consigliati = (menu?.categorie ?? [])
+  .flatMap((c) => c.prodotti)
+  .filter((p) => p.consigliato)
+  .map((p) => p.nome);
+
+const categorie = (menu?.categorie ?? []).map((c) => c.nome);
+const parole = consigliati.length >= 3 ? consigliati : categorie;
+
+// Il separatore è U+00B7, dentro il subset latino: nessun glifo mancante, nessun ripiego.
+const sequenza = parole.flatMap((parola) => [parola, '·']);
+---
+
+{
+  parole.length > 0 && (
+    <div
+      class="bg-arancio flex overflow-hidden py-3.5 text-[#16130F]"
+      role="presentation"
+      aria-hidden="true"
+    >
+      {[0, 1].map(() => (
+        <div class="nastro-scorre font-mono flex shrink-0 gap-10 pr-10 text-xs font-medium tracking-[0.2em] whitespace-nowrap uppercase">
+          {sequenza.map((parola) => (
+            <span>{parola}</span>
+          ))}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+{/*
+  🔴 `aria-hidden` sull'intero nastro, e non è pigrizia: per uno screen reader questa è una
+     fila di sostantivi senza verbo, ripetuta due volte, in mezzo alla pagina. I nomi dei
+     piatti sono già nel listino, dove hanno un prezzo accanto e un senso.
+*/}

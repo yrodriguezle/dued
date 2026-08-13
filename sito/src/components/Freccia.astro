@@ -1,0 +1,42 @@
+---
+// La freccia →, disegnata invece che scritta.
+//
+// ─────────────────────────────────────────────────────────────────────────────────────
+// 🔴 U+2192 NON È NEL SUBSET LATINO dei nostri caratteri, e i due vicini che ci sono —
+//    U+2191 ↑ e U+2193 ↓ — rendono la cosa facilissima da dare per scontata leggendo
+//    l'`unicode-range`.
+//
+// Una freccia scritta come carattere viene quindi resa dal **ripiego di sistema**: cambia
+// forma, peso e allineamento verticale fra Windows, macOS e Android, e su qualche Android
+// non c'è affatto. Non è un errore che qualcuno noterà sulla propria macchina — è un errore
+// che vedono gli altri.
+//
+// Il mockup le frecce ce le ha («Tutto il menu →»), quindi il glifo serve: qui è un SVG che
+// eredita `currentColor` e si dimensiona in `em`, cioè si comporta come il carattere che
+// avrebbe dovuto essere. Un test cerca il carattere → nell'HTML servito e pretende zero.
+// ─────────────────────────────────────────────────────────────────────────────────────
+
+interface Props {
+  /** `destra` per i link, `giu` per gli inviti a scorrere. */
+  verso?: 'destra' | 'giu';
+  classe?: string;
+}
+
+const { verso = 'destra', classe = '' } = Astro.props;
+---
+
+<svg
+  class:list={['inline-block h-[1em] w-[1em] shrink-0 align-[-0.115em]', classe]}
+  style={verso === 'giu' ? 'transform:rotate(90deg)' : undefined}
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="1.75"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  aria-hidden="true"
+  focusable="false"
+>
+  <path d="M4 12h15" />
+  <path d="m13 6 6 6-6 6" />
+</svg>

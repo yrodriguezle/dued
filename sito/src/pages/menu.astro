@@ -1,34 +1,44 @@
 ---
-// Il menu pubblicato — il deliverable di questa fase del progetto.
+// Il menu pubblicato.
+//
+// ⚠️ **Non è più una griglia di card con foto, ed è la differenza che conta di più fra il
+//    mockup e ciò che c'era prima.** Con quaranta voci, quaranta card sono quaranta immagini
+//    da scaricare per leggere dei prezzi — su un telefono, in strada, mentre si decide se
+//    entrare. Il listino tipografico si legge tutto in una schermata e pesa quanto il testo
+//    che contiene. Le foto restano, ma in fondo e poche.
 //
 // Le categorie sono quelle **di vetrina** e si rendono nell'ordine in cui l'API le manda:
 // l'ordinamento è una decisione dell'amministratore (`OrdinamentoVetrina`), non del sito.
 
 import Base from '../layouts/Base.astro';
-import Logo from '../components/Logo.astro';
-import TemaSwitch from '../components/TemaSwitch.astro';
-import SchedaProdotto from '../components/SchedaProdotto.astro';
+import Immagine from '../components/Immagine.astro';
+import VoceListino from '../components/VoceListino.astro';
 import AvvisoDegradazione from '../components/AvvisoDegradazione.astro';
-import { leggiSito, leggiMenu } from '../lib/api.ts';
+import { leggiSito, leggiMenu, leggiGalleria } from '../lib/api.ts';
 
-// 🔴 `Promise.all` e non `allSettled`: nessuna delle due letture rifiuta mai (§D4), quindi
-//    non c'è nulla da cortocircuitare e un fallimento parziale resta parziale.
-const [esitoSito, esitoMenu] = await Promise.all([leggiSito(), leggiMenu()]);
+// 🔴 `Promise.all` e non `allSettled`: nessuna delle letture rifiuta mai (§D4), quindi non
+//    c'è nulla da cortocircuitare e un fallimento parziale resta parziale.
+const [esitoSito, esitoMenu, esitoGalleria] = await Promise.all([
+  leggiSito(),
+  leggiMenu(),
+  leggiGalleria(),
+]);
 const sito = esitoSito.stato === 'ok' ? esitoSito.dati : null;
 const menu = esitoMenu.stato === 'ok' ? esitoMenu.dati : null;
+const galleria = esitoGalleria.stato === 'ok' ? esitoGalleria.dati.immagini : [];
 
 // ── Lo stato della risposta ───────────────────────────────────────────────────────────
 // 🔴 `/menu` risponde **503** quando il listino non c'è, e `/` risponde **200**: le due
 //    scelte hanno ragioni DIVERSE, e non è una simmetria da imporre.
 //    `/` è l'URL che la gente digita e che i motori tengono in indice, e la sua pagina
-//    degradata ha contenuto VERO — marca, slogan, insegna — perché quegli asset sono
-//    locali. `/menu` esiste per un dato: una pagina `200` senza prodotti sarebbe **un menu
-//    vuoto indicizzabile**, cioè la stessa classe di guasto silenzioso che il flag
-//    `troncato` esiste per evitare.
+//    degradata ha contenuto VERO — marca e insegna — perché quegli asset sono locali.
+//    `/menu` esiste per un dato: una pagina `200` senza prodotti sarebbe **un menu vuoto
+//    indicizzabile**, cioè la stessa classe di guasto silenzioso che il flag `troncato`
+//    esiste per evitare.
 //
-// 🔴 E `no-store` su ogni risposta degradata. Senza, il micro-cache di Fase 6
-//    congelerebbe la pagina rotta per sessanta secondi **dopo** che il backend è tornato
-//    su — cioè il guasto durerebbe più del guasto.
+// 🔴 E `no-store` su ogni risposta degradata. Senza, il micro-cache congelerebbe la pagina
+//    rotta per sessanta secondi **dopo** che il backend è tornato su — cioè il guasto
+//    durerebbe più del guasto.
 //
 // Un solo punto scrive `Cache-Control`, ed è questo. Niente `routeRules`: quella è statica
 // per rotta, mentre questa cache è **condizionale sullo stato**, e due posti che scrivono
@@ -52,23 +62,24 @@ if (menu?.troncato) {
 }
 
 const nessunProdotto = menu !== null && menu.categorie.length === 0;
-let indiceGlobale = 0;
+
+// Tre foto in coda, dalla galleria. Non una selezione a parte da tenere allineata: è la
+// stessa libreria, nello stesso ordine editoriale.
+const foto = galleria.slice(0, 3);
 ---
 
 <Base
   titolo={`Menu — ${sito?.insegna ?? '2 D Gusto'}`}
-  descrizione="Caffetteria, pranzo e aperitivo a Thiene. Il listino aggiornato di 2 D Gusto."
+  descrizione="Caffetteria, cucina cubana, panini e cocktail. Il listino aggiornato di 2 D Gusto a Thiene."
   sito={sito}
 >
-  <header class="border-bordo border-b">
-    <div class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-5">
-      <a href="/" aria-label="Torna alla home"><Logo classe="w-40" /></a>
-      <TemaSwitch />
-    </div>
-  </header>
-
-  <main class="mx-auto max-w-5xl px-6 py-10">
-    <h1 class="font-titolo text-4xl tracking-wide sm:text-5xl">Menu</h1>
+  <main class="mx-auto max-w-6xl px-5 py-14 sm:px-8">
+    <p class="font-mono text-accento text-[11.5px] tracking-[0.2em] uppercase">Café · Bistró</p>
+    <h1
+      class="font-titolo mt-4 text-[clamp(2.75rem,5.6vw,5.4rem)] leading-[0.98] tracking-[-0.03em]"
+    >
+      Il menu
+    </h1>
 
     {
       /*
@@ -77,7 +88,7 @@ let indiceGlobale = 0;
         testo parla a chi ha fame.
       */
       menu === null && (
-        <div class="mt-8">
+        <div class="mt-10">
           <AvvisoDegradazione cosa="menu" forma="pagina" />
         </div>
       )
@@ -87,26 +98,45 @@ let indiceGlobale = 0;
       /*
         Categorie vuote è uno stato LEGITTIMO — nessuno ha ancora pubblicato — e produce un
         messaggio, mai una pagina bianca né un 503. È diverso dalla degradazione, dove il
-        dato non è arrivato: lì la pagina lo dichiara in un altro modo (Fase 10).
+        dato non è arrivato: lì la pagina lo dichiara in un altro modo.
       */
       nessunProdotto && (
-        <p class="text-inchiostro-tenue mt-8">
+        <p class="text-inchiostro-tenue mt-8 max-w-[52ch] text-lg">
           Il listino non è ancora pubblicato. Passa a trovarci: te lo raccontiamo di persona.
         </p>
       )
     }
 
     {
-      menu?.categorie.map((categoria) => (
-        <section class="mt-12">
-          <h2 class="font-titolo text-accento text-2xl tracking-wide">{categoria.nome}</h2>
-          <div class="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {categoria.prodotti.map((prodotto) => (
-              <SchedaProdotto prodotto={prodotto} priorita={indiceGlobale++ === 0} />
-            ))}
-          </div>
-        </section>
-      ))
+      /*
+        ⚠️ Due colonne come nel mockup, ma con `break-inside: avoid` invece di una griglia:
+           una griglia a due colonne allinea le RIGHE delle due categorie affiancate, e con
+           dodici voci a sinistra e quattro a destra lascia un buco alto mezza schermata. Le
+           colonne CSS riempiono per flusso, che è come si impagina un listino vero.
+      */
+      menu !== null && menu.categorie.length > 0 && (
+        <div class="mt-12 gap-x-14 lg:columns-2">
+          {menu.categorie.map((categoria) => (
+            <section class="mb-12 break-inside-avoid">
+              <div class="border-inchiostro flex items-baseline justify-between gap-4 border-b-2 pb-3.5">
+                <h2 class="font-titolo text-[31px] leading-none tracking-[-0.01em]">
+                  {categoria.nome}
+                </h2>
+                <span class="font-mono text-inchiostro-tenue shrink-0 text-[11px] tracking-[0.1em] uppercase">
+                  {categoria.prodotti.length}{' '}
+                  {categoria.prodotti.length === 1 ? 'voce' : 'voci'}
+                </span>
+              </div>
+
+              <div class="mt-1">
+                {categoria.prodotti.map((prodotto) => (
+                  <VoceListino prodotto={prodotto} forma="distesa" />
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+      )
     }
 
     {
@@ -116,10 +146,26 @@ let indiceGlobale = 0;
            sa QUANTO manca.
       */
       menu?.troncato && (
-        <p class="border-arancio bg-sfondo-alt mt-12 rounded-lg border-l-4 px-4 py-3 text-sm">
+        <p class="border-arancio bg-sfondo-alt mt-4 rounded-lg border-l-4 px-4 py-3 text-sm">
           Sono mostrati i primi {menu.limiteApplicato} prodotti di{' '}
           {menu.totaleProdottiPubblicati}. Per il listino completo chiedi in cassa.
         </p>
+      )
+    }
+
+    {
+      foto.length > 0 && (
+        <div class="mt-14 grid gap-3.5 sm:grid-cols-3">
+          {foto.map((immagine) => (
+            <figure class="aspect-4/3 overflow-hidden rounded-2xl">
+              <Immagine
+                immagine={immagine}
+                sizes="(min-width: 640px) 22rem, 92vw"
+                classe="block h-full w-full"
+              />
+            </figure>
+          ))}
+        </div>
       )
     }
   </main>
