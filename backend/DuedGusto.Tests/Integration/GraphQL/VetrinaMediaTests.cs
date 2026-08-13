@@ -529,7 +529,7 @@ public class VetrinaMediaTests : IDisposable
     }
 
     [Fact]
-    public async Task SeedMenusSito_InvocatoTreVolte_LasciaUnPadreETreFigli()
+    public async Task SeedMenusSito_InvocatoTreVolte_LasciaUnPadreENoveFigli()
     {
         (ServiceProvider provider, string nomeDatabase) = ProviderDiSeed(
             new Ruolo { Nome = "SuperAdmin", Amministratore = true },
@@ -544,18 +544,123 @@ public class VetrinaMediaTests : IDisposable
         // Il padre si cerca per Titolo + percorso vuoto: cercarlo per il solo percorso ne
         // creerebbe uno nuovo a ogni avvio, come già successo con le Dashboard duplicate.
         verifica.Menus.Count(m => m.Titolo == "Sito" && m.Percorso == string.Empty).Should().Be(1);
-        // Tre, non nove: il conteggio è ciò che distingue un seed idempotente da un seed che
-        // riscrive. Il numero cresce con le voci ed è l'unica riga che va toccata quando ne
+        // Nove, non ventisette: il conteggio è ciò che distingue un seed idempotente da un seed
+        // che riscrive. Il numero cresce con le voci ed è l'unica riga che va toccata quando ne
         // arriva una — l'elenco dei percorsi qui sotto dice quali sono, così un duplicato non
         // può nascondersi dietro un conteggio giusto per caso.
-        verifica.Menus.Count(m => m.Percorso.StartsWith("/gestionale/sito/")).Should().Be(4);
+        verifica.Menus.Count(m => m.Percorso.StartsWith("/gestionale/sito/")).Should().Be(9);
         verifica.Menus.Where(m => m.Percorso.StartsWith("/gestionale/sito/"))
             .Select(m => m.Percorso)
             .Should().BeEquivalentTo(
+                "/gestionale/sito/pagine/home",
+                "/gestionale/sito/pagine/menu",
+                "/gestionale/sito/pagine/aperitivo",
+                "/gestionale/sito/pagine/locale",
+                "/gestionale/sito/pagine/contatti",
                 "/gestionale/sito/media",
                 "/gestionale/sito/prodotti",
-                "/gestionale/sito/impostazioni",
-                "/gestionale/sito/recensioni");
+                "/gestionale/sito/recensioni",
+                "/gestionale/sito/impostazioni");
+
+        // 🔴 L'ordine è il valore del change, non un dettaglio: prima le PAGINE del sito, poi le
+        //    risorse trasversali. E resta lo stesso dopo il terzo avvio — `UpdateMenuIfNeeded`
+        //    riscrive `Posizione` a ogni avvio, quindi un ordine che «si assesta» dopo il primo
+        //    giro sarebbe un ordine che cambia sotto le mani di chi guarda.
+        verifica.Menus.Where(m => m.Percorso.StartsWith("/gestionale/sito/"))
+            .OrderBy(m => m.Posizione)
+            .Select(m => m.Titolo)
+            .Should().Equal(
+                "Home", "Menu", "Aperitivo", "Il locale", "Contatti",
+                "Libreria media", "Prodotti vetrina", "Recensioni sito", "Impostazioni sito");
+        verifica.Menus.Where(m => m.Percorso.StartsWith("/gestionale/sito/"))
+            .Select(m => m.Posizione)
+            .OrderBy(posizione => posizione)
+            .Should().Equal(1, 2, 3, 4, 5, 6, 7, 8, 9);
+    }
+
+    /// <summary>
+    /// 🔴 Il riordino <b>aggiorna</b> le quattro voci preesistenti, non le ricrea.
+    ///
+    /// <para>È la prima volta che il seed viene usato per <b>riordinare</b> invece che per
+    /// <b>creare</b>, e la proprietà va provata su un'installazione che ha già la forma
+    /// precedente — non dedotta dall'idempotenza della creazione, che è un'altra cosa. Se il
+    /// riordino ricreasse una voce, la vecchia resterebbe orfana in navigazione e i ruoli
+    /// assegnati a mano dall'anagrafica sparirebbero con lei.</para>
+    /// </summary>
+    [Fact]
+    public async Task SeedMenusSito_SuUnaSezioneNellaFormaPrecedente_RiordinaSenzaRicreare()
+    {
+        string nomeDatabase = Guid.NewGuid().ToString();
+        int idMedia;
+        int idImpostazioni;
+
+        using (AppDbContext preparazione = TestDbContextFactory.Create(nomeDatabase))
+        {
+            preparazione.Ruoli.Add(new Ruolo { Nome = "SuperAdmin", Amministratore = true });
+            Menu padre = new()
+            {
+                Titolo = "Sito",
+                Percorso = string.Empty,
+                Icona = "Globe",
+                Visibile = true,
+                Posizione = 9,
+                NomeVista = string.Empty,
+                PercorsoFile = string.Empty
+            };
+            preparazione.Menus.Add(padre);
+            preparazione.SaveChanges();
+
+            // La forma PRECEDENTE: quattro figli alle posizioni 1-4, media per prima.
+            Menu media = new()
+            {
+                Titolo = "Libreria media",
+                Percorso = "/gestionale/sito/media",
+                Icona = "Images",
+                Visibile = true,
+                Posizione = 1,
+                NomeVista = "MediaLibrary",
+                PercorsoFile = "sito/MediaLibrary.tsx",
+                MenuPadreId = padre.Id
+            };
+            Menu impostazioni = new()
+            {
+                Titolo = "Impostazioni sito",
+                Percorso = "/gestionale/sito/impostazioni",
+                Icona = "Store",
+                Visibile = true,
+                Posizione = 3,
+                NomeVista = "ImpostazioniVetrinaPage",
+                PercorsoFile = "sito/ImpostazioniVetrinaPage.tsx",
+                MenuPadreId = padre.Id
+            };
+            preparazione.Menus.AddRange(media, impostazioni);
+            preparazione.SaveChanges();
+            idMedia = media.Id;
+            idImpostazioni = impostazioni.Id;
+        }
+
+        ServiceProvider provider = new ServiceCollection()
+            .AddScoped(_ => TestDbContextFactory.Create(nomeDatabase))
+            .BuildServiceProvider();
+
+        await SeedMenusSito.Initialize(provider);
+
+        using AppDbContext verifica = TestDbContextFactory.Create(nomeDatabase);
+        Menu media2 = await verifica.Menus.FirstAsync(m => m.Percorso == "/gestionale/sito/media");
+        Menu impostazioni2 = await verifica.Menus.FirstAsync(m => m.Percorso == "/gestionale/sito/impostazioni");
+
+        // 🔴 Stesso identificativo: sono le RIGHE di prima, aggiornate.
+        media2.Id.Should().Be(idMedia);
+        impostazioni2.Id.Should().Be(idImpostazioni);
+        // Titolo, vista e file invariati: è cambiata soltanto la posizione.
+        media2.Titolo.Should().Be("Libreria media");
+        media2.NomeVista.Should().Be("MediaLibrary");
+        media2.PercorsoFile.Should().Be("sito/MediaLibrary.tsx");
+        media2.Posizione.Should().Be(6);
+        impostazioni2.Posizione.Should().Be(9);
+        // E nessun duplicato: le due voci restano una ciascuna.
+        verifica.Menus.Count(m => m.Percorso == "/gestionale/sito/media").Should().Be(1);
+        verifica.Menus.Count(m => m.Percorso == "/gestionale/sito/impostazioni").Should().Be(1);
     }
 
     /// <summary>
@@ -564,8 +669,27 @@ public class VetrinaMediaTests : IDisposable
     /// alcun test — rompe la voce di menu, con una pagina che non si apre. È l'errore classico
     /// di questo seed, quindi si pinna qui invece di scoprirlo cliccando.
     /// </summary>
-    [Fact]
-    public async Task SeedMenusSito_TerzaVoce_PuntaAlComponenteDelleImpostazioniDelSito()
+    /// <summary>
+    /// Ogni voce punta al componente giusto.
+    ///
+    /// <para>⚠️ Il <c>PercorsoFile</c> è ciò che <c>ProtectedRoutes.loadDynamicComponent()</c>
+    /// importa a runtime, ed è relativo a <c>src/components/pages/</c>: un percorso sbagliato
+    /// non rompe alcun test — rompe la voce di menu, con una pagina che non si apre. È l'errore
+    /// classico di questo seed, e con cinque componenti nuovi in una sottocartella nuova le
+    /// occasioni sono cinque in più.</para>
+    /// </summary>
+    [Theory]
+    [InlineData("/gestionale/sito/pagine/home", "Home", "PaginaHome", "sito/pagine/PaginaHome.tsx", 1, "House")]
+    [InlineData("/gestionale/sito/pagine/menu", "Menu", "PaginaMenu", "sito/pagine/PaginaMenu.tsx", 2, "UtensilsCrossed")]
+    [InlineData("/gestionale/sito/pagine/aperitivo", "Aperitivo", "PaginaAperitivo", "sito/pagine/PaginaAperitivo.tsx", 3, "Martini")]
+    [InlineData("/gestionale/sito/pagine/locale", "Il locale", "PaginaLocale", "sito/pagine/PaginaLocale.tsx", 4, "Armchair")]
+    [InlineData("/gestionale/sito/pagine/contatti", "Contatti", "PaginaContatti", "sito/pagine/PaginaContatti.tsx", 5, "MapPin")]
+    [InlineData("/gestionale/sito/media", "Libreria media", "MediaLibrary", "sito/MediaLibrary.tsx", 6, "Images")]
+    [InlineData("/gestionale/sito/prodotti", "Prodotti vetrina", "VetrinaProdottiList", "sito/VetrinaProdottiList.tsx", 7, "ShoppingBag")]
+    [InlineData("/gestionale/sito/recensioni", "Recensioni sito", "RecensioniVetrinaList", "sito/RecensioniVetrinaList.tsx", 8, "Star")]
+    [InlineData("/gestionale/sito/impostazioni", "Impostazioni sito", "ImpostazioniVetrinaPage", "sito/ImpostazioniVetrinaPage.tsx", 9, "Store")]
+    public async Task SeedMenusSito_OgniVoce_PuntaAlProprioComponente(
+        string percorso, string titolo, string nomeVista, string percorsoFile, int posizione, string icona)
     {
         (ServiceProvider provider, string nomeDatabase) = ProviderDiSeed(
             new Ruolo { Nome = "SuperAdmin", Amministratore = true });
@@ -573,28 +697,49 @@ public class VetrinaMediaTests : IDisposable
         await SeedMenusSito.Initialize(provider);
 
         using AppDbContext verifica = TestDbContextFactory.Create(nomeDatabase);
-        Menu voce = await verifica.Menus.FirstAsync(m => m.Percorso == "/gestionale/sito/impostazioni");
+        Menu voce = await verifica.Menus.FirstAsync(m => m.Percorso == percorso);
 
-        voce.Titolo.Should().Be("Impostazioni sito");
-        voce.NomeVista.Should().Be("ImpostazioniVetrinaPage");
-        voce.PercorsoFile.Should().Be("sito/ImpostazioniVetrinaPage.tsx");
-        voce.Posizione.Should().Be(3);
-        // ⚠️ Non "Settings": quella è già la sezione Impostazioni della cassa, e le due voci
-        // sarebbero indistinguibili proprio dove non vanno confuse.
-        voce.Icona.Should().Be("Store");
-        voce.Icona.Should().NotBe("Settings");
+        voce.Titolo.Should().Be(titolo);
+        voce.NomeVista.Should().Be(nomeVista);
+        voce.PercorsoFile.Should().Be(percorsoFile);
+        voce.Posizione.Should().Be(posizione);
+        voce.Visibile.Should().BeTrue();
+        // ⚠️ L'icona è una stringa e un nome sconosciuto NON dà errore: la voce compare senza
+        // icona. Che esistano davvero in `iconMapping.tsx` lo verifica il test frontend
+        // `iconeDelSeed.test.tsx`; qui si pinna quale nome porta ciascuna voce.
+        voce.Icona.Should().Be(icona);
 
         Menu padre = await verifica.Menus.FirstAsync(m => m.Titolo == "Sito" && m.Percorso == string.Empty);
         voce.MenuPadreId.Should().Be(padre.Id);
+    }
 
-        // La quarta voce, stessa verifica e stesso motivo: il percorso del file è ciò che il
-        // frontend importa a runtime, e un errore lì non rompe alcun test — rompe la pagina.
-        Menu recensioni = await verifica.Menus.FirstAsync(m => m.Percorso == "/gestionale/sito/recensioni");
-        recensioni.Titolo.Should().Be("Recensioni sito");
-        recensioni.NomeVista.Should().Be("RecensioniVetrinaList");
-        recensioni.PercorsoFile.Should().Be("sito/RecensioniVetrinaList.tsx");
-        recensioni.Posizione.Should().Be(4);
-        recensioni.MenuPadreId.Should().Be(padre.Id);
+    /// <summary>
+    /// ⚠️ Non "Settings": quella è già la sezione Impostazioni della cassa, e le due voci
+    /// sarebbero indistinguibili proprio dove non vanno confuse — gli orari si modificano solo
+    /// in una delle due. Stessa regola per le nove icone della sezione, che devono essere
+    /// tutte diverse fra loro.
+    /// </summary>
+    [Fact]
+    public async Task SeedMenusSito_LeNoveIcone_SonoTutteDiverseENessunaEQuellaDellaCassa()
+    {
+        (ServiceProvider provider, string nomeDatabase) = ProviderDiSeed(
+            new Ruolo { Nome = "SuperAdmin", Amministratore = true });
+
+        await SeedMenusSito.Initialize(provider);
+
+        using AppDbContext verifica = TestDbContextFactory.Create(nomeDatabase);
+        List<string> icone = await verifica.Menus
+            .Where(m => m.Percorso.StartsWith("/gestionale/sito/"))
+            .Select(m => m.Icona)
+            .ToListAsync();
+
+        icone.Should().HaveCount(9);
+        icone.Should().OnlyHaveUniqueItems();
+        icone.Should().NotContain("Settings");
+        // ⚠️ E nemmeno `Menu`, che nella libreria è l'hamburger di navigazione e non un listino:
+        // darebbe alla pagina «Menu» del sito l'icona dell'altra cosa che quella parola
+        // significa in questo gestionale.
+        icone.Should().NotContain("Menu");
     }
 
     [Fact]
@@ -613,8 +758,14 @@ public class VetrinaMediaTests : IDisposable
             .Where(m => m.Titolo == "Sito" || m.Percorso.StartsWith("/gestionale/sito/"))
             .ToListAsync();
 
-        vociSito.Should().HaveCount(5);
+        vociSito.Should().HaveCount(10);
         // Le voci nuove non fanno eccezione: il gating si semina insieme alla voce, non dopo.
+        // 🔴 Le cinque schede di pagina sono la superficie nuova, e sono quelle da cui si
+        //    scrivono i testi del sito: se una nascesse senza ruoli, sarebbe invisibile anche a
+        //    un amministratore — o, peggio, visibile a chiunque se il gating fosse per assenza.
+        vociSito.Where(m => m.Percorso.StartsWith("/gestionale/sito/pagine/")).Should().HaveCount(5);
+        vociSito.Where(m => m.Percorso.StartsWith("/gestionale/sito/pagine/"))
+            .Should().OnlyContain(m => m.Ruoli.Count == 2);
         vociSito.Should().Contain(m => m.Percorso == "/gestionale/sito/impostazioni");
         vociSito.Should().Contain(m => m.Percorso == "/gestionale/sito/recensioni");
         // Il ruolo Gestore non compare da nessuna parte: la sezione è riservata.

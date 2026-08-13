@@ -1,5 +1,5 @@
 import { useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { useMutation } from "@apollo/client";
+import { useMutation, useQuery } from "@apollo/client";
 import Autocomplete from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -15,6 +15,7 @@ import Typography from "@mui/material/Typography";
 import MediaCard from "./MediaCard";
 import MediaUploadArea from "./MediaUploadArea";
 import SitoGuard from "./SitoGuard";
+import { ruoliDiUnImmagine } from "./pagine/ruoliPagine";
 import PageTitleContext from "../../layout/headerBar/PageTitleContext";
 import useConfirm from "../../common/confirm/useConfirm";
 import makeRequest from "../../../api/makeRequest";
@@ -22,6 +23,7 @@ import showToast from "../../../common/toast/showToast";
 import useGetAll from "../../../graphql/common/useGetAll";
 import { mediaAssetFragment } from "../../../graphql/vetrina/fragments";
 import { mutationEliminaMediaAsset, mutationMutateMediaAsset } from "../../../graphql/vetrina/mutations";
+import { getRuoliImmaginiVetrina } from "../../../graphql/vetrina/queries";
 
 const AIUTO_CARTELLA = "Etichetta editoriale di raggruppamento: non tocca il percorso dei file su disco.";
 
@@ -58,6 +60,17 @@ function MediaLibrary() {
 
   const [mutateMediaAsset, { loading: salvataggioInCorso }] = useMutation(mutationMutateMediaAsset);
   const [eliminaMediaAsset] = useMutation(mutationEliminaMediaAsset);
+
+  /**
+   * Chi ricopre quale ruolo, adesso.
+   *
+   * 🔴 È la **stessa** dichiarazione che alimenta i conteggi delle cinque schede di pagina e la
+   * stessa funzione C# che compone la galleria pubblica: la libreria non ricalcola nulla. Due
+   * elenchi tenuti allineati a mano direbbero cose diverse al primo riordino, e nessuno dei due
+   * segnalerebbe l'altro.
+   */
+  const { data: datiRuoli, refetch: ricaricaRuoli } = useQuery(getRuoliImmaginiVetrina, { fetchPolicy: "cache-and-network" });
+  const piano = datiRuoli?.vetrina?.ruoliImmagini ?? null;
 
   const {
     data: assets,
@@ -154,6 +167,9 @@ function MediaLibrary() {
       });
       handleChiudiDialog();
       refetch();
+      // Ritirare o ripubblicare un media ne cambia i ruoli sul sito: senza questa rilettura le
+      // etichette resterebbero quelle di un minuto fa, cioè direbbero il falso con sicurezza.
+      void ricaricaRuoli?.();
       showToast({
         type: "success",
         position: "bottom-right",
@@ -173,7 +189,7 @@ function MediaLibrary() {
         toastId: "media-salvataggio-errore",
       });
     }
-  }, [handleChiudiDialog, inModifica, modulo, mutateMediaAsset, refetch]);
+  }, [handleChiudiDialog, inModifica, modulo, mutateMediaAsset, refetch, ricaricaRuoli]);
 
   const handleDelete = useCallback(
     async (asset: MediaAsset) => {
@@ -189,6 +205,7 @@ function MediaLibrary() {
       try {
         await eliminaMediaAsset({ variables: { mediaAssetId: asset.mediaAssetId } });
         refetch();
+        void ricaricaRuoli?.();
         showToast({
           type: "success",
           position: "bottom-right",
@@ -208,7 +225,7 @@ function MediaLibrary() {
         });
       }
     },
-    [eliminaMediaAsset, onConfirm, refetch]
+    [eliminaMediaAsset, onConfirm, refetch, ricaricaRuoli]
   );
 
   return (
@@ -265,6 +282,8 @@ function MediaLibrary() {
             >
               <MediaCard
                 asset={asset}
+                ruoli={ruoliDiUnImmagine(piano, asset.mediaAssetId)}
+                pianoNoto={piano !== null}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
               />

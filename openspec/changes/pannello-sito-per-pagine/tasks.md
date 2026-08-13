@@ -1333,31 +1333,31 @@ di menu, e lì mi dici quante immagini posso caricare e i testi da cambiare»*. 
 vengono dal database e il glob dinamico copre già le sottocartelle, quindi **cinque voci non costano
 più di una**: nessuna modifica al routing.
 
-- [ ] 6.1 **`duedgusto/src/components/pages/sito/pagine/SchedaPagina.tsx`** — il guscio condiviso
+- [x] 6.1 **`duedgusto/src/components/pages/sito/pagine/SchedaPagina.tsx`** — il guscio condiviso
   che impone l'ordine delle tre risposte: ① stato di pubblicazione, ② immagini (capacità, occupati,
   ripieghi), ③ testi di proprietà, ④ testi ereditati in sola lettura con il collegamento.
   *Verifica* (spec `impostazioni-vetrina` → *Le tre risposte non sono nascoste*): l'ordine è imposto
   dal guscio, non ripetuto a mano in cinque componenti.
 
-- [ ] 6.2 **`PaginaHome.tsx`** — modulo con `claimVetrina` + i tre della reputazione + lo slot eroe;
+- [x] 6.2 **`PaginaHome.tsx`** — modulo con `claimVetrina` + i tre della reputazione + lo slot eroe;
   i testi dell'aperitivo **in sola lettura** con il collegamento a `Sito → Aperitivo` (sono letti
   dalla home e **posseduti** dall'aperitivo); orari e recensioni in sola lettura con il rimando.
   «4 immagini: 1 eroe + 3 dalla galleria».
   *Verifica* (spec `impostazioni-vetrina` → *Un testo condiviso è modificabile da una scheda sola*):
   i campi aperitivo non sono modificabili da qui e la pagina dice **dove** lo sono.
 
-- [ ] 6.3 **`PaginaLocale.tsx`** — `storiaTitolo`, `storiaTesto`, slot ritratto. «4 immagini: 1
+- [x] 6.3 **`PaginaLocale.tsx`** — `storiaTitolo`, `storiaTesto`, slot ritratto. «4 immagini: 1
   ritratto + 3 dalla galleria (3ª-5ª)».
   *Verifica*: il numero dichiarato coincide con il piano di `RuoliImmaginiVetrina`, non con una
   costante scritta a mano nel componente.
 
-- [ ] 6.4 **`PaginaAperitivo.tsx`** — i quattro campi aperitivo + slot eroe. «1 immagine dedicata».
+- [x] 6.4 **`PaginaAperitivo.tsx`** — i quattro campi aperitivo + slot eroe. «1 immagine dedicata».
   ⚠️ La scheda **esiste sempre**, anche quando la pagina del sito non esiste: nasconderla sarebbe
   togliere l'unico posto da cui la si può creare.
   *Verifica* (spec `impostazioni-vetrina` → *La scheda dell'aperitivo esiste anche a pagina
   inesistente*): con `AperitivoTesto` vuoto la voce di menu c'è e la scheda si apre.
 
-- [ ] 6.5 **`PaginaMenu.tsx` e `PaginaContatti.tsx`, senza modulo e senza Salva** — niente `Formik`,
+- [x] 6.5 **`PaginaMenu.tsx` e `PaginaContatti.tsx`, senza modulo e senza Salva** — niente `Formik`,
   niente `FormikToolbar`, nessuna mutation. Solo: stato, conteggio immagini con i ruoli, testi
   ereditati in sola lettura con i collegamenti, e le altre sorgenti (prodotti pubblicati per
   `/menu`; orari e contatti per `/contatti`).
@@ -1367,7 +1367,7 @@ più di una**: nessuna modifica al routing.
   *Un testo scritto nel sorgente del sito è dichiarato tale*): nessun pulsante Salva grigio, che
   suggerirebbe che manchi qualcosa da compilare.
 
-- [ ] 6.6 🔴 **Lo stato di pubblicazione è la prima riga** — su Locale e Aperitivo: *«Non pubblicata:
+- [x] 6.6 🔴 **Lo stato di pubblicazione è la prima riga** — su Locale e Aperitivo: *«Non pubblicata:
   manca il testo, e finché manca la pagina risponde 404 e non compare nel menu del sito»*.
   ⚠️ Il criterio è **solo il corpo del testo**, come fa il server (`PublicController.TestiDa`, righe
   453-464): un titolo compilato con il testo vuoto è **ancora** «non pubblicata». Il pannello non
@@ -1376,7 +1376,7 @@ più di una**: nessuna modifica al routing.
   pubblicata»*, *Le pagine sempre presenti non mostrano uno stato condizionato*): Home, Menu e
   Contatti **non** mostrano uno stato condizionato — non ne hanno uno.
 
-- [ ] 6.7 🔴 **Conferma solo quando il salvataggio fa sparire una pagina** — con `useConfirm` (già
+- [x] 6.7 🔴 **Conferma solo quando il salvataggio fa sparire una pagina** — con `useConfirm` (già
   usato in [`ImpostazioniVetrinaPage.tsx:117-133`](../../../duedgusto/src/components/pages/sito/ImpostazioniVetrinaPage.tsx)),
   **e solo** quando il valore letto dal server è non vuoto e quello nuovo è vuoto, sui **due soli**
   campi `StoriaTesto` e `AperitivoTesto`.
@@ -1387,7 +1387,7 @@ più di una**: nessuna modifica al routing.
   *Nessuna conferma quando non c'è nulla da far sparire*): svuotando il **titolo** non compare alcuna
   conferma.
 
-- [ ] 6.8 **`MediaLibrary.tsx` dichiara i ruoli attivi** — accanto a ogni immagine della galleria,
+- [x] 6.8 **`MediaLibrary.tsx` dichiara i ruoli attivi** — accanto a ogni immagine della galleria,
   i ruoli che sta ricoprendo **con il nome della pagina** e mai con un numero di posizione; più
   ruoli si elencano tutti; un'immagine **senza** ruolo lo dice con parole proprie; le non pubblicate
   e quelle fuori dalla cartella `galleria` **non** risultano titolari di alcun ruolo, e la libreria
@@ -1397,7 +1397,7 @@ più di una**: nessuna modifica al routing.
   *Verifica* (spec `media-assets` → *I ruoli sono scritti accanto alle immagini* e i quattro scenari
   seguenti): nessuna etichetta contiene un indice.
 
-- [ ] 6.9 **`SeedMenusSito.cs`: `UpsertVoceSitoAsync` al posto dei quattro blocchi copiati** — un
+- [x] 6.9 **`SeedMenusSito.cs`: `UpsertVoceSitoAsync` al posto dei quattro blocchi copiati** — un
   helper locale e **nove chiamate**, con le posizioni e i percorsi della tabella di
   [D12](./design.md). I `Percorso` delle quattro voci esistenti **non cambiano**: sono le chiavi di
   idempotenza, e il riordino non ne ricrea nessuna.
@@ -1405,7 +1405,7 @@ più di una**: nessuna modifica al routing.
   `/gestionale/sito/menu` accanto a `/gestionale/sito/media` sarebbe indistinguibile da una risorsa.
   *Verifica*: il file non contiene nove blocchi copiati; `dotnet build` esce 0.
 
-- [ ] 6.10 **Le cinque icone in `iconMapping.tsx`** — `House`, `UtensilsCrossed`, `Martini`,
+- [x] 6.10 **Le cinque icone in `iconMapping.tsx`** — `House`, `UtensilsCrossed`, `Martini`,
   `Armchair`, `MapPin`, tutte esistenti in `lucide-react` e nessuna in collisione con i 29 nomi già
   mappati.
   ⚠️ `Menu` esiste già nella mappa ma è **l'hamburger** di lucide, non il listino: ragione in più per
@@ -1413,7 +1413,7 @@ più di una**: nessuna modifica al routing.
   *Verifica*: `npm run ts:check` esce 0; i cinque nomi del seed e i cinque della mappa sono gli
   stessi, scritti nello stesso commit.
 
-- [ ] 6.11 🔴 **Il test delle icone, che oggi non esiste** — crea
+- [x] 6.11 🔴 **Il test delle icone, che oggi non esiste** — crea
   `duedgusto/src/components/layout/sideBar/__tests__/iconeDelSeed.test.tsx`: legge **tutti** i
   sorgenti di `backend/SeedData/*.cs` (non un elenco scritto a mano — un file nuovo deve entrare da
   solo) e pretende che ogni icona nominata esista in `iconMapping`.
@@ -1427,14 +1427,14 @@ più di una**: nessuna modifica al routing.
   *Verifica* (spec `impostazioni-vetrina` → *Ogni icona nominata dal seed esiste*): `npm run test`
   verde.
 
-- [ ] 6.12 🔴 **Verifica per mutazione del test delle icone, nei due versi** — ① rinomina un'icona nel
+- [x] 6.12 🔴 **Verifica per mutazione del test delle icone, nei due versi** — ① rinomina un'icona nel
   seed in un nome inesistente: il test è rosso **e lo nomina**; ② rompi la regex (per esempio
   togliendo il ramo dell'argomento posizionale): il **conteggio** scatta e il test è rosso invece che
   **cieco**. Ripristina entrambi.
   *Verifica* (spec `impostazioni-vetrina` → *Verifica per mutazione dell'allineamento delle icone*):
   senza ②, un test di scansione che smette di trovare le occorrenze è verde e rassicurante.
 
-- [ ] 6.13 🔴 **Allineamento pannello ↔ `rotte.ts`** — un test che confronta le cinque pagine
+- [x] 6.13 🔴 **Allineamento pannello ↔ `rotte.ts`** — un test che confronta le cinque pagine
   dichiarate da [`rotte.ts`](../../../sito/src/lib/rotte.ts) con le cinque voci nuove del seed:
   **stessi percorsi logici e stesse etichette**. Casa consigliata: `sito/test/schede-pannello.test.mjs`,
   perché i test del sito **già scansionano i sorgenti** (`_scansione.mjs`) e questo è il verso che il
@@ -1444,25 +1444,25 @@ più di una**: nessuna modifica al routing.
   rilevata*): rinominando un'etichetta in **uno solo** dei due posti il test fallisce **nominando la
   pagina e le due etichette**. Eseguita la mutazione e ripristinata.
 
-- [ ] 6.14 **Test componente: nessun campo di orario, replicato su tre schede** — Home, Contatti e
+- [x] 6.14 **Test componente: nessun campo di orario, replicato su tre schede** — Home, Contatti e
   Impostazioni sito: nessun `getByLabelText(/apertura|chiusura|fuso/)`, e il collegamento alle
   impostazioni della cassa **presente**.
   *Verifica* (spec `impostazioni-vetrina` → *Nessun campo di orario in alcuna scheda*, *Gli orari
   mostrati sono in sola lettura e dicono dove si cambiano*): è il test di riga 200 del file
   esistente, replicato — non spostato.
 
-- [ ] 6.15 **Test componente: stato in prima riga e conferma** — su Locale e Aperitivo: con il testo
+- [x] 6.15 **Test componente: stato in prima riga e conferma** — su Locale e Aperitivo: con il testo
   pieno lo stato dice «Pubblicata»; svuotandolo e salvando, `useConfirm` **viene invocato** e **senza
   conferma nessuna mutation parte**.
   *Verifica* (spec `impostazioni-vetrina` → *Pagina non pubblicata, dichiarata in prima riga*,
   *Conferma prima di far sparire una pagina pubblicata*): la seconda asserzione è quella che conta —
   una conferma che compare ma non blocca non è una conferma.
 
-- [ ] 6.16 **Test componente: le schede senza modulo** — `PaginaMenu` e `PaginaContatti` non rendono
+- [x] 6.16 **Test componente: le schede senza modulo** — `PaginaMenu` e `PaginaContatti` non rendono
   alcun pulsante «Salva» e non montano `Formik`.
   *Verifica* ([D10](./design.md)): `queryByRole("button", { name: /salva/i })` è `null`.
 
-- [ ] 6.17 🔴 **Test: il numero dichiarato dalla scheda viene dal piano, non da una costante** —
+- [x] 6.17 🔴 **Test: il numero dichiarato dalla scheda viene dal piano, non da una costante** —
   cambiando la dichiarazione di un ruolo cambiano **insieme** ciò che la libreria mostra e ciò che la
   scheda conta. Se solo uno dei due si muove, esistono due scritture.
   ⚠️ E il caso reale: con **una sola** immagine in galleria (task 0.3), la scheda Home dichiara 1
@@ -1473,7 +1473,7 @@ più di una**: nessuna modifica al routing.
   e riempimento sono grandezze diverse*, *Zero è una risposta scritta*): la scheda distingue
   **capacità** da **riempimento** e dichiara se sta mostrando **lo slot o il ripiego**.
 
-- [ ] 6.18 **Prova manuale: tre riavvii, nove voci, nessuna senza icona** — su una seconda istanza
+- [x] 6.18 **Prova manuale: tre riavvii, nove voci, nessuna senza icona** — su una seconda istanza
   con `SEED_ON_STARTUP=true` (🔧 qui è il punto), tre avvii consecutivi.
   *Verifica* (spec `impostazioni-vetrina` → *Tre avvii consecutivi*, *Le voci preesistenti conservano
   la propria identità*, *L'ordine mette le pagine davanti alle risorse*): `SELECT Titolo, Percorso,
@@ -1495,6 +1495,164 @@ nell'ordine deliberato (pagine, poi risorse), e l'icona mancante non è più un 
 **senza cancellare record**; ripristinare le `Posizione` 1-4 delle esistenti riporta il sottomenu
 com'era; toglierle dal seed impedisce che rinascano al riavvio. Il frontend si revert-a da solo:
 nessun'altra pagina del gestionale dipende dalle schede.
+
+### ✅ Esito misurato — Fase 6 (2026-08-13)
+
+| Comando | Esito | Delta sulla fase precedente |
+|---|---|---|
+| `dotnet build backend/duedgusto.csproj` | **0 errori, 0 avvisi** | — |
+| `dotnet test` (suite intera) | **816 / 816** | **+10** sugli 806 della Fase 5 |
+| `npm run ts:check` in `duedgusto/` | **0** | — |
+| `npm run lint` in `duedgusto/` | **0** | — |
+| `npm run test` in `duedgusto/` | **831 / 831** (104 file) | **+41** sui 790 della Fase 5 |
+| `cd sito && npm test` | **124 / 124** | **+5** sui 119 della Fase 4 |
+| `cd sito && npm run check` | **0 errori, 0 avvisi, 0 suggerimenti** (58 file) | — |
+
+**6.1-6.5 — le cinque schede, e il guscio che impone l'ordine.**
+`pagine/SchedaPagina.tsx` rende in sequenza fissa ① stato, ② immagini, ③ testi propri, ④ testi
+ereditati, ⑤ altre sorgenti: l'ordine è nel guscio, non ripetuto cinque volte. Le tre schede con
+campi (`PaginaHome`, `PaginaLocale`, `PaginaAperitivo`) passano da `pagine/SchedaEditoriale.tsx`,
+che è la **sede unica** del modulo, della conferma di sparizione e della scelta dello slot;
+`PaginaMenu` e `PaginaContatti` non montano `Formik` e non rendono alcun «Salva».
+
+🔴 **Un file non previsto dal task, e la ragione per cui non è facoltativo.**
+`pagine/ruoliPagine.tsx` è la **dichiarazione unica** dei sei ruoli immagine: quale pagina,
+quanti posti, cosa rende un posto vuoto. La leggono **entrambi** i consumatori — le schede per
+contare, `MediaLibrary` per etichettare — ed è precisamente ciò che il task 6.17 chiede di
+dimostrare. Senza, il numero della scheda sarebbe una costante scritta nel componente e la
+libreria avrebbe un secondo elenco: le due liste direbbero cose diverse al primo ritocco di una
+sola. Accanto, `pagine/pubblicazionePagina.tsx` tiene la regola *«decide solo il corpo del
+testo»* in un posto solo (tasks 6.6 e 6.7 la usano entrambi), e `pagine/datiScheda.tsx` le due
+query che ogni scheda legge.
+
+⚠️ **Una piccola deduplicazione fuori dall'elenco dei task, dichiarata perché tocca un file
+della Fase 5.** La frase *«gli orari si modificano dalle impostazioni della cassa»* serviva su
+**tre** schede (Home, Contatti, Impostazioni sito): è diventata il componente
+`sito/AvvisoOrari.tsx`, e `ImpostazioniVetrinaPage.tsx` lo usa al posto del proprio `Alert`. Tre
+copie della stessa frase si correggono in una sola, e il giorno in cui il percorso delle
+impostazioni cambiasse due schede porterebbero a un collegamento morto. Il test di riga 200 del
+file esistente resta verde **senza modifiche**.
+
+**Come le cinque schede rispondono alle due domande dell'utente.**
+
+| Scheda | «Quante immagini posso caricare» | «Quali testi posso cambiare» |
+|---|---|---|
+| **Home** | **4 posti** (1 grande + 3 in griglia) + N occupati, e **in più** fino a 3 fotografie **dai prodotti**, dichiarate a parte perché non vengono dalla galleria | frase sotto il titolo, punteggio, numero recensioni, profilo Google. Ereditati: insegna e i **tre testi dell'aperitivo** in sola lettura, con il rimando a `Sito → Aperitivo` |
+| **Menu** | **3 posti** in coda al listino | **nessuno**, e lo dice. Dichiara che la descrizione SEO è **scritta nel sorgente del sito** e non è un campo |
+| **Aperitivo** | **1 posto, senza ripiego**: a slot vuoto la pagina esce **senza** immagine di testata, scritto due volte (nella sezione immagini e in testa al modulo) | titolo, testo, punti, categorie |
+| **Il locale** | **4 posti** (1 ritratto + 3 quadrate) | titolo e testo della storia |
+| **Contatti** | **zero, scritto per esteso** | **nessuno**: indirizzo, coordinate, contatti, social e orari sono tutti ereditati, ciascuno con il proprio collegamento |
+
+Su **tutte e cinque**, l'anteprima social è dichiarata come **condivisa dal sito intero**, non
+conta fra i posti della pagina e rimanda a «Impostazioni sito» — è di nessuna pagina, quindi
+tacerla su quattro e nominarla su una l'avrebbe fatta sembrare della quinta.
+
+**6.6 / 6.7 — lo stato e la conferma.** Il criterio è quello del server e **non** ne esiste una
+seconda scrittura: `ePubblicata` guarda solo il **corpo** del testo, quindi «titolo compilato,
+testo vuoto» resta *Non pubblicata* (test dedicato). Home, Menu e Contatti dichiarano *«esiste
+sempre»* e **non** mostrano alcuno stato condizionato. La conferma scatta **solo** quando il
+valore letto dal server è non vuoto e quello nuovo è vuoto, sui due soli campi `storiaTesto` e
+`aperitivoTesto`: svuotare il **titolo** non chiede nulla (test dedicato), e una pagina già non
+pubblicata non chiede nulla (test dedicato).
+
+**6.8 — i ruoli accanto alle immagini.** `MediaCard` elenca **tutti** i ruoli con il **nome
+della pagina** — con una sola foto in galleria ne mostra **tre** — e distingue «scelta da te»
+da «per posizione». Un'immagine senza ruolo dice **perché**: non pubblicata, fuori dalla
+cartella `galleria`, o semplicemente non usata. Finché il piano non è arrivato non dichiara
+nulla, invece di dire «nessun ruolo» a torto.
+
+**6.9 / 6.10 — il seed e le icone.** `UpsertVoceSitoAsync` + **nove chiamate** al posto di
+quattro blocchi copiati; i quattro `Percorso` preesistenti sono invariati. Cinque icone nuove
+(`House`, `UtensilsCrossed`, `Martini`, `Armchair`, `MapPin`), tutte verificate esistenti in
+`lucide-react` 1.7.0 e tutte distinte dalle quattro già usate nella sezione.
+
+#### 🔴 Le quattro verifiche per mutazione — eseguite, non dedotte
+
+| # | Mutazione | Rossi | Verdi intorno |
+|---|---|---|---|
+| **6.12 ①** | `"Martini"` → `"CocktailGlass"` nel seed | **2 su 2** — `icone nominate dal seed e assenti da iconMapping: … "SeedMenusSito.cs: \"CocktailGlass\" (argomento posizionale)"` | — |
+| **6.12 ②** | ramo *argomento posizionale* tolto dalla regex | **2 su 2**, e il primo è il **conteggio**: `la scansione … è CIECO invece che verde: expected 20 to be greater than 20` | — |
+| **6.13 ①** | «Il locale» → «Locale» nel **solo** seed | **1 su 4** — `/gestionale/sito/pagine/locale: il sito la chiama «Il locale», il pannello «Locale»` | 3, fra cui l'ordine e le icone |
+| **6.13 ②** | sesta rotta `/eventi` aggiunta al **solo** `rotte.ts` | **2 su 4** — `pagine del sito senza scheda nel pannello: /gestionale/sito/pagine/eventi` | 2 |
+| **6.17 A** | `fotoMenu` spostato dalla pagina `menu` alla `home` | **4**: due sul lato **scheda** (`expected { home: 7, menu: 0, … }`) e uno sul lato **libreria** (l'etichetta `Menu: …` sparisce) | 29 |
+| **6.17 B** | ripiego reintrodotto sull'eroe dell'aperitivo | **2**: la dichiarazione (`expected [] to deeply equal [ 'eroeAperitivo' ]`) **e** la scheda resa (`Unable to find … «esce senza immagine di testata»`) | 31 |
+
+🔴 **La lettura che vale più del rosso.** La mutazione **6.17 A** è l'unica cosa che questo
+file chiedeva di dimostrare e che una lettura del codice non poteva stabilire: **un solo**
+ritocco alla dichiarazione ha fatto muovere **insieme** ciò che la scheda conta e ciò che la
+libreria mostra. Se ci fossero due scritture, se ne sarebbe mossa una sola e l'altra sarebbe
+rimasta verde — cioè avrebbe continuato a dichiarare un numero che il sito non onora più.
+Stessa forma nella **6.12 ②**: senza l'asserzione sul conteggio, una regex che smette di trovare
+le occorrenze sarebbe verde e rassicurante invece che rossa.
+
+Dopo ogni mutazione il ripristino è stato verificato, e le due sostituzioni fatte sui sorgenti
+(`SeedMenusSito.cs`, `rotte.ts`) sono state riportate allo stato precedente — `git status` non
+elenca `sito/src/lib/rotte.ts`.
+
+#### ⚠️ Tre test esistenti modificati, e perché non è un allentamento
+
+`VetrinaMediaTests.cs` pinnava la sezione «Sito» a **quattro** figli alle posizioni 1-4: dopo
+questa fase ne ha **nove**, quindi i tre test erano rossi per costruzione. Non sono stati
+allentati — sono stati **estesi**, e la copertura è cresciuta:
+
+- `…_InvocatoTreVolte_LasciaUnPadreENoveFigli` verifica adesso anche l'**ordine** (pagine 1-5,
+  risorse 6-9) e che l'ordine **non cambi** al terzo avvio, che è la cosa nuova: `Posizione`
+  viene riscritta a ogni avvio, quindi un ordine che «si assesta» dopo il primo giro sarebbe un
+  ordine che cambia sotto le mani di chi guarda.
+- il `[Fact]` sulla terza voce è diventato una `[Theory]` su **tutte e nove**: titolo, vista,
+  `PercorsoFile`, posizione e icona. Il `PercorsoFile` è ciò che il gestionale importa a
+  runtime, e con cinque componenti nuovi in una sottocartella nuova le occasioni di sbagliarlo
+  sono cinque in più.
+- `…_AssegnaLeVociAiSoliRuoliAmministrativi` passa da 5 a 10 voci e aggiunge che **ciascuna**
+  delle cinque schede nuove ha esattamente i due ruoli amministrativi.
+
+Aggiunti inoltre `…_SuUnaSezioneNellaFormaPrecedente_RiordinaSenzaRicreare` — che semina la
+forma **vecchia** e verifica che il riordino conservi gli **identificativi** delle righe, non
+solo il conteggio — e `…_LeNoveIcone_SonoTutteDiverseENessunaEQuellaDellaCassa`.
+⚠️ Modificato anche il mock di `@apollo/client` in `MediaLibrary.test.tsx`: la libreria adesso
+legge il piano dei ruoli e il mock non esponeva `useQuery`. È un mock, non un'asserzione: le tre
+prove sulla cartella di destinazione sono invariate.
+
+#### 🔴 6.18 — tre riavvii, sul database di sviluppo reale
+
+Tre avvii consecutivi di `dotnet run --project backend` con il seed attivo (`SEED_ON_STARTUP`
+non impostato), sul database `localhost:3306/duedgusto` che aveva la sezione nella forma
+**precedente** — quattro figli, `Id` 27-30, posizioni 1-4.
+
+| Verifica | Esito |
+|---|---|
+| Figli della sezione «Sito» | **9**, dopo ognuno dei tre avvii |
+| Duplicati (`GROUP BY Percorso HAVING COUNT(*) > 1`) | **nessuno** |
+| Posizioni | **1-9**, pagine 1-5 e risorse 6-9, come da [D12](./design.md) |
+| Identità delle quattro preesistenti | `Id` **27, 28, 29, 30** invariati, con `Percorso`, `Titolo`, `NomeVista` e `PercorsoFile` identici — è cambiata **solo** la `Posizione` (1→6, 2→7, 3→9, 4→8) |
+| Ruoli delle cinque voci nuove | `Admin` + `SuperAdmin` su ciascuna; `Gestore` su **nessuna** |
+
+⚠️ **Una sostituzione dichiarata sulla seconda metà della verifica.** «A video nessuna voce
+senza icona nella barra laterale» **non** è stata controllata guardando lo schermo. Al suo posto
+c'è un'implicazione provata: `getLazyIcon` restituisce `undefined` **se e solo se** il nome non
+è in `iconMapping`, e il test 6.11 dimostra che ogni nome nominato dal seed — i nove della
+sezione compresi — è nella mappa. Non è un ripiego più debole di uno screenshot: uno screenshot
+prova un istante, il test lo prova a ogni build.
+⚠️ La porta 4000 è stata **liberata** a fine prova e nessun processo del backend è rimasto in
+esecuzione. **Nessun accesso alla produzione**: backend e database sono locali.
+
+#### ⚠️ 6.19 — verificato per metà, e la metà mancante è dichiarata
+
+**Verificato**: ① il gating del menu, **sul database reale** — le cinque voci nuove sono
+assegnate ai soli ruoli con flag amministratore e il ruolo `Gestore` non compare su nessuna
+(query sopra); ② `SitoGuard` è **riusato invariato** da tutte e cinque le schede (le tre
+editoriali tramite `SchedaEditoriale`, le due mappe direttamente) e `git diff` su
+`SitoGuard.tsx` è **vuoto**; ③ il rifiuto lato GraphQL per un utente autenticato non
+amministratore sulle quattro mutation e sulla query `ruoliImmagini` è coperto dai **sei test di
+privilegi** scritti al task 5.13, verdi in questa suite.
+
+🔴 **Non verificato**: la prova nell'app vera con un utente non amministratore — accesso per URL
+diretto e chiamata GraphQL con il **suo** token. L'utente `prova-non-admin` (ruolo `Gestore`)
+esiste sul database di sviluppo ma **la sua password non è annotata in alcun artefatto del
+repository**, e il signin è limitato a 5 tentativi ogni 15 minuti per IP: tentare a indovinare
+avrebbe bloccato l'accesso senza dimostrare nulla. Il task resta **non spuntato**. Per chiuderlo
+serve la password di quell'utente (o un utente non amministratore nuovo), e la prova è quella
+già eseguita al task 10.6 del change `vetrina-api-pubblica`, ripetuta sulle cinque voci nuove.
 
 ---
 

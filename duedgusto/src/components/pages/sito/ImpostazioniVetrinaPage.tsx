@@ -1,16 +1,15 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "@apollo/client";
-import { Link as RouterLink } from "react-router";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
-import Link from "@mui/material/Link";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { Form, Formik, FormikProps } from "formik";
 import { toast } from "react-toastify";
 
+import AvvisoOrari from "./AvvisoOrari";
 import MediaPickerDialog from "./MediaPickerDialog";
 import SitoGuard from "./SitoGuard";
 import { larghezzaAnteprima, mediaUrl } from "./mediaUrl";
@@ -446,17 +445,11 @@ function ImpostazioniVetrinaPage() {
 
                 {/* Gli orari NON si modificano da qui: hanno una sola sorgente. Dirlo dove
                     qualcuno li cercherebbe costa una riga; non dirlo costa un sito che dice
-                    aperto fino alle 21 e una cassa che dice 19. */}
-                <Alert severity="info">
-                  Gli orari di apertura e chiusura, i giorni di apertura e il fuso orario non si modificano da qui: il sito li legge dalle{" "}
-                  <Link
-                    component={RouterLink}
-                    to="/gestionale/settings"
-                  >
-                    impostazioni della cassa
-                  </Link>
-                  , che ne sono l&apos;unica sorgente.
-                </Alert>
+                    aperto fino alle 21 e una cassa che dice 19.
+                    ⚠️ La frase è in `AvvisoOrari` e non ricopiata qui: le schede di pagina
+                    Home e Contatti devono dire la stessa identica cosa, e tre copie si
+                    correggono in una sola. */}
+                <AvvisoOrari />
               </Box>
             </Box>
 
