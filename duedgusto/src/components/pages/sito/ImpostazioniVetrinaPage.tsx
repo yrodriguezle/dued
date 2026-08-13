@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "@apollo/client";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
@@ -84,6 +85,8 @@ function ImpostazioniVetrinaPage() {
   const onConfirm = useConfirm();
   const formRef = useRef<FormikProps<ValoriImpostazioniVetrina>>(null);
   const [sceltaImmagineAperta, setSceltaImmagineAperta] = useState(false);
+  /** L'immagine scelta e non ancora salvata: `null` anche per «nessuna immagine». */
+  const [sceltaPendente, setSceltaPendente] = useState<MediaAsset | null>(null);
 
   const { data, loading, error } = useQuery(getImpostazioniVetrina, { fetchPolicy: "cache-and-network" });
 
@@ -126,6 +129,18 @@ function ImpostazioniVetrinaPage() {
     return { url: mediaUrl(immagine.chiave, larghezza), testo: immagine.testoAlternativo || immagine.nomeOriginale };
   }, [impostazioni]);
 
+  /** Stessa costruzione, sull'immagine appena scelta e non ancora scritta. */
+  const anteprimaDellaScelta = useMemo(() => {
+    if (!sceltaPendente) {
+      return null;
+    }
+    const larghezza = larghezzaAnteprima(sceltaPendente.larghezzeDisponibili);
+    if (larghezza === null) {
+      return null;
+    }
+    return { url: mediaUrl(sceltaPendente.chiave, larghezza), testo: sceltaPendente.testoAlternativo || sceltaPendente.nomeOriginale };
+  }, [sceltaPendente]);
+
   const handleResetForm = useCallback(
     async (haModifiche: boolean) => {
       const confermato =
@@ -140,6 +155,7 @@ function ImpostazioniVetrinaPage() {
         return;
       }
       formRef.current?.resetForm();
+      setSceltaPendente(null);
     },
     [onConfirm]
   );
@@ -148,6 +164,8 @@ function ImpostazioniVetrinaPage() {
     async (valori: ValoriImpostazioniVetrina) => {
       try {
         await mutateImpostazioni({ variables: { input: inputImpostazioni(valori) } });
+        // Salvata: l'anteprima autorevole torna a essere quella riletta dal server.
+        setSceltaPendente(null);
       } catch {
         // L'errore è già mostrato da onError: qui si evita solo la promise rifiutata.
       }
@@ -155,8 +173,11 @@ function ImpostazioniVetrinaPage() {
     [mutateImpostazioni]
   );
 
-  const handleScegliImmagine = useCallback((mediaAssetId: number | null) => {
+  const handleScegliImmagine = useCallback((mediaAssetId: number | null, asset?: MediaAsset) => {
     setSceltaImmagineAperta(false);
+    // L'asset arriva dal selettore: senza, l'unico riscontro possibile era il numero dell'id,
+    // che non è un'anteprima — chi sceglie una fotografia vuole vedere quella fotografia.
+    setSceltaPendente(asset ?? null);
     formRef.current?.setFieldValue("immagineOgId", mediaAssetId);
   }, []);
 
@@ -362,21 +383,40 @@ function ImpostazioniVetrinaPage() {
                       <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                         {/* Nessun caricamento da questa pagina e nessun secondo percorso di
                             scelta: è lo stesso selettore della griglia prodotti. */}
-                        {anteprimaOg && impostazioni?.immagineOgId === values.immagineOgId ? (
-                          <Box
-                            component="img"
-                            src={anteprimaOg.url}
-                            alt={anteprimaOg.testo}
-                            sx={{ width: 160, height: 84, objectFit: "cover", borderRadius: 1 }}
-                          />
-                        ) : (
-                          <Typography
-                            variant="body2"
-                            color="text.secondary"
-                          >
-                            {values.immagineOgId ? `Immagine selezionata (id ${values.immagineOgId}): l'anteprima compare dopo il salvataggio.` : "Nessuna immagine di anteprima social."}
-                          </Typography>
-                        )}
+                        {(() => {
+                          const salvata = impostazioni?.immagineOgId === values.immagineOgId;
+                          // 🔴 Scelta non ancora salvata: si mostra **l'immagine**, non il suo
+                          //    id. Un numero non dice a nessuno se ha scelto la foto giusta, e
+                          //    lasciava la scelta indistinguibile da un clic andato perduto.
+                          const anteprima = salvata ? anteprimaOg : anteprimaDellaScelta;
+                          if (anteprima) {
+                            return (
+                              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                <Box
+                                  component="img"
+                                  src={anteprima.url}
+                                  alt={anteprima.testo}
+                                  sx={{ width: 160, height: 84, objectFit: "cover", borderRadius: 1 }}
+                                />
+                                {!salvata && (
+                                  <Chip
+                                    size="small"
+                                    color="warning"
+                                    label="da salvare"
+                                  />
+                                )}
+                              </Box>
+                            );
+                          }
+                          return (
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                            >
+                              {values.immagineOgId ? "Immagine selezionata: l'anteprima compare dopo il salvataggio." : "Nessuna immagine di anteprima social."}
+                            </Typography>
+                          );
+                        })()}
                         {/* Disabilitato a modulo bloccato come ogni altro campo: la scelta
                             scrive `immagineOgId`, quindi un pulsante attivo qui sarebbe l'unico
                             modo di modificare un modulo in sola lettura. */}

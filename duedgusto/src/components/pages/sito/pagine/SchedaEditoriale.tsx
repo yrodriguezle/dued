@@ -2,7 +2,9 @@ import { ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useStat
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
+import Typography from "@mui/material/Typography";
 import { Form, Formik, FormikProps } from "formik";
 import { toast } from "react-toastify";
 
@@ -12,6 +14,7 @@ import { faNascereLaPagina, faSparireLaPagina, ePubblicata, StatoPubblicazione }
 import { ETICHETTE_PAGINE, PERCORSI_SITO, PaginaSito } from "./ruoliPagine";
 import MediaPickerDialog from "../MediaPickerDialog";
 import SitoGuard from "../SitoGuard";
+import { larghezzaAnteprima, mediaUrl } from "../mediaUrl";
 import { ValoriImpostazioniVetrina, valoriDaImpostazioni } from "../impostazioniVetrinaModulo";
 import FormikToolbar from "../../../common/form/toolbar/FormikToolbar";
 import useConfirm from "../../../common/confirm/useConfirm";
@@ -63,11 +66,64 @@ interface SchedaEditorialeProps {
   altreSorgenti?: (impostazioni: ImpostazioniVetrina | null) => ReactNode;
 }
 
+/**
+ * L'immagine appena scelta e non ancora salvata, accanto al pulsante che l'ha scelta.
+ *
+ * ⚠️ È volutamente **distinta** dalle anteprime della sezione: quelle dicono «ecco cosa il sito
+ *    rende adesso», questa dice «ecco cosa renderà se salvi». Fonderle vorrebbe dire mostrare
+ *    come pubblicato qualcosa che non lo è ancora, che è il difetto opposto e peggiore.
+ */
+function AnteprimaScelta({ scelta, daSalvare }: { scelta: { asset: MediaAsset | null } | null; daSalvare: boolean }) {
+  if (!scelta || !daSalvare) {
+    return null;
+  }
+  const larghezza = scelta.asset ? larghezzaAnteprima(scelta.asset.larghezzeDisponibili) : null;
+  return (
+    <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+      {scelta.asset && larghezza ? (
+        <Box
+          component="img"
+          src={mediaUrl(scelta.asset.chiave, larghezza)}
+          alt={scelta.asset.testoAlternativo || scelta.asset.nomeOriginale}
+          title={scelta.asset.nomeOriginale}
+          sx={{ width: 72, height: 40, objectFit: "cover", borderRadius: 0.5, display: "block" }}
+        />
+      ) : (
+        <Typography
+          variant="caption"
+          color="text.secondary"
+        >
+          {scelta.asset ? scelta.asset.nomeOriginale : "Nessuna immagine"}
+        </Typography>
+      )}
+      <Chip
+        size="small"
+        color="warning"
+        label="da salvare"
+      />
+    </Box>
+  );
+}
+
 function SchedaEditoriale({ pagina, valida, salva, campoSlot, campoDiEsistenza, testiPropri, altreSorgenti }: SchedaEditorialeProps) {
   const { setTitle } = useContext(PageTitleContext);
   const onConfirm = useConfirm();
   const formRef = useRef<FormikProps<ValoriImpostazioniVetrina>>(null);
   const [sceltaImmagineAperta, setSceltaImmagineAperta] = useState(false);
+  /**
+   * L'immagine scelta in questa sessione di modifica e **non ancora salvata**.
+   *
+   * 🔴 Serve perché le anteprime della scheda arrivano dal **piano del server**, che di una
+   *    scelta non ancora scritta non sa niente: senza questo stato la modale si chiudeva e la
+   *    pagina restava identica — stessa miniatura, stesso «1 posto · 1 occupato», stesso testo
+   *    di provenienza. Un clic senza risposta è indistinguibile da un clic perduto, ed è la
+   *    ragione per cui la scelta sembrava non funzionare.
+   *
+   * ⚠️ `null` = nessuna scelta fatta adesso; `{ asset: null }` = scelto «nessuna immagine», che
+   *    è una decisione e non un'assenza di decisione. Le due cose non possono collassare in un
+   *    solo `null`, altrimenti staccare un'immagine tornerebbe a non dare alcun riscontro.
+   */
+  const [sceltaPendente, setSceltaPendente] = useState<{ asset: MediaAsset | null } | null>(null);
 
   const { impostazioni, piano, mappa, caricamento, caricamentoPiano, errore } = useDatiScheda();
 
@@ -101,6 +157,9 @@ function SchedaEditoriale({ pagina, valida, salva, campoSlot, campoDiEsistenza, 
         return;
       }
       formRef.current?.resetForm();
+      // Annullare le modifiche annulla anche la scelta dell'immagine: è una modifica come le
+      // altre, e lasciarne il riscontro acceso direbbe che c'è ancora qualcosa da salvare.
+      setSceltaPendente(null);
     },
     [nomePagina, onConfirm]
   );
@@ -129,6 +188,9 @@ function SchedaEditoriale({ pagina, valida, salva, campoSlot, campoDiEsistenza, 
 
       try {
         await salva(valori);
+        // Salvato: da qui in poi l'anteprima autorevole è quella del piano, appena riletto dal
+        // server. Tenere acceso «da salvare» dopo il salvataggio sarebbe una bugia.
+        setSceltaPendente(null);
         if (nasce) {
           // Un indirizzo appena diventato raggiungibile non si ricava da nessun'altra parte.
           toast.success(`Salvato. La pagina «${nomePagina}» è ora pubblicata e raggiungibile su ${percorsoSito}.`);
@@ -147,8 +209,9 @@ function SchedaEditoriale({ pagina, valida, salva, campoSlot, campoDiEsistenza, 
   );
 
   const handleScegliImmagine = useCallback(
-    (mediaAssetId: number | null) => {
+    (mediaAssetId: number | null, asset?: MediaAsset) => {
       setSceltaImmagineAperta(false);
+      setSceltaPendente({ asset: asset ?? null });
       formRef.current?.setFieldValue(campoSlot, mediaAssetId);
     },
     [campoSlot]
@@ -202,14 +265,24 @@ function SchedaEditoriale({ pagina, valida, salva, campoSlot, campoDiEsistenza, 
               mappa={mappa}
               impostazioni={impostazioni}
               azioneSlot={
-                <Button
-                  size="small"
-                  variant="outlined"
-                  disabled={Boolean(status?.isFormLocked)}
-                  onClick={() => setSceltaImmagineAperta(true)}
-                >
-                  Scegli immagine
-                </Button>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  {/* 🔴 Il riscontro immediato della scelta. Si mostra SOLO quando il valore del
+                      modulo si discosta da quello salvato: scegliere di nuovo l'immagine che
+                      c'era già non è una modifica, e annunciarla come tale insegnerebbe a
+                      ignorare l'avviso. */}
+                  <AnteprimaScelta
+                    scelta={sceltaPendente}
+                    daSalvare={(values[campoSlot] ?? null) !== (impostazioni?.[campoSlot] ?? null)}
+                  />
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    disabled={Boolean(status?.isFormLocked)}
+                    onClick={() => setSceltaImmagineAperta(true)}
+                  >
+                    Scegli immagine
+                  </Button>
+                </Box>
               }
               testiPropri={testiPropri}
               altreSorgenti={altreSorgenti?.(impostazioni)}
