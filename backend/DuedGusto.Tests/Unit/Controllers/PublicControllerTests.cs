@@ -1,5 +1,7 @@
 using System.Text.Json;
 
+using FluentAssertions.Execution;
+
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -614,6 +616,104 @@ public class PublicControllerTests : IDisposable
     }
 
     // ─────────────────────────────────────────────────────────────────────────────────────
+    //  Galleria — i ruoli (task 4.2)
+    // ─────────────────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// 🔴 <b>Che cosa prova questo blocco, e che cosa NO.</b> La <i>regola</i> dei ruoli è
+    /// verificata dove vive, in <c>RuoliImmaginiVetrinaTests</c>, su sei dimensioni di galleria.
+    /// Qui si prova soltanto il <b>raccordo</b>: che la rotta legga gli slot dalla riga giusta,
+    /// passi la galleria già ordinata e filtrata, e non inverta due ruoli mappando il piano sul
+    /// DTO. Sono i tre modi in cui un chiamante può sbagliare una funzione corretta.
+    /// </summary>
+    [Fact]
+    public async Task Galleria_SenzaImpostazioni_HaComunqueIRuoli_RisoltiPerPosizione()
+    {
+        // Nessuna riga di impostazioni: installazione con SEED_ON_STARTUP=false prima del primo
+        // salvataggio. Non è un guasto, e i ruoli devono uscire lo stesso.
+        AggiungiMedia(1, "a", cartella: CartelleVetrina.Galleria, ordinamento: 1);
+        AggiungiMedia(2, "b", cartella: CartelleVetrina.Galleria, ordinamento: 2);
+        AggiungiMedia(3, "c", cartella: CartelleVetrina.Galleria, ordinamento: 3);
+
+        RuoliImmaginiDto ruoli = (await LeggiGalleria()).Ruoli;
+
+        using var _ = new AssertionScope();
+        ruoli.EroeHome!.Chiave.Should().Be("a");
+        ruoli.GrigliaHome.Select(i => i.Chiave).Should().Equal("b", "c");
+        ruoli.FotoMenu.Select(i => i.Chiave).Should().Equal("a", "b", "c");
+        ruoli.RitrattoLocale!.Chiave.Should().Be("b");
+        ruoli.QuadrateLocale.Select(i => i.Chiave).Should().Equal("c");
+        // 🔴 Nessun ripiego per l'eroe dell'aperitivo: a slot vuoto la pagina esce senza immagine
+        //    di testata. È la differenza deliberata di questo change — vedi la docstring di
+        //    RuoliImmaginiVetrina.
+        ruoli.EroeAperitivo.Should().BeNull();
+        AvvisiRegistrati().Should().Be(0, "la riga assente è lo stato iniziale, non un guasto");
+    }
+
+    [Fact]
+    public async Task Galleria_Vuota_HaIRuoliVuotiENonNulli()
+    {
+        // ⚠️ Il consumatore non deve mai chiedersi se `ruoli` c'è: un campo che a volte manca
+        //    costringerebbe a un controllo per pagina, cioè a quattro occasioni di dimenticarlo.
+        RuoliImmaginiDto ruoli = (await LeggiGalleria()).Ruoli;
+
+        using var _ = new AssertionScope();
+        ruoli.Should().NotBeNull();
+        ruoli.EroeHome.Should().BeNull();
+        ruoli.RitrattoLocale.Should().BeNull();
+        ruoli.EroeAperitivo.Should().BeNull();
+        ruoli.GrigliaHome.Should().NotBeNull().And.BeEmpty();
+        ruoli.FotoMenu.Should().NotBeNull().And.BeEmpty();
+        ruoli.QuadrateLocale.Should().NotBeNull().And.BeEmpty();
+    }
+
+    /// <summary>
+    /// Gli slot si leggono dalla riga della vetrina, e la scelta <b>vince</b> sulla posizione: è
+    /// l'unica cosa che distingue questo raccordo da un ripiego calcolato in loco.
+    /// </summary>
+    [Fact]
+    public async Task Galleria_ConGliSlotValorizzati_LiOnoraELaFinestraLiSalta()
+    {
+        MediaAsset prima = AggiungiMedia(1, "a", cartella: CartelleVetrina.Galleria, ordinamento: 1);
+        AggiungiMedia(2, "b", cartella: CartelleVetrina.Galleria, ordinamento: 2);
+        MediaAsset terza = AggiungiMedia(3, "c", cartella: CartelleVetrina.Galleria, ordinamento: 3);
+        AggiungiMedia(4, "d", cartella: CartelleVetrina.Galleria, ordinamento: 4);
+        AggiungiImpostazioniVetrina(
+            eroeHome: terza, ritrattoLocale: prima, eroeAperitivo: terza);
+
+        GalleriaPubblicaDto galleria = await LeggiGalleria();
+
+        using var _ = new AssertionScope();
+        galleria.Ruoli.EroeHome!.Chiave.Should().Be("c");
+        galleria.Ruoli.RitrattoLocale!.Chiave.Should().Be("a");
+        galleria.Ruoli.EroeAperitivo!.Chiave.Should().Be("c");
+        // La finestra della home parte da `b` e salta l'eroe scelto, scorrendo per restare a tre.
+        galleria.Ruoli.GrigliaHome.Select(i => i.Chiave).Should().Equal("b", "d");
+        galleria.Ruoli.QuadrateLocale.Select(i => i.Chiave).Should().Equal("c", "d");
+        // ⚠️ `immagini` NON cambia: i ruoli sono additivi, non una selezione.
+        galleria.Immagini.Select(i => i.Chiave).Should().Equal("a", "b", "c", "d");
+    }
+
+    /// <summary>
+    /// 🔴 Uno slot che punta a un media che la <b>rotta pubblica non selezionerebbe</b> — non
+    /// pubblicato, o in un'altra cartella — non deve farlo comparire dalla porta di servizio.
+    /// </summary>
+    [Fact]
+    public async Task Galleria_ConUnoSlotFuoriDallaGalleria_RicadeSullaPosizione()
+    {
+        AggiungiMedia(1, "a", cartella: CartelleVetrina.Galleria, ordinamento: 1);
+        MediaAsset nascosta =
+            AggiungiMedia(2, "riservata", cartella: CartelleVetrina.Generale, ordinamento: 2);
+        AggiungiImpostazioniVetrina(eroeHome: nascosta, eroeAperitivo: nascosta);
+
+        RuoliImmaginiDto ruoli = (await LeggiGalleria()).Ruoli;
+
+        using var _ = new AssertionScope();
+        ruoli.EroeHome!.Chiave.Should().Be("a", "lo slot non seleziona: si ricade sulla posizione");
+        ruoli.EroeAperitivo.Should().BeNull("quel ruolo non ha ripiego posizionale");
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────────────
     //  L'istruzione SQL generata
     // ─────────────────────────────────────────────────────────────────────────────────────
 
@@ -796,7 +896,10 @@ public class PublicControllerTests : IDisposable
         decimal? latitudine = null,
         decimal? longitudine = null,
         MediaAsset? immagineOg = null,
-        string? turnstile = null)
+        string? turnstile = null,
+        MediaAsset? eroeHome = null,
+        MediaAsset? ritrattoLocale = null,
+        MediaAsset? eroeAperitivo = null)
     {
         _dbContext.ImpostazioniVetrina.Add(new ImpostazioniVetrina
         {
@@ -811,6 +914,12 @@ public class PublicControllerTests : IDisposable
             ImmagineOg = immagineOg,
             ImmagineOgId = immagineOg?.MediaAssetId,
             TurnstileSiteKey = turnstile,
+            // ⚠️ Solo gli identificativi, senza le navigazioni: la rotta pubblica legge le tre
+            //    colonne con una proiezione e non attraversa mai la relazione. Assegnare anche
+            //    l'entità qui renderebbe il test verde per una strada che la produzione non usa.
+            ImmagineEroeHomeId = eroeHome?.MediaAssetId,
+            ImmagineRitrattoLocaleId = ritrattoLocale?.MediaAssetId,
+            ImmagineEroeAperitivoId = eroeAperitivo?.MediaAssetId,
         });
         _dbContext.SaveChanges();
     }

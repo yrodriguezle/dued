@@ -750,7 +750,7 @@ pannello.
 chiavi della risposta ([api.ts:172-176](../../../sito/src/lib/api.ts)); un sito che pretende `ruoli`
 davanti a un backend che non li manda **degrada** invece di rendere le immagini.
 
-- [ ] 4.1 **`backend/Controllers/Public/Dto/GalleriaPubblicaDto.cs`** — `+Ruoli` sul record
+- [x] 4.1 **`backend/Controllers/Public/Dto/GalleriaPubblicaDto.cs`** — `+Ruoli` sul record
   esistente e il nuovo `RuoliImmaginiDto` che **riusa `ImmaginePubblicaDto`**, come da
   [D6](./design.md). `IReadOnlyList<T>` per le tre griglie, nullable per i tre ruoli singoli.
   ⚠️ `immagini` **resta**: è additivo per definizione, e toglierlo romperebbe quattro scenari della
@@ -758,25 +758,25 @@ davanti a un backend che non li manda **degrada** invece di rendere le immagini.
   *Verifica*: `dotnet build` esce 0; `ImmaginePubblicaDto` è **identico** (è lo stesso tipo di
   `/api/public/menu`, e `PublicControllerTests.cs:611` lo pinna).
 
-- [ ] 4.2 **`PublicController` compone `Ruoli` da `RuoliImmaginiVetrina`** — la galleria si legge
+- [x] 4.2 **`PublicController` compone `Ruoli` da `RuoliImmaginiVetrina`** — la galleria si legge
   come oggi (`Cartella == "galleria" && Pubblicato`, ordinata per `Ordinamento`), poi si chiama
   `Risolvi`. Nessun altro cambio: stessa politica di cache, stessa proiezione, nessun parametro di
   query nuovo.
   *Verifica* (spec `sito-pubblico` → *La politica di cache non cambia*): `curl` sulla rotta mostra
   `Cache-Control: public,max-age=300` invariato e `immagini` identico alla risposta di prima.
 
-- [ ] 4.3 **La superficie pubblica resta chiusa per costruzione** — i tre test strutturali di
+- [x] 4.3 **La superficie pubblica resta chiusa per costruzione** — i tre test strutturali di
   `SuperficiePubblicaTests` attraversano `RuoliImmaginiDto` **senza modifiche** (la BFS è ricorsiva
   sui tipi annidati) purché il record stia in `duedgusto.Controllers.Public.Dto`.
   *Verifica*: `dotnet test --filter "SuperficiePubblica"` passa **senza che il test sia stato
   toccato**. Se è stato necessario modificarlo, il record è nel namespace sbagliato.
 
-- [ ] 4.4 **`sito/src/lib/tipi.ts` e `api.ts`** — `GalleriaPubblica` guadagna `ruoli`;
+- [x] 4.4 **`sito/src/lib/tipi.ts` e `api.ts`** — `GalleriaPubblica` guadagna `ruoli`;
   `leggiGalleria` aggiunge `'ruoli'` alle chiavi riconosciute.
   ⚠️ Da questo commit il sito **pretende** il campo: il backend va in linea per primo.
   *Verifica*: `cd sito && npm run check` esce 0.
 
-- [ ] 4.5 **I quattro `.astro` leggono per nome invece che per indice** — `index.astro`
+- [x] 4.5 **I quattro `.astro` leggono per nome invece che per indice** — `index.astro`
   (`ruoli.eroeHome` / `ruoli.grigliaHome`), `menu.astro` (`ruoli.fotoMenu`), `locale.astro`
   (`ruoli.ritrattoLocale` / `ruoli.quadrateLocale`), `aperitivo.astro` (`ruoli.eroeAperitivo`).
   🔴 **`contatti.astro` non si tocca**: non legge la galleria.
@@ -786,7 +786,7 @@ davanti a un backend che non li manda **degrada** invece di rendere le immagini.
   *Verifica*: `grep -n "galleria\[\|slice(\|at(-1)" sito/src/pages/*.astro` non trova più
   aritmetica sugli indici della galleria.
 
-- [ ] 4.6 🔴 **`sito/test/immagini-ruoli.test.mjs`** — con il sito di prova e **slot vuoti**, le
+- [x] 4.6 🔴 **`sito/test/immagini-ruoli.test.mjs`** — con il sito di prova e **slot vuoti**, le
   quattro pagine rendono **le stesse chiavi immagine** di prima del change, nelle stesse posizioni.
   🔴 Tre dimensioni obbligatorie: la galleria di prova, **una sola immagine** (lo stato reale della
   produzione, task 0.3) e **zero immagini**. Con una foto sola la stessa chiave compare su home
@@ -798,12 +798,12 @@ davanti a un backend che non li manda **degrada** invece di rendere le immagini.
   *Verifica* (spec `sito-pubblico` → *Le cinque pagine rispondono come prima*): `cd sito && npm test`
   passa; il file usa `_sito-di-prova.mjs` come gli altri, non una nuova impalcatura.
 
-- [ ] 4.7 **Le regressioni del sito restano verdi senza modifiche** — `navigazione.test.mjs`,
+- [x] 4.7 **Le regressioni del sito restano verdi senza modifiche** — `navigazione.test.mjs`,
   `menu.test.mjs`, `prefissi.test.mjs`, `immagini.test.mjs`, `degradazione.test.mjs`.
   *Verifica*: `git diff sito/test/` mostra **solo** il file nuovo del task 4.6. Se un test esistente
   è stato modificato, il contratto è cambiato in un modo che il task 4.1 diceva additivo.
 
-- [ ] 4.8 🔴 **Confronto con la cattura del «prima»** — riesegui la cattura del task 0.2 e
+- [x] 4.8 🔴 **Confronto con la cattura del «prima»** — riesegui la cattura del task 0.2 e
   **confronta**, nei due stati delle pagine condizionate: stessi codici HTTP, stesse chiavi immagine
   nelle stesse posizioni, stessa sitemap, stesse voci di intestazione e piè di pagina.
   *Verifica* (spec `sito-pubblico` → *Navigazione e sitemap invariate*, *Il 404 condizionato si
@@ -815,7 +815,7 @@ davanti a un backend che non li manda **degrada** invece di rendere le immagini.
   già 404. 🔴 L'attesa va **riscritta**, non allentata: un confronto reso permissivo su una pagina
   smetterebbe di sorvegliare anche tutto il resto di quella pagina.
 
-- [ ] 4.9 **Prova manuale della rotta** — su una seconda istanza, `curl -k
+- [x] 4.9 **Prova manuale della rotta** — su una seconda istanza, `curl -k
   https://localhost:4012/api/public/galleria`.
   *Verifica*: la risposta contiene `immagini` **e** `ruoli`; con la galleria reale a una foto,
   `eroeHome` e `ritrattoLocale` sono la **stessa** chiave, `eroeAperitivo` è **`null`** (task 2.2)
@@ -829,6 +829,146 @@ partizionata.
 risposta (è additivo). ⚠️ 🔴 **Se nel frattempo qualcuno ha valorizzato uno slot**, i valori vanno
 **riportati nell'ordine della galleria prima** del revert: altrimenti la scelta editoriale si perde
 in silenzio. È l'**unico punto di non ritorno** del change.
+
+### ✅ Esito misurato — Fase 4 (2026-08-13)
+
+| Comando | Esito | Delta sulla fase precedente |
+|---|---|---|
+| `dotnet build backend/duedgusto.csproj` | **0 errori, 0 avvisi** | — |
+| `dotnet test` (suite intera) | **754 / 754** | **+5** sui 749 della Fase 3 |
+| `cd sito && npm run check` | **0 errori, 0 avvisi, 0 suggerimenti** (56 file) | — |
+| `cd sito && npm test` | **119 / 119** | **+8** sui 111 della baseline 0.4 |
+| `cd duedgusto && npm run test` | **790 / 790** (100 file) | **0** — `duedgusto/` non è toccata |
+
+I **+5** del backend: **+1** riga nella `[Theory]` che pinna la forma esatta dei DTO (il record
+nuovo) e **+4** test di raccordo del controller. Gli **+8** del sito sono il solo file nuovo.
+
+**4.1 / 4.2 — il campo e chi lo compone.** `GalleriaPubblicaDto` guadagna `Ruoli`;
+`RuoliImmaginiDto` **riusa `ImmaginePubblicaDto`** e vive nello stesso file e nello stesso
+namespace. `immagini` è intatto — e non per dichiarazione: la risposta reale del backend contiene
+oggi le **stesse due chiavi nello stesso ordine** della cattura del task 0.2
+(`galleriaSorgente` identica, verificato dal confronto). `Cache-Control: public,max-age=300`
+invariato, misurato con `curl -D -`.
+
+🔴 **Una deroga, dichiarata perché è una deroga.** `RigheDellaGalleria` ora porta a casa
+l'**entità** `MediaAsset` invece di una proiezione stretta. La ragione: la regola dei ruoli è in
+`RuoliImmaginiVetrina` e parla di `MediaAsset`; proiettare più stretto avrebbe voluto dire o una
+seconda mappatura verso l'entità — cioè un secondo posto in cui la galleria è descritta — o una
+firma generica che nessun altro chiamante vuole. Costa **otto colonne su una manciata di righe**
+dietro una risposta cacheata 300 s, e non costa superficie: `MediaAssets` non ha colonne contabili
+e ciò che esce resta deciso dai `record` di `Public.Dto`. Gli **slot** invece si leggono con una
+proiezione a **tre colonne** — è precisamente la forma per cui la firma a tre `int?` del task 2.1
+esiste, e tenerla evita di portare in memoria, su una rotta anonima, la chiave del servizio
+antispam. `QueryDellaGalleria_ConfrontaLaColonnaSenzaApplicarleAlcunaFunzione` resta verde.
+
+**4.3 — 🔴 divergenza dalla lettera del task, e cosa dimostra.** Il task chiede che
+`SuperficiePubblicaTests` passi **senza essere toccato**. Non è possibile, e il motivo è che il
+file fa **due mestieri**:
+
+| Sezione | Test | Esito senza modifiche |
+|---|---|---|
+| (1) divieto ricorsivo dei nomi vietati | `NessunTipoRaggiungibile_PossiedeUnCampoVietato` | **verde** |
+| (2) ogni action rende un DTO, tre rotte, nessun input, anonimato | 4 test | **verdi** |
+| (3) **dichiarazione** dell'elenco esatto dei campi di ogni DTO | `OgniDtoPubblico_HaEsattamenteQuestiCampi`, `LaFormaAttesa_CopreOgniTipoRaggiungibile` | **rossi** |
+
+Le prime due sezioni — 21 test su 23 — sono passate **senza una riga di modifica**, ed è
+esattamente ciò che [D6](./design.md) prometteva: la visita in ampiezza ha attraversato
+`RuoliImmaginiDto` senza sapere che esistesse, e non ci ha trovato alcun nome vietato. La sezione
+(3) è una **tabella di dichiarazione**, non un divieto: il suo mestiere è **pretendere** che un
+tipo nuovo venga dichiarato, e il rosso di `LaFormaAttesa_CopreOgniTipoRaggiungibile`
+(*«items {RuoliImmaginiDto} are not part of the superset»*) è la prova diretta che la visita c'è
+arrivata. Aggiungere le due voci **non allenta nulla**. Se un giorno qualcuno vi infilasse
+`origine`, il test (1) resterebbe verde e il test (3) direbbe il nome del campo di troppo.
+
+**4.5 — la trappola delle quattro `<picture>` sulla home, evitata.** `grep` su `sito/src/pages/`
+non trova più alcuna aritmetica sugli indici della galleria; gli unici `slice(` rimasti in
+`index.astro` sono i **due dei prodotti** (`menu.categorie.slice(0, MAX_MOMENTI)` e
+`ordinati.slice(0, MAX_PIATTI_PER_MOMENTO)`), che il task 0.1 aveva segnalato come da non toccare.
+La prova non è la lettura del `grep`: è che la cattura del «dopo» sulla home contiene ancora
+**otto** chiavi in **quattro** `<picture>`, compresa `2026/08/800-89qao7` che è una foto di
+**prodotto** e non di galleria. Se la sostituzione le avesse toccate, quella chiave sarebbe sparita.
+
+**4.6 / 4.7 — otto test nuovi, nessun test esistente modificato.**
+`sito/test/immagini-ruoli.test.mjs` copre le tre dimensioni obbligatorie (la galleria di prova da
+6, **una sola** immagine, **zero**) più due che valgono da sole: gli slot valorizzati — la
+proprietà che l'aritmetica non poteva avere — e la galleria che non risponde, dove `RUOLI_VUOTI`
+deve produrre pagine senza foto e **non** un 500 servito al visitatore.
+🔴 L'autorità del confronto è **esterna**: gli indici attesi sono l'aritmetica che i `.astro`
+avevano *prima*, ricopiata e calcolata dentro il file di test.
+⚠️ **`/aperitivo` afferma l'assenza, e la afferma con un messaggio.** Non ricopia il «prima».
+
+⚠️ **Un file di `sito/test/` è stato modificato, e non è un test**: `_sito-di-prova.mjs`, cioè il
+**backend finto**. `leggiGalleria` ora pretende la chiave `ruoli` (task 4.4), quindi una risposta
+di prova che dichiara solo `immagini` farebbe **degradare** la pagina invece di renderla — e i
+casi di `menu.test.mjs:157` e `prefissi.test.mjs:50` sono scritti così. Il finto backend risponde
+ora **nella forma del contratto corrente**: un caso che assegna `{ immagini: [foto] }` sta dicendo
+«una galleria con questa foto», non «una risposta senza `ruoli`». È ciò che permette a
+`git diff sito/test/` di non contenere **alcun file di test modificato** — i cinque nominati dal
+task 4.7 sono verdi **byte per byte come erano** — e di restare quindi la prova che il campo è
+additivo. La regola dei ruoli non è duplicata lì: `galleriaFinta` ne rispecchia il comportamento
+**a slot vuoti**, l'unico stato che i test del sito esercitano, e la regola vera resta pinnata dai
+17 test C# del task 2.3.
+
+#### 🔴 4.8 — il confronto delle dieci catture, una per una
+
+Backend reale sulla porta 4000 e `astro dev` sulla 4321, come la cattura del task 0.2 (che
+contiene `@vite/client`: veniva anch'essa dal dev server). Lo strumento è lo **stesso**,
+`prove/cattura.mjs`; il confronto è in `prove/confronto.mjs` e **si riesegue**.
+
+| # | Stato | Pagina | HTTP | Cache | Immagini | Nav | Esito |
+|---|---|---|---|---|---|---|---|
+| 1 | pubblicato | `/` | 200 = 200 | = | `A A A A P P B B` = | = | **identica** |
+| 2 | pubblicato | `/menu` | 200 = 200 | = | `A A B B` = | = | **identica** |
+| 3 | pubblicato | `/aperitivo` | 200 = 200 | = | `B B` → **nessuna** | = | 🔴 **differenza attesa** |
+| 4 | pubblicato | `/locale` | 200 = 200 | = | `B B` = | = | **identica** |
+| 5 | pubblicato | `/contatti` | 200 = 200 | = | nessuna = | = | **identica** |
+| 6 | svuotato | `/` | 200 = 200 | = | `A A A A P P B B` = | = | **identica** |
+| 7 | svuotato | `/menu` | 200 = 200 | = | `A A B B` = | = | **identica** |
+| 8 | svuotato | `/aperitivo` | **404 = 404** | `no-store` = | nessuna = | = | **identica** |
+| 9 | svuotato | `/locale` | **404 = 404** | `no-store` = | nessuna = | = | **identica** |
+| 10 | svuotato | `/contatti` | 200 = 200 | = | nessuna = | = | **identica** |
+
+Sitemap **identica** in entrambi gli stati (5 voci / 3 voci) e `galleriaSorgente` identica —
+quest'ultima è ciò che distingue «il codice è cambiato» da «qualcuno ha caricato una foto nel
+frattempo».
+
+🔴 **L'attesa è stata riscritta, non allentata, e lo si è dimostrato.** `confronto.mjs` dichiara
+la singola cella diversa **per esteso** — quella pagina, quello stato, quel campo, e il valore
+atteso alla lettera (`[]`) — e continua a sorvegliare **tutti e cinque** i campi di `/aperitivo`,
+codice HTTP e navigazioni comprese. Due mutazioni lo provano:
+
+| Mutazione | Esito |
+|---|---|
+| `atteso: []` → `atteso: ['img:2026/08/800-xxpt4q']` | **rosso**: *«cambia come previsto ma non in ciò che era previsto — atteso […], trovato []»* |
+| `DIFFERENZE_ATTESE` svuotato | **rosso**: la differenza è riportata come regressione — il file **non ignora** `/aperitivo` |
+
+E la terza asserzione, quella che nessuno scrive mai: una differenza **dichiarata e non
+verificata** è a sua volta un errore (*«il vecchio comportamento è tornato?»*). Se un giorno il
+ripiego `at(-1)` rientrasse dalla finestra, questo confronto sarebbe rosso.
+
+⚠️ **Lo stato «svuotato» è stato prodotto senza scrivere sul database**, a differenza della
+Fase 0. Le scritture SQL sono state **negate dall'ambiente**, quindi al posto dello svuotamento
+delle due colonne è stato messo un proxy in sola lettura davanti al backend
+(`scratchpad/proxy-svuotato.mjs`) che porta `testi.storia` e `testi.aperitivo` a `null` — cioè
+esattamente ciò che `PublicController.TestiDa` produce a corpo del testo vuoto, che è **l'unico**
+ingresso da cui `rotte.ts` decide il 404, la navigazione e la sitemap. Il sito ha visto lo stesso
+identico payload; il dato non è mai stato toccato. **Verificato a fine fase**: `MD5(StoriaTesto)`
+= `3c4adb02…` e `MD5(AperitivoTesto)` = `3907e500…`, **gli stessi numeri della Fase 0**; i tre
+slot ancora `NULL`; 22 media e 2 foto in galleria.
+
+**4.9 — la rotta, a mano.** `curl -k https://localhost:4000/api/public/galleria` restituisce
+`immagini` **e** `ruoli`. ⚠️ Il task prevedeva la galleria **a una foto**; quella raggiungibile da
+qui ne ha **due** — è la divergenza fra produzione e sviluppo locale già dichiarata al task 0.3 e
+**tuttora non risolta**, perché verificarla richiede l'accesso al VPS. Con due foto l'esito
+osservato è quello che il task 2.3 prescrive per quel caso: `eroeHome` = **A**, `ritrattoLocale` =
+**B** (non la stessa, come sarebbe con una foto sola), `grigliaHome` = `[B]`, `fotoMenu` =
+`[A, B]`, `quadrateLocale` = **vuota**, `eroeAperitivo` = **`null`**.
+🔴 Il caso a **una** foto — quello della produzione — non è rimasto scoperto: è un test dedicato
+del task 4.6 (*«con UNA sola foto la stessa compare su home e locale»*) e un caso della matrice
+del task 2.3.
+
+⚠️ **Nessun accesso alla produzione**: backend, sito e database sono tutti locali, e i tre
+processi avviati per la prova sono stati **fermati** a fine fase (porte 4000, 4010 e 4321 libere).
 
 ---
 

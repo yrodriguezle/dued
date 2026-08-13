@@ -115,13 +115,56 @@ export interface MenuPubblico {
 }
 
 /**
- * La galleria: i media della cartella dedicata e pubblicati, nell'ordine editoriale.
+ * Chi ricopre quale ruolo su quale pagina — **già risolto dal server**.
+ *
+ * 🔴 Fino a questo change ogni pagina indicizzava `immagini` con i propri offset —
+ *    `galleria[0]`, `slice(0,3)`, `galleria[1] ?? galleria[0]`, `slice(2,5)`, `at(-1)` — cioè
+ *    la stessa regola scritta **quattro volte in quattro file**, senza che «quante immagini
+ *    ospita questa pagina» avesse una risposta da nessuna parte. Ora si legge un **nome**, e la
+ *    regola vive in un posto solo: `backend/Services/Vetrina/RuoliImmaginiVetrina.cs`.
+ *
+ * ⚠️ Le immagini qui dentro sono le **stesse** che compaiono in `immagini`, ripetute. Non è una
+ *    selezione alternativa: è la stessa galleria, vista per ruolo.
+ */
+export interface RuoliImmagini {
+  /** L'immagine grande in cima a `/`. Ripiego a slot vuoto: la prima della galleria. */
+  eroeHome: ImmaginePubblica | null;
+
+  /** Le foto della griglia di `/`. **Mai `null`**, ma può averne meno di tre, o zero. */
+  grigliaHome: ImmaginePubblica[];
+
+  /** Le foto in coda al listino di `/menu`. Stesse regole di `grigliaHome`. */
+  fotoMenu: ImmaginePubblica[];
+
+  /** Il ritratto verticale di `/locale`. Ripiego: la seconda della galleria, poi la prima. */
+  ritrattoLocale: ImmaginePubblica | null;
+
+  /** Le quadrate di `/locale`. Stesse regole di `grigliaHome`. */
+  quadrateLocale: ImmaginePubblica[];
+
+  /**
+   * L'immagine grande in cima a `/aperitivo`.
+   *
+   * 🔴 **È l'unico ruolo singolo che resta `null` anche a galleria piena**: non ha ripiego
+   *    posizionale. Finché l'amministratore non sceglie, quella pagina esce **senza** immagine
+   *    di testata — che è la regola già in vigore su tutto il resto del sito, *una sezione senza
+   *    il suo dato non si rende*. Prima di questo change era `galleria.at(-1)`, cioè caricare
+   *    una foto qualsiasi, anche per un'altra pagina, spostava di nascosto questa immagine.
+   */
+  eroeAperitivo: ImmaginePubblica | null;
+}
+
+/**
+ * La galleria: i media della cartella dedicata e pubblicati, nell'ordine editoriale, **più** i
+ * ruoli già risolti.
  *
  * Un elenco **vuoto è uno stato legittimo** — nessuno ha ancora etichettato immagini — e
- * produce `200`, non un errore.
+ * produce `200`, non un errore. ⚠️ In quel caso `ruoli` c'è comunque, con i ruoli singoli a
+ * `null` e le griglie vuote: non è un campo da controllare prima di leggerlo.
  */
 export interface GalleriaPubblica {
   immagini: ImmaginePubblica[];
+  ruoli: RuoliImmagini;
 }
 
 /** L'identità del locale come la legge un visitatore. */

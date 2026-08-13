@@ -12,11 +12,11 @@
 import Base from '../layouts/Base.astro';
 import Immagine from '../components/Immagine.astro';
 import Freccia from '../components/Freccia.astro';
-import { leggiSito, leggiGalleria } from '../lib/api.ts';
+import { leggiSito, leggiGalleria, RUOLI_VUOTI } from '../lib/api.ts';
 
 const [esitoSito, esitoGalleria] = await Promise.all([leggiSito(), leggiGalleria()]);
 const sito = esitoSito.stato === 'ok' ? esitoSito.dati : null;
-const galleria = esitoGalleria.stato === 'ok' ? esitoGalleria.dati.immagini : [];
+const ruoli = esitoGalleria.stato === 'ok' ? esitoGalleria.dati.ruoli : RUOLI_VUOTI;
 
 const storia = sito?.testi.storia ?? null;
 
@@ -33,10 +33,16 @@ if (sito === null) {
   Astro.response.headers.set('Cache-Control', 'public, max-age=300');
 }
 
-// Il ritratto è la seconda foto della galleria, le tre quadrate sono le successive: la prima
-// è già l'eroe della home, e ripeterla qui farebbe sembrare il sito più corto di quanto è.
-const ritratto = galleria[1] ?? galleria[0] ?? null;
-const quadrate = galleria.slice(2, 5);
+// Le immagini di questa pagina, **chieste per nome**. Qui c'era
+// `galleria[1] ?? galleria[0]` e `galleria.slice(2, 5)`.
+//
+// ⚠️ Il ripiego non è sparito, si è spostato: a slot vuoto il ritratto è ancora la seconda
+//    della galleria, e la prima se ce n'è una sola. La ragione per cui è la seconda e non la
+//    prima resta quella scritta qui da sempre — la prima è già l'eroe della home, e ripeterla
+//    farebbe sembrare il sito più corto di quanto è — ma adesso è una **conseguenza** della
+//    scelta dell'amministratore invece che una premessa nascosta in un indice.
+const ritratto = ruoli.ritrattoLocale;
+const quadrate = ruoli.quadrateLocale;
 
 // ⚠️ Il testo è un campo `text` scritto in un `textarea`: i capoversi arrivano come righe
 //    vuote, e senza spezzarli qui la storia diventa **un unico blocco** — che è il modo in
