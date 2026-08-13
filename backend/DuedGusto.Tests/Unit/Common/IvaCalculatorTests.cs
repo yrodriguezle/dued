@@ -175,6 +175,95 @@ public class IvaCalculatorTests
 
     #endregion
 
+    #region IVA nota (fattura multialiquota / IVA digitata)
+
+    [Theory]
+    // Cash & Carry: imponibile e IVA presi dal documento, nessuna aliquota nel calcolo
+    [InlineData("100.00", "18.50", "118.50")]
+    // Terna che NON corrisponde ad alcuna aliquota di legge (11,3%)
+    [InlineData("204.42", "23.08", "227.50")]
+    // IVA zero (fuori campo / non imponibile)
+    [InlineData("80.00", "0.00", "80.00")]
+    // Storno: importi negativi ammessi come nelle altre operazioni
+    [InlineData("-100.00", "-18.50", "-118.50")]
+    public void DaImportoEsplicito_UsaLIvaTaleEQualeESommaIlTotale(
+        string imponibileStr, string ivaStr, string totaleStr)
+    {
+        decimal imponibile = decimal.Parse(imponibileStr, System.Globalization.CultureInfo.InvariantCulture);
+        decimal iva = decimal.Parse(ivaStr, System.Globalization.CultureInfo.InvariantCulture);
+        decimal totaleAtteso = decimal.Parse(totaleStr, System.Globalization.CultureInfo.InvariantCulture);
+
+        RisultatoIva risultato = IvaCalculator.DaImportoEsplicito(imponibile, iva);
+
+        risultato.Imponibile.Should().Be(imponibile);
+        risultato.Iva.Should().Be(iva);
+        risultato.Totale.Should().Be(totaleAtteso);
+        (risultato.Imponibile + risultato.Iva).Should().Be(risultato.Totale);
+    }
+
+    [Theory]
+    // Fattura Cash & Carry da 118,50 con 18,50 di IVA stampata → imponibile per differenza
+    [InlineData("118.50", "18.50", "100.00")]
+    // Stesso lordo, IVA diversa: l'imponibile segue l'IVA, non un'aliquota
+    [InlineData("118.50", "12.34", "106.16")]
+    [InlineData("250.00", "0.00", "250.00")]
+    public void RipartisciConIvaNota_CongelaLIvaEMuoveLImponibile(
+        string lordoStr, string ivaStr, string imponibileStr)
+    {
+        decimal lordo = decimal.Parse(lordoStr, System.Globalization.CultureInfo.InvariantCulture);
+        decimal iva = decimal.Parse(ivaStr, System.Globalization.CultureInfo.InvariantCulture);
+        decimal imponibileAtteso = decimal.Parse(imponibileStr, System.Globalization.CultureInfo.InvariantCulture);
+
+        RisultatoIva risultato = IvaCalculator.RipartisciConIvaNota(lordo, iva);
+
+        risultato.Iva.Should().Be(iva);
+        risultato.Imponibile.Should().Be(imponibileAtteso);
+        risultato.Totale.Should().Be(lordo);
+        (risultato.Imponibile + risultato.Iva).Should().Be(lordo);
+    }
+
+    [Fact]
+    public void RipartisciConIvaNota_ETroppaIva_ProduceImponibileNegativo()
+    {
+        // Nessuna guard nel calculator: il rifiuto di IVA > lordo sta a monte (UI/mutation).
+        // Il test fissa il comportamento perché la formula resti simmetrica agli storni.
+        RisultatoIva risultato = IvaCalculator.RipartisciConIvaNota(100m, 120m);
+
+        risultato.Imponibile.Should().Be(-20m);
+        risultato.Totale.Should().Be(100m);
+    }
+
+    #endregion
+
+    #region Aliquota implicita (valore da mostrare, non da cui decidere)
+
+    [Theory]
+    [InlineData("100.00", "22.00", "22")]
+    [InlineData("227.27", "22.73", "10")]
+    // Terna Cash & Carry: 11,3% non è un'aliquota di legge ma è comunque derivabile
+    [InlineData("204.42", "23.08", "11.29")]
+    [InlineData("50.00", "0.00", "0")]
+    public void AliquotaImplicitaPercentuale_DerivaIlRapporto(
+        string imponibileStr, string ivaStr, string attesaStr)
+    {
+        decimal imponibile = decimal.Parse(imponibileStr, System.Globalization.CultureInfo.InvariantCulture);
+        decimal iva = decimal.Parse(ivaStr, System.Globalization.CultureInfo.InvariantCulture);
+        decimal attesa = decimal.Parse(attesaStr, System.Globalization.CultureInfo.InvariantCulture);
+
+        IvaCalculator.AliquotaImplicitaPercentuale(imponibile, iva).Should().Be(attesa);
+    }
+
+    [Fact]
+    public void AliquotaImplicitaPercentuale_NonDerivabile_ReturnsNull()
+    {
+        // IVA assente (fattura mai valorizzata), imponibile nullo, rapporto negativo
+        IvaCalculator.AliquotaImplicitaPercentuale(100m, null).Should().BeNull();
+        IvaCalculator.AliquotaImplicitaPercentuale(0m, 22m).Should().BeNull();
+        IvaCalculator.AliquotaImplicitaPercentuale(100m, -22m).Should().BeNull();
+    }
+
+    #endregion
+
     #region Equivalenza con le vecchie formule inline (design, Decisione 2)
 
     [Theory]

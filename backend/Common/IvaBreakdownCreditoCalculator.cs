@@ -8,9 +8,10 @@ namespace duedgusto.Common;
 /// <c>Stimato = true</c> quando l'IVA non è un dato certo da fattura:
 /// DDT non ancora fatturato (nessun diritto di detrazione, aliquota fornitore presuntiva)
 /// oppure fattura priva di ImportoIva persistito (fallback su aliquota fornitore).
-/// <c>AliquotaMista = true</c> quando l'aliquota implicita della fattura
-/// (ImportoIva/Imponibile) non è un'aliquota di legge → fattura multi-aliquota,
-/// il valore mostrato è una media ponderata, non un'aliquota reale.
+/// <c>AliquotaMista = true</c> quando la fattura ha l'IVA digitata
+/// (<c>IvaCalcolata = false</c>) oppure la sua aliquota implicita (ImportoIva/Imponibile)
+/// non è un'aliquota di legge: in entrambi i casi il valore mostrato è una media ponderata,
+/// non un'aliquota reale.
 /// </summary>
 public class RigaBreakdownIvaCredito
 {
@@ -108,15 +109,13 @@ public static class IvaBreakdownCreditoCalculator
         if (p.Fattura is not null)
         {
             FatturaAcquisto fattura = p.Fattura;
-            if (fattura.ImportoIva is decimal iva && fattura.Imponibile != 0)
+            if (IvaCalculator.AliquotaImplicitaPercentuale(fattura.Imponibile, fattura.ImportoIva)
+                is decimal percent)
             {
-                decimal rateFraz = iva / fattura.Imponibile;
-                if (rateFraz >= 0)
-                {
-                    decimal percent = Math.Round(rateFraz * 100m, 2, MidpointRounding.ToEven);
-                    bool mista = !IvaCalculator.AliquoteAmmessePercentuali.Contains(percent);
-                    return (percent, RigaBreakdownIvaCredito.FonteFattura, false, mista);
-                }
+                // IVA digitata → la percentuale è per costruzione una media ponderata, anche
+                // quando per caso coincide con un'aliquota di legge.
+                bool mista = !fattura.IvaCalcolata || !IvaCalculator.IsAliquotaAmmessa(percent);
+                return (percent, RigaBreakdownIvaCredito.FonteFattura, false, mista);
             }
 
             // Fattura senza IVA persistita (o incoerente): stima su aliquota fornitore

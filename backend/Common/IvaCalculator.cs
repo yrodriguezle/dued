@@ -88,6 +88,60 @@ public static class IvaCalculator
         return new RisultatoIva(imponibile, iva, imponibile + iva);
     }
 
+    // === IVA NOTA (nessuna aliquota nel calcolo) ===================================
+    //
+    // Le due operazioni sopra presuppongono che il documento abbia UNA aliquota. Non è
+    // sempre vero: un Cash & Carry vende righe a 4/10/22% e sulla fattura stampa il solo
+    // TOTALE IVA. In quel caso l'IVA è un DATO letto dal documento, non un risultato: le
+    // due operazioni seguenti la accettano tale e quale e ricavano il terzo importo per
+    // differenza, mantenendo l'invariante Imponibile + Iva == Totale.
+
+    /// <summary>
+    /// IVA nota, importi netti: l'operatore inserisce imponibile e IVA presi dal documento
+    /// (fattura multialiquota). <c>Totale = imponibile + iva</c>.
+    /// </summary>
+    /// <param name="imponibile">Imponibile del documento (negativo ammesso per storni).</param>
+    /// <param name="iva">Importo IVA letto dal documento.</param>
+    public static RisultatoIva DaImportoEsplicito(decimal imponibile, decimal iva)
+    {
+        decimal imponibileArrotondato = Math.Round(imponibile, 2, MidpointRounding.ToEven);
+        decimal imposta = Math.Round(iva, 2, MidpointRounding.ToEven);
+        return new RisultatoIva(imponibileArrotondato, imposta, imponibileArrotondato + imposta);
+    }
+
+    /// <summary>
+    /// IVA nota, importo lordo: si conosce il totale pagato e l'IVA stampata sul documento.
+    /// <c>Imponibile = lordo − iva</c>, totale invariato — duale di
+    /// <see cref="ScorporaDaLordo"/> con l'IVA come dato invece che come incognita.
+    /// </summary>
+    /// <param name="lordo">Totale lordo IVA inclusa (negativo ammesso per storni).</param>
+    /// <param name="iva">Importo IVA letto dal documento.</param>
+    public static RisultatoIva RipartisciConIvaNota(decimal lordo, decimal iva)
+    {
+        decimal imposta = Math.Round(iva, 2, MidpointRounding.ToEven);
+        return new RisultatoIva(lordo - imposta, imposta, lordo);
+    }
+
+    /// <summary>
+    /// Aliquota IMPLICITA in PERCENTUALE di un documento già valorizzato
+    /// (<c>Iva / Imponibile</c>), oppure <c>null</c> se non derivabile: IVA assente,
+    /// imponibile nullo, o rapporto negativo (dati incoerenti).
+    ///
+    /// <para>È un valore da MOSTRARE, non su cui decidere: su una fattura a IVA digitata la
+    /// percentuale è una media ponderata e non corrisponde ad alcuna aliquota reale. La
+    /// modalità di una fattura si legge da <c>FatturaAcquisto.IvaCalcolata</c>, non da qui.</para>
+    /// </summary>
+    public static decimal? AliquotaImplicitaPercentuale(decimal imponibile, decimal? iva)
+    {
+        if (iva is not decimal importoIva || imponibile == 0)
+        {
+            return null;
+        }
+
+        decimal frazione = importoIva / imponibile;
+        return frazione < 0 ? null : Math.Round(frazione * 100m, 2, MidpointRounding.ToEven);
+    }
+
     private static void GuardAliquota(decimal aliquota)
     {
         if (aliquota < 0)

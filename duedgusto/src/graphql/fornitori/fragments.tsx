@@ -28,6 +28,7 @@ export const fatturaAcquistoFragment = `
     dataFattura
     imponibile
     importoIva
+    ivaCalcolata
     totaleConIva
     stato
     dataScadenza

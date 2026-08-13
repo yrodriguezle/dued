@@ -33,6 +33,8 @@ export interface PagamentoFornitoreRegistroInput {
   dataFattura?: string;
   dataDdt?: string;
   aliquotaIva?: number;
+  // IVA presa dalla fattura (multialiquota): se valorizzata prevale su aliquotaIva. Solo per "FA".
+  importoIva?: number;
   // Categoria (opzionale): valorizzata solo per le spese fisse pagate in modo tracciato.
   categoria?: CategoriaSpesa;
 }

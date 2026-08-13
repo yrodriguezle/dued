@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { FormikFatturaAcquistoValues } from "./FatturaAcquistoDetails";
 import setInitialFocus from "./setInitialFocus";
 import mergeWithDefaults from "../../../common/form/mergeWithDefaults";
+import { defaultAliquotaIva } from "../../../common/iva/aliquote";
 
 interface UseInitializeValuesProps {
   skipInitialize?: boolean;
@@ -19,7 +20,9 @@ function useInitializeValues({ skipInitialize }: UseInitializeValuesProps) {
       invoiceDate: "",
       dueDate: "",
       totalAmount: 0,
-      vatRate: 22,
+      vatFromRate: true,
+      vatRate: defaultAliquotaIva,
+      vatAmount: 0,
       notes: "",
     };
     return initialValues;

@@ -36,11 +36,18 @@ public class FatturaAcquistoOrchestrator
             fattura.FornitoreId = input.FornitoreId;
             fattura.NumeroFattura = input.NumeroFattura;
             fattura.DataFattura = input.DataFattura;
-            RisultatoIva applicazione = IvaCalculator.ApplicaSuImponibile(
-                input.Imponibile, IvaCalculator.AliquotaDaPercentuale(input.AliquotaIva));
+            // IVA digitata dall'operatore (fattura multialiquota) → dato, non calcolo:
+            // prevale sull'aliquota, che in quel caso non viene nemmeno letta.
+            RisultatoIva applicazione = input.ImportoIva is decimal ivaDaDocumento
+                ? IvaCalculator.DaImportoEsplicito(input.Imponibile, ivaDaDocumento)
+                : IvaCalculator.ApplicaSuImponibile(
+                    input.Imponibile, IvaCalculator.AliquotaDaPercentuale(input.AliquotaIva));
             fattura.Imponibile = applicazione.Imponibile;
             fattura.ImportoIva = applicazione.Iva;
             fattura.TotaleConIva = applicazione.Totale;
+            // Unico punto in cui la modalità viene decisa per la pagina fattura: da qui in poi
+            // è un fatto persistito, non più deducibile dagli importi.
+            fattura.IvaCalcolata = input.ImportoIva is null;
             fattura.DataScadenza = input.DataScadenza;
             fattura.Note = input.Note;
             fattura.Stato = input.Stato;
@@ -99,6 +106,9 @@ public class FatturaAcquistoOrchestrator
                 throw new ExecutionError($"Il DDT {ddtAltroFornitore.NumeroDdt} non appartiene al fornitore della fattura");
 
             ddtList.ForEach(d => d.FatturaId = fatturaId);
+            // Il ricalcolo rilegge i DDT dal database (Where → query, non change tracker):
+            // senza questo save le righe appena collegate resterebbero fuori dalla somma.
+            await _unitOfWork.SaveChangesAsync();
 
             await RicalcolaTotaliFatturaAsync(fattura);
 
@@ -122,6 +132,8 @@ public class FatturaAcquistoOrchestrator
                 throw new ExecutionError("Uno o più DDT non trovati o non associati a questa fattura");
 
             ddtList.ForEach(d => d.FatturaId = null);
+            // Come in AssociaDdtAsync: senza save i DDT appena staccati verrebbero ancora sommati.
+            await _unitOfWork.SaveChangesAsync();
 
             await RicalcolaTotaliFatturaAsync(fattura);
 
@@ -138,16 +150,29 @@ public class FatturaAcquistoOrchestrator
 
         decimal totale = allDdt.Sum(d => d.Importo ?? 0);
 
-        // Derivazione inversa dell'aliquota dalla fattura (non è una formula IVA: resta invariata)
-        decimal aliquota = fattura.ImportoIva != null && fattura.Imponibile > 0
-            ? Math.Round(fattura.ImportoIva.Value / fattura.Imponibile * 100, 2)
-            : 22m;
+        // IVA digitata (fattura multialiquota): è un dato letto dal documento, si congela e si
+        // muove l'imponibile. Riscorporarla significherebbe reinventare un'aliquota che sulla
+        // fattura non esiste. È l'unico punto che deve saperlo senza averlo nell'input: legge
+        // il flag persistito, non lo deduce dagli importi.
+        RisultatoIva risultato;
+        if (!fattura.IvaCalcolata && fattura.ImportoIva is decimal ivaDigitata)
+        {
+            risultato = IvaCalculator.RipartisciConIvaNota(totale, ivaDigitata);
+        }
+        else
+        {
+            // Derivazione inversa dell'aliquota dalla fattura (non è una formula IVA: resta invariata)
+            decimal aliquota = fattura.ImportoIva != null && fattura.Imponibile > 0
+                ? Math.Round(fattura.ImportoIva.Value / fattura.Imponibile * 100, 2)
+                : 22m;
 
-        RisultatoIva scorporo = IvaCalculator.ScorporaDaLordo(
-            totale, IvaCalculator.AliquotaDaPercentuale(aliquota));
-        fattura.TotaleConIva = scorporo.Totale;
-        fattura.Imponibile = scorporo.Imponibile;
-        fattura.ImportoIva = scorporo.Iva;
+            risultato = IvaCalculator.ScorporaDaLordo(
+                totale, IvaCalculator.AliquotaDaPercentuale(aliquota));
+        }
+
+        fattura.TotaleConIva = risultato.Totale;
+        fattura.Imponibile = risultato.Imponibile;
+        fattura.ImportoIva = risultato.Iva;
     }
 
     public async Task<bool> EliminaAsync(int fatturaId)

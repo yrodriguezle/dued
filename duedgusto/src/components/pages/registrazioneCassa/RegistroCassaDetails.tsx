@@ -198,6 +198,7 @@ function RegistroCassaDetails() {
             dataFattura: row.dataFattura,
             dataDdt: row.dataDdt,
             aliquotaIva: row.aliquotaIva ?? undefined,
+            importoIva: row.importoIva ?? undefined,
             categoria: row.categoria,
           }));
 
@@ -442,6 +443,11 @@ function RegistroCassaDetails() {
             ? p.fattura?.fornitore?.aliquotaIva
             : p.ddt?.fornitore?.aliquotaIva;
 
+          // Fattura con IVA digitata: si ripristina com'è invece di riderivarla dall'aliquota
+          // del fornitore. La modalità è il campo persistito, non una deduzione dagli importi.
+          const ivaDigitata =
+            hasInvoice && p.fattura?.ivaCalcolata === false ? p.fattura?.importoIva : undefined;
+
           return {
             description: `Pagamento ${nomeFornitore} - ${docLabel}`,
             amount: p.importo,
@@ -457,6 +463,7 @@ function RegistroCassaDetails() {
             dataFattura: p.fattura?.dataFattura,
             dataDdt: p.ddt?.dataDdt,
             aliquotaIva: fornitoreAliquota ?? undefined,
+            importoIva: ivaDigitata ?? undefined,
             categoria: p.categoria ?? undefined,
           };
         }) || [];

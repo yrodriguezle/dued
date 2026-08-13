@@ -17,6 +17,7 @@ public class FatturaAcquistoType : ObjectGraphType<FatturaAcquisto>
         Field("imponibile", x => x.Imponibile);
         Field("importoIva", x => x.ImportoIva, nullable: true);
         Field("totaleConIva", x => x.TotaleConIva, nullable: true);
+        Field("ivaCalcolata", x => x.IvaCalcolata);
         Field("stato", x => x.Stato);
         Field<DateTimeGraphType>("dataScadenza").Resolve(x => x.Source.DataScadenza);
         Field("note", x => x.Note, nullable: true);

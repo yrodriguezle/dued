@@ -272,23 +272,41 @@ public class MutateRegistroCassaOrchestrator
                 FatturaAcquisto? linkedFattura = await db.FattureAcquisto.FindAsync(existing.FatturaId.Value);
                 if (linkedFattura != null)
                 {
-                    decimal aliquota = inp.AliquotaIva ?? 22m;
-                    if (inp.AliquotaIva == null)
-                    {
-                        Fornitore? fornitore = await db.Set<Fornitore>().FindAsync(inp.FornitoreId);
-                        if (fornitore?.AliquotaIva != null)
-                            aliquota = fornitore.AliquotaIva.Value;
-                    }
-
-                    RisultatoIva scorporo = IvaCalculator.ScorporaDaLordo(
-                        inp.Importo, IvaCalculator.AliquotaDaPercentuale(aliquota));
+                    RisultatoIva scorporo = await RipartisciImportoPagamentoAsync(db, inp);
                     linkedFattura.Imponibile = scorporo.Imponibile;
                     linkedFattura.ImportoIva = scorporo.Iva;
                     linkedFattura.TotaleConIva = scorporo.Totale;
+                    linkedFattura.IvaCalcolata = inp.ImportoIva is null;
                     linkedFattura.UpdatedAt = DateTime.UtcNow;
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Ripartisce l'importo della riga di pagamento sulla fattura collegata. Se l'operatore ha
+    /// digitato l'IVA presa dalla fattura (multialiquota) quella è un DATO e va usata tale e
+    /// quale; altrimenti si scorpora dall'aliquota (input → fornitore → 22). Stessa regola di
+    /// <c>DocumentiFornitoreService</c>, che governa il ramo di creazione.
+    /// </summary>
+    private static async Task<RisultatoIva> RipartisciImportoPagamentoAsync(
+        DataAccess.AppDbContext db,
+        PagamentoFornitoreRegistroInput inp)
+    {
+        if (inp.ImportoIva is decimal ivaDaDocumento)
+        {
+            return IvaCalculator.RipartisciConIvaNota(inp.Importo, ivaDaDocumento);
+        }
+
+        decimal aliquota = inp.AliquotaIva ?? 22m;
+        if (inp.AliquotaIva == null)
+        {
+            Fornitore? fornitore = await db.Set<Fornitore>().FindAsync(inp.FornitoreId);
+            if (fornitore?.AliquotaIva != null)
+                aliquota = fornitore.AliquotaIva.Value;
+        }
+
+        return IvaCalculator.ScorporaDaLordo(inp.Importo, IvaCalculator.AliquotaDaPercentuale(aliquota));
     }
 
     private async Task CreaPagamentiNuovi(
@@ -315,7 +333,8 @@ public class MutateRegistroCassaOrchestrator
                 Importo: pagInput.Importo,
                 AliquotaIva: pagInput.AliquotaIva,
                 FatturaIdCollegata: pagInput.FatturaId,
-                DdtIdCollegato: pagInput.DdtId);
+                DdtIdCollegato: pagInput.DdtId,
+                ImportoIva: pagInput.ImportoIva);
 
             (int? fatturaId, int? ddtId) = await _documentiService.CreaOCollegaAsync(
                 dati, dataRegistro, registroCassa.Id, fattureConsumate, ddtConsumati);
