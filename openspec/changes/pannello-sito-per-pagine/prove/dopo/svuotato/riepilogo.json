@@ -1,0 +1,234 @@
+{
+  "stato": "dopo/svuotato",
+  "pagine": [
+    {
+      "percorso": "/",
+      "stato": 200,
+      "cacheControl": "public, max-age=60",
+      "immagini": [
+        {
+          "tag": "source",
+          "chiave": "2026/08/prova-cartella-xxuvbm"
+        },
+        {
+          "tag": "img",
+          "chiave": "2026/08/prova-cartella-xxuvbm"
+        },
+        {
+          "tag": "source",
+          "chiave": "2026/08/prova-cartella-xxuvbm"
+        },
+        {
+          "tag": "img",
+          "chiave": "2026/08/prova-cartella-xxuvbm"
+        },
+        {
+          "tag": "source",
+          "chiave": "2026/08/800-89qao7"
+        },
+        {
+          "tag": "img",
+          "chiave": "2026/08/800-89qao7"
+        },
+        {
+          "tag": "source",
+          "chiave": "2026/08/800-xxpt4q"
+        },
+        {
+          "tag": "img",
+          "chiave": "2026/08/800-xxpt4q"
+        }
+      ],
+      "navIntestazione": [
+        {
+          "percorso": "/",
+          "etichetta": "Home"
+        },
+        {
+          "percorso": "/menu",
+          "etichetta": "Menu"
+        },
+        {
+          "percorso": "/contatti",
+          "etichetta": "Contatti"
+        }
+      ],
+      "navPiePagina": [
+        {
+          "percorso": "/",
+          "etichetta": "Home"
+        },
+        {
+          "percorso": "/menu",
+          "etichetta": "Menu"
+        },
+        {
+          "percorso": "/contatti",
+          "etichetta": "Contatti"
+        }
+      ]
+    },
+    {
+      "percorso": "/menu",
+      "stato": 200,
+      "cacheControl": "public, max-age=60",
+      "immagini": [
+        {
+          "tag": "source",
+          "chiave": "2026/08/prova-cartella-xxuvbm"
+        },
+        {
+          "tag": "img",
+          "chiave": "2026/08/prova-cartella-xxuvbm"
+        },
+        {
+          "tag": "source",
+          "chiave": "2026/08/800-xxpt4q"
+        },
+        {
+          "tag": "img",
+          "chiave": "2026/08/800-xxpt4q"
+        }
+      ],
+      "navIntestazione": [
+        {
+          "percorso": "/",
+          "etichetta": "Home"
+        },
+        {
+          "percorso": "/menu",
+          "etichetta": "Menu"
+        },
+        {
+          "percorso": "/contatti",
+          "etichetta": "Contatti"
+        }
+      ],
+      "navPiePagina": [
+        {
+          "percorso": "/",
+          "etichetta": "Home"
+        },
+        {
+          "percorso": "/menu",
+          "etichetta": "Menu"
+        },
+        {
+          "percorso": "/contatti",
+          "etichetta": "Contatti"
+        }
+      ]
+    },
+    {
+      "percorso": "/aperitivo",
+      "stato": 404,
+      "cacheControl": "no-store",
+      "immagini": [],
+      "navIntestazione": [
+        {
+          "percorso": "/",
+          "etichetta": "Home"
+        },
+        {
+          "percorso": "/menu",
+          "etichetta": "Menu"
+        },
+        {
+          "percorso": "/contatti",
+          "etichetta": "Contatti"
+        }
+      ],
+      "navPiePagina": [
+        {
+          "percorso": "/",
+          "etichetta": "Home"
+        },
+        {
+          "percorso": "/menu",
+          "etichetta": "Menu"
+        },
+        {
+          "percorso": "/contatti",
+          "etichetta": "Contatti"
+        }
+      ]
+    },
+    {
+      "percorso": "/locale",
+      "stato": 404,
+      "cacheControl": "no-store",
+      "immagini": [],
+      "navIntestazione": [
+        {
+          "percorso": "/",
+          "etichetta": "Home"
+        },
+        {
+          "percorso": "/menu",
+          "etichetta": "Menu"
+        },
+        {
+          "percorso": "/contatti",
+          "etichetta": "Contatti"
+        }
+      ],
+      "navPiePagina": [
+        {
+          "percorso": "/",
+          "etichetta": "Home"
+        },
+        {
+          "percorso": "/menu",
+          "etichetta": "Menu"
+        },
+        {
+          "percorso": "/contatti",
+          "etichetta": "Contatti"
+        }
+      ]
+    },
+    {
+      "percorso": "/contatti",
+      "stato": 200,
+      "cacheControl": "public, max-age=300",
+      "immagini": [],
+      "navIntestazione": [
+        {
+          "percorso": "/",
+          "etichetta": "Home"
+        },
+        {
+          "percorso": "/menu",
+          "etichetta": "Menu"
+        },
+        {
+          "percorso": "/contatti",
+          "etichetta": "Contatti"
+        }
+      ],
+      "navPiePagina": [
+        {
+          "percorso": "/",
+          "etichetta": "Home"
+        },
+        {
+          "percorso": "/menu",
+          "etichetta": "Menu"
+        },
+        {
+          "percorso": "/contatti",
+          "etichetta": "Contatti"
+        }
+      ]
+    }
+  ],
+  "sitemap": [
+    "https://duedgusto.it/",
+    "https://duedgusto.it/menu",
+    "https://duedgusto.it/contatti"
+  ],
+  "galleriaSorgente": [
+    "2026/08/prova-cartella-xxuvbm",
+    "2026/08/800-xxpt4q"
+  ]
+}

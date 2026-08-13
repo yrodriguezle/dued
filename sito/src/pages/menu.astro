@@ -14,7 +14,7 @@ import Base from '../layouts/Base.astro';
 import Immagine from '../components/Immagine.astro';
 import VoceListino from '../components/VoceListino.astro';
 import AvvisoDegradazione from '../components/AvvisoDegradazione.astro';
-import { leggiSito, leggiMenu, leggiGalleria } from '../lib/api.ts';
+import { leggiSito, leggiMenu, leggiGalleria, RUOLI_VUOTI } from '../lib/api.ts';
 
 // 🔴 `Promise.all` e non `allSettled`: nessuna delle letture rifiuta mai (§D4), quindi non
 //    c'è nulla da cortocircuitare e un fallimento parziale resta parziale.
@@ -25,7 +25,7 @@ const [esitoSito, esitoMenu, esitoGalleria] = await Promise.all([
 ]);
 const sito = esitoSito.stato === 'ok' ? esitoSito.dati : null;
 const menu = esitoMenu.stato === 'ok' ? esitoMenu.dati : null;
-const galleria = esitoGalleria.stato === 'ok' ? esitoGalleria.dati.immagini : [];
+const ruoli = esitoGalleria.stato === 'ok' ? esitoGalleria.dati.ruoli : RUOLI_VUOTI;
 
 // ── Lo stato della risposta ───────────────────────────────────────────────────────────
 // 🔴 `/menu` risponde **503** quando il listino non c'è, e `/` risponde **200**: le due
@@ -63,9 +63,12 @@ if (menu?.troncato) {
 
 const nessunProdotto = menu !== null && menu.categorie.length === 0;
 
-// Tre foto in coda, dalla galleria. Non una selezione a parte da tenere allineata: è la
-// stessa libreria, nello stesso ordine editoriale.
-const foto = galleria.slice(0, 3);
+// Le foto in coda al listino, **chieste per nome**. Qui c'era `galleria.slice(0, 3)`, cioè il
+// terzo dei quattro offset che le pagine si scrivevano da sole.
+//
+// ⚠️ Questa pagina **non ha ruoli singoli**, quindi la sua finestra non salta nulla e resta
+//    esattamente «le prime tre della galleria»: la sostituzione non cambia una foto.
+const foto = ruoli.fotoMenu;
 ---
 
 <Base

@@ -17,7 +17,7 @@ import Lavagna from '../components/Lavagna.astro';
 import Recensioni from '../components/Recensioni.astro';
 import AvvisoDegradazione from '../components/AvvisoDegradazione.astro';
 import AvvisoChiusura from '../components/AvvisoChiusura.astro';
-import { leggiSito, leggiMenu, leggiGalleria } from '../lib/api.ts';
+import { leggiSito, leggiMenu, leggiGalleria, RUOLI_VUOTI } from '../lib/api.ts';
 import { euro, riassumiGiorni } from '../lib/formato.ts';
 
 // 🔴 Tre letture in parallelo con `Promise.all`, non `allSettled`: nessuna delle tre
@@ -30,7 +30,7 @@ const [esitoSito, esitoMenu, esitoGalleria] = await Promise.all([
 ]);
 const sito = esitoSito.stato === 'ok' ? esitoSito.dati : null;
 const menu = esitoMenu.stato === 'ok' ? esitoMenu.dati : null;
-const galleria = esitoGalleria.stato === 'ok' ? esitoGalleria.dati.immagini : [];
+const ruoli = esitoGalleria.stato === 'ok' ? esitoGalleria.dati.ruoli : RUOLI_VUOTI;
 
 // ── Tre stati, non due ────────────────────────────────────────────────────────────────
 //   1. tutto letto            → pagina intera, `public, max-age=60`
@@ -80,11 +80,20 @@ const momenti = (menu?.categorie ?? []).slice(0, MAX_MOMENTI).map((categoria) =>
 const giorni = riassumiGiorni(sito?.orari.giorniOperativi);
 const aperitivo = sito?.testi.aperitivo ?? null;
 
-// La prima foto della galleria è l'eroe; le successive fanno la griglia del locale. L'ordine
-// è **editoriale** — lo decide l'amministratore dalla libreria media — quindi qui non si
-// sceglie nulla, si legge.
-const [eroe, ...altre] = galleria;
-const griglia = altre.slice(0, 3);
+// Le due immagini della galleria che questa pagina ospita, **chieste per nome**.
+//
+// 🔴 Qui c'era `const [eroe, ...altre] = galleria; const griglia = altre.slice(0, 3)`, e la
+//    premessa scritta accanto — «l'ordine è editoriale, quindi qui non si sceglie nulla, si
+//    legge» — era vera solo a metà: l'ordine *era* editoriale, ma **quale** foto finisse in
+//    cima lo decideva questo file, con un indice, in disaccordo con gli altri tre. Da adesso la
+//    premessa è vera per intero: l'amministratore sceglie l'eroe dalla scheda della pagina, il
+//    server risolve, e se non ha scelto vale ancora la prima della galleria — identico a prima.
+//
+// ⚠️ La griglia **salta** l'eroe: senza, una foto scelta esplicitamente comparirebbe due volte
+//    sulla stessa pagina. A slot vuoto la regola non ha effetto (l'eroe è la 1ª, la griglia
+//    parte dalla 2ª), quindi non cambia nulla di ciò che il sito rende oggi.
+const eroe = ruoli.eroeHome;
+const griglia = ruoli.grigliaHome;
 ---
 
 <Base

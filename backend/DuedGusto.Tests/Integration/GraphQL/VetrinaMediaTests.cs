@@ -138,7 +138,21 @@ public class VetrinaMediaTests : IDisposable
         await act.Should().ThrowAsync<ExecutionError>().WithMessage("*non trovato*");
     }
 
-    // ── Il SECONDO referente: l'immagine di anteprima social ─────────────────────────────
+    // ── I referenti 2-5: i quattro slot immagine delle impostazioni del sito ─────────────
+
+    /// <summary>
+    /// I quattro slot immagine delle impostazioni del sito, cioè i referenti dei media diversi
+    /// dai prodotti. Un enum e non quattro test copiati: il giorno in cui ne nasce un quinto, si
+    /// aggiunge una voce qui e il compilatore indica <b>i due punti</b> da completare — la
+    /// scrittura e la lettura — invece di lasciare che il caso manchi in silenzio.
+    /// </summary>
+    public enum SlotSito
+    {
+        AnteprimaSocial,
+        EroeHome,
+        RitrattoLocale,
+        EroeAperitivo,
+    }
 
     private async Task<ImpostazioniVetrina> CreaImpostazioni(int? immagineOgId = null)
     {
@@ -156,6 +170,35 @@ public class VetrinaMediaTests : IDisposable
         return impostazioni;
     }
 
+    private async Task<ImpostazioniVetrina> CreaImpostazioniConSlot(SlotSito slot, int mediaAssetId)
+    {
+        ImpostazioniVetrina impostazioni = await CreaImpostazioni();
+        Assegna(impostazioni, slot, mediaAssetId);
+        await _dbContext.SaveChangesAsync();
+        return impostazioni;
+    }
+
+    private static void Assegna(ImpostazioniVetrina impostazioni, SlotSito slot, int? mediaAssetId)
+    {
+        switch (slot)
+        {
+            case SlotSito.AnteprimaSocial: impostazioni.ImmagineOgId = mediaAssetId; break;
+            case SlotSito.EroeHome: impostazioni.ImmagineEroeHomeId = mediaAssetId; break;
+            case SlotSito.RitrattoLocale: impostazioni.ImmagineRitrattoLocaleId = mediaAssetId; break;
+            case SlotSito.EroeAperitivo: impostazioni.ImmagineEroeAperitivoId = mediaAssetId; break;
+            default: throw new ArgumentOutOfRangeException(nameof(slot));
+        }
+    }
+
+    private static int? Legge(ImpostazioniVetrina impostazioni, SlotSito slot) => slot switch
+    {
+        SlotSito.AnteprimaSocial => impostazioni.ImmagineOgId,
+        SlotSito.EroeHome => impostazioni.ImmagineEroeHomeId,
+        SlotSito.RitrattoLocale => impostazioni.ImmagineRitrattoLocaleId,
+        SlotSito.EroeAperitivo => impostazioni.ImmagineEroeAperitivoId,
+        _ => throw new ArgumentOutOfRangeException(nameof(slot)),
+    };
+
     /// <summary>
     /// 🔴 <b>L'asserzione che conta è quella sui file, non quella sul rifiuto.</b>
     ///
@@ -166,17 +209,32 @@ public class VetrinaMediaTests : IDisposable
     /// condivisione social».</para>
     ///
     /// <para>⚠️ <b>Perché le asserzioni stanno dentro un <c>AssertionScope</c>, con il disco per
-    /// primo.</b> Nell'ordine naturale, una verifica per mutazione (task 7.4) si fermerebbe alla
+    /// primo.</b> Nell'ordine naturale, una verifica per mutazione (task 3.9) si fermerebbe alla
     /// prima riga rossa e direbbe soltanto "non è stata sollevata alcuna eccezione" — il sintomo
     /// invece del guasto. Con lo scope si raccolgono <b>tutte</b> le asserzioni in un giro solo,
     /// quindi il rapporto di fallimento dice a chi rimuove il controllo <b>quali</b> proprietà
     /// sono cadute e quali no. È la differenza fra una prova e un'impressione.</para>
+    ///
+    /// <para>🔴 <b>Una <c>[Theory]</c> sui quattro slot, e non il caso dell'anteprima social
+    /// copiato quattro volte.</b> Quattro copie sarebbero quattro posti in cui aggiornare la
+    /// stessa asserzione, e il modo in cui divergerebbero è noto: se ne aggiorna una, le altre
+    /// tre restano verdi <b>certificando la regola vecchia</b>. Parametrizzato, il caso nuovo è
+    /// una riga di <c>InlineData</c> e non può essere scritto a metà.</para>
+    ///
+    /// <para>⚠️ Il messaggio si verifica sul <b>ruolo in italiano</b> e mai sul nome della
+    /// colonna: "ImmagineRitrattoLocaleId" non dice a nessuno dove andare a togliere il
+    /// riferimento, <i>«il ritratto della pagina Il locale»</i> sì.</para>
     /// </summary>
-    [Fact]
-    public async Task EliminaMediaAsset_UsataComeImmagineOg_RifiutataEIFileRestanoSulDisco()
+    [Theory]
+    [InlineData(SlotSito.AnteprimaSocial, "anteprima social")]
+    [InlineData(SlotSito.EroeHome, "l'immagine grande della pagina Home")]
+    [InlineData(SlotSito.RitrattoLocale, "il ritratto della pagina «Il locale»")]
+    [InlineData(SlotSito.EroeAperitivo, "l'immagine grande della pagina «Aperitivo»")]
+    public async Task EliminaMediaAsset_UsataDaUnoSlotDelSito_RifiutataEIFileRestanoSulDisco(
+        SlotSito slot, string ruoloAtteso)
     {
-        MediaAsset asset = await CreaMediaConFile("anteprima-social.jpg");
-        ImpostazioniVetrina impostazioni = await CreaImpostazioni(asset.MediaAssetId);
+        MediaAsset asset = await CreaMediaConFile($"slot-{slot}.jpg");
+        ImpostazioniVetrina impostazioni = await CreaImpostazioniConSlot(slot, asset.MediaAssetId);
 
         string[] primaDeiFile = FileDi(asset);
         primaDeiFile.Should().HaveCount(4, "il presupposto del test è che i file esistano");
@@ -191,18 +249,76 @@ public class VetrinaMediaTests : IDisposable
         //    rifiuta comunque, solo dopo che i file sono spariti.
         FileDi(asset).Should().Equal(primaDeiFile,
             "il rifiuto deve lasciare il sistema esattamente come era: nessun file toccato, "
-            + "perché entrambe le verifiche dei referenti precedono qualunque scrittura su disco");
+            + "perché la verifica di TUTTI i referenti precede qualunque scrittura su disco");
 
-        // E poi il rifiuto: il messaggio nomina il media e dice cosa fare, come quello dei
-        // prodotti.
+        // E poi il rifiuto: il messaggio nomina il media, il ruolo che ricopre e cosa fare, come
+        // quello dei prodotti nomina i prodotti.
         sollevata.Should().BeOfType<ExecutionError>();
-        sollevata?.Message.Should().Contain("anteprima-social.jpg")
-            .And.Contain("anteprima social")
+        sollevata?.Message.Should().Contain($"slot-{slot}.jpg")
+            .And.Contain(ruoloAtteso)
             .And.Contain("impostazioni del sito");
 
         _dbContext.MediaAssets.Should().HaveCount(1);
-        _dbContext.ImpostazioniVetrina.First().ImmagineOgId
-            .Should().Be(impostazioni.ImmagineOgId, "il riferimento non deve essere stato toccato");
+        Legge(_dbContext.ImpostazioniVetrina.First(), slot)
+            .Should().Be(Legge(impostazioni, slot), "il riferimento non deve essere stato toccato");
+    }
+
+    /// <summary>
+    /// Il complemento della <c>[Theory]</c>: tolto il riferimento, <b>quello stesso slot</b> non
+    /// rifiuta più. Senza, un controllo che rifiutasse sempre — per esempio una <c>Where</c> che
+    /// confronta la colonna sbagliata e trova comunque la riga — passerebbe inosservato su tutti
+    /// e quattro i casi.
+    /// </summary>
+    [Theory]
+    [InlineData(SlotSito.AnteprimaSocial)]
+    [InlineData(SlotSito.EroeHome)]
+    [InlineData(SlotSito.RitrattoLocale)]
+    [InlineData(SlotSito.EroeAperitivo)]
+    public async Task EliminaMediaAsset_DopoAverAzzeratoLoSlot_RimuoveRigaETuttiIFile(SlotSito slot)
+    {
+        MediaAsset asset = await CreaMediaConFile();
+        ImpostazioniVetrina impostazioni = await CreaImpostazioniConSlot(slot, asset.MediaAssetId);
+
+        Assegna(impostazioni, slot, null);
+        await _dbContext.SaveChangesAsync();
+
+        bool esito = await VetrinaMutations.EliminaMediaAssetAsync(
+            _dbContext, _storage, asset.MediaAssetId);
+
+        esito.Should().BeTrue();
+        _dbContext.MediaAssets.Should().BeEmpty();
+        Directory.Exists(CartellaDi(asset)).Should().BeFalse();
+    }
+
+    /// <summary>
+    /// 🔴 <b>Gli slot non si confondono fra loro.</b> Con quattro colonne sulla stessa riga, il
+    /// guasto plausibile non è più "il controllo manca" ma "il controllo guarda la colonna
+    /// sbagliata": tre slot occupati da altre foto e il quarto libero devono lasciare eliminare
+    /// il media <b>libero</b>. Un <c>Where</c> che ignorasse la colonna e trovasse comunque la
+    /// riga singleton renderebbe ineliminabile qualunque media appena il sito ha un'immagine.
+    /// </summary>
+    [Fact]
+    public async Task EliminaMediaAsset_ConAltriSlotOccupatiDaAltreFoto_Riesce()
+    {
+        MediaAsset daEliminare = await CreaMediaConFile("da-eliminare.jpg");
+        MediaAsset eroeHome = await CreaMediaConFile("eroe-home.jpg");
+        MediaAsset ritratto = await CreaMediaConFile("ritratto.jpg");
+        MediaAsset eroeAperitivo = await CreaMediaConFile("eroe-aperitivo.jpg");
+
+        ImpostazioniVetrina impostazioni = await CreaImpostazioni();
+        Assegna(impostazioni, SlotSito.EroeHome, eroeHome.MediaAssetId);
+        Assegna(impostazioni, SlotSito.RitrattoLocale, ritratto.MediaAssetId);
+        Assegna(impostazioni, SlotSito.EroeAperitivo, eroeAperitivo.MediaAssetId);
+        await _dbContext.SaveChangesAsync();
+
+        bool esito = await VetrinaMutations.EliminaMediaAssetAsync(
+            _dbContext, _storage, daEliminare.MediaAssetId);
+
+        esito.Should().BeTrue();
+        Directory.Exists(CartellaDi(daEliminare)).Should().BeFalse();
+        Directory.GetFiles(CartellaDi(eroeHome)).Should().HaveCount(4);
+        Directory.GetFiles(CartellaDi(ritratto)).Should().HaveCount(4);
+        Directory.GetFiles(CartellaDi(eroeAperitivo)).Should().HaveCount(4);
     }
 
     /// <summary>
@@ -236,24 +352,6 @@ public class VetrinaMediaTests : IDisposable
         Directory.GetFiles(CartellaDi(asset)).OrderBy(f => f).Should().Equal(primaDeiFile);
         _dbContext.MediaAssets.Should().HaveCount(1);
         _dbContext.ImpostazioniVetrina.First().ImmagineOgId.Should().Be(asset.MediaAssetId);
-    }
-
-    [Fact]
-    public async Task EliminaMediaAsset_DopoAverAzzeratoIlRiferimentoOg_RimuoveRigaETuttiIFile()
-    {
-        MediaAsset asset = await CreaMediaConFile();
-        ImpostazioniVetrina impostazioni = await CreaImpostazioni(asset.MediaAssetId);
-
-        impostazioni.ImmagineOgId = null;
-        await _dbContext.SaveChangesAsync();
-
-        bool esito = await VetrinaMutations.EliminaMediaAssetAsync(
-            _dbContext, _storage, asset.MediaAssetId);
-
-        esito.Should().BeTrue();
-        _dbContext.MediaAssets.Should().BeEmpty();
-        Directory.Exists(CartellaDi(asset)).Should().BeFalse(
-            "senza referenti l'eliminazione rimuove il record e TUTTI i file delle varianti");
     }
 
     /// <summary>
@@ -431,7 +529,7 @@ public class VetrinaMediaTests : IDisposable
     }
 
     [Fact]
-    public async Task SeedMenusSito_InvocatoTreVolte_LasciaUnPadreETreFigli()
+    public async Task SeedMenusSito_InvocatoTreVolte_LasciaUnPadreENoveFigli()
     {
         (ServiceProvider provider, string nomeDatabase) = ProviderDiSeed(
             new Ruolo { Nome = "SuperAdmin", Amministratore = true },
@@ -446,18 +544,123 @@ public class VetrinaMediaTests : IDisposable
         // Il padre si cerca per Titolo + percorso vuoto: cercarlo per il solo percorso ne
         // creerebbe uno nuovo a ogni avvio, come già successo con le Dashboard duplicate.
         verifica.Menus.Count(m => m.Titolo == "Sito" && m.Percorso == string.Empty).Should().Be(1);
-        // Tre, non nove: il conteggio è ciò che distingue un seed idempotente da un seed che
-        // riscrive. Il numero cresce con le voci ed è l'unica riga che va toccata quando ne
+        // Nove, non ventisette: il conteggio è ciò che distingue un seed idempotente da un seed
+        // che riscrive. Il numero cresce con le voci ed è l'unica riga che va toccata quando ne
         // arriva una — l'elenco dei percorsi qui sotto dice quali sono, così un duplicato non
         // può nascondersi dietro un conteggio giusto per caso.
-        verifica.Menus.Count(m => m.Percorso.StartsWith("/gestionale/sito/")).Should().Be(4);
+        verifica.Menus.Count(m => m.Percorso.StartsWith("/gestionale/sito/")).Should().Be(9);
         verifica.Menus.Where(m => m.Percorso.StartsWith("/gestionale/sito/"))
             .Select(m => m.Percorso)
             .Should().BeEquivalentTo(
+                "/gestionale/sito/pagine/home",
+                "/gestionale/sito/pagine/menu",
+                "/gestionale/sito/pagine/aperitivo",
+                "/gestionale/sito/pagine/locale",
+                "/gestionale/sito/pagine/contatti",
                 "/gestionale/sito/media",
                 "/gestionale/sito/prodotti",
-                "/gestionale/sito/impostazioni",
-                "/gestionale/sito/recensioni");
+                "/gestionale/sito/recensioni",
+                "/gestionale/sito/impostazioni");
+
+        // 🔴 L'ordine è il valore del change, non un dettaglio: prima le PAGINE del sito, poi le
+        //    risorse trasversali. E resta lo stesso dopo il terzo avvio — `UpdateMenuIfNeeded`
+        //    riscrive `Posizione` a ogni avvio, quindi un ordine che «si assesta» dopo il primo
+        //    giro sarebbe un ordine che cambia sotto le mani di chi guarda.
+        verifica.Menus.Where(m => m.Percorso.StartsWith("/gestionale/sito/"))
+            .OrderBy(m => m.Posizione)
+            .Select(m => m.Titolo)
+            .Should().Equal(
+                "Home", "Menu", "Aperitivo", "Il locale", "Contatti",
+                "Libreria media", "Prodotti vetrina", "Recensioni sito", "Impostazioni sito");
+        verifica.Menus.Where(m => m.Percorso.StartsWith("/gestionale/sito/"))
+            .Select(m => m.Posizione)
+            .OrderBy(posizione => posizione)
+            .Should().Equal(1, 2, 3, 4, 5, 6, 7, 8, 9);
+    }
+
+    /// <summary>
+    /// 🔴 Il riordino <b>aggiorna</b> le quattro voci preesistenti, non le ricrea.
+    ///
+    /// <para>È la prima volta che il seed viene usato per <b>riordinare</b> invece che per
+    /// <b>creare</b>, e la proprietà va provata su un'installazione che ha già la forma
+    /// precedente — non dedotta dall'idempotenza della creazione, che è un'altra cosa. Se il
+    /// riordino ricreasse una voce, la vecchia resterebbe orfana in navigazione e i ruoli
+    /// assegnati a mano dall'anagrafica sparirebbero con lei.</para>
+    /// </summary>
+    [Fact]
+    public async Task SeedMenusSito_SuUnaSezioneNellaFormaPrecedente_RiordinaSenzaRicreare()
+    {
+        string nomeDatabase = Guid.NewGuid().ToString();
+        int idMedia;
+        int idImpostazioni;
+
+        using (AppDbContext preparazione = TestDbContextFactory.Create(nomeDatabase))
+        {
+            preparazione.Ruoli.Add(new Ruolo { Nome = "SuperAdmin", Amministratore = true });
+            Menu padre = new()
+            {
+                Titolo = "Sito",
+                Percorso = string.Empty,
+                Icona = "Globe",
+                Visibile = true,
+                Posizione = 9,
+                NomeVista = string.Empty,
+                PercorsoFile = string.Empty
+            };
+            preparazione.Menus.Add(padre);
+            preparazione.SaveChanges();
+
+            // La forma PRECEDENTE: quattro figli alle posizioni 1-4, media per prima.
+            Menu media = new()
+            {
+                Titolo = "Libreria media",
+                Percorso = "/gestionale/sito/media",
+                Icona = "Images",
+                Visibile = true,
+                Posizione = 1,
+                NomeVista = "MediaLibrary",
+                PercorsoFile = "sito/MediaLibrary.tsx",
+                MenuPadreId = padre.Id
+            };
+            Menu impostazioni = new()
+            {
+                Titolo = "Impostazioni sito",
+                Percorso = "/gestionale/sito/impostazioni",
+                Icona = "Store",
+                Visibile = true,
+                Posizione = 3,
+                NomeVista = "ImpostazioniVetrinaPage",
+                PercorsoFile = "sito/ImpostazioniVetrinaPage.tsx",
+                MenuPadreId = padre.Id
+            };
+            preparazione.Menus.AddRange(media, impostazioni);
+            preparazione.SaveChanges();
+            idMedia = media.Id;
+            idImpostazioni = impostazioni.Id;
+        }
+
+        ServiceProvider provider = new ServiceCollection()
+            .AddScoped(_ => TestDbContextFactory.Create(nomeDatabase))
+            .BuildServiceProvider();
+
+        await SeedMenusSito.Initialize(provider);
+
+        using AppDbContext verifica = TestDbContextFactory.Create(nomeDatabase);
+        Menu media2 = await verifica.Menus.FirstAsync(m => m.Percorso == "/gestionale/sito/media");
+        Menu impostazioni2 = await verifica.Menus.FirstAsync(m => m.Percorso == "/gestionale/sito/impostazioni");
+
+        // 🔴 Stesso identificativo: sono le RIGHE di prima, aggiornate.
+        media2.Id.Should().Be(idMedia);
+        impostazioni2.Id.Should().Be(idImpostazioni);
+        // Titolo, vista e file invariati: è cambiata soltanto la posizione.
+        media2.Titolo.Should().Be("Libreria media");
+        media2.NomeVista.Should().Be("MediaLibrary");
+        media2.PercorsoFile.Should().Be("sito/MediaLibrary.tsx");
+        media2.Posizione.Should().Be(6);
+        impostazioni2.Posizione.Should().Be(9);
+        // E nessun duplicato: le due voci restano una ciascuna.
+        verifica.Menus.Count(m => m.Percorso == "/gestionale/sito/media").Should().Be(1);
+        verifica.Menus.Count(m => m.Percorso == "/gestionale/sito/impostazioni").Should().Be(1);
     }
 
     /// <summary>
@@ -466,8 +669,27 @@ public class VetrinaMediaTests : IDisposable
     /// alcun test — rompe la voce di menu, con una pagina che non si apre. È l'errore classico
     /// di questo seed, quindi si pinna qui invece di scoprirlo cliccando.
     /// </summary>
-    [Fact]
-    public async Task SeedMenusSito_TerzaVoce_PuntaAlComponenteDelleImpostazioniDelSito()
+    /// <summary>
+    /// Ogni voce punta al componente giusto.
+    ///
+    /// <para>⚠️ Il <c>PercorsoFile</c> è ciò che <c>ProtectedRoutes.loadDynamicComponent()</c>
+    /// importa a runtime, ed è relativo a <c>src/components/pages/</c>: un percorso sbagliato
+    /// non rompe alcun test — rompe la voce di menu, con una pagina che non si apre. È l'errore
+    /// classico di questo seed, e con cinque componenti nuovi in una sottocartella nuova le
+    /// occasioni sono cinque in più.</para>
+    /// </summary>
+    [Theory]
+    [InlineData("/gestionale/sito/pagine/home", "Home", "PaginaHome", "sito/pagine/PaginaHome.tsx", 1, "House")]
+    [InlineData("/gestionale/sito/pagine/menu", "Menu", "PaginaMenu", "sito/pagine/PaginaMenu.tsx", 2, "UtensilsCrossed")]
+    [InlineData("/gestionale/sito/pagine/aperitivo", "Aperitivo", "PaginaAperitivo", "sito/pagine/PaginaAperitivo.tsx", 3, "Martini")]
+    [InlineData("/gestionale/sito/pagine/locale", "Il locale", "PaginaLocale", "sito/pagine/PaginaLocale.tsx", 4, "Armchair")]
+    [InlineData("/gestionale/sito/pagine/contatti", "Contatti", "PaginaContatti", "sito/pagine/PaginaContatti.tsx", 5, "MapPin")]
+    [InlineData("/gestionale/sito/media", "Libreria media", "MediaLibrary", "sito/MediaLibrary.tsx", 6, "Images")]
+    [InlineData("/gestionale/sito/prodotti", "Prodotti vetrina", "VetrinaProdottiList", "sito/VetrinaProdottiList.tsx", 7, "ShoppingBag")]
+    [InlineData("/gestionale/sito/recensioni", "Recensioni sito", "RecensioniVetrinaList", "sito/RecensioniVetrinaList.tsx", 8, "Star")]
+    [InlineData("/gestionale/sito/impostazioni", "Impostazioni sito", "ImpostazioniVetrinaPage", "sito/ImpostazioniVetrinaPage.tsx", 9, "Store")]
+    public async Task SeedMenusSito_OgniVoce_PuntaAlProprioComponente(
+        string percorso, string titolo, string nomeVista, string percorsoFile, int posizione, string icona)
     {
         (ServiceProvider provider, string nomeDatabase) = ProviderDiSeed(
             new Ruolo { Nome = "SuperAdmin", Amministratore = true });
@@ -475,28 +697,49 @@ public class VetrinaMediaTests : IDisposable
         await SeedMenusSito.Initialize(provider);
 
         using AppDbContext verifica = TestDbContextFactory.Create(nomeDatabase);
-        Menu voce = await verifica.Menus.FirstAsync(m => m.Percorso == "/gestionale/sito/impostazioni");
+        Menu voce = await verifica.Menus.FirstAsync(m => m.Percorso == percorso);
 
-        voce.Titolo.Should().Be("Impostazioni sito");
-        voce.NomeVista.Should().Be("ImpostazioniVetrinaPage");
-        voce.PercorsoFile.Should().Be("sito/ImpostazioniVetrinaPage.tsx");
-        voce.Posizione.Should().Be(3);
-        // ⚠️ Non "Settings": quella è già la sezione Impostazioni della cassa, e le due voci
-        // sarebbero indistinguibili proprio dove non vanno confuse.
-        voce.Icona.Should().Be("Store");
-        voce.Icona.Should().NotBe("Settings");
+        voce.Titolo.Should().Be(titolo);
+        voce.NomeVista.Should().Be(nomeVista);
+        voce.PercorsoFile.Should().Be(percorsoFile);
+        voce.Posizione.Should().Be(posizione);
+        voce.Visibile.Should().BeTrue();
+        // ⚠️ L'icona è una stringa e un nome sconosciuto NON dà errore: la voce compare senza
+        // icona. Che esistano davvero in `iconMapping.tsx` lo verifica il test frontend
+        // `iconeDelSeed.test.tsx`; qui si pinna quale nome porta ciascuna voce.
+        voce.Icona.Should().Be(icona);
 
         Menu padre = await verifica.Menus.FirstAsync(m => m.Titolo == "Sito" && m.Percorso == string.Empty);
         voce.MenuPadreId.Should().Be(padre.Id);
+    }
 
-        // La quarta voce, stessa verifica e stesso motivo: il percorso del file è ciò che il
-        // frontend importa a runtime, e un errore lì non rompe alcun test — rompe la pagina.
-        Menu recensioni = await verifica.Menus.FirstAsync(m => m.Percorso == "/gestionale/sito/recensioni");
-        recensioni.Titolo.Should().Be("Recensioni sito");
-        recensioni.NomeVista.Should().Be("RecensioniVetrinaList");
-        recensioni.PercorsoFile.Should().Be("sito/RecensioniVetrinaList.tsx");
-        recensioni.Posizione.Should().Be(4);
-        recensioni.MenuPadreId.Should().Be(padre.Id);
+    /// <summary>
+    /// ⚠️ Non "Settings": quella è già la sezione Impostazioni della cassa, e le due voci
+    /// sarebbero indistinguibili proprio dove non vanno confuse — gli orari si modificano solo
+    /// in una delle due. Stessa regola per le nove icone della sezione, che devono essere
+    /// tutte diverse fra loro.
+    /// </summary>
+    [Fact]
+    public async Task SeedMenusSito_LeNoveIcone_SonoTutteDiverseENessunaEQuellaDellaCassa()
+    {
+        (ServiceProvider provider, string nomeDatabase) = ProviderDiSeed(
+            new Ruolo { Nome = "SuperAdmin", Amministratore = true });
+
+        await SeedMenusSito.Initialize(provider);
+
+        using AppDbContext verifica = TestDbContextFactory.Create(nomeDatabase);
+        List<string> icone = await verifica.Menus
+            .Where(m => m.Percorso.StartsWith("/gestionale/sito/"))
+            .Select(m => m.Icona)
+            .ToListAsync();
+
+        icone.Should().HaveCount(9);
+        icone.Should().OnlyHaveUniqueItems();
+        icone.Should().NotContain("Settings");
+        // ⚠️ E nemmeno `Menu`, che nella libreria è l'hamburger di navigazione e non un listino:
+        // darebbe alla pagina «Menu» del sito l'icona dell'altra cosa che quella parola
+        // significa in questo gestionale.
+        icone.Should().NotContain("Menu");
     }
 
     [Fact]
@@ -515,8 +758,14 @@ public class VetrinaMediaTests : IDisposable
             .Where(m => m.Titolo == "Sito" || m.Percorso.StartsWith("/gestionale/sito/"))
             .ToListAsync();
 
-        vociSito.Should().HaveCount(5);
+        vociSito.Should().HaveCount(10);
         // Le voci nuove non fanno eccezione: il gating si semina insieme alla voce, non dopo.
+        // 🔴 Le cinque schede di pagina sono la superficie nuova, e sono quelle da cui si
+        //    scrivono i testi del sito: se una nascesse senza ruoli, sarebbe invisibile anche a
+        //    un amministratore — o, peggio, visibile a chiunque se il gating fosse per assenza.
+        vociSito.Where(m => m.Percorso.StartsWith("/gestionale/sito/pagine/")).Should().HaveCount(5);
+        vociSito.Where(m => m.Percorso.StartsWith("/gestionale/sito/pagine/"))
+            .Should().OnlyContain(m => m.Ruoli.Count == 2);
         vociSito.Should().Contain(m => m.Percorso == "/gestionale/sito/impostazioni");
         vociSito.Should().Contain(m => m.Percorso == "/gestionale/sito/recensioni");
         // Il ruolo Gestore non compare da nessuna parte: la sezione è riservata.

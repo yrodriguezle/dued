@@ -620,18 +620,56 @@ public class PublicController(
     /// smetterebbe di essere utilizzabile per la selezione ordinata.</para>
     ///
     /// <para>Una galleria vuota è uno <b>stato legittimo</b> — nessuno ha ancora etichettato
-    /// immagini — e risponde <c>200</c> con un elenco vuoto.</para>
+    /// immagini — e risponde <c>200</c> con un elenco vuoto. ⚠️ In quel caso <c>ruoli</c>
+    /// <b>c'è comunque</b>, con i tre ruoli singoli a <c>null</c> e le tre griglie vuote: un
+    /// campo che a volte manca costringerebbe il consumatore a un controllo per pagina.</para>
     ///
-    /// <para><b>300 secondi</b>, come <c>site</c>: contenuto editoriale, cambia a mano.</para>
+    /// <para>🔴 <b>L'elenco e i ruoli escono dalla stessa lettura</b>, non da due. Se fossero due
+    /// query, una foto caricata fra l'una e l'altra produrrebbe una risposta in cui i ruoli
+    /// nominano un'immagine che <c>immagini</c> non contiene — e il sito renderebbe una foto che
+    /// dichiara di non avere.</para>
+    ///
+    /// <para><b>300 secondi</b>, come <c>site</c>: contenuto editoriale, cambia a mano. I ruoli
+    /// non cambiano quella politica — cambiano con gli stessi dati e alla stessa frequenza.</para>
     /// </summary>
     [HttpGet("galleria")]
     [ResponseCache(Duration = 300, Location = ResponseCacheLocation.Any)]
     public async Task<ActionResult<GalleriaPubblicaDto>> Galleria(CancellationToken cancellationToken)
     {
-        List<RigaImmagine> righe =
+        List<MediaAsset> galleria =
             await RigheDellaGalleria(dbContext).ToListAsync(cancellationToken);
 
-        return Ok(new GalleriaPubblicaDto(righe.Select(Immagine).ToList()));
+        // ⚠️ Si legge la riga per identificativo, come in `Site`: c'è una riga sola e il database
+        //    lo impone con un CHECK. Assente — installazione con SEED_ON_STARTUP=false, prima
+        //    del primo salvataggio — significa «nessuno slot scelto», che è esattamente lo stato
+        //    iniziale e NON un guasto: nessun avviso, i ruoli ricadono sulla posizione. La rotta
+        //    `site` avvisa già per la stessa riga, e ripeterlo qui sarebbe rumore raddoppiato.
+        SlotImmagini slot = await dbContext.ImpostazioniVetrina
+            .Where(impostazioni =>
+                impostazioni.ImpostazioniVetrinaId == ImpostazioniVetrina.IdSingleton)
+            .Select(impostazioni => new SlotImmagini(
+                impostazioni.ImmagineEroeHomeId,
+                impostazioni.ImmagineRitrattoLocaleId,
+                impostazioni.ImmagineEroeAperitivoId))
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? new SlotImmagini(null, null, null);
+
+        // 🔴 La regola NON è qui: è in RuoliImmaginiVetrina, sede unica, e questo è uno dei suoi
+        //    due chiamanti (l'altro è il ramo GraphQL di amministrazione). Il giorno in cui una
+        //    finestra passa da tre a quattro foto si cambia lì, e il pannello e il sito cambiano
+        //    insieme — che è la proprietà per cui la funzione esiste.
+        PianoImmagini piano = RuoliImmaginiVetrina.Risolvi(
+            slot.EroeHomeId, slot.RitrattoLocaleId, slot.EroeAperitivoId, galleria);
+
+        return Ok(new GalleriaPubblicaDto(
+            galleria.Select(Immagine).ToList(),
+            new RuoliImmaginiDto(
+                ImmagineOpzionale(piano.EroeHome),
+                piano.GrigliaHome.Select(Immagine).ToList(),
+                piano.FotoMenu.Select(Immagine).ToList(),
+                ImmagineOpzionale(piano.RitrattoLocale),
+                piano.QuadrateLocale.Select(Immagine).ToList(),
+                ImmagineOpzionale(piano.EroeAperitivo))));
     }
 
     /// <summary>
@@ -642,20 +680,28 @@ public class PublicController(
     internal static IQueryable QueryDellaGalleria(AppDbContext dbContext) =>
         RigheDellaGalleria(dbContext);
 
-    private static IQueryable<RigaImmagine> RigheDellaGalleria(AppDbContext dbContext) =>
-        dbContext.MediaAssets
-            .Where(media => media.Cartella == CartelleVetrina.Galleria && media.Pubblicato)
-            .OrderBy(media => media.Ordinamento)
-            .ThenBy(media => media.MediaAssetId)
-            .Select(media => new RigaImmagine(
-                media.Chiave,
-                media.LarghezzeDisponibili,
-                media.Larghezza,
-                media.Altezza,
-                media.TestoAlternativo,
-                media.Didascalia,
-                media.Focale,
-                media.Placeholder));
+    /// <summary>
+    /// 🔴 <b>L'unica lettura pubblica che porta a casa l'entità invece di una proiezione, e la
+    /// ragione va scritta perché è una deroga.</b> La regola dei ruoli vive in
+    /// <see cref="RuoliImmaginiVetrina"/> e parla di <see cref="MediaAsset"/>: proiettare qui una
+    /// forma più stretta significherebbe o una seconda mappatura verso l'entità (cioè un secondo
+    /// posto in cui la galleria è descritta) o una firma generica che nessun altro chiamante
+    /// vuole. La deroga costa <b>otto colonne su una manciata di righe</b>, dietro una risposta
+    /// cacheata 300 s.
+    ///
+    /// <para>⚠️ Ciò che la deroga <b>non</b> costa: <c>MediaAssets</c> non possiede alcuna colonna
+    /// contabile né alcun segreto, e la superficie che esce resta decisa dai <c>record</c> di
+    /// <c>Public.Dto</c> — leggere una colonna e non serializzarla non è esporla. Il giorno in cui
+    /// alla tabella dei media si aggiungesse un campo interno, il DTO continuerebbe a non
+    /// possederlo e <c>SuperficiePubblicaTests</c> lo direbbe comunque.</para>
+    ///
+    /// <para>🔴 <b>La selezione non è scritta qui</b>: dal momento in cui il pannello legge lo
+    /// stesso piano dei ruoli, «che cosa è la galleria» ha due chiamanti e deve avere una sede
+    /// sola — <see cref="SelezioneGalleria"/>. Due selezioni che differissero anche solo
+    /// nell'ordinamento darebbero ruoli diversi a dati identici.</para>
+    /// </summary>
+    private static IQueryable<MediaAsset> RigheDellaGalleria(AppDbContext dbContext) =>
+        SelezioneGalleria.Righe(dbContext);
 
     // ─────────────────────────────────────────────────────────────────────────────────────
     //  Mappatura condivisa e forme intermedie
@@ -675,6 +721,25 @@ public class PublicController(
 
     private static ImmaginePubblicaDto? ImmagineOpzionale(RigaImmagine? riga) =>
         riga is null ? null : Immagine(riga);
+
+    /// <summary>
+    /// La stessa mappatura, a partire dall'entità: <b>delega</b> alla forma intermedia invece di
+    /// riscrivere gli otto campi, così che <see cref="LarghezzeCsv.Leggi"/> e la sua semantica
+    /// tollerante restino in un posto solo. Un secondo <c>new ImmaginePubblicaDto(…)</c> sarebbe
+    /// quello destinato a dimenticare un campo il giorno in cui il DTO ne guadagna uno.
+    /// </summary>
+    private static ImmaginePubblicaDto Immagine(MediaAsset media) => Immagine(new RigaImmagine(
+        media.Chiave,
+        media.LarghezzeDisponibili,
+        media.Larghezza,
+        media.Altezza,
+        media.TestoAlternativo,
+        media.Didascalia,
+        media.Focale,
+        media.Placeholder));
+
+    private static ImmaginePubblicaDto? ImmagineOpzionale(MediaAsset? media) =>
+        media is null ? null : Immagine(media);
 
     /// <summary>
     /// I default della riga assente arrivano dal <b>modello</b> e non da valori scritti qui: è la
@@ -724,6 +789,18 @@ public class PublicController(
         bool Novita,
         bool Consigliato,
         RigaImmagine? Immagine);
+
+    /// <summary>
+    /// I tre slot immagine delle pagine, letti dal singleton della vetrina con una proiezione a
+    /// tre colonne.
+    ///
+    /// <para>🔴 <b>Tre <c>int?</c> e non l'entità</b>: è precisamente la forma per cui
+    /// <see cref="RuoliImmaginiVetrina.Risolvi(int?, int?, int?, IReadOnlyList{MediaAsset})"/>
+    /// esiste con quella firma. Leggere l'<c>ImpostazioniVetrina</c> intera per prenderne tre
+    /// colonne porterebbe in memoria, su una rotta anonima, anche i ganci spenti — fra cui la
+    /// chiave del servizio antispam, che sta nell'elenco dei nomi vietati in pubblico.</para>
+    /// </summary>
+    private sealed record SlotImmagini(int? EroeHomeId, int? RitrattoLocaleId, int? EroeAperitivoId);
 
     /// <summary>Forma intermedia dell'immagine, condivisa dalle tre query.</summary>
     private sealed record RigaImmagine(

@@ -1,0 +1,1553 @@
+<!DOCTYPE html><html lang="it"><head><meta charset="utf-8"><!--
+      🔴 PRIMO, prima di qualunque foglio di stile: così gira senza nemmeno aspettare che
+         la richiesta del CSS parta, e il registro è deciso prima del primo pixel.
+         `is:inline` è già implicito qui, ma resta scritto: chi un domani cambiasse il modo
+         di passare i parametri non deve riportare il lampo come effetto collaterale.
+    --><script>
+const P = {"oraSera":"18:00","oraApertura":"07:00","oraChiusura":"20:00","giorniOperativi":[true,true,true,true,true,true,false]};
+const GIORNI = ["Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato","Domenica"];
+const oraDiRoma = function oraDiRoma(adesso = new Date()) {
+	return new Intl.DateTimeFormat("it-IT", {
+		timeZone: "Europe/Rome",
+		hour: "2-digit",
+		minute: "2-digit",
+		hourCycle: "h23"
+	}).format(adesso);
+};
+const giornoDiRoma = function giornoDiRoma(adesso = new Date()) {
+	const nome = new Intl.DateTimeFormat("en-US", {
+		timeZone: "Europe/Rome",
+		weekday: "short"
+	}).format(adesso);
+	return [
+		"Mon",
+		"Tue",
+		"Wed",
+		"Thu",
+		"Fri",
+		"Sat",
+		"Sun"
+	].indexOf(nome);
+};
+const eSera = function eSera(ora, oraSera, oraApertura) {
+	return ora >= oraSera || ora < oraApertura;
+};
+const eAperto = function eAperto(ora, giorno, apertura, chiusura, giorniOperativi) {
+	if (giorniOperativi && giorniOperativi[giorno] === false) return false;
+	return ora >= apertura && ora < chiusura;
+};
+
+const radice = document.documentElement;
+
+function registroAutomatico() {
+  return eSera(oraDiRoma(), P.oraSera, P.oraApertura) ? 'sera' : 'giorno';
+}
+
+function applica(scelta) {
+  // ⚠️ `setAttribute` e non `dataset`, deliberatamente: la quarta prova di identità cerca
+  //    la stringa dell'attributo del tema nel documento e pretende di trovarla UNA volta,
+  //    QUI. Con `dataset.tema` quella stringa non comparirebbe da nessuna parte e la prova
+  //    sarebbe verde anche se il server scrivesse il tema sul tag radice.
+  radice.setAttribute('data-tema', scelta === 'auto' ? registroAutomatico() : scelta);
+  // 🔴 E questo secondo attributo è ciò che permette al CSS di scegliere l'icona del
+  //    selettore senza aspettare che il bottone esista: succede qui, prima del primo paint,
+  //    quindi l'icona giusta è dipinta insieme al resto invece di comparire dopo.
+  radice.setAttribute('data-scelta', scelta);
+}
+
+let scelta = 'auto';
+try { scelta = localStorage.getItem('tema') || 'auto'; } catch (e) { /* modalità privata */ }
+if (scelta !== 'giorno' && scelta !== 'sera') scelta = 'auto';
+applica(scelta);
+
+document.addEventListener('DOMContentLoaded', function () {
+  const etichette = { giorno: 'Registro giorno', sera: 'Registro sera', auto: 'Registro automatico' };
+  const etichetta = document.getElementById('tema-etichetta');
+  if (etichetta) etichetta.textContent = etichette[scelta];
+
+  const bottone = document.getElementById('tema-switch');
+  if (bottone) {
+    bottone.addEventListener('click', function () {
+      scelta = { giorno: 'sera', sera: 'auto', auto: 'giorno' }[scelta];
+      try { localStorage.setItem('tema', scelta); } catch (e) { /* modalità privata */ }
+      applica(scelta);
+      if (etichetta) etichetta.textContent = etichette[scelta];
+    });
+  }
+
+  // Lo STATO di apertura: orologio, quindi qui. Gli ORARI sono già in pagina, resi dal
+  // server, perché quelli sono dato. La pastiglia nasce trasparente con la larghezza già
+  // riservata e viene ACCESA: nessuno spostamento di layout nell'intestazione.
+  const pastiglia = document.getElementById('stato-apertura');
+  const testoStato = document.getElementById('stato-testo');
+  if (pastiglia && testoStato && P.oraChiusura) {
+    const aperto = eAperto(oraDiRoma(), giornoDiRoma(), P.oraApertura, P.oraChiusura, P.giorniOperativi);
+    testoStato.textContent = aperto
+      ? 'Aperto · fino alle ' + P.oraChiusura
+      : 'Chiuso · apre alle ' + P.oraApertura;
+    const pallino = document.getElementById('stato-pallino');
+    if (pallino && aperto) pallino.style.background = '#5F9B4F';
+    pastiglia.dataset.aperto = String(aperto);
+    pastiglia.classList.remove('opacity-0');
+  }
+
+  // La riga di OGGI nella tabella degli orari — stessa ragione: è orologio.
+  const oggi = giornoDiRoma();
+  document.querySelectorAll('[data-orari-settimana] [data-giorno="' + oggi + '"]').forEach(
+    function (riga) {
+      const nome = riga.querySelector('[data-nome-giorno]');
+      const ore = riga.querySelector('[data-ore-giorno]');
+      if (nome) {
+        nome.classList.add('text-accento', 'font-bold');
+        nome.textContent = GIORNI[oggi] + ' · oggi';
+      }
+      if (ore) ore.classList.add('text-accento');
+    }
+  );
+});
+
+// Le transizioni restano spente finché non è dipinto il primo frame: senza, il registro
+// scelto qui sopra si vedrebbe arrivare come una dissolvenza dall'altro.
+requestAnimationFrame(function () { radice.dataset.pronto = ''; });
+</script><meta name="viewport" content="width=device-width, initial-scale=1"><title>Aperitivo Apericosto — 2D Gusto Bar</title><meta name="description" content="Un cocktail cubano fatto al banco, il tagliere del giorno e la lavagna che cambia col mercato. Dieci euro, senza prenotazione."><link rel="canonical" href="https://duedgusto.it/aperitivo"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta property="og:type" content="website"><meta property="og:site_name" content="2D Gusto Bar"><meta property="og:title" content="Aperitivo Apericosto — 2D Gusto Bar"><meta property="og:description" content="Un cocktail cubano fatto al banco, il tagliere del giorno e la lavagna che cambia col mercato. Dieci euro, senza prenotazione."><meta property="og:image" content="https://duedgusto.it/og-default.jpg"><meta property="og:url" content="https://duedgusto.it/aperitivo"><meta property="og:locale" content="it_IT"><meta name="twitter:card" content="summary_large_image"><!--
+      ⚠️ `crossorigin` è OBBLIGATORIO anche same-origin: i caratteri si recuperano in
+         modalità CORS, e senza l'attributo il preload NON viene riusato dal caricamento
+         vero. Il font si scarica due volte, e la pagina sembra solo un po' più lenta.
+
+      ⚠️ Auto-chiusi: nella 7 il compilatore è più severo e un void element non chiuso è un
+         errore di build, non più una correzione silenziosa.
+    --><link rel="preload" href="/src/assets/fonts/InstrumentSerif-latin.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="/src/assets/fonts/Manrope-400-700-latin.woff2" as="font" type="font/woff2" crossorigin><script type="application/ld+json">{"@context":"https://schema.org","@type":"Restaurant","name":"2D Gusto Bar","description":"Un cocktail cubano fatto al banco, il tagliere del giorno e la lavagna che cambia col mercato. Dieci euro, senza prenotazione.","url":"https://duedgusto.it/","image":"https://duedgusto.it/og-default.jpg","servesCuisine":["Caffetteria","Cubana"],"address":{"@type":"PostalAddress","streetAddress":"Via del Costo 99","postalCode":"36016","addressLocality":"Thiene","addressRegion":"VI","addressCountry":"IT"},"sameAs":["https://www.instagram.com/2dgusto/"],"openingHoursSpecification":[{"@type":"OpeningHoursSpecification","dayOfWeek":"Monday","opens":"07:00","closes":"20:00"},{"@type":"OpeningHoursSpecification","dayOfWeek":"Tuesday","opens":"07:00","closes":"20:00"},{"@type":"OpeningHoursSpecification","dayOfWeek":"Wednesday","opens":"07:00","closes":"20:00"},{"@type":"OpeningHoursSpecification","dayOfWeek":"Thursday","opens":"07:00","closes":"20:00"},{"@type":"OpeningHoursSpecification","dayOfWeek":"Friday","opens":"07:00","closes":"20:00"},{"@type":"OpeningHoursSpecification","dayOfWeek":"Saturday","opens":"07:00","closes":"20:00"}],"hasMenu":"https://duedgusto.it/menu"}</script><style data-vite-dev-id="C:/Users/yalian/Projects/dued/sito/src/styles/global.css">/*! tailwindcss v4.3.3 | MIT License | https://tailwindcss.com */
+@layer properties;
+@layer theme, base, components, utilities;
+@layer theme {
+  :root, :host {
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+      "Noto Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+      "Segoe UI Symbol", "Noto Color Emoji";
+    --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Mono', Consolas, monospace;
+    --spacing: 0.25rem;
+    --container-md: 28rem;
+    --container-3xl: 48rem;
+    --container-6xl: 72rem;
+    --text-xs: 0.75rem;
+    --text-xs--line-height: calc(1 / 0.75);
+    --text-sm: 0.875rem;
+    --text-sm--line-height: calc(1.25 / 0.875);
+    --text-base: 1rem;
+    --text-base--line-height: calc(1.5 / 1);
+    --text-lg: 1.125rem;
+    --text-lg--line-height: calc(1.75 / 1.125);
+    --text-2xl: 1.5rem;
+    --text-2xl--line-height: calc(2 / 1.5);
+    --text-3xl: 1.875rem;
+    --text-3xl--line-height: calc(2.25 / 1.875);
+    --text-4xl: 2.25rem;
+    --text-4xl--line-height: calc(2.5 / 2.25);
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+    --tracking-wide: 0.025em;
+    --tracking-wider: 0.05em;
+    --leading-tight: 1.25;
+    --leading-snug: 1.375;
+    --leading-relaxed: 1.625;
+    --radius-lg: 0.5rem;
+    --radius-xl: 0.75rem;
+    --radius-2xl: 1rem;
+    --default-transition-duration: 150ms;
+    --default-transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    --default-font-family: var(--font-sans);
+    --default-mono-font-family: var(--font-mono);
+    --font-titolo: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+    --font-corpo: 'Manrope', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  }
+}
+@layer base {
+  *, ::after, ::before, ::backdrop, ::file-selector-button {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border: 0 solid;
+  }
+  html, :host {
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+    tab-size: 4;
+    font-family: var(--default-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji");
+    font-feature-settings: var(--default-font-feature-settings, normal);
+    font-variation-settings: var(--default-font-variation-settings, normal);
+    -webkit-tap-highlight-color: transparent;
+  }
+  hr {
+    height: 0;
+    color: inherit;
+    border-top-width: 1px;
+  }
+  abbr:where([title]) {
+    -webkit-text-decoration: underline dotted;
+    text-decoration: underline dotted;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-size: inherit;
+    font-weight: inherit;
+  }
+  a {
+    color: inherit;
+    -webkit-text-decoration: inherit;
+    text-decoration: inherit;
+  }
+  b, strong {
+    font-weight: bolder;
+  }
+  code, kbd, samp, pre {
+    font-family: var(--default-mono-font-family, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
+    font-feature-settings: var(--default-mono-font-feature-settings, normal);
+    font-variation-settings: var(--default-mono-font-variation-settings, normal);
+    font-size: 1em;
+  }
+  small {
+    font-size: 80%;
+  }
+  sub, sup {
+    font-size: 75%;
+    line-height: 0;
+    position: relative;
+    vertical-align: baseline;
+  }
+  sub {
+    bottom: -0.25em;
+  }
+  sup {
+    top: -0.5em;
+  }
+  table {
+    text-indent: 0;
+    border-color: inherit;
+    border-collapse: collapse;
+  }
+  :-moz-focusring:where(:not(iframe)) {
+    outline: auto;
+  }
+  progress {
+    vertical-align: baseline;
+  }
+  summary {
+    display: list-item;
+  }
+  ol, ul, menu {
+    list-style: none;
+  }
+  img, svg, video, canvas, audio, iframe, embed, object {
+    display: block;
+    vertical-align: middle;
+  }
+  img, video {
+    max-width: 100%;
+    height: auto;
+  }
+  button, input, select, optgroup, textarea, ::file-selector-button {
+    font: inherit;
+    font-feature-settings: inherit;
+    font-variation-settings: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+    border-radius: 0;
+    background-color: transparent;
+    opacity: 1;
+  }
+  :where(select:is([multiple], [size])) optgroup {
+    font-weight: bolder;
+  }
+  :where(select:is([multiple], [size])) optgroup option {
+    padding-inline-start: 20px;
+  }
+  ::file-selector-button {
+    margin-inline-end: 4px;
+  }
+  ::placeholder {
+    opacity: 1;
+  }
+  @supports (not (-webkit-appearance: -apple-pay-button))  or (contain-intrinsic-size: 1px) {
+    ::placeholder {
+      color: currentcolor;
+      @supports (color: color-mix(in lab, red, red)) {
+        color: color-mix(in oklab, currentcolor 50%, transparent);
+      }
+    }
+  }
+  textarea {
+    resize: vertical;
+  }
+  ::-webkit-search-decoration {
+    -webkit-appearance: none;
+  }
+  ::-webkit-date-and-time-value {
+    min-height: 1lh;
+    text-align: inherit;
+  }
+  ::-webkit-datetime-edit {
+    display: inline-flex;
+  }
+  ::-webkit-datetime-edit-fields-wrapper {
+    padding: 0;
+  }
+  ::-webkit-datetime-edit, ::-webkit-datetime-edit-year-field, ::-webkit-datetime-edit-month-field, ::-webkit-datetime-edit-day-field, ::-webkit-datetime-edit-hour-field, ::-webkit-datetime-edit-minute-field, ::-webkit-datetime-edit-second-field, ::-webkit-datetime-edit-millisecond-field, ::-webkit-datetime-edit-meridiem-field {
+    padding-block: 0;
+  }
+  ::-webkit-calendar-picker-indicator {
+    line-height: 1;
+  }
+  :-moz-ui-invalid {
+    box-shadow: none;
+  }
+  button, input:where([type="button"], [type="reset"], [type="submit"]), ::file-selector-button {
+    appearance: button;
+  }
+  ::-webkit-inner-spin-button, ::-webkit-outer-spin-button {
+    height: auto;
+  }
+  [hidden]:where(:not([hidden="until-found"])) {
+    display: none !important;
+  }
+}
+@layer utilities {
+  .pointer-events-none {
+    pointer-events: none;
+  }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border-width: 0;
+  }
+  .absolute {
+    position: absolute;
+  }
+  .fixed {
+    position: fixed;
+  }
+  .relative {
+    position: relative;
+  }
+  .sticky {
+    position: sticky;
+  }
+  .inset-0 {
+    inset: 0px;
+  }
+  .inset-x-0 {
+    inset-inline: 0px;
+  }
+  .top-0 {
+    top: 0px;
+  }
+  .-bottom-6 {
+    bottom: calc(var(--spacing) * -6);
+  }
+  .bottom-0 {
+    bottom: 0px;
+  }
+  .-left-4 {
+    left: calc(var(--spacing) * -4);
+  }
+  .z-50 {
+    z-index: 50;
+  }
+  .col-span-full {
+    grid-column: 1 / -1;
+  }
+  .container {
+    width: 100%;
+    @media (width >= 40rem) {
+      max-width: 40rem;
+    }
+    @media (width >= 48rem) {
+      max-width: 48rem;
+    }
+    @media (width >= 64rem) {
+      max-width: 64rem;
+    }
+    @media (width >= 80rem) {
+      max-width: 80rem;
+    }
+    @media (width >= 96rem) {
+      max-width: 96rem;
+    }
+  }
+  .mx-5 {
+    margin-inline: calc(var(--spacing) * 5);
+  }
+  .mx-auto {
+    margin-inline: auto;
+  }
+  .mt-1 {
+    margin-top: var(--spacing);
+  }
+  .mt-1\.5 {
+    margin-top: calc(var(--spacing) * 1.5);
+  }
+  .mt-2 {
+    margin-top: calc(var(--spacing) * 2);
+  }
+  .mt-3 {
+    margin-top: calc(var(--spacing) * 3);
+  }
+  .mt-4 {
+    margin-top: calc(var(--spacing) * 4);
+  }
+  .mt-5 {
+    margin-top: calc(var(--spacing) * 5);
+  }
+  .mt-6 {
+    margin-top: calc(var(--spacing) * 6);
+  }
+  .mt-7 {
+    margin-top: calc(var(--spacing) * 7);
+  }
+  .mt-8 {
+    margin-top: calc(var(--spacing) * 8);
+  }
+  .mt-9 {
+    margin-top: calc(var(--spacing) * 9);
+  }
+  .mt-10 {
+    margin-top: calc(var(--spacing) * 10);
+  }
+  .mt-11 {
+    margin-top: calc(var(--spacing) * 11);
+  }
+  .mt-12 {
+    margin-top: calc(var(--spacing) * 12);
+  }
+  .mt-14 {
+    margin-top: calc(var(--spacing) * 14);
+  }
+  .mt-24 {
+    margin-top: calc(var(--spacing) * 24);
+  }
+  .mb-4 {
+    margin-bottom: calc(var(--spacing) * 4);
+  }
+  .mb-6 {
+    margin-bottom: calc(var(--spacing) * 6);
+  }
+  .mb-8 {
+    margin-bottom: calc(var(--spacing) * 8);
+  }
+  .mb-9 {
+    margin-bottom: calc(var(--spacing) * 9);
+  }
+  .mb-12 {
+    margin-bottom: calc(var(--spacing) * 12);
+  }
+  .ml-2 {
+    margin-left: calc(var(--spacing) * 2);
+  }
+  .ml-auto {
+    margin-left: auto;
+  }
+  .block {
+    display: block;
+  }
+  .flex {
+    display: flex;
+  }
+  .grid {
+    display: grid;
+  }
+  .hidden {
+    display: none;
+  }
+  .inline {
+    display: inline;
+  }
+  .inline-block {
+    display: inline-block;
+  }
+  .inline-flex {
+    display: inline-flex;
+  }
+  .aspect-3\/4 {
+    aspect-ratio: 3/4;
+  }
+  .aspect-4\/3 {
+    aspect-ratio: 4/3;
+  }
+  .aspect-4\/5 {
+    aspect-ratio: 4/5;
+  }
+  .aspect-square {
+    aspect-ratio: 1 / 1;
+  }
+  .h-2 {
+    height: calc(var(--spacing) * 2);
+  }
+  .h-3\.5 {
+    height: calc(var(--spacing) * 3.5);
+  }
+  .h-9 {
+    height: calc(var(--spacing) * 9);
+  }
+  .h-10 {
+    height: calc(var(--spacing) * 10);
+  }
+  .h-\[1em\] {
+    height: 1em;
+  }
+  .h-\[7px\] {
+    height: 7px;
+  }
+  .h-\[18px\] {
+    height: 18px;
+  }
+  .h-full {
+    height: 100%;
+  }
+  .min-h-\[22rem\] {
+    min-height: 22rem;
+  }
+  .min-h-\[24rem\] {
+    min-height: 24rem;
+  }
+  .min-h-\[28rem\] {
+    min-height: 28rem;
+  }
+  .min-h-\[32rem\] {
+    min-height: 32rem;
+  }
+  .min-h-\[52px\] {
+    min-height: 52px;
+  }
+  .w-2 {
+    width: calc(var(--spacing) * 2);
+  }
+  .w-3\.5 {
+    width: calc(var(--spacing) * 3.5);
+  }
+  .w-9 {
+    width: calc(var(--spacing) * 9);
+  }
+  .w-10 {
+    width: calc(var(--spacing) * 10);
+  }
+  .w-36 {
+    width: calc(var(--spacing) * 36);
+  }
+  .w-60 {
+    width: calc(var(--spacing) * 60);
+  }
+  .w-\[1em\] {
+    width: 1em;
+  }
+  .w-\[7px\] {
+    width: 7px;
+  }
+  .w-\[18px\] {
+    width: 18px;
+  }
+  .w-full {
+    width: 100%;
+  }
+  .max-w-3xl {
+    max-width: var(--container-3xl);
+  }
+  .max-w-6xl {
+    max-width: var(--container-6xl);
+  }
+  .max-w-\[20ch\] {
+    max-width: 20ch;
+  }
+  .max-w-\[34ch\] {
+    max-width: 34ch;
+  }
+  .max-w-\[42ch\] {
+    max-width: 42ch;
+  }
+  .max-w-\[44ch\] {
+    max-width: 44ch;
+  }
+  .max-w-\[50ch\] {
+    max-width: 50ch;
+  }
+  .max-w-\[52ch\] {
+    max-width: 52ch;
+  }
+  .max-w-md {
+    max-width: var(--container-md);
+  }
+  .min-w-\[19ch\] {
+    min-width: 19ch;
+  }
+  .flex-1 {
+    flex: 1;
+  }
+  .shrink-0 {
+    flex-shrink: 0;
+  }
+  .transform {
+    transform: var(--tw-rotate-x,) var(--tw-rotate-y,) var(--tw-rotate-z,) var(--tw-skew-x,) var(--tw-skew-y,);
+  }
+  .cursor-pointer {
+    cursor: pointer;
+  }
+  .\[scrollbar-width\:none\] {
+    scrollbar-width: none;
+  }
+  .break-inside-avoid {
+    break-inside: avoid;
+  }
+  .grid-cols-\[1fr_auto\] {
+    grid-template-columns: 1fr auto;
+  }
+  .grid-cols-\[repeat\(3\,auto\)\] {
+    grid-template-columns: repeat(3,auto);
+  }
+  .flex-col {
+    flex-direction: column;
+  }
+  .flex-wrap {
+    flex-wrap: wrap;
+  }
+  .place-items-center {
+    place-items: center;
+  }
+  .items-baseline {
+    align-items: baseline;
+  }
+  .items-center {
+    align-items: center;
+  }
+  .items-end {
+    align-items: flex-end;
+  }
+  .items-stretch {
+    align-items: stretch;
+  }
+  .justify-between {
+    justify-content: space-between;
+  }
+  .justify-center {
+    justify-content: center;
+  }
+  .justify-start {
+    justify-content: flex-start;
+  }
+  .gap-0\.5 {
+    gap: calc(var(--spacing) * 0.5);
+  }
+  .gap-1 {
+    gap: var(--spacing);
+  }
+  .gap-1\.5 {
+    gap: calc(var(--spacing) * 1.5);
+  }
+  .gap-2 {
+    gap: calc(var(--spacing) * 2);
+  }
+  .gap-3 {
+    gap: calc(var(--spacing) * 3);
+  }
+  .gap-3\.5 {
+    gap: calc(var(--spacing) * 3.5);
+  }
+  .gap-4 {
+    gap: calc(var(--spacing) * 4);
+  }
+  .gap-5 {
+    gap: calc(var(--spacing) * 5);
+  }
+  .gap-6 {
+    gap: calc(var(--spacing) * 6);
+  }
+  .gap-7 {
+    gap: calc(var(--spacing) * 7);
+  }
+  .gap-8 {
+    gap: calc(var(--spacing) * 8);
+  }
+  .gap-9 {
+    gap: calc(var(--spacing) * 9);
+  }
+  .gap-10 {
+    gap: calc(var(--spacing) * 10);
+  }
+  .gap-12 {
+    gap: calc(var(--spacing) * 12);
+  }
+  .gap-14 {
+    gap: calc(var(--spacing) * 14);
+  }
+  .gap-x-5 {
+    column-gap: calc(var(--spacing) * 5);
+  }
+  .gap-x-6 {
+    column-gap: calc(var(--spacing) * 6);
+  }
+  .gap-x-8 {
+    column-gap: calc(var(--spacing) * 8);
+  }
+  .gap-x-14 {
+    column-gap: calc(var(--spacing) * 14);
+  }
+  .gap-y-2 {
+    row-gap: calc(var(--spacing) * 2);
+  }
+  .gap-y-6 {
+    row-gap: calc(var(--spacing) * 6);
+  }
+  .self-center {
+    align-self: center;
+  }
+  .self-start {
+    align-self: flex-start;
+  }
+  .overflow-hidden {
+    overflow: hidden;
+  }
+  .overflow-x-auto {
+    overflow-x: auto;
+  }
+  .rounded-2xl {
+    border-radius: var(--radius-2xl);
+  }
+  .rounded-full {
+    border-radius: calc(infinity * 1px);
+  }
+  .rounded-lg {
+    border-radius: var(--radius-lg);
+  }
+  .rounded-xl {
+    border-radius: var(--radius-xl);
+  }
+  .border {
+    border-style: var(--tw-border-style);
+    border-width: 1px;
+  }
+  .border-t {
+    border-top-style: var(--tw-border-style);
+    border-top-width: 1px;
+  }
+  .border-b {
+    border-bottom-style: var(--tw-border-style);
+    border-bottom-width: 1px;
+  }
+  .border-b-2 {
+    border-bottom-style: var(--tw-border-style);
+    border-bottom-width: 2px;
+  }
+  .border-l-4 {
+    border-left-style: var(--tw-border-style);
+    border-left-width: 4px;
+  }
+  .border-dashed {
+    --tw-border-style: dashed;
+    border-style: dashed;
+  }
+  .border-arancio {
+    border-color: var(--c-arancio);
+  }
+  .border-bordo {
+    border-color: var(--c-bordo);
+  }
+  .border-bordo\/60 {
+    border-color: var(--c-bordo);
+    @supports (color: color-mix(in lab, red, red)) {
+      border-color: color-mix(in oklab, var(--c-bordo) 60%, transparent);
+    }
+  }
+  .border-inchiostro {
+    border-color: var(--c-inchiostro);
+  }
+  .bg-\[\#16130F\] {
+    background-color: #16130F;
+  }
+  .bg-arancio {
+    background-color: var(--c-arancio);
+  }
+  .bg-inchiostro {
+    background-color: var(--c-inchiostro);
+  }
+  .bg-inchiostro-tenue {
+    background-color: var(--c-inchiostro-tenue);
+  }
+  .bg-sfondo {
+    background-color: var(--c-sfondo);
+  }
+  .bg-sfondo-alt {
+    background-color: var(--c-sfondo-alt);
+  }
+  .bg-sfondo\/85 {
+    background-color: var(--c-sfondo);
+    @supports (color: color-mix(in lab, red, red)) {
+      background-color: color-mix(in oklab, var(--c-sfondo) 85%, transparent);
+    }
+  }
+  .bg-superficie {
+    background-color: var(--c-superficie);
+  }
+  .fill-arancio {
+    fill: var(--c-arancio);
+  }
+  .object-cover {
+    object-fit: cover;
+  }
+  .p-1\.5 {
+    padding: calc(var(--spacing) * 1.5);
+  }
+  .p-5 {
+    padding: calc(var(--spacing) * 5);
+  }
+  .p-6 {
+    padding: calc(var(--spacing) * 6);
+  }
+  .p-7 {
+    padding: calc(var(--spacing) * 7);
+  }
+  .p-8 {
+    padding: calc(var(--spacing) * 8);
+  }
+  .p-9 {
+    padding: calc(var(--spacing) * 9);
+  }
+  .px-2 {
+    padding-inline: calc(var(--spacing) * 2);
+  }
+  .px-3 {
+    padding-inline: calc(var(--spacing) * 3);
+  }
+  .px-3\.5 {
+    padding-inline: calc(var(--spacing) * 3.5);
+  }
+  .px-4 {
+    padding-inline: calc(var(--spacing) * 4);
+  }
+  .px-5 {
+    padding-inline: calc(var(--spacing) * 5);
+  }
+  .px-6 {
+    padding-inline: calc(var(--spacing) * 6);
+  }
+  .px-7 {
+    padding-inline: calc(var(--spacing) * 7);
+  }
+  .py-0\.5 {
+    padding-block: calc(var(--spacing) * 0.5);
+  }
+  .py-1\.5 {
+    padding-block: calc(var(--spacing) * 1.5);
+  }
+  .py-2 {
+    padding-block: calc(var(--spacing) * 2);
+  }
+  .py-2\.5 {
+    padding-block: calc(var(--spacing) * 2.5);
+  }
+  .py-3 {
+    padding-block: calc(var(--spacing) * 3);
+  }
+  .py-3\.5 {
+    padding-block: calc(var(--spacing) * 3.5);
+  }
+  .py-4 {
+    padding-block: calc(var(--spacing) * 4);
+  }
+  .py-5 {
+    padding-block: calc(var(--spacing) * 5);
+  }
+  .py-10 {
+    padding-block: calc(var(--spacing) * 10);
+  }
+  .py-14 {
+    padding-block: calc(var(--spacing) * 14);
+  }
+  .py-16 {
+    padding-block: calc(var(--spacing) * 16);
+  }
+  .py-24 {
+    padding-block: calc(var(--spacing) * 24);
+  }
+  .pt-6 {
+    padding-top: calc(var(--spacing) * 6);
+  }
+  .pt-7 {
+    padding-top: calc(var(--spacing) * 7);
+  }
+  .pt-8 {
+    padding-top: calc(var(--spacing) * 8);
+  }
+  .pt-14 {
+    padding-top: calc(var(--spacing) * 14);
+  }
+  .pt-16 {
+    padding-top: calc(var(--spacing) * 16);
+  }
+  .pt-20 {
+    padding-top: calc(var(--spacing) * 20);
+  }
+  .pr-10 {
+    padding-right: calc(var(--spacing) * 10);
+  }
+  .pb-1\.5 {
+    padding-bottom: calc(var(--spacing) * 1.5);
+  }
+  .pb-3\.5 {
+    padding-bottom: calc(var(--spacing) * 3.5);
+  }
+  .pb-24 {
+    padding-bottom: calc(var(--spacing) * 24);
+  }
+  .text-center {
+    text-align: center;
+  }
+  .text-right {
+    text-align: right;
+  }
+  .align-\[-0\.115em\] {
+    vertical-align: -0.115em;
+  }
+  .align-\[0\.1em\] {
+    vertical-align: 0.1em;
+  }
+  .font-corpo {
+    font-family: var(--font-corpo);
+  }
+  .font-mono {
+    font-family: var(--font-mono);
+  }
+  .font-titolo {
+    font-family: var(--font-titolo);
+  }
+  .text-2xl {
+    font-size: var(--text-2xl);
+    line-height: var(--tw-leading, var(--text-2xl--line-height));
+  }
+  .text-3xl {
+    font-size: var(--text-3xl);
+    line-height: var(--tw-leading, var(--text-3xl--line-height));
+  }
+  .text-4xl {
+    font-size: var(--text-4xl);
+    line-height: var(--tw-leading, var(--text-4xl--line-height));
+  }
+  .text-base {
+    font-size: var(--text-base);
+    line-height: var(--tw-leading, var(--text-base--line-height));
+  }
+  .text-lg {
+    font-size: var(--text-lg);
+    line-height: var(--tw-leading, var(--text-lg--line-height));
+  }
+  .text-sm {
+    font-size: var(--text-sm);
+    line-height: var(--tw-leading, var(--text-sm--line-height));
+  }
+  .text-xs {
+    font-size: var(--text-xs);
+    line-height: var(--tw-leading, var(--text-xs--line-height));
+  }
+  .text-\[10\.5px\] {
+    font-size: 10.5px;
+  }
+  .text-\[10px\] {
+    font-size: 10px;
+  }
+  .text-\[11\.5px\] {
+    font-size: 11.5px;
+  }
+  .text-\[11px\] {
+    font-size: 11px;
+  }
+  .text-\[13\.5px\] {
+    font-size: 13.5px;
+  }
+  .text-\[13px\] {
+    font-size: 13px;
+  }
+  .text-\[15\.5px\] {
+    font-size: 15.5px;
+  }
+  .text-\[15px\] {
+    font-size: 15px;
+  }
+  .text-\[16\.5px\] {
+    font-size: 16.5px;
+  }
+  .text-\[25px\] {
+    font-size: 25px;
+  }
+  .text-\[27px\] {
+    font-size: 27px;
+  }
+  .text-\[31px\] {
+    font-size: 31px;
+  }
+  .text-\[clamp\(2\.1rem\,4vw\,3\.6rem\)\] {
+    font-size: clamp(2.1rem, 4vw, 3.6rem);
+  }
+  .text-\[clamp\(2\.5rem\,5vw\,4\.9rem\)\] {
+    font-size: clamp(2.5rem, 5vw, 4.9rem);
+  }
+  .text-\[clamp\(2\.9rem\,6vw\,5\.75rem\)\] {
+    font-size: clamp(2.9rem, 6vw, 5.75rem);
+  }
+  .text-\[clamp\(2\.25rem\,4\.2vw\,3\.9rem\)\] {
+    font-size: clamp(2.25rem, 4.2vw, 3.9rem);
+  }
+  .text-\[clamp\(2\.25rem\,5vw\,4rem\)\] {
+    font-size: clamp(2.25rem, 5vw, 4rem);
+  }
+  .text-\[clamp\(2\.75rem\,5\.6vw\,5\.4rem\)\] {
+    font-size: clamp(2.75rem, 5.6vw, 5.4rem);
+  }
+  .text-\[clamp\(2\.75rem\,6vw\,5rem\)\] {
+    font-size: clamp(2.75rem, 6vw, 5rem);
+  }
+  .text-\[clamp\(2rem\,3\.6vw\,3\.25rem\)\] {
+    font-size: clamp(2rem, 3.6vw, 3.25rem);
+  }
+  .text-\[clamp\(2rem\,3\.6vw\,3rem\)\] {
+    font-size: clamp(2rem, 3.6vw, 3rem);
+  }
+  .text-\[clamp\(3\.25rem\,7vw\,7rem\)\] {
+    font-size: clamp(3.25rem, 7vw, 7rem);
+  }
+  .leading-\[0\.94\] {
+    --tw-leading: 0.94;
+    line-height: 0.94;
+  }
+  .leading-\[0\.96\] {
+    --tw-leading: 0.96;
+    line-height: 0.96;
+  }
+  .leading-\[0\.98\] {
+    --tw-leading: 0.98;
+    line-height: 0.98;
+  }
+  .leading-\[1\.02\] {
+    --tw-leading: 1.02;
+    line-height: 1.02;
+  }
+  .leading-none {
+    --tw-leading: 1;
+    line-height: 1;
+  }
+  .leading-relaxed {
+    --tw-leading: var(--leading-relaxed);
+    line-height: var(--leading-relaxed);
+  }
+  .leading-snug {
+    --tw-leading: var(--leading-snug);
+    line-height: var(--leading-snug);
+  }
+  .leading-tight {
+    --tw-leading: var(--leading-tight);
+    line-height: var(--leading-tight);
+  }
+  .font-bold {
+    --tw-font-weight: var(--font-weight-bold);
+    font-weight: var(--font-weight-bold);
+  }
+  .font-medium {
+    --tw-font-weight: var(--font-weight-medium);
+    font-weight: var(--font-weight-medium);
+  }
+  .font-semibold {
+    --tw-font-weight: var(--font-weight-semibold);
+    font-weight: var(--font-weight-semibold);
+  }
+  .tracking-\[-0\.01em\] {
+    --tw-tracking: -0.01em;
+    letter-spacing: -0.01em;
+  }
+  .tracking-\[-0\.02em\] {
+    --tw-tracking: -0.02em;
+    letter-spacing: -0.02em;
+  }
+  .tracking-\[-0\.03em\] {
+    --tw-tracking: -0.03em;
+    letter-spacing: -0.03em;
+  }
+  .tracking-\[-0\.025em\] {
+    --tw-tracking: -0.025em;
+    letter-spacing: -0.025em;
+  }
+  .tracking-\[0\.1em\] {
+    --tw-tracking: 0.1em;
+    letter-spacing: 0.1em;
+  }
+  .tracking-\[0\.2em\] {
+    --tw-tracking: 0.2em;
+    letter-spacing: 0.2em;
+  }
+  .tracking-\[0\.04em\] {
+    --tw-tracking: 0.04em;
+    letter-spacing: 0.04em;
+  }
+  .tracking-\[0\.06em\] {
+    --tw-tracking: 0.06em;
+    letter-spacing: 0.06em;
+  }
+  .tracking-\[0\.08em\] {
+    --tw-tracking: 0.08em;
+    letter-spacing: 0.08em;
+  }
+  .tracking-\[0\.14em\] {
+    --tw-tracking: 0.14em;
+    letter-spacing: 0.14em;
+  }
+  .tracking-\[0\.18em\] {
+    --tw-tracking: 0.18em;
+    letter-spacing: 0.18em;
+  }
+  .tracking-wide {
+    --tw-tracking: var(--tracking-wide);
+    letter-spacing: var(--tracking-wide);
+  }
+  .tracking-wider {
+    --tw-tracking: var(--tracking-wider);
+    letter-spacing: var(--tracking-wider);
+  }
+  .text-balance {
+    text-wrap: balance;
+  }
+  .text-pretty {
+    text-wrap: pretty;
+  }
+  .whitespace-nowrap {
+    white-space: nowrap;
+  }
+  .text-\[\#16130F\] {
+    color: #16130F;
+  }
+  .text-\[\#F4F0E9\] {
+    color: #F4F0E9;
+  }
+  .text-\[rgba\(244\,240\,233\,0\.86\)\] {
+    color: rgba(244,240,233,0.86);
+  }
+  .text-accento {
+    color: var(--c-accento);
+  }
+  .text-inchiostro {
+    color: var(--c-inchiostro);
+  }
+  .text-inchiostro-tenue {
+    color: var(--c-inchiostro-tenue);
+  }
+  .text-sfondo {
+    color: var(--c-sfondo);
+  }
+  .uppercase {
+    text-transform: uppercase;
+  }
+  .italic {
+    font-style: italic;
+  }
+  .not-italic {
+    font-style: normal;
+  }
+  .underline {
+    text-decoration-line: underline;
+  }
+  .underline-offset-4 {
+    text-underline-offset: 4px;
+  }
+  .opacity-0 {
+    opacity: 0%;
+  }
+  .opacity-55 {
+    opacity: 55%;
+  }
+  .opacity-\[0\.55\] {
+    opacity: 0.55;
+  }
+  .shadow-\[0_20px_50px_rgba\(22\,19\,15\,0\.14\)\] {
+    --tw-shadow: 0 20px 50px var(--tw-shadow-color, rgba(22,19,15,0.14));
+    box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+  }
+  .transition-colors {
+    transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to;
+    transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
+    transition-duration: var(--tw-duration, var(--default-transition-duration));
+  }
+  .transition-opacity {
+    transition-property: opacity;
+    transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
+    transition-duration: var(--tw-duration, var(--default-transition-duration));
+  }
+  .duration-300 {
+    --tw-duration: 300ms;
+    transition-duration: 300ms;
+  }
+  .first\:mt-0:first-child {
+    margin-top: 0px;
+  }
+  .last\:border-b:last-child {
+    border-bottom-style: var(--tw-border-style);
+    border-bottom-width: 1px;
+  }
+  .last\:border-b-0:last-child {
+    border-bottom-style: var(--tw-border-style);
+    border-bottom-width: 0px;
+  }
+  @media (hover: hover) {
+    .hover\:border-inchiostro:hover {
+      border-color: var(--c-inchiostro);
+    }
+    .hover\:border-inchiostro-tenue:hover {
+      border-color: var(--c-inchiostro-tenue);
+    }
+    .hover\:text-inchiostro:hover {
+      color: var(--c-inchiostro);
+    }
+    .hover\:opacity-90:hover {
+      opacity: 90%;
+    }
+  }
+  .active\:opacity-70:active {
+    opacity: 70%;
+  }
+  @media (width >= 40rem) {
+    .sm\:-left-8 {
+      left: calc(var(--spacing) * -8);
+    }
+    .sm\:row-span-2 {
+      grid-row: span 2 / span 2;
+    }
+    .sm\:mx-8 {
+      margin-inline: calc(var(--spacing) * 8);
+    }
+    .sm\:inline-flex {
+      display: inline-flex;
+    }
+    .sm\:h-12 {
+      height: calc(var(--spacing) * 12);
+    }
+    .sm\:grid-cols-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .sm\:grid-cols-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .sm\:grid-cols-\[1\.5fr_1fr\] {
+      grid-template-columns: 1.5fr 1fr;
+    }
+    .sm\:grid-rows-\[14rem_14rem\] {
+      grid-template-rows: 14rem 14rem;
+    }
+    .sm\:gap-3 {
+      gap: calc(var(--spacing) * 3);
+    }
+    .sm\:p-11 {
+      padding: calc(var(--spacing) * 11);
+    }
+    .sm\:p-13 {
+      padding: calc(var(--spacing) * 13);
+    }
+    .sm\:px-8 {
+      padding-inline: calc(var(--spacing) * 8);
+    }
+  }
+  @media (width >= 64rem) {
+    .lg\:ml-0 {
+      margin-left: 0px;
+    }
+    .lg\:block {
+      display: block;
+    }
+    .lg\:flex {
+      display: flex;
+    }
+    .lg\:hidden {
+      display: none;
+    }
+    .lg\:columns-2 {
+      columns: 2;
+    }
+    .lg\:grid-cols-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .lg\:grid-cols-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .lg\:grid-cols-\[1\.1fr_0\.9fr\] {
+      grid-template-columns: 1.1fr 0.9fr;
+    }
+    .lg\:grid-cols-\[1\.05fr_0\.95fr\] {
+      grid-template-columns: 1.05fr 0.95fr;
+    }
+    .lg\:grid-cols-\[1fr_1\.15fr\] {
+      grid-template-columns: 1fr 1.15fr;
+    }
+    .lg\:py-20 {
+      padding-block: calc(var(--spacing) * 20);
+    }
+    .lg\:pb-0 {
+      padding-bottom: 0px;
+    }
+  }
+  .\[\&\:\:-webkit-scrollbar\]\:hidden::-webkit-scrollbar {
+    display: none;
+  }
+}
+@font-face {
+  font-family: 'Instrument Serif';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/src/assets/fonts/InstrumentSerif-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Instrument Serif';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/src/assets/fonts/InstrumentSerif-italic-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/src/assets/fonts/Manrope-400-700-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400 500;
+  font-display: swap;
+  src: url('/src/assets/fonts/JetBrainsMono-400-500-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+:root, [data-tema="giorno"] {
+  --c-sfondo: #F7F4EF;
+  --c-sfondo-alt: #EEEBE6;
+  --c-superficie: #FFFFFF;
+  --c-inchiostro: #16130F;
+  --c-inchiostro-tenue: #6E665D;
+  --c-accento: #A34E00;
+  --c-bordo: #DCD9D4;
+}
+[data-tema="sera"] {
+  --c-sfondo: #16130F;
+  --c-sfondo-alt: #23201C;
+  --c-superficie: #1F1B16;
+  --c-inchiostro: #F4F0E9;
+  --c-inchiostro-tenue: #A09C96;
+  --c-accento: #FD8502;
+  --c-bordo: #373430;
+}
+:root {
+  --c-arancio: #FD8502;
+  --logo-arancio: var(--c-arancio);
+}
+html {
+  font-synthesis: none;
+  background-color: var(--c-sfondo);
+  scroll-behavior: smooth;
+}
+html:not([data-pronto]) *, html:not([data-pronto]) *::before {
+  transition: none !important;
+}
+@keyframes scorri {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.nastro-scorre {
+  animation: scorri 34s linear infinite;
+}
+[data-comparsa] {
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nastro-scorre {
+    animation: none;
+  }
+  [data-comparsa] {
+    transition: none;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
+.filetto {
+  flex: 1 1 auto;
+  align-self: baseline;
+  border-bottom: 1px dotted var(--c-bordo);
+  min-width: 1rem;
+  transform: translateY(-0.25em);
+}
+@property --tw-rotate-x {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-rotate-y {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-rotate-z {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-skew-x {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-skew-y {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-border-style {
+  syntax: "*";
+  inherits: false;
+  initial-value: solid;
+}
+@property --tw-leading {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-font-weight {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-tracking {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-shadow {
+  syntax: "*";
+  inherits: false;
+  initial-value: 0 0 #0000;
+}
+@property --tw-shadow-color {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-shadow-alpha {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 100%;
+}
+@property --tw-inset-shadow {
+  syntax: "*";
+  inherits: false;
+  initial-value: 0 0 #0000;
+}
+@property --tw-inset-shadow-color {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-inset-shadow-alpha {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 100%;
+}
+@property --tw-ring-color {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-ring-shadow {
+  syntax: "*";
+  inherits: false;
+  initial-value: 0 0 #0000;
+}
+@property --tw-inset-ring-color {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-inset-ring-shadow {
+  syntax: "*";
+  inherits: false;
+  initial-value: 0 0 #0000;
+}
+@property --tw-ring-inset {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-ring-offset-width {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@property --tw-ring-offset-color {
+  syntax: "*";
+  inherits: false;
+  initial-value: #fff;
+}
+@property --tw-ring-offset-shadow {
+  syntax: "*";
+  inherits: false;
+  initial-value: 0 0 #0000;
+}
+@property --tw-duration {
+  syntax: "*";
+  inherits: false;
+}
+@layer properties {
+  @supports ((-webkit-hyphens: none) and (not (margin-trim: inline))) or ((-moz-orient: inline) and (not (color:rgb(from red r g b)))) {
+    *, ::before, ::after, ::backdrop {
+      --tw-rotate-x: initial;
+      --tw-rotate-y: initial;
+      --tw-rotate-z: initial;
+      --tw-skew-x: initial;
+      --tw-skew-y: initial;
+      --tw-border-style: solid;
+      --tw-leading: initial;
+      --tw-font-weight: initial;
+      --tw-tracking: initial;
+      --tw-shadow: 0 0 #0000;
+      --tw-shadow-color: initial;
+      --tw-shadow-alpha: 100%;
+      --tw-inset-shadow: 0 0 #0000;
+      --tw-inset-shadow-color: initial;
+      --tw-inset-shadow-alpha: 100%;
+      --tw-ring-color: initial;
+      --tw-ring-shadow: 0 0 #0000;
+      --tw-inset-ring-color: initial;
+      --tw-inset-ring-shadow: 0 0 #0000;
+      --tw-ring-inset: initial;
+      --tw-ring-offset-width: 0px;
+      --tw-ring-offset-color: #fff;
+      --tw-ring-offset-shadow: 0 0 #0000;
+      --tw-duration: initial;
+    }
+  }
+}
+</style><style data-vite-dev-id="C:/Users/yalian/Projects/dued/sito/src/components/Logo.astro?astro&amp;type=style&amp;index=0&amp;lang.css">.logo[data-astro-cid-f7espo7c] svg {
+  display: block;
+  height: 100%;
+  width: auto;
+}
+</style><style data-vite-dev-id="C:/Users/yalian/Projects/dued/sito/src/components/TemaSwitch.astro?astro&amp;type=style&amp;index=0&amp;lang.css">#tema-switch[data-astro-cid-py5o5ttk] [data-astro-cid-py5o5ttk][data-icona] {
+  display: none;
+  grid-area: 1 / 1;
+}
+
+html[data-scelta="giorno"] #tema-switch[data-astro-cid-py5o5ttk] [data-astro-cid-py5o5ttk][data-icona="giorno"], html[data-scelta="sera"] #tema-switch[data-astro-cid-py5o5ttk] [data-astro-cid-py5o5ttk][data-icona="sera"], html[data-scelta="auto"] #tema-switch[data-astro-cid-py5o5ttk] [data-astro-cid-py5o5ttk][data-icona="auto"] {
+  display: block;
+}
+</style><script type="module" src="/@vite/client"></script><script type="module" src="/@id/astro/runtime/client/dev-toolbar/entrypoint.js"></script><script>window.__astro_dev_toolbar__ = {"root":"C:\\Users\\yalian\\Projects\\dued\\sito\\","version":"7.2.1","debugInfo":"Astro                    v7.2.1\nNode                     v22.23.2\nSystem                   Windows (x64)\nPackage Manager          npm\nOutput                   server\nAdapter                  @astrojs/node\nIntegrations             @astrojs/node"}</script><script type="module" src="/src/styles/global.css"></script><script type="module" src="/src/components/Logo.astro?astro&type=style&index=0&lang.css"></script><script type="module" src="/src/components/TemaSwitch.astro?astro&type=style&index=0&lang.css"></script></head><!--
+    ⚠️ Il riempimento in fondo NON è cosmesi: la barra fissa del telefono è `position: fixed`,
+       quindi non occupa spazio nel flusso e coprirebbe le ultime righe della pagina. È il
+       difetto classico del pattern, e si nota solo scorrendo fino in fondo — cioè dopo che
+       è passato in produzione.
+  --><body class="bg-sfondo text-inchiostro font-corpo pb-24 lg:pb-0"><header class="border-bordo bg-sfondo sticky top-0 z-50 border-b"><div class="mx-auto flex max-w-6xl items-center gap-4 px-5 py-3 sm:px-8"><a href="/" class="shrink-0" aria-label="2D Gusto Bar — home"><span class="logo inline-block text-inchiostro h-10 sm:h-12" style="--logo-arancio: var(--c-arancio)" aria-hidden="true" data-astro-cid-f7espo7c><svg xmlns="http://www.w3.org/2000/svg" viewBox="103 144 577.79 521" role="img" aria-label="2D Gusto">
+  <title>2D Gusto</title>
+  <path fill="currentColor" fill-rule="evenodd" d="M 566 299.398438 C 566 319.265625 562.820312 337.933594 556.464844 355.398438 C 550.242188 372.867188 541.371094 388.066406 529.851562 401 C 518.332031 413.933594 504.496094 424.132812 488.34375 431.601562 C 472.324219 439.066406 454.515625 442.800781 434.917969 442.800781 L 291.324219 442.800781 L 291.324219 401.800781 L 434.917969 401.800781 C 448.953125 401.800781 461.53125 399.132812 472.652344 393.800781 C 483.90625 388.464844 493.375 381.199219 501.054688 372 C 508.867188 362.667969 514.824219 351.800781 518.929688 339.398438 C 523.167969 326.867188 525.285156 313.535156 525.285156 299.398438 C 525.285156 285.265625 523.167969 272 518.929688 259.601562 C 514.824219 247.199219 508.867188 236.398438 501.054688 227.199219 C 493.375 217.867188 483.90625 210.535156 472.652344 205.199219 C 461.53125 199.734375 448.953125 197 434.917969 197 L 271.066406 197 L 271.066406 442.800781 L 230.351562 442.800781 L 230.351562 156 L 434.917969 156 C 454.515625 156 472.324219 159.800781 488.34375 167.398438 C 504.496094 174.867188 518.332031 185.132812 529.851562 198.199219 C 541.371094 211.132812 550.242188 226.332031 556.464844 243.800781 C 562.820312 261.132812 566 279.667969 566 299.398438 Z M 566 299.398438 "/>
+  <path fill="var(--logo-arancio, #FD8502)" fill-rule="evenodd" d="M 498.480469 510 L 230 510 L 230 426.71875 C 230 415.34375 232.152344 404.644531 236.453125 394.625 C 240.890625 384.46875 246.808594 375.667969 254.207031 368.21875 C 261.734375 360.636719 270.476562 354.675781 280.429688 350.34375 C 290.515625 345.875 301.273438 343.640625 312.703125 343.640625 L 415.980469 343.640625 C 421.628906 343.640625 426.9375 342.558594 431.914062 340.390625 C 437.023438 338.222656 441.394531 335.246094 445.027344 331.453125 C 448.792969 327.660156 451.75 323.261719 453.902344 318.25 C 456.1875 313.105469 457.332031 307.6875 457.332031 302 C 457.332031 296.3125 456.1875 290.964844 453.902344 285.953125 C 451.75 280.808594 448.792969 276.339844 445.027344 272.546875 C 441.394531 268.753906 437.023438 265.777344 431.914062 263.609375 C 426.9375 261.441406 421.628906 260.359375 415.980469 260.359375 L 250.777344 260.359375 L 250.777344 218.71875 L 415.980469 218.71875 C 427.273438 218.71875 437.898438 220.953125 447.851562 225.421875 C 457.933594 229.753906 466.675781 235.714844 474.074219 243.296875 C 481.601562 250.746094 487.519531 259.546875 491.824219 269.703125 C 496.261719 279.859375 498.480469 290.625 498.480469 302 C 498.480469 313.375 496.261719 324.140625 491.824219 334.296875 C 487.519531 344.453125 481.601562 353.324219 474.074219 360.90625 C 466.675781 368.355469 457.933594 374.3125 447.851562 378.78125 C 437.898438 383.113281 427.273438 385.28125 415.980469 385.28125 L 312.703125 385.28125 C 307.054688 385.28125 301.675781 386.363281 296.566406 388.53125 C 291.457031 390.699219 287.015625 393.675781 283.253906 397.46875 C 279.488281 401.261719 277.785156 405.988281 275.5 411 C 273.347656 416.011719 272.5 431.3125 272.5 437 L 272.5 468.359375 L 498.480469 468.359375 Z M 498.480469 510 "/>
+  <path fill="currentColor" fill-rule="nonzero" d="M 115 653 Z M 237.535156 653 L 169.933594 653 C 162.65625 653 156.039062 651.632812 150.082031 648.898438 C 144.125 646.164062 139.023438 642.429688 134.777344 637.691406 C 130.578125 632.957031 127.328125 627.390625 125.035156 620.992188 C 122.738281 614.597656 121.59375 607.761719 121.59375 600.484375 C 121.59375 593.257812 122.738281 586.472656 125.035156 580.125 C 127.328125 573.726562 130.578125 568.160156 134.777344 563.425781 C 139.023438 558.640625 144.125 554.878906 150.082031 552.144531 C 156.039062 549.363281 162.65625 547.96875 169.933594 547.96875 L 237.535156 547.96875 L 237.535156 562.984375 L 169.933594 562.984375 C 164.753906 562.984375 160.09375 563.984375 155.941406 565.988281 C 151.839844 567.941406 148.347656 570.625 145.46875 574.046875 C 142.636719 577.414062 140.4375 581.371094 138.875 585.910156 C 137.363281 590.453125 136.605469 595.308594 136.605469 600.484375 C 136.605469 605.660156 137.363281 610.542969 138.875 615.132812 C 140.4375 619.675781 142.636719 623.65625 145.46875 627.074219 C 148.347656 630.441406 151.839844 633.101562 155.941406 635.054688 C 160.09375 637.007812 164.753906 637.984375 169.933594 637.984375 L 222.519531 637.984375 L 222.519531 608.03125 L 158.945312 608.03125 L 158.945312 593.015625 L 237.535156 593.015625 Z M 247.277344 653 Z M 353.917969 653 L 297.667969 653 C 292 653 286.679688 651.925781 281.699219 649.777344 C 276.71875 647.578125 272.375 644.625 268.660156 640.914062 C 265 637.15625 262.09375 632.785156 259.945312 627.804688 C 257.796875 622.777344 256.722656 617.429688 256.722656 611.765625 L 256.722656 570.53125 L 271.738281 570.53125 L 271.738281 611.765625 C 271.738281 615.378906 272.398438 618.769531 273.714844 621.945312 C 275.082031 625.070312 276.9375 627.828125 279.28125 630.222656 C 281.625 632.566406 284.359375 634.445312 287.484375 635.859375 C 290.660156 637.230469 294.050781 637.9375 297.667969 637.984375 L 338.902344 637.984375 L 338.902344 570.53125 L 353.917969 570.53125 Z M 364.753906 653 Z M 461.65625 626.78125 C 461.65625 630.390625 460.972656 633.8125 459.605469 637.03125 C 458.238281 640.207031 456.359375 642.988281 453.964844 645.382812 C 451.621094 647.726562 448.839844 649.582031 445.613281 650.949219 C 442.441406 652.316406 439.046875 653 435.433594 653 L 371.640625 653 L 371.640625 637.984375 L 435.433594 637.984375 C 436.949219 637.984375 438.390625 637.691406 439.753906 637.105469 C 441.125 636.519531 442.320312 635.714844 443.34375 634.6875 C 444.371094 633.664062 445.175781 632.492188 445.761719 631.171875 C 446.347656 629.808594 446.640625 628.34375 446.640625 626.78125 C 446.640625 625.265625 446.347656 623.824219 445.761719 622.457031 C 445.175781 621.089844 444.371094 619.894531 443.34375 618.871094 C 442.320312 617.84375 441.125 617.039062 439.753906 616.453125 C 438.390625 615.816406 436.949219 615.5 435.433594 615.5 L 394.125 615.5 C 391 615.5 388.070312 614.914062 385.335938 613.742188 C 382.601562 612.570312 380.210938 610.984375 378.160156 608.980469 C 376.15625 606.929688 374.570312 604.539062 373.398438 601.804688 C 372.226562 599.070312 371.640625 596.140625 371.640625 593.015625 C 371.640625 589.890625 372.226562 586.960938 373.398438 584.226562 C 374.570312 581.492188 376.15625 579.125 378.160156 577.121094 C 380.210938 575.070312 382.601562 573.457031 385.335938 572.285156 C 388.070312 571.113281 391 570.53125 394.125 570.53125 L 454.183594 570.53125 L 454.183594 585.46875 L 394.125 585.46875 C 392.027344 585.46875 390.246094 586.203125 388.78125 587.667969 C 387.363281 589.082031 386.65625 590.867188 386.65625 593.015625 C 386.65625 595.113281 387.363281 596.894531 388.78125 598.359375 C 390.246094 599.777344 392.027344 600.484375 394.125 600.484375 L 435.433594 600.484375 C 439.046875 600.484375 442.441406 601.167969 445.613281 602.535156 C 448.839844 603.902344 451.621094 605.78125 453.964844 608.175781 C 456.359375 610.566406 458.238281 613.351562 459.605469 616.527344 C 460.972656 619.699219 461.65625 623.117188 461.65625 626.78125 Z M 465.976562 653 Z M 505.746094 653 L 490.734375 653 L 490.734375 585.46875 L 468.246094 585.46875 L 468.246094 570.53125 L 490.734375 570.53125 L 490.734375 540.5 L 505.746094 540.5 L 505.746094 570.53125 L 558.261719 570.53125 L 558.261719 585.46875 L 505.746094 585.46875 Z M 558.261719 653 Z M 668.785156 611.765625 C 668.785156 617.429688 667.710938 622.75 665.5625 627.730469 C 663.414062 632.710938 660.484375 637.082031 656.773438 640.84375 C 653.109375 644.550781 648.789062 647.507812 643.808594 649.703125 C 638.828125 651.851562 633.503906 652.953125 627.84375 653 L 604.769531 653 C 599.105469 652.953125 593.785156 651.851562 588.804688 649.703125 C 583.824219 647.507812 579.476562 644.550781 575.765625 640.84375 C 572.105469 637.082031 569.199219 632.710938 567.050781 627.730469 C 564.902344 622.75 563.828125 617.429688 563.828125 611.765625 C 563.828125 606.101562 564.902344 600.777344 567.050781 595.796875 C 569.199219 590.769531 572.105469 586.398438 575.765625 582.6875 C 579.476562 578.925781 583.824219 575.972656 588.804688 573.824219 C 593.785156 571.628906 599.105469 570.53125 604.769531 570.53125 L 627.84375 570.53125 C 631.601562 570.53125 635.238281 571.015625 638.753906 571.996094 C 642.269531 572.96875 645.542969 574.363281 648.570312 576.167969 C 651.597656 577.976562 654.355469 580.148438 656.84375 582.6875 C 659.335938 585.175781 661.460938 587.960938 663.21875 591.035156 C 664.976562 594.0625 666.34375 597.335938 667.320312 600.851562 C 668.296875 604.367188 668.785156 608.003906 668.785156 611.765625 Z M 653.84375 611.765625 C 653.84375 608.152344 653.160156 604.757812 651.792969 601.582031 C 650.425781 598.410156 648.570312 595.652344 646.226562 593.308594 C 643.882812 590.914062 641.125 589.035156 637.949219 587.667969 C 634.824219 586.25 631.453125 585.519531 627.84375 585.46875 L 604.769531 585.46875 C 601.15625 585.519531 597.765625 586.25 594.589844 587.667969 C 591.464844 589.035156 588.730469 590.914062 586.386719 593.308594 C 584.042969 595.652344 582.1875 598.410156 580.820312 601.582031 C 579.5 604.757812 578.84375 608.152344 578.84375 611.765625 C 578.84375 615.378906 579.5 618.769531 580.820312 621.945312 C 582.1875 625.121094 584.042969 627.902344 586.386719 630.296875 C 588.730469 632.640625 591.464844 634.519531 594.589844 635.933594 C 597.765625 637.300781 601.15625 637.984375 604.769531 637.984375 L 627.84375 637.984375 C 631.453125 637.984375 634.824219 637.300781 637.949219 635.933594 C 641.125 634.519531 643.882812 632.640625 646.226562 630.296875 C 648.570312 627.902344 650.425781 625.121094 651.792969 621.945312 C 653.160156 618.769531 653.84375 615.378906 653.84375 611.765625 Z M 653.84375 611.765625 "/>
+</svg>
+</span></a><nav class="hidden flex-1 items-center justify-center gap-1 lg:flex" aria-label="Principale"><a href="/" class="rounded-full px-4 py-2 text-sm font-semibold transition-colors text-inchiostro-tenue hover:text-inchiostro">Home</a><a href="/menu" class="rounded-full px-4 py-2 text-sm font-semibold transition-colors text-inchiostro-tenue hover:text-inchiostro">Menu</a><a href="/aperitivo" aria-current="page" class="rounded-full px-4 py-2 text-sm font-semibold transition-colors bg-inchiostro text-sfondo">Aperitivo</a><a href="/locale" class="rounded-full px-4 py-2 text-sm font-semibold transition-colors text-inchiostro-tenue hover:text-inchiostro">Il locale</a><a href="/contatti" class="rounded-full px-4 py-2 text-sm font-semibold transition-colors text-inchiostro-tenue hover:text-inchiostro">Contatti</a></nav><div class="ml-auto flex items-center gap-2 sm:gap-3 lg:ml-0"><span id="stato-apertura" class="border-bordo text-inchiostro-tenue font-mono inline-flex min-w-[19ch] items-center justify-center gap-2 rounded-full border px-3 py-2 text-[11px] tracking-[0.06em] whitespace-nowrap uppercase opacity-0 transition-opacity duration-300 hidden sm:inline-flex"><span id="stato-pallino" class="bg-inchiostro-tenue h-[7px] w-[7px] shrink-0 rounded-full" aria-hidden="true"></span><span id="stato-testo"></span></span><button id="tema-switch" type="button" class="border-bordo text-inchiostro-tenue hover:text-inchiostro hover:border-inchiostro-tenue grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-full border transition-colors" aria-label="Cambia registro visivo" data-astro-cid-py5o5ttk><svg data-icona="giorno" class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true" data-astro-cid-py5o5ttk><circle cx="12" cy="12" r="4" data-astro-cid-py5o5ttk></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" data-astro-cid-py5o5ttk></path></svg><svg data-icona="sera" class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-astro-cid-py5o5ttk><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5Z" data-astro-cid-py5o5ttk></path></svg><svg data-icona="auto" class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true" data-astro-cid-py5o5ttk><circle cx="12" cy="12" r="8.5" data-astro-cid-py5o5ttk></circle><path d="M12 3.5a8.5 8.5 0 0 1 0 17Z" fill="currentColor" stroke="none" data-astro-cid-py5o5ttk></path></svg><span id="tema-etichetta" class="sr-only" aria-live="polite" data-astro-cid-py5o5ttk>Registro visivo</span></button></div></div><nav class="border-bordo/60 flex gap-1 overflow-x-auto border-t px-5 py-2 lg:hidden [scrollbar-width:none] [&amp;::-webkit-scrollbar]:hidden" aria-label="Principale"><a href="/" class="shrink-0 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-colors text-inchiostro-tenue">Home</a><a href="/menu" class="shrink-0 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-colors text-inchiostro-tenue">Menu</a><a href="/aperitivo" aria-current="page" class="shrink-0 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-colors bg-inchiostro text-sfondo">Aperitivo</a><a href="/locale" class="shrink-0 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-colors text-inchiostro-tenue">Il locale</a><a href="/contatti" class="shrink-0 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-colors text-inchiostro-tenue">Contatti</a></nav></header><main><section class="relative mx-5 mt-6 grid min-h-[32rem] items-end overflow-hidden rounded-2xl bg-[#16130F] p-8 sm:mx-8 sm:p-11" data-tema="sera"><div class="absolute inset-0 opacity-55"><picture class="block h-full w-full"><source type="image/webp" srcset="https://localhost:4000/media/2026/08/800-xxpt4q/400.webp 400w, https://localhost:4000/media/2026/08/800-xxpt4q/800.webp 800w" sizes="100vw"><img src="https://localhost:4000/media/2026/08/800-xxpt4q/800.jpg" srcset="https://localhost:4000/media/2026/08/800-xxpt4q/400.jpg 400w, https://localhost:4000/media/2026/08/800-xxpt4q/800.jpg 800w" sizes="100vw" width="800" height="303" alt loading="eager" fetchpriority="high" decoding="async" style="object-position:50% 50%;background-image:url(data:image/webp;base64,UklGRmgAAABXRUJQVlA4IFwAAACwAwCdASoUAAgAPu1iqU2ppaOiMAgBMB2JaQAD4VIu0JG5//jAAAD+6I/lQcA5W2MyoUkx56huSm9PT43te9uLRubk69QtX3i/mWK+adifbI2GEmuHLFs3wAAAAA==);background-size:cover;" class="h-full w-full object-cover"></picture></div><div class="absolute inset-0" style="background:linear-gradient(to top,rgba(22,19,15,0.92),rgba(22,19,15,0.45) 55%,rgba(22,19,15,0.15))" aria-hidden="true"></div><div class="relative max-w-[34ch] text-[#F4F0E9]"><p class="font-mono text-accento text-[11.5px] tracking-[0.2em] uppercase">Ogni sera dalle 18:00</p><h1 class="font-titolo mt-4 text-[clamp(2.9rem,6vw,5.75rem)] leading-[0.96] tracking-[-0.03em]">Aperitivo Apericosto</h1><p class="mt-5 text-lg leading-relaxed text-[rgba(244,240,233,0.86)] text-pretty">Un cocktail cubano fatto al banco, il tagliere del giorno e la lavagna che cambia col mercato. Dieci euro, senza prenotazione.</p></div></section><section data-comparsa class="mx-auto max-w-6xl px-5 pt-16 sm:px-8"><ol class="grid max-w-3xl"><li class="border-bordo flex gap-4 border-t py-4 text-base last:border-b"><span class="font-mono text-accento shrink-0 text-[13px]" aria-hidden="true">01</span><span>Un cocktail cubano a scelta, fatto al banco</span></li><li class="border-bordo flex gap-4 border-t py-4 text-base last:border-b"><span class="font-mono text-accento shrink-0 text-[13px]" aria-hidden="true">02</span><span>Il tagliere del giorno da condividere</span></li><li class="border-bordo flex gap-4 border-t py-4 text-base last:border-b"><span class="font-mono text-accento shrink-0 text-[13px]" aria-hidden="true">03</span><span>Tavoli sotto la pergola, senza prenotazione</span></li><li class="border-bordo flex gap-4 border-t py-4 text-base last:border-b"><span class="font-mono text-accento shrink-0 text-[13px]" aria-hidden="true">04</span><span>Dalle 18:00 fino alla chiusura, ogni sera</span></li></ol></section><section data-comparsa class="mx-auto max-w-6xl px-5 pt-16 sm:px-8"><h2 class="font-titolo text-[clamp(2rem,3.6vw,3rem)] leading-none tracking-[-0.02em]">Aperitivi</h2><div class="mt-6 grid gap-x-14 sm:grid-cols-2"><div class="border-bordo border-b py-3 last:border-b-0"><div class="flex items-baseline gap-3"><span class="text-[15px] font-medium">SPRITZ APEROL</span><span class="filetto" aria-hidden="true"></span><span class="font-mono text-inchiostro-tenue shrink-0 text-sm">4,50 €</span></div></div></div></section><section class="mx-auto max-w-6xl px-5 pt-14 sm:px-8"><a href="/menu" class="border-bordo hover:border-inchiostro inline-flex items-center gap-2 border-b pb-1.5 text-[15.5px] font-semibold transition-colors">Tutto il menu <svg class="inline-block h-[1em] w-[1em] shrink-0 align-[-0.115em]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 12h15"></path><path d="m13 6 6 6-6 6"></path></svg></a></section></main><footer data-pie-pagina class="border-bordo mt-24 border-t"><div class="mx-auto max-w-6xl px-5 py-10 sm:px-8"><div class="flex flex-wrap items-center justify-between gap-x-8 gap-y-6"><p class="font-titolo text-2xl">2D Gusto Bar</p><nav class="flex flex-wrap gap-x-5 gap-y-2" aria-label="Piè di pagina"><a href="/" class="text-inchiostro-tenue hover:text-inchiostro text-sm transition-colors">Home</a><a href="/menu" class="text-inchiostro-tenue hover:text-inchiostro text-sm transition-colors">Menu</a><a href="/aperitivo" class="text-inchiostro-tenue hover:text-inchiostro text-sm transition-colors">Aperitivo</a><a href="/locale" class="text-inchiostro-tenue hover:text-inchiostro text-sm transition-colors">Il locale</a><a href="/contatti" class="text-inchiostro-tenue hover:text-inchiostro text-sm transition-colors">Contatti</a></nav><div class="flex flex-wrap gap-x-5 gap-y-2"><a href="https://www.instagram.com/2dgusto/" rel="me noopener" target="_blank" class="text-inchiostro-tenue hover:text-inchiostro text-sm transition-colors">Instagram</a></div></div><div class="border-bordo text-inchiostro-tenue mt-8 flex flex-wrap items-center justify-between gap-4 border-t pt-6 text-[13px]"><p>Via del Costo 99 · 36016 Thiene (VI) · lun—sab 07:00—20:00</p><p class="font-mono tracking-[0.08em]">© 2026</p></div></div></footer><nav class="border-bordo bg-sfondo fixed inset-x-0 bottom-0 z-50 border-t lg:hidden" style="padding-bottom:env(safe-area-inset-bottom)" aria-label="Azioni rapide"><div class="mx-auto grid max-w-md gap-2 px-4 py-2.5" style="grid-template-columns:repeat(2,minmax(0,1fr))"><a href="https://www.google.com/maps/dir/?api=1&amp;destination=Via%20del%20Costo%2099%2C%2036016%20Thiene%20VI" target="_blank" rel="noopener" class="bg-sfondo-alt text-inchiostro grid min-h-[52px] place-items-center gap-1 rounded-xl px-2 py-2 transition-opacity active:opacity-70"><svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21 3-9 18-2.2-7.8L2 11Z"></path></svg><span class="font-mono text-[10px] tracking-[0.06em] uppercase">Arriva</span></a><a href="/menu" class="bg-sfondo-alt text-inchiostro grid min-h-[52px] place-items-center gap-1 rounded-xl px-2 py-2 transition-opacity active:opacity-70"><svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h14v16H5zM8.5 8.5h7M8.5 12h7M8.5 15.5h4"></path></svg><span class="font-mono text-[10px] tracking-[0.06em] uppercase">Menu</span></a></div></nav><script type="module" src="/src/layouts/Base.astro?astro&type=script&index=0&lang.ts"></script></body></html>

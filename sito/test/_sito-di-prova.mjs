@@ -100,6 +100,34 @@ export function immagineFinta(chiave = '2026/08/foto-prova', larghezze = [400, 8
   };
 }
 
+/**
+ * La risposta di `/api/public/galleria` **completa**: l'elenco e i ruoli.
+ *
+ * 🔴 **Questo è un backend finto, non una seconda sede della regola.** La regola vera vive in
+ *    `backend/Services/Vetrina/RuoliImmaginiVetrina.cs` ed è pinnata là da una matrice su
+ *    gallerie da 0, 1, 2, 3, 5 e 6 immagini. Qui se ne rispecchia il comportamento **a slot
+ *    vuoti**, che è l'unico stato che i test del sito esercitano, per la stessa ragione per cui
+ *    `SITO_FINTO` rispecchia `SitoPubblicoDto`: senza, ogni pagina di ogni test cadrebbe in
+ *    degradazione e i fallimenti direbbero «manca la griglia» invece di «manca una chiave».
+ *
+ * ⚠️ `eroeAperitivo` è `null` anche a galleria piena, e **non è una dimenticanza**: quel ruolo
+ *    non ha ripiego posizionale. Prima del change era `galleria.at(-1)`.
+ */
+export function galleriaFinta(immagini = [], ruoli = {}) {
+  return {
+    immagini,
+    ruoli: {
+      eroeHome: immagini[0] ?? null,
+      grigliaHome: immagini.slice(1, 4),
+      fotoMenu: immagini.slice(0, 3),
+      ritrattoLocale: immagini[1] ?? immagini[0] ?? null,
+      quadrateLocale: immagini.slice(2, 5),
+      eroeAperitivo: null,
+      ...ruoli,
+    },
+  };
+}
+
 export function prodottoFinto(id, nome, extra = {}) {
   return {
     id,
@@ -112,6 +140,29 @@ export function prodottoFinto(id, nome, extra = {}) {
     immagine: null,
     ...extra,
   };
+}
+
+/**
+ * 🔴 **Il finto backend risponde nella forma del contratto CORRENTE, non nella forma in cui il
+ *    test l'ha scritta.** Un caso che assegna `{ immagini: [foto] }` sta dicendo «una galleria
+ *    con questa foto», non «una risposta senza il campo `ruoli`»: completarla qui è ciò che
+ *    permette ai test che parlano d'altro — `menu`, `prefissi` — di non essere riscritti a ogni
+ *    campo additivo, e di restare la prova che quel campo **è** additivo.
+ *
+ * ⚠️ Chi vuole davvero una risposta monca — per provare la degradazione contro un backend più
+ *    vecchio del sito — dichiara `ruoli` esplicitamente a `undefined`... e non può: il modo di
+ *    provare quel caso è un codice HTTP o un corpo di un'altra forma, che questo helper lascia
+ *    passare intatti. Qui si completa **solo** ciò che è già una galleria ben formata.
+ */
+function completa(percorso, corpo) {
+  const eUnaGalleriaSenzaRuoli =
+    percorso === '/api/public/galleria' &&
+    corpo !== null &&
+    typeof corpo === 'object' &&
+    Array.isArray(corpo.immagini) &&
+    corpo.ruoli === undefined;
+
+  return eUnaGalleriaSenzaRuoli ? galleriaFinta(corpo.immagini) : corpo;
 }
 
 /**
@@ -130,7 +181,7 @@ export async function backendFinto(risposteIniziali = {}) {
         troncato: false,
         lavagna: [],
       },
-      '/api/public/galleria': { immagini: [] },
+      '/api/public/galleria': galleriaFinta(),
       ...risposteIniziali,
     },
   };
@@ -148,7 +199,7 @@ export async function backendFinto(risposteIniziali = {}) {
       return;
     }
     risposta.writeHead(200, { 'content-type': 'application/json' });
-    risposta.end(JSON.stringify(corpo));
+    risposta.end(JSON.stringify(completa(percorso, corpo)));
   });
   await new Promise((r) => server.listen(porta, '127.0.0.1', r));
 

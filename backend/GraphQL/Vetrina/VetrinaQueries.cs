@@ -49,6 +49,39 @@ public class VetrinaQueries : ObjectGraphType
                 return await LeggiImpostazioniAsync(dbContext);
             });
 
+        Field<RuoliImmaginiVetrinaType, PianoImmagini>("ruoliImmagini")
+            .Description("Quale immagine ricopre quale ruolo su ciascuna pagina del sito, adesso. "
+                + "🔴 Lo stesso piano che alimenta /api/public/galleria, calcolato dalla stessa "
+                + "funzione: la scheda non può dichiarare che una pagina usa una foto mentre il "
+                + "sito ne rende un'altra. In più, il campo `origine`, che il sito non riceve.")
+            .ResolveAsync(async context =>
+            {
+                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                await VetrinaMutations.GuardAmministratore(context, dbContext);
+
+                return await LeggiRuoliImmaginiAsync(dbContext);
+            });
+
+        Field<NonNullGraphType<ListGraphType<NonNullGraphType<VocePaginaVetrinaType>>>,
+            IReadOnlyList<VoceMappaPagina>>("mappaPagine")
+            .Description("Quali testi governano quale pagina del sito, e dove si modificano. 🔴 "
+                + "Sede UNICA della corrispondenza: le cinque schede costruiscono da qui le due "
+                + "sezioni «testi di questa pagina» e «testi ereditati», invece di tenerne una "
+                + "copia scritta a mano che divergerebbe dai sorgenti del sito alla prima "
+                + "modifica. La stessa dichiarazione è verificata contro i .astro da "
+                + "sito/test/mappa-pagine.test.mjs.")
+            .ResolveAsync(async context =>
+            {
+                // ⚠️ Il guard c'è anche qui, benché la mappa non contenga alcun valore: dice
+                //    quali campi esistono e come sono organizzati, cioè la forma del pannello.
+                //    E soprattutto il guard non si eredita — un campo nuovo che se lo dimentica
+                //    è aperto a ogni operatore senza che nulla diventi rosso.
+                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                await VetrinaMutations.GuardAmministratore(context, dbContext);
+
+                return MappaPagineVetrina.Voci;
+            });
+
         Field<ListGraphType<RecensioneVetrinaType>, IReadOnlyList<RecensioneVetrina>>("recensioni")
             .Description("Le recensioni riportate sul sito, PUBBLICATE E NON, nell'ordine in cui "
                 + "l'amministratore le ha messe. La rotta pubblica ne restituisce solo il "
@@ -77,6 +110,48 @@ public class VetrinaQueries : ObjectGraphType
     }
 
     /// <summary>
+    /// Il piano dei ruoli immagine, letto come lo legge la rotta pubblica: la <b>stessa</b>
+    /// selezione della galleria (<see cref="SelezioneGalleria"/>), gli <b>stessi</b> tre slot e la
+    /// <b>stessa</b> funzione di risoluzione (<see cref="RuoliImmaginiVetrina"/>).
+    ///
+    /// <para>🔴 <b>La coincidenza dei due chiamanti è il punto</b>, non un'ottimizzazione: se il
+    /// pannello calcolasse i ruoli per conto proprio, direbbe con sicurezza quale foto una pagina
+    /// sta usando e potrebbe sbagliare — che è peggio del non dirlo affatto, perché uno strumento
+    /// di orientamento che mente non lascia sospettare nulla.</para>
+    ///
+    /// <para>⚠️ La riga delle impostazioni <b>assente</b> non è un guasto: è l'installazione prima
+    /// del primo salvataggio, e significa «nessuno slot scelto». I tre ruoli singoli ricadono
+    /// allora sulla posizione, esattamente come fa la rotta pubblica.</para>
+    ///
+    /// <para>⚠️ Si leggono <b>tre colonne</b> e non l'entità: è la forma per cui la firma a tre
+    /// <c>int?</c> di <c>Risolvi</c> esiste, e tenerla evita di portare in memoria — per una
+    /// domanda che parla solo di immagini — la chiave del servizio antispam e i ganci spenti.</para>
+    /// </summary>
+    internal static async Task<PianoImmagini> LeggiRuoliImmaginiAsync(AppDbContext dbContext)
+    {
+        List<MediaAsset> galleria = await SelezioneGalleria.Righe(dbContext)
+            .AsNoTracking()
+            .ToListAsync();
+
+        var slot = await dbContext.ImpostazioniVetrina
+            .Where(impostazioni =>
+                impostazioni.ImpostazioniVetrinaId == ImpostazioniVetrina.IdSingleton)
+            .Select(impostazioni => new
+            {
+                impostazioni.ImmagineEroeHomeId,
+                impostazioni.ImmagineRitrattoLocaleId,
+                impostazioni.ImmagineEroeAperitivoId,
+            })
+            .FirstOrDefaultAsync();
+
+        return RuoliImmaginiVetrina.Risolvi(
+            slot?.ImmagineEroeHomeId,
+            slot?.ImmagineRitrattoLocaleId,
+            slot?.ImmagineEroeAperitivoId,
+            galleria);
+    }
+
+    /// <summary>
     /// La riga, letta <b>per identificativo</b> e mai con un <c>FirstOrDefaultAsync()</c> senza
     /// criterio: ce n'è una sola e il database lo impone con un <c>CHECK</c>, quindi chiederla
     /// per nome è anche il modo di dire al lettore che il singleton è un valore di dominio.
@@ -85,10 +160,19 @@ public class VetrinaQueries : ObjectGraphType
     /// mostra un modulo vuoto e il primo salvataggio la crea), e <b>non</b> un errore di
     /// infrastruttura. È lo stesso principio della rotta pubblica, che con la riga assente
     /// risponde <c>200</c> con i default invece di far fallire la home del sito.</para>
+    ///
+    /// <para>⚠️ <b>Gli <c>Include</c> sono quattro perché gli slot immagine sono quattro.</b> Il
+    /// lazy loading è disattivato in questo progetto, quindi una navigazione non inclusa non
+    /// solleva alcun errore: il campo GraphQL corrispondente risponde semplicemente <c>null</c>, e
+    /// il pannello mostrerebbe uno slot vuoto su una pagina che invece un'immagine ce l'ha. È il
+    /// guasto silenzioso peggiore, perché somiglia in tutto a «non è stata ancora scelta».</para>
     /// </summary>
     internal static Task<ImpostazioniVetrina?> LeggiImpostazioniAsync(AppDbContext dbContext) =>
         dbContext.ImpostazioniVetrina
             .Include(impostazioni => impostazioni.ImmagineOg)
+            .Include(impostazioni => impostazioni.ImmagineEroeHome)
+            .Include(impostazioni => impostazioni.ImmagineRitrattoLocale)
+            .Include(impostazioni => impostazioni.ImmagineEroeAperitivo)
             .FirstOrDefaultAsync(impostazioni =>
                 impostazioni.ImpostazioniVetrinaId == ImpostazioniVetrina.IdSingleton);
 }

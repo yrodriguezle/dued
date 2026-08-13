@@ -82,6 +82,56 @@ public class ImpostazioniVetrina
     public int? ImmagineOgId { get; set; }
     public MediaAsset? ImmagineOg { get; set; }
 
+    // ── Gli slot immagine delle pagine ───────────────────────────────────────────────────
+    //
+    // 🔴 Esistono per togliere una regola che viveva **nella posizione**: fino a questa change
+    //    l'immagine grande della home era «la prima della galleria», il ritratto del locale «la
+    //    seconda» e quella dell'aperitivo «l'ultima» — quindi caricare una foto qualsiasi ne
+    //    cambiava tre, senza alcun errore da nessuna parte. Con uno slot, la scelta
+    //    dell'amministratore sopravvive a un riordino.
+    //
+    // ⚠️ Sono TRE e non nove: le griglie di più foto restano pescate dalla galleria, perché sono
+    //    davvero «foto del locale» e va bene che compaiano su più pagine. Nove slot vorrebbero
+    //    dire nove selettori da compilare prima che il sito sembri finito, più una migrazione
+    //    ogni volta che una griglia passa da tre a quattro foto.
+    //
+    // ⚠️ **Nessun backfill**: nascono null e restano null finché qualcuno non sceglie. Il ripiego
+    //    è la semantica PERMANENTE dello slot vuoto, non un ponte verso una migrazione dati — e
+    //    la regola completa, con i ripieghi ruolo per ruolo, sta in un posto solo:
+    //    <see cref="Services.Vetrina.RuoliImmaginiVetrina"/>.
+    //
+    // 🔴 Sono i referenti 3, 4 e 5 dei media, dopo i prodotti e l'anteprima social: relazione
+    //    con politica restrittiva e SENZA navigazione inversa, e l'eliminazione di un media deve
+    //    verificarli tutti **prima** di toccare il disco.
+
+    /// <summary>
+    /// L'immagine grande in cima alla pagina Home.
+    /// <para><b>Vuota: il sito usa la prima della galleria, che è il comportamento di oggi.</b></para>
+    /// </summary>
+    public int? ImmagineEroeHomeId { get; set; }
+    public MediaAsset? ImmagineEroeHome { get; set; }
+
+    /// <summary>
+    /// Il ritratto verticale della pagina "Il locale".
+    /// <para><b>Vuoto: il sito usa la seconda della galleria — la prima se ce n'è una sola — che
+    /// è il comportamento di oggi.</b></para>
+    /// </summary>
+    public int? ImmagineRitrattoLocaleId { get; set; }
+    public MediaAsset? ImmagineRitrattoLocale { get; set; }
+
+    /// <summary>
+    /// L'immagine grande in cima alla pagina "Aperitivo".
+    /// <para>🔴 <b>Vuota: la pagina esce senza immagine di testata.</b> È l'unico dei tre slot
+    /// <b>senza ripiego</b>, ed è una decisione deliberata: il sito prendeva qui
+    /// <c>galleria.at(-1)</c>, cioè l'ultima foto caricata, e quindi <b>ogni</b> caricamento in
+    /// galleria — anche fatto per un'altra pagina — spostava di nascosto questa immagine.
+    /// Siccome il ripiego è permanente e non un ponte, tenerlo avrebbe voluto dire tenere quel
+    /// difetto per sempre. Vale invece la regola già valida ovunque nel sito: una sezione senza
+    /// il suo dato non si rende.</para>
+    /// </summary>
+    public int? ImmagineEroeAperitivoId { get; set; }
+    public MediaAsset? ImmagineEroeAperitivo { get; set; }
+
     // ── Tema ─────────────────────────────────────────────────────────────────────────────
     /// <summary>
     /// Ora in cui il sito passa al tema serale, nella forma <c>"HH:mm"</c> — lo stesso formato

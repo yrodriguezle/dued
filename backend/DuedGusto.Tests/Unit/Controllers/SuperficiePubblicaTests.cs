@@ -175,7 +175,25 @@ public class SuperficiePubblicaTests
         //    risolta dal server, e ciò che esce sono date vere.
         { typeof(ChiusuraPubblicaDto), ["Data", "Descrizione", "Motivo"] },
         { typeof(SeoPubblicaDto), ["TitoloDefault", "DescrizioneDefault", "ImmagineOg"] },
-        { typeof(GalleriaPubblicaDto), ["Immagini"] },
+        { typeof(GalleriaPubblicaDto), ["Immagini", "Ruoli"] },
+
+        // ⚠️ `Ruoli` e `RuoliImmaginiDto` sono l'unica aggiunta di questo change alla superficie
+        //    pubblica, e sono qui perché il pin di sopra li ha PRETESI: aggiungerli al DTO ha
+        //    reso rossi questi due test, che è il loro mestiere. Il divieto ricorsivo (1) invece
+        //    è rimasto verde da solo — la visita ha attraversato il record nuovo senza sapere che
+        //    esistesse e non ci ha trovato alcun nome vietato.
+        //
+        // 🔴 Nessun `Origine` qui: la distinzione fra «scelta dall'amministratore» e «ripiego
+        //    posizionale» serve alla scheda del pannello e vive sul ramo GraphQL. Un visitatore
+        //    non ha nulla da farci, e il primo campo che entra qui «tanto è innocuo» è il
+        //    precedente per il secondo.
+        {
+            typeof(RuoliImmaginiDto),
+            [
+                "EroeHome", "GrigliaHome", "FotoMenu",
+                "RitrattoLocale", "QuadrateLocale", "EroeAperitivo",
+            ]
+        },
 
         // ── I testi editoriali e le recensioni ──────────────────────────────────────────
         // 🔴 `TestiPubbliciDto` è il punto in cui, di tutta la superficie pubblica, è più

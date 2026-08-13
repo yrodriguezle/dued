@@ -10,7 +10,7 @@ import Base from '../layouts/Base.astro';
 import Immagine from '../components/Immagine.astro';
 import VoceListino from '../components/VoceListino.astro';
 import Freccia from '../components/Freccia.astro';
-import { leggiSito, leggiMenu, leggiGalleria } from '../lib/api.ts';
+import { leggiSito, leggiMenu, leggiGalleria, RUOLI_VUOTI } from '../lib/api.ts';
 
 const [esitoSito, esitoMenu, esitoGalleria] = await Promise.all([
   leggiSito(),
@@ -19,7 +19,7 @@ const [esitoSito, esitoMenu, esitoGalleria] = await Promise.all([
 ]);
 const sito = esitoSito.stato === 'ok' ? esitoSito.dati : null;
 const menu = esitoMenu.stato === 'ok' ? esitoMenu.dati : null;
-const galleria = esitoGalleria.stato === 'ok' ? esitoGalleria.dati.immagini : [];
+const ruoli = esitoGalleria.stato === 'ok' ? esitoGalleria.dati.ruoli : RUOLI_VUOTI;
 
 const aperitivo = sito?.testi.aperitivo ?? null;
 
@@ -45,9 +45,21 @@ const categorieDaMostrare = (aperitivo?.categorie ?? [])
   .map((nome) => (menu?.categorie ?? []).find((categoria) => categoria.nome === nome))
   .filter((categoria): categoria is NonNullable<typeof categoria> => Boolean(categoria));
 
-// La foto dell'eroe: l'ultima della galleria, cioè la più lontana da quella della home. Non
-// una scelta separata da mantenere allineata — se la galleria ne ha una sola, è quella.
-const eroe = galleria.at(-1) ?? null;
+// L'immagine di testata, **chiesta per nome**.
+//
+// 🔴 **Qui c'era `galleria.at(-1)`, e la sua sparizione è l'unico cambiamento visibile di
+//    questo change.** Quella riga diceva «l'ultima della galleria, cioè la più lontana da
+//    quella della home» — che suonava ragionevole e significava, in pratica, che **caricare una
+//    foto qualsiasi**, anche per un'altra pagina, spostava di nascosto l'immagine grande di
+//    questa. Non era un ponte verso qualcosa: era la semantica permanente, e tenerla avrebbe
+//    voluto dire tenere quel difetto per sempre.
+//
+//    Adesso questo ruolo **non ha ripiego**: finché l'amministratore non sceglie l'immagine
+//    dalla scheda della pagina, `eroe` è `null` e la testata esce **senza foto** — la stessa
+//    regola che governa già tutto il resto del sito, *una sezione senza il suo dato non si
+//    rende*. È l'unico punto in cui il change accetta di far cambiare il sito a contenuti
+//    invariati, ed è deliberato.
+const eroe = ruoli.eroeAperitivo;
 ---
 
 <Base

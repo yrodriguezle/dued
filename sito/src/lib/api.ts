@@ -11,7 +11,7 @@
 //    sapere prima che a qualcuno venga in mente di "semplificare" spostandolo lì.
 
 import { API_INTERNA_URL } from 'astro:env/server';
-import type { GalleriaPubblica, MenuPubblico, SitoPubblico } from './tipi.ts';
+import type { GalleriaPubblica, MenuPubblico, RuoliImmagini, SitoPubblico } from './tipi.ts';
 
 /**
  * 🔴 **L'unico valore di timeout del progetto.** Non è una costante "di stile": duplicarlo
@@ -175,14 +175,39 @@ export function leggiMenu(): Promise<Esito<MenuPubblico>> {
 }
 
 /**
- * Le immagini della galleria, nell'ordine editoriale.
+ * Il piano dei ruoli quando la galleria **non si è letta**.
+ *
+ * 🔴 Non è un ripiego editoriale: è la forma vuota, e serve perché le quattro pagine possano
+ *    scrivere `ruoli.eroeHome` senza un `?.` per ogni ruolo. Le sezioni che ricevono `null` o
+ *    una lista vuota **non si rendono** — la stessa regola di tutto il resto del sito.
+ *
+ * ⚠️ Sta qui e non in `tipi.ts`: quel file è lo **specchio dei DTO** e non contiene valori.
+ */
+export const RUOLI_VUOTI: RuoliImmagini = {
+  eroeHome: null,
+  grigliaHome: [],
+  fotoMenu: [],
+  ritrattoLocale: null,
+  quadrateLocale: [],
+  eroeAperitivo: null,
+};
+
+/**
+ * Le immagini della galleria, nell'ordine editoriale, **più i ruoli già risolti dal server**.
  *
  * ⚠️ Un elenco **vuoto** è un esito `ok`, non un'assenza: significa che nessuno ha ancora
  *    etichettato immagini con quella cartella. È diverso da «non sono riuscito a leggere»,
  *    e le due cose producono due pagine diverse.
+ *
+ * 🔴 `ruoli` sta fra le chiavi **pretese**, per la stessa ragione di `testi` in `leggiSito`: le
+ *    quattro pagine scrivono `ruoli.eroeHome`, che su un backend più vecchio del sito
+ *    solleverebbe un TypeError nel frontmatter — cioè un **500 servito al visitatore**.
+ *    Dichiarandola qui, un backend vecchio produce invece la degradazione documentata: la
+ *    pagina esce senza le foto della galleria, con una riga nei log e il motivo `formato`.
+ *    ⚠️ **È la ragione per cui il backend va in linea prima del sito.**
  */
 export function leggiGalleria(): Promise<Esito<GalleriaPubblica>> {
   return leggiJson<GalleriaPubblica>(`${API_INTERNA_URL}/api/public/galleria`, (v) =>
-    haLeChiavi(v, ['immagini'])
+    haLeChiavi(v, ['immagini', 'ruoli'])
   );
 }

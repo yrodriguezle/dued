@@ -198,6 +198,25 @@ cd /srv/duedgusto
 bash deploy/scripts/deploy.sh
 ```
 
+### ⚠️ Modifiche breaking dello schema GraphQL: backend e frontend nello stesso deploy
+
+`deploy.sh` costruisce e mette in linea **backend e frontend insieme**, dallo stesso commit. Va
+tenuto cosi' e **non va spezzato in due deploy separati** quando il rilascio contiene una modifica
+alla *forma* di un input GraphQL: fra i due, il frontend vecchio invierebbe campi che l'input nuovo
+non possiede e il salvataggio verrebbe **rifiutato dalla validazione del documento** — rumoroso,
+non silenzioso, ma comunque un'interruzione per chi sta usando quella pagina.
+
+**Rilasci con questo vincolo, ad oggi:**
+
+| Rilascio | Cosa cambia | Rollback |
+|----------|-------------|----------|
+| Pannello «Sito» per pagine | `mutateImpostazioniVetrina` passa da **30 a 20 campi**: i testi editoriali e la reputazione escono e vanno su `mutatePaginaHome`, `mutatePaginaLocale`, `mutatePaginaAperitivo` | 🔴 **Prima** si riespande l'input a 30 campi, **poi** si fa il revert del frontend |
+
+🔴 **L'ordine del rollback non e' simmetrico a quello del deploy.** I nomi dei campi non cambiano,
+quindi il ripristino sembra "additivo all'incontrario" — ma a cambiare e' la **forma** dell'input,
+non i nomi: revertendo prima il frontend si lascerebbe in linea una pagina che chiama tre mutation
+che non esistono piu'. Vedi la sezione [Rollback](#rollback).
+
 Il deploy esegue:
 1. Backup pre-deploy del database (se MySQL e' in esecuzione)
 2. `git pull origin main` (se upstream configurato)
@@ -289,6 +308,43 @@ rm -rf /opt/duedgusto/frontend/dist/*
 cp -r dist/* /opt/duedgusto/frontend/dist/
 sudo systemctl reload nginx
 ```
+
+⚠️ **Se il commit da cui si torna indietro conteneva una modifica breaking dello schema GraphQL**
+(vedi la tabella nella [sezione 5](#5-deploy-successivi)), l'ordine conta: il **backend** va
+riportato indietro **prima** del frontend, mai dopo. Il `git checkout` sopra li riporta indietro
+entrambi insieme, quindi va bene — quello che **non** va fatto e' revertire il solo frontend
+"intanto", lasciando in linea il backend nuovo.
+
+⚠️ **Le migrazioni del database non tornano indietro** con il `git checkout`: `MigrateAsync` applica
+solo quelle in avanti. Le migrazioni additive (colonne nullable nuove) sono innocue da lasciare — il
+codice precedente le ignora. Se invece una colonna nuova e' gia' stata **valorizzata** da qualcuno,
+tornare indietro perde quel dato in silenzio: prima del rollback va deciso cosa farne.
+
+#### 🔴 L'unico punto di non ritorno oggi in produzione: i tre slot immagine del sito
+
+Il rilascio «Pannello Sito per pagine» aggiunge tre colonne nullable su `ImpostazioniVetrina` —
+`ImmagineEroeHomeId`, `ImmagineRitrattoLocaleId`, `ImmagineEroeAperitivoId` — che sono la **scelta
+editoriale** di quale foto sta in cima a `/`, a `/locale` e ad `/aperitivo`. Nascono `NULL`: finche'
+lo restano, il rollback e' innocuo e il sito torna a pescare dalla posizione nella galleria.
+
+**Dal momento in cui qualcuno ne valorizza anche una sola, il rollback perde quella scelta**, e la
+perde in silenzio: il sito riparte, nessun errore da nessuna parte, e le foto in cima a tre pagine
+sono altre. Prima di tornare indietro:
+
+```sql
+SELECT ImmagineEroeHomeId, ImmagineRitrattoLocaleId, ImmagineEroeAperitivoId
+FROM ImpostazioniVetrina WHERE ImpostazioniVetrinaId = 1;
+```
+
+- **Tutte e tre `NULL`** → si procede, non c'e' nulla da salvare.
+- **Anche una sola valorizzata** → le immagini scelte vanno **riordinate nella libreria media**
+  perche' la posizione riproduca la scelta, **prima** del revert: 1ª = eroe della home, 2ª = ritratto
+  del locale. ⚠️ L'eroe di `/aperitivo` **non ha una posizione che lo riproduca** — dopo il rollback
+  quella pagina torna a mostrare l'**ultima** foto della galleria, qualunque essa sia.
+
+⚠️ Vale anche al **contrario**, e conviene saperlo prima: prima di questo rilascio `/aperitivo`
+mostrava l'ultima foto della galleria; dopo, finche' nessuno sceglie, quella pagina esce **senza
+immagine di testata**. E' una differenza voluta e visibile dal primo deploy, non un guasto.
 
 ---
 

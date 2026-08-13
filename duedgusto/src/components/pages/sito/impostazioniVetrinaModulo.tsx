@@ -44,6 +44,18 @@ export type ValoriImpostazioniVetrina = {
   metaTitoloDefault: string;
   metaDescrizioneDefault: string;
   immagineOgId: number | null;
+  /**
+   * I tre slot immagine delle pagine.
+   *
+   * ⚠️ Stanno nei valori del modulo pur non essendo ancora modificabili da nessun campo: è la
+   * stessa ragione per cui ci sta `turnstileSiteKey`. L'assegnazione del server è **totale**,
+   * quindi un campo che il modulo non trasporta viene azzerato dal salvataggio della scheda che
+   * lo possiede — e uno slot azzerato non dà errore, riporta semplicemente la pagina al ripiego
+   * posizionale, cioè al difetto che gli slot esistono per togliere.
+   */
+  immagineEroeHomeId: number | null;
+  immagineRitrattoLocaleId: number | null;
+  immagineEroeAperitivoId: number | null;
   oraInizioTemaSera: string;
   // ── I testi che il sito scrive in prima persona ─────────────────────────────────────
   // Ogni sezione del sito che li usa NON si rende quando sono vuoti, e le due pagine
@@ -90,6 +102,9 @@ export const VALORI_VUOTI: ValoriImpostazioniVetrina = {
   metaTitoloDefault: "",
   metaDescrizioneDefault: "",
   immagineOgId: null,
+  immagineEroeHomeId: null,
+  immagineRitrattoLocaleId: null,
+  immagineEroeAperitivoId: null,
   oraInizioTemaSera: "",
   claimVetrina: "",
   storiaTitolo: "",
@@ -136,6 +151,9 @@ export function valoriDaImpostazioni(impostazioni?: ImpostazioniVetrina | null):
     metaTitoloDefault: testo(impostazioni.metaTitoloDefault),
     metaDescrizioneDefault: testo(impostazioni.metaDescrizioneDefault),
     immagineOgId: impostazioni.immagineOgId ?? null,
+    immagineEroeHomeId: impostazioni.immagineEroeHomeId ?? null,
+    immagineRitrattoLocaleId: impostazioni.immagineRitrattoLocaleId ?? null,
+    immagineEroeAperitivoId: impostazioni.immagineEroeAperitivoId ?? null,
     oraInizioTemaSera: testo(impostazioni.oraInizioTemaSera),
     claimVetrina: testo(impostazioni.claimVetrina),
     storiaTitolo: testo(impostazioni.storiaTitolo),
@@ -169,7 +187,36 @@ function numeroONull(valore: string): number | null {
   return pulito === "" ? null : Number(pulito);
 }
 
-export function inputDaValori(valori: ValoriImpostazioniVetrina): ImpostazioniVetrinaInput {
+// ═══════════════════════════════════════════════════════════════════════════════════════════
+// LE QUATTRO COSTRUZIONI, UNA PER SCHEDA — ora indipendenti
+//
+// 🔴 Fino alla fase precedente queste quattro erano **proiezioni** di un `inputDaValori` unico,
+//    filtrate per `PROPRIETA_CAMPI`. Adesso sono quattro **costruttori indipendenti**, scritti
+//    a mano uno per uno, e `inputDaValori` è sparito con l'ultimo dei suoi chiamanti.
+//
+// 🔴 **È il momento per cui il test di partizione è stato scritto prima.** Finché erano
+//    proiezioni, «l'unione delle quattro copre esattamente i campi scrivibili» era vero per
+//    costruzione e il test non poteva che essere verde. Adesso è una cosa che qualcuno deve
+//    aver scritto giusto a mano, quattro volte, e il test è l'unica ragione per cui dimenticare
+//    `urlProfiloGoogle` qui sotto non produce un salvataggio che lo azzera in silenzio.
+//    Se per restare verde quel test avesse richiesto un ritocco, la divisione sarebbe sbagliata.
+//
+// ⚠️ Ogni campo compare in **una sola** di queste quattro funzioni. Non è una raccomandazione:
+//    è ciò che il test di disgiunzione verifica, ed è la ragione per cui non esiste alcun
+//    helper condiviso che «riempia i campi comuni» — non ci sono campi comuni.
+// ═══════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * I campi della scheda **Impostazioni sito**: identità, indirizzo, coordinate, contatti,
+ * social, SEO di default, anteprima social, aspetto e ganci spenti. Venti.
+ *
+ * ⚠️ `turnstileSiteKey` viaggia pur non essendo mostrato da alcun campo. La ragione non è più
+ *    «l'assegnazione del server è totale» in astratto — sarebbe un argomento che vale per tutte
+ *    le schede e quindi per nessuna: è che l'assegnazione è totale **su questo gruppo**, e
+ *    questo campo **appartiene a questo gruppo**. Non rispedirlo lo cancellerebbe a ogni
+ *    salvataggio della scheda del sito; nessun'altra scheda può toccarlo.
+ */
+export function inputImpostazioni(valori: ValoriImpostazioniVetrina): ImpostazioniVetrinaInput {
   return {
     insegnaPubblica: valori.insegnaPubblica.trim(),
     via: valori.via.trim(),
@@ -187,9 +234,49 @@ export function inputDaValori(valori: ValoriImpostazioniVetrina): ImpostazioniVe
     metaDescrizioneDefault: nullSeVuoto(valori.metaDescrizioneDefault),
     immagineOgId: valori.immagineOgId,
     oraInizioTemaSera: valori.oraInizioTemaSera.trim(),
+    prenotazioniAttive: Boolean(valori.prenotazioniAttive),
+    prenotazioniPreavvisoOre: Number(valori.prenotazioniPreavvisoOre) || 0,
+    prenotazioniCopertiMax: Number(valori.prenotazioniCopertiMax) || 0,
+    turnstileSiteKey: nullSeVuoto(valori.turnstileSiteKey),
+  };
+}
+
+/**
+ * I campi della scheda **Home**: il paragrafo sotto il titolo, il grappolo della reputazione e
+ * lo slot dell'immagine grande.
+ *
+ * ⚠️ I testi dell'aperitivo **non sono qui**, benché la home li renda: la scheda Home li mostra
+ *    in sola lettura e non li spedisce. Spedirli vorrebbe dire due schede che scrivono lo stesso
+ *    campo, cioè due verità con la vittoria dell'ultima che salva.
+ */
+export function inputHome(valori: ValoriImpostazioniVetrina): PaginaHomeInput {
+  return {
     claimVetrina: nullSeVuoto(valori.claimVetrina),
+    punteggioGoogle: numeroONull(valori.punteggioGoogle),
+    numeroRecensioniGoogle: numeroONull(valori.numeroRecensioniGoogle),
+    urlProfiloGoogle: nullSeVuoto(valori.urlProfiloGoogle),
+    immagineEroeHomeId: valori.immagineEroeHomeId,
+  };
+}
+
+/**
+ * I campi della scheda **Il locale**: titolo e testo della storia, e lo slot del ritratto.
+ *
+ * 🔴 `storiaTesto` svuotato **fa sparire la pagina dal sito**: 404, navigazione e sitemap. È il
+ *    motivo per cui `nullSeVuoto` è qui e non un `if (valore)` da qualche parte — svuotare deve
+ *    poter arrivare fino al database.
+ */
+export function inputLocale(valori: ValoriImpostazioniVetrina): PaginaLocaleInput {
+  return {
     storiaTitolo: nullSeVuoto(valori.storiaTitolo),
     storiaTesto: nullSeVuoto(valori.storiaTesto),
+    immagineRitrattoLocaleId: valori.immagineRitrattoLocaleId,
+  };
+}
+
+/** I campi della scheda **Aperitivo**: titolo, testo, punti, categorie e lo slot dell'eroe. */
+export function inputAperitivo(valori: ValoriImpostazioniVetrina): PaginaAperitivoInput {
+  return {
     aperitivoTitolo: nullSeVuoto(valori.aperitivoTitolo),
     aperitivoTesto: nullSeVuoto(valori.aperitivoTesto),
     // ⚠️ Le due aree «una voce per riga» NON si normalizzano qui: si manda ciò che è stato
@@ -198,13 +285,7 @@ export function inputDaValori(valori: ValoriImpostazioniVetrina): ImpostazioniVe
     //    l'altra, perché è quella che il sito legge.
     aperitivoPunti: nullSeVuoto(valori.aperitivoPunti),
     aperitivoCategorie: nullSeVuoto(valori.aperitivoCategorie),
-    punteggioGoogle: numeroONull(valori.punteggioGoogle),
-    numeroRecensioniGoogle: numeroONull(valori.numeroRecensioniGoogle),
-    urlProfiloGoogle: nullSeVuoto(valori.urlProfiloGoogle),
-    prenotazioniAttive: Boolean(valori.prenotazioniAttive),
-    prenotazioniPreavvisoOre: Number(valori.prenotazioniPreavvisoOre) || 0,
-    prenotazioniCopertiMax: Number(valori.prenotazioniCopertiMax) || 0,
-    turnstileSiteKey: nullSeVuoto(valori.turnstileSiteKey),
+    immagineEroeAperitivoId: valori.immagineEroeAperitivoId,
   };
 }
 
@@ -213,7 +294,23 @@ function urlFacoltativo(messaggio: string) {
   return z.string().refine((valore) => valore.trim() === "" || z.string().url().safeParse(valore.trim()).success, { message: messaggio });
 }
 
-const schemaValidazione = z
+// ═══════════════════════════════════════════════════════════════════════════════════════════
+// LA VALIDAZIONE, UNO SCHEMA PER SCHEDA
+//
+// 🔴 Fino alla fase precedente esisteva **uno** schema con **un** `superRefine` che conteneva
+//    ENTRAMBI i grappoli incrociati: coordinate e reputazione. Adesso ce n'è uno per scheda, e
+//    i due grappoli si sono divisi — le coordinate stanno con l'indirizzo in «Impostazioni
+//    sito», la reputazione sta nella «Home», che è l'unica pagina che la rende.
+//
+// 🔴 **La proprietà che la divisione non deve perdere è che ciascun controllo incrociato
+//    segnali ENTRAMBI i campi della propria coppia.** Un controllo spezzato fra due schemi
+//    segnalerebbe solo quello che lo schema conosce, e l'amministratore vedrebbe un errore su
+//    un campo dicendogli di guardarne un altro che quella scheda non mostra. È la ragione per
+//    cui i due grappoli non potevano essere separati fra due schede, e la ragione per cui i due
+//    test che lo dimostrano sono stati replicati, uno per schema.
+// ═══════════════════════════════════════════════════════════════════════════════════════════
+
+const schemaImpostazioniSito = z
   .object({
     insegnaPubblica: z.string().trim().min(1, "L'insegna pubblica è il nome che legge il cliente: non può restare vuota"),
     via: z.string(),
@@ -230,16 +327,6 @@ const schemaValidazione = z
     metaTitoloDefault: z.string(),
     metaDescrizioneDefault: z.string(),
     oraInizioTemaSera: z.string().regex(FORMATO_ORARIO, 'Formato orario non valido: serve "HH:mm" fra "00:00" e "23:59"'),
-    claimVetrina: z.string(),
-    storiaTitolo: z.string(),
-    storiaTesto: z.string(),
-    aperitivoTitolo: z.string(),
-    aperitivoTesto: z.string(),
-    aperitivoPunti: z.string(),
-    aperitivoCategorie: z.string(),
-    punteggioGoogle: z.string(),
-    numeroRecensioniGoogle: z.string(),
-    urlProfiloGoogle: urlFacoltativo("Serve l'URL completo del profilo Google del locale"),
     prenotazioniPreavvisoOre: z.number().min(0, "Il preavviso non può essere negativo"),
     prenotazioniCopertiMax: z.number().min(0, "I coperti non possono essere negativi"),
   })
@@ -263,12 +350,24 @@ const schemaValidazione = z
     if (longitudine !== "" && !(Number(longitudine) >= -180 && Number(longitudine) <= 180)) {
       contesto.addIssue({ code: z.ZodIssueCode.custom, path: ["longitudine"], message: "La longitudine deve stare fra -180 e 180" });
     }
+  });
 
-    // 🔴 Stesso controllo incrociato delle coordinate, per la stessa ragione: presi da soli
-    //    questi due numeri non sono un dato incompleto, sono un dato FUORVIANTE. «4,7» senza
-    //    conteggio nasconde che le recensioni potrebbero essere tre; «180 recensioni» senza
-    //    media nasconde che la media potrebbe essere 2,1. Il sito li mostra insieme o non li
-    //    mostra, quindi è qui che l'appaiamento va imposto.
+const schemaPaginaHome = z
+  .object({
+    claimVetrina: z.string(),
+    punteggioGoogle: z.string(),
+    numeroRecensioniGoogle: z.string(),
+    urlProfiloGoogle: urlFacoltativo("Serve l'URL completo del profilo Google del locale"),
+  })
+  // 🔴 Stesso controllo incrociato delle coordinate, per la stessa ragione: presi da soli
+  //    questi due numeri non sono un dato incompleto, sono un dato FUORVIANTE. «4,7» senza
+  //    conteggio nasconde che le recensioni potrebbero essere tre; «180 recensioni» senza
+  //    media nasconde che la media potrebbe essere 2,1. Il sito li mostra insieme o non li
+  //    mostra, quindi è qui che l'appaiamento va imposto.
+  //
+  // ⚠️ Ed è **qui** e non nello schema delle impostazioni perché i due campi appartengono a
+  //    questa scheda: un controllo incrociato vive dove vivono entrambi i suoi membri, sempre.
+  .superRefine((valori, contesto) => {
     const punteggio = valori.punteggioGoogle.trim();
     const numero = valori.numeroRecensioniGoogle.trim();
     const messaggioReputazione = "Il punteggio e il numero di recensioni vanno inseriti insieme, oppure lasciati entrambi vuoti";
@@ -287,8 +386,30 @@ const schemaValidazione = z
     }
   });
 
-export function validaImpostazioniVetrina(valori: ValoriImpostazioniVetrina): Record<string, string> | undefined {
-  const esito = schemaValidazione.safeParse(valori);
+/**
+ * Le due schede editoriali non hanno alcuna regola incrociata e nessun campo obbligatorio:
+ * **anche svuotare è un'operazione legittima**, ed è quella che ritira la pagina dal sito.
+ * Gli schemi esistono comunque, perché una scheda senza `validate` sarebbe l'unica del gruppo a
+ * non averne uno — e la prima regola che servisse domani nascerebbe in un posto nuovo.
+ */
+const schemaPaginaLocale = z.object({
+  storiaTitolo: z.string(),
+  storiaTesto: z.string(),
+});
+
+const schemaPaginaAperitivo = z.object({
+  aperitivoTitolo: z.string(),
+  aperitivoTesto: z.string(),
+  aperitivoPunti: z.string(),
+  aperitivoCategorie: z.string(),
+});
+
+/**
+ * Il traduttore da esito Zod alla forma che Formik si aspetta, **uno solo** per tutte e quattro
+ * le schede: quattro copie di sei righe divergerebbero al primo campo annidato.
+ */
+function erroriDi(schema: z.ZodTypeAny, valori: ValoriImpostazioniVetrina): Record<string, string> | undefined {
+  const esito = schema.safeParse(valori);
   if (esito.success) {
     return;
   }
@@ -297,4 +418,22 @@ export function validaImpostazioniVetrina(valori: ValoriImpostazioniVetrina): Re
     errori[problema.path[0] as string] = problema.message;
   });
   return errori;
+}
+
+/** La validazione della scheda **Impostazioni sito**. Contiene il grappolo delle coordinate. */
+export function validaImpostazioniSito(valori: ValoriImpostazioniVetrina): Record<string, string> | undefined {
+  return erroriDi(schemaImpostazioniSito, valori);
+}
+
+/** La validazione della scheda **Home**. Contiene il grappolo della reputazione. */
+export function validaPaginaHome(valori: ValoriImpostazioniVetrina): Record<string, string> | undefined {
+  return erroriDi(schemaPaginaHome, valori);
+}
+
+export function validaPaginaLocale(valori: ValoriImpostazioniVetrina): Record<string, string> | undefined {
+  return erroriDi(schemaPaginaLocale, valori);
+}
+
+export function validaPaginaAperitivo(valori: ValoriImpostazioniVetrina): Record<string, string> | undefined {
+  return erroriDi(schemaPaginaAperitivo, valori);
 }

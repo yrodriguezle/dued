@@ -1,0 +1,2144 @@
+# Tasks: Il pannello «Sito» modellato sulle pagine (pannello-sito-per-pagine)
+
+> Artefatti di riferimento: [proposal.md](./proposal.md), [design.md](./design.md) (§D1-D15),
+> [specs/](./specs/) — **cinque** delta: [`impostazioni-vetrina`](./specs/impostazioni-vetrina/spec.md),
+> [`media-assets`](./specs/media-assets/spec.md), [`sito-pubblico`](./specs/sito-pubblico/spec.md),
+> [`api-pubblica`](./specs/api-pubblica/spec.md) e
+> [`consumo-api-pubblica`](./specs/consumo-api-pubblica/spec.md) — gli ultimi due scritti al
+> task 8.1, quando la forma di `/api/public/galleria` era già cambiata.
+> Change precedenti, completati: [`vetrina-api-pubblica`](../archive/2026-08-13-vetrina-api-pubblica/tasks.md),
+> [`vetrina-fondamenta-media`](../archive/2026-08-13-vetrina-fondamenta-media/tasks.md).
+>
+> **Come leggere questo file.** Ogni task ha una *Verifica*: chi lo chiude deve poter dimostrare
+> che è chiuso, con un comando o un'osservazione. Ogni fase si apre con la ragione per cui esiste,
+> si chiude con lo stato in cui lascia l'albero e con **come si torna indietro da lì**.
+>
+> **Le fasi 1-7 sono i sette punti di [design.md §"Migration / Rollout"](./design.md), nello stesso
+> ordine e con lo stesso rollback.** Davanti c'è una Fase 0 di sola misura (non tocca codice) e in
+> coda una Fase 8 di chiusura. L'ordine **non è organizzativo**: la Fase 1 è la rete che deve
+> esistere *prima* che la Fase 5 possa rompere qualcosa in silenzio.
+>
+> ⚠️ **I test non hanno una fase propria.** Vivono dentro la fase che pinnano, perché è la
+> condizione perché ogni gradino sia verificabile senza il successivo.
+
+---
+
+## Otto risoluzioni già decise, da non rimettere in discussione durante l'apply
+
+1. 🔴 **I campi scrivibili di `ImpostazioniVetrina` sono 30, non 31** ([D15](./design.md) punto 1).
+   La proposal scrive 31 in sette punti ed è **sbagliata**: l'elenco letterale di
+   `ImpostazioniVetrinaInput_HaEsattamenteICampiScrivibili`
+   ([ImpostazioniVetrinaTests.cs:429-446](../../../backend/DuedGusto.Tests/Integration/GraphQL/ImpostazioniVetrinaTests.cs)),
+   le proprietà di `ImpostazioniVetrinaInput` e le chiavi di `ValoriImpostazioniVetrina` danno
+   **30** in tutti e tre i conteggi. La partizione è **20 + 4 + 2 + 4**. Il numero si corregge nella
+   proposal al task 8.3.
+2. 🔴 **Dopo la Fase 3 i campi scrivibili diventano 33.** I tre slot immagine nuovi
+   (`ImmagineEroeHomeId`, `ImmagineRitrattoLocaleId`, `ImmagineEroeAperitivoId`) **sono scrivibili**
+   — nella lista `NonScrivibiliDaGraphQL` di [D3](./design.md) ② stanno le sole **navigazioni**
+   (`ImmagineEroeHome`, …), non gli identificativi. La partizione passa quindi da 30 a 33 campi al
+   task 3.11, e i test di totalità asseriscono **33** dalla Fase 3 in poi. Chi legge «30» in un test
+   dopo la Fase 3 sta guardando un test che non è stato aggiornato.
+3. 🔴 **`mutateImpostazioniVetrina` diventa una modifica breaking dello schema** (30 → 20 campi),
+   e si accetta: l'unico consumatore è il frontend di questo repository. La conseguenza operativa
+   è il vincolo di deploy della Fase 5 e l'ordine di rollback di [D15](./design.md) punto 3 —
+   **prima** si riespande l'input, **poi** si fa il revert del frontend.
+4. **La scheda «Impostazioni sito» non si rinomina** ([D15](./design.md) punto 4). La proposal la
+   vuole rinominata; dopo la riduzione contiene esattamente ciò che quel nome già descrive, e il
+   `Percorso` deve comunque restare invariato perché è la chiave di idempotenza del seed.
+5. **L'etichetta della scheda resta «Menu»**, identica a `rotte.ts`, e si disambigua
+   dall'anagrafica menu del gestionale con l'annidamento e l'icona `UtensilsCrossed`
+   ([D12](./design.md), Open Question 1). Rispecchiare il sito è il punto del change.
+6. 🔴 ~~**Il ripiego dell'aperitivo resta `galleria.at(-1)`** (Open Question 4). È la regola peggiore
+   delle sei, e si tiene perché cambiarla violerebbe *«il sito non cambia comportamento a contenuti
+   invariati»*. Il rimedio non è cambiare il ripiego: è **valorizzare lo slot**.~~
+   **SUPERATA da una decisione dell'utente, presa dopo la stesura del design e applicata in Fase 2.**
+   L'eroe di `/aperitivo` **non ha ripiego**: a slot vuoto la pagina esce **senza** immagine di
+   testata. La motivazione, le conseguenze sulle Fasi 4 e 6 e il perché la differenza visibile sia
+   accettata stanno nel riquadro del **task 2.2**, che è l'unico posto in cui vanno lette.
+7. **Nessun backfill degli slot** ([D5](./design.md) ③). Nascono `null` e restano `null` finché
+   qualcuno non sceglie. Il ripiego è la **semantica permanente** dello slot vuoto, non un ponte.
+8. **Titolo e descrizione SEO per pagina restano fuori scope** ([D10](./design.md), Open Question 2):
+   sono una migrazione e un'altra decisione. `/menu` e `/contatti` non possiedono alcun testo, e le
+   loro schede sono **mappe**, non moduli — non un modulo vuoto con un Salva grigio.
+
+---
+
+## Vincoli operativi dell'ambiente
+
+Ripetuti dentro i task in cui mordono davvero — qui una volta sola per non doverli cercare.
+
+- 🔧 **Il backend in esecuzione dell'utente tiene bloccata `bin/`.** Per compilare o testare mentre
+  gira:
+  ```bash
+  dotnet build backend/duedgusto.csproj -o /tmp/dued-build
+  dotnet test  backend/DuedGusto.Tests/DuedGusto.Tests.csproj -o /tmp/dued-test
+  ```
+- 🔧 **`dotnet ef` non ha l'equivalente di `-o`.** La compilazione si devia con la variabile
+  d'ambiente `OutputPath`, che MSBuild raccoglie come proprietà globale:
+  `EF_MIGRATIONS=1 OutputPath="…/scratchpad/dued-ef/" dotnet ef …` da `backend/`. Senza, il comando
+  fallisce con `MSB3027`. ⚠️ **`EF_MIGRATIONS=1` è obbligatorio**: senza,
+  `ServerVersion.AutoDetect` apre una connessione e serve un MySQL in esecuzione
+  ([Program.cs:96-98](../../../backend/Program.cs)).
+- 🔧 **Per le prove end-to-end serve una seconda istanza** su porta libera, che non tocchi quella
+  dell'utente:
+  ```bash
+  ASPNETCORE_URLS=https://localhost:4012 SEED_ON_STARTUP=false dotnet run --project backend
+  ```
+  `SEED_ON_STARTUP=false` **tranne** nel task 6.18, dove il seed è il punto.
+- 🔧 **Il JWT scade in 5 minuti** e il signin è limitato a **5 tentativi ogni 15 minuti per IP**: si
+  rigenera il token, non si rifà il login a raffica.
+- 🔧 **I test del sito girano con `node --test`** (`cd sito && npm test`) e pretendono **Node ≥
+  22.12** (`sito/.npmrc`, `engine-strict`). La macchina è su Node 22.23.2: nessun accorgimento.
+- 🔧 **In un worktree fresco `node_modules` va collegato con una junction**, non reinstallato,
+  altrimenti `npm run ts:check` muore.
+
+---
+
+## Fase 0 — Misurare il «prima», e sgombrare il campo dal change vicino
+
+**Perché esiste.** La spec [`sito-pubblico`](./specs/sito-pubblico/spec.md) pretende che la prova di
+non regressione sia una **cattura prima/dopo confrontabile** e non una lettura a occhio, e la
+cattura si può fare **solo adesso**. Dopo la Fase 4 non esiste più un «prima» da fotografare.
+Nessun task di questa fase tocca codice.
+
+- [x] 0.1 **Coordinamento con `vetrina-redesign-mockup`** (issue #14, Open Question 4 del design) —
+  quel change tocca gli stessi quattro `.astro`. **Stato verificato al 2026-08-13**: è **già in
+  `main`** (merge `c577b1a`, PR #15), e le quattro letture della galleria sono ancora nella forma
+  che [D5](./design.md) assume — `index.astro:85`, `menu.astro:68`, `locale.astro:38-39`,
+  `aperitivo.astro:50`. Resta da verificare che **non ci sia lavoro aperto** su quell'issue che
+  rimetta mano agli stessi file prima della Fase 4.
+  *Verifica*: `git log --oneline -1 -- sito/src/pages/` è anteriore all'inizio di questo change;
+  `gh issue view 14` non elenca lavoro pendente sui `.astro`; se ne elenca, **questo change aspetta
+  o riscrive dopo**, e la sostituzione delle letture della galleria va *fatta*, non assunta.
+
+- [x] 0.2 🔴 **Cattura del «prima» del sito, nei due stati delle pagine condizionate** — con il
+  database reale e il backend acceso, salva sotto
+  `openspec/changes/pannello-sito-per-pagine/prove/prima/`: l'HTML delle cinque pagine, l'elenco
+  delle **chiavi immagine** rese da ciascuna e la loro posizione, il codice HTTP di ciascuna, la
+  sitemap e le voci di navigazione di intestazione e piè di pagina.
+  ⚠️ **Due passate**: una con `StoriaTesto`/`AperitivoTesto` valorizzati e una con entrambi vuoti.
+  Una cattura fatta nel solo stato pubblicato non dimostrerebbe nulla sul caso che questo change
+  rende raggiungibile da sei posti invece che da uno.
+  *Verifica* (spec `sito-pubblico` → *Le cinque pagine rispondono come prima*, *Il 404 condizionato
+  si comporta come prima, in entrambi gli stati*): esistono dieci catture (5 pagine × 2 stati) e per
+  ciascuna l'elenco ordinato delle chiavi immagine. I contenuti modificati per la seconda passata
+  sono **ripristinati** a fine task.
+
+- [x] 0.3 ⚠️ **Conta le immagini che ci sono davvero** — `SELECT COUNT(*) FROM MediaAssets WHERE
+  Cartella = 'galleria' AND Pubblicato = 1` sul database reale.
+  🔴 Se il risultato è **1**, e oggi lo è, allora la stessa foto è **contemporaneamente** eroe della
+  home, ritratto del locale ed eroe dell'aperitivo, e le griglie da tre sono **vuote**. Non è un caso
+  limite teorico: è lo stato della produzione, ed è il caso su cui i test dei task 2.3, 4.6 e 6.17
+  devono avere una riga esplicita.
+  *Verifica*: il numero è annotato nell'uscita di fase, e i tre task lo citano.
+
+- [x] 0.4 **Baseline dei test** — annota i conteggi verdi di partenza: `dotnet test`, `npm run test`
+  in `duedgusto/`, `npm test` in `sito/`.
+  *Verifica*: tre numeri scritti nell'uscita di fase. Ogni fase successiva dichiara il proprio
+  delta rispetto a questi.
+
+**Uscita di fase.** Nessuna riga di codice modificata (`git status` pulito a parte `prove/`), un
+«prima» confrontabile in archivio, e il numero di foto reali in galleria.
+
+**Rollback.** Non applicabile: nulla è stato cambiato.
+
+### ✅ Esito misurato — Fase 0 (2026-08-13)
+
+**0.1 — coordinamento.** PR #15 (`Redesign vetrina sul mockup`) **merged** il 2026-08-13T08:54:09Z;
+l'ultimo commit su `sito/src/pages/` è `b918dde` (2026-08-13 10:48:56 +0200), cioè dentro quella PR e
+**anteriore** all'inizio di questo change. L'issue #14 resta **aperta** ma il solo lavoro pendente è
+la **Fase 8 — il catalogo** (39 voci di listino da correggere e approvare, con l'aliquota IVA non
+verificata): è una decisione sui *contenuti*, **non tocca alcun `.astro`**. L'unica PR aperta al
+momento della misura era la #17 (cassa/fatture), poi merged, e non tocca `sito/`.
+Le quattro letture della galleria sono **verificate nella forma che [D5](./design.md) assume**:
+`index.astro:85-86`, `menu.astro:68`, `locale.astro:38-39`, `aperitivo.astro:50`.
+⚠️ Nota per la Fase 4: su `/` compaiono **quattro** `<picture>`, non due — le due in mezzo vengono
+dai **prodotti** (blocco «momenti», `index.astro:62-76`, foto del primo piatto della categoria), non
+dalla galleria. Una di esse riusa per caso lo stesso media dell'eroe. La sostituzione del task 4.5
+**non deve toccarle**.
+
+**0.2 — cattura del «prima».** In `prove/prima/pubblicato/` e `prove/prima/svuotato/`: dieci HTML
+(5 pagine × 2 stati), due `riepilogo.json` con codici HTTP, `Cache-Control`, chiavi immagine
+**ordinate con il tag che le porta**, voci di navigazione di intestazione e piè di pagina, e le due
+sitemap. Lo strumento è `prove/cattura.mjs` ed è **lo stesso** che rieseguirà il confronto al task 4.8.
+
+| Pagina | pubblicato | svuotato |
+|---|---|---|
+| `/` | 200 — `A A A A P P B B` | 200 — identico |
+| `/menu` | 200 — `A A B B` | 200 — identico |
+| `/aperitivo` | 200 — `B B` | **404** — nessuna immagine |
+| `/locale` | 200 — `B B` | **404** — nessuna immagine |
+| `/contatti` | 200 — nessuna | 200 — identico |
+| sitemap | 5 voci | **3 voci** (`/`, `/menu`, `/contatti`) |
+
+`A` = `2026/08/prova-cartella-xxuvbm` (galleria, 1ª) · `B` = `2026/08/800-xxpt4q` (galleria, 2ª) ·
+`P` = `2026/08/800-89qao7` (**prodotto**, non galleria). Ogni chiave compare due volte perché è un
+`<picture>`: `<source>` webp + `<img>` di ripiego.
+🔴 **Contenuti ripristinati e verificato che lo siano**: `MD5(StoriaTesto)` e `MD5(AperitivoTesto)`
+identici prima e dopo (`3c4adb02…`, `3907e500…`), e una terza cattura di controllo è risultata
+**identica byte per byte** al `riepilogo.json` dello stato pubblicato.
+
+**0.3 — 🔴 quante immagini ci sono davvero.**
+`SELECT COUNT(*) FROM MediaAssets WHERE Cartella='galleria' AND Pubblicato=1` → **2** in sviluppo
+locale (`localhost:3306/duedgusto`).
+✅ **La divergenza è RISOLTA** (aggiornata in Fase 5): la galleria di **produzione** ha **1**
+immagine pubblicata — verificato su `https://duedgusto.it/api/public/galleria` — e quella di
+**sviluppo locale** ne ha **2**. Non è una misura incerta: sono **due database diversi**, e i due
+numeri sono entrambi corretti per il proprio ambiente. Le due letture restano distinte, e i task
+2.3, 4.6 e 6.17 devono coprire **entrambi** i casi — che comunque già fanno, perché la matrice del
+task 2.3 include 0, 1 **e** 2 immagini.
+Il caso a **2** immagini è quello osservato ed è già degenere quanto quello a 1:
+`RitrattoLocale` = `EroeAperitivo` = `GrigliaHome[0]` = la **stessa** foto (`B`), `QuadrateLocale` è
+**vuota**, `FotoMenu` ha due elementi. La cattura 0.2 lo conferma riga per riga.
+
+**0.4 — baseline dei test.** ⚠️ Misurati **due volte**: durante la Fase 0 il repository è avanzato
+(merge della PR #17, `39c0bbe` → `c58e420`), quindi la baseline valida è la **seconda**.
+
+| Suite | a `39c0bbe` | 🔴 a `c58e420` (baseline valida) |
+|---|---|---|
+| `dotnet test` | 672 / 672 | **709 / 709** |
+| `npm run test` in `duedgusto/` | 784 / 784 (99 file) | **789 / 789** (100 file) |
+| `npm test` in `sito/` | 111 / 111 | **111 / 111** (`sito/` non toccato dal merge) |
+
+---
+
+## Fase 1 — 🔴 La rete, con il modulo ancora intero
+
+*(punto 1 del rollout — [D3](./design.md) ①, [D4](./design.md))*
+
+**Perché esiste, e perché è prima di tutto.** Il test *«ogni valore del modulo finisce nell'input»*
+([ImpostazioniVetrinaPage.test.tsx:143](../../../duedgusto/src/components/pages/sito/__tests__/ImpostazioniVetrinaPage.test.tsx))
+fa `Object.keys(valori).filter(chiave => !(chiave in input))`: confronta il modulo **con sé stesso**.
+Su una scheda che conoscesse 4 campi su 30 sarebbe **verde mentre il salvataggio ne azzera 26**.
+Il guasto che questa rete previene **è già avvenuto una volta in questo stesso file** — è la ragione
+per cui `turnstileSiteKey` viaggia senza essere mostrato — e la divisione in schede ne moltiplica
+per cinque le occasioni.
+
+🔴 **Se si divide il modulo prima di questa fase, la rete verifica il codice appena scritto invece
+del contrario.** È il rischio numero uno dell'intero change. Nessuna riga di divisione prima del
+task 1.8.
+
+- [x] 1.1 **`duedgusto/src/@types/vetrina.d.ts` — i tre tipi input nuovi, solo come tipi** —
+  `PaginaHomeInput` (4 campi), `PaginaLocaleInput` (2), `PaginaAperitivoInput` (4), esattamente
+  secondo la tabella di [D2](./design.md). ⚠️ **`ImpostazioniVetrinaInput` NON si tocca**: resta a
+  30 campi fino alla Fase 5. L'intersezione dei quattro nomina comunque 30 chiavi, perché i tre
+  nuovi sono sottoinsiemi — è corretto e voluto. ⚠️ **Niente `immagine*Id` qui**: gli slot nascono
+  alla Fase 3 (task 3.11).
+  *Verifica*: `cd duedgusto && npm run ts:check` esce 0; nessun file `.tsx` importa ancora i tre
+  tipi nuovi.
+
+- [x] 1.2 🔴 **`duedgusto/src/components/pages/sito/proprietaCampiVetrina.tsx`** — il file di
+  [D3](./design.md) ①: `type SchedaSito`, `type CampiScrivibiliVetrina` (intersezione dei quattro
+  input), `export const PROPRIETA_CAMPI: Record<keyof CampiScrivibiliVetrina, SchedaSito>` con le
+  30 voci della tabella [D2](./design.md), e `CAMPI_SCRIVIBILI` **derivato** da `PROPRIETA_CAMPI`
+  (mai una seconda lista scritta a mano).
+  🔴 `Record<keyof …>` e **non** `Partial<Record<…>>`: un campo scrivibile non assegnato a una
+  scheda deve essere un **errore di compilazione**, non un test rosso.
+  *Verifica*: `npm run ts:check` esce 0; `Object.keys(PROPRIETA_CAMPI).length === 30`; i due
+  grappoli a validazione incrociata cadono ciascuno dentro **una sola** scheda (`latitudine`+
+  `longitudine` → `impostazioni`; `punteggioGoogle`+`numeroRecensioniGoogle` → `home`).
+
+- [x] 1.3 **Le quattro proiezioni, sopra il modulo ancora unico** — in
+  `impostazioniVetrinaModulo.tsx` aggiungi `inputImpostazioni`, `inputHome`, `inputLocale`,
+  `inputAperitivo`. In **questa fase** sono **proiezioni di `inputDaValori`** filtrate per
+  `PROPRIETA_CAMPI`, non costruttori indipendenti: è ciò che rende dimostrabile il task 1.5 —
+  togliendo un campo a `inputDaValori` il campo sparisce dall'unione. `ImpostazioniVetrinaPage`
+  continua a chiamare `inputDaValori` e **non cambia comportamento**.
+  *Verifica*: `npm run test` in `duedgusto/` verde; `git diff` non tocca `ImpostazioniVetrinaPage.tsx`.
+
+- [x] 1.4 🔴 **Il test si riscrive contro un'autorità esterna** — in
+  `__tests__/ImpostazioniVetrinaPage.test.tsx` **sostituisci** il test di riga 143 con quello di
+  [D4](./design.md): le quattro proiezioni, `flatMap(Object.keys)`, `new Set(prodotti).size ===
+  prodotti.length` (nessun campo in due schede) e `prodotti.sort()` uguale a
+  `[...CAMPI_SCRIVIBILI].sort()` (nessun campo orfano). Il confronto modulo-con-sé-stesso **sparisce**:
+  lasciarlo accanto darebbe due test di cui uno mente.
+  *Verifica* (spec `impostazioni-vetrina` → *L'unione dei perimetri è l'insieme dei campi
+  scrivibili*, *Nessun campo ha due proprietari*): `npm run test` verde e il messaggio di
+  fallimento, quando fallisce, **nomina i campi** e non solo la lunghezza degli elenchi.
+
+- [x] 1.5 🔴 **Verifica per mutazione — campo orfano. Da eseguire e da annotare nel commit.**
+  Togli a mano un campo da `inputDaValori`, **esegui i test e vedi il test 1.4 fallire con il nome
+  del campo nel messaggio**, poi rimetti la riga e vedilo tornare verde.
+  *Verifica* (spec `impostazioni-vetrina` → *Verifica per mutazione — campo orfano*): l'esito è
+  annotato nell'uscita di fase con il nome del test rosso e quello dei test rimasti verdi. Un test
+  strutturale che nessuno ha mai visto fallire è indistinguibile da un test che non verifica niente.
+
+- [x] 1.6 🔴 **Verifica per mutazione — campo conteso.** Fai restituire lo stesso campo a due
+  proiezioni (per esempio `claimVetrina` da `inputHome` **e** da `inputImpostazioni`), vedi il test
+  1.4 fallire sulla **disgiunzione** e non sulla totalità, poi rimuovi la modifica.
+  *Verifica* (spec `impostazioni-vetrina` → *Verifica per mutazione — campo conteso*): i due modi di
+  marcire della partizione sono coperti da **due** asserzioni distinte, e ciascuna è stata vista
+  fallire da sola.
+
+- [x] 1.7 🔴 **Verifica per mutazione della totalità dal compilatore.** Togli una voce da
+  `PROPRIETA_CAMPI` e verifica che `npm run ts:check` **fallisca** nominando la chiave mancante;
+  ripristina. Poi aggiungi un campo finto a uno dei tipi input e verifica che fallisca di nuovo;
+  ripristina.
+  *Verifica* (spec `impostazioni-vetrina` → *Un campo aggiunto in futuro non può restare fuori*):
+  `ts:check` gira in CI, quindi questa è la difesa che scatta **nell'editor**, prima di ogni test.
+
+- [x] 1.8 **Il test della chiave antispam resta com'è, in questa fase** — *«trasporta la chiave
+  antispam che la pagina non mostra»* (riga 137) **non si tocca**: si sposterà sulla scheda
+  Impostazioni sito al task 5.16, quando ci sarà un posto dove spostarlo.
+  *Verifica*: `git diff` su quel test è vuoto.
+
+**Uscita di fase.** Suite frontend verde, **nessun comportamento cambiato**, `git diff` non tocca
+`backend/` né `sito/`, e la rete ha dimostrato di saper fallire in **tre** modi diversi (orfano,
+conteso, non compilante). Annota il delta rispetto alla baseline 0.4.
+
+**Rollback.** Revert puro, nessun dato coinvolto: i file nuovi non hanno consumatori a runtime.
+
+### ✅ Esito misurato — Fase 1 (2026-08-13)
+
+**Comandi di fine fase**, tutti sul tree con la Fase 1 applicata:
+
+| Comando | Esito | Delta sulla baseline 0.4 |
+|---|---|---|
+| `npm run ts:check` | **0** | — |
+| `npm run lint` | **0** | — |
+| `npm run test` in `duedgusto/` | **790 / 790** (100 file) | **+1** — un test sostituito da **due** |
+| `git status -- backend/ sito/` | **vuoto** | il diff non esce da `duedgusto/` |
+
+**1.2 — la partizione, per cardinalità.** `Object.keys(PROPRIETA_CAMPI).length === 30`, ripartiti
+**20 + 4 + 2 + 4**, e i due grappoli incrociati cadono ciascuno dentro una scheda sola
+(`latitudine`+`longitudine` → `impostazioni`; `punteggioGoogle`+`numeroRecensioniGoogle` → `home`).
+Fissato dal test *«la mappa di proprietà è esaustiva e non separa i grappoli a validazione
+incrociata»*.
+
+**1.3 — `ImpostazioniVetrinaPage.tsx` non toccata**: `git diff --stat` su quel file è **vuoto**. Le
+quattro `inputXxx` sono proiezioni di `inputDaValori` filtrate per `PROPRIETA_CAMPI`, come richiesto;
+diventeranno costruttori indipendenti al task 5.14.
+
+**1.8 — il test della chiave antispam è identico**: `diff` del blocco `it("trasporta la chiave
+antispam…")` fra il tree e `HEAD` → **vuoto**.
+
+#### 🔴 Le tre verifiche per mutazione — eseguite, non dedotte
+
+| # | Mutazione | Rosso | Verde intorno |
+|---|---|---|---|
+| **1.5** | `claimVetrina` tolto da `inputDaValori` | *l'unione delle schede copre esattamente i campi scrivibili* — `AssertionError: campi scrivibili che NESSUNA scheda spedisce (verrebbero azzerati): claimVetrina` | **18 su 19**, fra cui *«invia tutti i campi scrivibili quando i valori sono coerenti»* e *«trasporta la chiave antispam»* |
+| **1.6** | `claimVetrina` rivendicato **anche** da `inputImpostazioni` | lo stesso test, ma sull'asserzione ① — `campi rivendicati da PIÙ DI UNA scheda (vince l'ultima che salva): claimVetrina (impostazioni + home)` | **18 su 19** |
+| **1.7a** | voce `urlProfiloGoogle` tolta da `PROPRIETA_CAMPI` | `ts:check` esce **2** — `error TS2741: Property 'urlProfiloGoogle' is missing … but required in type 'Record<…, SchedaSito>'` | — |
+| **1.7b** | campo `campoFintoDiProva` aggiunto a `PaginaLocaleInput` | `ts:check` esce **2** — `error TS2741: Property 'campoFintoDiProva' is missing …` | — |
+
+🔴 **Le due letture che valgono più del rosso stesso.**
+
+1. Nella mutazione **1.5**, `ts:check` è rimasto a **0**. I campi editoriali sono opzionali nel tipo
+   input, quindi *dimenticarne uno non è un errore di compilazione*: il compilatore garantisce la
+   totalità della **mappa**, mai quella dell'**invio**. È esattamente il buco che il test 1.4 copre,
+   ed è la ragione per cui i due lati di [D3](./design.md) non sono ridondanti.
+2. Sempre in **1.5**, il test di pagina *«invia tutti i campi scrivibili quando i valori sono
+   coerenti»* è rimasto **verde** mentre un campo veniva azzerato a ogni salvataggio. È la prova
+   diretta che la rete preesistente non avrebbe protetto niente.
+3. **1.5 e 1.6 falliscono su asserzioni diverse dello stesso test**, e in quest'ordine per
+   costruzione: la disgiunzione è verificata **per prima**, perché un campo conteso farebbe fallire
+   anche il confronto di totalità (l'elenco avrebbe un elemento in più) e il messaggio parlerebbe
+   della proprietà sbagliata.
+
+Dopo ogni mutazione il ripristino è stato verificato: **19 / 19** verdi sul file, `ts:check` a **0**.
+
+---
+
+## Fase 2 — `RuoliImmaginiVetrina`, con gli slot che ancora non esistono
+
+*(punto 2 del rollout — [D5](./design.md) ②)*
+
+**Perché esiste.** È la mossa vera del nodo B, e vale **a prescindere dal pannello**: la regola che
+assegna i ruoli per posizione oggi è scritta **quattro volte dentro quattro file `.astro`**, e il
+backend non ne ha copia — motivo per cui *«quante immagini ospita questa pagina»* non ha risposta da
+nessuna parte, nemmeno per chi legge il codice. In questa fase la funzione esiste, è provata, e
+**nessuno la chiama ancora**: lo schema GraphQL e il contratto pubblico restano identici.
+
+- [x] 2.1 **`backend/Services/Vetrina/RuoliImmaginiVetrina.cs`** — classe statica, **logica pura,
+  nessun `DbContext`**, stessa collocazione e stessa ragione di `MenuLimiti` e `RegoleVetrina`.
+  Espone `PianoImmagini Risolvi(int? eroeHomeId, int? ritrattoLocaleId, int? eroeAperitivoId,
+  IReadOnlyList<MediaAsset> galleria)` e i record `PianoImmagini` / `enum OrigineRuolo { Slot,
+  Posizione }` di [design.md §"Interfaces / Contracts"](./design.md).
+  ⚠️ **La firma prende i tre identificativi e non l'entità**: le colonne nascono alla Fase 3, e
+  l'overload di comodo `Risolvi(ImpostazioniVetrina, galleria)` arriva lì **delegando** a questa —
+  mai reimplementando (stesso idioma di `RegoleVetrina.PrezzoEffettivo`).
+  *Verifica*: `dotnet build backend/duedgusto.csproj -o /tmp/dued-build` esce 0; nessun file la
+  chiama ancora.
+
+- [x] 2.2 🔴 **Le sei regole del piano, e il ripiego per ciascun ruolo singolo** — la tabella di
+  [D5](./design.md): `EroeHome` = slot, ripiego `galleria[0]`; `GrigliaHome` = finestra `[1..4)`;
+  `FotoMenu` = `[0..3)`; `RitrattoLocale` = slot, ripiego `galleria[1] ?? galleria[0]`;
+  `QuadrateLocale` = `[2..5)`; `EroeAperitivo` = slot, ~~ripiego `galleria.at(-1)`~~ **nessun
+  ripiego** (vedi il riquadro sotto).
+  🔴 Il commento deve dire che **a slot tutti vuoti il piano riproduce, immagine per immagine, ciò
+  che il sito rende oggi**, ~~e che il ripiego dell'aperitivo è `.at(-1)` **deliberatamente** — è la
+  regola peggiore delle sei ed è tenuta perché cambiarla cambierebbe il sito (risoluzione 6)~~.
+  *Verifica*: `dotnet build` esce 0; `origine` vale `Slot` se e solo se lo slot è valorizzato **e**
+  l'immagine è nella galleria passata.
+
+  > 🔴 **DECISIONE DELL'UTENTE, successiva alla stesura del design — ribalta la risoluzione 6.**
+  > L'eroe di `/aperitivo` **non ha ripiego**: con lo slot vuoto la pagina esce **senza** immagine
+  > di testata, invece di prendere l'ultima foto della galleria. È l'unico punto in cui il change
+  > **rompe deliberatamente** il principio *«a slot vuoti il sito rende immagine per immagine ciò
+  > che rende oggi»*, e la differenza è **visibile**: finché nessuno valorizza lo slot,
+  > `/aperitivo` perde l'immagine grande che mostra adesso.
+  > **Perché.** `at(-1)` è la regola peggiore delle sei: fa sì che caricare una foto *qualsiasi*,
+  > anche per un'altra pagina, sposti di nascosto l'eroe dell'aperitivo. Il ripiego non è un ponte
+  > verso una migrazione ma la **semantica permanente** dello slot vuoto ([D5](./design.md) ③,
+  > nessun backfill), quindi tenerlo avrebbe voluto dire tenere quel difetto per sempre. Uscire
+  > senza immagine è invece la regola che governa già tutto il resto del sito — *una sezione senza
+  > il suo dato non si rende*.
+  > **Cosa ne consegue altrove**, da onorare nelle fasi successive:
+  > – la **risoluzione 6** del preambolo di questo file è **superata**;
+  > – il task **2.6** non può mutare un ripiego che non esiste: è stato riscritto (vedi lì);
+  > – il task **4.6** (`immagini-ruoli.test.mjs`) e il task **4.8** (confronto con la cattura del
+  >   «prima») **non possono più pretendere un `diff` vuoto su `/aperitivo`**: la cattura dello
+  >   stato *pubblicato* mostra `B B` su quella pagina e dopo il change mostrerà **nessuna
+  >   immagine**. Il confronto resta obbligatorio per le altre quattro pagine e per lo stato
+  >   *svuotato* (`/aperitivo` è già 404 lì); su `/aperitivo` pubblicato l'attesa va **riscritta**,
+  >   non allentata.
+  > – il testo della scheda Aperitivo (Fase 6) non dirà più *«usa l'ultima della galleria, quindi
+  >   cambia ogni volta che ne carichi una»* ma *«nessuna immagine scelta: la pagina esce senza
+  >   immagine di testata»*.
+
+- [x] 2.3 🔴 **Il test portante: a slot vuoti il piano è il sito di oggi** — crea
+  `backend/DuedGusto.Tests/Unit/Services/RuoliImmaginiVetrinaTests.cs` con una matrice su gallerie
+  da **0, 1, 2, 3, 5, 6** immagini, slot tutti vuoti, e l'asserzione chiave per chiave contro gli
+  indici letterali di oggi (`[0]`; `[1..4)`; `[0..3)`; `[1] ?? [0]`; `[2..5)`; ~~`.at(-1)`~~
+  **`null`**, per la decisione annotata al task 2.2).
+  🔴 **I casi 0, 1 e 2 non sono casi limite teorici e vanno scritti a uno a uno**: oggi nessun test
+  copre l'indicizzazione sotto le tre immagini, e in produzione la galleria ne ha **una sola**
+  (task 0.3). Con una foto, la stessa immagine è contemporaneamente `EroeHome` e `RitrattoLocale`
+  (~~ed `EroeAperitivo`~~ — che ora resta **scoperto**, task 2.2), `FotoMenu` ha un elemento e le
+  due griglie sono **vuote**: il test lo deve affermare, non subire.
+  *Verifica* (spec `media-assets` → *Primo avvio dopo la migrazione, slot tutti vuoti*):
+  `dotnet test … --filter "RuoliImmagini"` passa; il caso a 1 immagine ha un `Assert` per ciascuno
+  dei sei ruoli, non un confronto d'insieme.
+
+- [x] 2.4 **La finestra salta i ruoli singoli e scorre** — con `EroeHome` valorizzato sulla 3ª
+  immagine di una galleria da 6, `GrigliaHome` **non la contiene** e ha comunque 3 elementi.
+  ⚠️ E il caso complementare: a slot vuoti la regola **non ha effetto** (l'eroe è `[0]`, la griglia
+  parte da `[1]`), quindi non altera il comportamento attuale.
+  *Verifica* ([D5](./design.md) ⚠️): entrambi i casi sono test distinti; il secondo è ciò che
+  dimostra che la regola nuova non ha cambiato nulla oggi.
+
+- [x] 2.5 **`origine` distingue la scelta dalla posizione** — slot valorizzato → `Slot`; slot vuoto
+  → `Posizione`; slot che punta a un'immagine **non presente nella galleria** (non pubblicata o in
+  un'altra cartella) → `Posizione`, cioè si ricade sul ripiego.
+  *Verifica* (spec `media-assets` → *Un'immagine non pubblicata non ha ruoli*, *Un'immagine fuori
+  dalla galleria non ha ruoli di pagina*): il piano non attribuisce mai un ruolo a un'immagine che
+  la rotta pubblica non selezionerebbe.
+
+- [x] 2.6 🔴 **Verifica per mutazione del test portante** — ~~cambia il ripiego dell'aperitivo da
+  `.at(-1)` a `[0]`, **esegui i test e vedi fallire i casi con più di una immagine** mentre quelli
+  con 0 e 1 **restano verdi** (con una foto sola i due ripieghi coincidono), poi ripristina.~~
+  ⚠️ **Riscritto**: dopo la decisione del task 2.2 l'aperitivo **non ha un ripiego da mutare**. Al
+  suo posto, **tre** mutazioni che colpiscono lo stesso bersaglio — che il test portante non stia
+  pinnando se stesso — e che coprono anche il ripiego con la forma d'esito che il task descriveva:
+  **A** reintroduce `at(-1)` sull'aperitivo (deve far cadere i casi con ≥ 1 immagine); **B** riduce
+  il ripiego del ritratto da `[1] ?? [0]` a `[0]` (deve far cadere i casi con ≥ 2 immagini, lasciando
+  verdi 0 e 1 — è **letteralmente** la forma prevista qui, applicata al ruolo che un ripiego ce
+  l'ha); **C** toglie il salto della finestra (deve far cadere **solo** i due test del task 2.4).
+  *Verifica*: l'esito è annotato con i test rossi e i verdi. Se restassero verdi tutti, il test
+  starebbe pinnando se stesso.
+
+- [x] 2.7 **Nessuno chiama ancora la funzione** — controllo esplicito di fine fase.
+  *Verifica*: `grep -rn "RuoliImmaginiVetrina" backend/ --include=*.cs` trova la definizione e il
+  solo file di test; `git diff --stat backend/Controllers/ backend/GraphQL/` è **vuoto**.
+
+**Uscita di fase.** Una funzione pura, provata su sei dimensioni di galleria compresi i tre casi
+sotto le tre foto, **zero superficie nuova**, schema GraphQL e contratto pubblico invariati.
+
+**Rollback.** Revert puro: nessun chiamante, nessun dato, nessuno schema.
+
+### ✅ Esito misurato — Fase 2 (2026-08-13)
+
+**Due file nuovi, nessun file esistente modificato.**
+`backend/Services/Vetrina/RuoliImmaginiVetrina.cs` (definizione) e
+`backend/DuedGusto.Tests/Unit/Services/RuoliImmaginiVetrinaTests.cs` (test). `git status` non elenca
+alcun file modificato: la fase è **solo additiva**.
+
+| Comando | Esito | Delta sulla baseline 0.4 |
+|---|---|---|
+| `dotnet build backend/duedgusto.csproj` | **0 errori, 0 avvisi** | — |
+| `dotnet test` (suite intera) | **726 / 726** | **+17** — i soli test nuovi |
+| `dotnet test --filter "RuoliImmagini"` | **17 / 17** | — |
+
+**2.1 — la firma.** `Risolvi(int? eroeHomeId, int? ritrattoLocaleId, int? eroeAperitivoId,
+IReadOnlyList<MediaAsset> galleria)`, logica pura senza `DbContext`, con `PianoImmagini` e
+`OrigineRuolo` nello stesso file. Prende i **tre identificativi e non l'entità** perché le colonne
+nascono alla Fase 3: l'overload di comodo del task 3.3 delegherà a questa.
+
+**2.2 — 🔴 la divergenza, e dov'è annotata.** Il ripiego dell'aperitivo è stato **rimosso** per
+decisione dell'utente (riquadro nel task 2.2). L'eccezione è scritta **tre volte, in prosa**: nella
+docstring di classe di `RuoliImmaginiVetrina`, nella docstring del parametro `EroeAperitivo` di
+`PianoImmagini`, e nella docstring di classe del file di test. Non è una riga di codice silenziosa.
+
+**2.3 — i tre casi reali, uno a uno.** `Risolvi_ConGalleriaVuota_…`,
+`Risolvi_ConUnaSolaImmagine_…` (lo stato della **produzione**) e `Risolvi_ConDueImmagini_…` (lo
+stato dello **sviluppo locale**) hanno un'asserzione per ciascuno dei sei ruoli, con i valori attesi
+scritti a mano. La `[Theory]` su 0-1-2-3-5-6 confronta invece contro l'**aritmetica dei `.astro`
+riscritta accanto a ogni riga** (`galleria.Skip(1).Take(3)` per `index.astro:86`, …), quindi è
+un'autorità esterna alla funzione e non un suo riflesso.
+
+**2.4 — il salto, e il caso complementare.** Con `EroeHome` sulla 3ª di 6, `GrigliaHome` vale
+`[2ª, 4ª, 5ª]`: non la contiene e ha **comunque 3 elementi**. Stesso test per `RitrattoLocale` sulla
+4ª e le quadrate. Il complementare (`…_IlSaltoNonHaAlcunEffettoSulleFinestre`) è un test **distinto**
+ed è quello che dimostra che la regola nuova non cambia nulla oggi. Aggiunto un terzo caso: la
+finestra di `/menu` **non** salta gli slot delle altre pagine — il salto è per pagina, non globale.
+
+#### 🔴 Le tre verifiche per mutazione — eseguite, non dedotte
+
+| # | Mutazione | Rossi | Verdi |
+|---|---|---|---|
+| **A** | ripiego `at(-1)` **reintrodotto** sull'aperitivo | **8**: la `[Theory]` su 1, 2, 3, 5, 6 + `ConUnaSolaImmagine` + `ConDueImmagini` + `ConSlotFuoriDallaGalleria`. Messaggio: `Expected piano.EroeAperitivo to be <null>, but found duedgusto.Models.MediaAsset { … Chiave = "2026/08/foto-1" … }` | **9**, fra cui `[Theory](0)` e `ConGalleriaVuota`: a galleria vuota `at(-1)` è `null` comunque |
+| **B** | ripiego del ritratto ridotto da `[1] ?? [0]` a `[0]` | **7**: la `[Theory]` su 2, 3, 5, 6 + `ConDueImmagini` + `ConSlotFuoriDallaGalleria` + `IlSaltoNonHaAlcunEffetto` | **10**: `[Theory]` su **0 e 1**, `ConGalleriaVuota`, `ConUnaSolaImmagine` — con una foto sola i due ripieghi coincidono, esattamente la forma prevista dal task |
+| **C** | salto della finestra **rimosso** | **2**, e **solo** quelli: `ConEroeHomeDentroLaFinestra` e `ConRitrattoLocaleDentroLaFinestra` | **15**, tutta la matrice compresa |
+
+🔴 **La lettura che vale più del rosso.** La mutazione **C** lascia verdi tutti e sei i casi della
+matrice: è la **prova diretta**, e non l'argomento a parole di [D5](./design.md), che il salto della
+finestra **non altera il comportamento attuale** — se lo alterasse, togliendolo la matrice sarebbe
+diventata rossa. È l'unica cosa che il task 2.4 chiedeva di dimostrare e che una lettura del codice
+non poteva stabilire.
+
+Dopo ogni mutazione il ripristino è stato verificato: **17 / 17** sul file, suite intera **726 / 726**.
+
+**2.7 — nessun chiamante.** `grep -rl "RuoliImmaginiVetrina" backend/ --include=*.cs` restituisce
+**due** file, la definizione e il test. `git diff --stat backend/Controllers/ backend/GraphQL/` è
+**vuoto**: schema GraphQL e contratto pubblico sono identici byte per byte.
+
+---
+
+## Fase 3 — Modello, migrazione additiva, e l'eliminazione a cinque referenti
+
+*(punto 3 del rollout — [D7](./design.md), [D8](./design.md))*
+
+**Perché esiste.** Tre colonne nullable sembrano innocue, e lo sono — tranne in un punto:
+`EliminaMediaAssetAsync` verifica **due** referenti e li verifica **prima** del disco, e il modo di
+sbagliare qui è **silenzioso a metà**. Con la verifica dopo, la chiave esterna rifiuta comunque, ma
+**a file già cancellati**: il sintomo non è «i dati sono spariti», è «i file sono spariti e il
+messaggio d'errore è incomprensibile».
+
+**Task di migrazione (3.4, 3.5, 3.6) separati da quelli di codice applicativo**, come da
+`openspec/config.yaml` → `rules.tasks`.
+
+- [x] 3.1 **`backend/Models/ImpostazioniVetrina.cs` — i tre slot** — `ImmagineEroeHomeId` +
+  `ImmagineEroeHome`, `ImmagineRitrattoLocaleId` + `ImmagineRitrattoLocale`,
+  `ImmagineEroeAperitivoId` + `ImmagineEroeAperitivo`, sul modello esatto di `ImmagineOgId`.
+  Ogni docstring dice cosa succede a lasciarlo vuoto, con le stesse parole della scheda: *«Vuota: il
+  sito usa la prima della galleria, che è il comportamento di oggi»*.
+  *Verifica*: `dotnet build` esce 0; nessuna collezione inversa aggiunta a `MediaAsset`.
+
+- [x] 3.2 🔴 **`backend/DataAccess/AppDbContext.cs` — tre relazioni senza navigazione inversa** —
+  `HasOne(x => x.ImmagineEroeHome).WithMany().HasForeignKey(x => x.ImmagineEroeHomeId)
+  .OnDelete(DeleteBehavior.Restrict)`, e idem per le altre due, dentro il blocco
+  `ImpostazioniVetrina` esistente.
+  ⚠️ `WithMany()` **esplicito e senza argomento**: `MediaAsset` ha già `ICollection<Prodotto>`, e
+  senza la dichiarazione EF può creare una FK ombra, cioè una colonna su `MediaAssets` che questo
+  change ha promesso di non toccare. È la trappola già documentata due change fa.
+  *Verifica* (spec `media-assets` → *Nessuna colonna ombra sull'entità dei media*): `dotnet build`
+  esce 0.
+
+- [x] 3.3 **L'overload di comodo di `Risolvi`** — `Risolvi(ImpostazioniVetrina impostazioni,
+  IReadOnlyList<MediaAsset> galleria)` che **delega** alla firma a tre identificativi del task 2.1.
+  🔴 Mai una seconda implementazione: è la firma che [D5](./design.md) dichiara sede **unica** della
+  regola.
+  *Verifica*: il corpo è una riga sola; un test verifica che le due forme **coincidono** su tutta la
+  matrice del task 2.3.
+
+- [x] 3.4 🔴 **Scaffolding della migrazione `SlotImmaginiPagineVetrina`, a backend spento** — la
+  procedura è scritta per intero in [design.md §D8](./design.md) e **non si duplica qui**: si
+  eseguono quei tre passi, nell'ordine, con i vincoli operativi di questo file.
+  🔴 In questo repository `dotnet ef migrations add` **non gira con il backend acceso** — lo
+  strumento ricostruisce il progetto e il `.dll` è bloccato dal processo. Fermalo prima
+  (`Ctrl-C` sul `dotnet run`), e ricorda `EF_MIGRATIONS=1` e `OutputPath`.
+  *Verifica*: il file generato esiste e `dotnet build` era verde **prima** della generazione.
+
+- [x] 3.5 **Ispezione dello script prima di fidarsi** — `EF_MIGRATIONS=1 dotnet ef migrations script`.
+  Si accetta **solo**: `AddColumn<int>(…, nullable: true)` × 3 su `ImpostazioniVetrina`,
+  `CreateIndex` × 3, `AddForeignKey(… onDelete: ReferentialAction.Restrict)` × 3.
+  🔴 **Nessun `AlterTable` e nessun `AddColumn` su `MediaAssets`.** Se compaiono, la causa è quasi
+  certamente il `WithMany()` del task 3.2: si corregge **il modello** e si **rigenera**
+  (`dotnet ef migrations remove`, poi `add`), **mai** si edita la migrazione a mano.
+  *Verifica* (spec `media-assets` → *La migrazione non tocca la tabella dei media*):
+  `grep -cE "AlterTable|AlterColumn|DropColumn" <script>` vale **0**, e nessuna riga nomina
+  `MediaAssets` se non come tabella **referenziata** dalle tre FK.
+
+- [x] 3.6 **Applicazione su un database con dati reali** — riavvia il backend: `MigrateAsync` la
+  applica all'avvio ([Program.cs](../../../backend/Program.cs)), niente `database update` a mano.
+  *Verifica* (spec `media-assets` → *Nessuna colonna ombra sull'entità dei media*): `SHOW CREATE
+  TABLE MediaAssets` **identico byte per byte** a prima; `SELECT COUNT(*)` su `MediaAssets`,
+  `Prodotti` e `ImpostazioniVetrina` invariati; le tre colonne nuove esistono e valgono `NULL`.
+
+- [x] 3.7 🔴 **`EliminaMediaAssetAsync`: da due referenti a cinque** — in
+  [`VetrinaMutations.cs:374-419`](../../../backend/GraphQL/Vetrina/VetrinaMutations.cs) i tre slot
+  entrano nella **stessa** verifica, **prima** di `storage.EliminaAsync(asset.Chiave)`, con la query
+  singola di [D7](./design.md) che restituisce il **ruolo occupato** già in prosa.
+  ⚠️ Il conteggio: referente 1 = i prodotti, referenti 2-5 = i quattro slot immagine delle
+  impostazioni (anteprima social + i tre nuovi). La docstring del metodo dice «**DUE**» e va
+  riscritta, altrimenti resta la sola documentazione del file ed è falsa.
+  🔴 Fra la lettura dei referenti e `storage.EliminaAsync` **non deve poter entrare nulla**.
+  *Verifica*: `dotnet build` esce 0; il messaggio d'errore nomina il ruolo in italiano
+  (*«l'immagine grande della pagina Home»*), non il nome della colonna.
+
+- [x] 3.8 🔴 **Test dell'eliminazione: una `[Theory]` sui quattro slot, e l'asserzione che conta è
+  la seconda** — in `backend/DuedGusto.Tests/Integration/GraphQL/VetrinaMediaTests.cs`: per ciascuno
+  dei quattro slot, il rifiuto **nomina il ruolo** *e* **i file sono ancora sul filesystem**.
+  🔴 Una `[Theory]` parametrizzata sui quattro, **non** il test esistente copiato quattro volte.
+  *Verifica* (spec `media-assets`; [D7](./design.md)): `dotnet test --filter "EliminaMediaAsset"`
+  passa; ogni caso ha **due** `Assert`, e il secondo è sui file.
+
+- [x] 3.9 🔴 **Verifica per mutazione dell'ordine** — sposta la lettura dei cinque referenti
+  **dopo** `storage.EliminaAsync`, esegui i test e osserva che **il test sul rifiuto resta verde**
+  mentre **quello sui file diventa rosso**; poi ripristina.
+  *Verifica*: l'esito è annotato con i due nomi. È la prova diretta che un test scritto solo sul
+  rifiuto non avrebbe protetto niente — e la ragione per cui il task 3.8 ne pretende due.
+
+- [x] 3.10 **`ImpostazioniVetrinaType` espone i tre slot in lettura** — il tipo di **output** resta
+  unico (la divisione è nella scrittura, non nella lettura).
+  *Verifica*: l'introspezione mostra i tre campi nuovi; nessun tipo di output nuovo è stato creato.
+
+- [x] 3.11 🔴 **`PROPRIETA_CAMPI` e i tipi TS guadagnano i tre slot: la partizione passa da 30 a 33** —
+  `immagineEroeHomeId` → `home`, `immagineRitrattoLocaleId` → `locale`, `immagineEroeAperitivoId` →
+  `aperitivo`, nei tre tipi input di `@types/vetrina.d.ts` e nella mappa di
+  `proprietaCampiVetrina.tsx`.
+  ⚠️ Il test del task 1.4 **deve restare verde**: se diventa rosso, o la mappa o i tipi sono
+  incompleti — ed è esattamente ciò che deve succedere se se ne dimentica uno.
+  *Verifica*: `npm run ts:check` esce 0; `Object.keys(PROPRIETA_CAMPI).length === 33`; `npm run test`
+  in `duedgusto/` verde.
+
+- [x] 3.12 **Nessuno scrive ancora gli slot** — controllo esplicito di fine fase: la scrittura
+  arriva alla Fase 5, insieme a `VerificaImmagineAssegnabileAsync` per ciascuno slot.
+  *Verifica*: `grep -rn "ImmagineEroeHomeId" backend/GraphQL/` trova solo il tipo di output; nessun
+  input type li accetta.
+
+**Uscita di fase.** Le colonne esistono e sono tutte `NULL`, `MediaAssets` è identica byte per byte,
+l'eliminazione protegge cinque referenti e lo fa **prima** del disco. Il sito e il pannello non sono
+ancora cambiati.
+
+**Rollback.** La migrazione è **additiva** e lasciarla in produzione è **innocuo**: le tre colonne
+sono nullable e il codice precedente le ignora. ⚠️ Da qui in avanti nasce l'unico **punto di non
+ritorno** del change — vedi il rollback della Fase 4.
+
+### ✅ Esito misurato — Fase 3 (2026-08-13)
+
+| Comando | Esito | Delta sulla fase precedente |
+|---|---|---|
+| `dotnet build backend/duedgusto.csproj` | **0 errori, 0 avvisi** | — |
+| `dotnet test` (suite intera) | **749 / 749** | **+23** sui 726 della Fase 2 |
+| `npm run ts:check` in `duedgusto/` | **0** | — |
+| `npm run lint` in `duedgusto/` | **0** | — |
+| `npm run test` in `duedgusto/` | **790 / 790** (100 file) | **0** — nessun test aggiunto, due asserzioni cambiate |
+| `git status -- sito/` | **vuoto** | il contratto pubblico e i `.astro` sono intatti |
+
+**3.1 / 3.2 — il modello e le tre relazioni.** Tre coppie `int?` + navigazione sul modello esatto
+di `ImmagineOgId`, e tre `HasOne(...).WithMany().HasForeignKey(...).OnDelete(Restrict)` dentro il
+blocco `ImpostazioniVetrina` esistente. `backend/Models/MediaAsset.cs` **non compare** in
+`git status`: nessuna collezione inversa, come richiesto.
+
+**3.3 — l'overload delega, e due test lo dimostrano.** Il corpo è una sola espressione che chiama
+la firma a tre identificativi.
+`Risolvi_DallEntita_CoincideConLaFirmaAtreIdentificativi` confronta le due forme su **tutta** la
+matrice (0, 1, 2, 3, 5, 6) e in **entrambi** gli stati degli slot — a slot vuoti soltanto, il
+confronto sarebbe stato vacuo, perché tutte e tre le colonne valgono `null`. Il secondo test,
+`…_NonScambiaLeTreColonne`, confronta contro valori attesi scritti a mano: due chiamate confrontate
+fra loro non si accorgerebbero di uno scambio simmetrico fra due parametri.
+
+#### 🔴 La migrazione, passo per passo
+
+**3.4 — scaffolding.** `dotnet build` **verde prima** della generazione (0/0), backend spento
+(porta 4000 libera, nessun `duedgusto.exe`), `EF_MIGRATIONS=1 dotnet ef migrations add
+SlotImmaginiPagineVetrina`. Generata `20260813141525_SlotImmaginiPagineVetrina`.
+⚠️ **La catena è corretta**: `dotnet ef migrations list --no-connect` la mostra subito **dopo**
+`20260813105519_AddIvaCalcolataToFatturaAcquisto` (la migrazione arrivata con la PR #17), e lo
+snapshot conserva `IvaCalcolata`. Nessun conflitto di catena.
+🔴 **La trappola del DLL è stata evitata**: `migrations add` compila *prima* di scrivere i file,
+quindi il `.dll` in `bin/` non conteneva ancora la migrazione. È stato **ricostruito** prima di
+avviare il backend, altrimenti `MigrateAsync` avrebbe applicato la versione vecchia.
+
+**3.5 — ispezione dello script.** `EF_MIGRATIONS=1 dotnet ef migrations script
+20260813105519_… 20260813141525_…` contiene **esattamente** e soltanto: 3 `ADD … int NULL`,
+3 `CREATE INDEX`, 3 `ADD CONSTRAINT … FOREIGN KEY … ON DELETE RESTRICT`.
+`grep -cE "MODIFY|CHANGE|DROP COLUMN|AlterTable|AlterColumn"` → **0**. `MediaAssets` compare in
+**tre** righe, tutte come tabella *referenziata* (`REFERENCES MediaAssets(MediaAssetId)`), mai come
+bersaglio. Anche il diff dello snapshot è additivo sulla sola `ImpostazioniVetrina`.
+
+**3.6 — applicazione su dati reali (sviluppo locale).** Backend riavviato su porta **4012** con
+`SEED_ON_STARTUP=false`, `MigrateAsync` ha applicato le **due** migrazioni pendenti
+(`AddIvaCalcolataToFatturaAcquisto` non era ancora sul database locale) e poi è stato **fermato**.
+
+| Verifica | Prima | Dopo |
+|---|---|---|
+| `SHOW CREATE TABLE MediaAssets` | `md5 ba3a7e5c…` | `md5 ba3a7e5c…` — **identica byte per byte** |
+| `COUNT(*)` MediaAssets / Prodotti / ImpostazioniVetrina | 22 / 4 / 1 | **22 / 4 / 1** |
+| Le tre colonne nuove | — | esistono, `int`, `IS_NULLABLE = YES`, valore **NULL** |
+
+⚠️ **Nessun accesso alla produzione**: la migrazione è stata applicata al solo database di
+sviluppo (`localhost:3306/duedgusto`).
+
+#### 🔴 L'eliminazione a cinque referenti
+
+**3.7 — la verifica, e la docstring che diceva il falso.** I tre slot entrano nella **stessa**
+verifica, con la query singola di [D7](./design.md) che restituisce il **ruolo in prosa**. Fra la
+lettura dei referenti e `storage.EliminaAsync` non c'è nulla. La docstring diceva «I referenti sono
+**DUE**» quando erano già quattro: ora dice **CINQUE** e li elenca. Il messaggio d'errore nomina il
+ruolo in italiano (*«l'immagine grande della pagina Home»*), mai il nome della colonna.
+
+**3.8 — la `[Theory]` sui quattro slot.** `EliminaMediaAsset_UsataDaUnoSlotDelSito_…` è
+parametrizzata su un `enum SlotSito` e ha **due** asserzioni per caso, **con il disco per primo**.
+Il caso dell'anteprima social non è stato copiato: il `[Fact]` che lo copriva è **diventato** uno
+dei quattro casi. Aggiunti anche il complemento parametrizzato (`…_DopoAverAzzeratoLoSlot_…`, 4
+casi) e `…_ConAltriSlotOccupatiDaAltreFoto_Riesce`, che copre il guasto nuovo reso possibile da
+quattro colonne sulla stessa riga: *il controllo guarda la colonna sbagliata*.
+
+**3.9 — 🔴 verifica per mutazione dell'ordine: eseguita, non dedotta.** Spostando
+`await storage.EliminaAsync(asset.Chiave)` **prima** della lettura dei cinque referenti:
+
+| | Esito |
+|---|---|
+| Rossi | **6 su 15**: i **quattro** casi di `EliminaMediaAsset_UsataDaUnoSlotDelSito_RifiutataEIFileRestanoSulDisco`, più `…_InUso_RifiutatoConIProdottiNominati` e `…_UsataDaUnProdottoEComeImmagineOg_RifiutataEIntatta` |
+| Verdi | **9**, fra cui `…_Inesistente_ErroreLeggibile` e tutti i casi di `…_DopoAverAzzeratoLoSlot_…` |
+
+🔴 **La lettura che vale più del rosso, e che è il punto del task.** Nei quattro casi della
+`[Theory]` l'`AssertionScope` raccoglie tutte le asserzioni, e il rapporto ne elenca **una sola**:
+
+> `Expected FileDi(asset) to be equal to {…400.jpg, …400.webp, …800.jpg, …800.webp} because il
+> rifiuto deve lasciare il sistema esattamente come era …, but found empty collection.`
+
+Le asserzioni **sul rifiuto** — che l'eccezione sia un `ExecutionError`, che il messaggio nomini il
+media, il ruolo e le impostazioni del sito, che il record e il riferimento siano intatti — sono
+rimaste **tutte verdi**. È la prova diretta che un test scritto solo sul rifiuto avrebbe certificato
+come corretto lo stato «riga presente, file cancellati, messaggio incomprensibile», ed è la ragione
+per cui il task 3.8 ne pretende due.
+⚠️ Con il provider InMemory la chiave esterna non rifiuta: il rifiuto osservato viene dal
+controllo applicativo, che nella mutazione resta presente ma **arriva dopo il disco**. In
+produzione la FK aggiungerebbe un secondo rifiuto, sempre troppo tardi — è esattamente lo scenario
+che [D7](./design.md) descrive.
+Dopo il ripristino: **15 / 15** sul filtro `EliminaMediaAsset`, suite intera **749 / 749**.
+
+**3.10 — la lettura.** `ImpostazioniVetrinaType` espone i tre identificativi **e** i tre media
+risolti, nel tipo di output **unico** (nessun tipo nuovo creato). Una `[Theory]` su sei nomi di
+campo lo fissa. ⚠️ Aggiunti anche i tre `Include` in `LeggiImpostazioniAsync`: senza, con il lazy
+loading disattivato, il campo avrebbe risposto `null` **senza errore** — indistinguibile da «non
+ancora scelta», che è il guasto silenzioso peggiore di tutto il change.
+
+**3.11 — da 30 a 33, e il test 1.4 è rimasto verde.** `Object.keys(PROPRIETA_CAMPI).length === 33`,
+ripartiti **20 + 5 + 3 + 5**: ogni scheda di pagina ha preso il **proprio** slot, «Impostazioni
+sito» è rimasta a 20 perché l'anteprima social è del sito intero e gli slot sono di una pagina sola.
+🔴 **Una deviazione dalla lettera del task, necessaria e circoscritta.** I tre slot **non** sono
+stati aggiunti a `inputDaValori`: quella funzione è ciò che la pagina spedisce ancora a
+`mutateImpostazioniVetrina`, e quella mutation non possiede i tre campi — infilarceli avrebbe fatto
+fallire il salvataggio alla **validazione dello schema**, su una pagina che questa fase ha promesso
+di non toccare. Le quattro proiezioni pescano ora da `rivendicazioniComplete(valori)`, cioè
+`inputDaValori` **più** i tre slot letti dai valori del modulo. Resta intatta la proprietà che rende
+dimostrabile il test 1.4: togliendo un campo a `inputDaValori`, quel campo sparisce comunque
+dall'unione e il test lo nomina come orfano.
+⚠️ Aggiunti anche i sei campi al frammento GraphQL del frontend: senza, `valoriDaImpostazioni`
+avrebbe prodotto `null` sistematico e il **primo salvataggio della scheda Home in Fase 5** avrebbe
+azzerato lo slot in silenzio — l'assegnazione è totale.
+
+**3.12 — nessuno scrive ancora.** In `backend/GraphQL/` i tre identificativi compaiono solo nel tipo
+di **output** e nella lettura di `EliminaMediaAssetAsync`. `ImpostazioniVetrinaInputType` espone il
+solo `immagineOgId`, e una `[Theory]` nuova
+(`ImpostazioniVetrinaInput_NonAccettaAncoraGliSlotDiPagina`) lo dice per nome accanto al pin per
+riflessione che già lo garantiva. Nessuna assegnazione `ImmagineEroe*Id = …` esiste fuori da test e
+migrazioni.
+
+---
+
+## Fase 4 — `/api/public/galleria` guadagna `ruoli`, e i quattro `.astro` lo leggono
+
+*(punto 4 del rollout — [D6](./design.md))*
+
+**Perché esiste.** È il gradino che **toglie la regola dai quattro `.astro`**. Finché la
+risoluzione resta lassù, il ripiego («slot, altrimenti la posizione») finirebbe scritto quattro volte
+nei sorgenti del sito e una quinta nel pannello — cioè il problema di partenza con un campo in più.
+Ed è il gradino verificabile **interamente con `curl` e con i test del sito**, senza una riga di
+pannello.
+
+⚠️ **Ordine di deploy interno alla fase**: il **backend prima del sito**. `leggiGalleria` valida le
+chiavi della risposta ([api.ts:172-176](../../../sito/src/lib/api.ts)); un sito che pretende `ruoli`
+davanti a un backend che non li manda **degrada** invece di rendere le immagini.
+
+- [x] 4.1 **`backend/Controllers/Public/Dto/GalleriaPubblicaDto.cs`** — `+Ruoli` sul record
+  esistente e il nuovo `RuoliImmaginiDto` che **riusa `ImmaginePubblicaDto`**, come da
+  [D6](./design.md). `IReadOnlyList<T>` per le tre griglie, nullable per i tre ruoli singoli.
+  ⚠️ `immagini` **resta**: è additivo per definizione, e toglierlo romperebbe quattro scenari della
+  spec `api-pubblica` e i test `menu.test.mjs:157` e `prefissi.test.mjs:50`.
+  *Verifica*: `dotnet build` esce 0; `ImmaginePubblicaDto` è **identico** (è lo stesso tipo di
+  `/api/public/menu`, e `PublicControllerTests.cs:611` lo pinna).
+
+- [x] 4.2 **`PublicController` compone `Ruoli` da `RuoliImmaginiVetrina`** — la galleria si legge
+  come oggi (`Cartella == "galleria" && Pubblicato`, ordinata per `Ordinamento`), poi si chiama
+  `Risolvi`. Nessun altro cambio: stessa politica di cache, stessa proiezione, nessun parametro di
+  query nuovo.
+  *Verifica* (spec `sito-pubblico` → *La politica di cache non cambia*): `curl` sulla rotta mostra
+  `Cache-Control: public,max-age=300` invariato e `immagini` identico alla risposta di prima.
+
+- [x] 4.3 **La superficie pubblica resta chiusa per costruzione** — i tre test strutturali di
+  `SuperficiePubblicaTests` attraversano `RuoliImmaginiDto` **senza modifiche** (la BFS è ricorsiva
+  sui tipi annidati) purché il record stia in `duedgusto.Controllers.Public.Dto`.
+  *Verifica*: `dotnet test --filter "SuperficiePubblica"` passa **senza che il test sia stato
+  toccato**. Se è stato necessario modificarlo, il record è nel namespace sbagliato.
+
+- [x] 4.4 **`sito/src/lib/tipi.ts` e `api.ts`** — `GalleriaPubblica` guadagna `ruoli`;
+  `leggiGalleria` aggiunge `'ruoli'` alle chiavi riconosciute.
+  ⚠️ Da questo commit il sito **pretende** il campo: il backend va in linea per primo.
+  *Verifica*: `cd sito && npm run check` esce 0.
+
+- [x] 4.5 **I quattro `.astro` leggono per nome invece che per indice** — `index.astro`
+  (`ruoli.eroeHome` / `ruoli.grigliaHome`), `menu.astro` (`ruoli.fotoMenu`), `locale.astro`
+  (`ruoli.ritrattoLocale` / `ruoli.quadrateLocale`), `aperitivo.astro` (`ruoli.eroeAperitivo`).
+  🔴 **`contatti.astro` non si tocca**: non legge la galleria.
+  ⚠️ I commenti sopra le righe sostituite descrivono l'aritmetica che sparisce e vanno riscritti:
+  quello di `index.astro:82-84` dichiara una premessa (*«l'ordine è editoriale»*) che **da adesso in
+  poi è vera** e prima non lo era.
+  *Verifica*: `grep -n "galleria\[\|slice(\|at(-1)" sito/src/pages/*.astro` non trova più
+  aritmetica sugli indici della galleria.
+
+- [x] 4.6 🔴 **`sito/test/immagini-ruoli.test.mjs`** — con il sito di prova e **slot vuoti**, le
+  quattro pagine rendono **le stesse chiavi immagine** di prima del change, nelle stesse posizioni.
+  🔴 Tre dimensioni obbligatorie: la galleria di prova, **una sola immagine** (lo stato reale della
+  produzione, task 0.3) e **zero immagini**. Con una foto sola la stessa chiave compare su home
+  e locale, e le griglie sono vuote: il test lo afferma.
+  ⚠️ **`/aperitivo` è l'eccezione, ed è voluta** (riquadro del task 2.2): a slot vuoto quella pagina
+  rende **nessuna** immagine di testata, dove prima rendeva l'ultima della galleria. Il test deve
+  affermare **l'assenza**, non ricopiare il «prima»: quattro pagine su cinque provano la non
+  regressione, la quinta prova la differenza decisa.
+  *Verifica* (spec `sito-pubblico` → *Le cinque pagine rispondono come prima*): `cd sito && npm test`
+  passa; il file usa `_sito-di-prova.mjs` come gli altri, non una nuova impalcatura.
+
+- [x] 4.7 **Le regressioni del sito restano verdi senza modifiche** — `navigazione.test.mjs`,
+  `menu.test.mjs`, `prefissi.test.mjs`, `immagini.test.mjs`, `degradazione.test.mjs`.
+  *Verifica*: `git diff sito/test/` mostra **solo** il file nuovo del task 4.6. Se un test esistente
+  è stato modificato, il contratto è cambiato in un modo che il task 4.1 diceva additivo.
+
+- [x] 4.8 🔴 **Confronto con la cattura del «prima»** — riesegui la cattura del task 0.2 e
+  **confronta**, nei due stati delle pagine condizionate: stessi codici HTTP, stesse chiavi immagine
+  nelle stesse posizioni, stessa sitemap, stesse voci di intestazione e piè di pagina.
+  *Verifica* (spec `sito-pubblico` → *Navigazione e sitemap invariate*, *Il 404 condizionato si
+  comporta come prima, in entrambi gli stati*): il `diff` fra le dieci catture prima/dopo è
+  **vuoto**. Non una lettura a occhio: un confronto di file.
+  ⚠️ **Una sola cella attesa diversa, e va scritta prima di rieseguire** (riquadro del task 2.2):
+  `/aperitivo` nello stato **pubblicato** passa da `B B` a **nessuna immagine**. Le altre nove
+  catture su dieci devono dare `diff` vuoto — compreso `/aperitivo` nello stato *svuotato*, che è
+  già 404. 🔴 L'attesa va **riscritta**, non allentata: un confronto reso permissivo su una pagina
+  smetterebbe di sorvegliare anche tutto il resto di quella pagina.
+
+- [x] 4.9 **Prova manuale della rotta** — su una seconda istanza, `curl -k
+  https://localhost:4012/api/public/galleria`.
+  *Verifica*: la risposta contiene `immagini` **e** `ruoli`; con la galleria reale a una foto,
+  `eroeHome` e `ritrattoLocale` sono la **stessa** chiave, `eroeAperitivo` è **`null`** (task 2.2)
+  e le tre griglie sono liste vuote o di un elemento, coerenti con il task 2.3.
+
+**Uscita di fase.** Il sito legge i ruoli per nome e rende **le stesse immagini** di prima, provato
+per confronto e non per impressione. La regola vive in un posto solo. Nessuna scrittura è ancora
+partizionata.
+
+**Rollback.** Revert dei `.astro`, di `tipi.ts` e di `api.ts`; il campo `ruoli` può restare nella
+risposta (è additivo). ⚠️ 🔴 **Se nel frattempo qualcuno ha valorizzato uno slot**, i valori vanno
+**riportati nell'ordine della galleria prima** del revert: altrimenti la scelta editoriale si perde
+in silenzio. È l'**unico punto di non ritorno** del change.
+
+### ✅ Esito misurato — Fase 4 (2026-08-13)
+
+| Comando | Esito | Delta sulla fase precedente |
+|---|---|---|
+| `dotnet build backend/duedgusto.csproj` | **0 errori, 0 avvisi** | — |
+| `dotnet test` (suite intera) | **754 / 754** | **+5** sui 749 della Fase 3 |
+| `cd sito && npm run check` | **0 errori, 0 avvisi, 0 suggerimenti** (56 file) | — |
+| `cd sito && npm test` | **119 / 119** | **+8** sui 111 della baseline 0.4 |
+| `cd duedgusto && npm run test` | **790 / 790** (100 file) | **0** — `duedgusto/` non è toccata |
+
+I **+5** del backend: **+1** riga nella `[Theory]` che pinna la forma esatta dei DTO (il record
+nuovo) e **+4** test di raccordo del controller. Gli **+8** del sito sono il solo file nuovo.
+
+**4.1 / 4.2 — il campo e chi lo compone.** `GalleriaPubblicaDto` guadagna `Ruoli`;
+`RuoliImmaginiDto` **riusa `ImmaginePubblicaDto`** e vive nello stesso file e nello stesso
+namespace. `immagini` è intatto — e non per dichiarazione: la risposta reale del backend contiene
+oggi le **stesse due chiavi nello stesso ordine** della cattura del task 0.2
+(`galleriaSorgente` identica, verificato dal confronto). `Cache-Control: public,max-age=300`
+invariato, misurato con `curl -D -`.
+
+🔴 **Una deroga, dichiarata perché è una deroga.** `RigheDellaGalleria` ora porta a casa
+l'**entità** `MediaAsset` invece di una proiezione stretta. La ragione: la regola dei ruoli è in
+`RuoliImmaginiVetrina` e parla di `MediaAsset`; proiettare più stretto avrebbe voluto dire o una
+seconda mappatura verso l'entità — cioè un secondo posto in cui la galleria è descritta — o una
+firma generica che nessun altro chiamante vuole. Costa **otto colonne su una manciata di righe**
+dietro una risposta cacheata 300 s, e non costa superficie: `MediaAssets` non ha colonne contabili
+e ciò che esce resta deciso dai `record` di `Public.Dto`. Gli **slot** invece si leggono con una
+proiezione a **tre colonne** — è precisamente la forma per cui la firma a tre `int?` del task 2.1
+esiste, e tenerla evita di portare in memoria, su una rotta anonima, la chiave del servizio
+antispam. `QueryDellaGalleria_ConfrontaLaColonnaSenzaApplicarleAlcunaFunzione` resta verde.
+
+**4.3 — 🔴 divergenza dalla lettera del task, e cosa dimostra.** Il task chiede che
+`SuperficiePubblicaTests` passi **senza essere toccato**. Non è possibile, e il motivo è che il
+file fa **due mestieri**:
+
+| Sezione | Test | Esito senza modifiche |
+|---|---|---|
+| (1) divieto ricorsivo dei nomi vietati | `NessunTipoRaggiungibile_PossiedeUnCampoVietato` | **verde** |
+| (2) ogni action rende un DTO, tre rotte, nessun input, anonimato | 4 test | **verdi** |
+| (3) **dichiarazione** dell'elenco esatto dei campi di ogni DTO | `OgniDtoPubblico_HaEsattamenteQuestiCampi`, `LaFormaAttesa_CopreOgniTipoRaggiungibile` | **rossi** |
+
+Le prime due sezioni — 21 test su 23 — sono passate **senza una riga di modifica**, ed è
+esattamente ciò che [D6](./design.md) prometteva: la visita in ampiezza ha attraversato
+`RuoliImmaginiDto` senza sapere che esistesse, e non ci ha trovato alcun nome vietato. La sezione
+(3) è una **tabella di dichiarazione**, non un divieto: il suo mestiere è **pretendere** che un
+tipo nuovo venga dichiarato, e il rosso di `LaFormaAttesa_CopreOgniTipoRaggiungibile`
+(*«items {RuoliImmaginiDto} are not part of the superset»*) è la prova diretta che la visita c'è
+arrivata. Aggiungere le due voci **non allenta nulla**. Se un giorno qualcuno vi infilasse
+`origine`, il test (1) resterebbe verde e il test (3) direbbe il nome del campo di troppo.
+
+**4.5 — la trappola delle quattro `<picture>` sulla home, evitata.** `grep` su `sito/src/pages/`
+non trova più alcuna aritmetica sugli indici della galleria; gli unici `slice(` rimasti in
+`index.astro` sono i **due dei prodotti** (`menu.categorie.slice(0, MAX_MOMENTI)` e
+`ordinati.slice(0, MAX_PIATTI_PER_MOMENTO)`), che il task 0.1 aveva segnalato come da non toccare.
+La prova non è la lettura del `grep`: è che la cattura del «dopo» sulla home contiene ancora
+**otto** chiavi in **quattro** `<picture>`, compresa `2026/08/800-89qao7` che è una foto di
+**prodotto** e non di galleria. Se la sostituzione le avesse toccate, quella chiave sarebbe sparita.
+
+**4.6 / 4.7 — otto test nuovi, nessun test esistente modificato.**
+`sito/test/immagini-ruoli.test.mjs` copre le tre dimensioni obbligatorie (la galleria di prova da
+6, **una sola** immagine, **zero**) più due che valgono da sole: gli slot valorizzati — la
+proprietà che l'aritmetica non poteva avere — e la galleria che non risponde, dove `RUOLI_VUOTI`
+deve produrre pagine senza foto e **non** un 500 servito al visitatore.
+🔴 L'autorità del confronto è **esterna**: gli indici attesi sono l'aritmetica che i `.astro`
+avevano *prima*, ricopiata e calcolata dentro il file di test.
+⚠️ **`/aperitivo` afferma l'assenza, e la afferma con un messaggio.** Non ricopia il «prima».
+
+⚠️ **Un file di `sito/test/` è stato modificato, e non è un test**: `_sito-di-prova.mjs`, cioè il
+**backend finto**. `leggiGalleria` ora pretende la chiave `ruoli` (task 4.4), quindi una risposta
+di prova che dichiara solo `immagini` farebbe **degradare** la pagina invece di renderla — e i
+casi di `menu.test.mjs:157` e `prefissi.test.mjs:50` sono scritti così. Il finto backend risponde
+ora **nella forma del contratto corrente**: un caso che assegna `{ immagini: [foto] }` sta dicendo
+«una galleria con questa foto», non «una risposta senza `ruoli`». È ciò che permette a
+`git diff sito/test/` di non contenere **alcun file di test modificato** — i cinque nominati dal
+task 4.7 sono verdi **byte per byte come erano** — e di restare quindi la prova che il campo è
+additivo. La regola dei ruoli non è duplicata lì: `galleriaFinta` ne rispecchia il comportamento
+**a slot vuoti**, l'unico stato che i test del sito esercitano, e la regola vera resta pinnata dai
+17 test C# del task 2.3.
+
+#### 🔴 4.8 — il confronto delle dieci catture, una per una
+
+Backend reale sulla porta 4000 e `astro dev` sulla 4321, come la cattura del task 0.2 (che
+contiene `@vite/client`: veniva anch'essa dal dev server). Lo strumento è lo **stesso**,
+`prove/cattura.mjs`; il confronto è in `prove/confronto.mjs` e **si riesegue**.
+
+| # | Stato | Pagina | HTTP | Cache | Immagini | Nav | Esito |
+|---|---|---|---|---|---|---|---|
+| 1 | pubblicato | `/` | 200 = 200 | = | `A A A A P P B B` = | = | **identica** |
+| 2 | pubblicato | `/menu` | 200 = 200 | = | `A A B B` = | = | **identica** |
+| 3 | pubblicato | `/aperitivo` | 200 = 200 | = | `B B` → **nessuna** | = | 🔴 **differenza attesa** |
+| 4 | pubblicato | `/locale` | 200 = 200 | = | `B B` = | = | **identica** |
+| 5 | pubblicato | `/contatti` | 200 = 200 | = | nessuna = | = | **identica** |
+| 6 | svuotato | `/` | 200 = 200 | = | `A A A A P P B B` = | = | **identica** |
+| 7 | svuotato | `/menu` | 200 = 200 | = | `A A B B` = | = | **identica** |
+| 8 | svuotato | `/aperitivo` | **404 = 404** | `no-store` = | nessuna = | = | **identica** |
+| 9 | svuotato | `/locale` | **404 = 404** | `no-store` = | nessuna = | = | **identica** |
+| 10 | svuotato | `/contatti` | 200 = 200 | = | nessuna = | = | **identica** |
+
+Sitemap **identica** in entrambi gli stati (5 voci / 3 voci) e `galleriaSorgente` identica —
+quest'ultima è ciò che distingue «il codice è cambiato» da «qualcuno ha caricato una foto nel
+frattempo».
+
+🔴 **L'attesa è stata riscritta, non allentata, e lo si è dimostrato.** `confronto.mjs` dichiara
+la singola cella diversa **per esteso** — quella pagina, quello stato, quel campo, e il valore
+atteso alla lettera (`[]`) — e continua a sorvegliare **tutti e cinque** i campi di `/aperitivo`,
+codice HTTP e navigazioni comprese. Due mutazioni lo provano:
+
+| Mutazione | Esito |
+|---|---|
+| `atteso: []` → `atteso: ['img:2026/08/800-xxpt4q']` | **rosso**: *«cambia come previsto ma non in ciò che era previsto — atteso […], trovato []»* |
+| `DIFFERENZE_ATTESE` svuotato | **rosso**: la differenza è riportata come regressione — il file **non ignora** `/aperitivo` |
+
+E la terza asserzione, quella che nessuno scrive mai: una differenza **dichiarata e non
+verificata** è a sua volta un errore (*«il vecchio comportamento è tornato?»*). Se un giorno il
+ripiego `at(-1)` rientrasse dalla finestra, questo confronto sarebbe rosso.
+
+⚠️ **Lo stato «svuotato» è stato prodotto senza scrivere sul database**, a differenza della
+Fase 0. Le scritture SQL sono state **negate dall'ambiente**, quindi al posto dello svuotamento
+delle due colonne è stato messo un proxy in sola lettura davanti al backend
+(`scratchpad/proxy-svuotato.mjs`) che porta `testi.storia` e `testi.aperitivo` a `null` — cioè
+esattamente ciò che `PublicController.TestiDa` produce a corpo del testo vuoto, che è **l'unico**
+ingresso da cui `rotte.ts` decide il 404, la navigazione e la sitemap. Il sito ha visto lo stesso
+identico payload; il dato non è mai stato toccato. **Verificato a fine fase**: `MD5(StoriaTesto)`
+= `3c4adb02…` e `MD5(AperitivoTesto)` = `3907e500…`, **gli stessi numeri della Fase 0**; i tre
+slot ancora `NULL`; 22 media e 2 foto in galleria.
+
+**4.9 — la rotta, a mano.** `curl -k https://localhost:4000/api/public/galleria` restituisce
+`immagini` **e** `ruoli`. ⚠️ Il task prevedeva la galleria **a una foto**; quella raggiungibile da
+qui ne ha **due** — è la divergenza fra produzione e sviluppo locale già dichiarata al task 0.3 e
+✅ **risolta in Fase 5**: sono due database diversi, la produzione ne ha davvero **1** (verificato su
+`https://duedgusto.it/api/public/galleria`) e lo sviluppo locale **2**. Con due foto l'esito
+osservato è quello che il task 2.3 prescrive per quel caso: `eroeHome` = **A**, `ritrattoLocale` =
+**B** (non la stessa, come sarebbe con una foto sola), `grigliaHome` = `[B]`, `fotoMenu` =
+`[A, B]`, `quadrateLocale` = **vuota**, `eroeAperitivo` = **`null`**.
+🔴 Il caso a **una** foto — quello della produzione — non è rimasto scoperto: è un test dedicato
+del task 4.6 (*«con UNA sola foto la stessa compare su home e locale»*) e un caso della matrice
+del task 2.3.
+
+⚠️ **Nessun accesso alla produzione**: backend, sito e database sono tutti locali, e i tre
+processi avviati per la prova sono stati **fermati** a fine fase (porte 4000, 4010 e 4321 libere).
+
+---
+
+## Fase 5 — 🔴 La partizione della scrittura
+
+*(punto 5 del rollout — [D1](./design.md), [D2](./design.md), [D3](./design.md) ②, [D14](./design.md))*
+
+**Perché esiste.** È il gradino che il change esiste per fare, ed è quello in cui il rischio
+principale si chiude o resta aperto. L'assegnazione totale — la riga che permette di **svuotare** un
+campo — sopravvive intatta *dentro* ogni scheda; ciò che sparisce è la **sovrapposizione** fra
+scheda e scheda.
+
+🔴 **Vincolo di deploy non negoziabile: backend e frontend nello stesso deploy.** Ridurre
+`mutateImpostazioniVetrina` da 30 a 20 campi è una modifica **breaking** della forma dell'input: fra
+i due, un frontend vecchio invierebbe 30 campi a un input che ne accetta 20 e verrebbe **rifiutato
+dalla validazione del documento** — rumoroso, non silenzioso, ma comunque un'interruzione.
+
+- [x] 5.1 **`CaricaOCreaSingletonAsync` estratto** — l'helper privato di [D1](./design.md), **sede
+  unica dell'upsert**: legge per `ImpostazioniVetrinaId == IdSingleton` e crea la riga se manca
+  (installazione con `SEED_ON_STARTUP=false`, dove il primo salvataggio è anche il primo
+  inserimento). `ApplicaImpostazioniVetrinaAsync` smette di avere il proprio `FirstOrDefaultAsync`.
+  🔴 **Mai un `FirstOrDefault()` senza criterio**: c'è una riga sola, il database lo impone con un
+  `CHECK`, e chiederla per identificativo è anche il modo di dirlo al lettore.
+  *Verifica*: `grep -n "ImpostazioniVetrina$" -A3 backend/GraphQL/Vetrina/VetrinaMutations.cs` mostra
+  **una sola** lettura del singleton; `dotnet build` esce 0.
+
+- [x] 5.2 🔴 **I tre input type nuovi e la riduzione del quarto** — `PaginaHomeInputType` (4 campi +
+  `immagineEroeHomeId`), `PaginaLocaleInputType` (2 + `immagineRitrattoLocaleId`),
+  `PaginaAperitivoInputType` (4 + `immagineEroeAperitivoId`) in
+  `backend/GraphQL/Vetrina/Types/`; `ImpostazioniVetrinaInputType` **ridotto a 20 campi**.
+  Le `Description` di ogni campo migrato si conservano **carattere per carattere**: cambia dove il
+  campo vive, non ciò che il contratto promette.
+  *Verifica*: l'introspezione mostra quattro input; nessun campo compare in due; nessuno dei quattro
+  nomina `openingTime`, `closingTime`, `operatingDays`, `timezone`.
+
+- [x] 5.3 🔴 **I tre resolver e le tre `Applica…Async`, ad assegnazione totale sul proprio
+  sottoinsieme** — `mutatePaginaHome`, `mutatePaginaLocale`, `mutatePaginaAperitivo`, ognuna con
+  `GuardAmministratore` come **prima istruzione** e **tutte** le validazioni prima di qualunque tocco
+  al change tracker.
+  🔴 Il commento-divieto di [`VetrinaMutations.cs:488-490`](../../../backend/GraphQL/Vetrina/VetrinaMutations.cs)
+  va **ricopiato in ognuno dei quattro**, e la ragione riscritta perché adesso è **locale**:
+  *l'input possiede esattamente i campi scrivibili di quella scheda, quindi non c'è nulla da
+  preservare e quindi nessuna ragione di assegnare sotto condizione.* Nessun
+  `if (!string.IsNullOrEmpty(...))`, oggi né mai.
+  *Verifica*: `dotnet build` esce 0; il tipo di ritorno delle quattro è `ImpostazioniVetrina`, **uno
+  solo** (dividere anche l'output significherebbe quattro fragment e quattro copie in cache).
+
+- [x] 5.4 **Le due validazioni incrociate cambiano chiamante, non forma** — `ValidaCoordinate` resta
+  dov'è ed è chiamata **solo** da `mutateImpostazioniVetrina`; `ValidaReputazione` **solo** da
+  `mutatePaginaHome`.
+  *Verifica* (spec `impostazioni-vetrina` → *Le coppie a validazione incrociata non si separano*):
+  ciascuna delle due funzioni ha **un solo** chiamante, e i due membri di ogni coppia stanno nello
+  stesso input.
+
+- [x] 5.5 **`VerificaImmagineAssegnabileAsync` per ciascuno slot** — `mutatePaginaHome` per l'eroe,
+  `mutatePaginaLocale` per il ritratto, `mutatePaginaAperitivo` per il suo eroe. È `internal static`
+  ed è la **sede unica** della regola *«esiste ed è pubblicato»*: si chiama, non si reimplementa.
+  *Verifica*: assegnare uno slot a un media non pubblicato viene rifiutato con lo stesso messaggio
+  che già oggi protegge `immagineOgId`.
+
+- [x] 5.6 **Query `ruoliImmagini` dietro `GuardAmministratore`** — in `VetrinaQueries.cs`, con
+  `origine: SLOT | POSIZIONE` per i tre ruoli singoli, come da [D6](./design.md). 🔴 `origine` **non
+  esce in pubblico**: il sito non ha nulla da farci.
+  *Verifica*: l'introspezione mostra il campo sotto `vetrina`; nessun campo `origine` compare nel DTO
+  di `/api/public/galleria`.
+
+- [x] 5.7 🔴 **Il pin per riflessione diventa un confronto contro il modello** — in
+  `ImpostazioniVetrinaTests.cs`, l'elenco letterale di
+  `ImpostazioniVetrinaInput_HaEsattamenteICampiScrivibili` (righe 427-447) è sostituito da
+  `NonScrivibiliDaGraphQL` + i due `Fact` di [D3](./design.md) ②:
+  `UnioneDegliInput_EEsattamenteLInsiemeDeiCampiScrivibili` e `NessunCampoAppartieneADueSchede`
+  (intersezione a coppie = ∅).
+  ⚠️ `NonScrivibiliDaGraphQL` contiene le tre **navigazioni** nuove, non i tre identificativi: la
+  partizione è su **33** campi (risoluzione 2).
+  *Verifica* (spec `impostazioni-vetrina` → *L'unione dei perimetri è l'insieme dei campi
+  scrivibili*): un campo aggiunto al modello e a nessun input viene dichiarato **orfano per nome**.
+
+- [x] 5.8 🔴 **Verifica per mutazione del pin, nei due versi** — togli un campo da un input: il test
+  nomina l'orfano; copia un campo in due input: il test nomina il conteso. Ripristina entrambi.
+  *Verifica* (spec `impostazioni-vetrina` → *Verifica per mutazione — campo orfano*, *— campo
+  conteso*): l'esito è annotato con i nomi dei test rossi. Sono **due proprietà distinte** e nessun
+  meccanismo singolo le copre bene entrambe: qui si dimostra che sono coperte davvero.
+
+- [x] 5.9 🔴 **Nessun azzeramento incrociato — il test che è il motivo del change** — per **ognuna**
+  delle quattro mutation: si semina la riga con tutti i **33** campi a valori non di default, si
+  salva la scheda, e si asserisce che **ogni** campo fuori dal gruppo è **invariato**.
+  🔴 Parametrizzato sulla **definizione dei gruppi**, non copiato quattro volte: una copia
+  dimenticherebbe il campo aggiunto domani.
+  *Verifica* (spec `impostazioni-vetrina` → *Salvataggio a vuoto di ciascuna scheda*, *Salvataggio
+  con una modifica dentro il perimetro*, *La chiave del servizio antispam sopravvive a tutti i
+  salvataggi*): `dotnet test --filter "AzzeramentoIncrociato"` passa; `TurnstileSiteKey` sopravvive
+  a tutti e quattro i salvataggi.
+
+- [x] 5.10 🔴 **Verifica per mutazione dell'assenza di azzeramento** — togli un campo dal proprio
+  input **lasciandolo assegnato** nella `Applica…Async` (cioè assegnandolo da un valore assente):
+  il test 5.9 deve diventare rosso **nominando il campo azzerato**. Ripristina.
+  *Verifica* (spec `impostazioni-vetrina` → *Verifica per mutazione dell'assenza di azzeramento
+  incrociato*): annota il nome del campo comparso nel messaggio.
+
+- [x] 5.11 🔴 **Lo svuotamento continua a funzionare** —
+  `Mutation_ConUnCampoOpzionaleSvuotato_PersisteLAssenza`
+  ([ImpostazioniVetrinaTests.cs:82](../../../backend/DuedGusto.Tests/Integration/GraphQL/ImpostazioniVetrinaTests.cs))
+  passa **senza modifiche di sostanza**, + un caso equivalente per ciascuna delle tre mutation nuove
+  (svuotare `claimVetrina`, `storiaTitolo`, `aperitivoCategorie` persiste l'assenza).
+  *Verifica* (spec `impostazioni-vetrina` → *Svuotamento di un campo opzionale, dalla scheda che lo
+  possiede*, *Lo scenario di svuotamento preesistente resta valido*): se quel test ha richiesto una
+  modifica di **sostanza**, la semantica di patch è rientrata dalla finestra ed è da rifiutare.
+
+- [x] 5.12 🔴 **Gli orari restano fuori, per costruzione, su quattro mutation** — la `[Theory]` di
+  [`ImpostazioniVetrinaTests.cs:386-418`](../../../backend/DuedGusto.Tests/Integration/GraphQL/ImpostazioniVetrinaTests.cs)
+  passa da **una** mutation × 6 campi vietati a **quattro** × 6 = **24 casi generati, non copiati**.
+  *Verifica* (spec `impostazioni-vetrina` → *Nessun campo di orario in alcuna scheda*;
+  [D14](./design.md)): il rifiuto arriva dalla **validazione del documento**, prima del resolver, su
+  tutte e quattro. È ciò che fa ereditare la protezione a una scheda scritta fra sei mesi.
+
+- [x] 5.13 **Privilegi** — un utente autenticato **non amministratore** è respinto su tutte e quattro
+  le mutation e sulla query `ruoliImmagini`.
+  ⚠️ L'anonimo **non** richiede test nuovi, e per una ragione precisa: le `[Theory]` di
+  `AutorizzazioneAnonimaTests` enumerano i **rami root** (`vetrina`), non i singoli campi, e il ramo
+  porta già `this.Authorize()` di tipo. Nessun ramo root nuovo → `SchemaEspone_TuttiIRamiRootAttesi`
+  resta verde **senza modifiche**.
+  *Verifica*: `dotnet test --filter "Privilegi|AutorizzazioneAnonima"` passa; `git diff` su
+  `AutorizzazioneAnonimaTests.cs` è **vuoto**.
+
+- [x] 5.14 🔴 **Il modulo Formik si divide davvero** — in `impostazioniVetrinaModulo.tsx` le quattro
+  `inputXxx` del task 1.3 smettono di essere proiezioni di `inputDaValori` e diventano **costruttori
+  indipendenti**; `inputDaValori` sparisce con l'ultimo dei suoi chiamanti.
+  *Verifica*: 🔴 il test del task 1.4 resta **verde senza modifiche di sostanza**. È il momento per
+  cui quella rete è stata scritta per prima: se ha richiesto un ritocco per restare verde, è stata
+  adattata al codice invece di verificarlo.
+
+- [x] 5.15 🔴 **Il `superRefine` si spezza in due schemi** —
+  [`impostazioniVetrinaModulo.tsx:249-288`](../../../duedgusto/src/components/pages/sito/impostazioniVetrinaModulo.tsx)
+  contiene **entrambi** i grappoli incrociati: le coordinate vanno nello schema di **Impostazioni
+  sito**, la reputazione in quello della **Home**.
+  🔴 Un controllo incrociato spezzato fra due schemi **non segnalerebbe più entrambi i campi**, che è
+  precisamente la proprietà dimostrata dai test alle righe 92-101 e 165-179 del file di test: quei
+  due test si **replicano**, uno per schema, e continuano a pretendere due messaggi.
+  *Verifica* (spec `impostazioni-vetrina` → *Le coppie a validazione incrociata non si separano*):
+  `validaImpostazioniSito({latitudine: "45", longitudine: ""})` segnala **entrambi**;
+  `validaPaginaHome({punteggioGoogle: "4.7", numeroRecensioniGoogle: ""})` segnala **entrambi**.
+
+- [x] 5.16 **`ImpostazioniVetrinaPage.tsx` ridotta ai 20 campi trasversali** — le cinque sezioni
+  editoriali (claim, reputazione, storia, aperitivo) escono dalla pagina; identità, indirizzo,
+  contatti, social, SEO di default, aspetto e ganci spenti restano. La pagina **non si rinomina**
+  (risoluzione 4).
+  ⚠️ Il test *«trasporta la chiave antispam che la pagina non mostra»* si sposta qui e **il commento
+  va aggiornato**: la ragione non è più *«l'assegnazione del server è totale»* in astratto, è *«è
+  totale su questo gruppo, e questo campo appartiene a questo gruppo»*.
+  *Verifica*: `npm run test` verde; la pagina non mostra alcun campo editoriale.
+
+- [x] 5.17 **GraphQL del frontend** — `duedgusto/src/graphql/vetrina/mutations.tsx`: tre mutation
+  nuove; `fragments.tsx`: il fragment delle impostazioni guadagna i tre slot e resta **unico**
+  (il tipo di ritorno non si divide); `queries.tsx`: `ruoliImmagini`.
+  *Verifica*: `npm run ts:check` e `npm run lint` escono 0.
+
+- [x] 5.18 **Prova manuale end-to-end della partizione** — su una seconda istanza, da GraphiQL con un
+  token di amministratore: salva `mutatePaginaHome` con `claimVetrina` modificato e verifica a
+  database che **`Via`, `UrlInstagram`, `StoriaTesto`, `AperitivoTesto` e `TurnstileSiteKey` siano
+  invariati**; poi svuota `claimVetrina` e verifica che persista l'assenza.
+  🔧 Il JWT scade in 5 minuti: prendi il token una volta e riusalo.
+  *Verifica*: un `SELECT` prima e uno dopo, confrontati; la sola colonna cambiata è quella salvata.
+
+- [x] 5.19 🔴 **Nota di deploy scritta dove serve** — annota nel messaggio del commit (o nella PR) che
+  backend e frontend di questa fase vanno **nello stesso deploy**, e che il rollback richiede di
+  **riespandere l'input a 30 campi PRIMA** del revert del frontend, non dopo ([D15](./design.md)
+  punto 3).
+  *Verifica*: la nota esiste in un posto che chi fa il deploy legge, non solo in questo file.
+
+**Uscita di fase.** Quattro scritture disgiunte, l'assegnazione totale viva dentro ognuna, lo
+svuotamento intatto, gli orari fuori per costruzione su tutte e quattro, e il pin per riflessione che
+ha dimostrato di saper nominare sia l'orfano sia il conteso. Le schede non esistono ancora: si scrive
+da GraphiQL.
+
+**Rollback.** 🔴 Si torna all'input unico da 30 campi **prima** del revert del frontend. I nomi dei
+campi non cambiano, quindi il ripristino è meccanico — ma è la **forma** dell'input a essere
+cambiata, non i nomi, e l'ordine inverso lascerebbe una scheda in linea che scrive su una mutation
+che non esiste più.
+
+### ✅ Esito misurato — Fase 5 (2026-08-13)
+
+| Comando | Esito | Delta sulla fase precedente |
+|---|---|---|
+| `dotnet build backend/duedgusto.csproj` | **0 errori, 0 avvisi** | — |
+| `dotnet test` (suite intera) | **806 / 806** | **+52** sui 754 della Fase 4 |
+| `npm run ts:check` in `duedgusto/` | **0** | — |
+| `npm run lint` in `duedgusto/` | **0** | — |
+| `npm run test` in `duedgusto/` | **790 / 790** (100 file) | **0** — nessun test aggiunto, tredici riscritti sul nuovo nome dello schema |
+| `git status -- sito/` | **vuoto** | il sito e il contratto pubblico non sono toccati da questa fase |
+
+**5.1 / 5.2 / 5.3 — la partizione, in codice.** `CaricaOCreaSingletonAsync` è la sede unica
+dell'upsert e ha **quattro** chiamanti; `grep -n "FirstOrDefaultAsync" VetrinaMutations.cs` non trova
+più alcuna seconda lettura del singleton. `ImpostazioniVetrinaInputType` è sceso a **20** campi; i
+tre input nuovi ne portano 5 + 3 + 5. Le `Description` dei dieci campi migrati sono state spostate
+**carattere per carattere**. Il tipo di ritorno delle quattro mutation è **uno solo**.
+
+🔴 **Un'aggiunta non prevista dal task, e la ragione per cui non è facoltativa.** Le quattro
+scritture chiamano ora `RicaricaImmaginiAsync`, che ricarica **tutte e quattro** le navigazioni
+immagine, non solo quella del proprio slot. Il tipo di ritorno è unico e il client legge lo stesso
+fragment da tutte e quattro: una risposta che portasse a casa la sola navigazione toccata
+scriverebbe `null` in cache sugli altri tre slot. Con il lazy loading disattivato una navigazione
+non caricata **non solleva alcun errore** — risponde `null`, che è indistinguibile da «non ancora
+scelta». È lo stesso guasto silenzioso già evitato al task 3.10 con i quattro `Include`.
+
+**5.4 — le due validazioni incrociate.** `ValidaCoordinate` ha **un solo** chiamante
+(`ApplicaImpostazioniVetrinaAsync`), `ValidaReputazione` **un solo** chiamante
+(`ApplicaPaginaHomeAsync`): verificato con `grep -c`. Le docstring di entrambe dicono adesso che il
+chiamante unico **è una proprietà da conservare**, e perché: se un giorno ne avessero due, la coppia
+sarebbe stata separata e la regola sarebbe già rotta.
+
+**5.5 — `VerificaImmagineAssegnabileAsync` ha cinque chiamanti** (prodotto, anteprima social, tre
+slot) e la docstring lo dice, invece di continuare a nominarne due. Sei test nuovi lo esercitano: tre
+sul rifiuto con lo **stesso messaggio** dell'anteprima social, tre sull'assegnazione e sul successivo
+azzeramento dello slot.
+
+**5.6 — `ruoliImmagini`.** Nuovo tipo di output `RuoliImmaginiVetrina` con `origine: SLOT |
+POSIZIONE` sui tre ruoli singoli. 🔴 `origine` **non esce in pubblico**: `SuperficiePubblicaTests`
+resta verde **senza modifiche**, e nel DTO di `/api/public/galleria` quel campo non compare.
+⚠️ **Deroga dichiarata dalla forma illustrata in [D6](./design.md)**: i tre ruoli singoli sono un
+oggetto che espone `mediaAssetId` **e** `origine` **e** `immagine` (il media per intero), invece di
+essere il media con un campo in più. La ragione: appiattire `origine` dentro `MediaAssetType`
+avrebbe voluto dire duplicarne i sedici campi in un secondo tipo. La query di [D6](./design.md)
+(`eroeHome { mediaAssetId origine }`) funziona **alla lettera** su questa forma.
+⚠️ **E una seconda estrazione, per non duplicare una regola**: «che cosa è la galleria» — cartella,
+pubblicazione, ordine — aveva un chiamante solo (`PublicController`) e adesso ne ha due. È stata
+spostata in `Services/Vetrina/SelezioneGalleria.cs`, da cui entrambi pescano. Due selezioni che
+differissero anche solo nell'ordinamento darebbero **ruoli diversi a dati identici**, ed è
+esattamente il guasto che il piano dei ruoli esiste per togliere.
+`QueryDellaGalleria_ConfrontaLaColonnaSenzaApplicarleAlcunaFunzione` resta verde.
+
+**5.7 — il pin per riflessione, riscritto contro il modello.** L'elenco letterale di trenta nomi è
+sparito: l'autorità è ora `typeof(ImpostazioniVetrina).GetProperties()` meno le **sette** voci di
+`NonScrivibiliDaGraphQL` — l'identificativo, le due marche temporali e le **quattro navigazioni**
+(non gli identificativi degli slot, che sono scrivibili). 33 campi scrivibili, 20 + 5 + 3 + 5 = 33
+rivendicati.
+
+**5.11 — lo svuotamento.** `Mutation_ConUnCampoOpzionaleSvuotato_PersisteLAssenza` passa **senza
+alcuna modifica**: `git diff` su quel blocco è vuoto. Accanto, una `[Theory]` su cinque campi delle
+tre mutation nuove (`claimVetrina`, `storiaTitolo`, `storiaTesto`, `aperitivoTesto`,
+`aperitivoCategorie`) fa lo stesso giro — valorizza, svuota, rilegge — perché la proprietà non è
+della mutation che ce l'aveva: è di **ogni canale di scrittura**.
+
+**5.12 — gli orari, da 6 a 24 casi generati.** La `[Theory]` enumera adesso `Enum.GetValues<Scheda>()`
+× i sei campi vietati, e i casi sono **generati**: aggiungere una quinta scheda domani è una riga
+nell'enum, non sei righe copiate.
+
+**5.13 — privilegi.** Sei test nuovi: tre sul rifiuto delle scritture di pagina a un operatore (con
+la verifica che **la riga non venga creata** — il guard precede l'upsert), tre sul successo per
+l'amministratore, più il rifiuto e il successo su `ruoliImmagini`.
+`git diff AutorizzazioneAnonimaTests.cs` è **vuoto**: nessun ramo root nuovo, quindi la copertura
+dell'anonimo si eredita senza toccare nulla.
+
+#### 🔴 Le tre verifiche per mutazione — eseguite, non dedotte
+
+| # | Mutazione | Rossi | Verdi intorno |
+|---|---|---|---|
+| **5.8 ①** (orfano) | `UrlProfiloGoogle` tolto da `PaginaHomeInput` (+ la sua validazione) | **3**, fra cui `UnioneDegliInput_EEsattamenteLInsiemeDeiCampiScrivibili` — `Expected orfani to be empty …, but found at least one item {"UrlProfiloGoogle"}` | **94 su 97**, fra cui `NessunCampoAppartieneADueSchede` |
+| **5.8 ②** (conteso) | `ClaimVetrina` aggiunto **anche** a `PaginaLocaleInput` | **2**, fra cui `NessunCampoAppartieneADueSchede` — `but found at least one item {"ClaimVetrina (Home + Locale)"}` | **95 su 97**, e 🔴 fra questi `UnioneDegliInput…`, che resta **verde** |
+| **5.10** (azzeramento) | `AperitivoPunti` tolto da `PaginaAperitivoInput` e assegnato da un valore assente | **3**, fra cui `AzzeramentoIncrociato_SalvandoUnaSchedaConInputVuoto_SoloIlSuoPerimetroCambia(Aperitivo)` — `but found at least one item {"AperitivoPunti"}` | **94 su 97** |
+| **5.14** (rete di Fase 1) | `urlProfiloGoogle` tolto da `inputHome`, il costruttore appena riscritto a mano | **1 su 19** — `campi scrivibili che NESSUNA scheda spedisce (verrebbero azzerati): urlProfiloGoogle` | **18 su 19** |
+
+🔴 **Le due letture che valgono più del rosso.**
+
+1. Le mutazioni **①** e **②** falliscono su **test diversi**, e questo è il punto di
+   [D3](./design.md): la totalità e la disgiunzione sono due proprietà distinte, e nella ②
+   `UnioneDegliInput…` resta **verde** mentre un campo ha due proprietari. Un solo test che le
+   coprisse entrambe avrebbe nominato la proprietà sbagliata, o non avrebbe nominato nulla.
+2. La mutazione **5.14** è la prova che la rete scritta in Fase 1 è **viva contro il codice nuovo**.
+   Finché le quattro `inputXxx` erano proiezioni filtrate, «l'unione copre esattamente i campi
+   scrivibili» era vero **per costruzione** e quel test non poteva che essere verde. Adesso i quattro
+   costruttori sono scritti a mano e il test è l'unica ragione per cui dimenticarne un campo non
+   produce un salvataggio che lo azzera in silenzio.
+
+Dopo ogni mutazione il ripristino è stato verificato: suite backend **806 / 806**, file di pagina
+**19 / 19**.
+
+#### 🔴 5.14 — il criterio di successo della fase
+
+`inputDaValori` **è sparito** insieme al suo ultimo chiamante. Le quattro `inputXxx` sono adesso
+costruttori indipendenti, e `rivendicazioniComplete` / `proiezione` non esistono più.
+
+🔴 **Il test del task 1.4 è rimasto verde SENZA modifiche di sostanza — e senza modifiche affatto.**
+La prova non è una lettura: le righe 144-226 del file di test a `HEAD` (il test di partizione **e**
+quello sulla mappa di proprietà) sono state estratte e confrontate con `diff` contro le
+corrispondenti righe 148-230 del tree. **Identiche, byte per byte.** L'unico motivo per cui gli
+indici sono spostati di quattro è un commento aggiunto **altrove nel file**, nel test della chiave
+antispam.
+
+#### 🔴 5.15 — il `superRefine` spezzato, e la proprietà che non si è persa
+
+Da **uno** schema con **un** `superRefine` che conteneva entrambi i grappoli a **quattro** schemi:
+`schemaImpostazioniSito` (20 campi, grappolo coordinate), `schemaPaginaHome` (4 campi, grappolo
+reputazione), `schemaPaginaLocale` e `schemaPaginaAperitivo` (nessuna regola incrociata). Il
+traduttore da esito Zod alla forma di Formik è **uno solo** per tutte e quattro.
+
+| Verifica | Esito |
+|---|---|
+| `validaImpostazioniSito({latitudine: "45.7075", longitudine: ""})` | segnala **entrambi**: `latitudine` **e** `longitudine` |
+| `validaImpostazioniSito({latitudine: "", longitudine: "11.4789"})` | segnala **entrambi** |
+| `validaPaginaHome({punteggioGoogle: "4.7", numeroRecensioniGoogle: ""})` | segnala **entrambi** |
+| `validaPaginaHome({punteggioGoogle: "", numeroRecensioniGoogle: "180"})` | segnala **entrambi** |
+
+⚠️ L'ultima riga è un **rafforzamento**: prima della fase quel caso asseriva un campo solo. Con i
+due grappoli su due schemi diversi, «segnala entrambi» è precisamente la proprietà che la divisione
+poteva perdere — un controllo incrociato spezzato fra due schemi segnalerebbe solo il campo che il
+suo schema conosce, e l'amministratore leggerebbe un errore che gli dice di guardare un campo che
+quella scheda non mostra.
+
+**5.16 — la pagina, ridotta ai 20 campi.** Le quattro sezioni editoriali (claim, «Il locale»,
+«Aperitivo», reputazione) sono uscite; restano identità, indirizzo, posizione, contatti e social,
+SEO di default, anteprima social, aspetto, prenotazioni e l'avviso sugli orari. La pagina **non è
+stata rinominata** (risoluzione 4) e il suo `Percorso` non è stato toccato.
+⚠️ Aggiunto un avviso che dice **dove sono andati** i testi: una sezione che sparisce senza
+spiegazione si legge come un dato perso, e fra questa fase e la Fase 6 quei campi non hanno ancora
+una scheda. Non è un campo: la verifica «la pagina non mostra alcun campo editoriale» resta
+soddisfatta.
+
+**5.17 — GraphQL del frontend.** Tre mutation nuove, la query `ruoliImmagini`, e il fragment delle
+impostazioni **unico e invariato** — già conteneva i tre slot dal task 3.11. I tre nuovi
+`TypedDocumentNode` rendono lo **stesso** fragment: quattro fragment vorrebbero dire quattro copie
+in cache Apollo della stessa riga singleton, che divergerebbero al primo salvataggio.
+
+#### 5.18 — la prova end-to-end, sul backend reale
+
+Seconda istanza avviata da `dotnet run` sul database di sviluppo, un token di amministratore preso
+**una volta** e riusato. ⚠️ `ASPNETCORE_URLS=https://localhost:4012` **non ha effetto**: il profilo
+`http` di `backend/Properties/launchSettings.json` impone `http://0.0.0.0:4000` e vince sulla
+variabile d'ambiente. L'istanza è girata quindi sulla 4000, che era libera.
+
+| Passo | Esito osservato |
+|---|---|
+| `turnstileSiteKey` valorizzata a `"0xPROVA-FASE-5"` | ⚠️ necessario: era `NULL`, e «invariata» da `NULL` a `NULL` sarebbe stata una verifica **vacua** |
+| `mutatePaginaHome` con il **solo** `claimVetrina` cambiato | campi cambiati sull'intera riga: **`['claimVetrina']`**, uno solo |
+| `Via`, `UrlInstagram`, `StoriaTesto`, `AperitivoTesto`, `TurnstileSiteKey` | **invariati**, confrontati uno per uno |
+| `punteggioGoogle` (dentro il gruppo, rispedito) | `4.7` → `4.7` |
+| `claimVetrina` svuotato con `""` | persistito come **`null`**, e `storiaTesto` ancora intatto |
+| Ripristino dei due gruppi ai valori di partenza | campi ancora divergenti: **NESSUNO** |
+
+🔴 **Il dato non è stato lasciato modificato, e lo si è verificato con SQL indipendente**:
+`MD5(StoriaTesto)` = `3c4adb02…` e `MD5(AperitivoTesto)` = `3907e500…`, **gli stessi numeri della
+Fase 0 e della Fase 4**; `TurnstileSiteKey` di nuovo `NULL`; `PunteggioGoogle` = 4.7.
+⚠️ **Nessun accesso alla produzione**: backend e database sono locali, e il processo è stato
+**fermato** a fine fase (porte 4000-4019 e 4321 libere).
+
+**5.19 — la nota di deploy, dove la legge chi deploya.** Non solo in questo file: in
+[`DEPLOY.md`](../../../DEPLOY.md), §5 «Deploy Successivi», con la tabella dei rilasci che hanno
+questo vincolo e l'ordine **asimmetrico** del rollback (prima il backend, poi il frontend) ripetuto
+nella sezione Rollback del §7. Nella stessa modifica è stata scritta anche la nota che mancava sulle
+**migrazioni che non tornano indietro** con un `git checkout`.
+
+---
+
+## Fase 6 — Le cinque schede, il seed e le icone
+
+*(punto 6 del rollout — [D10](./design.md), [D11](./design.md), [D12](./design.md), [D13](./design.md))*
+
+**Perché esiste.** È la risposta letterale alla domanda dell'utente: *«ogni pagina del sito una voce
+di menu, e lì mi dici quante immagini posso caricare e i testi da cambiare»*. Le rotte del gestionale
+vengono dal database e il glob dinamico copre già le sottocartelle, quindi **cinque voci non costano
+più di una**: nessuna modifica al routing.
+
+- [x] 6.1 **`duedgusto/src/components/pages/sito/pagine/SchedaPagina.tsx`** — il guscio condiviso
+  che impone l'ordine delle tre risposte: ① stato di pubblicazione, ② immagini (capacità, occupati,
+  ripieghi), ③ testi di proprietà, ④ testi ereditati in sola lettura con il collegamento.
+  *Verifica* (spec `impostazioni-vetrina` → *Le tre risposte non sono nascoste*): l'ordine è imposto
+  dal guscio, non ripetuto a mano in cinque componenti.
+
+- [x] 6.2 **`PaginaHome.tsx`** — modulo con `claimVetrina` + i tre della reputazione + lo slot eroe;
+  i testi dell'aperitivo **in sola lettura** con il collegamento a `Sito → Aperitivo` (sono letti
+  dalla home e **posseduti** dall'aperitivo); orari e recensioni in sola lettura con il rimando.
+  «4 immagini: 1 eroe + 3 dalla galleria».
+  *Verifica* (spec `impostazioni-vetrina` → *Un testo condiviso è modificabile da una scheda sola*):
+  i campi aperitivo non sono modificabili da qui e la pagina dice **dove** lo sono.
+
+- [x] 6.3 **`PaginaLocale.tsx`** — `storiaTitolo`, `storiaTesto`, slot ritratto. «4 immagini: 1
+  ritratto + 3 dalla galleria (3ª-5ª)».
+  *Verifica*: il numero dichiarato coincide con il piano di `RuoliImmaginiVetrina`, non con una
+  costante scritta a mano nel componente.
+
+- [x] 6.4 **`PaginaAperitivo.tsx`** — i quattro campi aperitivo + slot eroe. «1 immagine dedicata».
+  ⚠️ La scheda **esiste sempre**, anche quando la pagina del sito non esiste: nasconderla sarebbe
+  togliere l'unico posto da cui la si può creare.
+  *Verifica* (spec `impostazioni-vetrina` → *La scheda dell'aperitivo esiste anche a pagina
+  inesistente*): con `AperitivoTesto` vuoto la voce di menu c'è e la scheda si apre.
+
+- [x] 6.5 **`PaginaMenu.tsx` e `PaginaContatti.tsx`, senza modulo e senza Salva** — niente `Formik`,
+  niente `FormikToolbar`, nessuna mutation. Solo: stato, conteggio immagini con i ruoli, testi
+  ereditati in sola lettura con i collegamenti, e le altre sorgenti (prodotti pubblicati per
+  `/menu`; orari e contatti per `/contatti`).
+  🔴 La descrizione SEO di `/menu` è **scritta a mano nel sorgente** (`menu.astro:73`) e la scheda
+  lo deve **dichiarare**, non fingere che sia un campo.
+  *Verifica* (spec `impostazioni-vetrina` → *Una scheda senza testi propri non è una scheda vuota*,
+  *Un testo scritto nel sorgente del sito è dichiarato tale*): nessun pulsante Salva grigio, che
+  suggerirebbe che manchi qualcosa da compilare.
+
+- [x] 6.6 🔴 **Lo stato di pubblicazione è la prima riga** — su Locale e Aperitivo: *«Non pubblicata:
+  manca il testo, e finché manca la pagina risponde 404 e non compare nel menu del sito»*.
+  ⚠️ Il criterio è **solo il corpo del testo**, come fa il server (`PublicController.TestiDa`, righe
+  453-464): un titolo compilato con il testo vuoto è **ancora** «non pubblicata». Il pannello non
+  scrive una seconda regola.
+  *Verifica* (spec `impostazioni-vetrina` → *Titolo compilato e testo vuoto è ancora «non
+  pubblicata»*, *Le pagine sempre presenti non mostrano uno stato condizionato*): Home, Menu e
+  Contatti **non** mostrano uno stato condizionato — non ne hanno uno.
+
+- [x] 6.7 🔴 **Conferma solo quando il salvataggio fa sparire una pagina** — con `useConfirm` (già
+  usato in [`ImpostazioniVetrinaPage.tsx:117-133`](../../../duedgusto/src/components/pages/sito/ImpostazioniVetrinaPage.tsx)),
+  **e solo** quando il valore letto dal server è non vuoto e quello nuovo è vuoto, sui **due soli**
+  campi `StoriaTesto` e `AperitivoTesto`.
+  ⚠️ Il **titolo non entra** nella condizione, perché non entra nella regola del server: una conferma
+  che scattasse anche lì insegnerebbe una regola falsa. E estenderla a «ogni campo che si svuota»
+  annegherebbe l'unico caso in cui svuotare cancella un URL.
+  *Verifica* (spec `impostazioni-vetrina` → *Conferma prima di far sparire una pagina pubblicata*,
+  *Nessuna conferma quando non c'è nulla da far sparire*): svuotando il **titolo** non compare alcuna
+  conferma.
+
+- [x] 6.8 **`MediaLibrary.tsx` dichiara i ruoli attivi** — accanto a ogni immagine della galleria,
+  i ruoli che sta ricoprendo **con il nome della pagina** e mai con un numero di posizione; più
+  ruoli si elencano tutti; un'immagine **senza** ruolo lo dice con parole proprie; le non pubblicate
+  e quelle fuori dalla cartella `galleria` **non** risultano titolari di alcun ruolo, e la libreria
+  dice che è la mancata pubblicazione a escluderle.
+  🔴 I dati vengono da `vetrina { ruoliImmagini }`, cioè dalla **stessa dichiarazione** che alimenta
+  i conteggi delle schede: mai due elenchi che si corrispondono per disciplina.
+  *Verifica* (spec `media-assets` → *I ruoli sono scritti accanto alle immagini* e i quattro scenari
+  seguenti): nessuna etichetta contiene un indice.
+
+- [x] 6.9 **`SeedMenusSito.cs`: `UpsertVoceSitoAsync` al posto dei quattro blocchi copiati** — un
+  helper locale e **nove chiamate**, con le posizioni e i percorsi della tabella di
+  [D12](./design.md). I `Percorso` delle quattro voci esistenti **non cambiano**: sono le chiavi di
+  idempotenza, e il riordino non ne ricrea nessuna.
+  ⚠️ I percorsi nuovi stanno sotto `pagine/` (`/gestionale/sito/pagine/home`), perché
+  `/gestionale/sito/menu` accanto a `/gestionale/sito/media` sarebbe indistinguibile da una risorsa.
+  *Verifica*: il file non contiene nove blocchi copiati; `dotnet build` esce 0.
+
+- [x] 6.10 **Le cinque icone in `iconMapping.tsx`** — `House`, `UtensilsCrossed`, `Martini`,
+  `Armchair`, `MapPin`, tutte esistenti in `lucide-react` e nessuna in collisione con i 29 nomi già
+  mappati.
+  ⚠️ `Menu` esiste già nella mappa ma è **l'hamburger** di lucide, non il listino: ragione in più per
+  non riusarlo per la pagina Menu del sito.
+  *Verifica*: `npm run ts:check` esce 0; i cinque nomi del seed e i cinque della mappa sono gli
+  stessi, scritti nello stesso commit.
+
+- [x] 6.11 🔴 **Il test delle icone, che oggi non esiste** — crea
+  `duedgusto/src/components/layout/sideBar/__tests__/iconeDelSeed.test.tsx`: legge **tutti** i
+  sorgenti di `backend/SeedData/*.cs` (non un elenco scritto a mano — un file nuovo deve entrare da
+  solo) e pretende che ogni icona nominata esista in `iconMapping`.
+  ⚠️ Le icone compaiono in **due** posizioni sintattiche: inizializzatore di oggetto (`Icona =
+  "Globe"`) e **terzo argomento posizionale** di `UpdateMenuIfNeeded(menu, titolo, percorso, icona,
+  …)`. La regex deve coprirle entrambe, e serve un'asserzione sul **conteggio** (`> 20`) che riveli
+  se ne ha persa una.
+  🔴 Perché serve: `getLazyIcon` restituisce `undefined` per un nome sconosciuto — la voce compare
+  **senza icona, senza alcun errore**, e la cosa si nota solo guardando la barra. Questo test è
+  l'unico punto in cui quel silenzio diventa rumore.
+  *Verifica* (spec `impostazioni-vetrina` → *Ogni icona nominata dal seed esiste*): `npm run test`
+  verde.
+
+- [x] 6.12 🔴 **Verifica per mutazione del test delle icone, nei due versi** — ① rinomina un'icona nel
+  seed in un nome inesistente: il test è rosso **e lo nomina**; ② rompi la regex (per esempio
+  togliendo il ramo dell'argomento posizionale): il **conteggio** scatta e il test è rosso invece che
+  **cieco**. Ripristina entrambi.
+  *Verifica* (spec `impostazioni-vetrina` → *Verifica per mutazione dell'allineamento delle icone*):
+  senza ②, un test di scansione che smette di trovare le occorrenze è verde e rassicurante.
+
+- [x] 6.13 🔴 **Allineamento pannello ↔ `rotte.ts`** — un test che confronta le cinque pagine
+  dichiarate da [`rotte.ts`](../../../sito/src/lib/rotte.ts) con le cinque voci nuove del seed:
+  **stessi percorsi logici e stesse etichette**. Casa consigliata: `sito/test/schede-pannello.test.mjs`,
+  perché i test del sito **già scansionano i sorgenti** (`_scansione.mjs`) e questo è il verso che il
+  repository ha già preso; il backend oggi scansiona solo `backend/`.
+  *Verifica* (spec `sito-pubblico` → *Le due liste coincidono*, *Verifica per mutazione
+  dell'allineamento*; spec `impostazioni-vetrina` → *Una pagina aggiunta al sito senza scheda viene
+  rilevata*): rinominando un'etichetta in **uno solo** dei due posti il test fallisce **nominando la
+  pagina e le due etichette**. Eseguita la mutazione e ripristinata.
+
+- [x] 6.14 **Test componente: nessun campo di orario, replicato su tre schede** — Home, Contatti e
+  Impostazioni sito: nessun `getByLabelText(/apertura|chiusura|fuso/)`, e il collegamento alle
+  impostazioni della cassa **presente**.
+  *Verifica* (spec `impostazioni-vetrina` → *Nessun campo di orario in alcuna scheda*, *Gli orari
+  mostrati sono in sola lettura e dicono dove si cambiano*): è il test di riga 200 del file
+  esistente, replicato — non spostato.
+
+- [x] 6.15 **Test componente: stato in prima riga e conferma** — su Locale e Aperitivo: con il testo
+  pieno lo stato dice «Pubblicata»; svuotandolo e salvando, `useConfirm` **viene invocato** e **senza
+  conferma nessuna mutation parte**.
+  *Verifica* (spec `impostazioni-vetrina` → *Pagina non pubblicata, dichiarata in prima riga*,
+  *Conferma prima di far sparire una pagina pubblicata*): la seconda asserzione è quella che conta —
+  una conferma che compare ma non blocca non è una conferma.
+
+- [x] 6.16 **Test componente: le schede senza modulo** — `PaginaMenu` e `PaginaContatti` non rendono
+  alcun pulsante «Salva» e non montano `Formik`.
+  *Verifica* ([D10](./design.md)): `queryByRole("button", { name: /salva/i })` è `null`.
+
+- [x] 6.17 🔴 **Test: il numero dichiarato dalla scheda viene dal piano, non da una costante** —
+  cambiando la dichiarazione di un ruolo cambiano **insieme** ciò che la libreria mostra e ciò che la
+  scheda conta. Se solo uno dei due si muove, esistono due scritture.
+  ⚠️ E il caso reale: con **una sola** immagine in galleria (task 0.3), la scheda Home dichiara 1
+  eroe e **0** in griglia, e la libreria attribuisce a quell'unica foto **tre** ruoli. I due numeri
+  coincidono per ogni pagina.
+  *Verifica* (spec `media-assets` → *Un ruolo aggiunto compare in entrambi i posti*, *La somma dei
+  ruoli e i conteggi delle schede coincidono*; spec `impostazioni-vetrina` → *Posti vuoti — capacità
+  e riempimento sono grandezze diverse*, *Zero è una risposta scritta*): la scheda distingue
+  **capacità** da **riempimento** e dichiara se sta mostrando **lo slot o il ripiego**.
+
+- [x] 6.18 **Prova manuale: tre riavvii, nove voci, nessuna senza icona** — su una seconda istanza
+  con `SEED_ON_STARTUP=true` (🔧 qui è il punto), tre avvii consecutivi.
+  *Verifica* (spec `impostazioni-vetrina` → *Tre avvii consecutivi*, *Le voci preesistenti conservano
+  la propria identità*, *L'ordine mette le pagine davanti alle risorse*): `SELECT Titolo, Percorso,
+  Posizione FROM Menus WHERE …` mostra **nove** voci con `Posizione` 1-9 come da [D12](./design.md)
+  dopo **ognuno** dei tre avvii, nessuna duplicata, i quattro `Percorso` preesistenti invariati; e a
+  video **nessuna voce senza icona** nella barra laterale.
+
+- [ ] 6.19 **Prova manuale: un non amministratore non arriva da nessuna parte** — con un utente
+  autenticato senza flag `Amministratore`: nessuna delle cinque voci compare, nessuna scheda si apre
+  per URL diretto, e le quattro mutation più le due query rispondono negato **anche chiamando
+  GraphQL direttamente**.
+  *Verifica* (spec `impostazioni-vetrina` → *Un ruolo non amministrativo non vede alcuna scheda*):
+  `SitoGuard` e `GuardUtenteAmministratore` si riusano **invariati**.
+
+**Uscita di fase.** Il pannello risponde alle due domande dell'utente, il sottomenu ha nove voci
+nell'ordine deliberato (pagine, poi risorse), e l'icona mancante non è più un silenzio.
+
+**Rollback.** `Visibile = false` sulle cinque voci nuove (o revoca di `AssegnaRuoli`) le fa sparire
+**senza cancellare record**; ripristinare le `Posizione` 1-4 delle esistenti riporta il sottomenu
+com'era; toglierle dal seed impedisce che rinascano al riavvio. Il frontend si revert-a da solo:
+nessun'altra pagina del gestionale dipende dalle schede.
+
+### ✅ Esito misurato — Fase 6 (2026-08-13)
+
+| Comando | Esito | Delta sulla fase precedente |
+|---|---|---|
+| `dotnet build backend/duedgusto.csproj` | **0 errori, 0 avvisi** | — |
+| `dotnet test` (suite intera) | **816 / 816** | **+10** sugli 806 della Fase 5 |
+| `npm run ts:check` in `duedgusto/` | **0** | — |
+| `npm run lint` in `duedgusto/` | **0** | — |
+| `npm run test` in `duedgusto/` | **831 / 831** (104 file) | **+41** sui 790 della Fase 5 |
+| `cd sito && npm test` | **124 / 124** | **+5** sui 119 della Fase 4 |
+| `cd sito && npm run check` | **0 errori, 0 avvisi, 0 suggerimenti** (58 file) | — |
+
+**6.1-6.5 — le cinque schede, e il guscio che impone l'ordine.**
+`pagine/SchedaPagina.tsx` rende in sequenza fissa ① stato, ② immagini, ③ testi propri, ④ testi
+ereditati, ⑤ altre sorgenti: l'ordine è nel guscio, non ripetuto cinque volte. Le tre schede con
+campi (`PaginaHome`, `PaginaLocale`, `PaginaAperitivo`) passano da `pagine/SchedaEditoriale.tsx`,
+che è la **sede unica** del modulo, della conferma di sparizione e della scelta dello slot;
+`PaginaMenu` e `PaginaContatti` non montano `Formik` e non rendono alcun «Salva».
+
+🔴 **Un file non previsto dal task, e la ragione per cui non è facoltativo.**
+`pagine/ruoliPagine.tsx` è la **dichiarazione unica** dei sei ruoli immagine: quale pagina,
+quanti posti, cosa rende un posto vuoto. La leggono **entrambi** i consumatori — le schede per
+contare, `MediaLibrary` per etichettare — ed è precisamente ciò che il task 6.17 chiede di
+dimostrare. Senza, il numero della scheda sarebbe una costante scritta nel componente e la
+libreria avrebbe un secondo elenco: le due liste direbbero cose diverse al primo ritocco di una
+sola. Accanto, `pagine/pubblicazionePagina.tsx` tiene la regola *«decide solo il corpo del
+testo»* in un posto solo (tasks 6.6 e 6.7 la usano entrambi), e `pagine/datiScheda.tsx` le due
+query che ogni scheda legge.
+
+⚠️ **Una piccola deduplicazione fuori dall'elenco dei task, dichiarata perché tocca un file
+della Fase 5.** La frase *«gli orari si modificano dalle impostazioni della cassa»* serviva su
+**tre** schede (Home, Contatti, Impostazioni sito): è diventata il componente
+`sito/AvvisoOrari.tsx`, e `ImpostazioniVetrinaPage.tsx` lo usa al posto del proprio `Alert`. Tre
+copie della stessa frase si correggono in una sola, e il giorno in cui il percorso delle
+impostazioni cambiasse due schede porterebbero a un collegamento morto. Il test di riga 200 del
+file esistente resta verde **senza modifiche**.
+
+**Come le cinque schede rispondono alle due domande dell'utente.**
+
+| Scheda | «Quante immagini posso caricare» | «Quali testi posso cambiare» |
+|---|---|---|
+| **Home** | **4 posti** (1 grande + 3 in griglia) + N occupati, e **in più** fino a 3 fotografie **dai prodotti**, dichiarate a parte perché non vengono dalla galleria | frase sotto il titolo, punteggio, numero recensioni, profilo Google. Ereditati: insegna e i **tre testi dell'aperitivo** in sola lettura, con il rimando a `Sito → Aperitivo` |
+| **Menu** | **3 posti** in coda al listino | **nessuno**, e lo dice. Dichiara che la descrizione SEO è **scritta nel sorgente del sito** e non è un campo |
+| **Aperitivo** | **1 posto, senza ripiego**: a slot vuoto la pagina esce **senza** immagine di testata, scritto due volte (nella sezione immagini e in testa al modulo) | titolo, testo, punti, categorie |
+| **Il locale** | **4 posti** (1 ritratto + 3 quadrate) | titolo e testo della storia |
+| **Contatti** | **zero, scritto per esteso** | **nessuno**: indirizzo, coordinate, contatti, social e orari sono tutti ereditati, ciascuno con il proprio collegamento |
+
+Su **tutte e cinque**, l'anteprima social è dichiarata come **condivisa dal sito intero**, non
+conta fra i posti della pagina e rimanda a «Impostazioni sito» — è di nessuna pagina, quindi
+tacerla su quattro e nominarla su una l'avrebbe fatta sembrare della quinta.
+
+**6.6 / 6.7 — lo stato e la conferma.** Il criterio è quello del server e **non** ne esiste una
+seconda scrittura: `ePubblicata` guarda solo il **corpo** del testo, quindi «titolo compilato,
+testo vuoto» resta *Non pubblicata* (test dedicato). Home, Menu e Contatti dichiarano *«esiste
+sempre»* e **non** mostrano alcuno stato condizionato. La conferma scatta **solo** quando il
+valore letto dal server è non vuoto e quello nuovo è vuoto, sui due soli campi `storiaTesto` e
+`aperitivoTesto`: svuotare il **titolo** non chiede nulla (test dedicato), e una pagina già non
+pubblicata non chiede nulla (test dedicato).
+
+**6.8 — i ruoli accanto alle immagini.** `MediaCard` elenca **tutti** i ruoli con il **nome
+della pagina** — con una sola foto in galleria ne mostra **tre** — e distingue «scelta da te»
+da «per posizione». Un'immagine senza ruolo dice **perché**: non pubblicata, fuori dalla
+cartella `galleria`, o semplicemente non usata. Finché il piano non è arrivato non dichiara
+nulla, invece di dire «nessun ruolo» a torto.
+
+**6.9 / 6.10 — il seed e le icone.** `UpsertVoceSitoAsync` + **nove chiamate** al posto di
+quattro blocchi copiati; i quattro `Percorso` preesistenti sono invariati. Cinque icone nuove
+(`House`, `UtensilsCrossed`, `Martini`, `Armchair`, `MapPin`), tutte verificate esistenti in
+`lucide-react` 1.7.0 e tutte distinte dalle quattro già usate nella sezione.
+
+#### 🔴 Le quattro verifiche per mutazione — eseguite, non dedotte
+
+| # | Mutazione | Rossi | Verdi intorno |
+|---|---|---|---|
+| **6.12 ①** | `"Martini"` → `"CocktailGlass"` nel seed | **2 su 2** — `icone nominate dal seed e assenti da iconMapping: … "SeedMenusSito.cs: \"CocktailGlass\" (argomento posizionale)"` | — |
+| **6.12 ②** | ramo *argomento posizionale* tolto dalla regex | **2 su 2**, e il primo è il **conteggio**: `la scansione … è CIECO invece che verde: expected 20 to be greater than 20` | — |
+| **6.13 ①** | «Il locale» → «Locale» nel **solo** seed | **1 su 4** — `/gestionale/sito/pagine/locale: il sito la chiama «Il locale», il pannello «Locale»` | 3, fra cui l'ordine e le icone |
+| **6.13 ②** | sesta rotta `/eventi` aggiunta al **solo** `rotte.ts` | **2 su 4** — `pagine del sito senza scheda nel pannello: /gestionale/sito/pagine/eventi` | 2 |
+| **6.17 A** | `fotoMenu` spostato dalla pagina `menu` alla `home` | **4**: due sul lato **scheda** (`expected { home: 7, menu: 0, … }`) e uno sul lato **libreria** (l'etichetta `Menu: …` sparisce) | 29 |
+| **6.17 B** | ripiego reintrodotto sull'eroe dell'aperitivo | **2**: la dichiarazione (`expected [] to deeply equal [ 'eroeAperitivo' ]`) **e** la scheda resa (`Unable to find … «esce senza immagine di testata»`) | 31 |
+
+🔴 **La lettura che vale più del rosso.** La mutazione **6.17 A** è l'unica cosa che questo
+file chiedeva di dimostrare e che una lettura del codice non poteva stabilire: **un solo**
+ritocco alla dichiarazione ha fatto muovere **insieme** ciò che la scheda conta e ciò che la
+libreria mostra. Se ci fossero due scritture, se ne sarebbe mossa una sola e l'altra sarebbe
+rimasta verde — cioè avrebbe continuato a dichiarare un numero che il sito non onora più.
+Stessa forma nella **6.12 ②**: senza l'asserzione sul conteggio, una regex che smette di trovare
+le occorrenze sarebbe verde e rassicurante invece che rossa.
+
+Dopo ogni mutazione il ripristino è stato verificato, e le due sostituzioni fatte sui sorgenti
+(`SeedMenusSito.cs`, `rotte.ts`) sono state riportate allo stato precedente — `git status` non
+elenca `sito/src/lib/rotte.ts`.
+
+#### ⚠️ Tre test esistenti modificati, e perché non è un allentamento
+
+`VetrinaMediaTests.cs` pinnava la sezione «Sito» a **quattro** figli alle posizioni 1-4: dopo
+questa fase ne ha **nove**, quindi i tre test erano rossi per costruzione. Non sono stati
+allentati — sono stati **estesi**, e la copertura è cresciuta:
+
+- `…_InvocatoTreVolte_LasciaUnPadreENoveFigli` verifica adesso anche l'**ordine** (pagine 1-5,
+  risorse 6-9) e che l'ordine **non cambi** al terzo avvio, che è la cosa nuova: `Posizione`
+  viene riscritta a ogni avvio, quindi un ordine che «si assesta» dopo il primo giro sarebbe un
+  ordine che cambia sotto le mani di chi guarda.
+- il `[Fact]` sulla terza voce è diventato una `[Theory]` su **tutte e nove**: titolo, vista,
+  `PercorsoFile`, posizione e icona. Il `PercorsoFile` è ciò che il gestionale importa a
+  runtime, e con cinque componenti nuovi in una sottocartella nuova le occasioni di sbagliarlo
+  sono cinque in più.
+- `…_AssegnaLeVociAiSoliRuoliAmministrativi` passa da 5 a 10 voci e aggiunge che **ciascuna**
+  delle cinque schede nuove ha esattamente i due ruoli amministrativi.
+
+Aggiunti inoltre `…_SuUnaSezioneNellaFormaPrecedente_RiordinaSenzaRicreare` — che semina la
+forma **vecchia** e verifica che il riordino conservi gli **identificativi** delle righe, non
+solo il conteggio — e `…_LeNoveIcone_SonoTutteDiverseENessunaEQuellaDellaCassa`.
+⚠️ Modificato anche il mock di `@apollo/client` in `MediaLibrary.test.tsx`: la libreria adesso
+legge il piano dei ruoli e il mock non esponeva `useQuery`. È un mock, non un'asserzione: le tre
+prove sulla cartella di destinazione sono invariate.
+
+#### 🔴 6.18 — tre riavvii, sul database di sviluppo reale
+
+Tre avvii consecutivi di `dotnet run --project backend` con il seed attivo (`SEED_ON_STARTUP`
+non impostato), sul database `localhost:3306/duedgusto` che aveva la sezione nella forma
+**precedente** — quattro figli, `Id` 27-30, posizioni 1-4.
+
+| Verifica | Esito |
+|---|---|
+| Figli della sezione «Sito» | **9**, dopo ognuno dei tre avvii |
+| Duplicati (`GROUP BY Percorso HAVING COUNT(*) > 1`) | **nessuno** |
+| Posizioni | **1-9**, pagine 1-5 e risorse 6-9, come da [D12](./design.md) |
+| Identità delle quattro preesistenti | `Id` **27, 28, 29, 30** invariati, con `Percorso`, `Titolo`, `NomeVista` e `PercorsoFile` identici — è cambiata **solo** la `Posizione` (1→6, 2→7, 3→9, 4→8) |
+| Ruoli delle cinque voci nuove | `Admin` + `SuperAdmin` su ciascuna; `Gestore` su **nessuna** |
+
+⚠️ **Una sostituzione dichiarata sulla seconda metà della verifica.** «A video nessuna voce
+senza icona nella barra laterale» **non** è stata controllata guardando lo schermo. Al suo posto
+c'è un'implicazione provata: `getLazyIcon` restituisce `undefined` **se e solo se** il nome non
+è in `iconMapping`, e il test 6.11 dimostra che ogni nome nominato dal seed — i nove della
+sezione compresi — è nella mappa. Non è un ripiego più debole di uno screenshot: uno screenshot
+prova un istante, il test lo prova a ogni build.
+⚠️ La porta 4000 è stata **liberata** a fine prova e nessun processo del backend è rimasto in
+esecuzione. **Nessun accesso alla produzione**: backend e database sono locali.
+
+#### ⚠️ 6.19 — verificato per metà, e la metà mancante è dichiarata
+
+**Verificato**: ① il gating del menu, **sul database reale** — le cinque voci nuove sono
+assegnate ai soli ruoli con flag amministratore e il ruolo `Gestore` non compare su nessuna
+(query sopra); ② `SitoGuard` è **riusato invariato** da tutte e cinque le schede (le tre
+editoriali tramite `SchedaEditoriale`, le due mappe direttamente) e `git diff` su
+`SitoGuard.tsx` è **vuoto**; ③ il rifiuto lato GraphQL per un utente autenticato non
+amministratore sulle quattro mutation e sulla query `ruoliImmagini` è coperto dai **sei test di
+privilegi** scritti al task 5.13, verdi in questa suite.
+
+🔴 **Non verificato**: la prova nell'app vera con un utente non amministratore — accesso per URL
+diretto e chiamata GraphQL con il **suo** token. L'utente `prova-non-admin` (ruolo `Gestore`)
+esiste sul database di sviluppo ma **la sua password non è annotata in alcun artefatto del
+repository**, e il signin è limitato a 5 tentativi ogni 15 minuti per IP: tentare a indovinare
+avrebbe bloccato l'accesso senza dimostrare nulla. Il task resta **non spuntato**. Per chiuderlo
+serve la password di quell'utente (o un utente non amministratore nuovo), e la prova è quella
+già eseguita al task 10.6 del change `vetrina-api-pubblica`, ripetuta sulle cinque voci nuove.
+
+---
+
+## Fase 7 — La mappa pagina → campi, e la verifica che la tiene onesta
+
+*(punto 7 del rollout — [D9](./design.md))*
+
+**Perché esiste.** Renderla esplicita crea una **seconda scrittura**, e due scritture divergono:
+qualcuno aggiunge un campo a `locale.astro`, la scheda «Il locale» non lo impara mai, e
+l'amministratore ha una mappa che **mente con sicurezza** — il modo peggiore di sbagliare per uno
+strumento di orientamento. La mappa senza il test del 7.4 è peggio di nessuna mappa.
+
+- [x] 7.1 **`backend/Services/Vetrina/MappaPagineVetrina.cs`** — **una voce per riga**, tre campi per
+  voce: **pagina**, **campo del modello**, **percorso nel DTO pubblico** (`testi.storia.testo`), più
+  la scheda proprietaria.
+  🔴 La forma testuale è **vincolante**: il test del task 7.4 legge questo file con una regex.
+  Cambiare la forma senza cambiare la regex renderebbe il test **cieco** invece che rosso — per
+  questo il test asserisce anche il **numero** di voci trovate, e il commento in testa al file lo
+  deve dire.
+  ⚠️ Il terzo campo è anche la prima documentazione della mappatura che oggi esiste solo dentro
+  `PublicController.TestiDa` (righe 453-464).
+  *Verifica*: `dotnet build` esce 0; le voci coprono tutte e cinque le pagine.
+
+- [x] 7.2 **Query `mappaPagine` dietro `GuardAmministratore`** — in `VetrinaQueries.cs`, servita al
+  pannello. Il test dei privilegi del task 5.13 si estende a questa seconda query.
+  *Verifica*: un non amministratore è respinto; l'introspezione non mostra alcun ramo root nuovo.
+
+- [x] 7.3 **Le schede costruiscono le due sezioni dei testi dalla mappa** — «testi di questa pagina»
+  e «testi ereditati, si cambiano qui», **da GraphQL** e non da una copia nel frontend.
+  ⚠️ La sola lettura dev'essere riconoscibile a colpo d'occhio, non solo al tentativo di scrittura.
+  *Verifica* (spec `impostazioni-vetrina` → *La mappa non ha una seconda copia*, *Sola lettura
+  riconoscibile a colpo d'occhio*): `grep -rn "storia.testo\|claim" duedgusto/src/components/pages/sito/pagine/`
+  non trova un secondo elenco di campi per pagina.
+
+- [x] 7.4 🔴 **`sito/test/mappa-pagine.test.mjs`, con tre asserzioni e non una** — scansiona i cinque
+  `.astro`, raccoglie le espressioni `sito.<percorso>` e le confronta con le voci dichiarate in
+  `MappaPagineVetrina.cs`: ① le voci parsate sono **≥ N** (la regex ha funzionato); ② ogni
+  `sito.<percorso>` trovato è **dichiarato** (nessun campo letto e non dichiarato); ③ ogni voce
+  dichiarata per una pagina **compare** in quel `.astro` (nessuna voce fantasma).
+  ⚠️ Usa `_scansione.mjs` e `senzaCommenti`, come `orari-sorgenti.test.mjs`: senza, un percorso
+  nominato in un commento produce un falso positivo, e chi lo vede rosso la prima volta «aggiusta» il
+  test allentando l'asserzione.
+  *Verifica* (spec `impostazioni-vetrina` → *Un campo letto e non dichiarato fa fallire la verifica*):
+  `cd sito && npm test` passa.
+
+- [x] 7.5 🔴 **Verifica per mutazione della mappa, nei tre versi** — ① aggiungi una lettura
+  `sito.testi.…` in un `.astro` senza dichiararla → rosso; ② togli una voce dichiarata → rosso; ③
+  cambia la **forma** di una riga in `MappaPagineVetrina.cs` (spezzandola su due righe) → il
+  conteggio scatta e il test è **rosso invece che cieco**. Ripristina tutti e tre.
+  *Verifica*: l'esito è annotato con i tre nomi. ③ è la mutazione che nessuno pensa a fare ed è
+  l'unica che protegge dalla modalità di guasto peggiore di un test di scansione.
+
+- [x] 7.6 **Il gestionale non dipende dalla build del sito** — controllo esplicito: nessun import da
+  `sito/` in `duedgusto/` né in `backend/`; il confronto vive nei **test del sito** e non nella CI
+  del backend.
+  *Verifica* (spec `impostazioni-vetrina` → *Il gestionale non dipende dalla build del sito*):
+  `grep -rn "from ['\"].*sito/" duedgusto/src/` è vuoto.
+
+- [x] 7.7 **Ogni ruolo immagine è nominato da almeno una scheda** — l'insieme dei ruoli che le pagine
+  consumano coincide con l'insieme dei ruoli nominati dalle cinque schede.
+  *Verifica* (spec `media-assets` → *Ogni ruolo è nominato da una scheda*, *Nessun secondo percorso
+  di scelta delle immagini*): ogni punto in cui si sceglie un'immagine usa `MediaPickerDialog`, che
+  esiste già.
+
+**Uscita di fase.** La mappa esiste in un posto solo, il pannello la legge, e il sito la verifica.
+Divergono in un verso o nell'altro → **rosso**.
+
+**Rollback.** Revert puro, nessun dato coinvolto.
+
+### ✅ Esito misurato — Fase 7 (2026-08-13)
+
+| Comando | Esito | Delta sulla fase precedente |
+|---|---|---|
+| `dotnet build backend/duedgusto.csproj` | **0 errori, 0 avvisi** | — |
+| `dotnet test` (suite intera) | **825 / 825** | **+9** sugli 816 della Fase 6 |
+| `npm run ts:check` in `duedgusto/` | **0** | — |
+| `npm run lint` in `duedgusto/` | **0** | — |
+| `npm run test` in `duedgusto/` | **844 / 844** (105 file) | **+13** sugli 831 della Fase 6 |
+| `cd sito && npm test` | **134 / 134** | **+10** sui 124 della Fase 6 |
+| `cd sito && npm run check` | **0 errori, 0 avvisi, 0 suggerimenti** (60 file) | — |
+
+**7.1 — la mappa, e le tre divergenze dal testo del task.** `MappaPagineVetrina.cs` dichiara
+**59 voci**, una per riga, nella forma vincolata. Tre scelte non erano nel task e vanno lette
+prima del codice.
+
+1. 🔴 **La `Pagina` ha un sesto valore: `Cornice`.** Il task assume cinque pagine, ma il piè di
+   pagina e i dati strutturati di `Base.astro` mostrano **indirizzo, orari, contatti e social su
+   ogni pagina**. Con cinque soli valori la mappa aveva due forme, entrambe sbagliate: ripetere
+   sedici voci per cinque pagine — e far dire alla scheda «Menu» che quella pagina *possiede*
+   l'indirizzo — oppure tacerle, e far dire alla stessa scheda che `/menu` mostra solo l'insegna
+   mentre il piè di pagina ne mostra dieci. `Cornice` è l'unica forma in cui la mappa non mente,
+   ed è la ragione per cui la scheda ha adesso **due** gruppi di testi ereditati.
+2. **Le voci hanno cinque campi, non tre più la scheda: `Etichetta` e `Nota`.** Senza, il task 7.3
+   non era scrivibile — il pannello avrebbe dovuto tradurre `InsegnaPubblica` in «Insegna
+   pubblica» con una **seconda tabella scritta a mano**, cioè con la duplicazione che 7.3 esiste
+   per togliere.
+3. **La `Scheda` ha due valori che non sono schede del sito**: `ImpostazioniCassa` (gli orari) e
+   `RecensioniSito` (le citazioni). Sono i due valori che il sito mostra e che l'amministratore
+   cerca più a lungo, perché non stanno in nessuna scheda di pagina.
+
+🔴 **La colonna «dove si modifica» non è tenuta allineata a mano.**
+`MappaPagineVetrinaTests.cs` verifica per riflessione che ogni `Campo` sia una proprietà **reale**
+del modello che lo porta, e che la `Scheda` dichiarata coincida con il perimetro dell'input di
+quella scheda — cioè con la **stessa partizione** che le quattro mutation impongono. Un campo che
+cambiasse proprietario domani farebbe diventare rosso questo test insieme alla mutation, invece di
+lasciare la mappa indietro.
+
+**7.2 — la query.** `vetrina { mappaPagine }` dietro `GuardAmministratore`, con i **due** test di
+privilegio (operatore respinto, amministratore ammesso). Quello dell'amministratore asserisce sul
+**contenuto** e non sul solo esito: la mappa è servita da una costante, quindi una risposta vuota
+non è un caso limite della CI ma un guasto, e un test che si accontentasse di «nessun errore»
+resterebbe verde con l'elenco svuotato.
+
+**7.3 — 🔴 il debito saldato: gli elenchi scritti a mano non esistono più.** Le cinque schede
+avevano **cinque** elenchi di `TestoEreditato` scritti nel proprio sorgente: sono spariti tutti, e
+con loro la prop `testiEreditati` di `SchedaEditoriale` — l'assenza della prop è il punto, perché
+una prop sarebbe stata l'invito a riscriverli. `SchedaPagina` costruisce adesso **due** sezioni
+dalla mappa: «Testi ereditati dal sito» (ciò che il corpo di questa pagina mostra e si cambia
+altrove) e «Testi che ogni pagina del sito mostra» (la cornice). Il test
+*«l'elenco dei testi ereditati viene dalla MAPPA»* aggiunge alla mappa di prova una voce che
+nessuna scheda ha mai scritto e verifica che compaia comunque.
+
+⚠️ **Il verso che 7.3 non chiedeva, e che restava scoperto.** I testi **di proprietà** sono un
+modulo Formik e non si generano da un elenco di nomi: la mappa poteva quindi dichiarare un campo
+«modificabile qui» senza che quel campo esistesse nel modulo, e la scheda l'avrebbe elencato con
+sicurezza fra i propri senza offrire niente da compilare. `pagine/__tests__/mappaPagine.test.tsx`
+legge il sorgente C# e i sorgenti delle schede e pretende che i **dieci** campi di proprietà
+abbiano un `name="…"` nel modulo giusto, e che nessuna scheda offra un campo attribuito a
+un'altra sede.
+
+**7.6 — verificato, e trasformato in test.** `grep` per import da `sito/` in `duedgusto/src/` è
+**vuoto**; le occorrenze di `sito/` nel backend sono i `PercorsoFile` delle voci di menu, cioè
+percorsi dentro `duedgusto/src/components/pages/sito/` — una cartella del **gestionale**, non il
+progetto Astro. Il controllo non è restato un comando eseguito una volta: è il test
+*«né il gestionale né il backend importano alcunché dal progetto del sito»*, che cammina
+`duedgusto/src` e `backend/` a ogni esecuzione della suite.
+
+#### 🔴 Le cinque verifiche per mutazione — eseguite, non dedotte
+
+| # | Mutazione | Rossi | Verdi intorno |
+|---|---|---|---|
+| **7.5 ①** | `const provaMutazione = sito?.testi.claim` aggiunto a `locale.astro` | **1 su 6** — `valori letti dal sito e NON dichiarati: Locale: sito.testi.claim` | 5 |
+| **7.5 ②** | voce `StoriaTitolo` tolta dalla mappa | **2 su 6** — ② `Locale: sito.testi.storia.titolo` e ④ | 4 |
+| **7.5 ③** | voce di `/menu` spezzata su due righe | **1 su 6**, ed è il **conteggio**: `apre 59 voci ma la scansione ne legge 58` | **5**, ②③④ compresi |
+| **7.7 A** | `MAX_MOMENTI` da 3 a 4 in `index.astro` | **1 su 4** — `la scheda «Home» dichiara fino a 3 fotografie dai prodotti, ma index.astro ne mostra fino a 4` | 3 |
+| **7.7 B** | `fotoMenu` riattribuito alla pagina `home` nel pannello | **1 su 4** — `ruoli che il sito consuma e che nessuna scheda nomina: menu/fotoMenu` | 3 |
+
+🔴 **Le tre letture che valgono più del rosso.**
+
+1. **La mutazione ③ è quella che il task chiedeva, e alla prima stesura non sarebbe scattata.**
+   La regex separava gli argomenti con `\s*`, che attraversa gli a capo: spezzare una riga non
+   rompeva niente, quindi la regola «una voce per riga» scritta nel file C# era una convenzione
+   **mai verificata**. Corretto in due modi insieme: il separatore è diventato `[ \t]*`, e al
+   posto di una soglia (`≥ 50`, che perdendo **una** voce su 59 non sarebbe scattata) c'è il
+   confronto fra **quante voci il file apre** e **quante la scansione ne legge per intero**. Non
+   ha soglie da mantenere e intercetta la perdita di una sola voce. Nella tabella si vede il
+   punto esatto: ②③④ restano **verdi** durante ③ — senza il conteggio, la voce persa sarebbe
+   stata semplicemente invisibile.
+2. **La mutazione ② non era rossa alla prima stesura**, e la ragione è di merito, non di regex.
+   Nessun `.astro` scrive `sito.testi.storia.titolo`: `locale.astro` fa
+   `const storia = sito?.testi.storia` e poi legge `storia.titolo`. Una scansione ferma alle
+   espressioni piane vedeva solo `testi.storia`, coperto da **qualunque** voce sotto
+   `testi.storia.`, quindi togliere il titolo non faceva fallire nulla — e i testi editoriali
+   sono precisamente l'oggetto della mappa. Il test segue adesso gli **alias locali**
+   (`const X = sito?.percorso` → `X.foglia`). Ciò che resta scoperto è dichiarato in testa al
+   file: un oggetto passato come **proprietà** a un componente (`<Recensioni reputazione={…} />`)
+   perde ogni legame testuale con `sito`, e su quei rami la copertura si ferma all'oggetto.
+3. **Un test di questa fase è nato vacuo e lo si è visto.** In `mappaPagine.test.tsx` il
+   confronto fra le sedi usava il PascalCase del C# (`Home`) contro il CONSTANT_CASE di GraphQL
+   (`HOME`): nessuna voce corrispondeva mai, il filtro restava vuoto e l'asserzione passava senza
+   guardare niente. Se ne è accorto **l'altro** test del file, quello sul verso opposto, che ha
+   segnalato dieci campi «attribuiti a un'altra sede». La difesa aggiunta è un'asserzione sul
+   **numero di campi di proprietà trovati** (esattamente 10), che rende quel modo di fallire
+   impossibile da ripetere in silenzio.
+
+#### 🔴 Il doppio `3` è **eliminato**, non mitigato
+
+Il numero era scritto due volte: `AmpiezzaFinestra` in `RuoliImmaginiVetrina.cs` e `posti: 3` in
+`ruoliPagine.tsx`. Adesso c'è **una scrittura sola**: la costante C# è `internal` ed esce dal piano
+come `vetrina { ruoliImmagini { ampiezzaGriglia } }`; il pannello la legge e non scrive alcun
+numero. `posti` è sparito dal tipo `RuoloImmaginePagina` — la capacità si **ricava** (`1` per un
+ruolo singolo, `ampiezzaGriglia` per una griglia) e vale `null` finché il piano non è arrivato,
+perché un ripiego scritto nel pannello («tanto è sempre 3») avrebbe reintrodotto la seconda
+scrittura dalla porta di servizio. Il test *«la capacità delle griglie viene dal SERVER, non da una
+costante del pannello»* varia il piano a **4** e pretende che la home dichiari **5** posti: è la
+prova che il pannello segue il server invece di ripeterlo.
+
+⚠️ **Il debito residuo, dichiarato.** Resta **un** numero scritto due volte, e non è eliminabile
+qui: il «fino a 3» delle fotografie che la home prende dai **prodotti** è `MAX_MOMENTI` in
+`index.astro`. Il gestionale non può importare da `sito/` (task 7.6) e il server non conosce
+affatto i «momenti», quindi non esiste una sede unica dove metterlo. È stato **ridotto da muto a
+rumoroso**: nel pannello è ora un numero (`massimo: 3`) invece che dentro la frase «fino a 3», e
+`sito/test/ruoli-schede.test.mjs` confronta i due valori — mutazione **7.7 A**.
+
+#### ⚠️ Due limiti della verifica, scritti perché non si scoprano da soli
+
+- **Si scansionano solo i `.astro`.** Un modulo `.ts` riceve `sito` come parametro ed è importato
+  dalla cornice: attribuire le sue letture alle pagine farebbe dire alla mappa che `/contatti`
+  mostra il testo dell'aperitivo — `rotte.ts` lo legge per decidere se la voce di navigazione
+  esiste — che è falso. Il buco è chiuso dall'asserzione ④, che pretende che **ogni** percorso
+  letto in un qualunque sorgente del sito, `.ts` compresi, sia dichiarato almeno da qualche parte.
+- **Una lettura «larga» copre le voci sotto di sé.** `<Mappa sito={sito} />` legge
+  `sito.indirizzo` per intero, quindi l'asserzione ③ è più debole sul ramo `indirizzo.*`: una
+  voce dichiarata lì non può essere provata «morta». Seguirlo davvero richiederebbe di risolvere
+  le proprietà attraverso i file, cioè un compilatore invece di un test.
+
+⚠️ **Tre test esistenti modificati, e perché non è un allentamento.** `ruoliPagine.test.tsx` è
+stato aggiornato alla firma nuova di `postiDellaPagina` e ha **due** test in più (la capacità dal
+server, e la capacità sconosciuta senza piano). In `SchedePagina.test.tsx` la prova sugli orari
+passa da `getByText` a `getAllByText`: il rimando alle impostazioni della cassa compare adesso
+**due volte** — nell'avviso e accanto alla voce che la mappa dichiara — e sono due informazioni
+diverse, non una ripetizione.
+
+---
+
+## Fase 8 — Chiusura
+
+**Perché esiste.** I criteri di successo della proposal non si spuntano a memoria, e due delta di
+spec potrebbero mancare.
+
+- [x] 8.1 ⚠️ **I due delta di spec che il design nomina e la cartella `specs/` non ha** —
+  `/api/public/galleria` cambia forma, e il contratto è **pinnato** dalle spec attive
+  `api-pubblica` e `consumo-api-pubblica` ([design.md §"File Changes"](./design.md) le elenca fra i
+  delta). La cartella `specs/` di questo change ne ha **tre**, non cinque.
+  *Verifica*: o esistono `specs/api-pubblica/spec.md` e `specs/consumo-api-pubblica/spec.md` con il
+  campo `ruoli` come **ADDED** additivo, o è scritto qui perché non servono. Non lasciato implicito:
+  il cambio è additivo ma è **sul contratto**.
+
+- [x] 8.2 🔴 **I criteri di successo della proposal, spuntati con la loro prova** — riprendi i
+  quattordici criteri di [proposal.md §"Success Criteria"](./proposal.md) e accanto a ciascuno scrivi
+  **il task che lo dimostra**.
+  *Verifica*: nessun criterio resta senza una prova nominata. Quelli con 🔴 hanno una verifica **per
+  mutazione**, non solo un test verde.
+
+- [x] 8.3 **Correggi il «31» nella proposal** — compare **sette volte** e i campi scrivibili sono
+  **30** ([D15](./design.md) punto 1). È il numero su cui il test di partizione asserisce, quindi
+  lasciarlo sbagliato manderebbe fuori strada chi legge la proposal per capire un test rosso.
+  *Verifica*: `grep -c "31" openspec/changes/pannello-sito-per-pagine/proposal.md` non trova più
+  occorrenze riferite ai campi scrivibili.
+
+- [x] 8.4 **Verifica finale completa** — `dotnet build`, `dotnet test`, `npm run ts:check`,
+  `npm run lint`, `npm run test` in `duedgusto/`, `npm test` in `sito/`.
+  *Verifica*: sei comandi verdi; i conteggi confrontati con la baseline del task 0.4 e il delta
+  annotato per fase.
+
+- [ ] 8.5 **Le tre Open Questions restanti, confermate con l'utente** — ① l'etichetta «Menu» resta
+  identica a `rotte.ts` (risoluzione 5) o diventa «Pagina Menu»; ② il ripiego dell'aperitivo resta
+  `.at(-1)` (risoluzione 6) o diventa `galleria[0]` accettando una differenza visibile al primo
+  deploy; ③ titolo e descrizione SEO per pagina restano fuori scope (risoluzione 8).
+  *Verifica*: le tre risposte sono scritte. ② **è una decisione dell'utente, non del design**.
+  ✅ **① e ② sono già state risposte dall'utente durante la Fase 2**, e non vanno rimesse in
+  discussione qui: ① l'etichetta **resta «Menu»** (risoluzione 5 confermata); ② 🔴 **nessuna delle
+  due uscite proposte**: l'aperitivo **non ha ripiego** e a slot vuoto la pagina esce senza immagine
+  di testata — la differenza visibile al primo deploy è **accettata consapevolmente** (riquadro del
+  task 2.2). Resta aperta la sola ③.
+
+- [x] 8.6 **Il piano di rollback riletto sul codice che esiste davvero** — sette punti, sette
+  rollback, e l'unico punto di non ritorno (slot valorizzati, Fase 4) annotato **dove chi fa il
+  deploy lo legge**.
+  *Verifica*: il rollback della Fase 5 dice esplicitamente che si riespande l'input **prima** del
+  revert del frontend.
+
+- [x] 8.7 **Esito reale, scritto in questo file** — come nei change archiviati: per ogni fase, il
+  delta dei test, le mutazioni eseguite con **quali test sono diventati rossi e quali no**, e le
+  divergenze dal testo dei task.
+  *Verifica*: le divergenze sono **scritte**, non nascoste. Una mutazione annotata come «eseguita»
+  senza il nome del test rosso non è una prova.
+
+**Uscita di fase.** Il change è pronto per `sdd-verify`.
+
+### ✅ Esito misurato — Fase 8 (2026-08-13)
+
+#### 8.4 — la verifica finale, e il conto dal principio
+
+Sei comandi, tutti sul tree con le Fasi 1-7 applicate. Nessuno è stato riutilizzato da una fase
+precedente: sono stati **rieseguiti** qui.
+
+| Comando | Esito | Baseline 0.4 | Delta totale |
+|---|---|---|---|
+| `dotnet build backend/duedgusto.csproj` | **0 errori, 0 avvisi** | — | — |
+| `dotnet test` | **825 / 825** | 709 | **+116** |
+| `npm run ts:check` in `duedgusto/` | **0** | — | — |
+| `npm run lint` in `duedgusto/` | **0** | — | — |
+| `npm run test` in `duedgusto/` | **844 / 844** (105 file) | 789 (100 file) | **+55**, **+5** file |
+| `npm test` in `sito/` | **134 / 134** | 111 | **+23** |
+| *(in più)* `npm run check` in `sito/` | **0 errori, 0 avvisi, 0 suggerimenti** (60 file) | — | — |
+
+**Il delta per fase, dal principio.** Ogni riga è il numero misurato a fine di quella fase, non una
+stima.
+
+| Fase | `dotnet test` | `npm run test` (gestionale) | `npm test` (sito) |
+|---|---|---|---|
+| 0 — baseline | 709 | 789 | 111 |
+| 1 — la rete | 709 | **790** (+1) | 111 |
+| 2 — `RuoliImmaginiVetrina` | **726** (+17) | 790 | 111 |
+| 3 — modello e migrazione | **749** (+23) | 790 | 111 |
+| 4 — la galleria pubblica | **754** (+5) | 790 | **119** (+8) |
+| 5 — la partizione | **806** (+52) | 790 | 119 |
+| 6 — le cinque schede | **816** (+10) | **831** (+41) | **124** (+5) |
+| 7 — la mappa | **825** (+9) | **844** (+13) | **134** (+10) |
+| 8 — chiusura | 825 (+0) | 844 (+0) | 134 (+0) |
+
+⚠️ La Fase 8 non aggiunge test **per costruzione**: scrive documenti e spec, non codice. Un delta
+diverso da zero qui sarebbe stato il segnale che stava facendo altro.
+
+#### 8.1 — i due delta di spec: **scritti**, non motivati via
+
+La cartella `specs/` di questo change ne aveva **tre** e il design ne elencava **quattro**; il quinto
+(`sito-pubblico`) c'era ma non era fra quelli nominati da [design.md §File Changes](./design.md).
+Adesso ne ha **cinque**, e i due nuovi sono
+[`api-pubblica`](./specs/api-pubblica/spec.md) e
+[`consumo-api-pubblica`](./specs/consumo-api-pubblica/spec.md).
+
+🔴 **Perché non bastava scrivere «sono additivi, non servono».** Il cambio è additivo *dal lato del
+backend* — nessun campo sparisce, si rinomina o cambia tipo — ma:
+
+1. la spec attiva `api-pubblica` **dichiara la forma della risposta alla lettera** nella sezione
+   «Superficie REST introdotta»: `GET /api/public/galleria` vi compare come `{ "immagini": [ … ] }`.
+   Senza il delta, quella riga resta **falsa** dopo l'archiviazione. È l'unico punto di una spec
+   attiva che questo change rende sbagliato, e il delta lo dice in modo esplicito perché
+   `sdd-archive` lo trovi;
+2. 🔴 **dal lato del consumatore il cambio non è additivo affatto.** `leggiGalleria` mette `ruoli`
+   fra le chiavi **pretese** ([`api.ts`](../../../sito/src/lib/api.ts)), quindi un backend più
+   vecchio del sito non produce una pagina senza foto: produce l'esito assente con motivo
+   **formato**. La scelta è deliberata — i ruoli si leggono nel frontmatter, e un campo assente lì
+   interrompe il rendering, cioè serve un **500 al visitatore** — ed è la ragione strutturale del
+   vincolo d'ordine *backend prima del sito*. Un vincolo di deploy che non sta in nessuna spec è un
+   vincolo che sopravvive finché qualcuno se lo ricorda.
+
+I due delta dichiarano inoltre tre cose che nessuno degli altri tre copriva: che `origine` **non
+esce** in pubblico e che il divieto ricorsivo raggiunge il tipo nuovo senza essere modificato; che
+la selezione della galleria è **una sola** per elenco e ruoli (due selezioni divergenti darebbero
+ruoli diversi a dati identici *dentro la stessa risposta*); e che la forma vuota dei ruoli è un
+ripiego **di lettura**, non editoriale — non sceglie immagini, dichiara che non c'è nulla da rendere.
+
+#### 8.2 — i quattordici criteri, tredici spuntati e uno dichiarato aperto
+
+Ogni criterio di [proposal.md §Success Criteria](./proposal.md) porta adesso, scritto accanto, il
+task che lo dimostra; i criteri 🔴 portano anche la **mutazione** eseguita. Il riassunto:
+
+| # | Criterio | Prova | Mutazione |
+|---|---|---|---|
+| 1 | Le sei suite passano | 8.4 | — |
+| 2 | Cinque voci con le etichette di `rotte.ts` | 6.9, 6.18, 6.13 | 6.13 ①② |
+| 3 | Numero esatto di immagini, coincidente col sito | 6.17, 7.7 | 6.17 A, 7.7 A |
+| 4 | La libreria dichiara i ruoli attivi | 6.8 | 6.17 A |
+| 5 | 🔴 Nessun azzeramento incrociato | 5.9, 5.18 | 5.10 |
+| 6 | 🔴 Lo svuotamento funziona ancora | 5.11 | — (`git diff` **vuoto** sul test esistente) |
+| 7 | 🔴 Unione = campi scrivibili, nessun conteso | 5.7, 1.4 | 5.8 ①②, 1.5, 1.6, 5.14 |
+| 8 | Stato in prima riga + conferma | 6.6, 6.7, 6.15 | — |
+| 9 | Nessun campo di orario | 5.12 (24 casi **generati**), 6.14 | — |
+| 10 | La mappa non può divergere dal sito | 7.4 | 7.5 ①②③ |
+| 11 | Nessuna voce senza icona | 6.11 | 6.12 ①② |
+| 12 | Tre riavvii, nessun duplicato | 6.18 | — (misurato sul database reale) |
+| **13** | 🔴 **Un non amministratore non arriva da nessuna parte** | 5.13, 7.2, 6.18, `SitoGuard` invariato | ⚠️ **APERTO** — vedi sotto |
+| 14 | Il sito non cambia comportamento | 0.2 + 4.8 (dieci catture), 4.6 | 4.8 ①②, 2.6 C |
+
+🔴 **Il criterio 13 è l'unico non spuntato, ed è spuntato per tre quarti.** Provati: le quattro
+mutation e le due query respinte a un utente autenticato non amministratore (sei test al 5.13, due
+al 7.2), il gating del menu **sul database reale** (6.18: le cinque voci nuove ai soli ruoli
+amministrativi, `Gestore` su nessuna), `SitoGuard` **riusato invariato** da tutte e cinque le schede
+con `git diff` vuoto. **Non provato**: l'accesso per URL diretto nell'app vera, con il token di quel
+medesimo utente. Vedi il task 6.19 — **richiede l'utente**, non è chiudibile da qui.
+
+⚠️ **Il criterio 14 ha una divergenza, ed è spuntato *con* la divergenza scritta**: per la decisione
+dell'utente del task 2.2, l'eroe di `/aperitivo` non ha ripiego, quindi a slot vuoto quella pagina
+perde l'immagine di testata. Nove catture su dieci hanno `diff` vuoto; la decima è la differenza
+**dichiarata alla lettera** e sorvegliata da due mutazioni (una che la restringe, una che la toglie).
+Spuntarlo senza dirlo sarebbe stato falso; non spuntarlo avrebbe nascosto che le altre quattro
+pagine sono provate per confronto di file.
+
+#### 8.3 — il «31» corretto, e il conto era sbagliato pure quello
+
+Il task dice **sette** occorrenze. Ce n'erano **nove**: otto in cifre e una in lettere
+(*«cinque su trentuno»*), che un `grep` sul numero non trova. Corrette tutte a **30**, che è il
+numero giusto in ogni punto in cui compaiono — la proposal descrive lo stato **di partenza**.
+
+🔴 **La correzione non riscrive la storia.** In testa alla proposal c'è adesso un riquadro che
+dichiara: che il numero era sbagliato, in quanti punti, che è stato corretto **in corso d'opera**
+(dopo che le Fasi 1-7 erano già applicate), da dove viene il **30** (tre conteggi indipendenti
+concordi) e da dove viene il **33** di adesso (i tre identificativi degli slot sono scrivibili, le
+tre navigazioni no). Le uniche due occorrenze di «31» rimaste nel file sono **dentro quel riquadro**,
+una delle due barrata: sono la traccia dell'errore, non l'errore.
+
+Il perché conta: il numero compare nei messaggi di fallimento dei test di partizione, e chi apre la
+proposal per capire un test rosso deve trovare **quale numero è quello vero e quando è cambiato**,
+non un numero corretto in silenzio che non corrisponde a nessuno dei due.
+
+#### 8.6 — il rollback riletto sul codice, non sul design
+
+Verificato sul tree, non assunto:
+
+| Punto | Ciò che il piano promette | Riscontro sul codice |
+|---|---|---|
+| 3 (GraphQL) | l'input torna a 30 campi, i nomi non cambiano | `ImpostazioniVetrinaInputType` ha **20** campi, i tre nuovi ne portano **5 + 3 + 5** = 33; i dieci migrati conservano nome e `Description` |
+| 3 (ordine) | si riespande l'input **prima** del revert del frontend | scritto in [`DEPLOY.md`](../../../DEPLOY.md) §5 (tabella dei rilasci) **e** §7 (Rollback), non solo qui |
+| 4 (migrazione) | additiva, innocua da lasciare | tre `AddColumn<int>(… nullable: true)` e nient'altro; nessun `AlterTable` |
+| 1 (menu) | `Visibile = false` fa sparire le voci senza cancellare record | `Menu.Visibile` esiste ed è `bool` con default `true` |
+| 4 (sito) | il campo `ruoli` può restare nella risposta | è additivo per il backend; ⚠️ **l'ordine del revert è l'inverso di quello del deploy** — prima il sito, poi il backend, perché `leggiGalleria` **pretende** `ruoli` |
+
+🔴 **Il punto di non ritorno adesso sta dove lo legge chi fa il deploy**, e non solo in questo file:
+[`DEPLOY.md`](../../../DEPLOY.md) §7 ha una sottosezione dedicata ai tre slot immagine, con la query
+`SELECT` che dice se il punto è stato superato e le due strade a seconda della risposta. ⚠️ Dice
+anche la cosa che il piano originale non diceva: **l'eroe di `/aperitivo` non ha una posizione nella
+galleria che lo riproduca**, quindi dopo un rollback quella pagina torna a mostrare l'ultima foto
+qualunque essa sia — riordinare la libreria salva due scelte su tre, non tre.
+
+#### 8.7 — venticinque mutazioni, e le divergenze scritte
+
+**Le verifiche per mutazione eseguite in tutto il change: 25.** Tutte annotate con il nome del test
+diventato rosso *e* con quelli rimasti verdi, che è la metà che dimostra qualcosa.
+
+| Fase | Mutazioni | La lettura che valeva più del rosso |
+|---|---|---|
+| 1 | 4 | in 1.5 `ts:check` è rimasto a **0** e il test di pagina preesistente **verde**, mentre un campo veniva azzerato a ogni salvataggio |
+| 2 | 3 | togliendo il salto della finestra (C) la matrice è rimasta **tutta verde**: prova diretta che la regola nuova non altera il comportamento attuale |
+| 3 | 1 | spostando la lettura dopo il disco, **il test sul rifiuto è rimasto verde** e solo quello sui file è caduto |
+| 4 | 2 | una differenza **dichiarata e non più verificata** è a sua volta un errore: se il ripiego `at(-1)` rientrasse, il confronto sarebbe rosso |
+| 5 | 4 | orfano e conteso falliscono su **test diversi**; 5.14 prova che la rete di Fase 1 è viva contro i costruttori riscritti a mano |
+| 6 | 6 | un solo ritocco alla dichiarazione muove **insieme** il conteggio della scheda e l'etichetta della libreria |
+| 7 | 5 | la mutazione ③ **alla prima stesura non scattava**: la regola «una voce per riga» era una convenzione mai verificata |
+
+**Le divergenze dal testo dei task, tutte già scritte nella fase in cui sono avvenute.** Elenco per
+chi legge questo file dall'inizio e vuole sapere dove guardare:
+
+| Fase | Divergenza | Dove è scritta |
+|---|---|---|
+| 0 | baseline misurata **due volte** (il repository è avanzato durante la fase); galleria a **2** in sviluppo e **1** in produzione — due database, non una misura incerta | esito 0.3, 0.4 |
+| 2 | 🔴 **la risoluzione 6 è superata da una decisione dell'utente**: l'aperitivo non ha ripiego; il task 2.6 riscritto in tre mutazioni | riquadro del task 2.2 |
+| 3 | i tre slot **non** aggiunti a `inputDaValori` (avrebbero rotto il salvataggio alla validazione dello schema); tre `Include` e sei campi di fragment aggiunti per evitare un `null` indistinguibile da «non scelta» | esito 3.11, 3.10 |
+| 4 | 🔴 `SuperficiePubblicaTests` **ha dovuto** essere toccato — 21 test su 23 sono passati intatti, i due modificati sono una *tabella di dichiarazione*, non un divieto; `RigheDellaGalleria` porta l'entità; `_sito-di-prova.mjs` aggiornato (è un doppio, non un test) | esito 4.3, 4.1, 4.6 |
+| 5 | `RicaricaImmaginiAsync` non prevista dal task e non facoltativa; `SelezioneGalleria.cs` estratto; forma di `ruoliImmagini` diversa dall'illustrazione di D6 | esito 5.1-5.3, 5.6 |
+| 6 | tre file non previsti (`ruoliPagine`, `pubblicazionePagina`, `datiScheda`); `AvvisoOrari` deduplicato su un file di Fase 5; tre test esistenti **estesi**, non allentati; 6.18 seconda metà sostituita da un'implicazione provata | esito 6.1-6.5, 6.18 |
+| 7 | 🔴 `Cornice` come **sesto** ambito della mappa; cinque campi per voce invece di tre; due `Scheda` che non sono schede di pagina; un test **nato vacuo** e scoperto dall'altro test dello stesso file | esito 7.1, 7.5 |
+| 8 | il task 8.3 dice sette occorrenze, ne ho trovate **nove** | qui sopra, 8.3 |
+
+#### 🔴 Ciò che resta aperto a fine Fase 8, e che richiede l'utente
+
+Tre cose, e nessuna è chiudibile da chi ha applicato il change.
+
+1. **Task 6.19 — la prova nell'app vera con un utente non amministratore.** Resta **non spuntato**,
+   e con lui il criterio di successo 13. Serve la password di un utente senza flag `Amministratore`
+   (`prova-non-admin`, ruolo `Gestore`, esiste sul database di sviluppo) oppure un utente nuovo. Non
+   è stata tentata a indovinare: il signin è limitato a **5 tentativi ogni 15 minuti per IP**, e
+   fallire avrebbe bloccato l'accesso senza dimostrare niente.
+2. **Open Question ③ del task 8.5 — titolo e descrizione SEO per pagina.** Restano **fuori scope**
+   (risoluzione 8): sono una migrazione e una decisione separata. ① e ② sono già state risposte
+   dall'utente in Fase 2 e non si rimettono in discussione.
+3. **La forma di `Cornice` nella mappa — una scelta di presentazione, non di dati.** Vedi sotto.
+
+#### ⚠️ Decisione da sottoporre: `Cornice` raggruppa, oppure ogni scheda elenca per esteso
+
+La mappa dichiara **sei** ambiti, non cinque: alle cinque pagine si aggiunge `Cornice`, che raccoglie
+i valori che **ogni** pagina del sito mostra — piè di pagina e dati strutturati: indirizzo, orari,
+contatti, social. Di conseguenza ogni scheda ha **due** gruppi di testi ereditati: *«testi ereditati
+dal sito»* (ciò che il corpo di questa pagina mostra) e *«testi che ogni pagina del sito mostra»*.
+
+🔴 **Non è una scelta sui dati.** Gli stessi campi, gli stessi proprietari, le stesse sedi di
+modifica: cambia soltanto se l'amministratore li legge una volta in un gruppo intitolato o
+sedici volte ripetuti su ogni scheda.
+
+| Forma | Cosa vede l'amministratore | Costo |
+|---|---|---|
+| **Come è adesso** — `Cornice` raggruppa | su ogni scheda, un gruppo intitolato *«testi che ogni pagina del sito mostra»* con dentro i valori trasversali | nessuno: è il codice che esiste, provato e verde |
+| **L'alternativa** — elenco esteso su ogni scheda | gli stessi valori scritti per esteso fra i testi ereditati della pagina, senza il raggruppamento | ~16 voci × 5 schede nella mappa; ogni scheda diventa più lunga; ⚠️ e la mappa direbbe che `/menu` *eredita* l'indirizzo — che è vero — ma la lettura ingenua diventa «`/menu` mostra l'indirizzo **nel corpo**», che è falso |
+
+**La domanda, nella forma in cui va posta:** *«sulla scheda di ogni pagina, i valori del piè di
+pagina e dei dati strutturati devono restare raccolti sotto un titolo unico, oppure comparire uno a
+uno insieme agli altri testi ereditati?»* Nessuna delle due va implementata prima della risposta.
+
+---
+
+## Riepilogo
+
+| Fase | Task | Punto di rollout | Fuoco |
+|---|---|---|---|
+| 0 | 4 | — | Misura del «prima», coordinamento con `vetrina-redesign-mockup` |
+| 1 | 8 | 1 | 🔴 La rete, **con il modulo ancora intero**, vista fallire |
+| 2 | 7 | 2 | `RuoliImmaginiVetrina`, gallerie da 0/1/2/3/5/6 immagini |
+| 3 | 12 | 3 | Modello, migrazione additiva, eliminazione a cinque referenti |
+| 4 | 9 | 4 | `/api/public/galleria` + i quattro `.astro` |
+| 5 | 19 | 5 | 🔴 La partizione della scrittura — **stesso deploy** |
+| 6 | 19 | 6 | Le cinque schede, il seed, le icone |
+| 7 | 7 | 7 | La mappa e la sua verifica |
+| 8 | 7 | — | Chiusura |
+| **Totale** | **92** | | |

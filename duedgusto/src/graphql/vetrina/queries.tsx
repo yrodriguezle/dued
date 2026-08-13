@@ -25,6 +25,86 @@ export const getImpostazioniVetrina: TypedDocumentNode<GetImpostazioniVetrinaDat
   }
 `;
 
+interface GetRuoliImmaginiData {
+  vetrina: {
+    ruoliImmagini: RuoliImmaginiVetrina;
+  };
+}
+
+/**
+ * Quale immagine ricopre quale ruolo su ciascuna pagina del sito, adesso.
+ *
+ * 🔴 **Lo stesso piano che alimenta il sito**, calcolato dalla stessa funzione del backend: la
+ * scheda di una pagina non può dichiarare che quella pagina usa una foto mentre il sito ne rende
+ * un'altra. Fino a questa change la regola viveva scritta quattro volte dentro quattro file
+ * `.astro`, e il pannello non aveva alcun modo di conoscerla.
+ *
+ * ⚠️ `origine` non esiste nella risposta pubblica: è ciò che permette alla scheda di distinguere
+ * «scelta da te» da «è la prima della galleria, e cambierà», e al sito non serve.
+ */
+export const getRuoliImmaginiVetrina: TypedDocumentNode<GetRuoliImmaginiData, Record<string, never>> = gql`
+  ${mediaAssetFragment}
+  query GetRuoliImmaginiVetrina {
+    vetrina {
+      ruoliImmagini {
+        eroeHome {
+          mediaAssetId
+          origine
+          immagine { ...MediaAssetFragment }
+        }
+        ritrattoLocale {
+          mediaAssetId
+          origine
+          immagine { ...MediaAssetFragment }
+        }
+        eroeAperitivo {
+          mediaAssetId
+          origine
+          immagine { ...MediaAssetFragment }
+        }
+        grigliaHome { ...MediaAssetFragment }
+        fotoMenu { ...MediaAssetFragment }
+        quadrateLocale { ...MediaAssetFragment }
+        ampiezzaGriglia
+      }
+    }
+  }
+`;
+
+interface GetMappaPagineData {
+  vetrina: {
+    mappaPagine: VocePaginaVetrina[];
+  };
+}
+
+/**
+ * Quali testi governano quale pagina del sito, e dove si modificano.
+ *
+ * 🔴 **Le schede la leggono e non ne tengono una copia.** Le due sezioni «testi di questa
+ * pagina» e «testi ereditati» si costruiscono da qui: gli elenchi scritti a mano dentro ogni
+ * scheda — che è com'erano prima di questa query — divergono dai sorgenti del sito alla prima
+ * modifica, e la divergenza è **muta**: una scheda che elenca il campo sbagliato non produce
+ * alcun errore, orienta soltanto nella direzione sbagliata.
+ *
+ * ⚠️ La stessa dichiarazione C# è confrontata con i `.astro` da
+ * `sito/test/mappa-pagine.test.mjs`. Il gestionale non dipende dalla build del sito: sono due
+ * dichiarazioni testuali messe a confronto, non un'estrazione a tempo di compilazione.
+ */
+export const getMappaPagineVetrina: TypedDocumentNode<GetMappaPagineData, Record<string, never>> = gql`
+  query GetMappaPagineVetrina {
+    vetrina {
+      mappaPagine {
+        pagina
+        campo
+        percorso
+        scheda
+        etichetta
+        nota
+      }
+    }
+  }
+`;
+
 interface GetRecensioniVetrinaData {
   vetrina: {
     /** Pubblicate **e non**, nell'ordine in cui compaiono sul sito. */

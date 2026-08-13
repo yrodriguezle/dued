@@ -40,6 +40,9 @@ vi.mock("../../../../graphql/common/useGetAll", () => ({
 
 vi.mock("@apollo/client", () => ({
   useMutation: () => [vi.fn(), { loading: false }],
+  // La libreria legge anche il piano dei ruoli, per scrivere accanto a ogni immagine dove
+  // compare sul sito. Qui non serve: `MediaCard` è finta e queste prove parlano della cartella.
+  useQuery: () => ({ data: undefined, loading: false, error: undefined, refetch: vi.fn() }),
   gql: (frammenti: TemplateStringsArray | string) => frammenti,
 }));
 

@@ -14,10 +14,15 @@ interface MutateImpostazioniVetrinaVariables {
 }
 
 /**
- * Scrive le impostazioni del sito con **assegnazione totale**: si inviano tutti i campi
- * scrivibili, sempre. Non è una scomodità — è la ragione per cui un campo si può **svuotare**.
+ * Scrive i **venti campi trasversali** del sito con assegnazione totale: si inviano tutti,
+ * sempre. Non è una scomodità — è la ragione per cui un campo si può **svuotare**.
  * Un'assegnazione condizionale (`if (valore) …`) renderebbe impossibile togliere un link
  * social già inserito, e nessun errore lo direbbe.
+ *
+ * 🔴 **L'assegnazione totale vale sul PROPRIO gruppo, non su tutti i campi della riga.** Questa
+ * mutation non nomina i testi editoriali né la reputazione: appartengono alle schede delle
+ * pagine, e non essendo nominabili da qui non c'è alcun percorso per cui un salvataggio delle
+ * impostazioni li azzeri.
  *
  * ⚠️ L'input **non possiede** l'identificativo della riga né alcun campo di orario: il resolver
  * fa upsert sulla costante di dominio, e gli orari hanno una sola sorgente in `BusinessSettings`.
@@ -27,6 +32,68 @@ export const mutationMutateImpostazioniVetrina: TypedDocumentNode<MutateImpostaz
   mutation MutateImpostazioniVetrina($input: ImpostazioniVetrinaInput!) {
     vetrina {
       mutateImpostazioniVetrina(input: $input) {
+        ...ImpostazioniVetrinaFragment
+      }
+    }
+  }
+`;
+
+// ============ LE TRE SCRITTURE PER PAGINA ============
+//
+// 🔴 Tre mutation e non tre argomenti della stessa: una mutation, una pagina. Con un input a
+//    gruppi facoltativi un client potrebbe legittimamente inviarne due in una chiamata, cioè
+//    «un salvataggio che tocca due pagine» — la cosa che questa change esiste per rendere
+//    impossibile. Qui è impossibile per costruzione.
+//
+// ⚠️ Il tipo di ritorno è lo STESSO delle impostazioni, e il fragment pure: la divisione
+//    riguarda la scrittura, non la lettura. Quattro fragment vorrebbero dire quattro copie in
+//    cache Apollo della stessa riga singleton, che divergerebbero al primo salvataggio.
+
+interface MutatePaginaData<Nome extends string> {
+  vetrina: Record<Nome, ImpostazioniVetrina>;
+}
+
+/** La frase sotto il titolo, i tre numeri della reputazione e lo slot dell'immagine grande. */
+export const mutationMutatePaginaHome: TypedDocumentNode<MutatePaginaData<"mutatePaginaHome">, { input: PaginaHomeInput }> = gql`
+  ${impostazioniVetrinaFragment}
+  mutation MutatePaginaHome($input: PaginaHomeInput!) {
+    vetrina {
+      mutatePaginaHome(input: $input) {
+        ...ImpostazioniVetrinaFragment
+      }
+    }
+  }
+`;
+
+/**
+ * Titolo e testo della storia, e lo slot del ritratto.
+ *
+ * 🔴 Svuotare `storiaTesto` **fa sparire `/locale` dal sito**: risponde 404 e sparisce da
+ * intestazione, piè di pagina e sitemap. È un'operazione voluta, non un incidente da impedire —
+ * ma è l'unico punto del prodotto in cui salvare cancella un URL.
+ */
+export const mutationMutatePaginaLocale: TypedDocumentNode<MutatePaginaData<"mutatePaginaLocale">, { input: PaginaLocaleInput }> = gql`
+  ${impostazioniVetrinaFragment}
+  mutation MutatePaginaLocale($input: PaginaLocaleInput!) {
+    vetrina {
+      mutatePaginaLocale(input: $input) {
+        ...ImpostazioniVetrinaFragment
+      }
+    }
+  }
+`;
+
+/**
+ * I quattro testi dell'aperitivo e lo slot dell'immagine grande.
+ *
+ * ⚠️ Questi testi sono **letti anche dalla home** e restano di proprietà di questa scheda: la
+ * regola non è «un campo, una pagina», è «un campo, un proprietario».
+ */
+export const mutationMutatePaginaAperitivo: TypedDocumentNode<MutatePaginaData<"mutatePaginaAperitivo">, { input: PaginaAperitivoInput }> = gql`
+  ${impostazioniVetrinaFragment}
+  mutation MutatePaginaAperitivo($input: PaginaAperitivoInput!) {
+    vetrina {
+      mutatePaginaAperitivo(input: $input) {
         ...ImpostazioniVetrinaFragment
       }
     }

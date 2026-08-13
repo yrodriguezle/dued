@@ -1,16 +1,15 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "@apollo/client";
-import { Link as RouterLink } from "react-router";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
-import Link from "@mui/material/Link";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { Form, Formik, FormikProps } from "formik";
 import { toast } from "react-toastify";
 
+import AvvisoOrari from "./AvvisoOrari";
 import MediaPickerDialog from "./MediaPickerDialog";
 import SitoGuard from "./SitoGuard";
 import { larghezzaAnteprima, mediaUrl } from "./mediaUrl";
@@ -18,8 +17,8 @@ import {
   META_DESCRIZIONE_CONSIGLIATA,
   META_TITOLO_CONSIGLIATO,
   ValoriImpostazioniVetrina,
-  inputDaValori,
-  validaImpostazioniVetrina,
+  inputImpostazioni,
+  validaImpostazioniSito,
   valoriDaImpostazioni,
 } from "./impostazioniVetrinaModulo";
 import FormikCheckbox from "../../common/form/FormikCheckbox";
@@ -60,8 +59,21 @@ function SezioneImpostazioni({ titolo, descrizione, children }: { titolo: string
 }
 
 /**
- * Le impostazioni del sito vetrina, compilabili da chi possiede i dati invece che da chi sa
- * scrivere una mutation.
+ * Le impostazioni **trasversali** del sito vetrina — i venti campi che non appartengono a una
+ * pagina sola — compilabili da chi possiede i dati invece che da chi sa scrivere una mutation.
+ *
+ * 🔴 **I testi editoriali non sono più qui.** Il paragrafo della home, la storia del locale, i
+ * quattro campi dell'aperitivo e la reputazione sono passati alle schede delle rispettive pagine:
+ * ognuno di quei campi decide come si rende **una** pagina — due dei sei decidono perfino se
+ * quella pagina *esiste* — e il posto in cui si modificano deve essere il posto in cui si vede
+ * cosa cambiano. Lasciarne una copia anche qui sarebbe la violazione esatta che la partizione
+ * esiste per togliere: due schede che scrivono lo stesso campo sono due verità, e vince l'ultima
+ * che salva.
+ *
+ * ⚠️ **La pagina NON si rinomina.** Dopo la riduzione contiene identità, indirizzo, posizione,
+ * contatti, social, SEO di default, aspetto e ganci spenti — cioè esattamente ciò che
+ * «Impostazioni sito» già descrive. E il suo `Percorso` è la chiave di idempotenza del seed:
+ * cambiarlo ricreerebbe la voce di menu invece di aggiornarla.
  *
  * 🔴 **Nessun campo di orario.** Apertura, chiusura, giorni operativi e fuso si modificano dalle
  * impostazioni della cassa, che ne sono la sola sorgente — e la pagina lo **dice**, invece di
@@ -135,7 +147,7 @@ function ImpostazioniVetrinaPage() {
   const handleSubmit = useCallback(
     async (valori: ValoriImpostazioniVetrina) => {
       try {
-        await mutateImpostazioni({ variables: { input: inputDaValori(valori) } });
+        await mutateImpostazioni({ variables: { input: inputImpostazioni(valori) } });
       } catch {
         // L'errore è già mostrato da onError: qui si evita solo la promise rifiutata.
       }
@@ -176,7 +188,7 @@ function ImpostazioniVetrinaPage() {
         innerRef={formRef}
         initialValues={initialValues}
         enableReinitialize
-        validate={validaImpostazioniVetrina}
+        validate={validaImpostazioniSito}
         onSubmit={handleSubmit}
         initialStatus={{ formStatus: formStatuses.UPDATE, isFormLocked: true }}
       >
@@ -193,6 +205,13 @@ function ImpostazioniVetrinaPage() {
                 {!impostazioni && (
                   <Alert severity="info">Le impostazioni del sito non sono ancora state create: compila i campi e salva per crearle.</Alert>
                 )}
+
+                {/* 🔴 I testi editoriali sono usciti da questa pagina, e chi li cercava qui deve
+                    trovarci scritto dove sono andati: una sezione sparita senza spiegazione si
+                    legge come un dato perso. */}
+                <Alert severity="info">
+                  I testi del sito — la frase della home, la storia del locale, l&apos;aperitivo e i numeri delle recensioni Google — si modificano dalla scheda della <strong>pagina</strong> a cui appartengono, sotto <strong>Sito</strong>. Qui restano i dati che valgono per tutte le pagine.
+                </Alert>
 
                 <SezioneImpostazioni
                   titolo="Identità"
@@ -389,157 +408,6 @@ function ImpostazioniVetrinaPage() {
                   </div>
                 </SezioneImpostazioni>
 
-                <SezioneImpostazioni
-                  titolo="Testi del sito"
-                  descrizione="Quello che il sito dice del locale. Nessuna di queste frasi è scritta nel codice: se le lasci vuote, il sito non le inventa — la sezione semplicemente non compare."
-                >
-                  <div className="grid grid-cols-12 gap-4">
-                    <div className="col-span-12">
-                      <FormikTextField
-                        name="claimVetrina"
-                        label="Frase sotto il titolo della home"
-                        placeholder="Espresso alle sette, congrì a mezzogiorno, mojito al tramonto."
-                        fullWidth
-                        multiline
-                        minRows={2}
-                        helperText="Una o due frasi. Vuota: la home mostra solo il titolo."
-                      />
-                    </div>
-                  </div>
-                </SezioneImpostazioni>
-
-                {/* 🔴 Queste due sezioni non riempiono una pagina: DECIDONO SE ESISTE. Un campo
-                    che fa comparire o sparire una rotta dalla navigazione, senza dirlo, è il
-                    tipo di cosa che si scopre da un 404 segnalato da un cliente. */}
-                <SezioneImpostazioni
-                  titolo="Pagina «Il locale»"
-                  descrizione="La vostra storia, con nomi e date veri. Righe vuote fra un capoverso e l'altro: il sito le rende come paragrafi."
-                >
-                  <Alert
-                    severity="warning"
-                    sx={{ mb: 2 }}
-                  >
-                    Senza il testo, la pagina <strong>Il locale</strong> non esiste sul sito: chi ci arriva riceve un «pagina non trovata». È voluto — una pagina che si apre su un titolo e nient&apos;altro promette qualcosa che non mantiene.
-                  </Alert>
-                  <div className="grid grid-cols-12 gap-4">
-                    <div className="col-span-12 sm:col-span-7">
-                      <FormikTextField
-                        name="storiaTitolo"
-                        label="Titolo"
-                        placeholder="Due mani italiane, una ricetta cubana"
-                        fullWidth
-                      />
-                    </div>
-                    <div className="col-span-12">
-                      <FormikTextField
-                        name="storiaTesto"
-                        label="Testo"
-                        fullWidth
-                        multiline
-                        minRows={5}
-                        helperText="Lascia una riga vuota per andare a capoverso."
-                      />
-                    </div>
-                  </div>
-                </SezioneImpostazioni>
-
-                <SezioneImpostazioni
-                  titolo="Pagina «Aperitivo»"
-                  descrizione="La pagina che la gente cerca per nome. Il richiamo in home e il riquadro sulla foto compaiono solo se questo testo c'è."
-                >
-                  <Alert
-                    severity="warning"
-                    sx={{ mb: 2 }}
-                  >
-                    Senza il testo, la pagina <strong>Aperitivo</strong> non esiste sul sito.
-                  </Alert>
-                  <div className="grid grid-cols-12 gap-4">
-                    <div className="col-span-12 sm:col-span-7">
-                      <FormikTextField
-                        name="aperitivoTitolo"
-                        label="Titolo"
-                        placeholder="Aperitivo Apericosto"
-                        fullWidth
-                      />
-                    </div>
-                    <div className="col-span-12">
-                      <FormikTextField
-                        name="aperitivoTesto"
-                        label="Testo"
-                        fullWidth
-                        multiline
-                        minRows={3}
-                      />
-                    </div>
-                    <div className="col-span-12 sm:col-span-6">
-                      <FormikTextField
-                        name="aperitivoPunti"
-                        label="Cosa è compreso"
-                        fullWidth
-                        multiline
-                        minRows={4}
-                        placeholder={"Un cocktail cubano a scelta\nIl tagliere del giorno\nTavoli sotto la pergola"}
-                        helperText="Una voce per riga. Ne vengono pubblicate al massimo sei."
-                      />
-                    </div>
-                    <div className="col-span-12 sm:col-span-6">
-                      <FormikTextField
-                        name="aperitivoCategorie"
-                        label="Categorie del listino da mostrare"
-                        fullWidth
-                        multiline
-                        minRows={4}
-                        placeholder={"Cocktail\nAperitivo"}
-                        // ⚠️ Il nome deve corrispondere ESATTAMENTE alla categoria di vetrina
-                        //    scritta sui prodotti. Non è irrigidibile — sono due campi di testo
-                        //    libero — quindi la cosa va detta qui, che è l'unico posto in cui
-                        //    qualcuno la leggerà prima di sbagliarla.
-                        helperText="Una per riga, col nome esatto usato nella griglia prodotti. Una riga che non corrisponde a nulla non dà errore: semplicemente non porta prodotti."
-                      />
-                    </div>
-                  </div>
-                </SezioneImpostazioni>
-
-                <SezioneImpostazioni
-                  titolo="Recensioni su Google"
-                  descrizione="I due numeri che compaiono sopra le citazioni in home. Si aggiornano a mano, ed è il loro limite: invecchiano."
-                >
-                  <div className="grid grid-cols-12 gap-4">
-                    <div className="col-span-6 sm:col-span-3">
-                      <FormikTextField
-                        name="punteggioGoogle"
-                        label="Punteggio medio"
-                        placeholder="4.7"
-                        fullWidth
-                      />
-                    </div>
-                    <div className="col-span-6 sm:col-span-3">
-                      <FormikTextField
-                        name="numeroRecensioniGoogle"
-                        label="Numero di recensioni"
-                        placeholder="180"
-                        fullWidth
-                      />
-                    </div>
-                    <div className="col-span-12 sm:col-span-6">
-                      <FormikTextField
-                        name="urlProfiloGoogle"
-                        label="Link al profilo Google"
-                        placeholder="https://maps.app.goo.gl/…"
-                        fullWidth
-                      />
-                    </div>
-                    <div className="col-span-12">
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                      >
-                        Le citazioni si scrivono nella pagina <strong>Recensioni</strong>. Il punteggio e il numero vanno insieme: da soli dicono meno di quanto sembra — «4,7» senza conteggio nasconde che le recensioni potrebbero essere tre.
-                      </Typography>
-                    </div>
-                  </div>
-                </SezioneImpostazioni>
-
                 <SezioneImpostazioni titolo="Prenotazioni">
                   {/* 🔴 Un campo che si compila e non fa niente, senza spiegazione, è un bug
                       segnalato. L'avviso è visibile senza aprire nulla. */}
@@ -577,17 +445,11 @@ function ImpostazioniVetrinaPage() {
 
                 {/* Gli orari NON si modificano da qui: hanno una sola sorgente. Dirlo dove
                     qualcuno li cercherebbe costa una riga; non dirlo costa un sito che dice
-                    aperto fino alle 21 e una cassa che dice 19. */}
-                <Alert severity="info">
-                  Gli orari di apertura e chiusura, i giorni di apertura e il fuso orario non si modificano da qui: il sito li legge dalle{" "}
-                  <Link
-                    component={RouterLink}
-                    to="/gestionale/settings"
-                  >
-                    impostazioni della cassa
-                  </Link>
-                  , che ne sono l&apos;unica sorgente.
-                </Alert>
+                    aperto fino alle 21 e una cassa che dice 19.
+                    ⚠️ La frase è in `AvvisoOrari` e non ricopiata qui: le schede di pagina
+                    Home e Contatti devono dire la stessa identica cosa, e tre copie si
+                    correggono in una sola. */}
+                <AvvisoOrari />
               </Box>
             </Box>
 

@@ -545,7 +545,16 @@ namespace duedgusto.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
 
+                    b.Property<int?>("ImmagineEroeAperitivoId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ImmagineEroeHomeId")
+                        .HasColumnType("int");
+
                     b.Property<int?>("ImmagineOgId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ImmagineRitrattoLocaleId")
                         .HasColumnType("int");
 
                     b.Property<string>("InsegnaPubblica")
@@ -643,7 +652,13 @@ namespace duedgusto.Migrations
 
                     b.HasKey("ImpostazioniVetrinaId");
 
+                    b.HasIndex("ImmagineEroeAperitivoId");
+
+                    b.HasIndex("ImmagineEroeHomeId");
+
                     b.HasIndex("ImmagineOgId");
+
+                    b.HasIndex("ImmagineRitrattoLocaleId");
 
                     b.ToTable("ImpostazioniVetrina", null, t =>
                         {
@@ -1514,12 +1529,33 @@ namespace duedgusto.Migrations
 
             modelBuilder.Entity("duedgusto.Models.ImpostazioniVetrina", b =>
                 {
+                    b.HasOne("duedgusto.Models.MediaAsset", "ImmagineEroeAperitivo")
+                        .WithMany()
+                        .HasForeignKey("ImmagineEroeAperitivoId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("duedgusto.Models.MediaAsset", "ImmagineEroeHome")
+                        .WithMany()
+                        .HasForeignKey("ImmagineEroeHomeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("duedgusto.Models.MediaAsset", "ImmagineOg")
                         .WithMany()
                         .HasForeignKey("ImmagineOgId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("duedgusto.Models.MediaAsset", "ImmagineRitrattoLocale")
+                        .WithMany()
+                        .HasForeignKey("ImmagineRitrattoLocaleId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ImmagineEroeAperitivo");
+
+                    b.Navigation("ImmagineEroeHome");
+
                     b.Navigation("ImmagineOg");
+
+                    b.Navigation("ImmagineRitrattoLocale");
                 });
 
             modelBuilder.Entity("duedgusto.Models.Menu", b =>
