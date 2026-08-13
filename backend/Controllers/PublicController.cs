@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Linq.Expressions;
 using System.Text.Json;
 
@@ -10,6 +11,7 @@ using duedgusto.Common;
 using duedgusto.Controllers.Public.Dto;
 using duedgusto.DataAccess;
 using duedgusto.Models;
+using duedgusto.Services.Calendario;
 using duedgusto.Services.Media;
 using duedgusto.Services.Vetrina;
 
@@ -154,6 +156,19 @@ public class PublicController(
             .Select(impostazioni => impostazioni.Timezone)
             .FirstOrDefaultAsync(cancellationToken);
 
+        return OggiNel(fuso);
+    }
+
+    /// <summary>
+    /// Lo stesso calcolo, per chi il fuso <b>ce l'ha già</b>.
+    ///
+    /// <para>⚠️ Esiste perché <c>Site</c> legge le impostazioni operative comunque, e chiedere una
+    /// seconda volta la stessa colonna alla stessa tabella nella stessa richiesta è il modo in cui
+    /// due letture della stessa cosa cominciano a poter divergere — oltre che una query in più su
+    /// una rotta anonima.</para>
+    /// </summary>
+    private DateOnly OggiNel(string? fuso)
+    {
         try
         {
             TimeZoneInfo zona = TimeZoneInfo.FindSystemTimeZoneById(
@@ -405,6 +420,9 @@ public class PublicController(
             operative = DefaultOperativo();
         }
 
+        IReadOnlyList<ChiusuraPubblicaDto> chiusure =
+            await ChiusureImminentiAsync(operative.Timezone, cancellationToken);
+
         return Ok(new SitoPubblicoDto(
             sito.Insegna,
             new IndirizzoPubblicoDto(sito.Via, sito.Cap, sito.Citta, sito.Provincia, sito.Paese),
@@ -420,6 +438,7 @@ public class PublicController(
                 operative.Chiusura,
                 LeggiGiorniOperativi(operative.GiorniOperativi),
                 operative.Timezone),
+            chiusure,
             new SeoPubblicaDto(
                 sito.MetaTitoloDefault,
                 sito.MetaDescrizioneDefault,
@@ -443,6 +462,51 @@ public class PublicController(
                     recensione.Fonte,
                     recensione.Punteggio))
                 .ToListAsync(cancellationToken)));
+    }
+
+    /// <summary>
+    /// Le date chiuse da oggi in avanti: ferie, festività e chiusure straordinarie, già proiettate
+    /// su un calendario.
+    ///
+    /// <para>🔴 <b>Il filtro in SQL non può essere completo, e va saputo.</b> Una riga ricorrente
+    /// vale ogni anno, quindi la sua <c>Data</c> — che porta l'anno in cui è stata inserita — non
+    /// dice nulla su quando cade: confrontarla con la finestra scarterebbe il Natale del 2025
+    /// mentre si guarda il dicembre del 2026. Perciò i ricorrenti si leggono <b>tutti</b> e si
+    /// filtrano in memoria; i non ricorrenti, che sono la maggioranza e crescono senza limite, li
+    /// filtra il database.</para>
+    ///
+    /// <para>⚠️ L'ordinamento <b>non è cosmesi</b>: mette i non ricorrenti per primi ed è ciò che
+    /// decide chi vince quando due righe coprono la stessa data — vedi
+    /// <see cref="ChiusureProgrammate.NellaFinestra"/>. Il secondo criterio esiste perché la
+    /// risposta è cacheabile 300 secondi e due letture devono produrre la stessa pagina.</para>
+    ///
+    /// <para>⚠️ <c>ToString("yyyy-MM-dd", InvariantCulture)</c> e non il formato corrente: su una
+    /// macchina con un calendario non gregoriano la stessa chiamata produrrebbe un anno diverso, e
+    /// il confronto di stringhe che lo script del sito fa contro «oggi» smetterebbe di combaciare
+    /// senza che nulla sollevi.</para>
+    /// </summary>
+    private async Task<IReadOnlyList<ChiusuraPubblicaDto>> ChiusureImminentiAsync(
+        string fuso,
+        CancellationToken cancellationToken)
+    {
+        DateOnly oggi = OggiNel(fuso);
+        DateOnly fine = oggi.AddDays(ChiusureProgrammate.GiorniDiOrizzonte - 1);
+
+        List<GiornoNonLavorativo> righe = await dbContext.GiorniNonLavorativi
+            .Where(giorno =>
+                giorno.Ricorrente || (giorno.Data >= oggi && giorno.Data <= fine))
+            .OrderBy(giorno => giorno.Ricorrente)
+            .ThenBy(giorno => giorno.GiornoId)
+            .Take(ChiusureProgrammate.MaxRigheLette)
+            .ToListAsync(cancellationToken);
+
+        return ChiusureProgrammate
+            .NellaFinestra(righe, oggi)
+            .Select(chiusa => new ChiusuraPubblicaDto(
+                chiusa.Data.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                chiusa.Giorno.Descrizione.Trim(),
+                chiusa.Giorno.CodiceMotivo))
+            .ToList();
     }
 
     /// <summary>

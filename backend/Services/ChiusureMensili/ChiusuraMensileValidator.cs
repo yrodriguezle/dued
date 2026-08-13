@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using duedgusto.Models;
 using duedgusto.DataAccess;
+using duedgusto.Services.Calendario;
 
 namespace duedgusto.Services.ChiusureMensili;
 
@@ -62,22 +63,15 @@ public class ChiusuraMensileValidator
         List<GiornoNonLavorativo> giorniNonLavorativi = await _dbContext.GiorniNonLavorativi.ToListAsync();
         if (giorniNonLavorativi.Count > 0)
         {
+            // 🔴 La regola di ricorrenza sta in ChiusureProgrammate.CadeIl e non più qui: da
+            //    quando esiste un secondo lettore — la rotta pubblica che alimenta il sito —
+            //    riscriverla significherebbe due copie della stessa condizione su due lati che
+            //    devono concordare. Se divergessero, la cassa non pretenderebbe il registro del
+            //    25 dicembre e il sito direbbe «aperto».
             giorniMancanti = giorniMancanti.Where(data =>
             {
                 var dataOnly = DateOnly.FromDateTime(data);
-                return !giorniNonLavorativi.Any(gnl =>
-                {
-                    if (gnl.Ricorrente)
-                    {
-                        // Per i ricorrenti, confronta solo mese e giorno
-                        return gnl.Data.Month == dataOnly.Month && gnl.Data.Day == dataOnly.Day;
-                    }
-                    else
-                    {
-                        // Per i non ricorrenti, confronta la data esatta
-                        return gnl.Data == dataOnly;
-                    }
-                });
+                return !giorniNonLavorativi.Any(gnl => ChiusureProgrammate.CadeIl(gnl, dataOnly));
             }).ToList();
         }
 

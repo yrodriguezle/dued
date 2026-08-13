@@ -134,6 +134,7 @@ public static class MappaPagineVetrina
         new(PaginaVetrina.Cornice, "OpeningTime", "orari.apertura", SchedaVetrina.ImpostazioniCassa, "Orario di apertura", "Gli orari hanno una sola sorgente, e non è il sito: sono quelli della cassa."),
         new(PaginaVetrina.Cornice, "ClosingTime", "orari.chiusura", SchedaVetrina.ImpostazioniCassa, "Orario di chiusura", null),
         new(PaginaVetrina.Cornice, "OperatingDays", "orari.giorniOperativi", SchedaVetrina.ImpostazioniCassa, "Giorni di apertura", null),
+        new(PaginaVetrina.Cornice, "GiorniNonLavorativi", "chiusure", SchedaVetrina.ImpostazioniCassa, "Ferie e chiusure straordinarie", "L'avviso in cima al sito compare da solo quando una chiusura si avvicina. Come gli orari, vivono nel calendario della cassa e non nel sito."),
 
         // ── La home ──────────────────────────────────────────────────────────────────────────
         new(PaginaVetrina.Home, "InsegnaPubblica", "insegna", SchedaVetrina.Impostazioni, "Insegna pubblica", "La home la scrive anche nel proprio titolo."),

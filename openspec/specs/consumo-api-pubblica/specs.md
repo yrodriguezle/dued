@@ -417,6 +417,56 @@ Vincoli che il tipo MUST riportare fedelmente:
 | punto focale | stringa **già** nella forma utilizzabile dal client | nessuna conversione lato sito |
 | placeholder | data URI **completo** | si usa verbatim, non si compone |
 | ora di inizio del registro serale | **parametro**, non "è sera adesso" | spec `temi-e-identita` |
+| chiusure | elenco di **date già proiettate**, vuoto quando non ce n'è — mai `null` | il sito non conosce il concetto di ricorrenza: l'ha risolto il server, e «sono chiuso oggi?» è un confronto di stringhe |
+
+### Requirement: Lo stato di apertura tiene conto delle chiusure, non solo della settimana
+
+Il sito MUST comporre **tre** condizioni per dichiararsi aperto: la data non è fra le chiusure,
+**e** il giorno della settimana è operativo, **e** l'ora è dentro la fascia. Le tre sono
+indipendenti e nessuna implica le altre.
+
+> Il 13 agosto 2026 il bar era in ferie dal 10 al 22, registrate in cassa. Era un giovedì
+> operativo, dentro la fascia `07:00`–`20:00`: la pastiglia si accendeva verde e diceva
+> «Aperto». La formula aveva due condizioni su tre.
+
+La formula MUST restare in **un solo modulo** — quello che i test esercitano — e MUST restare
+autosufficiente, perché arriva nel browser serializzata.
+
+La distinzione fra *dato* e *orologio* resta, con la granularità come criterio:
+
+| Cosa | Dove | Perché |
+|---|---|---|
+| l'elenco delle chiusure e le date che nomina | **server** | è dato, con granularità di **giorno**: sessanta secondi di micro-cache attorno a mezzanotte non lo spostano, e renderlo nel browser lo toglierebbe a chi ha JavaScript spento |
+| «è chiuso adesso» e «oggi è un giorno di chiusura» | **browser** | è orologio, con granularità di **minuto**: reso dal server produrrebbe un HTML che cambia da solo nel tempo |
+
+Quando il locale è chiuso per una chiusura del calendario, il sito MUST NOT annunciare l'ora di
+apertura: quella frase è vera solo per la chiusura ordinaria della fascia oraria, e in un giorno
+di ferie è una data sbagliata detta con sicurezza.
+
+I dati strutturati per i motori MUST dichiarare le stesse eccezioni: `openingHoursSpecification`
+da sola descrive la settimana ricorrente e dichiara il locale aperto ogni giovedì, ferie
+comprese — ed è la copia che finisce nella scheda del locale, cioè quella che nessuno rilegge.
+
+#### Scenario: Un giorno di ferie è chiuso pur essendo operativo e in fascia
+
+- GIVEN un giovedì operativo, alle dieci del mattino, dentro la fascia oraria
+- AND quella data è fra le chiusure
+- WHEN si valuta lo stato di apertura
+- THEN il locale risulta chiuso
+
+#### Scenario: La chiusura si annuncia in pagina prima di essere in corso
+
+- GIVEN una chiusura dentro l'orizzonte ma non ancora cominciata
+- WHEN si apre `/`
+- THEN la pagina la annuncia con le sue date
+- AND non dichiara il locale chiuso adesso
+
+#### Scenario: Nessuna chiusura, nessuna fascia
+
+- GIVEN un elenco di chiusure vuoto
+- WHEN si apre `/`
+- THEN nessun avviso di chiusura si rende
+- AND i dati strutturati non contengono alcuna sezione di eccezioni
 
 #### Scenario: Giorni operativi nulli
 

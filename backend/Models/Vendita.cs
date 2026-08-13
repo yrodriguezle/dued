@@ -12,6 +12,18 @@ public class Vendita
     public DateTime DataOra { get; set; } = DateTime.UtcNow; // Timestamp della vendita
 
     /// <summary>
+    /// Come è stata pagata: uno dei tre valori di <see cref="Common.MetodiPagamentoVendita"/>.
+    /// È ciò che decide in quale secchio del registro finisce l'importo — vedi
+    /// <c>SecchiIncassiApplier</c>.
+    ///
+    /// <para>⚠️ Il default è <b>contante non tracciato</b>, e non è una scelta neutra a caso: è
+    /// l'unico dei tre che non muove alcun campo del registro. Una vendita creata da un
+    /// chiamante che non conosce ancora questo campo non può quindi gonfiare un incasso per
+    /// sbaglio — il modo giusto di sbagliare.</para>
+    /// </summary>
+    public string MetodoPagamento { get; set; } = Common.MetodiPagamentoVendita.ContanteNonTracciato;
+
+    /// <summary>
     /// Snapshot IVA al momento della vendita: aliquota in PERCENTUALE (es. 22.00),
     /// copiata dal prodotto alla creazione (immutabile salvo cambio prodotto).
     /// </summary>

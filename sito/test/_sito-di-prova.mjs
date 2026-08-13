@@ -35,6 +35,9 @@ export const SITO_FINTO = {
     giorniOperativi: [true, true, true, true, true, true, false],
     timezone: 'Europe/Rome',
   },
+  // ⚠️ Vuoto è lo stato di quasi tutto l'anno, ed è anche una chiave che `leggiSito`
+  //    PRETENDE: senza, ogni pagina di ogni test cadrebbe in degradazione.
+  chiusure: [],
   seo: { titoloDefault: null, descrizioneDefault: null, immagineOg: null },
   oraInizioTemaSera: '18:00',
   // ⚠️ `testi` e `recensioni` sono fra le chiavi che `leggiSito` PRETENDE, quindi non sono
@@ -64,6 +67,24 @@ export const SITO_FINTO_CON_TESTI = {
   recensioni: [
     { id: 1, autore: 'Recensione Google', testo: 'Il mojito è fatto come si deve.', fonte: 'Google', punteggio: 5 },
   ],
+};
+
+/**
+ * L'identità con una chiusura in corso: le ferie del 10–22 agosto 2026, che è il caso reale
+ * da cui è nato il campo.
+ *
+ * ⚠️ Le date sono FISSE e nel passato rispetto a quando questi test gireranno, ed è
+ *    deliberato: il server manda ciò che ha in pancia e il sito lo rende, quindi non serve
+ *    che «oggi» ci caschi dentro per provare che la fascia compare. Che la finestra cominci
+ *    da oggi lo decide il backend, ed è provato di là.
+ */
+export const SITO_FINTO_IN_FERIE = {
+  ...SITO_FINTO,
+  chiusure: Array.from({ length: 13 }, (_, indice) => ({
+    data: `2026-08-${String(10 + indice).padStart(2, '0')}`,
+    descrizione: 'Ferie',
+    motivo: 'FERIE',
+  })),
 };
 
 export function immagineFinta(chiave = '2026/08/foto-prova', larghezze = [400, 800]) {

@@ -949,6 +949,15 @@ public class AppDbContext : DbContext
                 .HasColumnType("decimal(10,2)")
                 .IsRequired();
 
+            // Il secchio dell'incasso: uno dei tre valori di MetodiPagamentoVendita.
+            // ⚠️ Il default a livello di colonna è il NON tracciato, l'unico che non muove
+            //    alcun campo del registro: una riga inserita da una via che non conosce questo
+            //    campo non può gonfiare un incasso per sbaglio.
+            entity.Property(x => x.MetodoPagamento)
+                .HasMaxLength(30)
+                .IsRequired()
+                .HasDefaultValue(Common.MetodiPagamentoVendita.ContanteNonTracciato);
+
             // Snapshot IVA di riga (aliquota in percentuale, importi scorporati)
             entity.Property(x => x.AliquotaIva)
                 .HasColumnType("decimal(5,2)")

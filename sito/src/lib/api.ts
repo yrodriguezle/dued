@@ -136,7 +136,19 @@ export function leggiSito(): Promise<Esito<SitoPubblico>> {
     //    guasto peggiore possibile ed è precisamente quello che questo modulo esiste per
     //    evitare. Dichiarandole qui, un backend vecchio produce la degradazione documentata:
     //    avviso in pagina, `no-store`, e una riga nei log con il motivo `formato`.
-    haLeChiavi(v, ['insegna', 'indirizzo', 'orari', 'oraInizioTemaSera', 'testi', 'recensioni'])
+    // ⚠️ `chiusure` sta fra le richieste per la stessa ragione delle due qui sopra: le pagine
+    //    ci iterano sopra, e su un backend più vecchio del sito sarebbe `undefined.length` nel
+    //    frontmatter — cioè un 500 servito al visitatore. Dichiarandola, un backend vecchio
+    //    produce la degradazione documentata invece di una pagina rotta.
+    haLeChiavi(v, [
+      'insegna',
+      'indirizzo',
+      'orari',
+      'chiusure',
+      'oraInizioTemaSera',
+      'testi',
+      'recensioni',
+    ])
   );
 }
 

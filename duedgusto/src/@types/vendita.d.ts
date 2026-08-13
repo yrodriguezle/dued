@@ -1,0 +1,64 @@
+/**
+ * I tre modi in cui si incassa una consumazione — e, cosa che conta di più, i tre **secchi**
+ * del registro in cui il denaro finisce. Le stringhe sono quelle del server
+ * (`MetodiPagamentoVendita`), confrontate in modo **ordinale**: `"elettronico"` minuscolo
+ * verrebbe rifiutato.
+ */
+type MetodoPagamentoVendita = "ELETTRONICO" | "CONTANTE_TRACCIATO" | "CONTANTE_NON_TRACCIATO";
+
+/**
+ * Il prodotto come lo vede il **banco**: il minimo per disegnare un pulsante e battere una riga.
+ * Più stretto di [[ProdottoCassa]] di proposito — e la query che lo alimenta filtra su `attivo`,
+ * perché un prodotto disattivato non si vende e il suo pulsante non deve esistere.
+ */
+type ProdottoVendibile = {
+  __typename?: "Prodotto";
+  prodottoId: number;
+  codice: string;
+  nome: string;
+  prezzo: number;
+  categoria?: string | null;
+  aliquotaIva: number;
+};
+
+/** Una consumazione battuta, con lo snapshot IVA che il server calcola alla creazione. */
+type Vendita = {
+  __typename?: "Vendita";
+  venditaId: number;
+  registroCassaId: number;
+  prodottoId: number;
+  quantita: number;
+  prezzoUnitario: number;
+  prezzoTotale: number;
+  /** Aliquota in PERCENTUALE (es. `10` = 10%), copiata dal prodotto al momento della vendita. */
+  aliquotaIva: number;
+  imponibile: number;
+  importoIva: number;
+  note?: string | null;
+  dataOra: string;
+  metodoPagamento: MetodoPagamentoVendita;
+  createdAt: string;
+  updatedAt: string;
+  prodotto?: { prodottoId: number; codice: string; nome: string } | null;
+};
+
+type CreaVenditaInput = {
+  registroCassaId: number;
+  prodottoId: number;
+  quantita: number;
+  note?: string | null;
+  dataOra?: string | null;
+  /**
+   * Omesso vale contante **non** tracciato, l'unico dei tre che non muove alcun campo del
+   * registro: chi dimentica questo campo sbaglia per difetto, non gonfiando un incasso.
+   */
+  metodoPagamento?: MetodoPagamentoVendita | null;
+};
+
+type AggiornaVenditaInput = {
+  prodottoId?: number | null;
+  quantita?: number | null;
+  note?: string | null;
+  /** `null` lascia il metodo esistente; un valore lo sposta **da un secchio all'altro**. */
+  metodoPagamento?: MetodoPagamentoVendita | null;
+};

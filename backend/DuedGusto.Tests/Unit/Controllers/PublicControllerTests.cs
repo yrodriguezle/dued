@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 
 using FluentAssertions.Execution;
@@ -8,6 +9,7 @@ using Microsoft.Extensions.Logging;
 
 using duedgusto.Controllers;
 using duedgusto.Controllers.Public.Dto;
+using duedgusto.Services.Calendario;
 using duedgusto.Services.Media;
 using duedgusto.Services.Vetrina;
 
@@ -550,6 +552,101 @@ public class PublicControllerTests : IDisposable
     }
 
     // ─────────────────────────────────────────────────────────────────────────────────────
+    //  Site — le chiusure
+    //
+    //  🔴 Il guasto che questi test chiudono: il 13 agosto 2026, con il bar in ferie dal 10 al
+    //     22 registrate in cassa, il sito scriveva «Giovedì 07:00 — 20:00» e accendeva
+    //     «Aperto». Non era una cache e non era un ritardo di propagazione — l'orario
+    //     settimanale arrivava vivo e corretto — era che il contratto pubblico non aveva alcun
+    //     campo in cui una chiusura potesse viaggiare.
+    //
+    //  ⚠️ «Oggi» qui si ricalcola invece di essere iniettato: la rotta non accetta parametri e
+    //     non ha un orologio da sostituire. È il prezzo dichiarato di quella scelta.
+    // ─────────────────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task Site_ConFerieInCorso_LeEsponeComeDateChiuse()
+    {
+        AggiungiImpostazioniVetrina();
+        AggiungiImpostazioniOperative();
+        AggiungiChiusura(Oggi, "Ferie", "FERIE");
+        AggiungiChiusura(Oggi.AddDays(1), "Ferie", "FERIE");
+
+        SitoPubblicoDto sito = await LeggiSito();
+
+        sito.Chiusure.Select(c => c.Data).Should().Equal(
+            Iso(Oggi),
+            Iso(Oggi.AddDays(1)));
+        sito.Chiusure[0].Descrizione.Should().Be("Ferie");
+        sito.Chiusure[0].Motivo.Should().Be("FERIE");
+    }
+
+    /// <summary>
+    /// ⚠️ Una chiusura di ieri non riguarda chi guarda il sito oggi, e tenerla dentro
+    /// significherebbe far annunciare al sito una chiusura già finita.
+    /// </summary>
+    [Fact]
+    public async Task Site_ChiusuraPassata_NonCompare()
+    {
+        AggiungiImpostazioniVetrina();
+        AggiungiImpostazioniOperative();
+        AggiungiChiusura(Oggi.AddDays(-1), "Ferie", "FERIE");
+
+        SitoPubblicoDto sito = await LeggiSito();
+
+        sito.Chiusure.Should().BeEmpty();
+    }
+
+    /// <summary>
+    /// 🔴 È il caso che un filtro SQL sulla sola data sbaglierebbe: la riga porta l'anno in cui è
+    /// stata inserita e deve cadere <b>quest'anno</b>.
+    /// </summary>
+    [Fact]
+    public async Task Site_FestivitaRicorrenteDiUnAltroAnno_CadeNellaFinestraDiQuestAnno()
+    {
+        AggiungiImpostazioniVetrina();
+        AggiungiImpostazioniOperative();
+
+        DateOnly domani = Oggi.AddDays(1);
+        AggiungiChiusura(
+            new DateOnly(2015, domani.Month, domani.Day), "Festa del paese",
+            "FESTIVITA_NAZIONALE", ricorrente: true);
+
+        SitoPubblicoDto sito = await LeggiSito();
+
+        sito.Chiusure.Select(c => c.Data).Should().Equal(Iso(domani));
+        sito.Chiusure[0].Descrizione.Should().Be("Festa del paese");
+    }
+
+    [Fact]
+    public async Task Site_OltreLOrizzonte_NonCompare()
+    {
+        AggiungiImpostazioniVetrina();
+        AggiungiImpostazioniOperative();
+        AggiungiChiusura(
+            Oggi.AddDays(ChiusureProgrammate.GiorniDiOrizzonte), "Troppo in là", "FERIE");
+
+        SitoPubblicoDto sito = await LeggiSito();
+
+        sito.Chiusure.Should().BeEmpty();
+    }
+
+    /// <summary>
+    /// Nessuna chiusura è lo stato normale di quasi tutto l'anno: elenco <b>vuoto</b>, mai
+    /// <c>null</c>, così il consumatore non ha due forme dello stesso «non ce ne sono».
+    /// </summary>
+    [Fact]
+    public async Task Site_SenzaAlcunaChiusura_EsponeUnElencoVuoto()
+    {
+        AggiungiImpostazioniVetrina();
+        AggiungiImpostazioniOperative();
+
+        SitoPubblicoDto sito = await LeggiSito();
+
+        sito.Chiusure.Should().NotBeNull().And.BeEmpty();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────────────
     //  Galleria (task 5.15)
     // ─────────────────────────────────────────────────────────────────────────────────────
 
@@ -938,6 +1035,35 @@ public class PublicControllerTests : IDisposable
             ClosingTime = chiusura,
             OperatingDays = giorni,
             Timezone = fuso,
+        });
+        _dbContext.SaveChanges();
+    }
+
+    /// <summary>
+    /// Il giorno <b>nel fuso del locale</b>, calcolato come lo calcola la rotta. Non
+    /// <c>DateTime.Today</c>: il test girerebbe verde su una macchina europea e rosso in CI a
+    /// mezzanotte, che è il modo peggiore di scoprire un fuso sbagliato.
+    /// </summary>
+    private static DateOnly Oggi => DateOnly.FromDateTime(
+        TimeZoneInfo.ConvertTimeFromUtc(
+            DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Europe/Rome")));
+
+    private static string Iso(DateOnly data) =>
+        data.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+    private void AggiungiChiusura(
+        DateOnly data,
+        string descrizione,
+        string motivo,
+        bool ricorrente = false)
+    {
+        _dbContext.GiorniNonLavorativi.Add(new GiornoNonLavorativo
+        {
+            Data = data,
+            Descrizione = descrizione,
+            CodiceMotivo = motivo,
+            Ricorrente = ricorrente,
+            SettingsId = 1,
         });
         _dbContext.SaveChanges();
     }

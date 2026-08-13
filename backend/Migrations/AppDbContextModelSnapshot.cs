@@ -1399,6 +1399,13 @@ namespace duedgusto.Migrations
                         .HasColumnType("decimal(10,2)")
                         .HasDefaultValue(0m);
 
+                    b.Property<string>("MetodoPagamento")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)")
+                        .HasDefaultValue("CONTANTE_NON_TRACCIATO");
+
                     b.Property<string>("Note")
                         .HasColumnType("text");
 

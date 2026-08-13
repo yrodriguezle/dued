@@ -16,7 +16,8 @@ import '../styles/global.css';
 import Intestazione from '../components/Intestazione.astro';
 import PiePagina from '../components/PiePagina.astro';
 import BarraMobile from '../components/BarraMobile.astro';
-import { eSera, eAperto, oraDiRoma, giornoDiRoma } from '../lib/tema.ts';
+import { eSera, eAperto, oraDiRoma, giornoDiRoma, dataDiRoma } from '../lib/tema.ts';
+import { raggruppa, ORARIO_CHIUSO_SCHEMA } from '../lib/chiusure.ts';
 import { ORA_TEMA_SERA_DI_RIPIEGO, ORA_APERTURA_DI_RIPIEGO } from '../lib/degradazione.ts';
 import { mediaUrl } from '../lib/mediaUrl.ts';
 import { GIORNI_ESTESI } from '../lib/formato.ts';
@@ -51,14 +52,32 @@ const { titolo, descrizione, sito, immagineSocial = null } = Astro.props;
 // I PARAMETRI dello script — non una decisione già presa. In degradazione si ripiega, e il
 // ripiego non compare mai in pagina: serve solo perché la formula del registro serale ha
 // due estremi e senza il secondo il tema resterebbe "giorno" alle due di notte.
+//
+// ⚠️ Le chiusure entrano nei parametri **accorciate**, e l'accorciamento è qui e non nello
+//    script: la pastiglia è larga diciannove caratteri e sta accanto al selettore del tema,
+//    quindi una descrizione lunga («Chiusura straordinaria per lavori») spingerebbe fuori
+//    l'intestazione — su un elemento che nasce trasparente e viene acceso dopo il primo
+//    paint, cioè nel momento in cui uno spostamento di layout pesa di più. È testo, quindi è
+//    dato, quindi lo prepara il server.
+const MAX_CARATTERI_PASTIGLIA = 22;
+
 const parametri = {
   oraSera: sito?.oraInizioTemaSera ?? ORA_TEMA_SERA_DI_RIPIEGO,
   oraApertura: sito?.orari.apertura ?? ORA_APERTURA_DI_RIPIEGO,
   oraChiusura: sito?.orari.chiusura ?? null,
   giorniOperativi: sito?.orari.giorniOperativi ?? null,
+  // In degradazione resta vuoto, e non è un ripiego mancante: senza `oraChiusura` la
+  // pastiglia non si accende affatto, quindi non c'è nulla che possa mentire.
+  chiusure: (sito?.chiusure ?? []).map((chiusura) => ({
+    data: chiusura.data,
+    descrizione:
+      chiusura.descrizione.length > MAX_CARATTERI_PASTIGLIA
+        ? `${chiusura.descrizione.slice(0, MAX_CARATTERI_PASTIGLIA - 1)}…`
+        : chiusura.descrizione,
+  })),
 };
 
-// ⚠️ Le quattro funzioni arrivano nel browser SERIALIZZATE, invece di essere riscritte qui:
+// ⚠️ Le funzioni arrivano nel browser SERIALIZZATE, invece di essere riscritte qui:
 //    la formula del registro serale deve esistere in un solo posto del progetto, ed è
 //    `src/lib/tema.ts`, dove i test la esercitano. Riscriverla dentro questo script
 //    significherebbe due copie che un giorno divergono — e quella sbagliata sarebbe questa,
@@ -70,6 +89,7 @@ const P = ${JSON.stringify(parametri)};
 const GIORNI = ${JSON.stringify(GIORNI_ESTESI)};
 const oraDiRoma = ${oraDiRoma.toString()};
 const giornoDiRoma = ${giornoDiRoma.toString()};
+const dataDiRoma = ${dataDiRoma.toString()};
 const eSera = ${eSera.toString()};
 const eAperto = ${eAperto.toString()};
 
@@ -114,13 +134,28 @@ document.addEventListener('DOMContentLoaded', function () {
   // Lo STATO di apertura: orologio, quindi qui. Gli ORARI sono già in pagina, resi dal
   // server, perché quelli sono dato. La pastiglia nasce trasparente con la larghezza già
   // riservata e viene ACCESA: nessuno spostamento di layout nell'intestazione.
+  // 🔴 La chiusura di OGGI, cercata per data. È il pezzo che mancava: un giorno di ferie è
+  //    un giovedì operativo dentro la fascia oraria, quindi senza questo confronto la
+  //    pastiglia si accendeva verde con il bar chiuso.
+  const dataOggi = dataDiRoma();
+  const chiusuraOggi = P.chiusure.filter(function (c) { return c.data === dataOggi; })[0];
+
   const pastiglia = document.getElementById('stato-apertura');
   const testoStato = document.getElementById('stato-testo');
   if (pastiglia && testoStato && P.oraChiusura) {
-    const aperto = eAperto(oraDiRoma(), giornoDiRoma(), P.oraApertura, P.oraChiusura, P.giorniOperativi);
+    const dateChiuse = P.chiusure.map(function (c) { return c.data; });
+    const aperto = eAperto(
+      oraDiRoma(), giornoDiRoma(), P.oraApertura, P.oraChiusura, P.giorniOperativi,
+      dataOggi, dateChiuse
+    );
+    // ⚠️ Chiuso per ferie non «apre alle …»: quella frase è vera solo quando la chiusura è
+    //    quella ordinaria della fascia oraria. Annunciare l'ora di apertura in un giorno di
+    //    ferie è precisamente la bugia che questo lavoro toglie dal sito.
     testoStato.textContent = aperto
       ? 'Aperto · fino alle ' + P.oraChiusura
-      : 'Chiuso · apre alle ' + P.oraApertura;
+      : chiusuraOggi
+        ? 'Chiuso · ' + chiusuraOggi.descrizione
+        : 'Chiuso · apre alle ' + P.oraApertura;
     const pallino = document.getElementById('stato-pallino');
     if (pallino && aperto) pallino.style.background = '#5F9B4F';
     pastiglia.dataset.aperto = String(aperto);
@@ -137,7 +172,12 @@ document.addEventListener('DOMContentLoaded', function () {
         nome.classList.add('text-accento', 'font-bold');
         nome.textContent = GIORNI[oggi] + ' · oggi';
       }
-      if (ore) ore.classList.add('text-accento');
+      if (ore) {
+        ore.classList.add('text-accento');
+        // La tabella è la settimana RICORRENTE: la riga di oggi mostrerebbe la fascia
+        // oraria anche in un giorno di ferie, accanto a una pastiglia che dice «Chiuso».
+        if (chiusuraOggi) ore.textContent = 'chiuso · ' + chiusuraOggi.descrizione;
+      }
     }
   );
 });
@@ -239,6 +279,25 @@ const datiStrutturati = sito
               : null
           )
           .filter(Boolean),
+      }),
+      // 🔴 Le ECCEZIONI, e vanno dette proprio qui. `openingHoursSpecification` descrive la
+      //    settimana ricorrente: da sola dichiara il locale aperto ogni giovedì, ferie
+      //    comprese, e quella è la copia che i motori mostrano nella scheda del locale. Un
+      //    intervallo di durata nulla con `validFrom`/`validThrough` è il modo in cui
+      //    schema.org scrive «chiuso in queste date».
+      //
+      // ⚠️ Un periodo per BLOCCO, non per giorno: tredici voci per una chiusura estiva sono
+      //    tredici intervalli identici che dicono la stessa cosa, ed è lo stesso
+      //    raggruppamento che compone la frase in pagina — quindi le due non possono
+      //    divergere.
+      ...(sito.chiusure.length > 0 && {
+        specialOpeningHoursSpecification: raggruppa(sito.chiusure).map((periodo) => ({
+          '@type': 'OpeningHoursSpecification',
+          opens: ORARIO_CHIUSO_SCHEMA,
+          closes: ORARIO_CHIUSO_SCHEMA,
+          validFrom: periodo.inizio,
+          validThrough: periodo.fine,
+        })),
       }),
       hasMenu: new URL('/menu', Astro.site ?? Astro.url).href,
     }

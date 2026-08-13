@@ -11,18 +11,36 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { sorgenti, senzaCommenti, radiceSito } from './_scansione.mjs';
 
-/** L'unico file in cui un orario è legittimo, e la ragione per cui lo è. */
-const RIPIEGHI = 'src/lib/degradazione.ts';
+const ORARIO = /\b([01]\d|2[0-3]):[0-5]\d\b/;
 
-test('nessun orario scritto nei sorgenti, tranne i due ripieghi dichiarati', () => {
-  const orario = /\b([01]\d|2[0-3]):[0-5]\d\b/;
+/**
+ * Gli unici file in cui una stringa `HH:mm` è legittima, ognuno con i valori che può
+ * contenere e la ragione per cui li contiene.
+ *
+ * 🔴 **Questa tabella è il posto in cui si dice di no.** Se un test fallisce, la domanda
+ *    giusta non è «aggiungo il file all'elenco»: è «da dove viene questo orario». In tutti i
+ *    casi tranne questi due la risposta è «dal database», e allora va letto da lì.
+ */
+const ECCEZIONI = {
+  // I due ripieghi della degradazione: fanno funzionare la formula del registro serale
+  // quando l'API non risponde, e NON compaiono mai in pagina — una pagina degradata dichiara
+  // di non sapere gli orari, non ne inventa.
+  'src/lib/degradazione.ts': ['07:00', '18:00'],
+  // Come schema.org scrive «chiuso»: un intervallo di durata nulla. Non è un orario del
+  // locale — vale `00:00`–`00:00` ovunque — ed è ciò che permette a
+  // `specialOpeningHoursSpecification` di dichiarare i giorni di ferie ai motori, invece di
+  // lasciarli convinti che il bar sia aperto.
+  'src/lib/chiusure.ts': ['00:00'],
+};
+
+test('nessun orario scritto nei sorgenti, tranne le eccezioni dichiarate', () => {
   const colpevoli = [];
 
   for (const percorso of sorgenti()) {
-    if (percorso === RIPIEGHI) continue;
+    if (percorso in ECCEZIONI) continue;
     const testo = senzaCommenti(readFileSync(join(radiceSito, percorso), 'utf8'));
     for (const riga of testo.split('\n')) {
-      if (orario.test(riga)) colpevoli.push(`${percorso}: ${riga.trim()}`);
+      if (ORARIO.test(riga)) colpevoli.push(`${percorso}: ${riga.trim()}`);
     }
   }
 
@@ -34,11 +52,17 @@ test('nessun orario scritto nei sorgenti, tranne i due ripieghi dichiarati', () 
   );
 });
 
-test('i due ripieghi sono solo due, e stanno dove devono', () => {
-  // ⚠️ Sono l'eccezione, e va tenuta piccola: servono a far funzionare la formula del
-  //    registro serale quando l'API non risponde, e NON compaiono mai in pagina — una
-  //    pagina degradata dichiara di non sapere gli orari, non ne inventa.
-  const testo = senzaCommenti(readFileSync(join(radiceSito, RIPIEGHI), 'utf8'));
-  const trovati = testo.match(/\b([01]\d|2[0-3]):[0-5]\d\b/g) ?? [];
-  assert.deepEqual(trovati.sort(), ['07:00', '18:00']);
+test('le eccezioni contengono ESATTAMENTE i valori dichiarati', () => {
+  // ⚠️ L'elenco esatto e non «almeno questi»: un terzo orario che comparisse dentro un file
+  //    già in tabella entrerebbe senza che nessuno decida niente, ed è precisamente il modo
+  //    in cui un'eccezione dichiarata si allarga fino a non essere più un'eccezione.
+  for (const [percorso, attesi] of Object.entries(ECCEZIONI)) {
+    const testo = senzaCommenti(readFileSync(join(radiceSito, percorso), 'utf8'));
+    const trovati = [...new Set(testo.match(new RegExp(ORARIO, 'g')) ?? [])];
+    assert.deepEqual(
+      trovati.sort(),
+      [...attesi].sort(),
+      `${percorso} contiene orari diversi da quelli dichiarati in questo test`
+    );
+  }
 });
