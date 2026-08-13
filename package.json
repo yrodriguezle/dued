@@ -1,6 +1,6 @@
 {
   "name": "dued-workspace",
-  "version": "1.0.136",
+  "version": "1.0.137",
   "private": true,
   "type": "module",
   "description": "DuedGusto workspace - Frontend + Backend",
@@ -10,8 +10,8 @@
     "dev:frontend": "cd duedgusto && npm run dev",
     "dev:backend": "cd backend && dotnet run --launch-profile https",
     "dev:sito": "cd sito && npm run dev",
-  "anteprima": "node scripts/anteprima.mjs",
-  "anteprima:prove": "node scripts/anteprima.mjs --prove",
+    "anteprima": "node scripts/anteprima.mjs",
+    "anteprima:prove": "node scripts/anteprima.mjs --prove",
     "version:patch": "npm version patch --no-git-tag-version && cd duedgusto && npm version patch --no-git-tag-version && npm install --package-lock-only && cd .. && npm install --package-lock-only",
     "version:minor": "npm version minor --no-git-tag-version && cd duedgusto && npm version minor --no-git-tag-version && npm install --package-lock-only && cd .. && npm install --package-lock-only",
     "version:major": "npm version major --no-git-tag-version && cd duedgusto && npm version major --no-git-tag-version && npm install --package-lock-only && cd .. && npm install --package-lock-only"
