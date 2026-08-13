@@ -1,35 +1,52 @@
 ---
 // Il guscio di ogni pagina del sito.
 //
-// 🔴 Il server emette UNA SOLA PAGINA, PRIVA DI TEMA. `<html>` non porta `data-tema`, il
-//    badge "aperto ora" non è nell'HTML, e `data-pronto` non c'è. Tutto ciò che dipende
-//    dall'orologio o dalle preferenze del visitatore lo decide lo script inline, prima del
-//    primo paint. La ragione è §D5 e si paga in Fase 6 del progetto: davanti a queste
-//    pagine ci sarà un micro-cache, e una risposta che dipende dal lettore o frammenta la
-//    chiave o serve a metà dei visitatori il tema di chi ha riempito la cache.
+// 🔴 IL SERVER EMETTE UNA SOLA PAGINA, PRIVA DI TEMA E PRIVA DI OROLOGIO. `<html>` non porta
+//    `data-tema` né `data-scelta`, la pastiglia di stato è vuota, la riga di oggi negli orari
+//    non è marcata, e `data-pronto` non c'è. Tutto ciò che dipende dall'orologio o dalle
+//    preferenze del visitatore lo decide lo script inline, prima del primo paint. La ragione
+//    è che davanti a queste pagine c'è un micro-cache: una risposta che dipende dal lettore
+//    o frammenta la chiave o serve a metà dei visitatori il tema di chi l'ha riempita.
+//
+//    Un test lo prova nel modo che conta: **due richieste a cavallo di un minuto, identiche
+//    byte per byte**. Una stringa d'orologio resa dal server sopravvive a due `fetch`
+//    ravvicinate e muore lì.
 
 import '../styles/global.css';
+import Intestazione from '../components/Intestazione.astro';
+import PiePagina from '../components/PiePagina.astro';
+import BarraMobile from '../components/BarraMobile.astro';
 import { eSera, eAperto, oraDiRoma, giornoDiRoma } from '../lib/tema.ts';
 import { ORA_TEMA_SERA_DI_RIPIEGO, ORA_APERTURA_DI_RIPIEGO } from '../lib/degradazione.ts';
 import { mediaUrl } from '../lib/mediaUrl.ts';
+import { GIORNI_ESTESI } from '../lib/formato.ts';
 import type { SitoPubblico } from '../lib/tipi.ts';
 
-// 🔴 L'URL del preload viene dalla BUILD, non scritta a mano.
+// 🔴 Le URL dei preload vengono dalla BUILD, non scritte a mano.
 //    Vite riscrive l'`url()` del CSS in un percorso con hash di contenuto. Un preload
-//    scritto a mano su `/fonts/Anton.woff2` punterebbe a un file DIVERSO da quello che il
+//    scritto a mano su `/fonts/Manrope.woff2` punterebbe a un file DIVERSO da quello che il
 //    CSS chiede: il browser ne scaricherebbe due, e negli strumenti il preload comparirebbe
 //    come «inutile» invece che come sbagliato — cioè verrebbe tolto, che è la reazione
 //    opposta a quella giusta. Con `?url` la stringa è la stessa che finisce nel CSS.
-import antonUrl from '../assets/fonts/Anton-latin.woff2?url';
+//
+// ⚠️ Due e non uno: sopra la piega ci sono due ruoli. Instrument Serif porta il titolo (che
+//    è il pezzo più grande della pagina) e Manrope porta navigazione, paragrafo e bottoni.
+//    Il corsivo vale una parola sola e il monospaziato le etichette piccole: con
+//    `font-display: swap` si vedono subito nel carattere di sistema, e preloadarli
+//    ruberebbe banda a ciò che serve per leggere.
+import serifUrl from '../assets/fonts/InstrumentSerif-latin.woff2?url';
+import corpoUrl from '../assets/fonts/Manrope-400-700-latin.woff2?url';
 
 interface Props {
   titolo: string;
   descrizione?: string;
   /** L'identità del locale, o `null` se non si è potuta leggere. */
   sito: SitoPubblico | null;
+  /** L'immagine di anteprima social propria della pagina, se ne ha una migliore. */
+  immagineSocial?: string | null;
 }
 
-const { titolo, descrizione, sito } = Astro.props;
+const { titolo, descrizione, sito, immagineSocial = null } = Astro.props;
 
 // I PARAMETRI dello script — non una decisione già presa. In degradazione si ripiega, e il
 // ripiego non compare mai in pagina: serve solo perché la formula del registro serale ha
@@ -50,6 +67,7 @@ const parametri = {
 //    `tema.ts`, ed è pinnato da un test che valuta davvero la sorgente serializzata.
 const sorgenteScript = `
 const P = ${JSON.stringify(parametri)};
+const GIORNI = ${JSON.stringify(GIORNI_ESTESI)};
 const oraDiRoma = ${oraDiRoma.toString()};
 const giornoDiRoma = ${giornoDiRoma.toString()};
 const eSera = ${eSera.toString()};
@@ -66,11 +84,11 @@ function applica(scelta) {
   //    la stringa dell'attributo del tema nel documento e pretende di trovarla UNA volta,
   //    QUI. Con \`dataset.tema\` quella stringa non comparirebbe da nessuna parte e la prova
   //    sarebbe verde anche se il server scrivesse il tema sul tag radice.
-  //    Sotto, per l'attributo di pronto, vale l'opposto e infatti si usa \`dataset\`: quella
-  //    prova pretende di NON trovarlo affatto nel markup servito.
   radice.setAttribute('data-tema', scelta === 'auto' ? registroAutomatico() : scelta);
-  const etichetta = document.getElementById('tema-etichetta');
-  if (etichetta) etichetta.textContent = { giorno: 'Giorno', sera: 'Sera', auto: 'Auto' }[scelta];
+  // 🔴 E questo secondo attributo è ciò che permette al CSS di scegliere l'icona del
+  //    selettore senza aspettare che il bottone esista: succede qui, prima del primo paint,
+  //    quindi l'icona giusta è dipinta insieme al resto invece di comparire dopo.
+  radice.setAttribute('data-scelta', scelta);
 }
 
 let scelta = 'auto';
@@ -79,12 +97,9 @@ if (scelta !== 'giorno' && scelta !== 'sera') scelta = 'auto';
 applica(scelta);
 
 document.addEventListener('DOMContentLoaded', function () {
-  // ⚠️ Il tema è già applicato — succede in <head>, prima del primo paint, ed è il punto.
-  //    Ma l'ETICHETTA no: quando questo script gira la prima volta il bottone non esiste
-  //    ancora, quindi \`applica\` non l'ha trovato. Senza questa seconda chiamata il toggle
-  //    resta con l'etichetta neutra del server finché non lo si clicca — cioè proprio chi
-  //    non lo tocca non sa mai in quale registro sta.
-  applica(scelta);
+  const etichette = { giorno: 'Registro giorno', sera: 'Registro sera', auto: 'Registro automatico' };
+  const etichetta = document.getElementById('tema-etichetta');
+  if (etichetta) etichetta.textContent = etichette[scelta];
 
   const bottone = document.getElementById('tema-switch');
   if (bottone) {
@@ -92,19 +107,39 @@ document.addEventListener('DOMContentLoaded', function () {
       scelta = { giorno: 'sera', sera: 'auto', auto: 'giorno' }[scelta];
       try { localStorage.setItem('tema', scelta); } catch (e) { /* modalità privata */ }
       applica(scelta);
+      if (etichetta) etichetta.textContent = etichette[scelta];
     });
   }
 
   // Lo STATO di apertura: orologio, quindi qui. Gli ORARI sono già in pagina, resi dal
-  // server, perché quelli sono dato. L'elemento è servito \`hidden\` e viene SVELATO, così
-  // non c'è salto di layout — e senza JavaScript restano gli orari veri e nessun badge.
-  const badge = document.getElementById('stato-apertura');
-  if (badge && P.oraChiusura) {
+  // server, perché quelli sono dato. La pastiglia nasce trasparente con la larghezza già
+  // riservata e viene ACCESA: nessuno spostamento di layout nell'intestazione.
+  const pastiglia = document.getElementById('stato-apertura');
+  const testoStato = document.getElementById('stato-testo');
+  if (pastiglia && testoStato && P.oraChiusura) {
     const aperto = eAperto(oraDiRoma(), giornoDiRoma(), P.oraApertura, P.oraChiusura, P.giorniOperativi);
-    badge.textContent = aperto ? 'Aperto ora' : 'Chiuso ora';
-    badge.dataset.aperto = String(aperto);
-    badge.hidden = false;
+    testoStato.textContent = aperto
+      ? 'Aperto · fino alle ' + P.oraChiusura
+      : 'Chiuso · apre alle ' + P.oraApertura;
+    const pallino = document.getElementById('stato-pallino');
+    if (pallino && aperto) pallino.style.background = '#5F9B4F';
+    pastiglia.dataset.aperto = String(aperto);
+    pastiglia.classList.remove('opacity-0');
   }
+
+  // La riga di OGGI nella tabella degli orari — stessa ragione: è orologio.
+  const oggi = giornoDiRoma();
+  document.querySelectorAll('[data-orari-settimana] [data-giorno="' + oggi + '"]').forEach(
+    function (riga) {
+      const nome = riga.querySelector('[data-nome-giorno]');
+      const ore = riga.querySelector('[data-ore-giorno]');
+      if (nome) {
+        nome.classList.add('text-accento', 'font-bold');
+        nome.textContent = GIORNI[oggi] + ' · oggi';
+      }
+      if (ore) ore.classList.add('text-accento');
+    }
+  );
 });
 
 // Le transizioni restano spente finché non è dipinto il primo frame: senza, il registro
@@ -112,19 +147,92 @@ document.addEventListener('DOMContentLoaded', function () {
 requestAnimationFrame(function () { radice.dataset.pronto = ''; });
 `;
 
-// ── Anteprima social ─────────────────────────────────────────────────────────────────
+// ── Anteprima social e indirizzi canonici ────────────────────────────────────────────
 // 🔴 Assoluta in entrambi i rami: `mediaUrl` lo è per costruzione, e il ripiego locale si
 //    rende assoluto con `Astro.url`. Un `og:image` relativo non viene risolto da nessuno
 //    dei consumatori (Facebook, WhatsApp, Telegram): l'anteprima resta semplicemente vuota.
-// ⚠️ `og:url` e `<link rel="canonical">` NON si scrivono qui: sono Fase 3 del progetto,
-//    insieme a `site:` e alla sitemap, e oggi il dominio non esiste ancora.
 const immagineOg = sito?.seo.immagineOg;
-const urlOg = immagineOg
-  ? mediaUrl(immagineOg.chiave, Math.max(...immagineOg.larghezzeDisponibili, 0) || 1200, 'jpg')
-  : new URL('/og-default.jpg', Astro.url).href;
+const urlOg =
+  immagineSocial ??
+  (immagineOg
+    ? mediaUrl(immagineOg.chiave, Math.max(...immagineOg.larghezzeDisponibili, 0) || 1200, 'jpg')
+    : new URL('/og-default.jpg', Astro.url).href);
+
+// ⚠️ Il canonico si costruisce su `Astro.site` — l'origine PUBBLICA da `astro.config.mjs` —
+//    e non su `Astro.url`, che in produzione è l'host interno visto da dietro il proxy.
+//    Costruirlo su `Astro.url` produrrebbe canonical verso un host che non esiste per
+//    nessun visitatore, e la cosa non si vede da nessuna parte se non nella Search Console.
+const canonico = new URL(Astro.url.pathname, Astro.site ?? Astro.url).href;
 
 const titoloPagina = titolo || sito?.seo.titoloDefault || '2 D Gusto';
 const descrizionePagina = descrizione ?? sito?.seo.descrizioneDefault ?? undefined;
+
+// ── I dati strutturati ───────────────────────────────────────────────────────────────
+// `Restaurant` e non `LocalBusiness`: è il tipo che i motori sanno mostrare con orari,
+// fascia di prezzo e menu.
+//
+// ⚠️ La sezione degli orari si OMETTE quando `giorniOperativi` è `null` — il DTO lo prevede
+//    quando il JSON persistito non è leggibile come sette booleani. Dichiarare orari
+//    inventati in un dato strutturato è peggio che non dichiararne: finisce nelle schede
+//    dei motori e nessuno lo rilegge mai.
+const GIORNI_SCHEMA = [
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+  'Sunday',
+];
+
+const datiStrutturati = sito
+  ? {
+      '@context': 'https://schema.org',
+      '@type': 'Restaurant',
+      name: sito.insegna,
+      description: descrizionePagina,
+      url: Astro.site?.href ?? canonico,
+      image: urlOg,
+      servesCuisine: ['Caffetteria', 'Cubana'],
+      address: {
+        '@type': 'PostalAddress',
+        streetAddress: sito.indirizzo.via,
+        postalCode: sito.indirizzo.cap,
+        addressLocality: sito.indirizzo.citta,
+        addressRegion: sito.indirizzo.provincia,
+        addressCountry: sito.indirizzo.paese,
+      },
+      ...(sito.geo && {
+        geo: {
+          '@type': 'GeoCoordinates',
+          latitude: sito.geo.latitudine,
+          longitude: sito.geo.longitudine,
+        },
+      }),
+      ...(sito.contatti.telefono && { telephone: sito.contatti.telefono }),
+      ...(sito.contatti.email && { email: sito.contatti.email }),
+      // `sameAs` è una COPIA DIRETTA: l'API espone URL completi, non identificativi.
+      ...(() => {
+        const profili = [sito.social.instagram, sito.social.facebook].filter(Boolean);
+        return profili.length > 0 ? { sameAs: profili } : {};
+      })(),
+      ...(sito.orari.giorniOperativi && {
+        openingHoursSpecification: sito.orari.giorniOperativi
+          .map((aperto, i) =>
+            aperto
+              ? {
+                  '@type': 'OpeningHoursSpecification',
+                  dayOfWeek: GIORNI_SCHEMA[i],
+                  opens: sito.orari.apertura,
+                  closes: sito.orari.chiusura,
+                }
+              : null
+          )
+          .filter(Boolean),
+      }),
+      hasMenu: new URL('/menu', Astro.site ?? Astro.url).href,
+    }
+  : null;
 ---
 
 <!doctype html>
@@ -143,6 +251,7 @@ const descrizionePagina = descrizione ?? sito?.seo.descrizioneDefault ?? undefin
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{titoloPagina}</title>
     {descrizionePagina && <meta name="description" content={descrizionePagina} />}
+    <link rel="canonical" href={canonico} />
 
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -152,22 +261,123 @@ const descrizionePagina = descrizione ?? sito?.seo.descrizioneDefault ?? undefin
     <meta property="og:title" content={titoloPagina} />
     {descrizionePagina && <meta property="og:description" content={descrizionePagina} />}
     <meta property="og:image" content={urlOg} />
+    <meta property="og:url" content={canonico} />
+    <meta property="og:locale" content="it_IT" />
     <meta name="twitter:card" content="summary_large_image" />
 
     <!--
-      Solo Anton: è il display sopra la piega di entrambe le pagine. Allura e Playfair sono
-      decorativi e non bloccano la lettura — preloadarli ruberebbe banda a ciò che serve.
-
       ⚠️ `crossorigin` è OBBLIGATORIO anche same-origin: i caratteri si recuperano in
          modalità CORS, e senza l'attributo il preload NON viene riusato dal caricamento
          vero. Il font si scarica due volte, e la pagina sembra solo un po' più lenta.
 
-      ⚠️ Auto-chiuso: nella 7 il compilatore è più severo e un void element non chiuso è un
+      ⚠️ Auto-chiusi: nella 7 il compilatore è più severo e un void element non chiuso è un
          errore di build, non più una correzione silenziosa.
     -->
-    <link rel="preload" href={antonUrl} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={serifUrl} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={corpoUrl} as="font" type="font/woff2" crossorigin />
+
+    {
+      datiStrutturati && (
+        <script
+          type="application/ld+json"
+          is:inline
+          set:html={JSON.stringify(datiStrutturati)}
+        />
+      )
+    }
   </head>
-  <body class="bg-sfondo text-inchiostro font-corpo">
+
+  <!--
+    ⚠️ Il riempimento in fondo NON è cosmesi: la barra fissa del telefono è `position: fixed`,
+       quindi non occupa spazio nel flusso e coprirebbe le ultime righe della pagina. È il
+       difetto classico del pattern, e si nota solo scorrendo fino in fondo — cioè dopo che
+       è passato in produzione.
+  -->
+  <body class="bg-sfondo text-inchiostro font-corpo pb-24 lg:pb-0">
+    <Intestazione sito={sito} />
     <slot />
+    <PiePagina sito={sito} />
+    <BarraMobile sito={sito} />
+
+    <script>
+      // ── La comparsa delle sezioni allo scorrimento, e le linguette dei momenti ───────
+      //
+      // 🔴 Lo stato di partenza (`opacity: 0`) lo scrive QUESTO script, non il CSS. Se
+      //    stesse nel foglio, una pagina senza JavaScript resterebbe bianca: il contenuto
+      //    ci sarebbe, invisibile, e la cosa non si vedrebbe in nessuna prova che guarda
+      //    l'HTML. Qui il caso peggiore è una pagina che non si anima.
+      //
+      // ⚠️ E rispetta `prefers-reduced-motion`: non si limita a togliere la transizione (lo
+      //    fa già il CSS) — non nasconde proprio nulla, così chi ha la preferenza attiva non
+      //    dipende dall'osservatore per vedere il contenuto.
+      const fermo = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const sezioni = Array.from(document.querySelectorAll('[data-comparsa]'));
+
+      if (!fermo && 'IntersectionObserver' in window) {
+        sezioni.forEach((el) => {
+          const e = el as HTMLElement;
+          e.style.opacity = '0';
+          e.style.transform = 'translateY(22px)';
+        });
+
+        const osservatore = new IntersectionObserver(
+          (voci) => {
+            voci.forEach((voce) => {
+              if (!voce.isIntersecting) return;
+              const e = voce.target as HTMLElement;
+              e.style.opacity = '1';
+              e.style.transform = 'none';
+              osservatore.unobserve(e);
+            });
+          },
+          { rootMargin: '0px 0px -12% 0px' }
+        );
+
+        sezioni.forEach((el) => osservatore.observe(el));
+      }
+
+      // ── Le linguette ────────────────────────────────────────────────────────────────
+      //
+      // ⚠️ Il pannello attivo si sceglie togliendo `hidden`, non cambiando `display` a mano:
+      //    con `hidden` i pannelli non attivi restano fuori dall'albero di accessibilità e
+      //    dalla navigazione da tastiera. Un `opacity: 0` li lascerebbe raggiungibili con
+      //    Tab, e si finirebbe a tabulare dentro un pannello invisibile.
+      document.querySelectorAll('[data-linguette]').forEach((gruppo) => {
+        const bottoni = Array.from(
+          gruppo.querySelectorAll<HTMLButtonElement>('[data-linguetta]')
+        );
+        const pannelli = Array.from(
+          document.querySelectorAll<HTMLElement>(`[data-pannello]`)
+        ).filter((p) => p.closest('[data-linguette-ambito]') === gruppo.closest('[data-linguette-ambito]'));
+
+        function mostra(chiave: string) {
+          bottoni.forEach((b) => {
+            const attivo = b.dataset.linguetta === chiave;
+            b.setAttribute('aria-selected', String(attivo));
+            b.tabIndex = attivo ? 0 : -1;
+            b.classList.toggle('bg-arancio', attivo);
+            b.classList.toggle('text-[#16130F]', attivo);
+            b.classList.toggle('text-inchiostro-tenue', !attivo);
+          });
+          pannelli.forEach((p) => {
+            p.hidden = p.dataset.pannello !== chiave;
+          });
+        }
+
+        bottoni.forEach((bottone, indice) => {
+          bottone.addEventListener('click', () => mostra(bottone.dataset.linguetta!));
+          // Frecce sinistra/destra fra le linguette: è il comportamento che chi naviga da
+          // tastiera si aspetta da un `role="tablist"`, e senza il ruolo è una bugia.
+          bottone.addEventListener('keydown', (evento) => {
+            const passo = evento.key === 'ArrowRight' ? 1 : evento.key === 'ArrowLeft' ? -1 : 0;
+            if (!passo) return;
+            evento.preventDefault();
+            const prossimo = bottoni[(indice + passo + bottoni.length) % bottoni.length];
+            prossimo.focus();
+            mostra(prossimo.dataset.linguetta!);
+          });
+        });
+      });
+    </script>
   </body>
 </html>

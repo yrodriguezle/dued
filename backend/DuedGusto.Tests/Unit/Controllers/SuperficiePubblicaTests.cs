@@ -149,7 +149,7 @@ public class SuperficiePubblicaTests
         { typeof(CategoriaMenuDto), ["Nome", "Prodotti"] },
         {
             typeof(MenuPubblicoDto),
-            ["Categorie", "TotaleProdottiPubblicati", "LimiteApplicato", "Troncato"]
+            ["Categorie", "TotaleProdottiPubblicati", "LimiteApplicato", "Troncato", "Lavagna"]
         },
         {
             typeof(ImmaginePubblicaDto),
@@ -160,7 +160,10 @@ public class SuperficiePubblicaTests
         },
         {
             typeof(SitoPubblicoDto),
-            ["Insegna", "Indirizzo", "Geo", "Contatti", "Social", "Orari", "Seo", "OraInizioTemaSera"]
+            [
+                "Insegna", "Indirizzo", "Geo", "Contatti", "Social", "Orari", "Seo",
+                "OraInizioTemaSera", "Testi", "Reputazione", "Recensioni",
+            ]
         },
         { typeof(IndirizzoPubblicoDto), ["Via", "Cap", "Citta", "Provincia", "Paese"] },
         { typeof(GeoPubblicaDto), ["Latitudine", "Longitudine"] },
@@ -169,6 +172,20 @@ public class SuperficiePubblicaTests
         { typeof(OrariPubbliciDto), ["Apertura", "Chiusura", "GiorniOperativi", "Timezone"] },
         { typeof(SeoPubblicaDto), ["TitoloDefault", "DescrizioneDefault", "ImmagineOg"] },
         { typeof(GalleriaPubblicaDto), ["Immagini"] },
+
+        // ── I testi editoriali e le recensioni ──────────────────────────────────────────
+        // 🔴 `TestiPubbliciDto` è il punto in cui, di tutta la superficie pubblica, è più
+        //    facile che entri un campo di troppo: è l'unico che cresce per ragioni
+        //    *editoriali* invece che di dominio, e la tentazione di aggiungerci una nota
+        //    interna «tanto è testo» è concreta. L'elenco esatto sta qui apposta.
+        { typeof(TestiPubbliciDto), ["Claim", "Storia", "Aperitivo"] },
+        { typeof(StoriaPubblicaDto), ["Titolo", "Testo"] },
+        { typeof(AperitivoPubblicoDto), ["Titolo", "Testo", "Punti", "Categorie"] },
+        { typeof(ReputazionePubblicaDto), ["Punteggio", "Numero", "UrlProfilo"] },
+        // ⚠️ Nessuna data e nessun `Pubblicata`: la rotta pubblica restituisce SOLO le
+        //    pubblicate, quindi il flag non ha nulla da dire al visitatore, e le marche
+        //    temporali direbbero quando l'amministratore ha lavorato.
+        { typeof(RecensionePubblicaDto), ["Id", "Autore", "Testo", "Fonte", "Punteggio"] },
     };
 
     /// <summary>

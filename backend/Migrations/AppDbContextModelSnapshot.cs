@@ -505,6 +505,19 @@ namespace duedgusto.Migrations
                     b.Property<int>("ImpostazioniVetrinaId")
                         .HasColumnType("int");
 
+                    b.Property<string>("AperitivoCategorie")
+                        .HasColumnType("text");
+
+                    b.Property<string>("AperitivoPunti")
+                        .HasColumnType("text");
+
+                    b.Property<string>("AperitivoTesto")
+                        .HasColumnType("text");
+
+                    b.Property<string>("AperitivoTitolo")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
                     b.Property<string>("Cap")
                         .IsRequired()
                         .HasMaxLength(10)
@@ -514,6 +527,9 @@ namespace duedgusto.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
+
+                    b.Property<string>("ClaimVetrina")
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
@@ -544,6 +560,9 @@ namespace duedgusto.Migrations
                     b.Property<string>("MetaTitoloDefault")
                         .HasMaxLength(200)
                         .HasColumnType("varchar(200)");
+
+                    b.Property<int?>("NumeroRecensioniGoogle")
+                        .HasColumnType("int");
 
                     b.Property<string>("OraInizioTemaSera")
                         .IsRequired()
@@ -577,6 +596,16 @@ namespace duedgusto.Migrations
                         .HasMaxLength(5)
                         .HasColumnType("varchar(5)");
 
+                    b.Property<decimal?>("PunteggioGoogle")
+                        .HasColumnType("decimal(2,1)");
+
+                    b.Property<string>("StoriaTesto")
+                        .HasColumnType("text");
+
+                    b.Property<string>("StoriaTitolo")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
                     b.Property<string>("Telefono")
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
@@ -595,6 +624,10 @@ namespace duedgusto.Migrations
                         .HasColumnType("varchar(500)");
 
                     b.Property<string>("UrlInstagram")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("UrlProfiloGoogle")
                         .HasMaxLength(500)
                         .HasColumnType("varchar(500)");
 
@@ -923,6 +956,9 @@ namespace duedgusto.Migrations
                     b.Property<int?>("ImmagineId")
                         .HasColumnType("int");
 
+                    b.Property<DateOnly?>("InLavagnaDal")
+                        .HasColumnType("date");
+
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -971,9 +1007,68 @@ namespace duedgusto.Migrations
 
                     b.HasIndex("ImmagineId");
 
+                    b.HasIndex("InLavagnaDal")
+                        .HasDatabaseName("IX_Prodotti_InLavagnaDal");
+
                     b.HasIndex("VisibileSulSito");
 
                     b.ToTable("Prodotti", (string)null);
+
+                    MySqlEntityTypeBuilderExtensions.HasCharSet(b, "utf8mb4");
+                    MySqlEntityTypeBuilderExtensions.UseCollation(b, "utf8mb4_unicode_ci");
+                });
+
+            modelBuilder.Entity("duedgusto.Models.RecensioneVetrina", b =>
+                {
+                    b.Property<int>("RecensioneVetrinaId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("RecensioneVetrinaId"));
+
+                    b.Property<string>("Autore")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("varchar(120)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("Fonte")
+                        .HasMaxLength(60)
+                        .HasColumnType("varchar(60)");
+
+                    b.Property<int>("Ordinamento")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("Pubblicata")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int>("Punteggio")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(5);
+
+                    b.Property<string>("Testo")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+
+                    b.HasKey("RecensioneVetrinaId");
+
+                    b.HasIndex("Pubblicata", "Ordinamento")
+                        .HasDatabaseName("IX_RecensioniVetrina_Pubblicata_Ordinamento");
+
+                    b.ToTable("RecensioniVetrina", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_RecensioniVetrina_Punteggio", "`Punteggio` BETWEEN 1 AND 5");
+                        });
 
                     MySqlEntityTypeBuilderExtensions.HasCharSet(b, "utf8mb4");
                     MySqlEntityTypeBuilderExtensions.UseCollation(b, "utf8mb4_unicode_ci");

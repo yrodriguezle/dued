@@ -54,3 +54,7 @@ deploy/scripts/*.log
 # leggeri. Git conserva la storia per sempre: quello che entra non esce più.
 docs/*.png
 docs/ChatGPT*
+
+# Il mockup del redesign: gli originali caricati nello strumento (80 MB di PNG e
+# doppioni dei JPEG di assets/). Le otto foto vere restano versionate in assets/.
+docs/Redesign mockup Duedgusto/uploads/

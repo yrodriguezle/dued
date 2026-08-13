@@ -22,4 +22,15 @@ public static class MenuLimiti
     /// e non è influenzabile dal chiamante: le rotte pubbliche non accettano parametri.
     /// </summary>
     public const int MaxItem = 300;
+
+    /// <summary>
+    /// Numero massimo di piatti restituiti nella <b>lavagna del giorno</b>.
+    ///
+    /// <para>Deliberatamente basso, e per una ragione diversa da <see cref="MaxItem"/>: quello
+    /// protegge da un listino che cresce, questo dice cos'è una lavagna. Una lavagna è di tre o
+    /// quattro piatti; una da trenta non è una lavagna, è il menu scritto due volte. Chi ne marca
+    /// venti la vede troncata in pagina e se ne accorge subito — che è meglio di una home in cui
+    /// la sezione «oggi» scorre per due schermate.</para>
+    /// </summary>
+    public const int MaxLavagna = 8;
 }

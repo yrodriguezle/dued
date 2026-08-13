@@ -90,6 +90,76 @@ public class ImpostazioniVetrina
     /// </summary>
     public string OraInizioTemaSera { get; set; } = "18:00";
 
+    // ── I testi che il sito scrive in prima persona ───────────────────────────────────────
+    //
+    // 🔴 Nascono qui e non nel codice del sito per una ragione sola: **il sito non deve
+    //    contenere frasi sul locale**. Una riga di prosa dentro un componente Astro è una
+    //    verità che invecchia lontano da chi la conosce — il giorno in cui il locale smette di
+    //    fare l'aperitivo, chi lo sa non ha modo di dirlo, e chi ha accesso al repository non
+    //    lo sa. Sono campi vuoti finché l'amministratore non li riempie, e ogni sezione che li
+    //    usa **non si rende affatto** quando sono vuoti: meglio una sezione in meno che una
+    //    sezione che mente.
+
+    /// <summary>Il paragrafo sotto il titolo della home. Una o due frasi, non un tema.</summary>
+    public string? ClaimVetrina { get; set; }
+
+    /// <summary>Titolo e testo della pagina "Il locale" — la storia, con nomi e date veri.</summary>
+    public string? StoriaTitolo { get; set; }
+    public string? StoriaTesto { get; set; }
+
+    /// <summary>Titolo e testo della pagina dell'aperitivo.</summary>
+    public string? AperitivoTitolo { get; set; }
+    public string? AperitivoTesto { get; set; }
+
+    /// <summary>
+    /// I punti di cosa è compreso nell'aperitivo, <b>una voce per riga</b>.
+    ///
+    /// <para>⚠️ Un campo di testo con un separatore, e non un'entità: sono tre o quattro righe
+    /// senza identità propria, senza relazioni e senza nulla da cui essere referenziate — una
+    /// tabella con la sua migrazione, il suo tipo GraphQL e la sua pagina di amministrazione
+    /// costerebbe più di quanto rende. Il prezzo di questa scelta è che <b>il consumatore deve
+    /// essere difensivo</b>: righe vuote, spazi e un numero di voci qualunque sono forme
+    /// legittime dell'input, e il DTO pubblico le normalizza invece di fidarsi.</para>
+    /// </summary>
+    public string? AperitivoPunti { get; set; }
+
+    /// <summary>
+    /// Quali categorie di vetrina la pagina dell'aperitivo mostra, <b>una per riga</b>.
+    ///
+    /// <para>🔴 Esiste per non indovinare. La pagina deve mostrare i cocktail e i taglieri, e
+    /// tutte le vie per dedurli da soli sono magia che si rompe in silenzio: cercare la parola
+    /// «cocktail» nel nome della categoria smette di funzionare il giorno in cui si chiama
+    /// «Drink»; prendere «le ultime due categorie» smette il giorno in cui se ne aggiunge una.
+    /// Nessuna delle due lascerebbe traccia — la pagina mostrerebbe semplicemente le cose
+    /// sbagliate, e nessuno collegherebbe la cosa alla rinomina di una categoria.</para>
+    ///
+    /// <para>⚠️ I nomi devono corrispondere <b>esattamente</b> a quelli di
+    /// <c>Prodotto.CategoriaVetrina</c>. Una riga che non corrisponde a nulla non è un errore:
+    /// semplicemente non porta prodotti — è testo libero da entrambe le parti, e irrigidirlo
+    /// vorrebbe dire un'entità categoria che oggi non esiste.</para>
+    /// </summary>
+    public string? AperitivoCategorie { get; set; }
+
+    // ── Reputazione ───────────────────────────────────────────────────────────────────────
+    //
+    // ⚠️ Sono TRE campi e non uno, perché il numero medio senza il conteggio non significa
+    //    niente: "4,7" su tre recensioni e "4,7" su ottocento sono due affermazioni diverse. Il
+    //    sito li mostra insieme o non li mostra.
+    //
+    // 🔴 Si aggiornano a mano, e questo è il loro limite dichiarato: invecchiano. L'alternativa
+    //    — leggerli dalla Places API di Google — vuole una chiave, una fatturazione, e porta
+    //    vincoli sul caching e un obbligo di attribuzione. È una decisione da prendere quando la
+    //    si vorrà, non un buco da tappare di nascosto.
+
+    /// <summary>Il punteggio medio su Google, es. <c>4.7</c>. Da 1 a 5.</summary>
+    public decimal? PunteggioGoogle { get; set; }
+
+    /// <summary>Quante recensioni compongono quel punteggio.</summary>
+    public int? NumeroRecensioniGoogle { get; set; }
+
+    /// <summary>URL completo del profilo Google del locale, per il collegamento "leggile tutte".</summary>
+    public string? UrlProfiloGoogle { get; set; }
+
     // ── Ganci SPENTI delle fasi successive ───────────────────────────────────────────────
     // Nascono adesso perché la migrazione è una sola e additiva: aggiungerli dopo costerebbe
     // una seconda migrazione su una tabella già in produzione. In questa fase nessun codice li

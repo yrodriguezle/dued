@@ -1,0 +1,141 @@
+---
+// Contatti e orari.
+//
+// ⚠️ È l'unica pagina del sito **fatta solo di dati**: non ha un testo editoriale proprio e
+//    quindi non ha lo stato «contenuto assente». O l'API risponde, e c'è tutto, o non
+//    risponde, e allora è un 503 come `/menu` — perché una pagina di contatti senza contatti
+//    è precisamente il tipo di pagina che non deve restare indicizzata.
+
+import Base from '../layouts/Base.astro';
+import Mappa from '../components/Mappa.astro';
+import OrariSettimana from '../components/OrariSettimana.astro';
+import AvvisoDegradazione from '../components/AvvisoDegradazione.astro';
+import { leggiSito } from '../lib/api.ts';
+
+const esitoSito = await leggiSito();
+const sito = esitoSito.stato === 'ok' ? esitoSito.dati : null;
+
+if (sito === null) {
+  Astro.response.status = 503;
+  Astro.response.headers.set('Retry-After', '120');
+  Astro.response.headers.set('Cache-Control', 'no-store');
+} else {
+  // 300 e non 60: i contatti non cambiano durante la giornata, il listino sì.
+  Astro.response.headers.set('Cache-Control', 'public, max-age=300');
+}
+
+// ⚠️ Le voci si costruiscono da ciò che c'è, e le assenze **spariscono** invece di comparire
+//    vuote: una riga «Email —» in una pagina di contatti fa credere che l'email non ci sia
+//    per scelta, quando invece nessuno l'ha ancora compilata.
+//
+// ⚠️ Il tipo è dichiarato e il filtro è un **predicato di tipo**: `.filter(Boolean)` non
+//    restringe nulla per TypeScript, che continua a vedere `false | Voce` e fa fallire
+//    `npm run check` su ogni accesso. È l'unico modo di scrivere questo schema senza `as`.
+interface Voce {
+  etichetta: string;
+  valore: string;
+  href: string | null;
+  esterno: boolean;
+}
+
+const voci: Voce[] = sito
+  ? ([
+      sito.contatti.telefono && {
+        etichetta: 'Telefono',
+        valore: sito.contatti.telefono,
+        href: `tel:${sito.contatti.telefono.replace(/[^\d+]/g, '')}`,
+        esterno: false,
+      },
+      {
+        etichetta: 'Indirizzo',
+        valore: `${sito.indirizzo.via}, ${sito.indirizzo.citta}`,
+        href: null,
+        esterno: false,
+      },
+      sito.contatti.email && {
+        etichetta: 'Email',
+        valore: sito.contatti.email,
+        href: `mailto:${sito.contatti.email}`,
+        esterno: false,
+      },
+      sito.social.instagram && {
+        etichetta: 'Instagram',
+        // Il DTO porta l'URL completo; l'etichetta si ricava da lì invece di persistere due
+        // forme dello stesso dato che un giorno divergerebbero.
+        valore: `@${sito.social.instagram.replace(/\/+$/, '').split('/').pop()}`,
+        href: sito.social.instagram,
+        esterno: true,
+      },
+      sito.social.facebook && {
+        etichetta: 'Facebook',
+        valore: sito.insegna,
+        href: sito.social.facebook,
+        esterno: true,
+      },
+    ] as (Voce | '' | null | undefined | false)[]).filter((voce): voce is Voce => Boolean(voce))
+  : [];
+---
+
+<Base
+  titolo={`Contatti e orari — ${sito?.insegna ?? '2 D Gusto'}`}
+  descrizione={sito
+    ? `${sito.insegna} — ${sito.indirizzo.via}, ${sito.indirizzo.cap} ${sito.indirizzo.citta} (${sito.indirizzo.provincia}). Orari, telefono e come arrivare.`
+    : undefined}
+  sito={sito}
+>
+  <main class="mx-auto max-w-6xl px-5 py-14 sm:px-8">
+    <h1
+      class="font-titolo text-[clamp(2.75rem,5.6vw,5.4rem)] leading-[0.98] tracking-[-0.03em]"
+    >
+      Contatti e orari
+    </h1>
+
+    {
+      sito === null && (
+        <div class="mt-10">
+          <AvvisoDegradazione cosa="identita" forma="pagina" />
+        </div>
+      )
+    }
+
+    {
+      sito && (
+        <div class="mt-11 grid gap-14 lg:grid-cols-2">
+          <div>
+            <OrariSettimana sito={sito} classe="max-w-md" />
+
+            {!sito.orari.giorniOperativi && (
+              <p class="font-mono text-inchiostro-tenue text-sm">
+                {sito.orari.apertura} — {sito.orari.chiusura}
+              </p>
+            )}
+
+            <div class="mt-9 grid max-w-md gap-3.5">
+              {voci.map((voce) => {
+                const Contenitore = voce.href ? 'a' : 'div';
+                return (
+                  <Contenitore
+                    href={voce.href ?? undefined}
+                    target={voce.esterno ? '_blank' : undefined}
+                    rel={voce.esterno ? 'noopener' : undefined}
+                    class:list={[
+                      'border-bordo bg-superficie flex items-center justify-between gap-5 rounded-2xl border px-5 py-4',
+                      voce.href && 'hover:border-inchiostro-tenue transition-colors',
+                    ]}
+                  >
+                    <span class="font-mono text-inchiostro-tenue text-[11px] tracking-[0.1em] uppercase">
+                      {voce.etichetta}
+                    </span>
+                    <span class="text-right text-[15.5px] font-semibold">{voce.valore}</span>
+                  </Contenitore>
+                );
+              })}
+            </div>
+          </div>
+
+          <Mappa sito={sito} classe="min-h-[28rem]" />
+        </div>
+      )
+    }
+  </main>
+</Base>

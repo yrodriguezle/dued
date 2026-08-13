@@ -35,6 +35,14 @@ public class ProdottoType : ObjectGraphType<Prodotto>
         Field("allergeni", x => x.Allergeni, nullable: true);
         Field("novita", x => x.Novita);
         Field("consigliato", x => x.Consigliato);
+        // ⚠️ La forma con il tipo esplicito e il resolve, e non `Field(nome, x => x.Campo,
+        //    nullable, type)`: quell'overload è obsoleto nella 8 e sparisce nella 9, e
+        //    l'analizzatore GQL004 lo segnala come avviso di compilazione.
+        Field<DateOnlyGraphType>("inLavagnaDal")
+            .Description("Il giorno in cui il prodotto sta sulla lavagna all'ingresso. Il sito "
+                + "la mostra solo se il valore è oggi: una data scade da sola, un interruttore "
+                + "no.")
+            .Resolve(context => context.Source.InLavagnaDal);
 
         Field<MediaAssetType>("immagine")
             .Description("Immagine di vetrina. Richiede Include(p => p.Immagine) a monte: senza, "

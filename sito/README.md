@@ -7,6 +7,36 @@ contenuti si modificano dall'app di cassa, sezione **Sito**.
 Non è l'app di cassa e non ne condivide nulla: né dipendenze, né componenti, né stili.
 `duedgusto/` è React + MUI; qui non c'è React e non c'è MUI.
 
+## Le cinque pagine, e perché possono non esserci
+
+| Rotta | Cosa la rende viva | Senza quel dato |
+|---|---|---|
+| `/` | sempre | **200 degradata**: marca e titolo restano, con l'avviso in testa |
+| `/menu` | il listino | **503** con `Retry-After` — una pagina `200` senza prodotti sarebbe un menu vuoto indicizzabile |
+| `/aperitivo` | `testi.aperitivo` | **404** |
+| `/locale` | `testi.storia` | **404** |
+| `/contatti` | l'identità | **503** |
+
+🔴 **Il 404 delle due pagine editoriali è una decisione, non un ripiego.** Una pagina che si
+apre su un titolo e nient'altro promette qualcosa che non mantiene, e i motori la indicizzano
+comunque. E il 404 (contenuto assente) è distinto dal 503 (backend irraggiungibile): un 404
+su un guasto temporaneo lo renderebbe permanente agli occhi di chi indicizza.
+
+⚠️ **Conseguenza operativa**: finché un amministratore non scrive quei testi dalla sezione
+*Sito*, due voci della navigazione portano a un 404. Non è un difetto del sito — è contenuto
+che non c'è, e il sito lo dice invece di inventarlo.
+
+## Cosa NON è scritto nel codice
+
+Nessuna frase sul locale vive dentro un componente `.astro`. Claim della home, storia,
+testo e punti dell'aperitivo, categorie che quella pagina mostra, punteggio Google e
+citazioni: sono tutti campi del CMS. Una riga di prosa dentro un componente è una verità che
+invecchia lontano da chi la conosce — il giorno in cui smette di essere vera, chi lo sa non
+ha modo di dirlo e chi ha accesso al repository non lo sa.
+
+Le uniche eccezioni sono l'**insegna** («Colazione, pranzo e *aperitivo*», che è quella
+appesa fuori) e i testi di servizio (avvisi di degradazione, etichette).
+
 ## Requisiti
 
 | | |
@@ -164,43 +194,42 @@ sullo stdout con il motivo (`rete`, `timeout`, `http`, `formato`) e l'URL.
 | `npm test` | I test, con `node:test` del runtime — nessuna dipendenza di test |
 | `npm run check` | Controllo dei tipi, `.astro` compresi |
 
-## Le cinque verifiche che restano manuali
+## Le verifiche che restano manuali
 
 🔴 **Non sono un elenco di buoni propositi: se non hanno un modo di essere eseguite, verranno
 dichiarate fatte per somiglianza** — che è il modo in cui un criterio di successo smette di
-significare qualcosa. Ognuna qui sotto ha il comando che la esegue.
+significare qualcosa.
 
-L'automazione dell'audit e della regressione visiva è **Fase 7 del progetto**: qui non entra
-alcun automatore di browser, alcun motore di audit e alcun DOM simulato — sarebbero tre
-dipendenze pesanti esercitate da nessuno. Gli script di prova vivono **fuori** da `sito/`, in
-`openspec/changes/vetrina-sito-astro/prove/`, e importano Playwright da `duedgusto/` per
-percorso esplicito.
+Qui dentro non entra alcun automatore di browser, alcun motore di audit e alcun DOM simulato:
+sarebbero tre dipendenze pesanti esercitate da nessuno. Gli script di prova vivono **fuori**
+da `sito/` e importano Playwright da `duedgusto/` per percorso esplicito.
 
-Si eseguono contro il **bundle costruito**, non contro il dev server: i due falliscono in modi
-diversi, e in produzione va il secondo.
+**Otto verifiche, 57 asserzioni**, in un solo script — FOUC, contrasto su cinque pagine per
+due registri per due larghezze, comparsa allo scorrimento, barra fissa, fuso, selettore a tre
+stati, frecce, caratteri:
 
-```bash
-cd sito && npm run build
-PORT=4399 NODE_EXTRA_CA_CERTS=../backend/.certs/aspnet-dev.pem node dist/server/entry.mjs
-
-cd ../openspec/changes/vetrina-sito-astro/prove
-node 12-verifiche-di-browser.mjs     # 1, 2, 3 e il logo
-node 5.8-richieste-font.mjs          # 5
-node 8.6-menu-contro-api.mjs         # 4
+```
+openspec/changes/vetrina-redesign-mockup/prove/
 ```
 
-| # | Verifica | Come si esegue | Cosa la fa fallire |
-|---|---|---|---|
-| 1 | **Assenza di FOUC** | `12-verifiche-di-browser.mjs` — dieci hard reload per ognuno dei tre stati del selettore, con **cache disattivata** e **rete rallentata**, campionando il fondo ogni 50 ms nei primi 400 | 🔴 **un solo** lampo chiaro all'apertura in registro sera. Non «quasi mai», non «solo la prima volta» |
-| 2 | **Misura del contrasto** | Idem — calcola il rapporto WCAG di ogni nodo di testo risalendo allo sfondo effettivo, su **entrambe** le pagine e **entrambi** i registri | una coppia sotto 4.5:1 (3:1 per il testo grande), o un testo che risolve al colore dell'arancio |
-| 3 | **Indipendenza dal fuso** | Idem — quattro fusi (`Europe/Rome`, `America/Los_Angeles`, `Asia/Tokyo`, `Pacific/Kiritimati`) | il registro che cambia con il fuso del visitatore: significherebbe che si legge l'orologio locale invece di quello di Roma |
-| 4 | **Immagini che caricano davvero** | `8.6-menu-contro-api.mjs` — confronta la pagina con la risposta dell'API prodotto per prodotto, e legge lo **stato di rete** di ogni immagine | un `404`, che a colpo d'occhio somiglia a «non è ancora stata caricata» |
-| 5 | **Zero richieste ai CDN dei font** | `5.8-richieste-font.mjs` — filtra le richieste per `resourceType === 'font'` e ne stampa gli host | una sola richiesta verso `fonts.gstatic.com` o `fonts.googleapis.com` |
+Il [README di quella cartella](../openspec/changes/vetrina-redesign-mockup/prove/README.md)
+ha i comandi, la tabella di cosa copre ciascuna, e **le quattro cose che hanno trovato** — tre
+delle quali erano difetti del misuratore, non del sito. Vale la pena leggerle prima di
+scriverne uno nuovo: un misuratore sbagliato non dà un errore, dà un numero.
 
-⚠️ **Le verifiche 2 e 3 vanno fatte sullo stato stabile.** Il selettore del tema ha
+⚠️ **Il backend di sviluppo su `:4000` non va bene per le prove**: se gira da prima di un
+cambio del DTO pubblico, il sito nasce degradato e le prove misurano una pagina che non è
+quella vera. Serve un'istanza costruita dal codice corrente, su una porta sua.
+
+⚠️ **Il contrasto va misurato sullo stato stabile.** Il selettore del tema ha
 `transition-colors`: misurando subito dopo il cambio di registro si legge un colore **a metà
-strada** fra i due, e il contrasto risulta fuori soglia senza che nulla sia rotto. Lo script
+strada** fra i due, e il rapporto risulta fuori soglia senza che nulla sia rotto. Lo script
 attende 600 ms; se lo si rifà a mano, aspettare.
+
+Restano dall'impianto precedente, nell'archivio di `vetrina-sito-astro`, due prove che questo
+script non ha assorbito — `8.6-menu-contro-api.mjs` (le immagini confrontate una per una con
+la risposta dell'API) e `10.7-su-giu-su.mjs`. ⚠️ Il loro import di Playwright ha un `../` in
+meno da quando sono state archiviate: non ripartono senza correggerlo.
 
 ⚠️ Il dev server di Astro 7 **si sgancia quando l'output non è un terminale** — cioè sotto
 `concurrently`, in uno script, in CI. `npm run dev` stampa l'indirizzo e **ritorna**, ma il

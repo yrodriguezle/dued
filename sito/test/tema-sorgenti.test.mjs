@@ -56,23 +56,46 @@ test('🔴 nessun testo arancione, in nessuna delle sue forme', () => {
   );
 });
 
-test('il numero dello stiramento dell\'insegna compare una volta sola', () => {
-  // §D9 — `transform` non partecipa al layout, quindi il fattore serve DUE volte: allo
-  // scaleX e alla riserva di spazio. Se fossero due numeri, un giorno divergerebbero e il
-  // testo starebbe in un riquadro della misura sbagliata.
-  const righe = sorgenti()
-    .flatMap((percorso) =>
-      senzaCommenti(readFileSync(join(radiceSito, percorso), 'utf8'))
-        .split('\n')
-        .map((riga) => [percorso, riga])
-    )
-    .filter(([, riga]) => riga.includes('1.55'));
+test('🔴 i colori scritti a mano nei componenti sono solo i tre ammessi', () => {
+  // ─────────────────────────────────────────────────────────────────────────────────────
+  // Un colore esadecimale dentro un `.astro` è quasi sempre un errore: i token cambiano fra
+  // i due registri, un letterale no. Chi scrive `#F7F4EF` al posto di `bg-sfondo` ottiene una
+  // pagina identica di giorno e una fascia crema in mezzo alla lavagna di sera — e non c'è
+  // alcun errore da nessuna parte, solo una sezione che «non ha preso il tema».
+  //
+  // Tre eccezioni, e ognuna esiste per una ragione che il token NON risolve:
+  //
+  //   #16130F  il testo sopra l'arancio di marca. 🔴 L'arancio è FISSO nei due registri,
+  //            quindi il testo sopra dev'esserlo altrettanto: `text-inchiostro` darebbe
+  //            crema su arancio di sera, che è **2.22** — illeggibile. Questo è **7.53**.
+  //            Vale anche come fondo dell'eroe dell'aperitivo, che è sempre in registro sera.
+  //   #F4F0E9  il testo sopra quel fondo, per la stessa ragione simmetrica.
+  //   #5F9B4F  il pallino di «aperto». Un verde di stato non è un colore della marca e non
+  //            appartiene alla palette: metterlo fra i token lo renderebbe disponibile come
+  //            sfondo o come testo, che non deve essere.
+  //
+  // ⚠️ Se questo test fallisce, la domanda giusta non è «aggiungo il colore all'elenco»: è
+  //    «perché questo pezzo non può usare un token». Nella maggioranza dei casi può.
+  // ─────────────────────────────────────────────────────────────────────────────────────
+  const AMMESSI = new Set(['#16130F', '#F4F0E9', '#5F9B4F']);
 
-  assert.equal(
-    righe.length,
-    1,
-    `il fattore di stiramento compare in ${righe.length} righe: ${righe
-      .map(([f]) => f)
-      .join(', ')}`
+  // ⚠️ Solo i `.astro`: `global.css` **è** il posto in cui i colori si scrivono, ed è dove
+  //    stanno i quattordici valori dei due registri. Scandirlo qui vorrebbe dire elencare la
+  //    palette in due file — e il secondo sarebbe questo, che nessuno guarda quando cambia un
+  //    colore.
+  const trovati = new Map();
+  for (const percorso of sorgenti().filter((p) => p.endsWith('.astro'))) {
+    const testo = senzaCommenti(readFileSync(join(radiceSito, percorso), 'utf8'));
+    for (const [colore] of testo.matchAll(/#[0-9A-Fa-f]{6}\b/g)) {
+      if (AMMESSI.has(colore.toUpperCase())) continue;
+      trovati.set(colore, [...(trovati.get(colore) ?? []), percorso]);
+    }
+  }
+
+  assert.deepEqual(
+    [...trovati.entries()],
+    [],
+    'colori scritti a mano fuori dai tre ammessi: ' +
+      [...trovati.entries()].map(([c, f]) => `${c} (${[...new Set(f)].join(', ')})`).join('; ')
   );
 });

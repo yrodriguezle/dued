@@ -61,6 +61,15 @@ type ProdottoVetrina = {
   allergeni?: string | null;
   novita: boolean;
   consigliato: boolean;
+  /**
+   * Il giorno in cui il prodotto sta sulla **lavagna** all'ingresso, forma `"YYYY-MM-DD"`.
+   * Il sito mostra la lavagna solo per i prodotti il cui valore è **oggi**.
+   *
+   * 🔴 È una data e non un interruttore, ed è l'unica cosa che conta qui: un booleano resta
+   *    acceso finché qualcuno si ricorda di spegnerlo, e il primo lunedì di fretta il sito
+   *    mostra il piatto di venerdì scorso come «lavagna di oggi». Una data **scade da sola**.
+   */
+  inLavagnaDal?: string | null;
   // ── Derivati dal server, mai persistiti e mai scrivibili ────────────────────
   /** `attivo && visibileSulSito`. La regola sta sul server: chi la ricalcola qui inventa un secondo criterio. */
   pubblicatoSulSito: boolean;
@@ -81,6 +90,8 @@ type ProdottoVetrinaInput = {
   allergeni?: string | null;
   novita: boolean;
   consigliato: boolean;
+  /** `"YYYY-MM-DD"` o `null`. Il sito la mostra solo se è **oggi**: scade da sola. */
+  inLavagnaDal?: string | null;
 };
 
 /** Corpo della risposta 201 di POST /api/media. */
@@ -148,6 +159,34 @@ type ImpostazioniVetrina = {
   // ── Tema ───────────────────────────────────────────────────────────────────
   /** Forma "HH:mm". È un dato, non un calcolo: il confronto con l'ora corrente resta lato client. */
   oraInizioTemaSera: string;
+  // ── I testi che il sito scrive in prima persona ─────────────────────────────
+  //
+  // 🔴 Stanno qui e non dentro un componente del sito perché una frase sul locale scritta nel
+  //    codice è una verità che invecchia lontano da chi la conosce: il giorno in cui smette di
+  //    essere vera, chi lo sa non ha modo di dirlo. Ogni sezione del sito che li usa **non si
+  //    rende affatto** quando sono vuoti — meglio una sezione in meno che una che mente.
+  /** Il paragrafo sotto il titolo della home. */
+  claimVetrina?: string | null;
+  /** La pagina "Il locale": senza il testo, quella rotta risponde 404. */
+  storiaTitolo?: string | null;
+  storiaTesto?: string | null;
+  /** La pagina dell'aperitivo: senza il testo, quella rotta risponde 404. */
+  aperitivoTitolo?: string | null;
+  aperitivoTesto?: string | null;
+  /** Cosa è compreso, **una voce per riga**. Ne vengono pubblicate al massimo sei. */
+  aperitivoPunti?: string | null;
+  /**
+   * Quali categorie di vetrina mostra la pagina dell'aperitivo, **una per riga**, col nome
+   * esatto. 🔴 Esiste per non indovinare: cercare la parola «cocktail» nel nome smette di
+   * funzionare alla prima rinomina, e la pagina mostrerebbe le cose sbagliate senza lasciare
+   * traccia.
+   */
+  aperitivoCategorie?: string | null;
+  // ── Reputazione ────────────────────────────────────────────────────────────
+  /** Da 1 a 5. 🔴 Va insieme al conteggio: il sito mostra i due numeri insieme o nessuno. */
+  punteggioGoogle?: number | null;
+  numeroRecensioniGoogle?: number | null;
+  urlProfiloGoogle?: string | null;
   // ── Ganci spenti: si salvano, non fanno ancora nulla sul sito ───────────────
   prenotazioniAttive: boolean;
   prenotazioniPreavvisoOre: number;
@@ -183,8 +222,56 @@ type ImpostazioniVetrinaInput = {
   metaDescrizioneDefault?: string | null;
   immagineOgId?: number | null;
   oraInizioTemaSera: string;
+  claimVetrina?: string | null;
+  storiaTitolo?: string | null;
+  storiaTesto?: string | null;
+  aperitivoTitolo?: string | null;
+  aperitivoTesto?: string | null;
+  aperitivoPunti?: string | null;
+  aperitivoCategorie?: string | null;
+  punteggioGoogle?: number | null;
+  numeroRecensioniGoogle?: number | null;
+  urlProfiloGoogle?: string | null;
   prenotazioniAttive: boolean;
   prenotazioniPreavvisoOre: number;
   prenotazioniCopertiMax: number;
   turnstileSiteKey?: string | null;
+};
+
+/**
+ * Una recensione **riportata** sul sito.
+ *
+ * 🔴 Non è una recensione ricevuta: il sito non raccoglie giudizi, non c'è alcun form e nessuna
+ * rotta pubblica scrive su questa tabella. Sono citazioni scelte dall'amministratore da ciò che
+ * i clienti hanno già scritto altrove.
+ *
+ * ⚠️ Riportare una recensione altrui è una **citazione**: va riportata fedelmente e attribuita.
+ * Riscriverne il testo «perché suoni meglio» e lasciarci la firma di un cliente non è
+ * marketing, è un'affermazione falsa attribuita a una persona reale.
+ */
+type RecensioneVetrina = {
+  __typename?: "RecensioneVetrina";
+  recensioneVetrinaId: number;
+  /** Come va firmata in pagina. È una firma, non un identificativo. */
+  autore: string;
+  testo: string;
+  /** Da dove viene la citazione, es. "Google". */
+  fonte?: string | null;
+  /** Da 1 a 5. Il vincolo è anche a database. */
+  punteggio: number;
+  ordinamento: number;
+  /** 🔴 Default `false`: una recensione appena inserita non va online per il solo fatto di essere stata salvata. */
+  pubblicata: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/** Esattamente i campi scrivibili: l'identificativo è un argomento a sé della mutation. */
+type RecensioneVetrinaInput = {
+  autore: string;
+  testo: string;
+  fonte?: string | null;
+  punteggio: number;
+  ordinamento: number;
+  pubblicata: boolean;
 };

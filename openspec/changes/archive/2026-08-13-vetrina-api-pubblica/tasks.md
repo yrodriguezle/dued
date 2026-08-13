@@ -1632,12 +1632,22 @@ documentazione. L'unico contenuto del commit sono i tre artefatti (`tasks.md`, `
 `ts:check` e `lint` puliti. ⚠️ La suite frontend è stata eseguita **tre volte** perché un test
 preesistente si è rivelato intermittente: vedi l'ultima nota della fase.
 
-- 🔒 **11.1 resta aperto, e non per dimenticanza.** Le tre rotte sono provate anonime **in
-  sviluppo** (task 5.17, ripetuto oggi: `site` `200`, `menu` `200`, `galleria` `200` da una shell
-  senza `Authorization` e senza cookie). La spec dice *"in sviluppo **e** in produzione"*, e la
-  seconda metà **non è dimostrabile da qui**: richiede che il backend con questo change sia
-  distribuito sul VPS. Lo chiuderà **il primo deploy in produzione di questo change**, ripetendo
-  gli stessi tre `curl` contro l'host reale. Fino ad allora è aperto, non "chiuso per analogia".
+- ~~🔒 **11.1 resta aperto, e non per dimenticanza.**~~ **Chiuso.** Al momento di scrivere questa
+  nota le tre rotte erano provate anonime solo **in sviluppo** (task 5.17: `site` `200`, `menu`
+  `200`, `galleria` `200` da una shell senza `Authorization` e senza cookie), mentre la spec dice
+  *"in sviluppo **e** in produzione"* e la seconda metà richiedeva il deploy sul VPS. Il deploy è
+  arrivato lo stesso giorno e il task è stato chiuso contro `https://217.154.173.33`; la nota è
+  rimasta indietro. **Prova definitiva del 13 agosto 2026**, contro il **dominio reale** e dopo il
+  primo deploy fatto **dalla pipeline** da `main` (run `31636922705`, `deploy` verde), da una shell
+  senza credenziali:
+  `https://duedgusto.it/api/public/site` → `200 application/json`;
+  `/api/public/menu` → `200 application/json`;
+  `/api/public/galleria` → `200 application/json`.
+  Rispetto alla prova del 12 agosto due cose sono cambiate, ed entrambe la rafforzano: l'host è
+  quello vero (non l'IP nudo, che oggi non è nemmeno nel certificato) e le risposte **non sono più
+  vuote di contenuto** — `menu` espone una categoria con un prodotto (`Caffè espresso`, €1,20) e
+  `galleria` una immagine (`2026/08/mojito-gx9ch4`, con `larghezzeDisponibili` e placeholder LQIP).
+  La raggiungibilità anonima e la forma del DTO sono quindi provate **insieme**, sullo stesso giro.
 - 🔴 **Prova 11.2 eseguita nel browser, con la controprova.** Sulla seconda istanza (4012) e il
   dev server (4001), con `config.json` intercettato a runtime invece che riscritto su disco:
   - la chiamata di bootstrap si osserva a **`200`** su `/api/public/business-name`, **prima del
@@ -1694,8 +1704,10 @@ preesistente si è rivelato intermittente: vedi l'ultima nota della fase.
   La quarta nomina il punto del codice in cui il debito è scritto,
   [`AppDbContext.cs:521-536`](../../../backend/DataAccess/AppDbContext.cs).
 - *11.6*: i 16 criteri di [proposal.md](./proposal.md) sono ripercorsi uno per uno. **Quindici
-  chiusi** con la prova che li chiude; **uno parziale** — le tre rotte anonime, chiuse in sviluppo
-  e 🔒 in produzione dal task 11.1.
+  chiusi** con la prova che li chiude; ~~**uno parziale**~~ — le tre rotte anonime erano chiuse in
+  sviluppo e aperte in produzione. **Anche il sedicesimo è ora chiuso**: vedi la prova del 13
+  agosto 2026 nel task 11.1, eseguita contro `https://duedgusto.it` dopo il deploy dalla pipeline.
+  **16 su 16.**
 - ⚠️ **Divergenza dal testo di 11.7, dichiarata.** Il task prevedeva **due** modifiche a test
   esistenti; sono **quattro** i file toccati, e nessuno è stato indebolito:
   `AutorizzazioneAnonimaTests` +1/−1 (task 8.5), `PrivilegiAmministrativiTests` +94/−0 (task 8.10),

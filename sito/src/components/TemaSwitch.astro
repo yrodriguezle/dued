@@ -1,25 +1,98 @@
 ---
 // Il selettore del registro: giorno → sera → auto → giorno.
 //
-// Vanilla, otto righe di comportamento, zero runtime di framework. Un'isola React per
-// questo costerebbe il runtime di React su ogni pagina, contro un budget dichiarato di
-// meno di 60 kB di JavaScript.
+// Vanilla, zero runtime di framework. Un'isola React per questo costerebbe il runtime di
+// React su ogni pagina, contro un budget dichiarato di meno di 60 kB di JavaScript.
 //
-// 🔴 L'etichetta che il SERVER rende è NEUTRA, e non è pigrizia: un'etichetta renderizzata
-//    server-side rivelerebbe lo stato, e lo stato è client-side. Se il server scrivesse
-//    «sera» perché sono le nove di sera per lui, quella parola finirebbe nel micro-cache e
-//    verrebbe servita a chi apre la pagina la mattina dopo. La scrive lo script, insieme al
-//    tema, prima del primo paint.
+// ⚠️ **Tre stati, non i due del mockup**, e il terzo è quello che conta: `auto` fa decidere
+//    il registro all'**ora di Roma** (`oraInizioTemaSera` arriva dall'API, deciso
+//    dall'amministratore). È l'idea stessa del doppio registro — il locale di giorno e il
+//    locale di sera — e un toggle binario la butterebbe via lasciando due skin.
 //
-// `aria-live="polite"` perché l'etichetta cambia dopo il caricamento: senza, chi usa uno
-// screen reader sente «tema» e non saprebbe mai cosa è stato scelto.
+// 🔴 L'icona la sceglie il **CSS**, leggendo `data-scelta` sulla radice, e non lo script.
+//    Lo script del tema gira in `<head>`, prima che questo bottone esista: se l'icona la
+//    mettesse lui, comparirebbe solo a `DOMContentLoaded` — un buco visibile nel punto più
+//    guardato dell'intestazione. Impostando l'attributo prima del primo paint, l'icona
+//    giusta è dipinta insieme al resto.
+//
+// 🔴 Il SERVER non scrive né `data-tema` né `data-scelta`: sono stato del lettore, e queste
+//    pagine stanno dietro un micro-cache. Una risposta che li contenesse servirebbe a metà
+//    dei visitatori il registro di chi ha riempito la cache.
+//
+// L'etichetta parlata sta in un elemento fuori schermo con `aria-live="polite"`: cambia
+// dopo il caricamento, e senza chi usa uno screen reader sentirebbe «tema» senza mai sapere
+// cosa è stato scelto.
 ---
 
 <button
   id="tema-switch"
   type="button"
-  class="border-bordo text-inchiostro-tenue hover:text-inchiostro cursor-pointer rounded-full border px-4 py-2 text-sm transition-colors"
+  class="border-bordo text-inchiostro-tenue hover:text-inchiostro hover:border-inchiostro-tenue grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-full border transition-colors"
   aria-label="Cambia registro visivo"
 >
-  <span id="tema-etichetta" aria-live="polite">Tema</span>
+  {/* Le tre icone convivono nel markup; ne è visibile una sola, scelta dal CSS in fondo. */}
+  <svg
+    data-icona="giorno"
+    class="h-[18px] w-[18px]"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.6"
+    stroke-linecap="round"
+    aria-hidden="true"
+  >
+    <circle cx="12" cy="12" r="4"></circle>
+    <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path>
+  </svg>
+
+  <svg
+    data-icona="sera"
+    class="h-[18px] w-[18px]"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.6"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5Z"></path>
+  </svg>
+
+  {/* `auto`: il quadrante mezzo pieno — il registro segue l'orologio del locale. */}
+  <svg
+    data-icona="auto"
+    class="h-[18px] w-[18px]"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.6"
+    aria-hidden="true"
+  >
+    <circle cx="12" cy="12" r="8.5"></circle>
+    <path d="M12 3.5a8.5 8.5 0 0 1 0 17Z" fill="currentColor" stroke="none"></path>
+  </svg>
+
+  {/*
+    ⚠️ L'etichetta servita è NEUTRA — non nomina né giorno, né sera, né auto. Non è un
+       dettaglio di stile: rivelerebbe lo stato, e lo stato è client-side; finirebbe nel
+       micro-cache e verrebbe letta ad alta voce a chi apre la pagina in un altro momento
+       della giornata. La scrive lo script, insieme al tema. Un test la legge e pretende che
+       non contenga nessuna delle tre parole.
+  */}
+  <span id="tema-etichetta" class="sr-only" aria-live="polite">Registro visivo</span>
 </button>
+
+<style>
+  /* Prima che lo script abbia scritto `data-scelta` non si vede nulla e il bottone tiene già
+     la sua misura: nessun salto, nessuna icona sbagliata per un frame. */
+  #tema-switch [data-icona] {
+    display: none;
+    grid-area: 1 / 1;
+  }
+  :global(html[data-scelta='giorno']) #tema-switch [data-icona='giorno'],
+  :global(html[data-scelta='sera']) #tema-switch [data-icona='sera'],
+  :global(html[data-scelta='auto']) #tema-switch [data-icona='auto'] {
+    display: block;
+  }
+</style>

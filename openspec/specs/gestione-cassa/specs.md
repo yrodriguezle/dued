@@ -2,7 +2,7 @@
 
 **Domain**: gestione-cassa
 **Status**: Active
-**Ultimo aggiornamento**: 2026-07-06
+**Ultimo aggiornamento**: 2026-08-13
 
 Change incorporate in questa spec:
 
@@ -13,6 +13,8 @@ Change incorporate in questa spec:
 | coerenza-calcoli-fase2 | 2026-06-10 | 8 (KPI dashboard, guard giorno operativo, vista mensile); riformulazione requirement IVA in sez. 7 |
 | iva-multialiquota-fase3 | 2026-06-10 | 9 (aliquota IVA prodotto, snapshot vendita, breakdown IVA registro) |
 | spese-su-registro-giornaliero | 2026-07-06 | 10 (Categoria su SpesaCassa/PagamentoFornitore, registro "leggero", esposizione GraphQL categoria); rimosso field legacy `speseMensili` da `PagamentoFornitoreType` |
+| vetrina-fondamenta-media | 2026-08-13 | 11 (le query del ramo vendite restano invariate); riformulato il requirement `mutateProdotto` in sez. 9 — resta il canale dei soli dati contabili |
+| vetrina-api-pubblica | 2026-08-13 | 12 (il listino pubblico non passa dalle query della cassa; i file di scrittura invariati alla lettera; le impostazioni operative sorgente unica degli orari) |
 
 ---
 
@@ -976,9 +978,27 @@ Il sistema DEVE rifiutare, nelle mutation che accettano un'aliquota prodotto, qu
 
 ### Requirement: Mutation mutateProdotto
 
-Il sistema DEVE esporre una mutation GraphQL `mutateProdotto` (modulo Vendite) per creare o aggiornare un prodotto, inclusa l'aliquota IVA. La mutation DEVE essere protetta da autorizzazione (`.Authorize()`), DEVE applicare la validazione delle aliquote ammesse e DEVE restituire il prodotto risultante come `ProdottoType`. La gestione prodotti da interfaccia utente NON è in scope (la mutation è l'unico punto di amministrazione).
+Il sistema DEVE esporre una mutation GraphQL `mutateProdotto` (modulo Vendite) per creare o aggiornare un prodotto, inclusa l'aliquota IVA. La mutation DEVE essere protetta da autorizzazione (`.Authorize()`), DEVE applicare la validazione delle aliquote ammesse e DEVE restituire il prodotto risultante come `ProdottoType`.
 
-Schema GraphQL (additivo):
+`mutateProdotto` MUST restare il canale di amministrazione dei **soli dati contabili** del
+prodotto. Il suo tipo di input `ProdottoInput` MUST NOT accettare alcun campo di vetrina, e
+il percorso di upsert MUST NOT assegnare, azzerare o normalizzare alcun campo di vetrina, né
+in creazione né in aggiornamento. Il motivo è strutturale e non stilistico: l'upsert assegna
+**esplicitamente ogni campo del proprio input** a ogni invocazione, quindi un campo di
+vetrina che entrasse in `ProdottoInput` verrebbe azzerato in massa dal primo salvataggio
+della cassa che non lo invia.
+
+L'amministrazione dei campi di vetrina passa da una mutation separata
+(`mutateProdottoVetrina`), collocata nel **nuovo ramo root `vetrina`** e non nel ramo
+`vendite` (spec `vetrina-prodotti`), che a sua volta MUST NOT toccare alcun campo contabile.
+
+(Precedentemente: il requirement diceva soltanto che «la gestione prodotti da interfaccia
+utente NON è in scope, la mutation è l'unico punto di amministrazione». Con
+`vetrina-fondamenta-media` nasce la prima interfaccia prodotti del progetto — la griglia di
+vetrina — che però amministra **solo** i campi di vetrina e non invoca mai `mutateProdotto`.
+Il resto del requirement, schema di input compreso, è invariato.)
+
+Schema GraphQL (invariato rispetto alla versione precedente di questa spec):
 
 ```graphql
 type VenditeMutation {
@@ -1017,6 +1037,20 @@ input ProdottoInput {
 - GIVEN nessun prodotto con `prodottoId: 999`
 - WHEN il client invia `mutateProdotto` con `{ prodottoId: 999, ... }`
 - THEN la mutation fallisce con errore esplicito "Prodotto non trovato" (o equivalente)
+
+#### Scenario: L'input della cassa non accetta campi di vetrina
+
+- GIVEN lo schema GraphQL con i campi di vetrina applicati
+- WHEN un client invia `mutateProdotto` includendo un campo di vetrina (es. `visibileSulSito`) dentro `prodotto`
+- THEN la richiesta viene rifiutata dalla validazione dello schema
+- AND nessun prodotto viene creato o modificato
+
+#### Scenario: Un salvataggio della cassa non azzera la vetrina
+
+- GIVEN un prodotto con tutti i campi di vetrina valorizzati
+- WHEN la cassa invoca `mutateProdotto` con un payload di soli campi contabili
+- THEN i campi contabili risultano aggiornati
+- AND ognuno dei dieci campi di vetrina conserva esattamente il valore precedente
 
 ### Requirement: Snapshot IVA sulla vendita alla creazione
 
@@ -1436,3 +1470,190 @@ categoria; `PagamentoFornitoreType` esponeva il field legacy `speseMensili`.)
 - WHEN il registro viene salvato con `mutateRegistroCassa` e poi riletto
 - THEN la `SpesaCassa` restituita ha `categoria = Utenze`
 - AND il `PagamentoFornitore` restituito ha `categoria = Stipendi`
+
+---
+
+## 11. Requirements: Confine con la vetrina (vetrina-fondamenta-media)
+
+> Il ramo `vendite` è toccato in **un solo punto**, additivo e retrocompatibile: `ProdottoType`
+> guadagna campi in sola lettura (dichiarati nella spec `vetrina-prodotti`). Nessun campo
+> esistente cambia nome o tipo. Tutto il resto della vetrina vive **fuori** dal ramo `vendite`:
+> la lettura dell'anagrafica per l'amministrazione è una `connection { prodotti }`, le scritture
+> sono nel ramo root `vetrina`. `VenditeQueries` (`prodotti`, `prodotto`, `categorieProdotto`),
+> `ProdottoInput` / `ProdottoInputType` e la mutation `mutateProdotto` restano **letteralmente
+> invariati**: è il punto centrale della change.
+
+### Requirement: Le query del ramo vendite restano invariate
+
+Le query `prodotti`, `prodotto(id)` e `categorieProdotto` MUST restare invariate: stessa
+firma, stessi argomenti, stesso comportamento. In particolare la query `prodotti` MUST NOT
+guadagnare alcun argomento — nemmeno opzionale con default retrocompatibile — e MUST
+continuare a restituire i soli prodotti con `Attivo = true`, con la stessa paginazione per
+limite e scostamento.
+
+Il fabbisogno dell'amministrazione della vetrina — vedere anche i prodotti disattivati per
+poterne correggere lo stato — MUST essere servito da una **query separata** nel ramo
+`connection` (spec `vetrina-prodotti`), non da un argomento sulla query della cassa.
+
+La motivazione è tecnica oltre che di confine, ed è vincolante: la griglia di
+amministrazione consuma le connection tramite l'hook generico del progetto, che genera a
+runtime una query con esattamente `where`, `pageSize`, `orderBy` e `cursor`; un argomento
+tipizzato in più **non sarebbe raggiungibile** senza rinunciare a quell'hook. E il filtro
+`where` viaggia attraverso una traduzione che gestisce **solo confronti LIKE su stringhe**:
+un filtro booleano non è nemmeno esprimibile per quella via. Un argomento server-side sui
+non attivi sarebbe quindi codice aggiunto al ramo cassa e mai invocato.
+
+#### Scenario: Comportamento della query prodotti invariato
+
+- GIVEN un listino con 5 prodotti attivi e 2 disattivati
+- WHEN un client invoca `prodotti`
+- THEN la risposta contiene i soli 5 prodotti attivi, esattamente come prima della change
+
+#### Scenario: Nessun nuovo argomento sulla query della cassa
+
+- GIVEN lo schema GraphQL della change applicata
+- WHEN si ispezionano gli argomenti della query `prodotti` del ramo `vendite`
+- THEN sono esattamente `ricerca`, `categoria`, `limite` e `scostamento`
+- AND non esiste alcun argomento relativo ai prodotti non attivi
+
+#### Scenario: prodotto(id) continua a leggere anche i disattivati
+
+- GIVEN un prodotto con `Attivo = false`
+- WHEN un client invoca `prodotto(id)` con il suo id
+- THEN il prodotto viene restituito, esattamente come prima della change
+
+#### Scenario: categorieProdotto non cambia
+
+- GIVEN un prodotto disattivato con una categoria che nessun prodotto attivo possiede
+- WHEN un client invoca `categorieProdotto`
+- THEN quella categoria non compare nel risultato, esattamente come prima della change
+
+---
+
+## 12. Requirements: Il confine regge all'API pubblica (vetrina-api-pubblica)
+
+> La sezione 11 dichiarava che le query della cassa non cambiano; questa dichiara che **nemmeno
+> il consumatore pubblico** le usa. Il listino del sito nasce da una lettura propria, e i file di
+> scrittura della cassa restano invariati **alla lettera** — non "equivalenti", non "compatibili".
+
+### Requirement: Il listino pubblico non passa dalle query della cassa
+
+La rotta pubblica del menu MUST leggere i prodotti con una propria lettura, e MUST NOT invocare
+le query del ramo `vendite` né la connection di amministrazione della vetrina. Le query della
+cassa MUST restare invariate: stessa firma, stessi argomenti, stesso comportamento; in
+particolare la query `prodotti` MUST NOT guadagnare alcun argomento, nemmeno opzionale con
+default retrocompatibile, e MUST continuare a restituire i soli prodotti attivi.
+
+La differenza fra i due filtri MUST restare reale e osservabile: la query della cassa seleziona i
+prodotti **attivi**, la rotta pubblica seleziona i prodotti **pubblicati**, cioè attivi **e**
+marcati visibili. Non sono lo stesso insieme, e nessuna delle due MUST essere derivata
+dall'altra.
+
+#### Scenario: Il commento sul listino pubblico diventa vero
+
+- GIVEN il codice dopo l'introduzione dell'API pubblica
+- WHEN si ispeziona la provenienza dei prodotti restituiti dalla rotta pubblica del menu
+- THEN non passa da alcuna query del ramo `vendite`
+- AND la rotta a cui il commento rimandava esiste
+
+#### Scenario: La query della cassa non cambia comportamento
+
+- GIVEN un listino con 5 prodotti attivi e 2 disattivati
+- WHEN un client autenticato invoca la query `prodotti` del ramo `vendite`
+- THEN la risposta contiene i soli 5 prodotti attivi, esattamente come prima
+
+#### Scenario: Nessun nuovo argomento sulla query della cassa
+
+- GIVEN lo schema GraphQL dopo l'introduzione dell'API pubblica
+- WHEN si ispezionano gli argomenti della query `prodotti` del ramo `vendite`
+- THEN sono esattamente quelli precedenti
+- AND non esiste alcun argomento relativo alla pubblicazione sul sito
+
+#### Scenario: I due insiemi divergono nel modo atteso
+
+- GIVEN un prodotto attivo e non marcato visibile, e un prodotto attivo e marcato visibile
+- WHEN si confrontano il risultato della query della cassa e quello della rotta pubblica
+- THEN la query della cassa contiene entrambi
+- AND la rotta pubblica contiene solo il secondo
+
+#### Scenario: Le altre query della cassa restano identiche
+
+- GIVEN un prodotto disattivato con una categoria che nessun prodotto attivo possiede
+- WHEN un client invoca `prodotto(id)` e `categorieProdotto`
+- THEN entrambe rispondono esattamente come prima
+
+### Requirement: 🔴 I file di scrittura della cassa restano invariati alla lettera
+
+`VenditeMutations`, `ProdottoInputType` e `VenditeQueries` MUST restare **invariati alla
+lettera**: non "equivalenti", non "compatibili" — **senza differenze**. Il criterio di verifica
+MUST essere il confronto testuale con lo stato precedente, e MUST risultare vuoto.
+
+`ProdottoInput` MUST NOT guadagnare alcun campo, e il percorso di upsert MUST NOT assegnare,
+azzerare o normalizzare alcun campo di vetrina: la ragione resta strutturale e non stilistica,
+perché l'upsert assegna esplicitamente ogni campo del proprio input a ogni invocazione.
+
+I test strutturali del confine introdotti dalla sezione 11 MUST continuare a passare **senza
+alcuna modifica**: un test del confine che va adattato per far passare una change è un confine
+che è stato spostato.
+
+L'estrazione della regola di pubblicazione in un punto condiviso (spec `vetrina-prodotti`) MUST
+riguardare i soli file del ramo vetrina, e MUST NOT richiedere alcuna modifica al ramo cassa.
+
+#### Scenario: Confronto testuale vuoto sui file della cassa
+
+- GIVEN il repository dopo l'introduzione dell'API pubblica
+- WHEN si confrontano `VenditeMutations`, `ProdottoInputType` e `VenditeQueries` con lo stato
+  precedente
+- THEN non risulta alcuna differenza
+
+#### Scenario: I test del confine passano senza essere toccati
+
+- GIVEN i test strutturali del confine cassa/vetrina
+- WHEN si esegue la suite
+- THEN passano
+- AND nessuno di essi è stato modificato
+
+#### Scenario: Un salvataggio della cassa non azzera la vetrina
+
+- GIVEN un prodotto pubblicato con tutti i campi di vetrina valorizzati
+- WHEN la cassa invoca `mutateProdotto` con un payload di soli campi contabili
+- THEN i campi contabili risultano aggiornati
+- AND ognuno dei dieci campi di vetrina conserva esattamente il valore precedente
+- AND il prodotto continua a comparire nella rotta pubblica del menu
+
+#### Scenario: Nessun conteggio di test preesistenti diminuisce
+
+- GIVEN il conteggio dei test del backend e del frontend prima della change
+- WHEN si esegue la suite dopo la change
+- THEN nessun test preesistente risulta rimosso o modificato per farlo passare
+
+### Requirement: Le impostazioni operative restano la sorgente unica degli orari
+
+Le impostazioni operative MUST restare invariate: nessuna colonna aggiunta, nessuna modifica alla
+loro mutation di aggiornamento, nessun vincolo nuovo. La rotta pubblica dell'identità MUST
+leggerle in **sola lettura** e MUST NOT scrivervi.
+
+Le impostazioni della vetrina MUST NOT poter dichiarare orari propri (spec
+`impostazioni-vetrina`): è ciò che rende impossibile per costruzione lo stato in cui il sito
+dichiara un orario e la cassa un altro.
+
+#### Scenario: Le impostazioni operative non cambiano forma
+
+- GIVEN lo schema del database dopo l'introduzione dell'API pubblica
+- WHEN si ispezionano le colonne delle impostazioni operative
+- THEN sono esattamente quelle precedenti
+
+#### Scenario: La composizione pubblica è di sola lettura
+
+- GIVEN una richiesta anonima alla rotta pubblica dell'identità
+- WHEN la richiesta viene servita
+- THEN nessuna scrittura viene effettuata sulle impostazioni operative
+- AND la marca temporale di aggiornamento delle impostazioni operative resta invariata
+
+#### Scenario: Un orario modificato in cassa è quello che il sito mostra
+
+- GIVEN un amministratore che modifica l'orario di chiusura dalle impostazioni della cassa
+- WHEN si richiede la rotta pubblica dell'identità dopo il tempo di cache
+- THEN il nuovo orario è quello esposto
+- AND non esiste alcun altro punto del sistema da cui quel valore possa essere modificato per il
+  sito

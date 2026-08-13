@@ -7,6 +7,7 @@ using duedgusto.DataAccess;
 using duedgusto.GraphQL.Vetrina.Types;
 using duedgusto.Models;
 using duedgusto.Services.GraphQL;
+using duedgusto.Services.Vetrina;
 
 namespace duedgusto.GraphQL.Vetrina;
 
@@ -47,6 +48,32 @@ public class VetrinaQueries : ObjectGraphType
 
                 return await LeggiImpostazioniAsync(dbContext);
             });
+
+        Field<ListGraphType<RecensioneVetrinaType>, IReadOnlyList<RecensioneVetrina>>("recensioni")
+            .Description("Le recensioni riportate sul sito, PUBBLICATE E NON, nell'ordine in cui "
+                + "l'amministratore le ha messe. La rotta pubblica ne restituisce solo il "
+                + "sottoinsieme pubblicato: è la stessa asimmetria delle impostazioni.")
+            .ResolveAsync(async context =>
+            {
+                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                await VetrinaMutations.GuardAmministratore(context, dbContext);
+
+                return await LeggiRecensioniAsync(dbContext, solePubblicate: false);
+            });
+    }
+
+    /// <summary>
+    /// Le recensioni nell'ordine di pagina. L'ordine vive in <see cref="OrdineRecensioni"/> perché
+    /// lo condivide con la rotta pubblica: l'anteprima che l'amministratore usa per riordinarle
+    /// non serve a niente se l'ordine del sito è un altro.
+    /// </summary>
+    internal static Task<List<RecensioneVetrina>> LeggiRecensioniAsync(
+        AppDbContext dbContext, bool solePubblicate)
+    {
+        IQueryable<RecensioneVetrina> query = dbContext.RecensioniVetrina.AsNoTracking();
+        if (solePubblicate) query = query.Where(recensione => recensione.Pubblicata);
+
+        return OrdineRecensioni.Applica(query).ToListAsync();
     }
 
     /// <summary>

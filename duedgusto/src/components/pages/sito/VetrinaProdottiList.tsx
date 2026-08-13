@@ -37,6 +37,10 @@ function inputDaRiga(riga: ProdottoVetrina): ProdottoVetrinaInput {
     allergeni: riga.allergeni || null,
     novita: Boolean(riga.novita),
     consigliato: Boolean(riga.consigliato),
+    // ⚠️ Svuotare la cella deve poter TOGLIERE il piatto dalla lavagna, quindi la stringa
+    //    vuota diventa `null` e non `""`: l'assegnazione del server è totale, e un `""`
+    //    arriverebbe come data non valida invece che come assenza.
+    inLavagnaDal: riga.inLavagnaDal || null,
   };
 }
 
@@ -334,6 +338,26 @@ function VetrinaProdottiList() {
         cellDataType: "boolean",
         cellRenderer: "agCheckboxCellRenderer",
         cellEditor: "agCheckboxCellEditor",
+      },
+      {
+        headerName: "In lavagna il",
+        field: "inLavagnaDal",
+        width: 150,
+        editable: true,
+        cellDataType: "dateString",
+        cellEditor: "agDateStringCellEditor",
+        // ⚠️ La colonna mostra una DATA e non una spunta, ed è la sola cosa che conta qui: il
+        //    sito rende la lavagna solo per i prodotti il cui valore è OGGI. Un interruttore
+        //    resterebbe acceso finché qualcuno se ne ricorda, e il primo lunedì di fretta la
+        //    home mostrerebbe il piatto di venerdì scorso come «lavagna di oggi». Una data
+        //    scade da sola: dimenticarsene fa sparire la sezione, che è il modo giusto di
+        //    sbagliare.
+        headerTooltip: "Il giorno in cui il piatto sta sulla lavagna all'ingresso. Il sito lo mostra solo se è oggi: una data passata non compare più. Svuota per toglierlo.",
+        cellClassRules: {
+          // Oggi si evidenzia: è l'unica riga che sta davvero producendo qualcosa sul sito, e
+          // in una griglia di quaranta prodotti non si trova a occhio.
+          "font-semibold": (parametri) => parametri.value === new Date().toLocaleDateString("sv-SE"),
+        },
       },
       {
         headerName: "Allergeni",

@@ -1,0 +1,133 @@
+---
+// «Il locale» — chi siamo.
+//
+// 🔴 **Esiste solo se la storia è stata scritta.** Nel mockup il testo è dichiarato
+//    segnaposto in pagina — *«qui va la vostra storia vera, con nomi e date»* — e una pagina
+//    «chi siamo» con dentro una storia inventata da chi ha costruito il sito è la cosa
+//    peggiore che questa rotta possa fare: sembra vera, la leggono i clienti, e chi la
+//    smentirebbe non sa nemmeno che c'è.
+//
+//    Senza testo la rotta risponde 404 e non c'è nulla da indicizzare.
+
+import Base from '../layouts/Base.astro';
+import Immagine from '../components/Immagine.astro';
+import Freccia from '../components/Freccia.astro';
+import { leggiSito, leggiGalleria } from '../lib/api.ts';
+
+const [esitoSito, esitoGalleria] = await Promise.all([leggiSito(), leggiGalleria()]);
+const sito = esitoSito.stato === 'ok' ? esitoSito.dati : null;
+const galleria = esitoGalleria.stato === 'ok' ? esitoGalleria.dati.immagini : [];
+
+const storia = sito?.testi.storia ?? null;
+
+// Stessa distinzione di `/aperitivo`: contenuto assente → 404 (questa pagina non esiste);
+// backend irraggiungibile → 503 (è un guasto, e un 404 lo renderebbe permanente per i motori).
+if (sito === null) {
+  Astro.response.status = 503;
+  Astro.response.headers.set('Retry-After', '120');
+  Astro.response.headers.set('Cache-Control', 'no-store');
+} else if (storia === null) {
+  Astro.response.status = 404;
+  Astro.response.headers.set('Cache-Control', 'no-store');
+} else {
+  Astro.response.headers.set('Cache-Control', 'public, max-age=300');
+}
+
+// Il ritratto è la seconda foto della galleria, le tre quadrate sono le successive: la prima
+// è già l'eroe della home, e ripeterla qui farebbe sembrare il sito più corto di quanto è.
+const ritratto = galleria[1] ?? galleria[0] ?? null;
+const quadrate = galleria.slice(2, 5);
+
+// ⚠️ Il testo è un campo `text` scritto in un `textarea`: i capoversi arrivano come righe
+//    vuote, e senza spezzarli qui la storia diventa **un unico blocco** — che è il modo in
+//    cui un testo scritto bene si legge male. `white-space: pre-line` risolverebbe le
+//    interruzioni ma non darebbe lo spazio fra i capoversi.
+const capoversi = storia
+  ? storia.testo
+      .split(/\n\s*\n/)
+      .map((capoverso) => capoverso.trim())
+      .filter((capoverso) => capoverso.length > 0)
+  : [];
+---
+
+<Base
+  titolo={`${storia?.titolo ?? 'Il locale'} — ${sito?.insegna ?? '2 D Gusto'}`}
+  descrizione={capoversi[0]}
+  sito={sito}
+>
+  <main class="mx-auto max-w-6xl px-5 py-14 sm:px-8">
+    {
+      storia === null && (
+        <div class="mx-auto max-w-3xl py-16 text-center">
+          <h1 class="font-titolo text-[clamp(2.25rem,5vw,4rem)] leading-tight">
+            {sito === null ? 'Torniamo fra poco' : 'Questa pagina non c’è'}
+          </h1>
+          <p class="text-inchiostro-tenue mt-5 text-lg">
+            {sito === null
+              ? 'Le informazioni del locale non sono raggiungibili in questo momento.'
+              : 'La storia del locale non è ancora online. Passa a farsela raccontare.'}
+          </p>
+          <a
+            href="/"
+            class="bg-inchiostro text-sfondo mt-9 inline-flex items-center gap-2 rounded-full px-7 py-4 text-[15px] font-semibold transition-opacity hover:opacity-90"
+          >
+            Torna alla home <Freccia />
+          </a>
+        </div>
+      )
+    }
+
+    {
+      storia && (
+        <>
+          <div class="grid items-center gap-14 lg:grid-cols-[1.1fr_0.9fr]">
+            <div>
+              <p class="font-mono text-accento text-[11.5px] tracking-[0.2em] uppercase">
+                Chi siamo
+              </p>
+              <h1 class="font-titolo mt-4 text-[clamp(2.5rem,5vw,4.9rem)] leading-[0.98] tracking-[-0.03em]">
+                {storia.titolo ?? 'Il locale'}
+              </h1>
+
+              <div class="mt-7 max-w-[50ch]">
+                {capoversi.map((capoverso) => (
+                  <p class="text-inchiostro-tenue mt-5 text-lg leading-relaxed text-pretty first:mt-0">
+                    {capoverso}
+                  </p>
+                ))}
+              </div>
+            </div>
+
+            {ritratto && (
+              <div class="bg-sfondo-alt aspect-3/4 overflow-hidden rounded-2xl">
+                <Immagine
+                  immagine={ritratto}
+                  sizes="(min-width: 1024px) 30rem, 92vw"
+                  priorita
+                  classe="block h-full w-full"
+                />
+              </div>
+            )}
+          </div>
+
+          {quadrate.length > 0 && (
+            <div
+              class="mt-14 grid gap-3.5"
+              style={`grid-template-columns:repeat(${Math.min(quadrate.length, 3)},minmax(0,1fr))`}
+            >
+              {quadrate.map((immagine) => (
+                <figure class="aspect-square overflow-hidden rounded-2xl">
+                  <Immagine
+                    immagine={immagine}
+                    sizes="(min-width: 640px) 22rem, 92vw"
+                    classe="block h-full w-full"
+                  />
+                </figure>
+              ))}
+            </div>
+          )}
+        </>
+      )
+    }
+  </main>
+</Base>

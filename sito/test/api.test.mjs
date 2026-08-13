@@ -148,6 +148,8 @@ test('🔴 Promise.all di due letture di cui una fallisce restituisce ENTRAMBI g
           indirizzo: {},
           orari: {},
           oraInizioTemaSera: '18:00',
+          testi: {},
+          recensioni: [],
         })
       );
       return;

@@ -130,7 +130,13 @@ export async function leggiJson<T>(
  */
 export function leggiSito(): Promise<Esito<SitoPubblico>> {
   return leggiJson<SitoPubblico>(`${API_INTERNA_URL}/api/public/site`, (v) =>
-    haLeChiavi(v, ['insegna', 'indirizzo', 'orari', 'oraInizioTemaSera'])
+    // ⚠️ `testi` e `recensioni` stanno fra le chiavi richieste, e non è pignoleria: le pagine
+    //    scrivono `sito.testi.aperitivo`, che su un backend più vecchio del sito solleverebbe
+    //    un TypeError nel frontmatter — cioè un **500 servito al visitatore**, che è il
+    //    guasto peggiore possibile ed è precisamente quello che questo modulo esiste per
+    //    evitare. Dichiarandole qui, un backend vecchio produce la degradazione documentata:
+    //    avviso in pagina, `no-store`, e una riga nei log con il motivo `formato`.
+    haLeChiavi(v, ['insegna', 'indirizzo', 'orari', 'oraInizioTemaSera', 'testi', 'recensioni'])
   );
 }
 
@@ -144,7 +150,15 @@ export function leggiSito(): Promise<Esito<SitoPubblico>> {
  */
 export function leggiMenu(): Promise<Esito<MenuPubblico>> {
   return leggiJson<MenuPubblico>(`${API_INTERNA_URL}/api/public/menu`, (v) =>
-    haLeChiavi(v, ['categorie', 'totaleProdottiPubblicati', 'limiteApplicato', 'troncato'])
+    // `lavagna` è fra le richieste per la stessa ragione di `testi` in `leggiSito`: la home
+    // scrive `menu.lavagna`, e su un backend più vecchio sarebbe `undefined.length`.
+    haLeChiavi(v, [
+      'categorie',
+      'totaleProdottiPubblicati',
+      'limiteApplicato',
+      'troncato',
+      'lavagna',
+    ])
   );
 }
 

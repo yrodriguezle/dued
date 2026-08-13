@@ -69,23 +69,32 @@ before(async () => {
 
 after(() => server?.kill());
 
-test('🔴 l\'URL del preload è la STESSA che il CSS richiede', () => {
-  const preload = html.match(/<link[^>]+rel="preload"[^>]+href="([^"]+)"[^>]*>/);
-  assert.ok(preload, 'nessun <link rel="preload"> nell\'HTML servito');
-
-  const daCss = css.match(/url\((\/[^)]*Anton[^)]*\.woff2)\)/);
-  assert.ok(daCss, 'il CSS non chiede alcun file di Anton');
-
-  assert.equal(
-    preload[1],
-    daCss[1],
-    'il preload punta a un file diverso da quello che il CSS chiede: il browser ne ' +
-      'scaricherebbe due. Il percorso va importato con `?url`, mai scritto a mano — Vite ' +
-      'ci mette un hash di contenuto che cambia a ogni modifica del file.'
+test('🔴 le URL dei preload sono le STESSE che il CSS richiede', () => {
+  const preload = [...html.matchAll(/<link[^>]+rel="preload"[^>]+href="([^"]+)"[^>]*>/g)].map(
+    (m) => m[1]
   );
-  // La prova che l'hash c'è davvero, cioè che il confronto sopra non è fra due stringhe
-  // scritte a mano identiche per caso.
-  assert.match(preload[1], /Anton-latin\.[A-Za-z0-9_-]{6,}\.woff2$/);
+  assert.ok(preload.length > 0, 'nessun <link rel="preload"> nell\'HTML servito');
+
+  for (const [famiglia, frammento] of [
+    ['Instrument Serif', 'InstrumentSerif-latin'],
+    ['Manrope', 'Manrope-400-700-latin'],
+  ]) {
+    const daCss = css.match(new RegExp(`url\\((/[^)]*${frammento}[^)]*\\.woff2)\\)`));
+    assert.ok(daCss, `il CSS non chiede alcun file di ${famiglia}`);
+
+    const corrispondente = preload.find((p) => p.includes(frammento));
+    assert.ok(corrispondente, `nessun preload per ${famiglia}`);
+    assert.equal(
+      corrispondente,
+      daCss[1],
+      `il preload di ${famiglia} punta a un file diverso da quello che il CSS chiede: il ` +
+        'browser ne scaricherebbe due. Il percorso va importato con `?url`, mai scritto a ' +
+        'mano — Vite ci mette un hash di contenuto che cambia a ogni modifica del file.'
+    );
+    // La prova che l'hash c'è davvero, cioè che il confronto sopra non è fra due stringhe
+    // scritte a mano identiche per caso.
+    assert.match(corrispondente, new RegExp(`${frammento}\\.[A-Za-z0-9_-]{6,}\\.woff2$`));
+  }
 });
 
 test('🔴 il preload porta crossorigin', () => {
@@ -100,14 +109,17 @@ test('🔴 il preload porta crossorigin', () => {
   assert.match(tag, /type="font\/woff2"/);
 });
 
-test('un solo preload di carattere: Allura e Playfair non si preloadano', () => {
+test('due preload di carattere: il corsivo e il monospaziato non si preloadano', () => {
   const preloads = [...html.matchAll(/<link[^>]+rel="preload"[^>]*>/g)].map((m) => m[0]);
   const diFont = preloads.filter((t) => t.includes('as="font"'));
   assert.equal(
     diFont.length,
-    1,
-    `preload di carattere trovati: ${diFont.length}. Solo Anton è sopra la piega; gli altri ` +
-      'due sono decorativi e ruberebbero banda a ciò che serve per leggere.'
+    2,
+    `preload di carattere trovati: ${diFont.length}. Sono due e non uno perché sopra la ` +
+      'piega ci sono due ruoli, non uno: Instrument Serif porta il titolo e Manrope porta ' +
+      'la navigazione, il paragrafo e i bottoni. Il corsivo vale una parola sola e il ' +
+      "monospaziato le etichette piccole: con `swap` si vedono subito nel carattere di " +
+      'sistema, e preloadarli ruberebbe banda a ciò che serve per leggere.'
   );
 });
 
@@ -132,12 +144,13 @@ test('i domini dei font esterni non compaiono in nessun file generato', () => {
   for (const dominio of DOMINI_ESTERNI) assert.ok(!html.includes(dominio));
 });
 
-test('i tre file sono in albero, con licenza e provenienza', () => {
+test('i quattro file sono in albero, con licenza e provenienza', () => {
   const cartella = join(radiceSito, 'src/assets/fonts');
   const attesi = {
-    'Anton-latin.woff2': 18612,
-    'Allura-latin.woff2': 26488,
-    'PlayfairDisplay-900-latin.woff2': 22372,
+    'InstrumentSerif-latin.woff2': 21032,
+    'InstrumentSerif-italic-latin.woff2': 22128,
+    'Manrope-400-700-latin.woff2': 24836,
+    'JetBrainsMono-400-500-latin.woff2': 31432,
   };
   let totale = 0;
   for (const [nome, byte] of Object.entries(attesi)) {
@@ -146,7 +159,7 @@ test('i tre file sono in albero, con licenza e provenienza', () => {
     assert.equal(statSync(percorso).size, byte, `${nome} ha una dimensione inattesa`);
     totale += byte;
   }
-  assert.equal(totale, 67472);
+  assert.equal(totale, 99428);
 
   // 🔴 La licenza RICHIEDE di accompagnare i file: non è documentazione, è una condizione
   //    della redistribuzione. E senza PROVENIENZA.md le URL — che sono opache — sarebbero
@@ -155,12 +168,41 @@ test('i tre file sono in albero, con licenza e provenienza', () => {
   assert.ok(existsSync(join(cartella, 'PROVENIENZA.md')), 'manca PROVENIENZA.md');
 });
 
-test('il corpo non scarica alcun file: nessun @font-face per lo stack di sistema', () => {
+test('le tre famiglie, e il corsivo come faccia a sé', () => {
   const sorgente = readFileSync(join(radiceSito, 'src/styles/global.css'), 'utf8');
-  const famiglie = [...sorgente.matchAll(/@font-face\s*\{[^}]*font-family:\s*'([^']+)'/g)].map(
-    (m) => m[1]
-  );
-  assert.deepEqual(famiglie.sort(), ['Allura', 'Anton', 'Playfair Display']);
+  const facce = [
+    ...sorgente.matchAll(
+      /@font-face\s*\{[^}]*font-family:\s*'([^']+)'[^}]*font-style:\s*(\w+)/g
+    ),
+  ].map((m) => `${m[1]} ${m[2]}`);
+  assert.deepEqual(facce.sort(), [
+    'Instrument Serif italic',
+    'Instrument Serif normal',
+    'JetBrains Mono normal',
+    'Manrope normal',
+  ]);
+});
+
+test('🔴 i due file variabili dichiarano un INTERVALLO di peso, non un valore', () => {
+  // Con `font-weight: 400` su un file variabile il browser lo tratta come peso singolo e
+  // SINTETIZZA gli altri ingrassando le aste — lo stesso grassetto finto che
+  // `font-synthesis: none` esiste per impedire, ottenuto per la via opposta. E il sintomo è
+  // che il grassetto «c'è», solo brutto: nessuno lo cerca qui.
+  const sorgente = readFileSync(join(radiceSito, 'src/styles/global.css'), 'utf8');
+  for (const [famiglia, intervallo] of [
+    ['Manrope', '400 700'],
+    ['JetBrains Mono', '400 500'],
+  ]) {
+    const blocco = sorgente.match(
+      new RegExp(`@font-face\\s*\\{[^}]*font-family:\\s*'${famiglia}'[^}]*\\}`)
+    );
+    assert.ok(blocco, `nessun @font-face per ${famiglia}`);
+    assert.match(
+      blocco[0],
+      new RegExp(`font-weight:\\s*${intervallo}\\s*;`),
+      `${famiglia} è variabile e deve dichiarare \`font-weight: ${intervallo}\``
+    );
+  }
 });
 
 test("l'intervallo Unicode copre ciò che il sito scrive", () => {
@@ -168,7 +210,7 @@ test("l'intervallo Unicode copre ciò che il sito scrive", () => {
   const intervalli = [...sorgente.matchAll(/unicode-range:([^;]+);/g)].map((m) =>
     m[1].replace(/\s+/g, ' ').trim()
   );
-  assert.equal(intervalli.length, 3, 'ogni @font-face deve dichiarare il suo intervallo');
+  assert.equal(intervalli.length, 4, 'ogni @font-face deve dichiarare il suo intervallo');
   for (const intervallo of intervalli) {
     // Le accentate italiane, l'apostrofo tipografico e il grado stanno nei primi due;
     // 🔴 l'euro sta a parte, e senza sarebbero i PREZZI a non avere glifo.
@@ -176,4 +218,20 @@ test("l'intervallo Unicode copre ciò che il sito scrive", () => {
     assert.ok(intervallo.includes('U+2000-206F'), `mancano apostrofi e trattini`);
     assert.ok(intervallo.includes('U+20AC'), "manca l'euro: sarebbero i prezzi");
   }
+});
+
+test('🔴 nessuna freccia → nel testo servito: è FUORI dal subset latino', () => {
+  // U+2192 non è nell'intervallo, e i due vicini che ci sono (U+2191 ↑, U+2193 ↓) rendono
+  // la cosa facilissima da dare per scontata. Una freccia scritta come carattere viene resa
+  // dal ripiego di sistema: cambia forma e allineamento fra Windows, macOS e Android, e su
+  // qualche Android non c'è affatto. Nel mockup le frecce ci sono («Tutto il menu →»): qui
+  // sono glifi SVG dentro il componente del link.
+  const posizione = html.indexOf('→');
+  assert.equal(
+    posizione,
+    -1,
+    'c\'è un carattere → nell\'HTML servito, vicino a: ' +
+      JSON.stringify(html.slice(Math.max(0, posizione - 60), posizione + 60)) +
+      ' — usa il componente della freccia, che la disegna in SVG.'
+  );
 });

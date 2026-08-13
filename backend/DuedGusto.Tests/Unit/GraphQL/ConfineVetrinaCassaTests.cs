@@ -26,7 +26,7 @@ public class ConfineVetrinaCassaTests
     private static readonly string[] CampiVetrina =
     [
         "VisibileSulSito", "NomeVetrina", "DescrizioneVetrina", "CategoriaVetrina", "PrezzoVetrina",
-        "ImmagineId", "OrdinamentoVetrina", "Allergeni", "Novita", "Consigliato",
+        "ImmagineId", "OrdinamentoVetrina", "Allergeni", "Novita", "Consigliato", "InLavagnaDal",
     ];
 
     [Fact]
@@ -53,7 +53,7 @@ public class ConfineVetrinaCassaTests
     }
 
     [Fact]
-    public void ProdottoVetrinaInput_ContieneEsattamenteIDieciCampiVetrina()
+    public void ProdottoVetrinaInput_ContieneEsattamenteGliUndiciCampiVetrina()
     {
         // Il confine ha due lati: sopra si impedisce di aggiungere campi cassa, qui si
         // impedisce di perderne uno di vetrina. Un campo tolto dall'input non dà errore:

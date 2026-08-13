@@ -65,6 +65,23 @@ public class Prodotto
     public bool Novita { get; set; }
     public bool Consigliato { get; set; }
 
+    /// <summary>
+    /// Il giorno in cui questo prodotto sta sulla <b>lavagna</b> — quella vera, all'ingresso, che
+    /// cambia ogni mattina. Il sito mostra la lavagna solo per i prodotti il cui valore è
+    /// <b>oggi</b>.
+    ///
+    /// <para>🔴 <b>È una data e non un booleano, e la differenza è la sola cosa che conta qui.</b>
+    /// Un <c>InLavagna</c> vero/falso resta acceso finché qualcuno si ricorda di spegnerlo: il
+    /// primo lunedì in cui l'amministratore ha fretta, il sito mostra il piatto di venerdì scorso
+    /// come «lavagna di oggi» — e continua a mostrarlo per settimane, con la stessa aria di
+    /// certezza. Una data <b>scade da sola</b>: dimenticarsene fa sparire la sezione, che è il
+    /// modo giusto di sbagliare.</para>
+    ///
+    /// <para>⚠️ Il confronto con "oggi" è del <b>server</b>, in ora locale del locale, e non del
+    /// visitatore: la lavagna è un fatto del posto, non del fuso di chi guarda.</para>
+    /// </summary>
+    public DateOnly? InLavagnaDal { get; set; }
+
     // Metadati
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

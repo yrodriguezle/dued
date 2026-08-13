@@ -6,6 +6,7 @@
 User-agent: *
 Allow: /
 
-# La sitemap nasce in Fase 3 del progetto, insieme al dominio e a `site:` nella
-# configurazione di Astro. Oggi il dominio non esiste, e una riga che punta a un host
-# inventato è peggio di una riga assente.
+# ⚠️ La sitemap è generata da `src/pages/sitemap.xml.ts`, non da `@astrojs/sitemap`:
+#    quell'integrazione elenca le pagine PRERENDERIZZATE, e qui non ce n'è nessuna — sono
+#    tutte on-demand. Avrebbe prodotto un file valido che dichiara un sito senza pagine.
+Sitemap: https://duedgusto.it/sitemap.xml

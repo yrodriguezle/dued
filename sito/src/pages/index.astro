@@ -1,18 +1,23 @@
 ---
 // La home — la pagina che la gente digita.
 //
-// Il motivo per cui esiste come gradino a sé è però un altro: contiene la **fascia
-// "Aperitivo" in registro sera annidata in una pagina in tema giorno**, che è l'unico posto
-// in cui la differenza fra `@theme` e `@theme inline` diventa visibile a occhio. Il test
-// sul CSS generato lo ha provato; qui lo si guarda.
+// ⚠️ **Ogni sezione qui dentro può non esserci**, e nessuna di quelle assenze è un guasto:
+//    la lavagna è vuota nei giorni in cui nessuno ci ha messo niente, le recensioni finché
+//    l'amministratore non ne riporta, la storia finché non la scrive. La regola è una sola e
+//    vale per tutte: **una sezione senza il suo dato non si rende affatto**, invece di
+//    riempirsi con un ripiego scritto qui. Meglio una sezione in meno che una che mente.
 
 import Base from '../layouts/Base.astro';
-import Logo from '../components/Logo.astro';
-import TemaSwitch from '../components/TemaSwitch.astro';
 import Immagine from '../components/Immagine.astro';
-import SchedaProdotto from '../components/SchedaProdotto.astro';
+import Nastro from '../components/Nastro.astro';
+import Mappa from '../components/Mappa.astro';
+import Freccia from '../components/Freccia.astro';
+import OrariSettimana from '../components/OrariSettimana.astro';
+import Lavagna from '../components/Lavagna.astro';
+import Recensioni from '../components/Recensioni.astro';
 import AvvisoDegradazione from '../components/AvvisoDegradazione.astro';
 import { leggiSito, leggiMenu, leggiGalleria } from '../lib/api.ts';
+import { euro, riassumiGiorni } from '../lib/formato.ts';
 
 // 🔴 Tre letture in parallelo con `Promise.all`, non `allSettled`: nessuna delle tre
 //    rifiuta mai (§D4), quindi non c'è nulla da cortocircuitare. Un fallimento parziale
@@ -28,57 +33,65 @@ const galleria = esitoGalleria.stato === 'ok' ? esitoGalleria.dati.immagini : []
 
 // ── Tre stati, non due ────────────────────────────────────────────────────────────────
 //   1. tutto letto            → pagina intera, `public, max-age=60`
-//   2. identità sì, menu no   → identità, orari, contatti; NIENTE striscia consigliati e un
-//                               avviso al suo posto; `no-store`
-//   3. identità no            → marca, slogan, insegna — che sono asset LOCALI e quindi
-//                               contenuto vero — con l'avviso in testa e nessun orario;
-//                               `no-store`
+//   2. identità sì, menu no   → identità, orari, contatti e un avviso; `no-store`
+//   3. identità no            → marca e insegna, che sono asset LOCALI e quindi contenuto
+//                               vero, con l'avviso in testa e nessun orario; `no-store`
 //
 // 🔴 `/` risponde sempre **200**, anche degradata: è l'URL che la gente digita e che i
 //    motori tengono in indice, e ciò che resta in pagina è contenuto vero. `/menu` fa
 //    l'opposto e per una ragione diversa (vedi `menu.astro`).
 //
-// 🔴 `no-store` quando è degradata: senza, il micro-cache di Fase 6 congelerebbe la pagina
-//    incompleta per sessanta secondi DOPO il ripristino del backend.
+// 🔴 `no-store` quando è degradata: senza, il micro-cache congelerebbe la pagina incompleta
+//    per sessanta secondi DOPO il ripristino del backend.
 const degradata = sito === null || menu === null;
-Astro.response.headers.set(
-  'Cache-Control',
-  degradata ? 'no-store' : 'public, max-age=60'
-);
+Astro.response.headers.set('Cache-Control', degradata ? 'no-store' : 'public, max-age=60');
 
-// La striscia dei consigliati viene dal payload, non da un array scritto nel template: è
-// una selezione VIVA, che l'amministratore governa dal marcatore in cassa.
+// ── I momenti ─────────────────────────────────────────────────────────────────────────
+// 🔴 Le linguette sono le **categorie di vetrina**, non tre parole scritte qui. Nel mockup
+//    sono «Colazione / Pranzo / Aperitivo» con i piatti elencati a mano nel componente: così
+//    il giorno in cui il locale smette di fare il congri, il sito continua a proporlo.
 //
-// ⚠️ E la home NON mostra l'avviso di troncamento, deliberatamente: espone per natura una
-//    selezione, non un listino, quindi non promette completezza e un avviso lì sarebbe
-//    rumore. Conseguenza da conoscere: con il menu troncato, un `consigliato` oltre il
-//    limite non compare qui. Il rimedio è l'ordinamento di vetrina, che l'admin già ha.
-const consigliati = (menu?.categorie ?? [])
-  .flatMap((c) => c.prodotti)
-  .filter((p) => p.consigliato)
-  .slice(0, 3);
+// ⚠️ **Divergenza dichiarata dal mockup**: lì ogni linguetta ha un paragrafo di prosa suo
+//    («Dalle sette in vitrina: krapfen, fagottini…»). Qui non c'è, e non è una dimenticanza:
+//    un testo per categoria vorrebbe un'entità categoria, che oggi non esiste —
+//    `CategoriaVetrina` è una stringa libera sul prodotto. Aggiungerla è un lavoro a sé, non
+//    una riga da infilare qui.
+const MAX_MOMENTI = 3;
+const MAX_PIATTI_PER_MOMENTO = 4;
 
-const GIORNI = ['lun', 'mar', 'mer', 'gio', 'ven', 'sab', 'dom'];
-const giorniAperti = sito?.orari.giorniOperativi
-  ? GIORNI.filter((_, i) => sito.orari.giorniOperativi![i])
-  : null;
+const momenti = (menu?.categorie ?? []).slice(0, MAX_MOMENTI).map((categoria) => {
+  // I consigliati per primi: sono la selezione che l'amministratore governa dal marcatore in
+  // cassa, ed è esattamente la lista che il mockup aveva scritto a mano.
+  const ordinati = [
+    ...categoria.prodotti.filter((p) => p.consigliato),
+    ...categoria.prodotti.filter((p) => !p.consigliato),
+  ];
+  return {
+    chiave: categoria.nome,
+    nome: categoria.nome,
+    piatti: ordinati.slice(0, MAX_PIATTI_PER_MOMENTO),
+    // La foto del momento è quella del primo piatto che ne ha una: non una scelta separata da
+    // mantenere allineata, che divergerebbe dal listino alla prima modifica.
+    immagine: ordinati.find((p) => p.immagine)?.immagine ?? null,
+  };
+});
+
+const giorni = riassumiGiorni(sito?.orari.giorniOperativi);
+const aperitivo = sito?.testi.aperitivo ?? null;
+
+// La prima foto della galleria è l'eroe; le successive fanno la griglia del locale. L'ordine
+// è **editoriale** — lo decide l'amministratore dalla libreria media — quindi qui non si
+// sceglie nulla, si legge.
+const [eroe, ...altre] = galleria;
+const griglia = altre.slice(0, 3);
 ---
 
 <Base
-  titolo={sito?.insegna ?? '2 D Gusto'}
-  descrizione="Caffetteria italiana con anima cubana a Thiene. Colazione, pranzo e aperitivo."
+  titolo={sito?.seo.titoloDefault ?? sito?.insegna ?? '2 D Gusto'}
+  descrizione={sito?.testi.claim ??
+    'Caffetteria italiana con anima cubana a Thiene. Colazione, pranzo e aperitivo.'}
   sito={sito}
 >
-  <header class="border-bordo border-b">
-    <div class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-5">
-      <Logo classe="w-40" />
-      <nav class="flex items-center gap-4">
-        <a href="/menu" class="hover:text-accento text-sm tracking-wide uppercase">Menu</a>
-        <TemaSwitch />
-      </nav>
-    </div>
-  </header>
-
   <main>
     {
       /*
@@ -86,138 +99,279 @@ const giorniAperti = sito?.orari.giorniOperativi
         orari, contatti, indirizzo — è precisamente quello che la gente viene a cercare.
       */
       sito === null && (
-        <div class="px-6 pt-8">
+        <div class="mx-auto max-w-6xl px-5 pt-8 sm:px-8">
           <AvvisoDegradazione cosa="identita" forma="pagina" />
         </div>
       )
     }
 
-    <!-- ── Hero ─────────────────────────────────────────────────────────────────────── -->
-    <section class="mx-auto max-w-5xl px-6 py-16 text-center sm:py-24">
-      <Logo forma="monogramma" classe="w-24 sm:w-32" etichetta={null} />
+    <!-- ── L'eroe ───────────────────────────────────────────────────────────────────── -->
+    <section
+      class="mx-auto grid max-w-6xl items-center gap-12 px-5 py-14 sm:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:py-20"
+    >
+      <div>
+        {
+          sito && (
+            <p class="font-mono text-accento text-[11.5px] tracking-[0.2em] uppercase">
+              {sito.indirizzo.citta} ({sito.indirizzo.provincia})
+            </p>
+          )
+        }
 
-      <h1 class="mt-8 text-lg sm:text-3xl">
         {/*
           🔴 Le tre parole sono TESTO, mai l'SVG dell'insegna: devono poter essere lette,
-             tradotte e indicizzate. La riserva di spazio e lo stiramento derivano dallo
-             stesso token, perché `transform` non partecipa al layout.
+             tradotte e indicizzate. E restano scritte qui, non in un campo del CMS, perché
+             non sono un'affermazione sul locale che può invecchiare — sono l'insegna, quella
+             appesa fuori.
 
-          ⚠️ La misura del carattere è tarata SULLA RISERVA, non scelta a occhio: il padding
-             percentuale di `.insegna-riserva` toglie il 55% della larghezza disponibile, e
-             un corpo troppo grande manda le tre parole a capo — che è leggibile, ma non è
-             l'insegna. Su schermo stretto il ritorno a capo resta ammesso: meglio due righe
-             che un testo che sborda.
+          ⚠️ Il corsivo è un FILE, non un'inclinazione: Instrument Serif ha un corsivo vero, e
+             `font-synthesis: none` impedisce al browser di fabbricarne uno storto se un
+             giorno quel file sparisse. In quel caso la parola resterebbe dritta — che si
+             nota — invece di sembrare giusta.
         */}
-        <span class="insegna-riserva">
-          <span class="font-insegna insegna block leading-tight font-black sm:whitespace-nowrap">
-            Colazione Pranzo Aperitivo
-          </span>
-        </span>
-      </h1>
+        <h1
+          class="font-titolo mt-6 text-[clamp(3.25rem,7vw,7rem)] leading-[0.94] tracking-[-0.03em] text-balance"
+        >
+          Colazione,<br />pranzo e <em class="text-accento not-italic italic">aperitivo</em>
+        </h1>
 
-      {/*
-        Lo slogan in Allura, di giorno legato all'accento (oliva) come nelle locandine e mai
-        all'inchiostro. Mai maiuscolo, mai sui prezzi o sugli orari.
+        {
+          sito?.testi.claim && (
+            <p class="text-inchiostro-tenue mt-7 max-w-[44ch] text-lg leading-relaxed text-pretty">
+              {sito.testi.claim}
+            </p>
+          )
+        }
 
-        ⚠️ L'apostrofo è quello TIPOGRAFICO (U+2019), non l'apice dritto: in un corsivo
-           inglese come Allura l'apice dritto è un trattino verticale sottilissimo che a
-           schermo sparisce — si legge «Lattesa». U+2019 è dentro il subset latino
-           (U+2000-206F), quindi non costa un byte in più.
-      */}
-      <p class="font-firma text-accento mt-8 text-3xl leading-snug sm:text-4xl">
-        L’attesa del piacere è essa stessa il piacere
-      </p>
+        <div class="mt-9 flex flex-wrap gap-3">
+          <a
+            href="/menu"
+            class="bg-inchiostro text-sfondo inline-flex items-center gap-2 rounded-full px-7 py-4 text-[15px] font-semibold transition-opacity hover:opacity-90"
+          >
+            Guarda il menu <Freccia />
+          </a>
+          {
+            aperitivo && (
+              <a
+                href="/aperitivo"
+                class="border-bordo hover:border-inchiostro-tenue inline-flex items-center gap-2 rounded-full border px-7 py-4 text-[15px] font-semibold transition-colors"
+              >
+                {aperitivo.titolo ?? 'Aperitivo'}
+              </a>
+            )
+          }
+        </div>
+
+        {
+          /*
+            Tre numeri, tutti e tre DATO: apertura, chiusura e giorni vengono da
+            BusinessSettings, che è la loro sola sorgente — la stessa che legge la cassa. È
+            ciò che rende impossibile per costruzione «il sito dice fino alle 21, la cassa
+            alle 19».
+          */
+          sito && (
+            <dl class="border-bordo mt-12 grid grid-cols-[repeat(3,auto)] justify-start gap-8 border-t pt-7">
+              {[
+                { valore: sito.orari.apertura, etichetta: 'apre il banco' },
+                { valore: sito.orari.chiusura, etichetta: 'chiude' },
+                ...(giorni ? [{ valore: giorni, etichetta: 'domenica a parte' }] : []),
+              ].map((voce) => (
+                <div>
+                  <dt class="sr-only">{voce.etichetta}</dt>
+                  <dd class="font-titolo text-3xl leading-none">{voce.valore}</dd>
+                  <p class="font-mono text-inchiostro-tenue mt-1.5 text-[11px] tracking-[0.1em] uppercase">
+                    {voce.etichetta}
+                  </p>
+                </div>
+              ))}
+            </dl>
+          )
+        }
+      </div>
 
       {
-        sito && (
-          <p class="text-inchiostro-tenue mt-10 flex flex-wrap items-center justify-center gap-x-3 gap-y-2">
-            {/* Gli ORARI sono dato: server-side. Lo STATO è orologio: servito nascosto. */}
-            <span>
-              {sito.orari.apertura} – {sito.orari.chiusura}
-            </span>
-            {giorniAperti && <span>{giorniAperti.join(' · ')}</span>}
-            <span
-              id="stato-apertura"
-              class="bg-sfondo-alt rounded-full px-3 py-1 text-sm"
-              hidden
-            />
-          </p>
+        eroe && (
+          <div class="relative">
+            <div class="bg-sfondo-alt aspect-4/5 overflow-hidden rounded-2xl">
+              {/* L'unica immagine con priorità della pagina: è sopra la piega. */}
+              <Immagine
+                immagine={eroe}
+                sizes="(min-width: 1024px) 34rem, 92vw"
+                priorita
+                classe="block h-full w-full"
+              />
+            </div>
+
+            {
+              aperitivo && (
+                <div class="border-bordo bg-superficie absolute -bottom-6 -left-4 w-60 rounded-2xl border p-5 shadow-[0_20px_50px_rgba(22,19,15,0.14)] sm:-left-8">
+                  <p class="font-mono text-inchiostro-tenue text-[10.5px] tracking-[0.14em] uppercase">
+                    Ogni sera dalle {sito?.oraInizioTemaSera}
+                  </p>
+                  <p class="font-titolo mt-1 text-3xl leading-none">
+                    {aperitivo.titolo ?? 'Aperitivo'}
+                  </p>
+                  {aperitivo.punti[0] && (
+                    <p class="text-inchiostro-tenue mt-2 text-[13.5px] leading-snug">
+                      {aperitivo.punti[0]}
+                    </p>
+                  )}
+                </div>
+              )
+            }
+          </div>
         )
       }
     </section>
 
-    <!-- ── Consigliati ──────────────────────────────────────────────────────────────── -->
+    <Nastro menu={menu} />
+
     {
       /*
-        Stato 2: l'identità c'è, il listino no. La striscia dei consigli non si può
-        mostrare, e al suo posto va un avviso invece del nulla: senza, la home degradata
-        somiglia a una home che ha deciso di non consigliare niente.
+        Stato 2: l'identità c'è, il listino no. Al posto di momenti, lavagna e nastro va un
+        avviso invece del nulla: senza, la home degradata somiglia a una home che ha deciso
+        di non avere un menu.
       */
       menu === null && (
-        <section class="bg-sfondo-alt border-bordo border-y">
-          <div class="mx-auto max-w-5xl px-6 py-10">
-            <AvvisoDegradazione cosa="menu" />
-          </div>
-        </section>
+        <div class="mx-auto max-w-6xl px-5 py-14 sm:px-8">
+          <AvvisoDegradazione cosa="menu" />
+        </div>
       )
     }
 
+    <!-- ── I momenti ────────────────────────────────────────────────────────────────── -->
     {
-      consigliati.length > 0 && (
-        <section class="bg-sfondo-alt border-bordo border-y">
-          <div class="mx-auto max-w-5xl px-6 py-14">
-            <h2 class="font-titolo text-2xl tracking-wide sm:text-3xl">I nostri consigli</h2>
-            <div class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {consigliati.map((p, n) => (
-                <SchedaProdotto prodotto={p} priorita={n === 0} />
+      momenti.length > 0 && (
+        <section
+          data-comparsa
+          data-linguette-ambito
+          class="mx-auto max-w-6xl px-5 pt-20 sm:px-8"
+        >
+          <div class="mb-9 flex flex-wrap items-end justify-between gap-7">
+            <div>
+              <p class="font-mono text-accento text-[11.5px] tracking-[0.2em] uppercase">
+                {momenti.length} momenti, un banco
+              </p>
+              <h2 class="font-titolo mt-3 text-[clamp(2.25rem,4.2vw,3.9rem)] leading-[1.02] tracking-[-0.025em]">
+                Che ora è, per te?
+              </h2>
+            </div>
+
+            {/*
+              ⚠️ `role="tablist"` con le frecce da tastiera, non tre bottoni sciolti: chi
+                 naviga da tastiera si aspetta che sinistra/destra spostino la selezione, e
+                 dichiarare il ruolo senza implementarlo è peggio che non dichiararlo.
+                 Il comportamento è nel guscio, una volta per tutte le linguette del sito.
+            */}
+            <div
+              data-linguette
+              role="tablist"
+              aria-label="Momenti della giornata"
+              class="border-bordo flex gap-1.5 overflow-x-auto rounded-full border p-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            >
+              {momenti.map((momento, indice) => (
+                <button
+                  type="button"
+                  role="tab"
+                  data-linguetta={momento.chiave}
+                  aria-selected={indice === 0 ? 'true' : 'false'}
+                  tabindex={indice === 0 ? 0 : -1}
+                  class:list={[
+                    'shrink-0 cursor-pointer rounded-full px-5 py-2.5 text-sm font-semibold transition-colors',
+                    indice === 0 ? 'bg-arancio text-[#16130F]' : 'text-inchiostro-tenue',
+                  ]}
+                >
+                  {momento.nome}
+                </button>
               ))}
             </div>
-            <p class="mt-8">
-              <a href="/menu" class="text-accento underline underline-offset-4">
-                Tutto il menu
-              </a>
-            </p>
           </div>
+
+          {momenti.map((momento, indice) => (
+            <div
+              data-pannello={momento.chiave}
+              hidden={indice !== 0}
+              class="grid items-stretch gap-9 lg:grid-cols-[1fr_1.15fr]"
+            >
+              {momento.immagine ? (
+                <div class="bg-sfondo-alt min-h-[22rem] overflow-hidden rounded-2xl">
+                  <Immagine
+                    immagine={momento.immagine}
+                    sizes="(min-width: 1024px) 28rem, 92vw"
+                    classe="block h-full w-full"
+                  />
+                </div>
+              ) : (
+                <div />
+              )}
+
+              <div class="flex flex-col justify-center">
+                <div class="grid">
+                  {momento.piatti.map((piatto) => (
+                    <div class="border-bordo grid grid-cols-[1fr_auto] gap-x-6 gap-y-2 border-t py-5">
+                      <span class="font-titolo text-[25px] leading-tight">{piatto.nome}</span>
+                      <span class="font-mono text-accento self-center text-sm">
+                        {euro(piatto.prezzo)}
+                      </span>
+                      {piatto.descrizione && (
+                        <span class="text-inchiostro-tenue col-span-full text-sm leading-relaxed">
+                          {piatto.descrizione}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <a
+                  href="/menu"
+                  class="border-bordo hover:border-inchiostro mt-7 inline-flex items-center gap-2 self-start border-b pb-1.5 text-[15.5px] font-semibold transition-colors"
+                >
+                  Tutto il menu <Freccia />
+                </a>
+              </div>
+            </div>
+          ))}
         </section>
       )
     }
 
-    <!--
-      ── La fascia Aperitivo, SEMPRE in registro sera ────────────────────────────────────
-      🔴 `data-tema="sera"` su questa sezione, dentro una pagina che può essere in tema
-         giorno. È la lavagna del locale, e i due registri sono due momenti della giornata,
-         non due preferenze del visitatore.
+    <Lavagna prodotti={menu?.lavagna ?? []} />
 
-      È anche l'unico posto in cui la differenza fra `@theme` e `@theme inline` si vede a
-      occhio: con `@theme` semplice ogni utility qui dentro resterebbe crema-e-oliva — una
-      fascia scura con dentro i colori del giorno — e non ci sarebbe alcun errore da nessuna
-      parte. Se un giorno questa fascia venisse tolta per ragioni editoriali, il caso va
-      riprodotto altrove, o quella decisione torna indistinguibile.
-    -->
-    <section data-tema="sera" class="bg-sfondo text-inchiostro">
-      <div class="mx-auto max-w-5xl px-6 py-16 text-center">
-        <p class="text-inchiostro-tenue text-sm tracking-[0.2em] uppercase">Ogni sera</p>
-        <h2 class="font-titolo text-accento mt-3 text-3xl tracking-wide sm:text-4xl">
-          Aperitivo Apericosto
-        </h2>
-        <p class="font-firma mt-4 text-3xl">dieci euro</p>
-        <p class="text-inchiostro-tenue mx-auto mt-6 max-w-md">
-          Cocktail cubani, taglieri e la lavagna del giorno. Dalle
-          {' '}{sito?.oraInizioTemaSera ?? ''} fino alla chiusura.
-        </p>
-        <span class="bg-arancio mx-auto mt-8 block h-1 w-24 rounded-full"></span>
-      </div>
-    </section>
-
-    <!-- ── Galleria ─────────────────────────────────────────────────────────────────── -->
+    <!-- ── Il locale ────────────────────────────────────────────────────────────────── -->
     {
-      galleria.length > 0 && (
-        <section class="mx-auto max-w-5xl px-6 py-16">
-          <h2 class="font-titolo text-2xl tracking-wide sm:text-3xl">Il locale</h2>
-          <div class="mt-6 grid gap-4 sm:grid-cols-2">
-            {galleria.map((immagine) => (
-              <figure class="border-bordo aspect-[4/3] overflow-hidden rounded-lg border">
-                <Immagine immagine={immagine} sizes="(min-width: 640px) 30rem, 92vw" />
+      griglia.length > 0 && (
+        <section data-comparsa class="mx-auto max-w-6xl px-5 pt-20 sm:px-8">
+          <h2 class="font-titolo max-w-[20ch] text-[clamp(2.1rem,4vw,3.6rem)] leading-[1.02] tracking-[-0.025em]">
+            Il locale, dentro e fuori
+          </h2>
+
+          {/*
+            ⚠️ La griglia si adatta al numero di foto invece di pretenderne tre: con due, la
+               prima resta alta e la seconda le sta accanto; con una, occupa tutto. Una
+               griglia a misura fissa lascerebbe buchi grigi il giorno in cui l'amministratore
+               ne spubblica una — e nessuno collegherebbe il buco a quel gesto.
+          */}
+          <div
+            class:list={[
+              'mt-7 grid gap-3.5',
+              griglia.length >= 3
+                ? 'sm:grid-cols-[1.5fr_1fr] sm:grid-rows-[14rem_14rem]'
+                : 'sm:grid-cols-2',
+            ]}
+          >
+            {griglia.map((immagine, indice) => (
+              <figure
+                class:list={[
+                  'overflow-hidden rounded-2xl',
+                  griglia.length >= 3 && indice === 0 && 'sm:row-span-2',
+                  griglia.length < 3 && 'aspect-4/3',
+                ]}
+              >
+                <Immagine
+                  immagine={immagine}
+                  sizes="(min-width: 640px) 36rem, 92vw"
+                  classe="block h-full w-full"
+                />
               </figure>
             ))}
           </div>
@@ -225,45 +379,39 @@ const giorniAperti = sito?.orari.giorniOperativi
       )
     }
 
-    <!-- ── Contatti ─────────────────────────────────────────────────────────────────── -->
+    <Recensioni reputazione={sito?.reputazione ?? null} recensioni={sito?.recensioni ?? []} />
+
+    <!-- ── Dove e quando ────────────────────────────────────────────────────────────── -->
     {
       sito && (
-        <footer class="border-bordo border-t">
-          <div class="mx-auto grid max-w-5xl gap-8 px-6 py-14 sm:grid-cols-2">
+        <section data-comparsa class="mx-auto max-w-6xl px-5 pt-20 sm:px-8">
+          <div class="border-bordo grid gap-14 border-t pt-14 lg:grid-cols-2">
             <div>
-              <h2 class="font-titolo text-xl tracking-wide">{sito.insegna}</h2>
-              {/* Scomposto perché lo pretende schema.org, e perché è già scomposto nell'API. */}
-              <address class="text-inchiostro-tenue mt-3 not-italic">
+              <p class="font-mono text-accento text-[11.5px] tracking-[0.2em] uppercase">
+                Dove e quando
+              </p>
+              <h2 class="font-titolo mt-4 text-[clamp(2rem,3.6vw,3.25rem)] leading-[1.02] tracking-[-0.025em]">
                 {sito.indirizzo.via}
                 <br />
                 {sito.indirizzo.cap} {sito.indirizzo.citta} ({sito.indirizzo.provincia})
-              </address>
+              </h2>
+
+              <OrariSettimana sito={sito} classe="mt-7 max-w-md" />
+
+              {
+                /* Senza giorni operativi leggibili la tabella non si rende: restano i due
+                   orari, che sono comunque veri. Omettere è meglio che inventare. */
+                !sito.orari.giorniOperativi && (
+                  <p class="text-inchiostro-tenue font-mono mt-7 text-sm">
+                    {sito.orari.apertura} — {sito.orari.chiusura}
+                  </p>
+                )
+              }
             </div>
-            <div class="text-inchiostro-tenue flex flex-col gap-2">
-              {sito.contatti.telefono && (
-                <a href={`tel:${sito.contatti.telefono.replace(/\s/g, '')}`} class="hover:text-accento">
-                  {sito.contatti.telefono}
-                </a>
-              )}
-              {sito.contatti.email && (
-                <a href={`mailto:${sito.contatti.email}`} class="hover:text-accento">
-                  {sito.contatti.email}
-                </a>
-              )}
-              {/* URL completi dall'API: il sito non sa come si costruisce un indirizzo social. */}
-              {sito.social.instagram && (
-                <a href={sito.social.instagram} rel="me noopener" class="hover:text-accento">
-                  Instagram
-                </a>
-              )}
-              {sito.social.facebook && (
-                <a href={sito.social.facebook} rel="me noopener" class="hover:text-accento">
-                  Facebook
-                </a>
-              )}
-            </div>
+
+            <Mappa sito={sito} classe="min-h-[24rem]" />
           </div>
-        </footer>
+        </section>
       )
     }
   </main>

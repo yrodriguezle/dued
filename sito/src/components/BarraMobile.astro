@@ -1,0 +1,79 @@
+---
+// La barra fissa in basso, sul telefono: **Chiama · Arriva · Menu**.
+//
+// Sono le tre azioni del mockup, e sono quelle giuste: quasi tutti cercano un bar dal
+// telefono, in strada, e vogliono chiamare per sapere se c'è posto, arrivarci, o vedere
+// cosa c'è. Nessuna delle tre è a più di un tocco.
+//
+// ⚠️ Sotto `lg` soltanto: da lì in su l'intestazione ha già navigazione e richiamo, e una
+//    barra fissa su un portatile ruberebbe una striscia di finestra senza aggiungere nulla.
+//
+// ⚠️ Il **riempimento in fondo al corpo** è nel guscio, non qui: una barra `fixed` non
+//    occupa spazio nel flusso, quindi copre le ultime righe della pagina. È il difetto
+//    classico di questo pattern e si nota solo scorrendo fino in fondo — cioè dopo che è
+//    passato in produzione.
+//
+// ⚠️ `Chiama` si rende solo se c'è un telefono in anagrafica, e in quel caso la griglia
+//    passa a due colonne invece di lasciare una cella vuota.
+
+import { urlIndicazioni } from '../lib/mappa.ts';
+import type { SitoPubblico } from '../lib/tipi.ts';
+
+interface Props {
+  sito: SitoPubblico | null;
+}
+
+const { sito } = Astro.props;
+const telefono = sito?.contatti.telefono?.replace(/[^\d+]/g, '') || null;
+
+const azioni = [
+  telefono && { href: `tel:${telefono}`, etichetta: 'Chiama', icona: 'telefono', esterno: false },
+  sito && { href: urlIndicazioni(sito), etichetta: 'Arriva', icona: 'segnale', esterno: true },
+  { href: '/menu', etichetta: 'Menu', icona: 'listino', esterno: false },
+].filter(Boolean) as { href: string; etichetta: string; icona: string; esterno: boolean }[];
+---
+
+{/* Opaca, come l'intestazione e per la stessa ragione: sotto una barra translucida il
+    contrasto delle tre etichette dipende da cosa ci scorre sotto — cioè non è una proprietà
+    verificabile una volta per tutte. */}
+<nav
+  class="border-bordo bg-sfondo fixed inset-x-0 bottom-0 z-50 border-t lg:hidden"
+  style="padding-bottom:env(safe-area-inset-bottom)"
+  aria-label="Azioni rapide"
+>
+  <div
+    class="mx-auto grid max-w-md gap-2 px-4 py-2.5"
+    style={`grid-template-columns:repeat(${azioni.length},minmax(0,1fr))`}
+  >
+    {
+      azioni.map((azione) => (
+        <a
+          href={azione.href}
+          target={azione.esterno ? '_blank' : undefined}
+          rel={azione.esterno ? 'noopener' : undefined}
+          class="bg-sfondo-alt text-inchiostro grid min-h-[52px] place-items-center gap-1 rounded-xl px-2 py-2 transition-opacity active:opacity-70"
+        >
+          <svg
+            class="h-[18px] w-[18px]"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            {azione.icona === 'telefono' && (
+              <path d="M15.5 21A12.5 12.5 0 0 1 3 8.5 2.5 2.5 0 0 1 5.5 6h1.8a1 1 0 0 1 1 .8l.6 2.6a1 1 0 0 1-.5 1.1l-1.3.7a10 10 0 0 0 4.7 4.7l.7-1.3a1 1 0 0 1 1.1-.5l2.6.6a1 1 0 0 1 .8 1v1.8A2.5 2.5 0 0 1 15.5 21Z" />
+            )}
+            {azione.icona === 'segnale' && <path d="m21 3-9 18-2.2-7.8L2 11Z" />}
+            {azione.icona === 'listino' && (
+              <path d="M5 4h14v16H5zM8.5 8.5h7M8.5 12h7M8.5 15.5h4" />
+            )}
+          </svg>
+          <span class="font-mono text-[10px] tracking-[0.06em] uppercase">{azione.etichetta}</span>
+        </a>
+      ))
+    }
+  </div>
+</nav>

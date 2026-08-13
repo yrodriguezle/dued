@@ -1,0 +1,56 @@
+---
+// La pagina che non c'è.
+//
+// ⚠️ Mancava, e la sua assenza non è innocua: senza, un URL sbagliato riceve la pagina di
+//    errore dell'adapter Node — nera su bianco, in inglese, senza intestazione e senza un
+//    modo di tornare indietro. Chi ci arriva ha appena seguito un link vecchio o un QR
+//    stampato, cioè è precisamente la persona che si voleva in negozio.
+//
+// 🔴 Legge l'identità come le altre pagine: senza, la barra fissa del telefono resterebbe
+//    senza «Chiama» e senza «Arriva» proprio nella pagina in cui servono di più.
+//
+// ⚠️ Nessun `Cache-Control` esplicito: un 404 non va in cache condivisa per sessanta secondi.
+//    Il default dell'adapter è già quello giusto, e scriverlo qui sarebbe il secondo posto in
+//    cui la politica di cache viene decisa.
+
+import Base from '../layouts/Base.astro';
+import Freccia from '../components/Freccia.astro';
+import { rotteDisponibili } from '../lib/rotte.ts';
+import { leggiSito } from '../lib/api.ts';
+
+const esitoSito = await leggiSito();
+const sito = esitoSito.stato === 'ok' ? esitoSito.dati : null;
+---
+
+<Base titolo="Pagina non trovata" sito={sito}>
+  <main class="mx-auto max-w-3xl px-5 py-24 text-center sm:px-8">
+    <p class="font-mono text-accento text-[11.5px] tracking-[0.2em] uppercase">Errore 404</p>
+    <h1 class="font-titolo mt-4 text-[clamp(2.75rem,6vw,5rem)] leading-[0.98] tracking-[-0.03em]">
+      Questa pagina<br />non c’è
+    </h1>
+    <p class="text-inchiostro-tenue mx-auto mt-6 max-w-[42ch] text-lg leading-relaxed">
+      Forse è un link vecchio. Il locale invece è sempre lì.
+    </p>
+
+    <nav class="mt-10 flex flex-wrap justify-center gap-3" aria-label="Dove andare">
+      {
+        /* ⚠️ Filtrate anche qui, e vale doppio: una pagina «non trovato» che propone due
+           collegamenti che portano ad altri due «non trovato» è la peggiore delle uscite. */
+        rotteDisponibili(sito).map((rotta, indice) => (
+          <a
+            href={rotta.percorso}
+            class:list={[
+              'inline-flex items-center gap-2 rounded-full px-6 py-3.5 text-[15px] font-semibold transition-colors',
+              indice === 0
+                ? 'bg-inchiostro text-sfondo hover:opacity-90'
+                : 'border-bordo hover:border-inchiostro-tenue border',
+            ]}
+          >
+            {rotta.etichetta}
+            {indice === 0 && <Freccia />}
+          </a>
+        ))
+      }
+    </nav>
+  </main>
+</Base>

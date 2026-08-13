@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using System.Text.Json;
 
 using Microsoft.AspNetCore.Authorization;
@@ -119,11 +120,55 @@ public class PublicController(
                 totale, MenuLimiti.MaxItem);
         }
 
+        // La lavagna: una query a sé, con il suo tetto. Vuota è lo stato normale — significa che
+        // stamattina non ci ha messo niente nessuno — e il consumatore non rende la sezione.
+        List<RigaMenu> lavagna = await RigheDellaLavagna(dbContext, await OggiNelLocaleAsync(cancellationToken))
+            .ToListAsync(cancellationToken);
+
         return Ok(new MenuPubblicoDto(
             Raggruppa(righe),
             totale,
             MenuLimiti.MaxItem,
-            troncato));
+            troncato,
+            lavagna.Select(ProdottoDa).ToList()));
+    }
+
+    /// <summary>
+    /// Che giorno è <b>al locale</b>.
+    ///
+    /// <para>🔴 Non <c>DateTime.Today</c>: quello è il giorno del <b>processo</b>, e il processo
+    /// gira in un container il cui fuso non è una garanzia — l'immagine base è UTC salvo che
+    /// qualcuno imposti <c>TZ</c>, e nessuno se ne accorge finché una notte d'estate la lavagna
+    /// cambia due ore prima di mezzanotte. Il fuso vero sta in <c>BusinessSettings.Timezone</c>,
+    /// che è già la sorgente unica degli orari.</para>
+    ///
+    /// <para>⚠️ Il ripiego su UTC quando il fuso è illeggibile è deliberato e coerente con il resto
+    /// della rotta: <b>questa rotta non fallisce mai per lo stato dei dati</b>. Un identificativo
+    /// di fuso sbagliato a database non deve poter far rispondere 500 a un visitatore — al peggio
+    /// la lavagna cambia a un'ora sbagliata, il che è visibile e circoscritto.</para>
+    /// </summary>
+    private async Task<DateOnly> OggiNelLocaleAsync(CancellationToken cancellationToken)
+    {
+        string? fuso = await dbContext.BusinessSettings
+            .OrderBy(impostazioni => impostazioni.SettingsId)
+            .Select(impostazioni => impostazioni.Timezone)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        try
+        {
+            TimeZoneInfo zona = TimeZoneInfo.FindSystemTimeZoneById(
+                string.IsNullOrWhiteSpace(fuso) ? "Europe/Rome" : fuso);
+            return DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, zona));
+        }
+        catch (Exception errore) when (errore is TimeZoneNotFoundException or InvalidTimeZoneException)
+        {
+            logger.LogWarning(
+                errore,
+                "Fuso orario \"{Fuso}\" non riconosciuto: la lavagna del giorno usa UTC. "
+                + "Il valore arriva da BusinessSettings.Timezone.",
+                fuso);
+            return DateOnly.FromDateTime(DateTime.UtcNow);
+        }
     }
 
     /// <summary>
@@ -150,34 +195,67 @@ public class PublicController(
             .OrderBy(prodotto => prodotto.OrdinamentoVetrina)
             .ThenBy(prodotto => prodotto.ProdottoId)
             .Take(MenuLimiti.MaxItem)
-            // ⚠️ Il nome mostrato si calcola UNA VOLTA SOLA, qui: la riga lo porta a casa già
-            //    risolto e sia l'ordinamento di presentazione sia il DTO leggono lo stesso
-            //    valore. Scriverlo due volte significherebbe poterlo far divergere fra l'ordine
-            //    in cui i piatti compaiono e il nome con cui si leggono.
-            .Select(prodotto => new RigaMenu(
-                prodotto.ProdottoId,
-                prodotto.NomeVetrina ?? prodotto.Nome,
-                prodotto.DescrizioneVetrina,
-                prodotto.CategoriaVetrina,
-                prodotto.PrezzoVetrina,
-                prodotto.Prezzo,
-                prodotto.OrdinamentoVetrina,
-                prodotto.Allergeni,
-                prodotto.Novita,
-                prodotto.Consigliato,
-                // Nessun Include serve: la proiezione attraversa la navigazione e EF genera da
-                // sola il LEFT JOIN, portando a casa i soli campi nominati qui.
-                prodotto.Immagine == null
-                    ? null
-                    : new RigaImmagine(
-                        prodotto.Immagine.Chiave,
-                        prodotto.Immagine.LarghezzeDisponibili,
-                        prodotto.Immagine.Larghezza,
-                        prodotto.Immagine.Altezza,
-                        prodotto.Immagine.TestoAlternativo,
-                        prodotto.Immagine.Didascalia,
-                        prodotto.Immagine.Focale,
-                        prodotto.Immagine.Placeholder)));
+            .Select(Proiezione);
+
+    /// <summary>
+    /// I piatti che stanno sulla lavagna <b>oggi</b>.
+    ///
+    /// <para>🔴 È una query a sé e non un filtro sulle righe già lette, e la ragione è il
+    /// troncamento: con il listino oltre il limite, la lavagna del giorno potrebbe stare tutta
+    /// fuori dalle prime trecento righe e sparire dalla home senza che nulla lo segnali. Una
+    /// query propria la trova sempre.</para>
+    ///
+    /// <para>⚠️ Il tetto non è <c>MenuLimiti.MaxItem</c>: una lavagna è di tre o quattro piatti, e
+    /// una da trecento sarebbe un errore di compilazione da parte dell'amministratore — meglio che
+    /// si veda subito troncata in pagina che servita per intero.</para>
+    /// </summary>
+    private static IQueryable<RigaMenu> RigheDellaLavagna(AppDbContext dbContext, DateOnly oggi) =>
+        dbContext.Prodotti
+            .Where(RegoleVetrina.Pubblicato)
+            .Where(prodotto => prodotto.InLavagnaDal == oggi)
+            .OrderBy(prodotto => prodotto.OrdinamentoVetrina)
+            .ThenBy(prodotto => prodotto.ProdottoId)
+            .Take(MenuLimiti.MaxLavagna)
+            .Select(Proiezione);
+
+    /// <summary>
+    /// La proiezione, <b>una sola</b>, condivisa dal listino e dalla lavagna.
+    ///
+    /// <para>🔴 Non è deduplicazione per gusto: è ciò che impedisce alle due letture di divergere
+    /// nel punto che conta. Se la lavagna avesse una <c>SELECT</c> propria, sarebbe la seconda
+    /// occasione perché una colonna riservata — il codice di listino, l'aliquota — finisca in una
+    /// risposta anonima, e il test che ispeziona l'SQL ne guarda una sola.</para>
+    ///
+    /// <para>⚠️ Il nome mostrato si calcola UNA VOLTA SOLA, qui: la riga lo porta a casa già
+    /// risolto e sia l'ordinamento di presentazione sia il DTO leggono lo stesso valore. Scriverlo
+    /// due volte significherebbe poterlo far divergere fra l'ordine in cui i piatti compaiono e il
+    /// nome con cui si leggono.</para>
+    /// </summary>
+    private static readonly Expression<Func<Prodotto, RigaMenu>> Proiezione =
+        prodotto => new RigaMenu(
+            prodotto.ProdottoId,
+            prodotto.NomeVetrina ?? prodotto.Nome,
+            prodotto.DescrizioneVetrina,
+            prodotto.CategoriaVetrina,
+            prodotto.PrezzoVetrina,
+            prodotto.Prezzo,
+            prodotto.OrdinamentoVetrina,
+            prodotto.Allergeni,
+            prodotto.Novita,
+            prodotto.Consigliato,
+            // Nessun Include serve: la proiezione attraversa la navigazione e EF genera da
+            // sola il LEFT JOIN, portando a casa i soli campi nominati qui.
+            prodotto.Immagine == null
+                ? null
+                : new RigaImmagine(
+                    prodotto.Immagine.Chiave,
+                    prodotto.Immagine.LarghezzeDisponibili,
+                    prodotto.Immagine.Larghezza,
+                    prodotto.Immagine.Altezza,
+                    prodotto.Immagine.TestoAlternativo,
+                    prodotto.Immagine.Didascalia,
+                    prodotto.Immagine.Focale,
+                    prodotto.Immagine.Placeholder));
 
     /// <summary>
     /// Il raggruppamento, in memoria su un risultato già limitato e già ordinato.
@@ -274,6 +352,16 @@ public class PublicController(
                 impostazioni.MetaTitoloDefault,
                 impostazioni.MetaDescrizioneDefault,
                 impostazioni.OraInizioTemaSera,
+                impostazioni.ClaimVetrina,
+                impostazioni.StoriaTitolo,
+                impostazioni.StoriaTesto,
+                impostazioni.AperitivoTitolo,
+                impostazioni.AperitivoTesto,
+                impostazioni.AperitivoPunti,
+                impostazioni.AperitivoCategorie,
+                impostazioni.PunteggioGoogle,
+                impostazioni.NumeroRecensioniGoogle,
+                impostazioni.UrlProfiloGoogle,
                 impostazioni.ImmagineOg == null
                     ? null
                     : new RigaImmagine(
@@ -336,8 +424,81 @@ public class PublicController(
                 sito.MetaTitoloDefault,
                 sito.MetaDescrizioneDefault,
                 ImmagineOpzionale(sito.ImmagineOg)),
-            sito.OraInizioTemaSera));
+            sito.OraInizioTemaSera,
+            TestiDa(sito),
+            // 🔴 O entrambi i numeri o niente, come per le coordinate: presi da soli non sono un
+            //    dato incompleto, sono un dato fuorviante.
+            sito is { PunteggioGoogle: { } punteggio, NumeroRecensioniGoogle: { } numero }
+                ? new ReputazionePubblicaDto(punteggio, numero, sito.UrlProfiloGoogle)
+                : null,
+            // ⚠️ SOLE le pubblicate — e l'ordine viene da `OrdineRecensioni`, lo stesso che usa
+            //    il ramo amministrativo: l'anteprima con cui l'amministratore le riordina non
+            //    serve a niente se qui l'ordine è un altro.
+            await OrdineRecensioni
+                .Applica(dbContext.RecensioniVetrina.Where(recensione => recensione.Pubblicata))
+                .Select(recensione => new RecensionePubblicaDto(
+                    recensione.RecensioneVetrinaId,
+                    recensione.Autore,
+                    recensione.Testo,
+                    recensione.Fonte,
+                    recensione.Punteggio))
+                .ToListAsync(cancellationToken)));
     }
+
+    /// <summary>
+    /// I testi editoriali, con la regola che li rende onesti: <b>una sezione esiste solo se ha il
+    /// suo testo</b>. Un titolo senza corpo non è una storia, ed è precisamente lo stato in cui si
+    /// finisce compilando un modulo a metà.
+    /// </summary>
+    private static TestiPubbliciDto TestiDa(RigaSito sito) => new(
+        NullSeVuoto(sito.ClaimVetrina),
+        NullSeVuoto(sito.StoriaTesto) is { } storia
+            ? new StoriaPubblicaDto(NullSeVuoto(sito.StoriaTitolo), storia)
+            : null,
+        NullSeVuoto(sito.AperitivoTesto) is { } aperitivo
+            ? new AperitivoPubblicoDto(
+                NullSeVuoto(sito.AperitivoTitolo),
+                aperitivo,
+                PuntiDa(sito.AperitivoPunti),
+                RigheDa(sito.AperitivoCategorie))
+            : null);
+
+    /// <summary>
+    /// Le voci dell'aperitivo, da un campo di testo con <b>una voce per riga</b>.
+    ///
+    /// <para>⚠️ La difesa sta qui perché la sorgente è una stringa scritta a mano in un modulo:
+    /// righe vuote, spazi in coda e fine riga di Windows sono tutte forme legittime di ciò che
+    /// l'amministratore digita. Il consumatore riceve una lista pulita e non deve sapere che
+    /// dall'altra parte c'era del testo libero.</para>
+    ///
+    /// <para>Il tetto a sei non è arbitrario: è il numero oltre il quale l'elenco smette di essere
+    /// «cosa è compreso» e diventa un secondo menu. Chi ne scrive dieci ne vede sei, e se ne
+    /// accorge subito guardando la pagina.</para>
+    /// </summary>
+    private static IReadOnlyList<string> PuntiDa(string? testo) => RigheDa(testo, tetto: 6);
+
+    /// <summary>
+    /// Un campo di testo «una voce per riga», normalizzato.
+    ///
+    /// <para>⚠️ <c>Split('\n')</c> più <c>Trim()</c>, e non <c>Split(Environment.NewLine)</c>: la
+    /// stringa arriva da un <c>textarea</c> di un browser, che manda <c>\r\n</c>, mentre
+    /// <c>Environment.NewLine</c> è <c>\n</c> su Linux — cioè in produzione. Con quello, ogni riga
+    /// terminerebbe con un <c>\r</c> invisibile, e il confronto fra un nome di categoria e
+    /// l'omonimo del listino fallirebbe <b>solo in produzione</b>, mostrando una pagina vuota che
+    /// in sviluppo funziona.</para>
+    /// </summary>
+    private static IReadOnlyList<string> RigheDa(string? testo, int tetto = 20) =>
+        string.IsNullOrWhiteSpace(testo)
+            ? []
+            : testo
+                .Split('\n')
+                .Select(riga => riga.Trim())
+                .Where(riga => riga.Length > 0)
+                .Take(tetto)
+                .ToList();
+
+    private static string? NullSeVuoto(string? valore) =>
+        string.IsNullOrWhiteSpace(valore) ? null : valore.Trim();
 
     /// <summary>
     /// I giorni operativi, letti da un JSON persistito in stringa.
@@ -463,7 +624,11 @@ public class PublicController(
             vuote.InsegnaPubblica, vuote.Via, vuote.Cap, vuote.Citta, vuote.Provincia, vuote.Paese,
             vuote.Latitudine, vuote.Longitudine, vuote.Telefono, vuote.Email,
             vuote.UrlInstagram, vuote.UrlFacebook,
-            vuote.MetaTitoloDefault, vuote.MetaDescrizioneDefault, vuote.OraInizioTemaSera, null);
+            vuote.MetaTitoloDefault, vuote.MetaDescrizioneDefault, vuote.OraInizioTemaSera,
+            vuote.ClaimVetrina, vuote.StoriaTitolo, vuote.StoriaTesto,
+            vuote.AperitivoTitolo, vuote.AperitivoTesto, vuote.AperitivoPunti, vuote.AperitivoCategorie,
+            vuote.PunteggioGoogle, vuote.NumeroRecensioniGoogle, vuote.UrlProfiloGoogle,
+            null);
     }
 
     private static RigaOperativa DefaultOperativo()
@@ -528,6 +693,16 @@ public class PublicController(
         string? MetaTitoloDefault,
         string? MetaDescrizioneDefault,
         string OraInizioTemaSera,
+        string? ClaimVetrina,
+        string? StoriaTitolo,
+        string? StoriaTesto,
+        string? AperitivoTitolo,
+        string? AperitivoTesto,
+        string? AperitivoPunti,
+        string? AperitivoCategorie,
+        decimal? PunteggioGoogle,
+        int? NumeroRecensioniGoogle,
+        string? UrlProfiloGoogle,
         RigaImmagine? ImmagineOg);
 
     /// <summary>

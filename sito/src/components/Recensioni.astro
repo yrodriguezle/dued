@@ -1,0 +1,91 @@
+---
+// Le recensioni riportate, con il giudizio medio quando c'è.
+//
+// 🔴 **Il «4,7 · 180 recensioni» NON è scritto qui.** Nel mockup è testo fisso, e testo fisso
+//    è ciò che rende un numero falso: quello cresce ogni settimana e nessuno tornerebbe mai
+//    a cambiarlo in un file `.astro`. Sono due campi del CMS, e l'API li espone **insieme o
+//    per niente** — «4,7» senza conteggio nasconde che le recensioni potrebbero essere tre.
+//
+// 🔴 Le tre citazioni non sono raccolte dal sito: **non esiste alcun form e nessuna rotta
+//    pubblica che scriva**. Sono citazioni scelte dall'amministratore da ciò che i clienti
+//    hanno già scritto altrove, riportate fedelmente e attribuite.
+//
+// ⚠️ Le stelle sono **SVG e un testo per chi non le vede**, non un carattere ★: U+2605 non è
+//    nel subset latino dei nostri caratteri, verrebbe dal ripiego di sistema, e cambierebbe
+//    forma e peso fra le piattaforme — cinque stelle di dimensioni diverse in tre browser.
+
+import Freccia from './Freccia.astro';
+
+interface Props {
+  reputazione: { punteggio: number; numero: number; urlProfilo: string | null } | null;
+  recensioni: { id: number; autore: string; testo: string; fonte: string | null; punteggio: number }[];
+}
+
+const { reputazione, recensioni } = Astro.props;
+
+// `it-IT`: la media si scrive con la virgola, come nel mockup. Una cifra decimale, sempre —
+// «4,7» e non «4,70» né «4.7».
+const media = reputazione
+  ? new Intl.NumberFormat('it-IT', {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    }).format(reputazione.punteggio)
+  : null;
+---
+
+{
+  (reputazione || recensioni.length > 0) && (
+    <section data-comparsa class="mx-auto max-w-6xl px-5 pt-20 sm:px-8">
+      {
+        reputazione && (
+          <div class="mb-8 flex flex-wrap items-center gap-4">
+            <span class="font-titolo text-4xl leading-none">{media}</span>
+            <span class="font-mono text-inchiostro-tenue text-xs tracking-[0.1em] uppercase">
+              su Google · {reputazione.numero} recensioni
+            </span>
+            {reputazione.urlProfilo && (
+              <a
+                href={reputazione.urlProfilo}
+                target="_blank"
+                rel="noopener"
+                class="text-accento hover:text-inchiostro ml-auto inline-flex items-center gap-2 text-sm font-semibold transition-colors"
+              >
+                Leggile tutte <Freccia />
+              </a>
+            )}
+          </div>
+        )
+      }
+
+      {
+        recensioni.length > 0 && (
+          <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {recensioni.map((recensione) => (
+              <blockquote class="border-bordo bg-superficie flex flex-col rounded-2xl border p-6">
+                <p class="flex gap-0.5" role="img" aria-label={`${recensione.punteggio} stelle su 5`}>
+                  {Array.from({ length: recensione.punteggio }).map(() => (
+                    <svg
+                      class="fill-arancio h-3.5 w-3.5"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                      focusable="false"
+                    >
+                      <path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14l-5-4.87 6.91-1.01L12 2Z" />
+                    </svg>
+                  ))}
+                </p>
+
+                <p class="mt-4 text-[16.5px] leading-relaxed text-pretty">{recensione.testo}</p>
+
+                <footer class="font-mono text-inchiostro-tenue mt-5 text-[11.5px] tracking-[0.08em] uppercase">
+                  {recensione.autore}
+                  {recensione.fonte && ` · ${recensione.fonte}`}
+                </footer>
+              </blockquote>
+            ))}
+          </div>
+        )
+      }
+    </section>
+  )
+}

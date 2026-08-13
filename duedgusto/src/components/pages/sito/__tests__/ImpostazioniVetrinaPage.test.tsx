@@ -33,6 +33,16 @@ const IMPOSTAZIONI: ImpostazioniVetrina = {
   immagineOgId: null,
   immagineOg: null,
   oraInizioTemaSera: "18:00",
+  claimVetrina: null,
+  storiaTitolo: null,
+  storiaTesto: null,
+  aperitivoTitolo: null,
+  aperitivoTesto: null,
+  aperitivoPunti: null,
+  aperitivoCategorie: null,
+  punteggioGoogle: null,
+  numeroRecensioniGoogle: null,
+  urlProfiloGoogle: null,
   prenotazioniAttive: false,
   prenotazioniPreavvisoOre: 2,
   prenotazioniCopertiMax: 20,
@@ -128,6 +138,55 @@ describe("ImpostazioniVetrinaPage — validazione", () => {
     // Non rispedirla la cancellerebbe a ogni salvataggio, in silenzio: l'assegnazione è totale.
     const valori = valoriDaImpostazioni({ ...IMPOSTAZIONI, turnstileSiteKey: "0x4AAA" });
     expect(inputDaValori(valori).turnstileSiteKey).toBe("0x4AAA");
+  });
+
+  it("🔴 ogni valore del modulo finisce nell'input: nessun campo si perde per strada", () => {
+    // ─────────────────────────────────────────────────────────────────────────────────────
+    // È la difesa strutturale contro il guasto più silenzioso di questa pagina.
+    //
+    // L'assegnazione del server è TOTALE: scrive tutti i campi con quello che riceve. Un campo
+    // che il modulo conosce ma che `inputDaValori` dimentica di rispedire viene quindi
+    // AZZERATO a ogni salvataggio — e non c'è alcun errore, alcun avviso e alcun sintomo se
+    // non che un giorno la storia del locale sparisce dal sito e nessuno sa perché.
+    //
+    // Il caso è già capitato una volta in questo modulo, ed è la ragione per cui
+    // `turnstileSiteKey` viaggia pur non essendo mostrato. Con dieci campi editoriali nuovi
+    // la probabilità di ripeterlo è dieci volte più alta, quindi la regola si verifica invece
+    // di ricordarsela.
+    // ─────────────────────────────────────────────────────────────────────────────────────
+    const valori = valoriDaImpostazioni(IMPOSTAZIONI);
+    const input = inputDaValori(valori);
+
+    const mancanti = Object.keys(valori).filter((chiave) => !(chiave in input));
+    expect(mancanti, `campi del modulo che il salvataggio NON rispedisce: ${mancanti.join(", ")}`).toEqual([]);
+  });
+
+  it("🔴 punteggio e numero di recensioni: insieme o nessuno dei due", () => {
+    // Stessa forma del controllo sulle coordinate, e per la stessa ragione: presi da soli non
+    // sono un dato incompleto, sono un dato FUORVIANTE. «4,7» senza conteggio nasconde che le
+    // recensioni potrebbero essere tre.
+    const soloPunteggio = validaImpostazioniVetrina({ ...VALORI_BASE, punteggioGoogle: "4.7", numeroRecensioniGoogle: "" });
+    expect(soloPunteggio?.punteggioGoogle).toMatch(/insieme/i);
+    expect(soloPunteggio?.numeroRecensioniGoogle).toMatch(/insieme/i);
+
+    const soloNumero = validaImpostazioniVetrina({ ...VALORI_BASE, punteggioGoogle: "", numeroRecensioniGoogle: "180" });
+    expect(soloNumero?.numeroRecensioniGoogle).toMatch(/insieme/i);
+
+    expect(validaImpostazioniVetrina({ ...VALORI_BASE, punteggioGoogle: "4.7", numeroRecensioniGoogle: "180" })).toBeUndefined();
+    expect(validaImpostazioniVetrina({ ...VALORI_BASE, punteggioGoogle: "", numeroRecensioniGoogle: "" })).toBeUndefined();
+  });
+
+  it("rifiuta un punteggio fuori dalle cinque stelle", () => {
+    expect(validaImpostazioniVetrina({ ...VALORI_BASE, punteggioGoogle: "7", numeroRecensioniGoogle: "180" })?.punteggioGoogle).toMatch(/fra 1 e 5/i);
+    expect(validaImpostazioniVetrina({ ...VALORI_BASE, punteggioGoogle: "4.7", numeroRecensioniGoogle: "-3" })?.numeroRecensioniGoogle).toMatch(/non negativo/i);
+  });
+
+  it("le aree «una voce per riga» arrivano al server come sono state scritte", () => {
+    // ⚠️ Non si normalizzano qui: le righe vuote le toglie il DTO pubblico. Ripulirle in due
+    //    posti significherebbe due regole che un giorno divergono — e quella che conta è
+    //    l'altra, perché è quella che il sito legge.
+    const input = inputDaValori({ ...VALORI_BASE, aperitivoPunti: "Un cocktail\n\nIl tagliere\n" });
+    expect(input.aperitivoPunti).toBe("Un cocktail\n\nIl tagliere");
   });
 });
 

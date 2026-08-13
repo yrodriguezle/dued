@@ -50,6 +50,10 @@ public class AppDbContext : DbContext
     // Impostazioni del sito vetrina — UNA sola riga, imposta dal database (vedi OnModelCreating)
     public DbSet<ImpostazioniVetrina> ImpostazioniVetrina { get; set; }
 
+    // Recensioni RIPORTATE sul sito: citazioni scelte dall'amministratore, non giudizi raccolti
+    // dal sito. Nessuna rotta pubblica scrive qui.
+    public DbSet<RecensioneVetrina> RecensioniVetrina { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         if (!optionsBuilder.IsConfigured)
@@ -439,6 +443,15 @@ public class AppDbContext : DbContext
             entity.Property(x => x.Consigliato)
                 .HasDefaultValue(false);
 
+            // `date` e non `datetime`: la lavagna è di un GIORNO. Con un datetime il confronto
+            // «è di oggi» diventerebbe un intervallo fra due istanti, e la prima riga inserita
+            // con un'ora diversa da mezzanotte sparirebbe dalla lavagna senza spiegazione.
+            entity.Property(x => x.InLavagnaDal)
+                .HasColumnType("date");
+
+            entity.HasIndex(x => x.InLavagnaDal)
+                .HasDatabaseName("IX_Prodotti_InLavagnaDal");
+
             // Restrict e non Cascade: eliminare un media ancora assegnato a un prodotto deve
             // FALLIRE. Con Cascade sparirebbe il prodotto insieme all'immagine; con SetNull il
             // prodotto resterebbe pubblicato e muto. Il rifiuto è l'unico esito che non mente,
@@ -622,6 +635,40 @@ public class AppDbContext : DbContext
             entity.Property(x => x.TurnstileSiteKey)
                 .HasMaxLength(255);
 
+            // ── I testi editoriali ────────────────────────────────────────────────────────
+            // I titoli hanno un limite perché sono titoli: uno che non ci sta in 200 caratteri
+            // non è un titolo, è un paragrafo scritto nel campo sbagliato, e il limite lo dice
+            // al momento del salvataggio invece che al primo che guarda il sito.
+            entity.Property(x => x.ClaimVetrina)
+                .HasColumnType("text");
+
+            entity.Property(x => x.StoriaTitolo)
+                .HasMaxLength(200);
+
+            entity.Property(x => x.StoriaTesto)
+                .HasColumnType("text");
+
+            entity.Property(x => x.AperitivoTitolo)
+                .HasMaxLength(200);
+
+            entity.Property(x => x.AperitivoTesto)
+                .HasColumnType("text");
+
+            entity.Property(x => x.AperitivoPunti)
+                .HasColumnType("text");
+
+            entity.Property(x => x.AperitivoCategorie)
+                .HasColumnType("text");
+
+            // ── Reputazione ───────────────────────────────────────────────────────────────
+            // decimal(2,1): da 0.0 a 9.9, cioè esattamente la forma di un punteggio su cinque.
+            // Un decimal(9,2) accetterebbe 4712,50 stelle senza che nulla protesti.
+            entity.Property(x => x.PunteggioGoogle)
+                .HasColumnType("decimal(2,1)");
+
+            entity.Property(x => x.UrlProfiloGoogle)
+                .HasMaxLength(500);
+
             // 🔴 WithMany() ESPLICITO e SENZA argomento. MediaAsset ha già
             //    ICollection<Prodotto> Prodotti: se questa seconda relazione non dichiarasse di
             //    non avere navigazione inversa, EF potrebbe tentare di riusare quella collezione
@@ -637,6 +684,47 @@ public class AppDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(x => x.ImmagineOgId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            entity.Property(x => x.CreatedAt)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.Property(x => x.UpdatedAt)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+        });
+
+        // ── Recensioni riportate sul sito ────────────────────────────────────────────────
+        modelBuilder.Entity<RecensioneVetrina>(entity =>
+        {
+            entity
+                .ToTable("RecensioniVetrina", t => t.HasCheckConstraint(
+                    // 🔴 A database e non solo nel resolver: una recensione a sei stelle in
+                    //    pagina è un errore che nessuno rilegge, e le righe di questa tabella si
+                    //    inseriscono anche a mano quando si migra del contenuto.
+                    "CK_RecensioniVetrina_Punteggio", "`Punteggio` BETWEEN 1 AND 5"))
+                .HasCharSet("utf8mb4")
+                .UseCollation("utf8mb4_unicode_ci")
+                .HasKey(x => x.RecensioneVetrinaId);
+
+            entity.Property(x => x.Autore)
+                .HasMaxLength(120)
+                .IsRequired();
+
+            entity.Property(x => x.Testo)
+                .HasColumnType("text")
+                .IsRequired();
+
+            entity.Property(x => x.Fonte)
+                .HasMaxLength(60);
+
+            entity.Property(x => x.Punteggio)
+                .HasDefaultValue(5);
+
+            // L'indice serve alla lettura pubblica, che filtra le pubblicate e le ordina: è
+            // l'unica query che questa tabella riceve, e la riceve a ogni caricamento della home.
+            entity.HasIndex(x => new { x.Pubblicata, x.Ordinamento })
+                .HasDatabaseName("IX_RecensioniVetrina_Pubblicata_Ordinamento");
 
             entity.Property(x => x.CreatedAt)
                 .HasColumnType("datetime")

@@ -27,6 +27,7 @@ import {
   Images,
   ShoppingBag,
   Store,
+  Star,
   type LucideIcon,
 } from "lucide-react";
 
@@ -61,4 +62,8 @@ export const iconMapping: Record<string, LucideIcon> = {
   // ⚠️ Non si riusa `Settings`: è già la sezione Impostazioni della cassa, e nella barra di
   // navigazione le due voci sarebbero indistinguibili — proprio le due che non vanno confuse.
   Store,
+  // 🔴 Un'icona che manca qui non dà errore: la voce di menu compare **senza icona**, e la
+  //    cosa si nota solo guardando la barra. Il seed la nomina come stringa, quindi le due
+  //    liste vanno tenute allineate a mano — è il prezzo di avere le voci a database.
+  Star,
 };

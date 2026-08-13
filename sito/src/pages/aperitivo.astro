@@ -1,0 +1,191 @@
+---
+// L'aperitivo — la pagina che la gente cerca per nome («apericosto thiene»).
+//
+// 🔴 **Esiste solo se l'amministratore ha scritto il testo.** Senza, questa rotta risponde
+//    404, e la voce sparisce dalla navigazione: una pagina «Aperitivo» che si apre su un
+//    titolo e nient'altro è peggio di una voce di menu in meno — promette qualcosa e non la
+//    mantiene, e i motori la indicizzano comunque.
+
+import Base from '../layouts/Base.astro';
+import Immagine from '../components/Immagine.astro';
+import VoceListino from '../components/VoceListino.astro';
+import Freccia from '../components/Freccia.astro';
+import { leggiSito, leggiMenu, leggiGalleria } from '../lib/api.ts';
+
+const [esitoSito, esitoMenu, esitoGalleria] = await Promise.all([
+  leggiSito(),
+  leggiMenu(),
+  leggiGalleria(),
+]);
+const sito = esitoSito.stato === 'ok' ? esitoSito.dati : null;
+const menu = esitoMenu.stato === 'ok' ? esitoMenu.dati : null;
+const galleria = esitoGalleria.stato === 'ok' ? esitoGalleria.dati.immagini : [];
+
+const aperitivo = sito?.testi.aperitivo ?? null;
+
+// ⚠️ Il 404 distingue due casi che sembrano uguali e non lo sono: **contenuto assente** (il
+//    testo non è stato scritto → questa pagina non esiste, e va detto ai motori) e **backend
+//    irraggiungibile** (`sito === null` → è un guasto temporaneo, e un 404 lo renderebbe
+//    permanente agli occhi di chi indicizza). Il secondo caso è un 503, come `/menu`.
+if (sito === null) {
+  Astro.response.status = 503;
+  Astro.response.headers.set('Retry-After', '120');
+  Astro.response.headers.set('Cache-Control', 'no-store');
+} else if (aperitivo === null) {
+  Astro.response.status = 404;
+  Astro.response.headers.set('Cache-Control', 'no-store');
+} else {
+  Astro.response.headers.set('Cache-Control', 'public, max-age=60');
+}
+
+// Le categorie da mostrare sono DICHIARATE, non dedotte: l'amministratore le scrive una per
+// riga. L'ordine è il suo, non quello del listino — la pagina le rende nell'ordine in cui le
+// ha elencate.
+const categorieDaMostrare = (aperitivo?.categorie ?? [])
+  .map((nome) => (menu?.categorie ?? []).find((categoria) => categoria.nome === nome))
+  .filter((categoria): categoria is NonNullable<typeof categoria> => Boolean(categoria));
+
+// La foto dell'eroe: l'ultima della galleria, cioè la più lontana da quella della home. Non
+// una scelta separata da mantenere allineata — se la galleria ne ha una sola, è quella.
+const eroe = galleria.at(-1) ?? null;
+---
+
+<Base
+  titolo={`${aperitivo?.titolo ?? 'Aperitivo'} — ${sito?.insegna ?? '2 D Gusto'}`}
+  descrizione={aperitivo?.testo}
+  sito={sito}
+>
+  <main>
+    {
+      aperitivo === null && (
+        <div class="mx-auto max-w-3xl px-5 py-24 text-center sm:px-8">
+          <h1 class="font-titolo text-[clamp(2.25rem,5vw,4rem)] leading-tight">
+            {sito === null ? 'Torniamo fra poco' : 'Questa pagina non c’è'}
+          </h1>
+          <p class="text-inchiostro-tenue mt-5 text-lg">
+            {sito === null
+              ? 'Le informazioni del locale non sono raggiungibili in questo momento.'
+              : 'Nel frattempo, il listino è tutto sul menu.'}
+          </p>
+          <a
+            href="/menu"
+            class="bg-inchiostro text-sfondo mt-9 inline-flex items-center gap-2 rounded-full px-7 py-4 text-[15px] font-semibold transition-opacity hover:opacity-90"
+          >
+            Vai al menu <Freccia />
+          </a>
+        </div>
+      )
+    }
+
+    {
+      aperitivo && (
+        <>
+          {/* ── L'eroe: foto a piena larghezza con il testo sopra ───────────────────── */}
+          <section
+            class="relative mx-5 mt-6 grid min-h-[32rem] items-end overflow-hidden rounded-2xl bg-[#16130F] p-8 sm:mx-8 sm:p-11"
+            data-tema="sera"
+          >
+            {eroe && (
+              <div class="absolute inset-0 opacity-55">
+                <Immagine
+                  immagine={eroe}
+                  sizes="100vw"
+                  priorita
+                  classe="block h-full w-full"
+                />
+              </div>
+            )}
+
+            {/*
+              ⚠️ La sfumatura non è decorazione: sopra una foto qualunque, il testo chiaro può
+                 finire su una zona chiara e diventare illeggibile — e quale zona dipende da
+                 quale foto ha caricato l'amministratore, cioè non è verificabile una volta
+                 per tutte. Il velo scuro sotto il testo rende il contrasto una proprietà del
+                 layout invece che della fotografia.
+            */}
+            <div
+              class="absolute inset-0"
+              style="background:linear-gradient(to top,rgba(22,19,15,0.92),rgba(22,19,15,0.45) 55%,rgba(22,19,15,0.15))"
+              aria-hidden="true"
+            />
+
+            <div class="relative max-w-[34ch] text-[#F4F0E9]">
+              <p class="font-mono text-accento text-[11.5px] tracking-[0.2em] uppercase">
+                Ogni sera dalle {sito?.oraInizioTemaSera}
+              </p>
+              <h1 class="font-titolo mt-4 text-[clamp(2.9rem,6vw,5.75rem)] leading-[0.96] tracking-[-0.03em]">
+                {aperitivo.titolo ?? 'Aperitivo'}
+              </h1>
+              <p class="mt-5 text-lg leading-relaxed text-[rgba(244,240,233,0.86)] text-pretty">
+                {aperitivo.testo}
+              </p>
+            </div>
+          </section>
+
+          {/* ── Cosa è compreso ────────────────────────────────────────────────────── */}
+          {aperitivo.punti.length > 0 && (
+            <section data-comparsa class="mx-auto max-w-6xl px-5 pt-16 sm:px-8">
+              <ol class="grid max-w-3xl">
+                {aperitivo.punti.map((punto, indice) => (
+                  <li class="border-bordo flex gap-4 border-t py-4 text-base last:border-b">
+                    {/*
+                      La numerazione è un elemento a sé e non il marcatore della lista: il
+                      marcatore nativo non si può portare in monospaziato arancione senza
+                      `::marker`, che non accetta tutte le proprietà su tutti i browser.
+                    */}
+                    <span class="font-mono text-accento shrink-0 text-[13px]" aria-hidden="true">
+                      {String(indice + 1).padStart(2, '0')}
+                    </span>
+                    <span>{punto}</span>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
+
+          {/* ── Il banco ───────────────────────────────────────────────────────────── */}
+          {categorieDaMostrare.map((categoria) => (
+            <section data-comparsa class="mx-auto max-w-6xl px-5 pt-16 sm:px-8">
+              <h2 class="font-titolo text-[clamp(2rem,3.6vw,3rem)] leading-none tracking-[-0.02em]">
+                {categoria.nome}
+              </h2>
+              <div class="mt-6 grid gap-x-14 sm:grid-cols-2">
+                {categoria.prodotti.map((prodotto) => (
+                  <VoceListino prodotto={prodotto} forma="distesa" />
+                ))}
+              </div>
+            </section>
+          ))}
+
+          {
+            /*
+              ⚠️ Se l'amministratore ha elencato categorie che non esistono nel listino, la
+                 pagina resta senza la parte dei prodotti — e lo dice, invece di lasciare uno
+                 spazio bianco. Il messaggio nomina il posto in cui si aggiusta.
+            */
+            aperitivo.categorie.length > 0 && categorieDaMostrare.length === 0 && (
+              <section class="mx-auto max-w-6xl px-5 pt-16 sm:px-8">
+                <p class="border-arancio bg-sfondo-alt rounded-lg border-l-4 px-4 py-3 text-sm">
+                  Il listino dell'aperitivo non è ancora pubblicato.{' '}
+                  <a href="/menu" class="text-accento underline underline-offset-4">
+                    Guarda tutto il menu
+                  </a>
+                  .
+                </p>
+              </section>
+            )
+          }
+
+          <section class="mx-auto max-w-6xl px-5 pt-14 sm:px-8">
+            <a
+              href="/menu"
+              class="border-bordo hover:border-inchiostro inline-flex items-center gap-2 border-b pb-1.5 text-[15.5px] font-semibold transition-colors"
+            >
+              Tutto il menu <Freccia />
+            </a>
+          </section>
+        </>
+      )
+    }
+  </main>
+</Base>
