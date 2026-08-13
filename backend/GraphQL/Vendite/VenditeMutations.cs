@@ -75,11 +75,35 @@ public class VenditeMutations : ObjectGraphType
             AliquotaIva = product.AliquotaIva,
             Note = input.Note,
             DataOra = input.DataOra ?? DateTime.UtcNow,
+            MetodoPagamento = MetodoValidato(input.MetodoPagamento),
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
         RicalcolaImportiSnapshot(sale);
         return sale;
+    }
+
+    /// <summary>
+    /// Metodo di pagamento assente → contante non tracciato, l'unico dei tre che non muove
+    /// alcun secchio. Metodo presente ma sconosciuto → errore parlante <b>prima</b> del save:
+    /// accettarlo in silenzio produrrebbe una vendita che non finisce in nessun incasso e non
+    /// lo dice a nessuno.
+    /// </summary>
+    private static string MetodoValidato(string? metodo)
+    {
+        if (string.IsNullOrWhiteSpace(metodo))
+        {
+            return MetodiPagamentoVendita.ContanteNonTracciato;
+        }
+
+        if (!MetodiPagamentoVendita.IsAmmesso(metodo))
+        {
+            throw new ExecutionError(
+                $"Metodo di pagamento non ammesso: {metodo}. Valori ammessi: " +
+                string.Join(", ", MetodiPagamentoVendita.Ammessi) + ".");
+        }
+
+        return metodo;
     }
 
     /// <summary>
@@ -120,6 +144,11 @@ public class VenditeMutations : ObjectGraphType
         if (input.Note != null)
         {
             sale.Note = input.Note;
+        }
+
+        if (input.MetodoPagamento != null)
+        {
+            sale.MetodoPagamento = MetodoValidato(input.MetodoPagamento);
         }
 
         sale.PrezzoTotale = sale.Quantita * sale.PrezzoUnitario;
@@ -183,8 +212,13 @@ public class VenditeMutations : ObjectGraphType
         dbContext.Vendite.Add(sale);
         await dbContext.SaveChangesAsync();
 
-        // Totali e breakdown IVA del registro dalla somma delle vendite persistite
         ILogger logger = GraphQLService.GetService<ILogger<VenditeMutations>>(context);
+
+        // ⚠️ PRIMA del breakdown: quello ricalcola TotaleVendite a partire da IncassiElettronici,
+        //    e leggerlo prima di questo delta darebbe un totale vecchio di una riga.
+        SecchiIncassiApplier.ApplicaDelta(register, sale.MetodoPagamento, sale.PrezzoTotale, logger);
+
+        // Totali e breakdown IVA del registro dalla somma delle vendite persistite
         await ApplicaBreakdownRegistroAsync(dbContext, register, logger);
 
         // Publish event for real-time subscriptions
@@ -227,6 +261,11 @@ public class VenditeMutations : ObjectGraphType
                 "Impossibile modificare vendite: il mese corrispondente è chiuso.");
         }
 
+        // Lo stato PRIMA dell'aggiornamento: serve a togliere dal secchio vecchio esattamente
+        // quello che ci era stato messo. Va letto ora, perché fra un attimo non esiste più.
+        string metodoPrecedente = sale.MetodoPagamento;
+        decimal importoPrecedente = sale.PrezzoTotale;
+
         await ApplicaAggiornamentoVenditaAsync(dbContext, sale, input);
         await dbContext.SaveChangesAsync();
 
@@ -235,6 +274,13 @@ public class VenditeMutations : ObjectGraphType
         RegistroCassa register = await dbContext.RegistriCassa
                 .FirstAsync(r => r.Id == sale.RegistroCassaId);
         ILogger logger = GraphQLService.GetService<ILogger<VenditeMutations>>(context);
+
+        // Togli il vecchio, metti il nuovo. Due chiamate e non una differenza, perché il metodo
+        // può essere cambiato: in quel caso l'importo si sposta DA un secchio A un altro, e una
+        // sola operazione non saprebbe rappresentarlo.
+        SecchiIncassiApplier.ApplicaDelta(register, metodoPrecedente, -importoPrecedente, logger);
+        SecchiIncassiApplier.ApplicaDelta(register, sale.MetodoPagamento, sale.PrezzoTotale, logger);
+
         await ApplicaBreakdownRegistroAsync(dbContext, register, logger);
 
         return sale;
@@ -264,6 +310,10 @@ public class VenditeMutations : ObjectGraphType
         RegistroCassa? register = await dbContext.RegistriCassa
                 .FirstOrDefaultAsync(r => r.Id == sale.RegistroCassaId);
 
+        // Letti prima della Remove: dopo, l'entità non è più una fonte affidabile.
+        string metodoRimosso = sale.MetodoPagamento;
+        decimal importoRimosso = sale.PrezzoTotale;
+
         dbContext.Vendite.Remove(sale);
         await dbContext.SaveChangesAsync();
 
@@ -271,6 +321,7 @@ public class VenditeMutations : ObjectGraphType
         if (register != null)
         {
             ILogger logger = GraphQLService.GetService<ILogger<VenditeMutations>>(context);
+            SecchiIncassiApplier.ApplicaDelta(register, metodoRimosso, -importoRimosso, logger);
             await ApplicaBreakdownRegistroAsync(dbContext, register, logger);
         }
 
