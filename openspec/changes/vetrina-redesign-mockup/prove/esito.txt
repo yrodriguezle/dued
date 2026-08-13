@@ -53,10 +53,10 @@
   ok   l'ultima riga del piè di pagina («© 2026») sta sopra la barra fissa
 
 ━━ 5 — il fuso del visitatore non decide il registro ━━
-  ok   fuso Europe/Rome            ora locale 09:58  →  registro giorno (atteso giorno, a Roma sono le 09:58)
-  ok   fuso America/Los_Angeles    ora locale 00:58  →  registro giorno (atteso giorno, a Roma sono le 09:58)
-  ok   fuso Asia/Tokyo             ora locale 16:58  →  registro giorno (atteso giorno, a Roma sono le 09:58)
-  ok   fuso Pacific/Kiritimati     ora locale 21:58  →  registro giorno (atteso giorno, a Roma sono le 09:58)
+  ok   fuso Europe/Rome            ora locale 10:38  →  registro giorno (atteso giorno, a Roma sono le 10:38)
+  ok   fuso America/Los_Angeles    ora locale 01:38  →  registro giorno (atteso giorno, a Roma sono le 10:38)
+  ok   fuso Asia/Tokyo             ora locale 17:38  →  registro giorno (atteso giorno, a Roma sono le 10:38)
+  ok   fuso Pacific/Kiritimati     ora locale 22:38  →  registro giorno (atteso giorno, a Roma sono le 10:38)
 
 ━━ 6 — tre stati, tre reload, e una sola icona visibile ━━
   ok   clic 1 → «giorno»: localStorage=giorno, data-tema=giorno, data-scelta=giorno, etichetta=«Registro giorno», icone visibili=[giorno]
