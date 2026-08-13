@@ -1,8 +1,11 @@
 # Tasks: Il pannello «Sito» modellato sulle pagine (pannello-sito-per-pagine)
 
 > Artefatti di riferimento: [proposal.md](./proposal.md), [design.md](./design.md) (§D1-D15),
-> [specs/](./specs/) — tre delta: [`impostazioni-vetrina`](./specs/impostazioni-vetrina/spec.md),
-> [`media-assets`](./specs/media-assets/spec.md), [`sito-pubblico`](./specs/sito-pubblico/spec.md).
+> [specs/](./specs/) — **cinque** delta: [`impostazioni-vetrina`](./specs/impostazioni-vetrina/spec.md),
+> [`media-assets`](./specs/media-assets/spec.md), [`sito-pubblico`](./specs/sito-pubblico/spec.md),
+> [`api-pubblica`](./specs/api-pubblica/spec.md) e
+> [`consumo-api-pubblica`](./specs/consumo-api-pubblica/spec.md) — gli ultimi due scritti al
+> task 8.1, quando la forma di `/api/public/galleria` era già cambiata.
 > Change precedenti, completati: [`vetrina-api-pubblica`](../archive/2026-08-13-vetrina-api-pubblica/tasks.md),
 > [`vetrina-fondamenta-media`](../archive/2026-08-13-vetrina-fondamenta-media/tasks.md).
 >
@@ -1873,7 +1876,7 @@ diverse, non una ripetizione.
 **Perché esiste.** I criteri di successo della proposal non si spuntano a memoria, e due delta di
 spec potrebbero mancare.
 
-- [ ] 8.1 ⚠️ **I due delta di spec che il design nomina e la cartella `specs/` non ha** —
+- [x] 8.1 ⚠️ **I due delta di spec che il design nomina e la cartella `specs/` non ha** —
   `/api/public/galleria` cambia forma, e il contratto è **pinnato** dalle spec attive
   `api-pubblica` e `consumo-api-pubblica` ([design.md §"File Changes"](./design.md) le elenca fra i
   delta). La cartella `specs/` di questo change ne ha **tre**, non cinque.
@@ -1881,19 +1884,19 @@ spec potrebbero mancare.
   campo `ruoli` come **ADDED** additivo, o è scritto qui perché non servono. Non lasciato implicito:
   il cambio è additivo ma è **sul contratto**.
 
-- [ ] 8.2 🔴 **I criteri di successo della proposal, spuntati con la loro prova** — riprendi i
+- [x] 8.2 🔴 **I criteri di successo della proposal, spuntati con la loro prova** — riprendi i
   quattordici criteri di [proposal.md §"Success Criteria"](./proposal.md) e accanto a ciascuno scrivi
   **il task che lo dimostra**.
   *Verifica*: nessun criterio resta senza una prova nominata. Quelli con 🔴 hanno una verifica **per
   mutazione**, non solo un test verde.
 
-- [ ] 8.3 **Correggi il «31» nella proposal** — compare **sette volte** e i campi scrivibili sono
+- [x] 8.3 **Correggi il «31» nella proposal** — compare **sette volte** e i campi scrivibili sono
   **30** ([D15](./design.md) punto 1). È il numero su cui il test di partizione asserisce, quindi
   lasciarlo sbagliato manderebbe fuori strada chi legge la proposal per capire un test rosso.
   *Verifica*: `grep -c "31" openspec/changes/pannello-sito-per-pagine/proposal.md` non trova più
   occorrenze riferite ai campi scrivibili.
 
-- [ ] 8.4 **Verifica finale completa** — `dotnet build`, `dotnet test`, `npm run ts:check`,
+- [x] 8.4 **Verifica finale completa** — `dotnet build`, `dotnet test`, `npm run ts:check`,
   `npm run lint`, `npm run test` in `duedgusto/`, `npm test` in `sito/`.
   *Verifica*: sei comandi verdi; i conteggi confrontati con la baseline del task 0.4 e il delta
   annotato per fase.
@@ -1909,19 +1912,219 @@ spec potrebbero mancare.
   di testata — la differenza visibile al primo deploy è **accettata consapevolmente** (riquadro del
   task 2.2). Resta aperta la sola ③.
 
-- [ ] 8.6 **Il piano di rollback riletto sul codice che esiste davvero** — sette punti, sette
+- [x] 8.6 **Il piano di rollback riletto sul codice che esiste davvero** — sette punti, sette
   rollback, e l'unico punto di non ritorno (slot valorizzati, Fase 4) annotato **dove chi fa il
   deploy lo legge**.
   *Verifica*: il rollback della Fase 5 dice esplicitamente che si riespande l'input **prima** del
   revert del frontend.
 
-- [ ] 8.7 **Esito reale, scritto in questo file** — come nei change archiviati: per ogni fase, il
+- [x] 8.7 **Esito reale, scritto in questo file** — come nei change archiviati: per ogni fase, il
   delta dei test, le mutazioni eseguite con **quali test sono diventati rossi e quali no**, e le
   divergenze dal testo dei task.
   *Verifica*: le divergenze sono **scritte**, non nascoste. Una mutazione annotata come «eseguita»
   senza il nome del test rosso non è una prova.
 
 **Uscita di fase.** Il change è pronto per `sdd-verify`.
+
+### ✅ Esito misurato — Fase 8 (2026-08-13)
+
+#### 8.4 — la verifica finale, e il conto dal principio
+
+Sei comandi, tutti sul tree con le Fasi 1-7 applicate. Nessuno è stato riutilizzato da una fase
+precedente: sono stati **rieseguiti** qui.
+
+| Comando | Esito | Baseline 0.4 | Delta totale |
+|---|---|---|---|
+| `dotnet build backend/duedgusto.csproj` | **0 errori, 0 avvisi** | — | — |
+| `dotnet test` | **825 / 825** | 709 | **+116** |
+| `npm run ts:check` in `duedgusto/` | **0** | — | — |
+| `npm run lint` in `duedgusto/` | **0** | — | — |
+| `npm run test` in `duedgusto/` | **844 / 844** (105 file) | 789 (100 file) | **+55**, **+5** file |
+| `npm test` in `sito/` | **134 / 134** | 111 | **+23** |
+| *(in più)* `npm run check` in `sito/` | **0 errori, 0 avvisi, 0 suggerimenti** (60 file) | — | — |
+
+**Il delta per fase, dal principio.** Ogni riga è il numero misurato a fine di quella fase, non una
+stima.
+
+| Fase | `dotnet test` | `npm run test` (gestionale) | `npm test` (sito) |
+|---|---|---|---|
+| 0 — baseline | 709 | 789 | 111 |
+| 1 — la rete | 709 | **790** (+1) | 111 |
+| 2 — `RuoliImmaginiVetrina` | **726** (+17) | 790 | 111 |
+| 3 — modello e migrazione | **749** (+23) | 790 | 111 |
+| 4 — la galleria pubblica | **754** (+5) | 790 | **119** (+8) |
+| 5 — la partizione | **806** (+52) | 790 | 119 |
+| 6 — le cinque schede | **816** (+10) | **831** (+41) | **124** (+5) |
+| 7 — la mappa | **825** (+9) | **844** (+13) | **134** (+10) |
+| 8 — chiusura | 825 (+0) | 844 (+0) | 134 (+0) |
+
+⚠️ La Fase 8 non aggiunge test **per costruzione**: scrive documenti e spec, non codice. Un delta
+diverso da zero qui sarebbe stato il segnale che stava facendo altro.
+
+#### 8.1 — i due delta di spec: **scritti**, non motivati via
+
+La cartella `specs/` di questo change ne aveva **tre** e il design ne elencava **quattro**; il quinto
+(`sito-pubblico`) c'era ma non era fra quelli nominati da [design.md §File Changes](./design.md).
+Adesso ne ha **cinque**, e i due nuovi sono
+[`api-pubblica`](./specs/api-pubblica/spec.md) e
+[`consumo-api-pubblica`](./specs/consumo-api-pubblica/spec.md).
+
+🔴 **Perché non bastava scrivere «sono additivi, non servono».** Il cambio è additivo *dal lato del
+backend* — nessun campo sparisce, si rinomina o cambia tipo — ma:
+
+1. la spec attiva `api-pubblica` **dichiara la forma della risposta alla lettera** nella sezione
+   «Superficie REST introdotta»: `GET /api/public/galleria` vi compare come `{ "immagini": [ … ] }`.
+   Senza il delta, quella riga resta **falsa** dopo l'archiviazione. È l'unico punto di una spec
+   attiva che questo change rende sbagliato, e il delta lo dice in modo esplicito perché
+   `sdd-archive` lo trovi;
+2. 🔴 **dal lato del consumatore il cambio non è additivo affatto.** `leggiGalleria` mette `ruoli`
+   fra le chiavi **pretese** ([`api.ts`](../../../sito/src/lib/api.ts)), quindi un backend più
+   vecchio del sito non produce una pagina senza foto: produce l'esito assente con motivo
+   **formato**. La scelta è deliberata — i ruoli si leggono nel frontmatter, e un campo assente lì
+   interrompe il rendering, cioè serve un **500 al visitatore** — ed è la ragione strutturale del
+   vincolo d'ordine *backend prima del sito*. Un vincolo di deploy che non sta in nessuna spec è un
+   vincolo che sopravvive finché qualcuno se lo ricorda.
+
+I due delta dichiarano inoltre tre cose che nessuno degli altri tre copriva: che `origine` **non
+esce** in pubblico e che il divieto ricorsivo raggiunge il tipo nuovo senza essere modificato; che
+la selezione della galleria è **una sola** per elenco e ruoli (due selezioni divergenti darebbero
+ruoli diversi a dati identici *dentro la stessa risposta*); e che la forma vuota dei ruoli è un
+ripiego **di lettura**, non editoriale — non sceglie immagini, dichiara che non c'è nulla da rendere.
+
+#### 8.2 — i quattordici criteri, tredici spuntati e uno dichiarato aperto
+
+Ogni criterio di [proposal.md §Success Criteria](./proposal.md) porta adesso, scritto accanto, il
+task che lo dimostra; i criteri 🔴 portano anche la **mutazione** eseguita. Il riassunto:
+
+| # | Criterio | Prova | Mutazione |
+|---|---|---|---|
+| 1 | Le sei suite passano | 8.4 | — |
+| 2 | Cinque voci con le etichette di `rotte.ts` | 6.9, 6.18, 6.13 | 6.13 ①② |
+| 3 | Numero esatto di immagini, coincidente col sito | 6.17, 7.7 | 6.17 A, 7.7 A |
+| 4 | La libreria dichiara i ruoli attivi | 6.8 | 6.17 A |
+| 5 | 🔴 Nessun azzeramento incrociato | 5.9, 5.18 | 5.10 |
+| 6 | 🔴 Lo svuotamento funziona ancora | 5.11 | — (`git diff` **vuoto** sul test esistente) |
+| 7 | 🔴 Unione = campi scrivibili, nessun conteso | 5.7, 1.4 | 5.8 ①②, 1.5, 1.6, 5.14 |
+| 8 | Stato in prima riga + conferma | 6.6, 6.7, 6.15 | — |
+| 9 | Nessun campo di orario | 5.12 (24 casi **generati**), 6.14 | — |
+| 10 | La mappa non può divergere dal sito | 7.4 | 7.5 ①②③ |
+| 11 | Nessuna voce senza icona | 6.11 | 6.12 ①② |
+| 12 | Tre riavvii, nessun duplicato | 6.18 | — (misurato sul database reale) |
+| **13** | 🔴 **Un non amministratore non arriva da nessuna parte** | 5.13, 7.2, 6.18, `SitoGuard` invariato | ⚠️ **APERTO** — vedi sotto |
+| 14 | Il sito non cambia comportamento | 0.2 + 4.8 (dieci catture), 4.6 | 4.8 ①②, 2.6 C |
+
+🔴 **Il criterio 13 è l'unico non spuntato, ed è spuntato per tre quarti.** Provati: le quattro
+mutation e le due query respinte a un utente autenticato non amministratore (sei test al 5.13, due
+al 7.2), il gating del menu **sul database reale** (6.18: le cinque voci nuove ai soli ruoli
+amministrativi, `Gestore` su nessuna), `SitoGuard` **riusato invariato** da tutte e cinque le schede
+con `git diff` vuoto. **Non provato**: l'accesso per URL diretto nell'app vera, con il token di quel
+medesimo utente. Vedi il task 6.19 — **richiede l'utente**, non è chiudibile da qui.
+
+⚠️ **Il criterio 14 ha una divergenza, ed è spuntato *con* la divergenza scritta**: per la decisione
+dell'utente del task 2.2, l'eroe di `/aperitivo` non ha ripiego, quindi a slot vuoto quella pagina
+perde l'immagine di testata. Nove catture su dieci hanno `diff` vuoto; la decima è la differenza
+**dichiarata alla lettera** e sorvegliata da due mutazioni (una che la restringe, una che la toglie).
+Spuntarlo senza dirlo sarebbe stato falso; non spuntarlo avrebbe nascosto che le altre quattro
+pagine sono provate per confronto di file.
+
+#### 8.3 — il «31» corretto, e il conto era sbagliato pure quello
+
+Il task dice **sette** occorrenze. Ce n'erano **nove**: otto in cifre e una in lettere
+(*«cinque su trentuno»*), che un `grep` sul numero non trova. Corrette tutte a **30**, che è il
+numero giusto in ogni punto in cui compaiono — la proposal descrive lo stato **di partenza**.
+
+🔴 **La correzione non riscrive la storia.** In testa alla proposal c'è adesso un riquadro che
+dichiara: che il numero era sbagliato, in quanti punti, che è stato corretto **in corso d'opera**
+(dopo che le Fasi 1-7 erano già applicate), da dove viene il **30** (tre conteggi indipendenti
+concordi) e da dove viene il **33** di adesso (i tre identificativi degli slot sono scrivibili, le
+tre navigazioni no). Le uniche due occorrenze di «31» rimaste nel file sono **dentro quel riquadro**,
+una delle due barrata: sono la traccia dell'errore, non l'errore.
+
+Il perché conta: il numero compare nei messaggi di fallimento dei test di partizione, e chi apre la
+proposal per capire un test rosso deve trovare **quale numero è quello vero e quando è cambiato**,
+non un numero corretto in silenzio che non corrisponde a nessuno dei due.
+
+#### 8.6 — il rollback riletto sul codice, non sul design
+
+Verificato sul tree, non assunto:
+
+| Punto | Ciò che il piano promette | Riscontro sul codice |
+|---|---|---|
+| 3 (GraphQL) | l'input torna a 30 campi, i nomi non cambiano | `ImpostazioniVetrinaInputType` ha **20** campi, i tre nuovi ne portano **5 + 3 + 5** = 33; i dieci migrati conservano nome e `Description` |
+| 3 (ordine) | si riespande l'input **prima** del revert del frontend | scritto in [`DEPLOY.md`](../../../DEPLOY.md) §5 (tabella dei rilasci) **e** §7 (Rollback), non solo qui |
+| 4 (migrazione) | additiva, innocua da lasciare | tre `AddColumn<int>(… nullable: true)` e nient'altro; nessun `AlterTable` |
+| 1 (menu) | `Visibile = false` fa sparire le voci senza cancellare record | `Menu.Visibile` esiste ed è `bool` con default `true` |
+| 4 (sito) | il campo `ruoli` può restare nella risposta | è additivo per il backend; ⚠️ **l'ordine del revert è l'inverso di quello del deploy** — prima il sito, poi il backend, perché `leggiGalleria` **pretende** `ruoli` |
+
+🔴 **Il punto di non ritorno adesso sta dove lo legge chi fa il deploy**, e non solo in questo file:
+[`DEPLOY.md`](../../../DEPLOY.md) §7 ha una sottosezione dedicata ai tre slot immagine, con la query
+`SELECT` che dice se il punto è stato superato e le due strade a seconda della risposta. ⚠️ Dice
+anche la cosa che il piano originale non diceva: **l'eroe di `/aperitivo` non ha una posizione nella
+galleria che lo riproduca**, quindi dopo un rollback quella pagina torna a mostrare l'ultima foto
+qualunque essa sia — riordinare la libreria salva due scelte su tre, non tre.
+
+#### 8.7 — venticinque mutazioni, e le divergenze scritte
+
+**Le verifiche per mutazione eseguite in tutto il change: 25.** Tutte annotate con il nome del test
+diventato rosso *e* con quelli rimasti verdi, che è la metà che dimostra qualcosa.
+
+| Fase | Mutazioni | La lettura che valeva più del rosso |
+|---|---|---|
+| 1 | 4 | in 1.5 `ts:check` è rimasto a **0** e il test di pagina preesistente **verde**, mentre un campo veniva azzerato a ogni salvataggio |
+| 2 | 3 | togliendo il salto della finestra (C) la matrice è rimasta **tutta verde**: prova diretta che la regola nuova non altera il comportamento attuale |
+| 3 | 1 | spostando la lettura dopo il disco, **il test sul rifiuto è rimasto verde** e solo quello sui file è caduto |
+| 4 | 2 | una differenza **dichiarata e non più verificata** è a sua volta un errore: se il ripiego `at(-1)` rientrasse, il confronto sarebbe rosso |
+| 5 | 4 | orfano e conteso falliscono su **test diversi**; 5.14 prova che la rete di Fase 1 è viva contro i costruttori riscritti a mano |
+| 6 | 6 | un solo ritocco alla dichiarazione muove **insieme** il conteggio della scheda e l'etichetta della libreria |
+| 7 | 5 | la mutazione ③ **alla prima stesura non scattava**: la regola «una voce per riga» era una convenzione mai verificata |
+
+**Le divergenze dal testo dei task, tutte già scritte nella fase in cui sono avvenute.** Elenco per
+chi legge questo file dall'inizio e vuole sapere dove guardare:
+
+| Fase | Divergenza | Dove è scritta |
+|---|---|---|
+| 0 | baseline misurata **due volte** (il repository è avanzato durante la fase); galleria a **2** in sviluppo e **1** in produzione — due database, non una misura incerta | esito 0.3, 0.4 |
+| 2 | 🔴 **la risoluzione 6 è superata da una decisione dell'utente**: l'aperitivo non ha ripiego; il task 2.6 riscritto in tre mutazioni | riquadro del task 2.2 |
+| 3 | i tre slot **non** aggiunti a `inputDaValori` (avrebbero rotto il salvataggio alla validazione dello schema); tre `Include` e sei campi di fragment aggiunti per evitare un `null` indistinguibile da «non scelta» | esito 3.11, 3.10 |
+| 4 | 🔴 `SuperficiePubblicaTests` **ha dovuto** essere toccato — 21 test su 23 sono passati intatti, i due modificati sono una *tabella di dichiarazione*, non un divieto; `RigheDellaGalleria` porta l'entità; `_sito-di-prova.mjs` aggiornato (è un doppio, non un test) | esito 4.3, 4.1, 4.6 |
+| 5 | `RicaricaImmaginiAsync` non prevista dal task e non facoltativa; `SelezioneGalleria.cs` estratto; forma di `ruoliImmagini` diversa dall'illustrazione di D6 | esito 5.1-5.3, 5.6 |
+| 6 | tre file non previsti (`ruoliPagine`, `pubblicazionePagina`, `datiScheda`); `AvvisoOrari` deduplicato su un file di Fase 5; tre test esistenti **estesi**, non allentati; 6.18 seconda metà sostituita da un'implicazione provata | esito 6.1-6.5, 6.18 |
+| 7 | 🔴 `Cornice` come **sesto** ambito della mappa; cinque campi per voce invece di tre; due `Scheda` che non sono schede di pagina; un test **nato vacuo** e scoperto dall'altro test dello stesso file | esito 7.1, 7.5 |
+| 8 | il task 8.3 dice sette occorrenze, ne ho trovate **nove** | qui sopra, 8.3 |
+
+#### 🔴 Ciò che resta aperto a fine Fase 8, e che richiede l'utente
+
+Tre cose, e nessuna è chiudibile da chi ha applicato il change.
+
+1. **Task 6.19 — la prova nell'app vera con un utente non amministratore.** Resta **non spuntato**,
+   e con lui il criterio di successo 13. Serve la password di un utente senza flag `Amministratore`
+   (`prova-non-admin`, ruolo `Gestore`, esiste sul database di sviluppo) oppure un utente nuovo. Non
+   è stata tentata a indovinare: il signin è limitato a **5 tentativi ogni 15 minuti per IP**, e
+   fallire avrebbe bloccato l'accesso senza dimostrare niente.
+2. **Open Question ③ del task 8.5 — titolo e descrizione SEO per pagina.** Restano **fuori scope**
+   (risoluzione 8): sono una migrazione e una decisione separata. ① e ② sono già state risposte
+   dall'utente in Fase 2 e non si rimettono in discussione.
+3. **La forma di `Cornice` nella mappa — una scelta di presentazione, non di dati.** Vedi sotto.
+
+#### ⚠️ Decisione da sottoporre: `Cornice` raggruppa, oppure ogni scheda elenca per esteso
+
+La mappa dichiara **sei** ambiti, non cinque: alle cinque pagine si aggiunge `Cornice`, che raccoglie
+i valori che **ogni** pagina del sito mostra — piè di pagina e dati strutturati: indirizzo, orari,
+contatti, social. Di conseguenza ogni scheda ha **due** gruppi di testi ereditati: *«testi ereditati
+dal sito»* (ciò che il corpo di questa pagina mostra) e *«testi che ogni pagina del sito mostra»*.
+
+🔴 **Non è una scelta sui dati.** Gli stessi campi, gli stessi proprietari, le stesse sedi di
+modifica: cambia soltanto se l'amministratore li legge una volta in un gruppo intitolato o
+sedici volte ripetuti su ogni scheda.
+
+| Forma | Cosa vede l'amministratore | Costo |
+|---|---|---|
+| **Come è adesso** — `Cornice` raggruppa | su ogni scheda, un gruppo intitolato *«testi che ogni pagina del sito mostra»* con dentro i valori trasversali | nessuno: è il codice che esiste, provato e verde |
+| **L'alternativa** — elenco esteso su ogni scheda | gli stessi valori scritti per esteso fra i testi ereditati della pagina, senza il raggruppamento | ~16 voci × 5 schede nella mappa; ogni scheda diventa più lunga; ⚠️ e la mappa direbbe che `/menu` *eredita* l'indirizzo — che è vero — ma la lettura ingenua diventa «`/menu` mostra l'indirizzo **nel corpo**», che è falso |
+
+**La domanda, nella forma in cui va posta:** *«sulla scheda di ogni pagina, i valori del piè di
+pagina e dei dati strutturati devono restare raccolti sotto un titolo unico, oppure comparire uno a
+uno insieme agli altri testi ereditati?»* Nessuna delle due va implementata prima della risposta.
 
 ---
 

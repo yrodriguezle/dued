@@ -8,6 +8,36 @@
 scioglie il nodo B con gli slot nominati (vedi Approach §3).
 **Migrazioni database: nessuna nella forma minima; una additiva** se si adottano gli slot nominati.
 
+---
+
+> ### 🔴 Correzione in corso d'opera: i campi scrivibili erano **30**, non 31 — e adesso sono **33**
+>
+> **Questa proposta è stata scritta con il numero sbagliato**, e lo ripeteva in **nove** punti
+> (otto volte in cifre, una in lettere). Il numero è stato corretto al task
+> [8.3](./tasks.md), **dopo** che le fasi 1-7 erano già state applicate: la correzione è annotata
+> qui invece di essere fatta in silenzio, perché il numero compare nei messaggi di fallimento dei
+> test e chi legge questa proposta per capire un test rosso deve sapere quale numero è quello vero
+> e quando è cambiato.
+>
+> | Momento | Campi scrivibili di `ImpostazioniVetrina` | Partizione |
+> |---|---|---|
+> | Come questa proposta diceva | ~~31~~ | — |
+> | 🔴 Stato **reale** prima del change | **30** | 20 + 4 + 2 + 4 |
+> | Dopo la **Fase 3** (i tre slot immagine nuovi) | **33** | 20 + 5 + 3 + 5 |
+>
+> **Da dove viene il 30.** Tre conteggi indipendenti concordano: l'elenco letterale di
+> `ImpostazioniVetrinaInput_HaEsattamenteICampiScrivibili`, le proprietà di
+> `ImpostazioniVetrinaInput` e le chiavi di `ValoriImpostazioniVetrina`
+> ([design.md §D15](./design.md) punto 1, risoluzione 1 di [tasks.md](./tasks.md)).
+>
+> **Da dove viene il 33.** I tre identificativi degli slot immagine — `ImmagineEroeHomeId`,
+> `ImmagineRitrattoLocaleId`, `ImmagineEroeAperitivoId` — **sono scrivibili**; non lo sono le tre
+> **navigazioni** omonime (risoluzione 2 di [tasks.md](./tasks.md), task 3.11).
+>
+> ⚠️ Nel testo qui sotto **30 è il numero di prima del change**, ed è quello giusto in ogni punto
+> in cui compare: la proposta descrive lo stato di partenza. Chi cerca il numero **di adesso** deve
+> leggere 33.
+
 ## Intent
 
 Il pannello «Sito» oggi è modellato sulle **entità**: quattro voci, una per tabella —
@@ -18,7 +48,7 @@ L'utente non amministra tabelle: amministra **cinque pagine**. E le due domande 
 a una pagina — *quante foto ci stanno* e *quali testi la governano* — oggi non hanno risposta in
 nessun punto del prodotto:
 
-1. **I testi sono in un'unica scheda da 31 campi.** `ImpostazioniVetrinaPage.tsx` è un modulo
+1. **I testi sono in un'unica scheda da 30 campi.** `ImpostazioniVetrinaPage.tsx` è un modulo
    Formik con **undici sezioni**. Chi vuole cambiare la storia del locale deve sapere che si chiama
    «Pagina "Il locale"» e che quel campo, e non un altro, decide cosa si legge su `/locale`.
    Nessuna riga dell'interfaccia lo dice: lo dice il codice del sito, che l'amministratore non
@@ -132,7 +162,7 @@ una**. Ogni scheda risponde, nell'ordine, alle tre domande che l'utente pone:
 - **Quali testi?** — quelli di proprietà, modificabili; quelli ereditati, in sola lettura e con il
   collegamento a dove si cambiano.
 
-⚠️ **Fatto che va detto adesso**: dei 31 campi scrivibili di `ImpostazioniVetrina`, soltanto **dieci**
+⚠️ **Fatto che va detto adesso**: dei 30 campi scrivibili di `ImpostazioniVetrina`, soltanto **dieci**
 sono specifici di una pagina — `ClaimVetrina` e i tre della reputazione (home), `StoriaTitolo` e
 `StoriaTesto` (locale), i quattro dell'aperitivo. `/menu` e `/contatti` **non possiedono alcun testo
 proprio**: la descrizione SEO di `/menu` è perfino scritta a mano nel sorgente
@@ -163,13 +193,13 @@ oggi esiste **un solo scrittore che possiede tutti i campi**. Le due difese pogg
 quel fatto:
 
 - [`ImpostazioniVetrinaInput_HaEsattamenteICampiScrivibili`](../../../backend/DuedGusto.Tests/Integration/GraphQL/ImpostazioniVetrinaTests.cs)
-  (riga 427) pinna per riflessione i 31 nomi dell'input;
+  (riga 427) pinna per riflessione i 30 nomi dell'input;
 - il test frontend *«ogni valore del modulo finisce nell'input: nessun campo si perde per strada»*
   ([ImpostazioniVetrinaPage.test.tsx:143](../../../duedgusto/src/components/pages/sito/__tests__/ImpostazioniVetrinaPage.test.tsx))
   confronta `Object.keys(valori)` con l'input prodotto.
 
 🔴 Il secondo test verifica *«il modulo non perde i campi che conosce»*, **non** *«il salvataggio non
-azzera i campi che il modulo non conosce»*. Su una scheda che ne conoscesse cinque su trentuno,
+azzera i campi che il modulo non conosce»*. Su una scheda che ne conoscesse cinque su trenta,
 **passerebbe verde mentre il salvataggio ne azzera ventisei.** La difesa non scala, e il guasto che
 dovrebbe fermare è già avvenuto una volta: `turnstileSiteKey` viene tuttora **trasportato senza
 essere mostrato** proprio per questo
@@ -180,9 +210,9 @@ Le tre uscite, con il loro costo — **la scelta è del design, non di questa pr
 
 | | Forma | Costo |
 |---|---|---|
-| **A1** | Ogni scheda rispedisce tutti i 31 campi (leggi-modifica-riscrivi) | Nessun cambio di schema, ma due amministratori su due schede diverse = **aggiornamento perso**, e ogni scheda nuova deve ricordarsi di trasportare tutto |
+| **A1** | Ogni scheda rispedisce tutti i 30 campi (leggi-modifica-riscrivi) | Nessun cambio di schema, ma due amministratori su due schede diverse = **aggiornamento perso**, e ogni scheda nuova deve ricordarsi di trasportare tutto |
 | **A2** | La mutation diventa parziale (semantica *patch*) | 🔴 Rompe *«un campo si deve poter svuotare»*: servirebbe distinguere «assente» da «null», che è precisamente ciò che la spec ha scelto di non fare |
-| **A3** | Una mutation per scheda, **totale sul proprio sottoinsieme** | Preserva lo svuotamento *dentro* la scheda ed elimina la sovrapposizione — **richiede che la partizione dei 31 campi sia totale e disgiunta**, e che il test di riflessione diventi *l'unione degli input è esattamente l'insieme dei campi scrivibili* |
+| **A3** | Una mutation per scheda, **totale sul proprio sottoinsieme** | Preserva lo svuotamento *dentro* la scheda ed elimina la sovrapposizione — **richiede che la partizione dei 30 campi sia totale e disgiunta** (⚠️ **33** dopo la Fase 3 — vedi il riquadro in testa), e che il test di riflessione diventi *l'unione degli input è esattamente l'insieme dei campi scrivibili* |
 
 A3 è la sola che conserva entrambe le proprietà, e il vincolo che impone — partizione totale e
 disgiunta — è esattamente la regola di proprietà del §1. ⚠️ Due **grappoli di validazione incrociata**
@@ -284,7 +314,7 @@ Le due liste vanno allineate a mano, e la verifica va nei criteri di successo.
 2. **Una sola pagina «Contenuti del sito» con schede a linguette invece di N voci di menu.**
    **Scartata** per due ragioni: l'utente ha chiesto voci di menu, e le rotte dinamiche rendono N
    voci gratuite; ma soprattutto le linguette condividerebbero **un solo form**, cioè
-   esattamente il modulo unico da 31 campi che è la causa del nodo A. Sarebbero il problema di oggi
+   esattamente il modulo unico da 30 campi che è la causa del nodo A. Sarebbero il problema di oggi
    con una decorazione sopra.
 3. **Un CMS a blocchi generico** (`SezionePagina`: pagina, tipo, ordine, payload JSON) — era già
    previsto come fase futura dal piano originale. **Scartato per ora**: il sito Astro rende sezioni
@@ -352,7 +382,7 @@ in nessun passo.
 2. **Frontend** — revert delle schede e ripristino di `ImpostazioniVetrinaPage.tsx` nella forma
    unica. Nessun'altra pagina del gestionale dipende da loro.
 3. **GraphQL** — con **A3**, tornare all'input unico è additivo all'incontrario: la mutation
-   originale resta valida perché i 31 campi non cambiano nome. 🔴 **Va fatto prima del frontend**,
+   originale resta valida perché i 30 campi non cambiano nome. 🔴 **Va fatto prima del frontend**,
    altrimenti una scheda ancora in linea scrive su una mutation che non esiste più.
 4. **Con B2** — la migrazione è **additiva** (colonne nullable + FK): lasciarla in produzione è
    innocuo. Il sito torna agli indici della galleria con un revert dei `.astro`; ⚠️ gli slot
@@ -377,36 +407,96 @@ immagini che l'ordine della galleria non riprodurrebbe.
 
 ## Success Criteria
 
-- [ ] `dotnet build`, `dotnet test`, `npm run ts:check`, `npm run lint`, `npm run test` (gestionale e
+> **Spuntati al task [8.3](./tasks.md) con la prova accanto**, non a memoria. Ogni riga nomina il
+> task che la dimostra; le righe 🔴 nominano anche la **mutazione** eseguita, perché un test verde
+> che nessuno ha mai visto fallire non è una prova. La tabella completa, con i nomi dei test
+> diventati rossi, sta in [tasks.md → «Esito misurato — Fase 8»](./tasks.md).
+>
+> 🔴 **Un criterio su quattordici resta aperto** ed è dichiarato tale invece di essere spuntato per
+> analogia: il tredicesimo, verificato per tre quarti.
+
+- [x] `dotnet build`, `dotnet test`, `npm run ts:check`, `npm run lint`, `npm run test` (gestionale e
       sito) passano
-- [ ] Sotto «Sito» compaiono **cinque voci pagina** con le stesse etichette di `rotte.ts`, e ognuna
+      → **task 8.4**: sei comandi verdi — backend **825/825**, gestionale **844/844**, sito
+      **134/134**, `ts:check`/`lint`/`astro check` a **0**
+- [x] Sotto «Sito» compaiono **cinque voci pagina** con le stesse etichette di `rotte.ts`, e ognuna
       apre la propria scheda
-- [ ] Ogni scheda dichiara un **numero esatto** di immagini, e quel numero coincide con ciò che la
+      → **6.9** (nove voci, `Percorso` preesistenti invariati) + **6.18** (tre riavvii sul database
+      reale) + **6.13**, che confronta le due liste; mutazioni **6.13 ①②**: un'etichetta cambiata in
+      un solo posto e una sesta rotta aggiunta al solo `rotte.ts` fanno **rosso**
+- [x] Ogni scheda dichiara un **numero esatto** di immagini, e quel numero coincide con ciò che la
       pagina rende davvero
-- [ ] La libreria media mostra, per ogni immagine della galleria, **i ruoli che sta ricoprendo**
-- [ ] 🔴 **Nessun azzeramento incrociato**: salvare ognuna delle cinque schede lascia invariati tutti
+      → **6.17** + **7.7**. Mutazione **6.17 A**: spostando `fotoMenu` da una pagina all'altra si
+      muovono **insieme** il conteggio della scheda e l'etichetta della libreria — la prova che la
+      dichiarazione è una sola. Mutazione **7.7 A**: `MAX_MOMENTI` da 3 a 4 in `index.astro` rende
+      rosso il numero dichiarato dalla scheda Home
+- [x] La libreria media mostra, per ogni immagine della galleria, **i ruoli che sta ricoprendo**
+      → **6.8**, con il nome della pagina e mai un indice; un'immagine senza ruolo dice **perché**.
+      La sorgente è la stessa dichiarazione che alimenta i conteggi (**6.17**)
+- [x] 🔴 **Nessun azzeramento incrociato**: salvare ognuna delle cinque schede lascia invariati tutti
       i campi che non le appartengono — provato campo per campo, e **verificato per mutazione**
       (togliendo un campo dalla sua scheda il test diventa rosso)
-- [ ] 🔴 **Lo svuotamento continua a funzionare**: cancellare il link Facebook e salvare persiste
+      → **5.9**, parametrizzato sulla **definizione dei gruppi** e non copiato quattro volte.
+      Mutazione **5.10**: `AperitivoPunti` tolto dal proprio input e assegnato da un valore assente
+      → rosso che **nomina il campo azzerato**. Prova end-to-end sul backend reale al **5.18**: dopo
+      `mutatePaginaHome` i campi cambiati sull'intera riga sono **uno solo**
+- [x] 🔴 **Lo svuotamento continua a funzionare**: cancellare il link Facebook e salvare persiste
       l'assenza; il test esistente `Mutation_ConUnCampoOpzionaleSvuotato_PersisteLAssenza` passa
       senza modifiche di sostanza
-- [ ] 🔴 **L'unione degli input è esattamente l'insieme dei campi scrivibili**: né un campo orfano
+      → **5.11**: `git diff` su quel blocco è **vuoto** — non «senza modifiche di sostanza», senza
+      modifiche affatto. Accanto, una `[Theory]` su cinque campi delle tre mutation nuove, perché la
+      proprietà è di **ogni canale di scrittura**, non della mutation che ce l'aveva
+- [x] 🔴 **L'unione degli input è esattamente l'insieme dei campi scrivibili**: né un campo orfano
       (che nessuna scheda potrebbe più modificare) né un campo condiviso da due schede
-- [ ] Le schede di `/aperitivo` e `/locale` dichiarano **in prima riga** che la pagina non esiste
+      → **5.7** (il pin per riflessione contro il **modello**, non contro un elenco scritto a mano) e
+      **1.4** sul lato frontend. Quattro mutazioni: **5.8 ①** orfano e **5.8 ②** conteso falliscono
+      su **test diversi**; **1.5** e **1.6** fanno lo stesso sul modulo; **5.14** dimostra che la
+      rete è viva **contro i costruttori riscritti a mano**
+- [x] Le schede di `/aperitivo` e `/locale` dichiarano **in prima riga** che la pagina non esiste
       quando il testo è vuoto, e chiedono conferma esplicita prima di un salvataggio che la fa
       sparire
-- [ ] Nessuna scheda offre un campo di **orario**; ognuna che li mostra li mostra in sola lettura e
+      → **6.6** (criterio identico a quello del server: decide **solo il corpo** del testo) + **6.7**
+      + **6.15**, dove l'asserzione che conta è la seconda: **senza conferma nessuna mutation parte**
+- [x] Nessuna scheda offre un campo di **orario**; ognuna che li mostra li mostra in sola lettura e
       indica dove si cambiano
-- [ ] Un test fa **fallire** la build quando una pagina del sito legge un campo che la mappa non le
+      → **5.12**: da 6 a **24 casi generati** (quattro mutation × sei campi vietati), col rifiuto
+      dalla **validazione del documento** — cioè ereditato da una scheda scritta fra sei mesi —
+      e **6.14** sulle tre schede che avrebbero un motivo plausibile per offrirli
+- [x] Un test fa **fallire** la build quando una pagina del sito legge un campo che la mappa non le
       attribuisce
-- [ ] Ogni icona nominata dal seed esiste in `iconMapping.tsx`: **nessuna voce senza icona** nella
+      → **7.4**, con **tre** asserzioni e non una. Mutazioni **7.5 ①②③**: lettura non dichiarata,
+      voce dichiarata e morta, e ③ la **forma** di una riga spezzata — quest'ultima è quella che
+      rende il test *rosso invece che cieco*, e alla prima stesura **non scattava**
+- [x] Ogni icona nominata dal seed esiste in `iconMapping.tsx`: **nessuna voce senza icona** nella
       barra laterale
-- [ ] Tre riavvii con `SEED_ON_STARTUP=true` non duplicano alcuna voce, e le `Posizione` restano
+      → **6.11**, che scansiona **tutti** i sorgenti di `backend/SeedData/` e non un elenco scritto a
+      mano. Mutazioni **6.12 ①②**: un nome inesistente e la regex rotta; ② scatta sul **conteggio**,
+      cioè sull'unico modo in cui un test di scansione può mentire restando verde
+- [x] Tre riavvii con `SEED_ON_STARTUP=true` non duplicano alcuna voce, e le `Posizione` restano
       quelle attese
-- [ ] Un utente autenticato **non amministratore** non raggiunge alcuna scheda né alcuna scrittura,
+      → **6.18**, sul database di sviluppo **reale** che aveva la sezione nella forma precedente:
+      nove figli dopo ognuno dei tre avvii, nessun duplicato, posizioni 1-9, e gli `Id` **27-30**
+      delle quattro voci preesistenti invariati — è cambiata solo la `Posizione`
+- [ ] 🔴 Un utente autenticato **non amministratore** non raggiunge alcuna scheda né alcuna scrittura,
       nemmeno chiamando GraphQL direttamente
-- [ ] Il **sito non cambia comportamento** a contenuti invariati: stesse pagine, stessi 404, stessa
+      → ⚠️ **VERIFICATO PER TRE QUARTI, E L'ULTIMO QUARTO È DICHIARATO**. Provati: le quattro
+      mutation e le due query respinte a un utente autenticato non amministratore (**5.13**, sei
+      test; **7.2**, due test), il gating del menu **sul database reale** (**6.18**: le cinque voci
+      nuove ai soli ruoli amministrativi, `Gestore` su nessuna), e `SitoGuard` **riusato invariato**
+      da tutte e cinque le schede (`git diff` vuoto). **Non provato**: l'accesso per URL diretto
+      nell'app vera con il token di un utente non amministratore (**task 6.19**). Serve la password
+      di un utente non amministratore, che **non è annotata in alcun artefatto del repository**, e il
+      signin è limitato a 5 tentativi ogni 15 minuti per IP: tentare a indovinare avrebbe bloccato
+      l'accesso senza dimostrare nulla. 🔴 **Il criterio resta aperto e richiede l'utente**
+- [x] Il **sito non cambia comportamento** a contenuti invariati: stesse pagine, stessi 404, stessa
       sitemap, stesse immagini (con B2, a slot vuoti il ripiego riproduce l'ordine attuale)
+      → **0.2** (cattura del «prima») + **4.8** (confronto di **dieci** catture, 5 pagine × 2 stati):
+      nove identiche, e la decima è una **differenza deliberata**, dichiarata alla lettera e
+      sorvegliata da due mutazioni. ⚠️ **La divergenza va letta, non spuntata**: per decisione
+      dell'utente presa in Fase 2, l'eroe di `/aperitivo` **non ha ripiego**, quindi a slot vuoto
+      quella pagina perde l'immagine di testata che mostrava prima. È l'unico punto in cui il change
+      rompe questo criterio, e lo rompe **apposta** (riquadro del task 2.2). Sulle altre quattro
+      pagine la non regressione è provata per confronto di file, non a occhio
 
 ---
 
@@ -433,7 +523,7 @@ Ogni affermazione è stata verificata sui file reali. Esito.
    cambia l'eroe**. Nessuna pagina «possiede» un'immagine.
 2. **`Menu` non ha un campo `Ordinamento`**: il campo d'ordine si chiama **`Posizione`**
    ([Menu.cs:10](../../../backend/Models/Menu.cs)). Esiste anche `NomeVista`, che il seed valorizza.
-3. **I campi scrivibili sono 31, non «i testi»**, e **solo dieci sono di una pagina sola**. `/menu` e
+3. **I campi scrivibili sono 30, non «i testi»**, e **solo dieci sono di una pagina sola**. `/menu` e
    `/contatti` non ne possiedono nessuno: le loro schede sono mappe, non moduli. La descrizione SEO
    di `/menu` è scritta a mano nel sorgente ([menu.astro:73](../../../sito/src/pages/menu.astro)).
 4. **Tre campi dell'aperitivo sono letti anche dalla home** ([index.astro:207-219](../../../sito/src/pages/index.astro)):

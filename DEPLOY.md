@@ -320,6 +320,32 @@ solo quelle in avanti. Le migrazioni additive (colonne nullable nuove) sono inno
 codice precedente le ignora. Se invece una colonna nuova e' gia' stata **valorizzata** da qualcuno,
 tornare indietro perde quel dato in silenzio: prima del rollback va deciso cosa farne.
 
+#### 🔴 L'unico punto di non ritorno oggi in produzione: i tre slot immagine del sito
+
+Il rilascio «Pannello Sito per pagine» aggiunge tre colonne nullable su `ImpostazioniVetrina` —
+`ImmagineEroeHomeId`, `ImmagineRitrattoLocaleId`, `ImmagineEroeAperitivoId` — che sono la **scelta
+editoriale** di quale foto sta in cima a `/`, a `/locale` e ad `/aperitivo`. Nascono `NULL`: finche'
+lo restano, il rollback e' innocuo e il sito torna a pescare dalla posizione nella galleria.
+
+**Dal momento in cui qualcuno ne valorizza anche una sola, il rollback perde quella scelta**, e la
+perde in silenzio: il sito riparte, nessun errore da nessuna parte, e le foto in cima a tre pagine
+sono altre. Prima di tornare indietro:
+
+```sql
+SELECT ImmagineEroeHomeId, ImmagineRitrattoLocaleId, ImmagineEroeAperitivoId
+FROM ImpostazioniVetrina WHERE ImpostazioniVetrinaId = 1;
+```
+
+- **Tutte e tre `NULL`** → si procede, non c'e' nulla da salvare.
+- **Anche una sola valorizzata** → le immagini scelte vanno **riordinate nella libreria media**
+  perche' la posizione riproduca la scelta, **prima** del revert: 1ª = eroe della home, 2ª = ritratto
+  del locale. ⚠️ L'eroe di `/aperitivo` **non ha una posizione che lo riproduca** — dopo il rollback
+  quella pagina torna a mostrare l'**ultima** foto della galleria, qualunque essa sia.
+
+⚠️ Vale anche al **contrario**, e conviene saperlo prima: prima di questo rilascio `/aperitivo`
+mostrava l'ultima foto della galleria; dopo, finche' nessuno sceglie, quella pagina esce **senza
+immagine di testata**. E' una differenza voluta e visibile dal primo deploy, non un guasto.
+
 ---
 
 ## 8. Struttura VPS
