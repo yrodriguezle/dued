@@ -104,8 +104,17 @@ public sealed record PianoImmagini(
 /// </summary>
 public static class RuoliImmaginiVetrina
 {
-    /// <summary>Quante immagini entrano in ciascuna delle tre griglie.</summary>
-    private const int AmpiezzaFinestra = 3;
+    /// <summary>
+    /// Quante immagini entrano in ciascuna delle tre griglie.
+    ///
+    /// <para>🔴 <b>Sede UNICA del numero</b>, e <c>internal</c> per questo: il pannello lo chiede
+    /// al server (<c>vetrina { ruoliImmagini { ampiezzaGriglia } }</c>) invece di scriverlo una
+    /// seconda volta nel proprio sorgente. Prima di questa esposizione il 3 esisteva due volte —
+    /// qui e in <c>ruoliPagine.tsx</c> — e allargare la finestra avrebbe fatto rendere al sito
+    /// quattro fotografie mentre la scheda continuava a dichiararne tre, con sicurezza e senza
+    /// alcun errore da nessuna parte.</para>
+    /// </summary>
+    internal const int AmpiezzaFinestra = 3;
 
     /// <summary>
     /// Il piano dei ruoli a partire dai <b>tre identificativi</b> degli slot e dalla galleria già

@@ -94,21 +94,51 @@ const PIANO_UNA_FOTO: RuoliImmaginiVetrina = {
   ritrattoLocale: { mediaAssetId: 1, immagine: foto(1), origine: "POSIZIONE" },
   quadrateLocale: [],
   eroeAperitivo: { mediaAssetId: null, immagine: null, origine: "POSIZIONE" },
+  // 🔴 La capacità delle griglie arriva **dal server**: qui è un dato di prova, non una costante
+  //    del pannello. Vedi `ruoliPagine.test.tsx`, che la varia per dimostrarlo.
+  ampiezzaGriglia: 3,
 };
+
+/**
+ * La mappa pagina → campo, come la servirebbe il server.
+ *
+ * ⚠️ È un **estratto** e non la mappa vera: questi test verificano che la scheda renda ciò che
+ *    la mappa dice, non che la mappa sia giusta. Che la mappa corrisponda ai sorgenti del sito
+ *    lo verifica `sito/test/mappa-pagine.test.mjs`; che i suoi nomi e proprietari siano reali lo
+ *    verifica `MappaPagineVetrinaTests.cs`. Tre verifiche distinte su tre proprietà distinte.
+ */
+const MAPPA: VocePaginaVetrina[] = [
+  { pagina: "CORNICE", campo: "InsegnaPubblica", percorso: "insegna", scheda: "IMPOSTAZIONI", etichetta: "Insegna pubblica", nota: "Su ogni pagina." },
+  { pagina: "CORNICE", campo: "OpeningTime", percorso: "orari.apertura", scheda: "IMPOSTAZIONI_CASSA", etichetta: "Orario di apertura", nota: null },
+  { pagina: "HOME", campo: "ClaimVetrina", percorso: "testi.claim", scheda: "HOME", etichetta: "Frase sotto il titolo", nota: null },
+  { pagina: "HOME", campo: "PunteggioGoogle", percorso: "reputazione.punteggio", scheda: "HOME", etichetta: "Punteggio Google", nota: null },
+  { pagina: "HOME", campo: "AperitivoTitolo", percorso: "testi.aperitivo.titolo", scheda: "APERITIVO", etichetta: "Titolo dell'aperitivo", nota: "La home lo mostra, ma appartiene alla scheda dell'aperitivo." },
+  { pagina: "HOME", campo: "AperitivoTesto", percorso: "testi.aperitivo.testo", scheda: "APERITIVO", etichetta: "Testo dell'aperitivo", nota: null },
+  { pagina: "MENU", campo: "InsegnaPubblica", percorso: "insegna", scheda: "IMPOSTAZIONI", etichetta: "Insegna pubblica", nota: null },
+  { pagina: "APERITIVO", campo: "AperitivoTitolo", percorso: "testi.aperitivo.titolo", scheda: "APERITIVO", etichetta: "Titolo dell'aperitivo", nota: null },
+  { pagina: "APERITIVO", campo: "OraInizioTemaSera", percorso: "oraInizioTemaSera", scheda: "IMPOSTAZIONI", etichetta: "Ora di inizio del tema serale", nota: null },
+  { pagina: "LOCALE", campo: "StoriaTitolo", percorso: "testi.storia.titolo", scheda: "LOCALE", etichetta: "Titolo della storia", nota: null },
+  { pagina: "CONTATTI", campo: "Telefono", percorso: "contatti.telefono", scheda: "IMPOSTAZIONI", etichetta: "Telefono", nota: null },
+];
 
 const mutate = vi.fn();
 const conferma = vi.fn();
 const datiImpostazioni = { valore: { vetrina: { impostazioni: IMPOSTAZIONI } } as { vetrina: { impostazioni: ImpostazioniVetrina | null } } };
 const datiRuoli = { valore: { vetrina: { ruoliImmagini: PIANO_UNA_FOTO } } };
+const datiMappa = { valore: { vetrina: { mappaPagine: MAPPA } } };
 const prodotti: ProdottoVetrina[] = [];
 
 vi.mock("@apollo/client", () => ({
-  // Due query per scheda: le impostazioni e il piano dei ruoli. Si distinguono dal nome
-  // dell'operazione invece che per identità del documento, così l'ordine degli import non conta.
+  // Tre query per scheda: le impostazioni, il piano dei ruoli e la mappa pagina → campo. Si
+  // distinguono dal nome dell'operazione invece che per identità del documento, così l'ordine
+  // degli import non conta.
   useQuery: (documento: unknown) => {
     const testo = Array.isArray(documento) ? documento.join(" ") : String(documento);
     if (testo.includes("GetRuoliImmaginiVetrina")) {
       return { data: datiRuoli.valore, loading: false, error: undefined, refetch: vi.fn() };
+    }
+    if (testo.includes("GetMappaPagineVetrina")) {
+      return { data: datiMappa.valore, loading: false, error: undefined, refetch: vi.fn() };
     }
     return { data: datiImpostazioni.valore, loading: false, error: undefined, refetch: vi.fn() };
   },
@@ -152,6 +182,7 @@ beforeEach(() => {
   conferma.mockResolvedValue(true);
   datiImpostazioni.valore = { vetrina: { impostazioni: IMPOSTAZIONI } };
   datiRuoli.valore = { vetrina: { ruoliImmagini: PIANO_UNA_FOTO } };
+  datiMappa.valore = { vetrina: { mappaPagine: MAPPA } };
   prodotti.length = 0;
 });
 
@@ -167,7 +198,11 @@ describe("nessuna scheda offre un campo di orario", () => {
     expect(screen.queryByLabelText(/apertura/i)).toBeNull();
     expect(screen.queryByLabelText(/chiusura/i)).toBeNull();
     expect(screen.queryByLabelText(/fuso/i)).toBeNull();
-    expect(screen.getByText(/impostazioni della cassa/i)).toBeInTheDocument();
+    // ⚠️ `getAllByText`: da questa fase il rimando compare **due volte** — nell'avviso e accanto
+    //    alla voce che la mappa dichiara come «vive nelle impostazioni della cassa». Sono due
+    //    informazioni diverse (dove si cambiano gli orari in generale, e questo valore in
+    //    particolare), e il test verifica che ce ne sia almeno una, non che ce ne sia una sola.
+    expect(screen.getAllByText(/impostazioni della cassa/i).length).toBeGreaterThan(0);
   });
 });
 
@@ -337,6 +372,33 @@ describe("i testi ereditati sono in sola lettura e dicono dove si cambiano", () 
     expect(screen.getByLabelText("Frase sotto il titolo")).toBeInTheDocument();
     expect(screen.getByLabelText("Punteggio Google")).toBeInTheDocument();
     expect(screen.getByLabelText("Numero di recensioni")).toBeInTheDocument();
+  });
+
+  it("🔴 l'elenco dei testi ereditati viene dalla MAPPA, non da un elenco scritto nella scheda", () => {
+    // La prova diretta: la mappa di prova dichiara per la home una voce che nessuna scheda ha
+    // mai scritto a mano, e la scheda la mostra comunque. Prima di questa fase l'elenco era
+    // scritto dentro `PaginaHome.tsx`, e un campo aggiunto al sito non ci arrivava mai.
+    datiMappa.valore = {
+      vetrina: {
+        mappaPagine: [...MAPPA, { pagina: "HOME", campo: "Provincia", percorso: "indirizzo.provincia", scheda: "IMPOSTAZIONI", etichetta: "Provincia di prova", nota: null }],
+      },
+    };
+
+    render(<PaginaHome />);
+
+    expect(screen.getByText("Provincia di prova")).toBeInTheDocument();
+  });
+
+  it("i testi della cornice sono un gruppo a parte, e ci sono anche sulle schede senza testi propri", () => {
+    // 🔴 «Lo mostra questa pagina» e «lo mostra ogni pagina del sito» sono due informazioni
+    //    diverse: fonderle farebbe sembrare l'indirizzo del piè di pagina un contenuto della
+    //    pagina Menu, e tacerle farebbe dire alla scheda «Menu» che quella pagina non mostra
+    //    nulla — mentre intestazione e piè di pagina mostrano insegna, indirizzo e orari.
+    render(<PaginaMenu />);
+
+    expect(screen.getByText("Testi che ogni pagina del sito mostra")).toBeInTheDocument();
+    expect(screen.getByText("Orario di apertura")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /salva/i })).toBeNull();
   });
 });
 

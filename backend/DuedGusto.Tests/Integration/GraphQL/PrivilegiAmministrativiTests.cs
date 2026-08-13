@@ -391,6 +391,47 @@ public class PrivilegiAmministrativiTests : IDisposable
             "un amministratore deve poter leggere i ruoli delle immagini");
     }
 
+    private const string LeggiMappaPagine =
+        "query { vetrina { mappaPagine { pagina campo percorso scheda etichetta } } }";
+
+    /// <summary>
+    /// La mappa non contiene <b>alcun valore</b> — solo nomi di campi e destinazioni — e proprio
+    /// per questo il guard va scritto: la tentazione di considerarla «pubblica perché innocua» è
+    /// esattamente il ragionamento che apre un campo alla volta. Dice quali campi esistono, come
+    /// sono organizzati e dove si modificano, cioè la forma del pannello di amministrazione.
+    ///
+    /// <para>🔴 <b>Il guard non si eredita.</b> <c>this.Authorize()</c> di tipo copre l'anonimo su
+    /// tutto il ramo; l'utente autenticato senza privilegi lo ferma solo il guard dentro il
+    /// resolver, e questa è la <b>seconda</b> query del ramo — la prima a nascere dopo che il
+    /// pattern esisteva, cioè quella su cui dimenticarlo sarebbe stato più facile.</para>
+    /// </summary>
+    [Fact]
+    public async Task Operatore_LeggeMappaPagine_Rifiutata()
+    {
+        ExecutionResult result = await _host.EseguiAsync(
+            LeggiMappaPagine, GraphQLTestHost.Autenticato(UtenteOperatoreId));
+
+        AssertRifiutata(result,
+            "un non amministratore non deve poter leggere come è organizzato il pannello del sito");
+    }
+
+    /// <summary>
+    /// Il complemento indispensabile — e con un'asserzione sul <b>contenuto</b>, non sul solo
+    /// esito: la mappa è servita da una costante, quindi una risposta vuota non è un caso limite
+    /// della CI ma un guasto vero, e un test che si accontentasse di «nessun errore» resterebbe
+    /// verde con l'elenco svuotato.
+    /// </summary>
+    [Fact]
+    public async Task Amministratore_LeggeMappaPagine_Riesce()
+    {
+        ExecutionResult result = await _host.EseguiAsync(
+            LeggiMappaPagine, GraphQLTestHost.Autenticato(UtenteAdminId));
+
+        AssertRiuscita(result, "un amministratore deve poter leggere la mappa delle pagine");
+        _host.Serializza(result).Should().Contain("\"campo\":\"InsegnaPubblica\"",
+            "una mappa vuota renderebbe le cinque schede mute senza alcun errore");
+    }
+
     [Theory]
     [InlineData("mutatePaginaHome", "claimVetrina: \"Espresso alle sette\"")]
     [InlineData("mutatePaginaLocale", "storiaTesto: \"Due mani italiane\"")]

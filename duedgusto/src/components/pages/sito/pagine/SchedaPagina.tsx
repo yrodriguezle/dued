@@ -7,6 +7,7 @@ import Link from "@mui/material/Link";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 
+import { DESTINAZIONI, testiDellaPagina, valoreDellaVoce, vivrebbeNelleImpostazioni } from "./mappaPagine";
 import { StatoPubblicazione } from "./pubblicazionePagina";
 import {
   ETICHETTE_PAGINE,
@@ -17,6 +18,7 @@ import {
   immaginiDelRuolo,
   occupatiDellaPagina,
   origineDelRuolo,
+  postiDelRuolo,
   postiDellaPagina,
   ruoliDellaPagina,
 } from "./ruoliPagine";
@@ -53,14 +55,19 @@ interface SchedaPaginaProps {
   /** ② Il piano dei ruoli, dallo **stesso** calcolo che alimenta il sito. */
   piano: RuoliImmaginiVetrina | null;
   caricamentoPiano?: boolean;
+  /**
+   * ④ La mappa pagina → campo, dal server. 🔴 È da qui che si costruiscono i testi ereditati:
+   * nessuna scheda ne tiene un elenco proprio.
+   */
+  mappa: VocePaginaVetrina[] | null;
+  /** I valori da mostrare accanto ai testi ereditati. */
+  impostazioni: ImpostazioniVetrina | null;
   /** Il pulsante di scelta dell'immagine del ruolo singolo, quando la pagina ne ha uno. */
   azioneSlot?: ReactNode;
   /** ③ I campi modificabili da questa scheda. Assente sulle schede che non ne hanno. */
   testiPropri?: ReactNode;
   /** Cosa dichiarare al posto del modulo, quando la pagina non possiede alcun testo. */
   senzaTestiPropri?: ReactNode;
-  /** ④ I testi che questa pagina rende ma che si cambiano altrove. */
-  testiEreditati: ReactNode;
   /** Prodotti, recensioni, orari: sorgenti che la pagina mostra e che non sono testi. */
   altreSorgenti?: ReactNode;
 }
@@ -111,7 +118,7 @@ export function TestoEreditato({
   valore?: string | null;
   percorso: string;
   etichettaPercorso: string;
-  nota?: string;
+  nota?: string | null;
 }) {
   const scritto = typeof valore === "string" && valore.trim() !== "";
   return (
@@ -219,6 +226,10 @@ function RigaRuolo({ ruolo, piano, azione }: { ruolo: RuoloImmaginePagina; piano
   const immagini = immaginiDelRuolo(piano, ruolo);
   const origine = origineDelRuolo(piano, ruolo);
   const occupati = immagini.length;
+  // ⚠️ La capacità di una griglia la dichiara il **server**: finché il piano non è arrivato non
+  //    si scrive alcun numero, invece di scriverne uno di ripiego che sarebbe la seconda
+  //    scrittura di `AmpiezzaFinestra`.
+  const posti = postiDelRuolo(ruolo, piano);
 
   // 🔴 La scheda deve dire **da dove viene** ciò che sta mostrando: «scelta da te» e «è la
   //    prima della galleria, e cambierà» sono due promesse diverse, e la seconda scade appena
@@ -247,7 +258,7 @@ function RigaRuolo({ ruolo, piano, azione }: { ruolo: RuoloImmaginePagina; piano
           {ruolo.descrizione}
         </Typography>
         <Chip
-          label={ruolo.posti === 1 ? `1 posto · ${occupati} occupato` : `${ruolo.posti} posti · ${occupati} occupati`}
+          label={posti === null ? `${occupati} in uso · posti in aggiornamento…` : posti === 1 ? `1 posto · ${occupati} occupato` : `${posti} posti · ${occupati} occupati`}
           size="small"
           variant="outlined"
         />
@@ -268,7 +279,7 @@ function RigaRuolo({ ruolo, piano, azione }: { ruolo: RuoloImmaginePagina; piano
 /** ② Quante immagini, quante occupate, e cosa succede a un posto vuoto. */
 function SezioneImmagini({ pagina, piano, caricamento, azioneSlot }: { pagina: PaginaSito; piano: RuoliImmaginiVetrina | null; caricamento?: boolean; azioneSlot?: ReactNode }) {
   const ruoli = ruoliDellaPagina(pagina);
-  const posti = postiDellaPagina(pagina);
+  const posti = postiDellaPagina(pagina, piano);
   const occupati = occupatiDellaPagina(piano, pagina);
   const fuoriGalleria = IMMAGINI_FUORI_GALLERIA.filter((voce) => voce.pagina === pagina);
 
@@ -281,6 +292,10 @@ function SezioneImmagini({ pagina, piano, caricamento, azioneSlot }: { pagina: P
         // 🔴 Zero è una risposta, e va scritta: la sezione assente non è una risposta, è la
         //    stessa mancanza di informazione da cui questo pannello nasce.
         <Alert severity="info">Questa pagina non ospita <strong>alcuna immagine</strong>: zero posti. Non c&apos;è nulla da caricare per questa pagina.</Alert>
+      ) : posti === null ? (
+        <Alert severity="info">
+          {occupati} {occupati === 1 ? "immagine in uso" : "immagini in uso"} adesso. Il numero di posti arriva dal sito: conteggio in aggiornamento…
+        </Alert>
       ) : (
         <Alert severity="info">
           <strong>
@@ -307,7 +322,7 @@ function SezioneImmagini({ pagina, piano, caricamento, azioneSlot }: { pagina: P
           severity="info"
           sx={{ mt: 1 }}
         >
-          In più, {voce.quante} {voce.quante === "fino a 3" ? "fotografie arrivano" : "fotografia arriva"} dai <strong>prodotti</strong> e non dalla galleria — {voce.descrizione}. Non contano fra i posti qui sopra e si cambiano da{" "}
+          In più, {voce.massimo === 1 ? "una fotografia arriva" : `fino a ${voce.massimo} fotografie arrivano`} dai <strong>prodotti</strong> e non dalla galleria — {voce.descrizione}. Non contano fra i posti qui sopra e si cambiano da{" "}
           <Link
             component={RouterLink}
             to={voce.percorso}
@@ -337,7 +352,33 @@ function SezioneImmagini({ pagina, piano, caricamento, azioneSlot }: { pagina: P
   );
 }
 
-function SchedaPagina({ pagina, stato, piano, caricamentoPiano, azioneSlot, testiPropri, senzaTestiPropri, testiEreditati, altreSorgenti }: SchedaPaginaProps) {
+/**
+ * ④ Un testo ereditato, costruito **da una voce della mappa**.
+ *
+ * 🔴 Etichetta, nota, destinazione e valore vengono tutti da lì: è ciò che impedisce a questa
+ *    scheda di elencare i campi di ieri. L'elenco scritto a mano che stava qui prima non aveva
+ *    modo di accorgersi che il sito nel frattempo ne leggeva un altro.
+ */
+function VoceEreditata({ voce, impostazioni }: { voce: VocePaginaVetrina; impostazioni: ImpostazioniVetrina | null }) {
+  const destinazione = DESTINAZIONI[voce.scheda];
+  // ⚠️ Un valore che la riga della vetrina non porta — orari, citazioni — non è «non compilato»:
+  //    vive altrove, e dirlo con le stesse parole sarebbe una bugia piccola e ripetuta.
+  const dallaVetrina = vivrebbeNelleImpostazioni(voce);
+  const valore = dallaVetrina ? valoreDellaVoce(voce, impostazioni) : "Vive nella sua sezione, non fra i campi del sito.";
+
+  return (
+    <TestoEreditato
+      etichetta={voce.etichetta}
+      valore={valore}
+      percorso={destinazione.percorso}
+      etichettaPercorso={destinazione.etichetta}
+      nota={voce.nota}
+    />
+  );
+}
+
+function SchedaPagina({ pagina, stato, piano, caricamentoPiano, mappa, impostazioni, azioneSlot, testiPropri, senzaTestiPropri, altreSorgenti }: SchedaPaginaProps) {
+  const testi = testiDellaPagina(mappa ?? [], pagina);
   return (
     <Box sx={{ flex: 1, overflow: "auto", minHeight: 0, px: 2, py: 2 }}>
       <Box sx={{ maxWidth: 1000, display: "flex", flexDirection: "column", gap: 2.5 }}>
@@ -370,12 +411,50 @@ function SchedaPagina({ pagina, stato, piano, caricamentoPiano, azioneSlot, test
           {testiPropri ?? senzaTestiPropri}
         </SezioneScheda>
 
-        {/* ④ E quelli che non posso? */}
+        {/* ④ E quelli che non posso?
+            🔴 Due gruppi e non uno: «lo mostra questa pagina, e si cambia altrove» e «lo mostra
+               OGNI pagina del sito» sono due informazioni diverse, e fonderle farebbe sembrare
+               l'indirizzo un contenuto della pagina Menu. */}
         <SezioneScheda
           titolo="Testi ereditati dal sito"
           descrizione="Questa pagina li mostra ma non li possiede: si modificano dove sono dichiarati, una volta sola per tutte le pagine che li usano."
         >
-          {testiEreditati}
+          {mappa === null ? (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+            >
+              Elenco in caricamento…
+            </Typography>
+          ) : testi.ereditati.length === 0 ? (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+            >
+              Nessuno: il corpo di questa pagina non mostra alcun testo che si cambi da un&apos;altra scheda. Ciò che vedi nell&apos;intestazione e nel piè di pagina è elencato qui sotto.
+            </Typography>
+          ) : (
+            testi.ereditati.map((voce) => (
+              <VoceEreditata
+                key={`${voce.pagina}-${voce.campo}`}
+                voce={voce}
+                impostazioni={impostazioni}
+              />
+            ))
+          )}
+        </SezioneScheda>
+
+        <SezioneScheda
+          titolo="Testi che ogni pagina del sito mostra"
+          descrizione="Intestazione, piè di pagina e dati per i motori di ricerca sono gli stessi su tutte le pagine: si cambiano una volta sola e cambiano ovunque, anche qui."
+        >
+          {testi.cornice.map((voce) => (
+            <VoceEreditata
+              key={`cornice-${voce.campo}`}
+              voce={voce}
+              impostazioni={impostazioni}
+            />
+          ))}
         </SezioneScheda>
 
         {altreSorgenti}

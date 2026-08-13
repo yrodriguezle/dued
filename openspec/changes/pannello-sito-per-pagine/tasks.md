@@ -1665,7 +1665,7 @@ qualcuno aggiunge un campo a `locale.astro`, la scheda «Il locale» non lo impa
 l'amministratore ha una mappa che **mente con sicurezza** — il modo peggiore di sbagliare per uno
 strumento di orientamento. La mappa senza il test del 7.4 è peggio di nessuna mappa.
 
-- [ ] 7.1 **`backend/Services/Vetrina/MappaPagineVetrina.cs`** — **una voce per riga**, tre campi per
+- [x] 7.1 **`backend/Services/Vetrina/MappaPagineVetrina.cs`** — **una voce per riga**, tre campi per
   voce: **pagina**, **campo del modello**, **percorso nel DTO pubblico** (`testi.storia.testo`), più
   la scheda proprietaria.
   🔴 La forma testuale è **vincolante**: il test del task 7.4 legge questo file con una regex.
@@ -1676,18 +1676,18 @@ strumento di orientamento. La mappa senza il test del 7.4 è peggio di nessuna m
   `PublicController.TestiDa` (righe 453-464).
   *Verifica*: `dotnet build` esce 0; le voci coprono tutte e cinque le pagine.
 
-- [ ] 7.2 **Query `mappaPagine` dietro `GuardAmministratore`** — in `VetrinaQueries.cs`, servita al
+- [x] 7.2 **Query `mappaPagine` dietro `GuardAmministratore`** — in `VetrinaQueries.cs`, servita al
   pannello. Il test dei privilegi del task 5.13 si estende a questa seconda query.
   *Verifica*: un non amministratore è respinto; l'introspezione non mostra alcun ramo root nuovo.
 
-- [ ] 7.3 **Le schede costruiscono le due sezioni dei testi dalla mappa** — «testi di questa pagina»
+- [x] 7.3 **Le schede costruiscono le due sezioni dei testi dalla mappa** — «testi di questa pagina»
   e «testi ereditati, si cambiano qui», **da GraphQL** e non da una copia nel frontend.
   ⚠️ La sola lettura dev'essere riconoscibile a colpo d'occhio, non solo al tentativo di scrittura.
   *Verifica* (spec `impostazioni-vetrina` → *La mappa non ha una seconda copia*, *Sola lettura
   riconoscibile a colpo d'occhio*): `grep -rn "storia.testo\|claim" duedgusto/src/components/pages/sito/pagine/`
   non trova un secondo elenco di campi per pagina.
 
-- [ ] 7.4 🔴 **`sito/test/mappa-pagine.test.mjs`, con tre asserzioni e non una** — scansiona i cinque
+- [x] 7.4 🔴 **`sito/test/mappa-pagine.test.mjs`, con tre asserzioni e non una** — scansiona i cinque
   `.astro`, raccoglie le espressioni `sito.<percorso>` e le confronta con le voci dichiarate in
   `MappaPagineVetrina.cs`: ① le voci parsate sono **≥ N** (la regex ha funzionato); ② ogni
   `sito.<percorso>` trovato è **dichiarato** (nessun campo letto e non dichiarato); ③ ogni voce
@@ -1698,20 +1698,20 @@ strumento di orientamento. La mappa senza il test del 7.4 è peggio di nessuna m
   *Verifica* (spec `impostazioni-vetrina` → *Un campo letto e non dichiarato fa fallire la verifica*):
   `cd sito && npm test` passa.
 
-- [ ] 7.5 🔴 **Verifica per mutazione della mappa, nei tre versi** — ① aggiungi una lettura
+- [x] 7.5 🔴 **Verifica per mutazione della mappa, nei tre versi** — ① aggiungi una lettura
   `sito.testi.…` in un `.astro` senza dichiararla → rosso; ② togli una voce dichiarata → rosso; ③
   cambia la **forma** di una riga in `MappaPagineVetrina.cs` (spezzandola su due righe) → il
   conteggio scatta e il test è **rosso invece che cieco**. Ripristina tutti e tre.
   *Verifica*: l'esito è annotato con i tre nomi. ③ è la mutazione che nessuno pensa a fare ed è
   l'unica che protegge dalla modalità di guasto peggiore di un test di scansione.
 
-- [ ] 7.6 **Il gestionale non dipende dalla build del sito** — controllo esplicito: nessun import da
+- [x] 7.6 **Il gestionale non dipende dalla build del sito** — controllo esplicito: nessun import da
   `sito/` in `duedgusto/` né in `backend/`; il confronto vive nei **test del sito** e non nella CI
   del backend.
   *Verifica* (spec `impostazioni-vetrina` → *Il gestionale non dipende dalla build del sito*):
   `grep -rn "from ['\"].*sito/" duedgusto/src/` è vuoto.
 
-- [ ] 7.7 **Ogni ruolo immagine è nominato da almeno una scheda** — l'insieme dei ruoli che le pagine
+- [x] 7.7 **Ogni ruolo immagine è nominato da almeno una scheda** — l'insieme dei ruoli che le pagine
   consumano coincide con l'insieme dei ruoli nominati dalle cinque schede.
   *Verifica* (spec `media-assets` → *Ogni ruolo è nominato da una scheda*, *Nessun secondo percorso
   di scelta delle immagini*): ogni punto in cui si sceglie un'immagine usa `MediaPickerDialog`, che
@@ -1721,6 +1721,150 @@ strumento di orientamento. La mappa senza il test del 7.4 è peggio di nessuna m
 Divergono in un verso o nell'altro → **rosso**.
 
 **Rollback.** Revert puro, nessun dato coinvolto.
+
+### ✅ Esito misurato — Fase 7 (2026-08-13)
+
+| Comando | Esito | Delta sulla fase precedente |
+|---|---|---|
+| `dotnet build backend/duedgusto.csproj` | **0 errori, 0 avvisi** | — |
+| `dotnet test` (suite intera) | **825 / 825** | **+9** sugli 816 della Fase 6 |
+| `npm run ts:check` in `duedgusto/` | **0** | — |
+| `npm run lint` in `duedgusto/` | **0** | — |
+| `npm run test` in `duedgusto/` | **844 / 844** (105 file) | **+13** sugli 831 della Fase 6 |
+| `cd sito && npm test` | **134 / 134** | **+10** sui 124 della Fase 6 |
+| `cd sito && npm run check` | **0 errori, 0 avvisi, 0 suggerimenti** (60 file) | — |
+
+**7.1 — la mappa, e le tre divergenze dal testo del task.** `MappaPagineVetrina.cs` dichiara
+**59 voci**, una per riga, nella forma vincolata. Tre scelte non erano nel task e vanno lette
+prima del codice.
+
+1. 🔴 **La `Pagina` ha un sesto valore: `Cornice`.** Il task assume cinque pagine, ma il piè di
+   pagina e i dati strutturati di `Base.astro` mostrano **indirizzo, orari, contatti e social su
+   ogni pagina**. Con cinque soli valori la mappa aveva due forme, entrambe sbagliate: ripetere
+   sedici voci per cinque pagine — e far dire alla scheda «Menu» che quella pagina *possiede*
+   l'indirizzo — oppure tacerle, e far dire alla stessa scheda che `/menu` mostra solo l'insegna
+   mentre il piè di pagina ne mostra dieci. `Cornice` è l'unica forma in cui la mappa non mente,
+   ed è la ragione per cui la scheda ha adesso **due** gruppi di testi ereditati.
+2. **Le voci hanno cinque campi, non tre più la scheda: `Etichetta` e `Nota`.** Senza, il task 7.3
+   non era scrivibile — il pannello avrebbe dovuto tradurre `InsegnaPubblica` in «Insegna
+   pubblica» con una **seconda tabella scritta a mano**, cioè con la duplicazione che 7.3 esiste
+   per togliere.
+3. **La `Scheda` ha due valori che non sono schede del sito**: `ImpostazioniCassa` (gli orari) e
+   `RecensioniSito` (le citazioni). Sono i due valori che il sito mostra e che l'amministratore
+   cerca più a lungo, perché non stanno in nessuna scheda di pagina.
+
+🔴 **La colonna «dove si modifica» non è tenuta allineata a mano.**
+`MappaPagineVetrinaTests.cs` verifica per riflessione che ogni `Campo` sia una proprietà **reale**
+del modello che lo porta, e che la `Scheda` dichiarata coincida con il perimetro dell'input di
+quella scheda — cioè con la **stessa partizione** che le quattro mutation impongono. Un campo che
+cambiasse proprietario domani farebbe diventare rosso questo test insieme alla mutation, invece di
+lasciare la mappa indietro.
+
+**7.2 — la query.** `vetrina { mappaPagine }` dietro `GuardAmministratore`, con i **due** test di
+privilegio (operatore respinto, amministratore ammesso). Quello dell'amministratore asserisce sul
+**contenuto** e non sul solo esito: la mappa è servita da una costante, quindi una risposta vuota
+non è un caso limite della CI ma un guasto, e un test che si accontentasse di «nessun errore»
+resterebbe verde con l'elenco svuotato.
+
+**7.3 — 🔴 il debito saldato: gli elenchi scritti a mano non esistono più.** Le cinque schede
+avevano **cinque** elenchi di `TestoEreditato` scritti nel proprio sorgente: sono spariti tutti, e
+con loro la prop `testiEreditati` di `SchedaEditoriale` — l'assenza della prop è il punto, perché
+una prop sarebbe stata l'invito a riscriverli. `SchedaPagina` costruisce adesso **due** sezioni
+dalla mappa: «Testi ereditati dal sito» (ciò che il corpo di questa pagina mostra e si cambia
+altrove) e «Testi che ogni pagina del sito mostra» (la cornice). Il test
+*«l'elenco dei testi ereditati viene dalla MAPPA»* aggiunge alla mappa di prova una voce che
+nessuna scheda ha mai scritto e verifica che compaia comunque.
+
+⚠️ **Il verso che 7.3 non chiedeva, e che restava scoperto.** I testi **di proprietà** sono un
+modulo Formik e non si generano da un elenco di nomi: la mappa poteva quindi dichiarare un campo
+«modificabile qui» senza che quel campo esistesse nel modulo, e la scheda l'avrebbe elencato con
+sicurezza fra i propri senza offrire niente da compilare. `pagine/__tests__/mappaPagine.test.tsx`
+legge il sorgente C# e i sorgenti delle schede e pretende che i **dieci** campi di proprietà
+abbiano un `name="…"` nel modulo giusto, e che nessuna scheda offra un campo attribuito a
+un'altra sede.
+
+**7.6 — verificato, e trasformato in test.** `grep` per import da `sito/` in `duedgusto/src/` è
+**vuoto**; le occorrenze di `sito/` nel backend sono i `PercorsoFile` delle voci di menu, cioè
+percorsi dentro `duedgusto/src/components/pages/sito/` — una cartella del **gestionale**, non il
+progetto Astro. Il controllo non è restato un comando eseguito una volta: è il test
+*«né il gestionale né il backend importano alcunché dal progetto del sito»*, che cammina
+`duedgusto/src` e `backend/` a ogni esecuzione della suite.
+
+#### 🔴 Le cinque verifiche per mutazione — eseguite, non dedotte
+
+| # | Mutazione | Rossi | Verdi intorno |
+|---|---|---|---|
+| **7.5 ①** | `const provaMutazione = sito?.testi.claim` aggiunto a `locale.astro` | **1 su 6** — `valori letti dal sito e NON dichiarati: Locale: sito.testi.claim` | 5 |
+| **7.5 ②** | voce `StoriaTitolo` tolta dalla mappa | **2 su 6** — ② `Locale: sito.testi.storia.titolo` e ④ | 4 |
+| **7.5 ③** | voce di `/menu` spezzata su due righe | **1 su 6**, ed è il **conteggio**: `apre 59 voci ma la scansione ne legge 58` | **5**, ②③④ compresi |
+| **7.7 A** | `MAX_MOMENTI` da 3 a 4 in `index.astro` | **1 su 4** — `la scheda «Home» dichiara fino a 3 fotografie dai prodotti, ma index.astro ne mostra fino a 4` | 3 |
+| **7.7 B** | `fotoMenu` riattribuito alla pagina `home` nel pannello | **1 su 4** — `ruoli che il sito consuma e che nessuna scheda nomina: menu/fotoMenu` | 3 |
+
+🔴 **Le tre letture che valgono più del rosso.**
+
+1. **La mutazione ③ è quella che il task chiedeva, e alla prima stesura non sarebbe scattata.**
+   La regex separava gli argomenti con `\s*`, che attraversa gli a capo: spezzare una riga non
+   rompeva niente, quindi la regola «una voce per riga» scritta nel file C# era una convenzione
+   **mai verificata**. Corretto in due modi insieme: il separatore è diventato `[ \t]*`, e al
+   posto di una soglia (`≥ 50`, che perdendo **una** voce su 59 non sarebbe scattata) c'è il
+   confronto fra **quante voci il file apre** e **quante la scansione ne legge per intero**. Non
+   ha soglie da mantenere e intercetta la perdita di una sola voce. Nella tabella si vede il
+   punto esatto: ②③④ restano **verdi** durante ③ — senza il conteggio, la voce persa sarebbe
+   stata semplicemente invisibile.
+2. **La mutazione ② non era rossa alla prima stesura**, e la ragione è di merito, non di regex.
+   Nessun `.astro` scrive `sito.testi.storia.titolo`: `locale.astro` fa
+   `const storia = sito?.testi.storia` e poi legge `storia.titolo`. Una scansione ferma alle
+   espressioni piane vedeva solo `testi.storia`, coperto da **qualunque** voce sotto
+   `testi.storia.`, quindi togliere il titolo non faceva fallire nulla — e i testi editoriali
+   sono precisamente l'oggetto della mappa. Il test segue adesso gli **alias locali**
+   (`const X = sito?.percorso` → `X.foglia`). Ciò che resta scoperto è dichiarato in testa al
+   file: un oggetto passato come **proprietà** a un componente (`<Recensioni reputazione={…} />`)
+   perde ogni legame testuale con `sito`, e su quei rami la copertura si ferma all'oggetto.
+3. **Un test di questa fase è nato vacuo e lo si è visto.** In `mappaPagine.test.tsx` il
+   confronto fra le sedi usava il PascalCase del C# (`Home`) contro il CONSTANT_CASE di GraphQL
+   (`HOME`): nessuna voce corrispondeva mai, il filtro restava vuoto e l'asserzione passava senza
+   guardare niente. Se ne è accorto **l'altro** test del file, quello sul verso opposto, che ha
+   segnalato dieci campi «attribuiti a un'altra sede». La difesa aggiunta è un'asserzione sul
+   **numero di campi di proprietà trovati** (esattamente 10), che rende quel modo di fallire
+   impossibile da ripetere in silenzio.
+
+#### 🔴 Il doppio `3` è **eliminato**, non mitigato
+
+Il numero era scritto due volte: `AmpiezzaFinestra` in `RuoliImmaginiVetrina.cs` e `posti: 3` in
+`ruoliPagine.tsx`. Adesso c'è **una scrittura sola**: la costante C# è `internal` ed esce dal piano
+come `vetrina { ruoliImmagini { ampiezzaGriglia } }`; il pannello la legge e non scrive alcun
+numero. `posti` è sparito dal tipo `RuoloImmaginePagina` — la capacità si **ricava** (`1` per un
+ruolo singolo, `ampiezzaGriglia` per una griglia) e vale `null` finché il piano non è arrivato,
+perché un ripiego scritto nel pannello («tanto è sempre 3») avrebbe reintrodotto la seconda
+scrittura dalla porta di servizio. Il test *«la capacità delle griglie viene dal SERVER, non da una
+costante del pannello»* varia il piano a **4** e pretende che la home dichiari **5** posti: è la
+prova che il pannello segue il server invece di ripeterlo.
+
+⚠️ **Il debito residuo, dichiarato.** Resta **un** numero scritto due volte, e non è eliminabile
+qui: il «fino a 3» delle fotografie che la home prende dai **prodotti** è `MAX_MOMENTI` in
+`index.astro`. Il gestionale non può importare da `sito/` (task 7.6) e il server non conosce
+affatto i «momenti», quindi non esiste una sede unica dove metterlo. È stato **ridotto da muto a
+rumoroso**: nel pannello è ora un numero (`massimo: 3`) invece che dentro la frase «fino a 3», e
+`sito/test/ruoli-schede.test.mjs` confronta i due valori — mutazione **7.7 A**.
+
+#### ⚠️ Due limiti della verifica, scritti perché non si scoprano da soli
+
+- **Si scansionano solo i `.astro`.** Un modulo `.ts` riceve `sito` come parametro ed è importato
+  dalla cornice: attribuire le sue letture alle pagine farebbe dire alla mappa che `/contatti`
+  mostra il testo dell'aperitivo — `rotte.ts` lo legge per decidere se la voce di navigazione
+  esiste — che è falso. Il buco è chiuso dall'asserzione ④, che pretende che **ogni** percorso
+  letto in un qualunque sorgente del sito, `.ts` compresi, sia dichiarato almeno da qualche parte.
+- **Una lettura «larga» copre le voci sotto di sé.** `<Mappa sito={sito} />` legge
+  `sito.indirizzo` per intero, quindi l'asserzione ③ è più debole sul ramo `indirizzo.*`: una
+  voce dichiarata lì non può essere provata «morta». Seguirlo davvero richiederebbe di risolvere
+  le proprietà attraverso i file, cioè un compilatore invece di un test.
+
+⚠️ **Tre test esistenti modificati, e perché non è un allentamento.** `ruoliPagine.test.tsx` è
+stato aggiornato alla firma nuova di `postiDellaPagina` e ha **due** test in più (la capacità dal
+server, e la capacità sconosciuta senza piano). In `SchedePagina.test.tsx` la prova sugli orari
+passa da `getByText` a `getAllByText`: il rimando alle impostazioni della cassa compare adesso
+**due volte** — nell'avviso e accanto alla voce che la mappa dichiara — e sono due informazioni
+diverse, non una ripetizione.
 
 ---
 

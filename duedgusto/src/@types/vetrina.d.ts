@@ -352,6 +352,57 @@ type RuoliImmaginiVetrina = {
   grigliaHome: MediaAsset[];
   fotoMenu: MediaAsset[];
   quadrateLocale: MediaAsset[];
+  /**
+   * Quante immagini entrano in **ciascuna** delle tre griglie.
+   *
+   * 🔴 Arriva dal server perché è lo **stesso** numero che taglia le finestre
+   * (`RuoliImmaginiVetrina.AmpiezzaFinestra`). Scriverlo qui accanto sarebbe la seconda
+   * scrittura di una costante: allargando la finestra, il sito renderebbe quattro fotografie
+   * mentre la scheda continuerebbe a dichiararne tre, con sicurezza e senza alcun errore.
+   *
+   * ⚠️ È **capacità**, non riempimento: una galleria corta ne rende meno.
+   */
+  ampiezzaGriglia: number;
+};
+
+/**
+ * Dove un valore del sito **compare**: una delle cinque pagine, oppure la **cornice**.
+ *
+ * 🔴 `CORNICE` non è una pagina: è ciò che intestazione, piè di pagina e dati strutturati
+ * rendono su **tutte**. Distinguerla è ciò che permette alla scheda «Menu» di dire insieme
+ * «questa pagina non possiede alcun testo» e «l'indirizzo che vedi nel piè di pagina si cambia
+ * qui», senza far sembrare l'indirizzo un campo di quella pagina.
+ */
+type PaginaVetrinaMappa = "CORNICE" | "HOME" | "MENU" | "APERITIVO" | "LOCALE" | "CONTATTI";
+
+/**
+ * Dove un valore si **modifica**.
+ *
+ * ⚠️ Due delle sei sedi non sono schede del sito: gli orari vivono nelle impostazioni della
+ * cassa (una sola sorgente, ed è ciò che rende impossibile «il sito dice 21, la cassa 19») e le
+ * citazioni nell'anagrafica delle recensioni.
+ */
+type SchedaVetrinaMappa = "IMPOSTAZIONI" | "HOME" | "LOCALE" | "APERITIVO" | "IMPOSTAZIONI_CASSA" | "RECENSIONI_SITO";
+
+/**
+ * Una riga della mappa pagina → campo, servita dal backend.
+ *
+ * 🔴 **Sede unica della corrispondenza.** Le cinque schede costruiscono da qui le due sezioni
+ * dei testi: un elenco scritto a mano dentro ogni scheda divergerebbe dai sorgenti del sito
+ * alla prima modifica, e nessuno se ne accorgerebbe — una scheda che elenca il campo sbagliato
+ * non produce alcun errore. `sito/test/mappa-pagine.test.mjs` confronta la stessa
+ * dichiarazione con i `.astro`.
+ */
+type VocePaginaVetrina = {
+  __typename?: "VocePaginaVetrina";
+  pagina: PaginaVetrinaMappa;
+  /** Il nome della proprietà del modello, es. `InsegnaPubblica`. */
+  campo: string;
+  /** Il percorso nel DTO pubblico, es. `testi.storia.testo`: è ciò che il sito legge. */
+  percorso: string;
+  scheda: SchedaVetrinaMappa;
+  etichetta: string;
+  nota?: string | null;
 };
 
 /**

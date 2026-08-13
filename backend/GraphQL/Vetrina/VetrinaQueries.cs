@@ -62,6 +62,26 @@ public class VetrinaQueries : ObjectGraphType
                 return await LeggiRuoliImmaginiAsync(dbContext);
             });
 
+        Field<NonNullGraphType<ListGraphType<NonNullGraphType<VocePaginaVetrinaType>>>,
+            IReadOnlyList<VoceMappaPagina>>("mappaPagine")
+            .Description("Quali testi governano quale pagina del sito, e dove si modificano. 🔴 "
+                + "Sede UNICA della corrispondenza: le cinque schede costruiscono da qui le due "
+                + "sezioni «testi di questa pagina» e «testi ereditati», invece di tenerne una "
+                + "copia scritta a mano che divergerebbe dai sorgenti del sito alla prima "
+                + "modifica. La stessa dichiarazione è verificata contro i .astro da "
+                + "sito/test/mappa-pagine.test.mjs.")
+            .ResolveAsync(async context =>
+            {
+                // ⚠️ Il guard c'è anche qui, benché la mappa non contenga alcun valore: dice
+                //    quali campi esistono e come sono organizzati, cioè la forma del pannello.
+                //    E soprattutto il guard non si eredita — un campo nuovo che se lo dimentica
+                //    è aperto a ogni operatore senza che nulla diventi rosso.
+                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                await VetrinaMutations.GuardAmministratore(context, dbContext);
+
+                return MappaPagineVetrina.Voci;
+            });
+
         Field<ListGraphType<RecensioneVetrinaType>, IReadOnlyList<RecensioneVetrina>>("recensioni")
             .Description("Le recensioni riportate sul sito, PUBBLICATE E NON, nell'ordine in cui "
                 + "l'amministratore le ha messe. La rotta pubblica ne restituisce solo il "

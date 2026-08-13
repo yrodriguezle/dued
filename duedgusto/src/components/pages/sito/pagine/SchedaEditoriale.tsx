@@ -55,17 +55,21 @@ interface SchedaEditorialeProps {
    */
   campoDiEsistenza?: { chiave: "storiaTesto" | "aperitivoTesto"; nome: string };
   testiPropri: ReactNode;
-  testiEreditati: (impostazioni: ImpostazioniVetrina | null) => ReactNode;
+  /**
+   * ⚠️ **Non c'è alcun `testiEreditati`**, e l'assenza è il punto: i testi ereditati arrivano
+   * dalla mappa del server. Una prop per passarli sarebbe l'invito a riscriverli a mano dentro
+   * ogni scheda — che è esattamente com'erano prima, e come divergevano dai sorgenti del sito.
+   */
   altreSorgenti?: (impostazioni: ImpostazioniVetrina | null) => ReactNode;
 }
 
-function SchedaEditoriale({ pagina, valida, salva, campoSlot, campoDiEsistenza, testiPropri, testiEreditati, altreSorgenti }: SchedaEditorialeProps) {
+function SchedaEditoriale({ pagina, valida, salva, campoSlot, campoDiEsistenza, testiPropri, altreSorgenti }: SchedaEditorialeProps) {
   const { setTitle } = useContext(PageTitleContext);
   const onConfirm = useConfirm();
   const formRef = useRef<FormikProps<ValoriImpostazioniVetrina>>(null);
   const [sceltaImmagineAperta, setSceltaImmagineAperta] = useState(false);
 
-  const { impostazioni, piano, caricamento, caricamentoPiano, errore } = useDatiScheda();
+  const { impostazioni, piano, mappa, caricamento, caricamentoPiano, errore } = useDatiScheda();
 
   const nomePagina = ETICHETTE_PAGINE[pagina];
   const percorsoSito = PERCORSI_SITO[pagina];
@@ -195,6 +199,8 @@ function SchedaEditoriale({ pagina, valida, salva, campoSlot, campoDiEsistenza, 
               stato={stato}
               piano={piano}
               caricamentoPiano={caricamentoPiano}
+              mappa={mappa}
+              impostazioni={impostazioni}
               azioneSlot={
                 <Button
                   size="small"
@@ -206,7 +212,6 @@ function SchedaEditoriale({ pagina, valida, salva, campoSlot, campoDiEsistenza, 
                 </Button>
               }
               testiPropri={testiPropri}
-              testiEreditati={testiEreditati(impostazioni)}
               altreSorgenti={altreSorgenti?.(impostazioni)}
             />
             <MediaPickerDialog

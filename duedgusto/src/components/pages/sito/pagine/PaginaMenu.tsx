@@ -6,7 +6,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Link from "@mui/material/Link";
 import Typography from "@mui/material/Typography";
 
-import SchedaPagina, { SezioneScheda, TestoEreditato } from "./SchedaPagina";
+import SchedaPagina, { SezioneScheda } from "./SchedaPagina";
 import { useDatiScheda } from "./datiScheda";
 import SitoGuard from "../SitoGuard";
 import PageTitleContext from "../../../layout/headerBar/PageTitleContext";
@@ -34,7 +34,7 @@ import { prodottoVetrinaFragment } from "../../../../graphql/vetrina/fragments";
  */
 function PaginaMenu() {
   const { setTitle } = useContext(PageTitleContext);
-  const { impostazioni, piano, caricamento, caricamentoPiano, errore } = useDatiScheda();
+  const { impostazioni, piano, mappa, caricamento, caricamentoPiano, errore } = useDatiScheda();
 
   // Il conteggio arriva dal campo che il **server** calcola (`attivo && visibileSulSito`): il
   // pannello non riapplica la regola, altrimenti sarebbe un secondo criterio di pubblicazione.
@@ -78,6 +78,8 @@ function PaginaMenu() {
           stato={{ tipo: "sempre" }}
           piano={piano}
           caricamentoPiano={caricamentoPiano}
+          mappa={mappa}
+          impostazioni={impostazioni}
           senzaTestiPropri={
             <>
               <Alert severity="info">
@@ -95,15 +97,6 @@ function PaginaMenu() {
                 modifica al sito. Le altre pagine usano invece la descrizione predefinita delle impostazioni.
               </Alert>
             </>
-          }
-          testiEreditati={
-            <TestoEreditato
-              etichetta="Insegna pubblica"
-              valore={impostazioni?.insegnaPubblica}
-              percorso="/gestionale/sito/impostazioni"
-              etichettaPercorso="Impostazioni sito"
-              nota="È l'unico campo delle impostazioni che questa pagina legge."
-            />
           }
           altreSorgenti={
             <SezioneScheda

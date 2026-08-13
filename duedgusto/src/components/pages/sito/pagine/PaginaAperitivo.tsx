@@ -5,7 +5,7 @@ import Alert from "@mui/material/Alert";
 import Link from "@mui/material/Link";
 
 import SchedaEditoriale from "./SchedaEditoriale";
-import { SezioneScheda, TestoEreditato } from "./SchedaPagina";
+import { SezioneScheda } from "./SchedaPagina";
 import { PERCORSI_PANNELLO } from "./ruoliPagine";
 import { ValoriImpostazioniVetrina, inputAperitivo, validaPaginaAperitivo } from "../impostazioniVetrinaModulo";
 import FormikTextField from "../../../common/form/FormikTextField";
@@ -90,24 +90,6 @@ function PaginaAperitivo() {
           </div>
         </div>
       }
-      testiEreditati={(impostazioni) => (
-        <>
-          <TestoEreditato
-            etichetta="Insegna pubblica"
-            valore={impostazioni?.insegnaPubblica}
-            percorso="/gestionale/sito/impostazioni"
-            etichettaPercorso="Impostazioni sito"
-            nota="La legge ogni pagina del sito."
-          />
-          <TestoEreditato
-            etichetta="Ora di inizio del tema serale"
-            valore={impostazioni?.oraInizioTemaSera}
-            percorso="/gestionale/sito/impostazioni"
-            etichettaPercorso="Impostazioni sito"
-            nota="Da quell'ora questa pagina e la home passano al tema scuro."
-          />
-        </>
-      )}
       altreSorgenti={() => (
         <SezioneScheda
           titolo="Altre sorgenti che la pagina mostra"

@@ -120,5 +120,18 @@ public class RuoliImmaginiVetrinaType : ObjectGraphType<PianoImmagini>
         Field<NonNullGraphType<ListGraphType<NonNullGraphType<MediaAssetType>>>>("quadrateLocale")
             .Description("Le tre quadrate di «Il locale».")
             .Resolve(context => context.Source.QuadrateLocale);
+
+        // 🔴 LA CAPACITÀ DELLE GRIGLIE ESCE DA QUI, e non è un dato di comodo: è la fine di un
+        //    numero scritto due volte. Fino a questo campo il pannello dichiarava «3 posti» con
+        //    un 3 scritto nel proprio sorgente, mentre il 3 vero era `AmpiezzaFinestra` nel
+        //    server — due scritture che nessuna build metteva a confronto. Allargando la finestra
+        //    a quattro, il sito avrebbe reso quattro fotografie e la scheda avrebbe continuato a
+        //    dichiararne tre, con sicurezza e senza alcun errore. Adesso c'è una scrittura sola.
+        Field<NonNullGraphType<IntGraphType>>("ampiezzaGriglia")
+            .Description("Quante immagini entrano in CIASCUNA delle tre griglie (griglia della "
+                + "home, foto del listino, quadrate del locale). 🔴 È la capacità, non il "
+                + "riempimento: una galleria corta ne rende meno, e la scheda distingue le due "
+                + "grandezze.")
+            .Resolve(_ => RuoliImmaginiVetrina.AmpiezzaFinestra);
     }
 }

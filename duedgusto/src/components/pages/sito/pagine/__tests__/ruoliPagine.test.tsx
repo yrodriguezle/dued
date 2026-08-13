@@ -7,6 +7,7 @@ import {
   etichettaRuoloRicoperto,
   immaginiDelRuolo,
   occupatiDellaPagina,
+  postiDelRuolo,
   postiDellaPagina,
   ruoliDellaPagina,
   ruoliDiUnImmagine,
@@ -63,7 +64,7 @@ function galleriaDa(quante: number): MediaAsset[] {
  * usavano prima del change: `[0]`; `[1..4)`; `[0..3)`; `[1] ?? [0]`; `[2..5)`; e **niente** per
  * l'aperitivo, che è l'unico ruolo singolo senza ripiego.
  */
-function pianoASlotVuoti(galleria: MediaAsset[]): RuoliImmaginiVetrina {
+function pianoASlotVuoti(galleria: MediaAsset[], ampiezzaGriglia = 3): RuoliImmaginiVetrina {
   const eroeHome = galleria[0] ?? null;
   const ritratto = galleria[1] ?? galleria[0] ?? null;
   return {
@@ -73,6 +74,9 @@ function pianoASlotVuoti(galleria: MediaAsset[]): RuoliImmaginiVetrina {
     ritrattoLocale: { mediaAssetId: ritratto?.mediaAssetId ?? null, immagine: ritratto, origine: "POSIZIONE" },
     quadrateLocale: galleria.slice(2, 5),
     eroeAperitivo: { mediaAssetId: null, immagine: null, origine: "POSIZIONE" },
+    // 🔴 L'ampiezza è un **parametro** del piano, non una costante del pannello: è il server a
+    //    dichiararla, e questi test la variano proprio per dimostrare che il pannello la segue.
+    ampiezzaGriglia,
   };
 }
 
@@ -83,20 +87,51 @@ describe("la dichiarazione dei ruoli immagine", () => {
     // Un ruolo nuovo sul server e non qui sarebbe invisibile al pannello: la scheda conterebbe
     // in difetto e la libreria non lo nominerebbe. Uno qui e non sul server sarebbe un posto
     // annunciato che non esiste.
-    const nelPiano = Object.keys(pianoASlotVuoti(galleriaDa(6))).sort();
+    // ⚠️ `ampiezzaGriglia` non è un ruolo: è la **capacità** delle griglie, che il piano porta
+    //    accanto ai sei ruoli perché quel numero abbia una sola scrittura. Va tolta dal
+    //    confronto, non aggiunta alla dichiarazione.
+    const nelPiano = Object.keys(pianoASlotVuoti(galleriaDa(6)))
+      .filter((chiave) => chiave !== "ampiezzaGriglia")
+      .sort();
     const dichiarati = RUOLI_IMMAGINI.map((ruolo) => ruolo.chiave).sort();
     expect(dichiarati).toEqual(nelPiano);
   });
 
   it("🔴 dichiara la CAPACITÀ di ogni pagina, e per «Contatti» dichiara zero", () => {
     // ⚠️ Numeri scritti a mano: è il «prima» contro cui la dichiarazione si misura.
-    expect(Object.fromEntries(PAGINE.map((pagina) => [pagina, postiDellaPagina(pagina)]))).toEqual({
+    const piano = pianoASlotVuoti(galleriaDa(6));
+    expect(Object.fromEntries(PAGINE.map((pagina) => [pagina, postiDellaPagina(pagina, piano)]))).toEqual({
       home: 4, // 1 in evidenza + 3 in griglia
       menu: 3, // in coda al listino
       aperitivo: 1, // in evidenza, senza ripiego
       locale: 4, // 1 ritratto + 3 quadrate
       contatti: 0, // 🔴 zero è una risposta, e va dichiarata
     });
+  });
+
+  it("🔴 la capacità delle griglie viene dal SERVER, non da una costante del pannello", () => {
+    // È la prova che il numero è scritto **una volta sola**. Fino alla fase precedente il 3
+    // viveva anche qui, e allargando la finestra sul server il sito avrebbe reso quattro
+    // fotografie mentre la scheda continuava a dichiararne tre — con sicurezza e senza errori.
+    // Adesso basta che il piano dica un altro numero perché la scheda lo segua.
+    const piano = pianoASlotVuoti(galleriaDa(9), 4);
+    expect(Object.fromEntries(PAGINE.map((pagina) => [pagina, postiDellaPagina(pagina, piano)]))).toEqual({
+      home: 5, // 1 in evidenza + 4 in griglia
+      menu: 4,
+      aperitivo: 1, // un ruolo singolo resta uno: non dipende dalla finestra
+      locale: 5,
+      contatti: 0,
+    });
+  });
+
+  it("senza il piano la capacità delle griglie NON si dichiara, e zero resta una risposta", () => {
+    // 🔴 Un ripiego scritto qui («tanto è sempre 3») sarebbe la seconda scrittura reintrodotta
+    //    dalla porta di servizio: meglio dire «non lo so ancora» che dire un numero non chiesto
+    //    a nessuno. Le pagine senza griglie, invece, si conoscono comunque.
+    expect(postiDellaPagina("home", null)).toBeNull();
+    expect(postiDellaPagina("menu", null)).toBeNull();
+    expect(postiDellaPagina("aperitivo", null)).toBe(1);
+    expect(postiDellaPagina("contatti", null)).toBe(0);
   });
 
   it("un solo ruolo singolo è senza ripiego, ed è l'eroe dell'aperitivo", () => {
@@ -119,7 +154,7 @@ describe("capacità e riempimento sono grandezze diverse", () => {
     const piano = pianoASlotVuoti(galleriaDa(1));
 
     // La capacità non si muove…
-    expect(Object.fromEntries(PAGINE.map((pagina) => [pagina, postiDellaPagina(pagina)]))).toEqual({ home: 4, menu: 3, aperitivo: 1, locale: 4, contatti: 0 });
+    expect(Object.fromEntries(PAGINE.map((pagina) => [pagina, postiDellaPagina(pagina, piano)]))).toEqual({ home: 4, menu: 3, aperitivo: 1, locale: 4, contatti: 0 });
 
     // …il riempimento sì: la home dichiara 1 in evidenza e 0 in griglia.
     expect(Object.fromEntries(PAGINE.map((pagina) => [pagina, occupatiDellaPagina(piano, pagina)]))).toEqual({ home: 1, menu: 1, aperitivo: 0, locale: 1, contatti: 0 });
@@ -160,13 +195,13 @@ describe("capacità e riempimento sono grandezze diverse", () => {
   });
 
   it("il riempimento non supera mai la capacità dichiarata, per nessun ruolo", () => {
-    // ⚠️ È la rete sull'unico numero scritto due volte: l'ampiezza delle finestre vale 3 qui e
-    //    3 sul server. Se il server allargasse una finestra, la scheda dichiarerebbe un numero
-    //    troppo piccolo — e questo test diventa rosso invece di lasciarla mentire in difetto.
+    // ⚠️ Restava, alla fase precedente, la sola rete sull'ampiezza scritta due volte. Adesso la
+    //    scrittura è una sola e questo test verifica un'altra proprietà, non meno vera: che il
+    //    piano non attribuisca a un ruolo più immagini di quante ne dichiari.
     [0, 1, 2, 3, 5, 6, 9].forEach((quante) => {
       const piano = pianoASlotVuoti(galleriaDa(quante));
       RUOLI_IMMAGINI.forEach((ruolo) => {
-        expect(immaginiDelRuolo(piano, ruolo).length, `galleria da ${quante}: il ruolo «${ruolo.chiave}» rende più immagini dei posti dichiarati`).toBeLessThanOrEqual(ruolo.posti);
+        expect(immaginiDelRuolo(piano, ruolo).length, `galleria da ${quante}: il ruolo «${ruolo.chiave}» rende più immagini dei posti dichiarati`).toBeLessThanOrEqual(postiDelRuolo(ruolo, piano)!);
       });
     });
   });

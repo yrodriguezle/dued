@@ -2,7 +2,6 @@ import { useCallback } from "react";
 import { useMutation } from "@apollo/client";
 
 import SchedaEditoriale from "./SchedaEditoriale";
-import { TestoEreditato } from "./SchedaPagina";
 import { ValoriImpostazioniVetrina, inputLocale, validaPaginaLocale } from "../impostazioniVetrinaModulo";
 import FormikTextField from "../../../common/form/FormikTextField";
 import { getImpostazioniVetrina, getRuoliImmaginiVetrina } from "../../../../graphql/vetrina/queries";
@@ -59,24 +58,6 @@ function PaginaLocale() {
           </div>
         </div>
       }
-      testiEreditati={(impostazioni) => (
-        <>
-          <TestoEreditato
-            etichetta="Insegna pubblica"
-            valore={impostazioni?.insegnaPubblica}
-            percorso="/gestionale/sito/impostazioni"
-            etichettaPercorso="Impostazioni sito"
-            nota="La legge ogni pagina del sito."
-          />
-          <TestoEreditato
-            etichetta="Titolo e descrizione per i motori di ricerca"
-            valore={impostazioni?.metaTitoloDefault}
-            percorso="/gestionale/sito/impostazioni"
-            etichettaPercorso="Impostazioni sito"
-            nota="Sono i valori predefiniti del sito: questa pagina non ne possiede di propri."
-          />
-        </>
-      )}
     />
   );
 }

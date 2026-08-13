@@ -5,8 +5,7 @@ import Alert from "@mui/material/Alert";
 import Link from "@mui/material/Link";
 
 import SchedaEditoriale from "./SchedaEditoriale";
-import { SezioneScheda, TestoEreditato } from "./SchedaPagina";
-import { PERCORSI_PANNELLO } from "./ruoliPagine";
+import { SezioneScheda } from "./SchedaPagina";
 import AvvisoOrari from "../AvvisoOrari";
 import { ValoriImpostazioniVetrina, inputHome, validaPaginaHome } from "../impostazioniVetrinaModulo";
 import FormikTextField from "../../../common/form/FormikTextField";
@@ -25,6 +24,12 @@ import { mutationMutatePaginaHome } from "../../../../graphql/vetrina/mutations"
  *    all'aperitivo sta sulla home — ma appartengono alla scheda «Aperitivo»: la regola non è
  *    «un campo, una pagina», è **un campo, un proprietario**. Due schede che li scrivessero
  *    sarebbero due verità, e vincerebbe l'ultima che salva.
+ *
+ * 🔴 **Questo file non elenca più i testi ereditati.** Li dichiara `MappaPagineVetrina.cs`, e
+ *    `sito/test/mappa-pagine.test.mjs` confronta quella dichiarazione con i sorgenti del sito.
+ *    L'elenco che stava qui era una seconda scrittura: una lettura aggiunta a `index.astro`
+ *    non lo raggiungeva, e la scheda continuava a elencare i campi di ieri senza che nulla lo
+ *    segnalasse.
  *
  * ⚠️ La home **esiste sempre**: nessun campo di questa scheda può farla sparire, quindi non ha
  *    alcuno stato condizionato e nessuna conferma di sparizione al salvataggio.
@@ -88,38 +93,6 @@ function PaginaHome() {
           </div>
         </div>
       }
-      testiEreditati={(impostazioni) => (
-        <>
-          <TestoEreditato
-            etichetta="Insegna pubblica"
-            valore={impostazioni?.insegnaPubblica}
-            percorso="/gestionale/sito/impostazioni"
-            etichettaPercorso="Impostazioni sito"
-            nota="La legge ogni pagina del sito."
-          />
-          {/* ⚠️ Letti dalla home, POSSEDUTI dall'aperitivo. */}
-          <TestoEreditato
-            etichetta="Titolo dell'aperitivo"
-            valore={impostazioni?.aperitivoTitolo}
-            percorso={PERCORSI_PANNELLO.aperitivo}
-            etichettaPercorso="Sito → Aperitivo"
-            nota="La home lo mostra nel richiamo all'aperitivo, ma appartiene alla scheda dell'aperitivo."
-          />
-          <TestoEreditato
-            etichetta="Testo dell'aperitivo"
-            valore={impostazioni?.aperitivoTesto}
-            percorso={PERCORSI_PANNELLO.aperitivo}
-            etichettaPercorso="Sito → Aperitivo"
-            nota="È anche il testo che decide se la pagina «Aperitivo» esiste."
-          />
-          <TestoEreditato
-            etichetta="Cosa è compreso nell'aperitivo"
-            valore={impostazioni?.aperitivoPunti}
-            percorso={PERCORSI_PANNELLO.aperitivo}
-            etichettaPercorso="Sito → Aperitivo"
-          />
-        </>
-      )}
       altreSorgenti={() => (
         <SezioneScheda
           titolo="Altre sorgenti che la home mostra"

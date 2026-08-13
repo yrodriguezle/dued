@@ -65,6 +65,41 @@ export const getRuoliImmaginiVetrina: TypedDocumentNode<GetRuoliImmaginiData, Re
         grigliaHome { ...MediaAssetFragment }
         fotoMenu { ...MediaAssetFragment }
         quadrateLocale { ...MediaAssetFragment }
+        ampiezzaGriglia
+      }
+    }
+  }
+`;
+
+interface GetMappaPagineData {
+  vetrina: {
+    mappaPagine: VocePaginaVetrina[];
+  };
+}
+
+/**
+ * Quali testi governano quale pagina del sito, e dove si modificano.
+ *
+ * 🔴 **Le schede la leggono e non ne tengono una copia.** Le due sezioni «testi di questa
+ * pagina» e «testi ereditati» si costruiscono da qui: gli elenchi scritti a mano dentro ogni
+ * scheda — che è com'erano prima di questa query — divergono dai sorgenti del sito alla prima
+ * modifica, e la divergenza è **muta**: una scheda che elenca il campo sbagliato non produce
+ * alcun errore, orienta soltanto nella direzione sbagliata.
+ *
+ * ⚠️ La stessa dichiarazione C# è confrontata con i `.astro` da
+ * `sito/test/mappa-pagine.test.mjs`. Il gestionale non dipende dalla build del sito: sono due
+ * dichiarazioni testuali messe a confronto, non un'estrazione a tempo di compilazione.
+ */
+export const getMappaPagineVetrina: TypedDocumentNode<GetMappaPagineData, Record<string, never>> = gql`
+  query GetMappaPagineVetrina {
+    vetrina {
+      mappaPagine {
+        pagina
+        campo
+        percorso
+        scheda
+        etichetta
+        nota
       }
     }
   }

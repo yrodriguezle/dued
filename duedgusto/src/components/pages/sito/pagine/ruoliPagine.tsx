@@ -14,11 +14,12 @@
  *    comparire **in entrambi i posti**, ed è precisamente ciò che il test di
  *    `__tests__/ruoliPagine.test.tsx` verifica.
  *
- * 🔴 **Capacità e riempimento sono due grandezze diverse, e questo file dichiara solo la
- *    prima.** `posti` è quanti ne ospita la pagina; quante sono occupate adesso lo dice il
- *    **piano** (`vetrina { ruoliImmagini }`), cioè la stessa funzione C# che alimenta il sito.
- *    Il pannello non ricalcola mai chi ricopre cosa: se lo facesse, potrebbe dichiarare che una
- *    pagina usa una foto mentre il sito ne rende un'altra.
+ * 🔴 **Capacità e riempimento sono due grandezze diverse, e nessuna delle due è un numero
+ *    scritto qui.** La capacità di una griglia è l'ampiezza della finestra del server
+ *    (`ampiezzaGriglia`, dal piano); il riempimento è quante immagini quel piano sta davvero
+ *    attribuendo. Questo file dichiara **quali ruoli esistono e dove stanno in pagina**, non
+ *    quante immagini ci entrano: il pannello non ricalcola mai chi ricopre cosa, altrimenti
+ *    potrebbe dichiarare che una pagina usa una foto mentre il sito ne rende un'altra.
  *
  * ⚠️ L'**anteprima social** non è qui, ed è voluto: è del sito intero, non di una pagina. Ogni
  *    scheda la dichiara come condivisa e nessuna la conta fra i propri posti.
@@ -38,9 +39,13 @@ export type RuoloImmaginePagina = {
   etichetta: string;
   /** Dove sta in pagina, per esteso. */
   descrizione: string;
-  /** **Capacità**: quanti posti, non quanti occupati. */
-  posti: number;
-  /** Un ruolo singolo si sceglie da uno slot; una griglia pesca dalla galleria per posizione. */
+  /**
+   * Un ruolo singolo si sceglie da uno slot; una griglia pesca dalla galleria per posizione.
+   *
+   * 🔴 **È da qui che si ricava la capacità, e non da un numero scritto accanto.** Un ruolo
+   *    singolo ha un posto per definizione; una griglia ne ha quanti ne taglia la finestra del
+   *    server, che il piano dichiara in `ampiezzaGriglia`. Vedi `postiDelRuolo`.
+   */
   singolo: boolean;
   /**
    * Che cosa rende la pagina quando il posto è vuoto. `null` = **niente**.
@@ -54,11 +59,12 @@ export type RuoloImmaginePagina = {
  * Il piano, per intero. Le sei righe corrispondono uno a uno ai sei campi di
  * `RuoliImmaginiVetrina` e alle sei regole di `backend/Services/Vetrina/RuoliImmaginiVetrina.cs`.
  *
- * ⚠️ I `posti` delle griglie valgono **3** perché tanto è l'ampiezza della finestra sul server
- *    (`AmpiezzaFinestra`). È l'unico numero scritto due volte, e la divergenza non resta muta:
- *    il test pretende che le immagini occupate non superino mai i posti dichiarati, quindi una
- *    finestra allargata sul server fa diventare rosso il pannello invece di fargli dichiarare
- *    un numero troppo piccolo.
+ * 🔴 **Nessun numero di posti è scritto qui.** Fino alla fase precedente le griglie dichiaravano
+ *    `posti: 3`, e quel 3 era la **seconda scrittura** di `AmpiezzaFinestra` sul server: due
+ *    costanti che nessuna build metteva a confronto, e allargando la finestra il sito avrebbe
+ *    reso quattro fotografie mentre la scheda continuava a dichiararne tre — con sicurezza e
+ *    senza alcun errore. Adesso la capacità delle griglie arriva dal piano
+ *    (`ampiezzaGriglia`), e la scrittura è una sola.
  */
 export const RUOLI_IMMAGINI: readonly RuoloImmaginePagina[] = [
   {
@@ -66,7 +72,6 @@ export const RUOLI_IMMAGINI: readonly RuoloImmaginePagina[] = [
     pagina: "home",
     etichetta: "immagine grande in cima",
     descrizione: "L'immagine grande in cima alla home, sopra la piega.",
-    posti: 1,
     singolo: true,
     ripiego: "la prima foto della galleria",
   },
@@ -75,7 +80,6 @@ export const RUOLI_IMMAGINI: readonly RuoloImmaginePagina[] = [
     pagina: "home",
     etichetta: "griglia in fondo",
     descrizione: "La griglia di fotografie in fondo alla home.",
-    posti: 3,
     singolo: false,
     ripiego: "le foto della galleria, in ordine, saltando quella scelta come immagine grande",
   },
@@ -84,7 +88,6 @@ export const RUOLI_IMMAGINI: readonly RuoloImmaginePagina[] = [
     pagina: "menu",
     etichetta: "fotografie del listino",
     descrizione: "Le fotografie in coda al listino.",
-    posti: 3,
     singolo: false,
     ripiego: "le prime foto della galleria, in ordine",
   },
@@ -93,7 +96,6 @@ export const RUOLI_IMMAGINI: readonly RuoloImmaginePagina[] = [
     pagina: "locale",
     etichetta: "ritratto verticale",
     descrizione: "Il ritratto verticale accanto alla storia del locale.",
-    posti: 1,
     singolo: true,
     ripiego: "la seconda foto della galleria — la prima, se ce n'è una sola",
   },
@@ -102,7 +104,6 @@ export const RUOLI_IMMAGINI: readonly RuoloImmaginePagina[] = [
     pagina: "locale",
     etichetta: "fotografie quadrate",
     descrizione: "Le tre fotografie quadrate sotto la storia.",
-    posti: 3,
     singolo: false,
     ripiego: "le foto della galleria dalla terza in poi, saltando quella scelta come ritratto",
   },
@@ -111,7 +112,6 @@ export const RUOLI_IMMAGINI: readonly RuoloImmaginePagina[] = [
     pagina: "aperitivo",
     etichetta: "immagine grande in cima",
     descrizione: "L'immagine grande in cima alla pagina dell'aperitivo.",
-    posti: 1,
     singolo: true,
     // 🔴 NESSUN ripiego, ed è una decisione presa e scritta, non un caso non gestito.
     //    Prima di questo change la pagina prendeva «l'ultima foto della galleria»: caricare una
@@ -170,7 +170,12 @@ export const CARTELLA_GALLERIA = "galleria";
  */
 export type ImmagineFuoriGalleria = {
   pagina: PaginaSito;
-  quante: string;
+  /**
+   * Quante al massimo. 🔴 **È un numero e non una frase** perché
+   * `sito/test/ruoli-schede.test.mjs` lo confronta con `MAX_MOMENTI` di `index.astro`: scritto
+   * dentro «fino a 3» sarebbe stato leggibile solo da un umano, cioè da nessuno.
+   */
+  massimo: number;
   descrizione: string;
   percorso: string;
   etichettaPercorso: string;
@@ -179,10 +184,12 @@ export type ImmagineFuoriGalleria = {
 export const IMMAGINI_FUORI_GALLERIA: readonly ImmagineFuoriGalleria[] = [
   {
     pagina: "home",
-    quante: "fino a 3",
-    // ⚠️ «fino a 3» perché la home mostra al massimo tre «momenti» (le prime tre categorie di
-    //    vetrina) e ognuno prende la foto del primo piatto della categoria che ne ha una: un
-    //    momento senza piatti fotografati non mostra alcuna immagine.
+    // ⚠️ Tre perché la home mostra al massimo tre «momenti» (le prime tre categorie di vetrina)
+    //    e ognuno prende la foto del primo piatto della categoria che ne ha una: un momento
+    //    senza piatti fotografati non mostra alcuna immagine. È `MAX_MOMENTI` in `index.astro`,
+    //    e resta una seconda scrittura — il gestionale non può importare dal sito — ma non è più
+    //    muta: il test dei ruoli confronta i due numeri e diventa rosso se divergono.
+    massimo: 3,
     descrizione: "una per «momento»: la fotografia del primo piatto della categoria che ne ha una",
     percorso: "/gestionale/sito/prodotti",
     etichettaPercorso: "Prodotti vetrina",
@@ -194,9 +201,31 @@ export function ruoliDellaPagina(pagina: PaginaSito): RuoloImmaginePagina[] {
   return RUOLI_IMMAGINI.filter((ruolo) => ruolo.pagina === pagina);
 }
 
-/** **Capacità**: quanti posti immagine ospita la pagina. Zero è una risposta, e va scritta. */
-export function postiDellaPagina(pagina: PaginaSito): number {
-  return ruoliDellaPagina(pagina).reduce((somma, ruolo) => somma + ruolo.posti, 0);
+/**
+ * **Capacità** di un ruolo: quanti posti, non quanti occupati.
+ *
+ * 🔴 Un ruolo singolo ne ha **uno** per definizione; una griglia ne ha quanti ne taglia la
+ *    finestra del server, che il piano dichiara. `null` finché il piano non è arrivato: la
+ *    scheda dice «in aggiornamento» invece di dichiarare un numero che non conosce ancora.
+ *    Scrivere qui un ripiego — «3, tanto è sempre 3» — reintrodurrebbe esattamente la seconda
+ *    scrittura che questa fase ha tolto.
+ */
+export function postiDelRuolo(ruolo: RuoloImmaginePagina, piano: RuoliImmaginiVetrina | null | undefined): number | null {
+  if (ruolo.singolo) {
+    return 1;
+  }
+  return piano ? piano.ampiezzaGriglia : null;
+}
+
+/**
+ * **Capacità** della pagina: quanti posti immagine ospita. Zero è una risposta, e va scritta —
+ * e si conosce **senza** il piano, perché una pagina senza ruoli ne ha zero comunque.
+ */
+export function postiDellaPagina(pagina: PaginaSito, piano: RuoliImmaginiVetrina | null | undefined): number | null {
+  return ruoliDellaPagina(pagina).reduce<number | null>((somma, ruolo) => {
+    const posti = postiDelRuolo(ruolo, piano);
+    return somma === null || posti === null ? null : somma + posti;
+  }, 0);
 }
 
 /**
