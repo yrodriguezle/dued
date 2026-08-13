@@ -41,8 +41,14 @@ public class FornitoriMutations : ObjectGraphType
             .ResolveAsync(async context =>
             {
                 FatturaAcquistoOrchestrator orchestrator = GraphQLService.GetService<FatturaAcquistoOrchestrator>(context);
+                JwtHelper jwtHelper = GraphQLService.GetService<JwtHelper>(context);
                 FatturaAcquistoInput input = context.GetArgument<FatturaAcquistoInput>("fattura");
-                return await orchestrator.MutateAsync(input);
+
+                GraphQLUserContext userContext = context.UserContext as GraphQLUserContext
+                    ?? throw new ExecutionError("Utente non autenticato");
+                int utenteId = jwtHelper.GetUserID(userContext.Principal!);
+
+                return await orchestrator.MutateAsync(input, utenteId);
             });
 
         Field<BooleanGraphType>("eliminaFatturaAcquisto")
