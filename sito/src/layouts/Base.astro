@@ -149,14 +149,24 @@ requestAnimationFrame(function () { radice.dataset.pronto = ''; });
 
 // ── Anteprima social e indirizzi canonici ────────────────────────────────────────────
 // 🔴 Assoluta in entrambi i rami: `mediaUrl` lo è per costruzione, e il ripiego locale si
-//    rende assoluto con `Astro.url`. Un `og:image` relativo non viene risolto da nessuno
-//    dei consumatori (Facebook, WhatsApp, Telegram): l'anteprima resta semplicemente vuota.
+//    rende assoluto sull'origine PUBBLICA. Un `og:image` relativo non viene risolto da
+//    nessuno dei consumatori (Facebook, WhatsApp, Telegram): l'anteprima resta vuota.
+//
+// 🔴 `Astro.site` e NON `Astro.url`, per la stessa ragione del canonico qui sotto — ed è un
+//    errore che questo file conteneva davvero: in produzione il sito gira dietro nginx, che
+//    inoltra in **HTTP**, quindi `Astro.url.protocol` è `http:` e l'anteprima social usciva
+//    come `http://duedgusto.it/og-default.jpg`.
+//
+// ⚠️ Non si vede da nessuna parte. Non è contenuto misto — un `og:image` non è una risorsa
+//    che il browser scarica — quindi nessun avviso, nessuna icona, nessun test rosso: si
+//    manifesta solo il giorno in cui qualcuno condivide il link e l'anteprima non compare,
+//    perché diversi consumatori scartano le immagini non sicure.
 const immagineOg = sito?.seo.immagineOg;
 const urlOg =
   immagineSocial ??
   (immagineOg
     ? mediaUrl(immagineOg.chiave, Math.max(...immagineOg.larghezzeDisponibili, 0) || 1200, 'jpg')
-    : new URL('/og-default.jpg', Astro.url).href);
+    : new URL('/og-default.jpg', Astro.site ?? Astro.url).href);
 
 // ⚠️ Il canonico si costruisce su `Astro.site` — l'origine PUBBLICA da `astro.config.mjs` —
 //    e non su `Astro.url`, che in produzione è l'host interno visto da dietro il proxy.

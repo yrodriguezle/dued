@@ -368,6 +368,44 @@ esito(
 await telefono.close();
 
 // ─────────────────────────────────────────────────────────────────────────────────────
+// 4-bis — LA MISURA DEL LOGO NELL'INTESTAZIONE.
+//
+// 🔴 Il mockup lo mette a **48 px di altezza**. Il tracciato è più largo che alto (viewBox
+//    577.79 × 521), quindi dimensionarlo per LARGHEZZA — che è la cosa che viene naturale
+//    scrivere — produce un'altezza molto maggiore di quella che si sta pensando: `w-36`
+//    (144 px) dà **130 px**, e un'intestazione alta il doppio del riferimento.
+//
+// ⚠️ È un difetto che nessun test di markup può vedere: le classi ci sono, il logo c'è, il
+//    contrasto è a posto. Si vede solo misurando il rettangolo dipinto — che è quello che si
+//    fa qui.
+// ─────────────────────────────────────────────────────────────────────────────────────
+console.log('\n━━ 4-bis — il logo dell\'intestazione sta nella misura del mockup ━━');
+const ALTEZZA_MOCKUP = 48;
+
+for (const [larghezza, altezza, nomeVista, massimo] of [
+  [1280, 900, 'largo', ALTEZZA_MOCKUP],
+  // Sotto `sm` il logo scende a 40 px: il massimo resta quello del mockup, non di più.
+  [390, 844, 'telefono', ALTEZZA_MOCKUP],
+]) {
+  const c = await browser.newContext({ viewport: { width: larghezza, height: altezza } });
+  const p = await c.newPage();
+  await p.goto(SITO + '/', { waitUntil: 'networkidle' });
+
+  const misura = await p.evaluate(() => {
+    const svg = document.querySelector('header a svg');
+    if (!svg) return null;
+    const r = svg.getBoundingClientRect();
+    return { altezza: Math.round(r.height), larghezza: Math.round(r.width) };
+  });
+
+  esito(
+    misura !== null && misura.altezza <= massimo,
+    `${nomeVista.padEnd(9)} logo ${misura ? `${misura.larghezza}×${misura.altezza} px` : 'NON TROVATO'} — massimo ${massimo} px (il mockup lo mette a ${ALTEZZA_MOCKUP})`
+  );
+  await c.close();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────────────
 // 5 — IL FUSO DEL VISITATORE NON CAMBIA IL TEMA.
 // ─────────────────────────────────────────────────────────────────────────────────────
 console.log('\n━━ 5 — il fuso del visitatore non decide il registro ━━');

@@ -33,11 +33,42 @@ const { forma = 'completo', classe = '', etichetta = '2 D Gusto' } = Astro.props
 const sorgente = forma === 'completo' ? completo : monogramma;
 ---
 
+{/*
+  ⚠️ **Si dimensiona per ALTEZZA, e chi lo usa passa una classe `h-*`.**
+
+  Il viewBox del marchio è 577.79 × 521, cioè più largo che alto: una larghezza di 144 px
+  (`w-36`, che sembra una misura ragionevole per un logo) produce **130 px di altezza** e
+  un'intestazione alta il doppio di quella del mockup, che il logo lo mette a **48 px**.
+  È l'errore che questo componente ha davvero contenuto, ed è invisibile leggendo il codice:
+  `w-36` non dice da nessuna parte quanto verrà alto.
+
+  Il vincolo sull'altezza è anche quello giusto in sé — in una barra di navigazione ciò che
+  conta è quanto il marchio è alto, non quanto è largo — e vale per entrambe le forme, che
+  hanno proporzioni diverse (il monogramma è più stretto).
+*/}
 <span
-  class:list={['inline-block', 'text-inchiostro', classe]}
+  class:list={['logo', 'inline-block', 'text-inchiostro', classe]}
   style="--logo-arancio: var(--c-arancio)"
   role={etichetta ? 'img' : undefined}
   aria-label={etichetta ?? undefined}
   aria-hidden={etichetta ? undefined : 'true'}
   set:html={sorgente}
 />
+
+<style>
+  /*
+    🔴 L'SGV iniettato con `set:html` NON riceve la classe di ambito di Astro — è una stringa
+       di runtime, non markup che il compilatore attraversa — quindi il selettore deve essere
+       `:global`. Senza, questa regola non si applica e il logo torna grande senza che nulla
+       lo segnali.
+
+    Il tracciato non ha `width` né `height`: ha il solo `viewBox`. Legandolo all'altezza del
+    contenitore e lasciando la larghezza automatica, il rapporto lo decide il disegno e la
+    misura la decide chi lo usa — che è l'ordine giusto.
+  */
+  .logo :global(svg) {
+    display: block;
+    height: 100%;
+    width: auto;
+  }
+</style>

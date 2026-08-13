@@ -60,7 +60,9 @@ const telefono = sito?.contatti.telefono?.replace(/[^\d+]/g, '') || null;
 <header class="border-bordo bg-sfondo sticky top-0 z-50 border-b">
   <div class="mx-auto flex max-w-6xl items-center gap-4 px-5 py-3 sm:px-8">
     <a href="/" class="shrink-0" aria-label={`${sito?.insegna ?? '2 D Gusto'} — home`}>
-      <Logo classe="w-32 sm:w-36" etichetta={null} />
+      {/* Altezza, non larghezza: il mockup mette il marchio a 48 px, e con una misura sulla
+          larghezza lo stesso logo ne veniva alto 130. Vedi il commento in `Logo.astro`. */}
+      <Logo classe="h-10 sm:h-12" etichetta={null} />
     </a>
 
     {/* Da lg in su la navigazione sta qui, come nel mockup. */}

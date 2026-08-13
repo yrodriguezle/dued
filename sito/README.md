@@ -82,6 +82,31 @@ npm run dev          # backend :4000, app di cassa :4001, sito :4321
 npm run dev:sito     # solo il sito
 ```
 
+### Guardare il sito **come esce in produzione**, senza deployare
+
+```bash
+npm run anteprima          # alza tutto e resta acceso
+npm run anteprima:prove    # alza tutto, esegue le verifiche di browser, scende
+```
+
+Costruisce il backend **fuori da `bin/`** (che quello di sviluppo tiene bloccato), lo accende
+su una porta libera, **ricostruisce il sito contro quella porta** e serve il bundle. Poi
+stampa gli indirizzi.
+
+🔴 **Non è la stessa cosa di `npm run dev`**, e la differenza è quella che conta quando si
+verifica: `astro:env` **inlina le variabili nel bundle**, quindi `API_INTERNA_URL` è una
+variabile di *build* — un dev server la rilegge, un bundle no. Cambiano anche gli hash dei
+caratteri e del CSS (e con essi la corrispondenza del `<link rel=preload>`) e gli header di
+`Cache-Control`. I due falliscono in modi diversi, e in produzione va il secondo.
+
+⚠️ Usa una porta **sua**, non `:4000`: il backend di sviluppo, se gira da prima di un cambio
+del DTO pubblico, fa nascere il sito **degradato** e si finisce a misurare una pagina che non
+è quella vera.
+
+⚠️ E libera le porte per PID prima di partire, perché **`pkill` non ferma i processi Node e
+dotnet su Windows**: un server rimasto acceso continua a rispondere `200` servendo la build
+vecchia, e il sintomo è che le correzioni «non hanno effetto».
+
 ⚠️ **La prima schermata del sito può essere degradata, ed è atteso.** I tre processi partono
 insieme, quindi il sito fa la sua prima lettura mentre il backend sta ancora salendo: la home
 mostra marca e slogan con l'avviso «alcune informazioni non sono raggiungibili», e `/menu`
