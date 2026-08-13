@@ -47,6 +47,22 @@ services:
       SEED_REGISTRI_STORICI: "${SEED_REGISTRI_STORICI:-}"
       # Completa anche i giorni rimasti aperti e senza movimenti, invece di saltarli
       SEED_REGISTRI_STORICI_SOSTITUISCI_INCOMPLETI: "${SEED_REGISTRI_STORICI_SOSTITUISCI_INCOMPLETI:-}"
+      # ── Listino 2026 ────────────────────────────────────────────────────────────────
+      # 🔴 Armati in PERMANENZA (`1`), al contrario di SEED_REGISTRI_STORICI qui sopra che
+      #    è una-tantum. La differenza non è una preferenza: questi due sono idempotenti e
+      #    non distruttivi, quindi dopo la prima esecuzione sono un'operazione nulla.
+      #      · SeedProdottiListino  crea solo i Codice ancora assenti in anagrafica;
+      #      · SeedVetrinaListino   tocca solo i «mai curati» (CategoriaVetrina nulla E non
+      #        pubblicati), quindi non annulla le scelte editoriali dell'amministratore.
+      #    Lasciandoli accesi, un database ripristinato o ricreato torna da solo ad avere il
+      #    listino, invece di richiedere che qualcuno si ricordi di armare una variabile.
+      #
+      # ⚠️ Senza queste due righe i seeder NON girano affatto in produzione, e lo fanno in
+      #    silenzio: il compose passa al container una lista FISSA di variabili, quindi
+      #    scriverle solo nel .env del server non le fa arrivare. Vale `dryrun` per vedere
+      #    nei log cosa farebbero senza scrivere nulla.
+      SEED_LISTINO_2026: "${SEED_LISTINO_2026:-1}"
+      SEED_VETRINA_LISTINO: "${SEED_VETRINA_LISTINO:-1}"
     volumes:
       # I media vivono sull'host e sopravvivono a ricostruzioni e deploy del container.
       # La directory è creata e assegnata a 10001:10001 dagli script di deploy.

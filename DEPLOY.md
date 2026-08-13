@@ -333,6 +333,39 @@ Definite in `/srv/duedgusto/.env`:
 | `MYSQL_DATABASE` | No | Nome database (default: `duedgusto`) |
 | `JWT_SECRET_KEY` | Si | Chiave firma JWT (min 64 char, generare con `openssl rand -base64 64`) |
 | `SUPERADMIN_PASSWORD` | Si | Password superadmin al primo avvio |
+| `SEED_LISTINO_2026` | No | Listino di cassa. Default `1` dal compose: **non serve scriverla**. Vale `dryrun` per una prova a vuoto |
+| `SEED_VETRINA_LISTINO` | No | Pubblicazione del listino sul sito. Default `1`, stessa logica |
+
+> 🔴 **Il compose passa al container una lista FISSA di variabili.** Una variabile scritta
+> nel `.env` del server ma **assente da `docker-compose.yml` non arriva al backend**, e non
+> lo segnala nessuno: il codice che la legge trova `null` e si comporta come se fosse spenta.
+> È il motivo per cui i due seeder del listino sono rimasti inerti in produzione fino al
+> 13 agosto 2026, con il catalogo di cassa vuoto e nessun errore da nessuna parte.
+> Ogni variabile nuova va aggiunta **in entrambi i posti**.
+
+### Il listino di cassa
+
+I due seeder sono **armati in permanenza** nel compose, e va bene così: sono idempotenti.
+`SeedProdottiListino` crea solo i codici ancora assenti in anagrafica; `SeedVetrinaListino`
+tocca solo i prodotti *mai curati* (categoria di vetrina nulla **e** non pubblicati), quindi
+spubblicare un piatto dal pannello resta una decisione definitiva e non viene annullata al
+riavvio successivo. Dopo la prima esecuzione entrambi sono un'operazione nulla.
+
+Per vedere cosa farebbero senza scrivere niente, nel `.env` del server:
+
+```bash
+SEED_LISTINO_2026=dryrun
+SEED_VETRINA_LISTINO=dryrun
+docker compose up -d backend && docker compose logs -f backend | grep -i listino
+```
+
+⚠️ **I loro messaggi sono a livello `Information`**, mentre in Production il livello di
+default è `Warning`: senza le due categorie dichiarate in `backend/appsettings.Production.json`
+girerebbero **muti**, e non avresti modo di sapere se hanno funzionato. Le due chiavi portano
+il **nome qualificato** (`duedgusto.SeedData.SeedProdottiListino`) e non quello nudo come le
+voci più vecchie lì accanto: quei seeder creano il logger con `nameof(...)`, questi con
+`typeof(...)`, e le categorie si filtrano per prefisso del nome completo. Una chiave col nome
+nudo verrebbe accettata dal file e non filtrerebbe nulla.
 
 ---
 
