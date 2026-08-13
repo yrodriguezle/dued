@@ -45,9 +45,13 @@
 5. **L'etichetta della scheda resta «Menu»**, identica a `rotte.ts`, e si disambigua
    dall'anagrafica menu del gestionale con l'annidamento e l'icona `UtensilsCrossed`
    ([D12](./design.md), Open Question 1). Rispecchiare il sito è il punto del change.
-6. **Il ripiego dell'aperitivo resta `galleria.at(-1)`** (Open Question 4). È la regola peggiore
+6. 🔴 ~~**Il ripiego dell'aperitivo resta `galleria.at(-1)`** (Open Question 4). È la regola peggiore
    delle sei, e si tiene perché cambiarla violerebbe *«il sito non cambia comportamento a contenuti
-   invariati»*. Il rimedio non è cambiare il ripiego: è **valorizzare lo slot**.
+   invariati»*. Il rimedio non è cambiare il ripiego: è **valorizzare lo slot**.~~
+   **SUPERATA da una decisione dell'utente, presa dopo la stesura del design e applicata in Fase 2.**
+   L'eroe di `/aperitivo` **non ha ripiego**: a slot vuoto la pagina esce **senza** immagine di
+   testata. La motivazione, le conseguenze sulle Fasi 4 e 6 e il perché la differenza visibile sia
+   accettata stanno nel riquadro del **task 2.2**, che è l'unico posto in cui vanno lette.
 7. **Nessun backfill degli slot** ([D5](./design.md) ③). Nascono `null` e restano `null` finché
    qualcuno non sceglie. Il ripiego è la **semantica permanente** dello slot vuoto, non un ponte.
 8. **Titolo e descrizione SEO per pagina restano fuori scope** ([D10](./design.md), Open Question 2):
@@ -340,7 +344,7 @@ backend non ne ha copia — motivo per cui *«quante immagini ospita questa pagi
 nessuna parte, nemmeno per chi legge il codice. In questa fase la funzione esiste, è provata, e
 **nessuno la chiama ancora**: lo schema GraphQL e il contratto pubblico restano identici.
 
-- [ ] 2.1 **`backend/Services/Vetrina/RuoliImmaginiVetrina.cs`** — classe statica, **logica pura,
+- [x] 2.1 **`backend/Services/Vetrina/RuoliImmaginiVetrina.cs`** — classe statica, **logica pura,
   nessun `DbContext`**, stessa collocazione e stessa ragione di `MenuLimiti` e `RegoleVetrina`.
   Espone `PianoImmagini Risolvi(int? eroeHomeId, int? ritrattoLocaleId, int? eroeAperitivoId,
   IReadOnlyList<MediaAsset> galleria)` e i record `PianoImmagini` / `enum OrigineRuolo { Slot,
@@ -351,50 +355,84 @@ nessuna parte, nemmeno per chi legge il codice. In questa fase la funzione esist
   *Verifica*: `dotnet build backend/duedgusto.csproj -o /tmp/dued-build` esce 0; nessun file la
   chiama ancora.
 
-- [ ] 2.2 🔴 **Le sei regole del piano, e il ripiego per ciascun ruolo singolo** — la tabella di
+- [x] 2.2 🔴 **Le sei regole del piano, e il ripiego per ciascun ruolo singolo** — la tabella di
   [D5](./design.md): `EroeHome` = slot, ripiego `galleria[0]`; `GrigliaHome` = finestra `[1..4)`;
   `FotoMenu` = `[0..3)`; `RitrattoLocale` = slot, ripiego `galleria[1] ?? galleria[0]`;
-  `QuadrateLocale` = `[2..5)`; `EroeAperitivo` = slot, ripiego `galleria.at(-1)`.
+  `QuadrateLocale` = `[2..5)`; `EroeAperitivo` = slot, ~~ripiego `galleria.at(-1)`~~ **nessun
+  ripiego** (vedi il riquadro sotto).
   🔴 Il commento deve dire che **a slot tutti vuoti il piano riproduce, immagine per immagine, ciò
-  che il sito rende oggi**, e che il ripiego dell'aperitivo è `.at(-1)` **deliberatamente** — è la
-  regola peggiore delle sei ed è tenuta perché cambiarla cambierebbe il sito (risoluzione 6).
+  che il sito rende oggi**, ~~e che il ripiego dell'aperitivo è `.at(-1)` **deliberatamente** — è la
+  regola peggiore delle sei ed è tenuta perché cambiarla cambierebbe il sito (risoluzione 6)~~.
   *Verifica*: `dotnet build` esce 0; `origine` vale `Slot` se e solo se lo slot è valorizzato **e**
   l'immagine è nella galleria passata.
 
-- [ ] 2.3 🔴 **Il test portante: a slot vuoti il piano è il sito di oggi** — crea
+  > 🔴 **DECISIONE DELL'UTENTE, successiva alla stesura del design — ribalta la risoluzione 6.**
+  > L'eroe di `/aperitivo` **non ha ripiego**: con lo slot vuoto la pagina esce **senza** immagine
+  > di testata, invece di prendere l'ultima foto della galleria. È l'unico punto in cui il change
+  > **rompe deliberatamente** il principio *«a slot vuoti il sito rende immagine per immagine ciò
+  > che rende oggi»*, e la differenza è **visibile**: finché nessuno valorizza lo slot,
+  > `/aperitivo` perde l'immagine grande che mostra adesso.
+  > **Perché.** `at(-1)` è la regola peggiore delle sei: fa sì che caricare una foto *qualsiasi*,
+  > anche per un'altra pagina, sposti di nascosto l'eroe dell'aperitivo. Il ripiego non è un ponte
+  > verso una migrazione ma la **semantica permanente** dello slot vuoto ([D5](./design.md) ③,
+  > nessun backfill), quindi tenerlo avrebbe voluto dire tenere quel difetto per sempre. Uscire
+  > senza immagine è invece la regola che governa già tutto il resto del sito — *una sezione senza
+  > il suo dato non si rende*.
+  > **Cosa ne consegue altrove**, da onorare nelle fasi successive:
+  > – la **risoluzione 6** del preambolo di questo file è **superata**;
+  > – il task **2.6** non può mutare un ripiego che non esiste: è stato riscritto (vedi lì);
+  > – il task **4.6** (`immagini-ruoli.test.mjs`) e il task **4.8** (confronto con la cattura del
+  >   «prima») **non possono più pretendere un `diff` vuoto su `/aperitivo`**: la cattura dello
+  >   stato *pubblicato* mostra `B B` su quella pagina e dopo il change mostrerà **nessuna
+  >   immagine**. Il confronto resta obbligatorio per le altre quattro pagine e per lo stato
+  >   *svuotato* (`/aperitivo` è già 404 lì); su `/aperitivo` pubblicato l'attesa va **riscritta**,
+  >   non allentata.
+  > – il testo della scheda Aperitivo (Fase 6) non dirà più *«usa l'ultima della galleria, quindi
+  >   cambia ogni volta che ne carichi una»* ma *«nessuna immagine scelta: la pagina esce senza
+  >   immagine di testata»*.
+
+- [x] 2.3 🔴 **Il test portante: a slot vuoti il piano è il sito di oggi** — crea
   `backend/DuedGusto.Tests/Unit/Services/RuoliImmaginiVetrinaTests.cs` con una matrice su gallerie
   da **0, 1, 2, 3, 5, 6** immagini, slot tutti vuoti, e l'asserzione chiave per chiave contro gli
-  indici letterali di oggi (`[0]`; `[1..4)`; `[0..3)`; `[1] ?? [0]`; `[2..5)`; `.at(-1)`).
+  indici letterali di oggi (`[0]`; `[1..4)`; `[0..3)`; `[1] ?? [0]`; `[2..5)`; ~~`.at(-1)`~~
+  **`null`**, per la decisione annotata al task 2.2).
   🔴 **I casi 0, 1 e 2 non sono casi limite teorici e vanno scritti a uno a uno**: oggi nessun test
   copre l'indicizzazione sotto le tre immagini, e in produzione la galleria ne ha **una sola**
-  (task 0.3). Con una foto, la stessa immagine è contemporaneamente `EroeHome`, `RitrattoLocale` ed
-  `EroeAperitivo`, `FotoMenu` ha un elemento e le due griglie sono **vuote**: il test lo deve
-  affermare, non subire.
+  (task 0.3). Con una foto, la stessa immagine è contemporaneamente `EroeHome` e `RitrattoLocale`
+  (~~ed `EroeAperitivo`~~ — che ora resta **scoperto**, task 2.2), `FotoMenu` ha un elemento e le
+  due griglie sono **vuote**: il test lo deve affermare, non subire.
   *Verifica* (spec `media-assets` → *Primo avvio dopo la migrazione, slot tutti vuoti*):
   `dotnet test … --filter "RuoliImmagini"` passa; il caso a 1 immagine ha un `Assert` per ciascuno
   dei sei ruoli, non un confronto d'insieme.
 
-- [ ] 2.4 **La finestra salta i ruoli singoli e scorre** — con `EroeHome` valorizzato sulla 3ª
+- [x] 2.4 **La finestra salta i ruoli singoli e scorre** — con `EroeHome` valorizzato sulla 3ª
   immagine di una galleria da 6, `GrigliaHome` **non la contiene** e ha comunque 3 elementi.
   ⚠️ E il caso complementare: a slot vuoti la regola **non ha effetto** (l'eroe è `[0]`, la griglia
   parte da `[1]`), quindi non altera il comportamento attuale.
   *Verifica* ([D5](./design.md) ⚠️): entrambi i casi sono test distinti; il secondo è ciò che
   dimostra che la regola nuova non ha cambiato nulla oggi.
 
-- [ ] 2.5 **`origine` distingue la scelta dalla posizione** — slot valorizzato → `Slot`; slot vuoto
+- [x] 2.5 **`origine` distingue la scelta dalla posizione** — slot valorizzato → `Slot`; slot vuoto
   → `Posizione`; slot che punta a un'immagine **non presente nella galleria** (non pubblicata o in
   un'altra cartella) → `Posizione`, cioè si ricade sul ripiego.
   *Verifica* (spec `media-assets` → *Un'immagine non pubblicata non ha ruoli*, *Un'immagine fuori
   dalla galleria non ha ruoli di pagina*): il piano non attribuisce mai un ruolo a un'immagine che
   la rotta pubblica non selezionerebbe.
 
-- [ ] 2.6 🔴 **Verifica per mutazione del test portante** — cambia il ripiego dell'aperitivo da
+- [x] 2.6 🔴 **Verifica per mutazione del test portante** — ~~cambia il ripiego dell'aperitivo da
   `.at(-1)` a `[0]`, **esegui i test e vedi fallire i casi con più di una immagine** mentre quelli
-  con 0 e 1 **restano verdi** (con una foto sola i due ripieghi coincidono), poi ripristina.
+  con 0 e 1 **restano verdi** (con una foto sola i due ripieghi coincidono), poi ripristina.~~
+  ⚠️ **Riscritto**: dopo la decisione del task 2.2 l'aperitivo **non ha un ripiego da mutare**. Al
+  suo posto, **tre** mutazioni che colpiscono lo stesso bersaglio — che il test portante non stia
+  pinnando se stesso — e che coprono anche il ripiego con la forma d'esito che il task descriveva:
+  **A** reintroduce `at(-1)` sull'aperitivo (deve far cadere i casi con ≥ 1 immagine); **B** riduce
+  il ripiego del ritratto da `[1] ?? [0]` a `[0]` (deve far cadere i casi con ≥ 2 immagini, lasciando
+  verdi 0 e 1 — è **letteralmente** la forma prevista qui, applicata al ruolo che un ripiego ce
+  l'ha); **C** toglie il salto della finestra (deve far cadere **solo** i due test del task 2.4).
   *Verifica*: l'esito è annotato con i test rossi e i verdi. Se restassero verdi tutti, il test
   starebbe pinnando se stesso.
 
-- [ ] 2.7 **Nessuno chiama ancora la funzione** — controllo esplicito di fine fase.
+- [x] 2.7 **Nessuno chiama ancora la funzione** — controllo esplicito di fine fase.
   *Verifica*: `grep -rn "RuoliImmaginiVetrina" backend/ --include=*.cs` trova la definizione e il
   solo file di test; `git diff --stat backend/Controllers/ backend/GraphQL/` è **vuoto**.
 
@@ -402,6 +440,62 @@ nessuna parte, nemmeno per chi legge il codice. In questa fase la funzione esist
 sotto le tre foto, **zero superficie nuova**, schema GraphQL e contratto pubblico invariati.
 
 **Rollback.** Revert puro: nessun chiamante, nessun dato, nessuno schema.
+
+### ✅ Esito misurato — Fase 2 (2026-08-13)
+
+**Due file nuovi, nessun file esistente modificato.**
+`backend/Services/Vetrina/RuoliImmaginiVetrina.cs` (definizione) e
+`backend/DuedGusto.Tests/Unit/Services/RuoliImmaginiVetrinaTests.cs` (test). `git status` non elenca
+alcun file modificato: la fase è **solo additiva**.
+
+| Comando | Esito | Delta sulla baseline 0.4 |
+|---|---|---|
+| `dotnet build backend/duedgusto.csproj` | **0 errori, 0 avvisi** | — |
+| `dotnet test` (suite intera) | **726 / 726** | **+17** — i soli test nuovi |
+| `dotnet test --filter "RuoliImmagini"` | **17 / 17** | — |
+
+**2.1 — la firma.** `Risolvi(int? eroeHomeId, int? ritrattoLocaleId, int? eroeAperitivoId,
+IReadOnlyList<MediaAsset> galleria)`, logica pura senza `DbContext`, con `PianoImmagini` e
+`OrigineRuolo` nello stesso file. Prende i **tre identificativi e non l'entità** perché le colonne
+nascono alla Fase 3: l'overload di comodo del task 3.3 delegherà a questa.
+
+**2.2 — 🔴 la divergenza, e dov'è annotata.** Il ripiego dell'aperitivo è stato **rimosso** per
+decisione dell'utente (riquadro nel task 2.2). L'eccezione è scritta **tre volte, in prosa**: nella
+docstring di classe di `RuoliImmaginiVetrina`, nella docstring del parametro `EroeAperitivo` di
+`PianoImmagini`, e nella docstring di classe del file di test. Non è una riga di codice silenziosa.
+
+**2.3 — i tre casi reali, uno a uno.** `Risolvi_ConGalleriaVuota_…`,
+`Risolvi_ConUnaSolaImmagine_…` (lo stato della **produzione**) e `Risolvi_ConDueImmagini_…` (lo
+stato dello **sviluppo locale**) hanno un'asserzione per ciascuno dei sei ruoli, con i valori attesi
+scritti a mano. La `[Theory]` su 0-1-2-3-5-6 confronta invece contro l'**aritmetica dei `.astro`
+riscritta accanto a ogni riga** (`galleria.Skip(1).Take(3)` per `index.astro:86`, …), quindi è
+un'autorità esterna alla funzione e non un suo riflesso.
+
+**2.4 — il salto, e il caso complementare.** Con `EroeHome` sulla 3ª di 6, `GrigliaHome` vale
+`[2ª, 4ª, 5ª]`: non la contiene e ha **comunque 3 elementi**. Stesso test per `RitrattoLocale` sulla
+4ª e le quadrate. Il complementare (`…_IlSaltoNonHaAlcunEffettoSulleFinestre`) è un test **distinto**
+ed è quello che dimostra che la regola nuova non cambia nulla oggi. Aggiunto un terzo caso: la
+finestra di `/menu` **non** salta gli slot delle altre pagine — il salto è per pagina, non globale.
+
+#### 🔴 Le tre verifiche per mutazione — eseguite, non dedotte
+
+| # | Mutazione | Rossi | Verdi |
+|---|---|---|---|
+| **A** | ripiego `at(-1)` **reintrodotto** sull'aperitivo | **8**: la `[Theory]` su 1, 2, 3, 5, 6 + `ConUnaSolaImmagine` + `ConDueImmagini` + `ConSlotFuoriDallaGalleria`. Messaggio: `Expected piano.EroeAperitivo to be <null>, but found duedgusto.Models.MediaAsset { … Chiave = "2026/08/foto-1" … }` | **9**, fra cui `[Theory](0)` e `ConGalleriaVuota`: a galleria vuota `at(-1)` è `null` comunque |
+| **B** | ripiego del ritratto ridotto da `[1] ?? [0]` a `[0]` | **7**: la `[Theory]` su 2, 3, 5, 6 + `ConDueImmagini` + `ConSlotFuoriDallaGalleria` + `IlSaltoNonHaAlcunEffetto` | **10**: `[Theory]` su **0 e 1**, `ConGalleriaVuota`, `ConUnaSolaImmagine` — con una foto sola i due ripieghi coincidono, esattamente la forma prevista dal task |
+| **C** | salto della finestra **rimosso** | **2**, e **solo** quelli: `ConEroeHomeDentroLaFinestra` e `ConRitrattoLocaleDentroLaFinestra` | **15**, tutta la matrice compresa |
+
+🔴 **La lettura che vale più del rosso.** La mutazione **C** lascia verdi tutti e sei i casi della
+matrice: è la **prova diretta**, e non l'argomento a parole di [D5](./design.md), che il salto della
+finestra **non altera il comportamento attuale** — se lo alterasse, togliendolo la matrice sarebbe
+diventata rossa. È l'unica cosa che il task 2.4 chiedeva di dimostrare e che una lettura del codice
+non poteva stabilire.
+
+Dopo ogni mutazione il ripristino è stato verificato: **17 / 17** sul file, suite intera **726 / 726**.
+
+**2.7 — nessun chiamante.** `grep -rl "RuoliImmaginiVetrina" backend/ --include=*.cs` restituisce
+**due** file, la definizione e il test. `git diff --stat backend/Controllers/ backend/GraphQL/` è
+**vuoto**: schema GraphQL e contratto pubblico sono identici byte per byte.
 
 ---
 
@@ -571,8 +665,12 @@ davanti a un backend che non li manda **degrada** invece di rendere le immagini.
 - [ ] 4.6 🔴 **`sito/test/immagini-ruoli.test.mjs`** — con il sito di prova e **slot vuoti**, le
   quattro pagine rendono **le stesse chiavi immagine** di prima del change, nelle stesse posizioni.
   🔴 Tre dimensioni obbligatorie: la galleria di prova, **una sola immagine** (lo stato reale della
-  produzione, task 0.3) e **zero immagini**. Con una foto sola la stessa chiave compare su home,
-  locale e aperitivo, e le griglie sono vuote: il test lo afferma.
+  produzione, task 0.3) e **zero immagini**. Con una foto sola la stessa chiave compare su home
+  e locale, e le griglie sono vuote: il test lo afferma.
+  ⚠️ **`/aperitivo` è l'eccezione, ed è voluta** (riquadro del task 2.2): a slot vuoto quella pagina
+  rende **nessuna** immagine di testata, dove prima rendeva l'ultima della galleria. Il test deve
+  affermare **l'assenza**, non ricopiare il «prima»: quattro pagine su cinque provano la non
+  regressione, la quinta prova la differenza decisa.
   *Verifica* (spec `sito-pubblico` → *Le cinque pagine rispondono come prima*): `cd sito && npm test`
   passa; il file usa `_sito-di-prova.mjs` come gli altri, non una nuova impalcatura.
 
@@ -587,12 +685,17 @@ davanti a un backend che non li manda **degrada** invece di rendere le immagini.
   *Verifica* (spec `sito-pubblico` → *Navigazione e sitemap invariate*, *Il 404 condizionato si
   comporta come prima, in entrambi gli stati*): il `diff` fra le dieci catture prima/dopo è
   **vuoto**. Non una lettura a occhio: un confronto di file.
+  ⚠️ **Una sola cella attesa diversa, e va scritta prima di rieseguire** (riquadro del task 2.2):
+  `/aperitivo` nello stato **pubblicato** passa da `B B` a **nessuna immagine**. Le altre nove
+  catture su dieci devono dare `diff` vuoto — compreso `/aperitivo` nello stato *svuotato*, che è
+  già 404. 🔴 L'attesa va **riscritta**, non allentata: un confronto reso permissivo su una pagina
+  smetterebbe di sorvegliare anche tutto il resto di quella pagina.
 
 - [ ] 4.9 **Prova manuale della rotta** — su una seconda istanza, `curl -k
   https://localhost:4012/api/public/galleria`.
   *Verifica*: la risposta contiene `immagini` **e** `ruoli`; con la galleria reale a una foto,
-  `eroeHome`, `ritrattoLocale` ed `eroeAperitivo` sono la **stessa** chiave e le tre griglie sono
-  liste vuote o di un elemento, coerenti con il task 2.3.
+  `eroeHome` e `ritrattoLocale` sono la **stessa** chiave, `eroeAperitivo` è **`null`** (task 2.2)
+  e le tre griglie sono liste vuote o di un elemento, coerenti con il task 2.3.
 
 **Uscita di fase.** Il sito legge i ruoli per nome e rende **le stesse immagini** di prima, provato
 per confronto e non per impressione. La regola vive in un posto solo. Nessuna scrittura è ancora
@@ -1060,6 +1163,11 @@ spec potrebbero mancare.
   `.at(-1)` (risoluzione 6) o diventa `galleria[0]` accettando una differenza visibile al primo
   deploy; ③ titolo e descrizione SEO per pagina restano fuori scope (risoluzione 8).
   *Verifica*: le tre risposte sono scritte. ② **è una decisione dell'utente, non del design**.
+  ✅ **① e ② sono già state risposte dall'utente durante la Fase 2**, e non vanno rimesse in
+  discussione qui: ① l'etichetta **resta «Menu»** (risoluzione 5 confermata); ② 🔴 **nessuna delle
+  due uscite proposte**: l'aperitivo **non ha ripiego** e a slot vuoto la pagina esce senza immagine
+  di testata — la differenza visibile al primo deploy è **accettata consapevolmente** (riquadro del
+  task 2.2). Resta aperta la sola ③.
 
 - [ ] 8.6 **Il piano di rollback riletto sul codice che esiste davvero** — sette punti, sette
   rollback, e l'unico punto di non ritorno (slot valorizzati, Fase 4) annotato **dove chi fa il
