@@ -353,6 +353,9 @@ using (IServiceScope scope = app.Services.CreateScope())
     if (seedOnStartup)
     {
         await SeedMenus.Initialize(services);
+        // Dopo SeedMenus: la voce si aggancia al menu padre "Cassa" che quel seed crea, e
+        // senza padre non fa nulla — è idempotente e riprova al prossimo avvio.
+        await SeedMenusProdotti.Initialize(services);
         // Dopo SeedMenus: la sezione "Sito" riusa i ruoli amministrativi che quel seed
         // ha già creato/aggiornato, e si aggancia in coda alle voci esistenti (Posizione 9).
         await SeedMenusSito.Initialize(services);
