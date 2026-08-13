@@ -512,14 +512,14 @@ messaggio d'errore è incomprensibile».
 **Task di migrazione (3.4, 3.5, 3.6) separati da quelli di codice applicativo**, come da
 `openspec/config.yaml` → `rules.tasks`.
 
-- [ ] 3.1 **`backend/Models/ImpostazioniVetrina.cs` — i tre slot** — `ImmagineEroeHomeId` +
+- [x] 3.1 **`backend/Models/ImpostazioniVetrina.cs` — i tre slot** — `ImmagineEroeHomeId` +
   `ImmagineEroeHome`, `ImmagineRitrattoLocaleId` + `ImmagineRitrattoLocale`,
   `ImmagineEroeAperitivoId` + `ImmagineEroeAperitivo`, sul modello esatto di `ImmagineOgId`.
   Ogni docstring dice cosa succede a lasciarlo vuoto, con le stesse parole della scheda: *«Vuota: il
   sito usa la prima della galleria, che è il comportamento di oggi»*.
   *Verifica*: `dotnet build` esce 0; nessuna collezione inversa aggiunta a `MediaAsset`.
 
-- [ ] 3.2 🔴 **`backend/DataAccess/AppDbContext.cs` — tre relazioni senza navigazione inversa** —
+- [x] 3.2 🔴 **`backend/DataAccess/AppDbContext.cs` — tre relazioni senza navigazione inversa** —
   `HasOne(x => x.ImmagineEroeHome).WithMany().HasForeignKey(x => x.ImmagineEroeHomeId)
   .OnDelete(DeleteBehavior.Restrict)`, e idem per le altre due, dentro il blocco
   `ImpostazioniVetrina` esistente.
@@ -529,14 +529,14 @@ messaggio d'errore è incomprensibile».
   *Verifica* (spec `media-assets` → *Nessuna colonna ombra sull'entità dei media*): `dotnet build`
   esce 0.
 
-- [ ] 3.3 **L'overload di comodo di `Risolvi`** — `Risolvi(ImpostazioniVetrina impostazioni,
+- [x] 3.3 **L'overload di comodo di `Risolvi`** — `Risolvi(ImpostazioniVetrina impostazioni,
   IReadOnlyList<MediaAsset> galleria)` che **delega** alla firma a tre identificativi del task 2.1.
   🔴 Mai una seconda implementazione: è la firma che [D5](./design.md) dichiara sede **unica** della
   regola.
   *Verifica*: il corpo è una riga sola; un test verifica che le due forme **coincidono** su tutta la
   matrice del task 2.3.
 
-- [ ] 3.4 🔴 **Scaffolding della migrazione `SlotImmaginiPagineVetrina`, a backend spento** — la
+- [x] 3.4 🔴 **Scaffolding della migrazione `SlotImmaginiPagineVetrina`, a backend spento** — la
   procedura è scritta per intero in [design.md §D8](./design.md) e **non si duplica qui**: si
   eseguono quei tre passi, nell'ordine, con i vincoli operativi di questo file.
   🔴 In questo repository `dotnet ef migrations add` **non gira con il backend acceso** — lo
@@ -544,7 +544,7 @@ messaggio d'errore è incomprensibile».
   (`Ctrl-C` sul `dotnet run`), e ricorda `EF_MIGRATIONS=1` e `OutputPath`.
   *Verifica*: il file generato esiste e `dotnet build` era verde **prima** della generazione.
 
-- [ ] 3.5 **Ispezione dello script prima di fidarsi** — `EF_MIGRATIONS=1 dotnet ef migrations script`.
+- [x] 3.5 **Ispezione dello script prima di fidarsi** — `EF_MIGRATIONS=1 dotnet ef migrations script`.
   Si accetta **solo**: `AddColumn<int>(…, nullable: true)` × 3 su `ImpostazioniVetrina`,
   `CreateIndex` × 3, `AddForeignKey(… onDelete: ReferentialAction.Restrict)` × 3.
   🔴 **Nessun `AlterTable` e nessun `AddColumn` su `MediaAssets`.** Se compaiono, la causa è quasi
@@ -554,13 +554,13 @@ messaggio d'errore è incomprensibile».
   `grep -cE "AlterTable|AlterColumn|DropColumn" <script>` vale **0**, e nessuna riga nomina
   `MediaAssets` se non come tabella **referenziata** dalle tre FK.
 
-- [ ] 3.6 **Applicazione su un database con dati reali** — riavvia il backend: `MigrateAsync` la
+- [x] 3.6 **Applicazione su un database con dati reali** — riavvia il backend: `MigrateAsync` la
   applica all'avvio ([Program.cs](../../../backend/Program.cs)), niente `database update` a mano.
   *Verifica* (spec `media-assets` → *Nessuna colonna ombra sull'entità dei media*): `SHOW CREATE
   TABLE MediaAssets` **identico byte per byte** a prima; `SELECT COUNT(*)` su `MediaAssets`,
   `Prodotti` e `ImpostazioniVetrina` invariati; le tre colonne nuove esistono e valgono `NULL`.
 
-- [ ] 3.7 🔴 **`EliminaMediaAssetAsync`: da due referenti a cinque** — in
+- [x] 3.7 🔴 **`EliminaMediaAssetAsync`: da due referenti a cinque** — in
   [`VetrinaMutations.cs:374-419`](../../../backend/GraphQL/Vetrina/VetrinaMutations.cs) i tre slot
   entrano nella **stessa** verifica, **prima** di `storage.EliminaAsync(asset.Chiave)`, con la query
   singola di [D7](./design.md) che restituisce il **ruolo occupato** già in prosa.
@@ -571,24 +571,24 @@ messaggio d'errore è incomprensibile».
   *Verifica*: `dotnet build` esce 0; il messaggio d'errore nomina il ruolo in italiano
   (*«l'immagine grande della pagina Home»*), non il nome della colonna.
 
-- [ ] 3.8 🔴 **Test dell'eliminazione: una `[Theory]` sui quattro slot, e l'asserzione che conta è
+- [x] 3.8 🔴 **Test dell'eliminazione: una `[Theory]` sui quattro slot, e l'asserzione che conta è
   la seconda** — in `backend/DuedGusto.Tests/Integration/GraphQL/VetrinaMediaTests.cs`: per ciascuno
   dei quattro slot, il rifiuto **nomina il ruolo** *e* **i file sono ancora sul filesystem**.
   🔴 Una `[Theory]` parametrizzata sui quattro, **non** il test esistente copiato quattro volte.
   *Verifica* (spec `media-assets`; [D7](./design.md)): `dotnet test --filter "EliminaMediaAsset"`
   passa; ogni caso ha **due** `Assert`, e il secondo è sui file.
 
-- [ ] 3.9 🔴 **Verifica per mutazione dell'ordine** — sposta la lettura dei cinque referenti
+- [x] 3.9 🔴 **Verifica per mutazione dell'ordine** — sposta la lettura dei cinque referenti
   **dopo** `storage.EliminaAsync`, esegui i test e osserva che **il test sul rifiuto resta verde**
   mentre **quello sui file diventa rosso**; poi ripristina.
   *Verifica*: l'esito è annotato con i due nomi. È la prova diretta che un test scritto solo sul
   rifiuto non avrebbe protetto niente — e la ragione per cui il task 3.8 ne pretende due.
 
-- [ ] 3.10 **`ImpostazioniVetrinaType` espone i tre slot in lettura** — il tipo di **output** resta
+- [x] 3.10 **`ImpostazioniVetrinaType` espone i tre slot in lettura** — il tipo di **output** resta
   unico (la divisione è nella scrittura, non nella lettura).
   *Verifica*: l'introspezione mostra i tre campi nuovi; nessun tipo di output nuovo è stato creato.
 
-- [ ] 3.11 🔴 **`PROPRIETA_CAMPI` e i tipi TS guadagnano i tre slot: la partizione passa da 30 a 33** —
+- [x] 3.11 🔴 **`PROPRIETA_CAMPI` e i tipi TS guadagnano i tre slot: la partizione passa da 30 a 33** —
   `immagineEroeHomeId` → `home`, `immagineRitrattoLocaleId` → `locale`, `immagineEroeAperitivoId` →
   `aperitivo`, nei tre tipi input di `@types/vetrina.d.ts` e nella mappa di
   `proprietaCampiVetrina.tsx`.
@@ -597,7 +597,7 @@ messaggio d'errore è incomprensibile».
   *Verifica*: `npm run ts:check` esce 0; `Object.keys(PROPRIETA_CAMPI).length === 33`; `npm run test`
   in `duedgusto/` verde.
 
-- [ ] 3.12 **Nessuno scrive ancora gli slot** — controllo esplicito di fine fase: la scrittura
+- [x] 3.12 **Nessuno scrive ancora gli slot** — controllo esplicito di fine fase: la scrittura
   arriva alla Fase 5, insieme a `VerificaImmagineAssegnabileAsync` per ciascuno slot.
   *Verifica*: `grep -rn "ImmagineEroeHomeId" backend/GraphQL/` trova solo il tipo di output; nessun
   input type li accetta.
@@ -609,6 +609,130 @@ ancora cambiati.
 **Rollback.** La migrazione è **additiva** e lasciarla in produzione è **innocuo**: le tre colonne
 sono nullable e il codice precedente le ignora. ⚠️ Da qui in avanti nasce l'unico **punto di non
 ritorno** del change — vedi il rollback della Fase 4.
+
+### ✅ Esito misurato — Fase 3 (2026-08-13)
+
+| Comando | Esito | Delta sulla fase precedente |
+|---|---|---|
+| `dotnet build backend/duedgusto.csproj` | **0 errori, 0 avvisi** | — |
+| `dotnet test` (suite intera) | **749 / 749** | **+23** sui 726 della Fase 2 |
+| `npm run ts:check` in `duedgusto/` | **0** | — |
+| `npm run lint` in `duedgusto/` | **0** | — |
+| `npm run test` in `duedgusto/` | **790 / 790** (100 file) | **0** — nessun test aggiunto, due asserzioni cambiate |
+| `git status -- sito/` | **vuoto** | il contratto pubblico e i `.astro` sono intatti |
+
+**3.1 / 3.2 — il modello e le tre relazioni.** Tre coppie `int?` + navigazione sul modello esatto
+di `ImmagineOgId`, e tre `HasOne(...).WithMany().HasForeignKey(...).OnDelete(Restrict)` dentro il
+blocco `ImpostazioniVetrina` esistente. `backend/Models/MediaAsset.cs` **non compare** in
+`git status`: nessuna collezione inversa, come richiesto.
+
+**3.3 — l'overload delega, e due test lo dimostrano.** Il corpo è una sola espressione che chiama
+la firma a tre identificativi.
+`Risolvi_DallEntita_CoincideConLaFirmaAtreIdentificativi` confronta le due forme su **tutta** la
+matrice (0, 1, 2, 3, 5, 6) e in **entrambi** gli stati degli slot — a slot vuoti soltanto, il
+confronto sarebbe stato vacuo, perché tutte e tre le colonne valgono `null`. Il secondo test,
+`…_NonScambiaLeTreColonne`, confronta contro valori attesi scritti a mano: due chiamate confrontate
+fra loro non si accorgerebbero di uno scambio simmetrico fra due parametri.
+
+#### 🔴 La migrazione, passo per passo
+
+**3.4 — scaffolding.** `dotnet build` **verde prima** della generazione (0/0), backend spento
+(porta 4000 libera, nessun `duedgusto.exe`), `EF_MIGRATIONS=1 dotnet ef migrations add
+SlotImmaginiPagineVetrina`. Generata `20260813141525_SlotImmaginiPagineVetrina`.
+⚠️ **La catena è corretta**: `dotnet ef migrations list --no-connect` la mostra subito **dopo**
+`20260813105519_AddIvaCalcolataToFatturaAcquisto` (la migrazione arrivata con la PR #17), e lo
+snapshot conserva `IvaCalcolata`. Nessun conflitto di catena.
+🔴 **La trappola del DLL è stata evitata**: `migrations add` compila *prima* di scrivere i file,
+quindi il `.dll` in `bin/` non conteneva ancora la migrazione. È stato **ricostruito** prima di
+avviare il backend, altrimenti `MigrateAsync` avrebbe applicato la versione vecchia.
+
+**3.5 — ispezione dello script.** `EF_MIGRATIONS=1 dotnet ef migrations script
+20260813105519_… 20260813141525_…` contiene **esattamente** e soltanto: 3 `ADD … int NULL`,
+3 `CREATE INDEX`, 3 `ADD CONSTRAINT … FOREIGN KEY … ON DELETE RESTRICT`.
+`grep -cE "MODIFY|CHANGE|DROP COLUMN|AlterTable|AlterColumn"` → **0**. `MediaAssets` compare in
+**tre** righe, tutte come tabella *referenziata* (`REFERENCES MediaAssets(MediaAssetId)`), mai come
+bersaglio. Anche il diff dello snapshot è additivo sulla sola `ImpostazioniVetrina`.
+
+**3.6 — applicazione su dati reali (sviluppo locale).** Backend riavviato su porta **4012** con
+`SEED_ON_STARTUP=false`, `MigrateAsync` ha applicato le **due** migrazioni pendenti
+(`AddIvaCalcolataToFatturaAcquisto` non era ancora sul database locale) e poi è stato **fermato**.
+
+| Verifica | Prima | Dopo |
+|---|---|---|
+| `SHOW CREATE TABLE MediaAssets` | `md5 ba3a7e5c…` | `md5 ba3a7e5c…` — **identica byte per byte** |
+| `COUNT(*)` MediaAssets / Prodotti / ImpostazioniVetrina | 22 / 4 / 1 | **22 / 4 / 1** |
+| Le tre colonne nuove | — | esistono, `int`, `IS_NULLABLE = YES`, valore **NULL** |
+
+⚠️ **Nessun accesso alla produzione**: la migrazione è stata applicata al solo database di
+sviluppo (`localhost:3306/duedgusto`).
+
+#### 🔴 L'eliminazione a cinque referenti
+
+**3.7 — la verifica, e la docstring che diceva il falso.** I tre slot entrano nella **stessa**
+verifica, con la query singola di [D7](./design.md) che restituisce il **ruolo in prosa**. Fra la
+lettura dei referenti e `storage.EliminaAsync` non c'è nulla. La docstring diceva «I referenti sono
+**DUE**» quando erano già quattro: ora dice **CINQUE** e li elenca. Il messaggio d'errore nomina il
+ruolo in italiano (*«l'immagine grande della pagina Home»*), mai il nome della colonna.
+
+**3.8 — la `[Theory]` sui quattro slot.** `EliminaMediaAsset_UsataDaUnoSlotDelSito_…` è
+parametrizzata su un `enum SlotSito` e ha **due** asserzioni per caso, **con il disco per primo**.
+Il caso dell'anteprima social non è stato copiato: il `[Fact]` che lo copriva è **diventato** uno
+dei quattro casi. Aggiunti anche il complemento parametrizzato (`…_DopoAverAzzeratoLoSlot_…`, 4
+casi) e `…_ConAltriSlotOccupatiDaAltreFoto_Riesce`, che copre il guasto nuovo reso possibile da
+quattro colonne sulla stessa riga: *il controllo guarda la colonna sbagliata*.
+
+**3.9 — 🔴 verifica per mutazione dell'ordine: eseguita, non dedotta.** Spostando
+`await storage.EliminaAsync(asset.Chiave)` **prima** della lettura dei cinque referenti:
+
+| | Esito |
+|---|---|
+| Rossi | **6 su 15**: i **quattro** casi di `EliminaMediaAsset_UsataDaUnoSlotDelSito_RifiutataEIFileRestanoSulDisco`, più `…_InUso_RifiutatoConIProdottiNominati` e `…_UsataDaUnProdottoEComeImmagineOg_RifiutataEIntatta` |
+| Verdi | **9**, fra cui `…_Inesistente_ErroreLeggibile` e tutti i casi di `…_DopoAverAzzeratoLoSlot_…` |
+
+🔴 **La lettura che vale più del rosso, e che è il punto del task.** Nei quattro casi della
+`[Theory]` l'`AssertionScope` raccoglie tutte le asserzioni, e il rapporto ne elenca **una sola**:
+
+> `Expected FileDi(asset) to be equal to {…400.jpg, …400.webp, …800.jpg, …800.webp} because il
+> rifiuto deve lasciare il sistema esattamente come era …, but found empty collection.`
+
+Le asserzioni **sul rifiuto** — che l'eccezione sia un `ExecutionError`, che il messaggio nomini il
+media, il ruolo e le impostazioni del sito, che il record e il riferimento siano intatti — sono
+rimaste **tutte verdi**. È la prova diretta che un test scritto solo sul rifiuto avrebbe certificato
+come corretto lo stato «riga presente, file cancellati, messaggio incomprensibile», ed è la ragione
+per cui il task 3.8 ne pretende due.
+⚠️ Con il provider InMemory la chiave esterna non rifiuta: il rifiuto osservato viene dal
+controllo applicativo, che nella mutazione resta presente ma **arriva dopo il disco**. In
+produzione la FK aggiungerebbe un secondo rifiuto, sempre troppo tardi — è esattamente lo scenario
+che [D7](./design.md) descrive.
+Dopo il ripristino: **15 / 15** sul filtro `EliminaMediaAsset`, suite intera **749 / 749**.
+
+**3.10 — la lettura.** `ImpostazioniVetrinaType` espone i tre identificativi **e** i tre media
+risolti, nel tipo di output **unico** (nessun tipo nuovo creato). Una `[Theory]` su sei nomi di
+campo lo fissa. ⚠️ Aggiunti anche i tre `Include` in `LeggiImpostazioniAsync`: senza, con il lazy
+loading disattivato, il campo avrebbe risposto `null` **senza errore** — indistinguibile da «non
+ancora scelta», che è il guasto silenzioso peggiore di tutto il change.
+
+**3.11 — da 30 a 33, e il test 1.4 è rimasto verde.** `Object.keys(PROPRIETA_CAMPI).length === 33`,
+ripartiti **20 + 5 + 3 + 5**: ogni scheda di pagina ha preso il **proprio** slot, «Impostazioni
+sito» è rimasta a 20 perché l'anteprima social è del sito intero e gli slot sono di una pagina sola.
+🔴 **Una deviazione dalla lettera del task, necessaria e circoscritta.** I tre slot **non** sono
+stati aggiunti a `inputDaValori`: quella funzione è ciò che la pagina spedisce ancora a
+`mutateImpostazioniVetrina`, e quella mutation non possiede i tre campi — infilarceli avrebbe fatto
+fallire il salvataggio alla **validazione dello schema**, su una pagina che questa fase ha promesso
+di non toccare. Le quattro proiezioni pescano ora da `rivendicazioniComplete(valori)`, cioè
+`inputDaValori` **più** i tre slot letti dai valori del modulo. Resta intatta la proprietà che rende
+dimostrabile il test 1.4: togliendo un campo a `inputDaValori`, quel campo sparisce comunque
+dall'unione e il test lo nomina come orfano.
+⚠️ Aggiunti anche i sei campi al frammento GraphQL del frontend: senza, `valoriDaImpostazioni`
+avrebbe prodotto `null` sistematico e il **primo salvataggio della scheda Home in Fase 5** avrebbe
+azzerato lo slot in silenzio — l'assegnazione è totale.
+
+**3.12 — nessuno scrive ancora.** In `backend/GraphQL/` i tre identificativi compaiono solo nel tipo
+di **output** e nella lettura di `EliminaMediaAssetAsync`. `ImpostazioniVetrinaInputType` espone il
+solo `immagineOgId`, e una `[Theory]` nuova
+(`ImpostazioniVetrinaInput_NonAccettaAncoraGliSlotDiPagina`) lo dice per nome accanto al pin per
+riflessione che già lo garantiva. Nessuna assegnazione `ImmagineEroe*Id = …` esiste fuori da test e
+migrazioni.
 
 ---
 

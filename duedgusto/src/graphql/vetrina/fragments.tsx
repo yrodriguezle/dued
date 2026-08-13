@@ -42,6 +42,12 @@ export const impostazioniVetrinaFragment = `
     metaDescrizioneDefault
     immagineOgId
     immagineOg { ...MediaAssetFragment }
+    immagineEroeHomeId
+    immagineEroeHome { ...MediaAssetFragment }
+    immagineRitrattoLocaleId
+    immagineRitrattoLocale { ...MediaAssetFragment }
+    immagineEroeAperitivoId
+    immagineEroeAperitivo { ...MediaAssetFragment }
     oraInizioTemaSera
     claimVetrina
     storiaTitolo

@@ -685,6 +685,34 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.ImmagineOgId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // ── I tre slot immagine delle pagine ──────────────────────────────────────────
+            // Stessa forma dell'anteprima social, per le stesse due ragioni, e vale ripeterle
+            // perché qui si moltiplicano per tre:
+            //
+            // 🔴 WithMany() esplicito e SENZA argomento su tutte e tre. Con la navigazione
+            //    inversa EF creerebbe tre collezioni su MediaAsset, cioè tre colonne ombra su
+            //    una tabella che questa change ha promesso di non toccare — e la migrazione le
+            //    porterebbe senza che nessuno le abbia chieste.
+            //
+            //    Restrict e non Cascade/SetNull: cancellare un media assegnato deve FALLIRE. Con
+            //    Cascade sparirebbero le impostazioni del sito insieme a una foto; con SetNull la
+            //    pagina perderebbe la sua immagine in silenzio, ricadendo sul ripiego posizionale
+            //    — cioè proprio l'effetto che gli slot esistono per togliere.
+            entity.HasOne(x => x.ImmagineEroeHome)
+                .WithMany()
+                .HasForeignKey(x => x.ImmagineEroeHomeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.ImmagineRitrattoLocale)
+                .WithMany()
+                .HasForeignKey(x => x.ImmagineRitrattoLocaleId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.ImmagineEroeAperitivo)
+                .WithMany()
+                .HasForeignKey(x => x.ImmagineEroeAperitivoId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             entity.Property(x => x.CreatedAt)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");

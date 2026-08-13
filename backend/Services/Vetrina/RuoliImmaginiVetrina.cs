@@ -158,6 +158,25 @@ public static class RuoliImmaginiVetrina
     }
 
     /// <summary>
+    /// Lo stesso piano, a partire dall'<b>entità</b>: la forma comoda per chi ha già in mano la
+    /// riga delle impostazioni — il controller pubblico e il ramo GraphQL di amministrazione.
+    ///
+    /// <para>🔴 <b>Delega, mai reimplementa.</b> Il corpo è una riga sola e deve restarlo: due
+    /// implementazioni della stessa regola divergerebbero nel modo peggiore — il pannello
+    /// direbbe che una pagina usa una foto e il sito ne renderebbe un'altra, senza alcun errore
+    /// da nessuna parte. È lo stesso idioma di <c>RegoleVetrina.PrezzoEffettivo</c>, e il test
+    /// <c>Risolvi_DallEntita_CoincideConLaFirmaAtreIdentificativi</c> confronta le due forme su
+    /// tutta la matrice, slot vuoti e slot valorizzati.</para>
+    /// </summary>
+    public static PianoImmagini Risolvi(
+        ImpostazioniVetrina impostazioni, IReadOnlyList<MediaAsset> galleria) =>
+        Risolvi(
+            (impostazioni ?? throw new ArgumentNullException(nameof(impostazioni))).ImmagineEroeHomeId,
+            impostazioni.ImmagineRitrattoLocaleId,
+            impostazioni.ImmagineEroeAperitivoId,
+            galleria);
+
+    /// <summary>
     /// L'immagine indicata dallo slot, <b>se e solo se</b> è una di quelle che la galleria ricevuta
     /// contiene. Uno slot vuoto e uno slot che punta fuori dalla galleria si comportano allo stesso
     /// modo, ed è voluto: in entrambi i casi il sito non ha nulla da rendere per quella scelta.

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { PROPRIETA_CAMPI, type CampoScrivibileVetrina, type SchedaSito } from "./proprietaCampiVetrina";
+import { PROPRIETA_CAMPI, type CampiScrivibiliVetrina, type CampoScrivibileVetrina, type SchedaSito } from "./proprietaCampiVetrina";
 
 /**
  * Il modulo delle impostazioni della vetrina, senza React: mappatura, validazione e forma
@@ -45,6 +45,18 @@ export type ValoriImpostazioniVetrina = {
   metaTitoloDefault: string;
   metaDescrizioneDefault: string;
   immagineOgId: number | null;
+  /**
+   * I tre slot immagine delle pagine.
+   *
+   * ⚠️ Stanno nei valori del modulo pur non essendo ancora modificabili da nessun campo: è la
+   * stessa ragione per cui ci sta `turnstileSiteKey`. L'assegnazione del server è **totale**,
+   * quindi un campo che il modulo non trasporta viene azzerato dal salvataggio della scheda che
+   * lo possiede — e uno slot azzerato non dà errore, riporta semplicemente la pagina al ripiego
+   * posizionale, cioè al difetto che gli slot esistono per togliere.
+   */
+  immagineEroeHomeId: number | null;
+  immagineRitrattoLocaleId: number | null;
+  immagineEroeAperitivoId: number | null;
   oraInizioTemaSera: string;
   // ── I testi che il sito scrive in prima persona ─────────────────────────────────────
   // Ogni sezione del sito che li usa NON si rende quando sono vuoti, e le due pagine
@@ -91,6 +103,9 @@ export const VALORI_VUOTI: ValoriImpostazioniVetrina = {
   metaTitoloDefault: "",
   metaDescrizioneDefault: "",
   immagineOgId: null,
+  immagineEroeHomeId: null,
+  immagineRitrattoLocaleId: null,
+  immagineEroeAperitivoId: null,
   oraInizioTemaSera: "",
   claimVetrina: "",
   storiaTitolo: "",
@@ -137,6 +152,9 @@ export function valoriDaImpostazioni(impostazioni?: ImpostazioniVetrina | null):
     metaTitoloDefault: testo(impostazioni.metaTitoloDefault),
     metaDescrizioneDefault: testo(impostazioni.metaDescrizioneDefault),
     immagineOgId: impostazioni.immagineOgId ?? null,
+    immagineEroeHomeId: impostazioni.immagineEroeHomeId ?? null,
+    immagineRitrattoLocaleId: impostazioni.immagineRitrattoLocaleId ?? null,
+    immagineEroeAperitivoId: impostazioni.immagineEroeAperitivoId ?? null,
     oraInizioTemaSera: testo(impostazioni.oraInizioTemaSera),
     claimVetrina: testo(impostazioni.claimVetrina),
     storiaTitolo: testo(impostazioni.storiaTitolo),
@@ -212,11 +230,13 @@ export function inputDaValori(valori: ValoriImpostazioniVetrina): ImpostazioniVe
 // ═══════════════════════════════════════════════════════════════════════════════════════════
 // LE QUATTRO PROIEZIONI, SOPRA IL MODULO ANCORA UNICO
 //
-// 🔴 In questa fase NON sono quattro costruttori indipendenti: sono quattro **proiezioni** di
-//    `inputDaValori`, filtrate per `PROPRIETA_CAMPI`. È deliberato, ed è ciò che rende la rete
-//    di prova dimostrabile: togliendo un campo a `inputDaValori` il campo sparisce dall'unione
-//    delle quattro, e il test di partizione lo nomina. Se il modulo si dividesse **prima**, il
-//    test verificherebbe il codice appena scritto invece del contrario.
+// 🔴 In questa fase NON sono quattro costruttori indipendenti: sono quattro **proiezioni**
+//    filtrate per `PROPRIETA_CAMPI` di ciò che `inputDaValori` costruisce (più i tre slot
+//    immagine, che quella mutation non accetta — vedi `rivendicazioniComplete`). È deliberato,
+//    ed è ciò che rende la rete di prova dimostrabile: togliendo un campo a `inputDaValori` il
+//    campo sparisce dall'unione delle quattro, e il test di partizione lo nomina. Se il modulo
+//    si dividesse **prima**, il test verificherebbe il codice appena scritto invece del
+//    contrario.
 //
 //    Alla Fase 5 (task 5.14) queste quattro diventano costruttori indipendenti e
 //    `inputDaValori` sparisce con l'ultimo dei suoi chiamanti. Il test di partizione deve
@@ -227,14 +247,37 @@ export function inputDaValori(valori: ValoriImpostazioniVetrina): ImpostazioniVe
 // ═══════════════════════════════════════════════════════════════════════════════════════════
 
 /**
- * I campi di una scheda, estratti dall'input intero.
+ * Tutto ciò che le quattro schede, insieme, rivendicano: i 30 campi che
+ * `mutateImpostazioniVetrina` accetta oggi **più** i tre slot immagine delle pagine.
+ *
+ * 🔴 **I tre slot si aggiungono QUI e non dentro `inputDaValori`**, e la ragione è operativa:
+ *    `inputDaValori` è ciò che la pagina spedisce ancora a `mutateImpostazioniVetrina`, e quella
+ *    mutation **non possiede** i tre campi — infilarceli farebbe fallire il salvataggio alla
+ *    validazione dello schema, su una pagina che questa fase ha promesso di non toccare. Gli
+ *    slot si scriveranno dalle mutation per pagina, che è il solo posto in cui hanno senso.
+ *
+ * ⚠️ Resta intatta la proprietà che rende dimostrabile il test di partizione: togliendo un campo
+ *    a `inputDaValori`, quel campo sparisce comunque dall'unione delle quattro proiezioni e il
+ *    test lo nomina come orfano.
+ */
+function rivendicazioniComplete(valori: ValoriImpostazioniVetrina): CampiScrivibiliVetrina {
+  return {
+    ...inputDaValori(valori),
+    immagineEroeHomeId: valori.immagineEroeHomeId,
+    immagineRitrattoLocaleId: valori.immagineRitrattoLocaleId,
+    immagineEroeAperitivoId: valori.immagineEroeAperitivoId,
+  };
+}
+
+/**
+ * I campi di una scheda, estratti dall'insieme intero.
  *
  * ⚠️ Il `as T` è il prezzo della forma provvisoria: il filtro è a runtime, quindi il
  *    compilatore non può dedurre quali chiavi sopravvivono. La totalità resta garantita dal
  *    compilatore **altrove** — nella mappa esaustiva di `proprietaCampiVetrina.tsx` — e la
  *    disgiunzione dal test di partizione. Alla Fase 5 questo helper sparisce insieme al filtro.
  */
-function proiezione<T>(input: ImpostazioniVetrinaInput, scheda: SchedaSito): T {
+function proiezione<T>(input: CampiScrivibiliVetrina, scheda: SchedaSito): T {
   return Object.fromEntries(Object.entries(input).filter(([chiave]) => PROPRIETA_CAMPI[chiave as CampoScrivibileVetrina] === scheda)) as T;
 }
 
@@ -248,22 +291,22 @@ function proiezione<T>(input: ImpostazioniVetrinaInput, scheda: SchedaSito): T {
  *    questa funzione **non va usata per salvare** — la pagina chiama ancora `inputDaValori`.
  */
 export function inputImpostazioni(valori: ValoriImpostazioniVetrina): ImpostazioniVetrinaInput {
-  return proiezione(inputDaValori(valori), "impostazioni");
+  return proiezione(rivendicazioniComplete(valori), "impostazioni");
 }
 
 /** I campi della scheda **Home**: il claim e il grappolo della reputazione. */
 export function inputHome(valori: ValoriImpostazioniVetrina): PaginaHomeInput {
-  return proiezione(inputDaValori(valori), "home");
+  return proiezione(rivendicazioniComplete(valori), "home");
 }
 
 /** I campi della scheda **Il locale**: titolo e testo della storia. */
 export function inputLocale(valori: ValoriImpostazioniVetrina): PaginaLocaleInput {
-  return proiezione(inputDaValori(valori), "locale");
+  return proiezione(rivendicazioniComplete(valori), "locale");
 }
 
 /** I campi della scheda **Aperitivo**: titolo, testo, punti e categorie. */
 export function inputAperitivo(valori: ValoriImpostazioniVetrina): PaginaAperitivoInput {
-  return proiezione(inputDaValori(valori), "aperitivo");
+  return proiezione(rivendicazioniComplete(valori), "aperitivo");
 }
 
 /** Un campo facoltativo vuoto non è un errore: si valida solo ciò che è stato scritto. */

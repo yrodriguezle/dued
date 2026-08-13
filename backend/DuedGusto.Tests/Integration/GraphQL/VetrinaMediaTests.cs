@@ -138,7 +138,21 @@ public class VetrinaMediaTests : IDisposable
         await act.Should().ThrowAsync<ExecutionError>().WithMessage("*non trovato*");
     }
 
-    // ── Il SECONDO referente: l'immagine di anteprima social ─────────────────────────────
+    // ── I referenti 2-5: i quattro slot immagine delle impostazioni del sito ─────────────
+
+    /// <summary>
+    /// I quattro slot immagine delle impostazioni del sito, cioè i referenti dei media diversi
+    /// dai prodotti. Un enum e non quattro test copiati: il giorno in cui ne nasce un quinto, si
+    /// aggiunge una voce qui e il compilatore indica <b>i due punti</b> da completare — la
+    /// scrittura e la lettura — invece di lasciare che il caso manchi in silenzio.
+    /// </summary>
+    public enum SlotSito
+    {
+        AnteprimaSocial,
+        EroeHome,
+        RitrattoLocale,
+        EroeAperitivo,
+    }
 
     private async Task<ImpostazioniVetrina> CreaImpostazioni(int? immagineOgId = null)
     {
@@ -156,6 +170,35 @@ public class VetrinaMediaTests : IDisposable
         return impostazioni;
     }
 
+    private async Task<ImpostazioniVetrina> CreaImpostazioniConSlot(SlotSito slot, int mediaAssetId)
+    {
+        ImpostazioniVetrina impostazioni = await CreaImpostazioni();
+        Assegna(impostazioni, slot, mediaAssetId);
+        await _dbContext.SaveChangesAsync();
+        return impostazioni;
+    }
+
+    private static void Assegna(ImpostazioniVetrina impostazioni, SlotSito slot, int? mediaAssetId)
+    {
+        switch (slot)
+        {
+            case SlotSito.AnteprimaSocial: impostazioni.ImmagineOgId = mediaAssetId; break;
+            case SlotSito.EroeHome: impostazioni.ImmagineEroeHomeId = mediaAssetId; break;
+            case SlotSito.RitrattoLocale: impostazioni.ImmagineRitrattoLocaleId = mediaAssetId; break;
+            case SlotSito.EroeAperitivo: impostazioni.ImmagineEroeAperitivoId = mediaAssetId; break;
+            default: throw new ArgumentOutOfRangeException(nameof(slot));
+        }
+    }
+
+    private static int? Legge(ImpostazioniVetrina impostazioni, SlotSito slot) => slot switch
+    {
+        SlotSito.AnteprimaSocial => impostazioni.ImmagineOgId,
+        SlotSito.EroeHome => impostazioni.ImmagineEroeHomeId,
+        SlotSito.RitrattoLocale => impostazioni.ImmagineRitrattoLocaleId,
+        SlotSito.EroeAperitivo => impostazioni.ImmagineEroeAperitivoId,
+        _ => throw new ArgumentOutOfRangeException(nameof(slot)),
+    };
+
     /// <summary>
     /// 🔴 <b>L'asserzione che conta è quella sui file, non quella sul rifiuto.</b>
     ///
@@ -166,17 +209,32 @@ public class VetrinaMediaTests : IDisposable
     /// condivisione social».</para>
     ///
     /// <para>⚠️ <b>Perché le asserzioni stanno dentro un <c>AssertionScope</c>, con il disco per
-    /// primo.</b> Nell'ordine naturale, una verifica per mutazione (task 7.4) si fermerebbe alla
+    /// primo.</b> Nell'ordine naturale, una verifica per mutazione (task 3.9) si fermerebbe alla
     /// prima riga rossa e direbbe soltanto "non è stata sollevata alcuna eccezione" — il sintomo
     /// invece del guasto. Con lo scope si raccolgono <b>tutte</b> le asserzioni in un giro solo,
     /// quindi il rapporto di fallimento dice a chi rimuove il controllo <b>quali</b> proprietà
     /// sono cadute e quali no. È la differenza fra una prova e un'impressione.</para>
+    ///
+    /// <para>🔴 <b>Una <c>[Theory]</c> sui quattro slot, e non il caso dell'anteprima social
+    /// copiato quattro volte.</b> Quattro copie sarebbero quattro posti in cui aggiornare la
+    /// stessa asserzione, e il modo in cui divergerebbero è noto: se ne aggiorna una, le altre
+    /// tre restano verdi <b>certificando la regola vecchia</b>. Parametrizzato, il caso nuovo è
+    /// una riga di <c>InlineData</c> e non può essere scritto a metà.</para>
+    ///
+    /// <para>⚠️ Il messaggio si verifica sul <b>ruolo in italiano</b> e mai sul nome della
+    /// colonna: "ImmagineRitrattoLocaleId" non dice a nessuno dove andare a togliere il
+    /// riferimento, <i>«il ritratto della pagina Il locale»</i> sì.</para>
     /// </summary>
-    [Fact]
-    public async Task EliminaMediaAsset_UsataComeImmagineOg_RifiutataEIFileRestanoSulDisco()
+    [Theory]
+    [InlineData(SlotSito.AnteprimaSocial, "anteprima social")]
+    [InlineData(SlotSito.EroeHome, "l'immagine grande della pagina Home")]
+    [InlineData(SlotSito.RitrattoLocale, "il ritratto della pagina «Il locale»")]
+    [InlineData(SlotSito.EroeAperitivo, "l'immagine grande della pagina «Aperitivo»")]
+    public async Task EliminaMediaAsset_UsataDaUnoSlotDelSito_RifiutataEIFileRestanoSulDisco(
+        SlotSito slot, string ruoloAtteso)
     {
-        MediaAsset asset = await CreaMediaConFile("anteprima-social.jpg");
-        ImpostazioniVetrina impostazioni = await CreaImpostazioni(asset.MediaAssetId);
+        MediaAsset asset = await CreaMediaConFile($"slot-{slot}.jpg");
+        ImpostazioniVetrina impostazioni = await CreaImpostazioniConSlot(slot, asset.MediaAssetId);
 
         string[] primaDeiFile = FileDi(asset);
         primaDeiFile.Should().HaveCount(4, "il presupposto del test è che i file esistano");
@@ -191,18 +249,76 @@ public class VetrinaMediaTests : IDisposable
         //    rifiuta comunque, solo dopo che i file sono spariti.
         FileDi(asset).Should().Equal(primaDeiFile,
             "il rifiuto deve lasciare il sistema esattamente come era: nessun file toccato, "
-            + "perché entrambe le verifiche dei referenti precedono qualunque scrittura su disco");
+            + "perché la verifica di TUTTI i referenti precede qualunque scrittura su disco");
 
-        // E poi il rifiuto: il messaggio nomina il media e dice cosa fare, come quello dei
-        // prodotti.
+        // E poi il rifiuto: il messaggio nomina il media, il ruolo che ricopre e cosa fare, come
+        // quello dei prodotti nomina i prodotti.
         sollevata.Should().BeOfType<ExecutionError>();
-        sollevata?.Message.Should().Contain("anteprima-social.jpg")
-            .And.Contain("anteprima social")
+        sollevata?.Message.Should().Contain($"slot-{slot}.jpg")
+            .And.Contain(ruoloAtteso)
             .And.Contain("impostazioni del sito");
 
         _dbContext.MediaAssets.Should().HaveCount(1);
-        _dbContext.ImpostazioniVetrina.First().ImmagineOgId
-            .Should().Be(impostazioni.ImmagineOgId, "il riferimento non deve essere stato toccato");
+        Legge(_dbContext.ImpostazioniVetrina.First(), slot)
+            .Should().Be(Legge(impostazioni, slot), "il riferimento non deve essere stato toccato");
+    }
+
+    /// <summary>
+    /// Il complemento della <c>[Theory]</c>: tolto il riferimento, <b>quello stesso slot</b> non
+    /// rifiuta più. Senza, un controllo che rifiutasse sempre — per esempio una <c>Where</c> che
+    /// confronta la colonna sbagliata e trova comunque la riga — passerebbe inosservato su tutti
+    /// e quattro i casi.
+    /// </summary>
+    [Theory]
+    [InlineData(SlotSito.AnteprimaSocial)]
+    [InlineData(SlotSito.EroeHome)]
+    [InlineData(SlotSito.RitrattoLocale)]
+    [InlineData(SlotSito.EroeAperitivo)]
+    public async Task EliminaMediaAsset_DopoAverAzzeratoLoSlot_RimuoveRigaETuttiIFile(SlotSito slot)
+    {
+        MediaAsset asset = await CreaMediaConFile();
+        ImpostazioniVetrina impostazioni = await CreaImpostazioniConSlot(slot, asset.MediaAssetId);
+
+        Assegna(impostazioni, slot, null);
+        await _dbContext.SaveChangesAsync();
+
+        bool esito = await VetrinaMutations.EliminaMediaAssetAsync(
+            _dbContext, _storage, asset.MediaAssetId);
+
+        esito.Should().BeTrue();
+        _dbContext.MediaAssets.Should().BeEmpty();
+        Directory.Exists(CartellaDi(asset)).Should().BeFalse();
+    }
+
+    /// <summary>
+    /// 🔴 <b>Gli slot non si confondono fra loro.</b> Con quattro colonne sulla stessa riga, il
+    /// guasto plausibile non è più "il controllo manca" ma "il controllo guarda la colonna
+    /// sbagliata": tre slot occupati da altre foto e il quarto libero devono lasciare eliminare
+    /// il media <b>libero</b>. Un <c>Where</c> che ignorasse la colonna e trovasse comunque la
+    /// riga singleton renderebbe ineliminabile qualunque media appena il sito ha un'immagine.
+    /// </summary>
+    [Fact]
+    public async Task EliminaMediaAsset_ConAltriSlotOccupatiDaAltreFoto_Riesce()
+    {
+        MediaAsset daEliminare = await CreaMediaConFile("da-eliminare.jpg");
+        MediaAsset eroeHome = await CreaMediaConFile("eroe-home.jpg");
+        MediaAsset ritratto = await CreaMediaConFile("ritratto.jpg");
+        MediaAsset eroeAperitivo = await CreaMediaConFile("eroe-aperitivo.jpg");
+
+        ImpostazioniVetrina impostazioni = await CreaImpostazioni();
+        Assegna(impostazioni, SlotSito.EroeHome, eroeHome.MediaAssetId);
+        Assegna(impostazioni, SlotSito.RitrattoLocale, ritratto.MediaAssetId);
+        Assegna(impostazioni, SlotSito.EroeAperitivo, eroeAperitivo.MediaAssetId);
+        await _dbContext.SaveChangesAsync();
+
+        bool esito = await VetrinaMutations.EliminaMediaAssetAsync(
+            _dbContext, _storage, daEliminare.MediaAssetId);
+
+        esito.Should().BeTrue();
+        Directory.Exists(CartellaDi(daEliminare)).Should().BeFalse();
+        Directory.GetFiles(CartellaDi(eroeHome)).Should().HaveCount(4);
+        Directory.GetFiles(CartellaDi(ritratto)).Should().HaveCount(4);
+        Directory.GetFiles(CartellaDi(eroeAperitivo)).Should().HaveCount(4);
     }
 
     /// <summary>
@@ -236,24 +352,6 @@ public class VetrinaMediaTests : IDisposable
         Directory.GetFiles(CartellaDi(asset)).OrderBy(f => f).Should().Equal(primaDeiFile);
         _dbContext.MediaAssets.Should().HaveCount(1);
         _dbContext.ImpostazioniVetrina.First().ImmagineOgId.Should().Be(asset.MediaAssetId);
-    }
-
-    [Fact]
-    public async Task EliminaMediaAsset_DopoAverAzzeratoIlRiferimentoOg_RimuoveRigaETuttiIFile()
-    {
-        MediaAsset asset = await CreaMediaConFile();
-        ImpostazioniVetrina impostazioni = await CreaImpostazioni(asset.MediaAssetId);
-
-        impostazioni.ImmagineOgId = null;
-        await _dbContext.SaveChangesAsync();
-
-        bool esito = await VetrinaMutations.EliminaMediaAssetAsync(
-            _dbContext, _storage, asset.MediaAssetId);
-
-        esito.Should().BeTrue();
-        _dbContext.MediaAssets.Should().BeEmpty();
-        Directory.Exists(CartellaDi(asset)).Should().BeFalse(
-            "senza referenti l'eliminazione rimuove il record e TUTTI i file delle varianti");
     }
 
     /// <summary>

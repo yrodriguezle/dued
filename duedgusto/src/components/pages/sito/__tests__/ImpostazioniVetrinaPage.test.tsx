@@ -193,8 +193,11 @@ describe("ImpostazioniVetrinaPage — validazione", () => {
   it("🔴 la mappa di proprietà è esaustiva e non separa i grappoli a validazione incrociata", () => {
     // La totalità della mappa la garantisce il compilatore (`Record<keyof …>`); qui si fissano
     // le due cose che il compilatore NON vede: quanti campi sono, e dove cadono le due coppie.
-    expect(Object.keys(PROPRIETA_CAMPI)).toHaveLength(30);
-    expect(CAMPI_SCRIVIBILI).toHaveLength(30);
+    // 🔴 33 e non più 30: i tre slot immagine delle pagine sono campi SCRIVIBILI, e ciascuno
+    //    appartiene alla scheda della sua pagina. Chi legge «30» in questo punto sta guardando
+    //    un test che non ha imparato gli slot.
+    expect(Object.keys(PROPRIETA_CAMPI)).toHaveLength(33);
+    expect(CAMPI_SCRIVIBILI).toHaveLength(33);
 
     // 🔴 I due membri di ciascuna coppia nella STESSA scheda: separati, la regola «insieme o
     //    nessuno dei due» diventerebbe impossibile da valutare al momento del salvataggio.
@@ -203,13 +206,23 @@ describe("ImpostazioniVetrinaPage — validazione", () => {
     expect(PROPRIETA_CAMPI.punteggioGoogle).toBe("home");
     expect(PROPRIETA_CAMPI.numeroRecensioniGoogle).toBe(PROPRIETA_CAMPI.punteggioGoogle);
 
-    // La partizione, per cardinalità: 20 + 4 + 2 + 4 = 30.
+    // La partizione, per cardinalità: 20 + 5 + 3 + 5 = 33. Le tre schede di pagina hanno preso
+    // un campo ciascuna — il proprio slot immagine — e «Impostazioni sito» è rimasta a 20:
+    // l'anteprima social è del sito intero, gli slot sono di una pagina sola.
     expect({
       impostazioni: campiDellaScheda("impostazioni").length,
       home: campiDellaScheda("home").length,
       locale: campiDellaScheda("locale").length,
       aperitivo: campiDellaScheda("aperitivo").length,
-    }).toEqual({ impostazioni: 20, home: 4, locale: 2, aperitivo: 4 });
+    }).toEqual({ impostazioni: 20, home: 5, locale: 3, aperitivo: 5 });
+
+    // 🔴 Ogni slot nella scheda della SUA pagina: è la conferma che i due nodi del change — la
+    //    divisione della scrittura e i ruoli espliciti delle immagini — si incastrano.
+    expect(PROPRIETA_CAMPI.immagineEroeHomeId).toBe("home");
+    expect(PROPRIETA_CAMPI.immagineRitrattoLocaleId).toBe("locale");
+    expect(PROPRIETA_CAMPI.immagineEroeAperitivoId).toBe("aperitivo");
+    // ⚠️ E l'anteprima social NON è uno slot di pagina: resta con le impostazioni del sito.
+    expect(PROPRIETA_CAMPI.immagineOgId).toBe("impostazioni");
   });
 
   it("🔴 punteggio e numero di recensioni: insieme o nessuno dei due", () => {

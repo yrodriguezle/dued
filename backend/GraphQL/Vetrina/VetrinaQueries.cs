@@ -85,10 +85,19 @@ public class VetrinaQueries : ObjectGraphType
     /// mostra un modulo vuoto e il primo salvataggio la crea), e <b>non</b> un errore di
     /// infrastruttura. È lo stesso principio della rotta pubblica, che con la riga assente
     /// risponde <c>200</c> con i default invece di far fallire la home del sito.</para>
+    ///
+    /// <para>⚠️ <b>Gli <c>Include</c> sono quattro perché gli slot immagine sono quattro.</b> Il
+    /// lazy loading è disattivato in questo progetto, quindi una navigazione non inclusa non
+    /// solleva alcun errore: il campo GraphQL corrispondente risponde semplicemente <c>null</c>, e
+    /// il pannello mostrerebbe uno slot vuoto su una pagina che invece un'immagine ce l'ha. È il
+    /// guasto silenzioso peggiore, perché somiglia in tutto a «non è stata ancora scelta».</para>
     /// </summary>
     internal static Task<ImpostazioniVetrina?> LeggiImpostazioniAsync(AppDbContext dbContext) =>
         dbContext.ImpostazioniVetrina
             .Include(impostazioni => impostazioni.ImmagineOg)
+            .Include(impostazioni => impostazioni.ImmagineEroeHome)
+            .Include(impostazioni => impostazioni.ImmagineRitrattoLocale)
+            .Include(impostazioni => impostazioni.ImmagineEroeAperitivo)
             .FirstOrDefaultAsync(impostazioni =>
                 impostazioni.ImpostazioniVetrinaId == ImpostazioniVetrina.IdSingleton);
 }

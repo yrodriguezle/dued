@@ -95,16 +95,23 @@ export const PROPRIETA_CAMPI: Record<CampoScrivibileVetrina, SchedaSito> = {
   punteggioGoogle: "home",
   numeroRecensioniGoogle: "home",
   urlProfiloGoogle: "home",
+  // 🔴 Lo slot immagine appartiene alla scheda della SUA pagina, e non a «Impostazioni sito»
+  //    insieme all'anteprima social: l'anteprima è del sito intero, questa è di una pagina sola.
+  //    È il punto in cui la divisione della scrittura e gli slot per ruolo si incastrano invece
+  //    di sommarsi.
+  immagineEroeHomeId: "home",
 
   // ── Il locale ──────────────────────────────────────────────────────────────────────────
   storiaTitolo: "locale",
   storiaTesto: "locale",
+  immagineRitrattoLocaleId: "locale",
 
   // ── Aperitivo ──────────────────────────────────────────────────────────────────────────
   aperitivoTitolo: "aperitivo",
   aperitivoTesto: "aperitivo",
   aperitivoPunti: "aperitivo",
   aperitivoCategorie: "aperitivo",
+  immagineEroeAperitivoId: "aperitivo",
 };
 
 /**

@@ -156,6 +156,28 @@ type ImpostazioniVetrina = {
   metaDescrizioneDefault?: string | null;
   immagineOgId?: number | null;
   immagineOg?: MediaAsset | null;
+  // ── Gli slot immagine delle pagine ──────────────────────────────────────────
+  //
+  // 🔴 Esistono per togliere una regola che viveva **nella posizione**: l'immagine grande della
+  //    home era «la prima della galleria», il ritratto del locale «la seconda» e quella
+  //    dell'aperitivo «l'ultima», quindi caricare una foto qualsiasi ne cambiava tre.
+  //
+  // ⚠️ Sono in **sola lettura** finché non arrivano le mutation per pagina: l'input delle
+  //    impostazioni non li accetta, ed è deliberato — la scrittura di uno slot deve passare per
+  //    la verifica «esiste ed è pubblicata».
+  /** L'immagine grande della home. Vuota: il sito usa la prima della galleria. */
+  immagineEroeHomeId?: number | null;
+  immagineEroeHome?: MediaAsset | null;
+  /** Il ritratto di "Il locale". Vuoto: il sito usa la seconda della galleria (la prima se è sola). */
+  immagineRitrattoLocaleId?: number | null;
+  immagineRitrattoLocale?: MediaAsset | null;
+  /**
+   * L'immagine grande di "Aperitivo". 🔴 Vuota: la pagina esce **senza** immagine di testata.
+   * È l'unico slot **senza ripiego**: quello di prima — l'ultima foto caricata — faceva cambiare
+   * questa immagine a ogni caricamento in galleria, anche fatto per un'altra pagina.
+   */
+  immagineEroeAperitivoId?: number | null;
+  immagineEroeAperitivo?: MediaAsset | null;
   // ── Tema ───────────────────────────────────────────────────────────────────
   /** Forma "HH:mm". È un dato, non un calcolo: il confronto con l'ora corrente resta lato client. */
   oraInizioTemaSera: string;
@@ -256,6 +278,8 @@ type PaginaHomeInput = {
   punteggioGoogle?: number | null;
   numeroRecensioniGoogle?: number | null;
   urlProfiloGoogle?: string | null;
+  /** Vuoto: la home usa la prima immagine della galleria, e cambia se la galleria cambia. */
+  immagineEroeHomeId?: number | null;
 };
 
 /**
@@ -268,6 +292,8 @@ type PaginaHomeInput = {
 type PaginaLocaleInput = {
   storiaTitolo?: string | null;
   storiaTesto?: string | null;
+  /** Vuoto: la pagina usa la seconda immagine della galleria — la prima se ce n'è una sola. */
+  immagineRitrattoLocaleId?: number | null;
 };
 
 /**
@@ -283,6 +309,11 @@ type PaginaAperitivoInput = {
   aperitivoPunti?: string | null;
   /** Quali categorie di vetrina mostra la pagina, **una per riga**, col nome esatto. */
   aperitivoCategorie?: string | null;
+  /**
+   * 🔴 Vuoto: la pagina esce **senza** immagine di testata. È l'unico slot senza ripiego, e la
+   * scheda lo dice con parole proprie invece di lasciarlo scoprire al sito.
+   */
+  immagineEroeAperitivoId?: number | null;
 };
 
 /**

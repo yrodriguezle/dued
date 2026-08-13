@@ -445,4 +445,49 @@ public class ImpostazioniVetrinaTests : IDisposable
                 "PrenotazioniAttive", "PrenotazioniPreavvisoOre", "PrenotazioniCopertiMax",
                 "TurnstileSiteKey");
     }
+
+    // ── I tre slot immagine delle pagine: in LETTURA, e per ora solo in lettura ──────────
+
+    /// <summary>
+    /// I tre slot escono dal tipo di output, con l'identificativo e con il media risolto — la
+    /// stessa forma dell'anteprima social, perché è lo stesso genere di dato.
+    ///
+    /// <para>⚠️ <b>Nel tipo di output UNICO</b>, e non in tre tipi nuovi: la divisione per pagina
+    /// che questa change introduce riguarda la <b>scrittura</b>. Tre tipi di output vorrebbero
+    /// dire tre fragment, tre refetch e tre copie in cache della stessa riga singleton.</para>
+    /// </summary>
+    [Theory]
+    [InlineData("immagineEroeHomeId")]
+    [InlineData("immagineEroeHome")]
+    [InlineData("immagineRitrattoLocaleId")]
+    [InlineData("immagineRitrattoLocale")]
+    [InlineData("immagineEroeAperitivoId")]
+    [InlineData("immagineEroeAperitivo")]
+    public void ImpostazioniVetrinaType_EsponeLoSlotInLettura(string campo)
+    {
+        new ImpostazioniVetrinaType().Fields.Select(f => f.Name).Should().Contain(campo);
+    }
+
+    /// <summary>
+    /// 🔴 <b>Il complemento, ed è il vincolo di fase</b>: gli slot si <b>leggono</b> ma non si
+    /// scrivono ancora. La scrittura arriva con le mutation per pagina, insieme alla verifica
+    /// «esiste ed è pubblicata» per ciascuno slot — e farla nascere prima, dentro l'input
+    /// esistente, vorrebbe dire un canale che assegna un'immagine senza controllarla.
+    ///
+    /// <para>Il pin per riflessione sopra
+    /// (<see cref="ImpostazioniVetrinaInput_HaEsattamenteICampiScrivibili"/>) lo garantisce già
+    /// per costruzione, perché confronta l'elenco <b>esatto</b>: questo test lo dice per nome, così
+    /// chi aggiunge lo slot all'input trova un rosso che spiega <i>perché</i> non si fa qui.</para>
+    /// </summary>
+    [Theory]
+    [InlineData("ImmagineEroeHomeId")]
+    [InlineData("ImmagineRitrattoLocaleId")]
+    [InlineData("ImmagineEroeAperitivoId")]
+    public void ImpostazioniVetrinaInput_NonAccettaAncoraGliSlotDiPagina(string campo)
+    {
+        typeof(ImpostazioniVetrinaInput).GetProperties().Select(p => p.Name)
+            .Should().NotContain(campo,
+                "gli slot si scrivono dalle mutation per pagina, ciascuna con la verifica "
+                + "«esiste ed è pubblicata»: accettarli qui aprirebbe un canale senza controllo");
+    }
 }

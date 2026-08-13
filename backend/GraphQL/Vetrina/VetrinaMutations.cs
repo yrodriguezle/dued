@@ -356,20 +356,35 @@ public partial class VetrinaMutations : ObjectGraphType
     /// che <b>nomina il referente</b>: "impossibile eliminare, è in uso" costringerebbe a
     /// cercarlo a mano, e la ricerca è esattamente l'informazione che il server già possiede.
     ///
-    /// <para>🔴 <b>I referenti sono DUE, e la verifica di entrambi precede il disco.</b> Fino a
-    /// questa change esisteva un solo referente — i prodotti — e l'ordine "① cancella i file, ②
-    /// poi salva" era deliberato e giusto: se la cancellazione dei file fallisce, la riga resta e
-    /// l'operazione è ripetibile. Con il secondo referente
-    /// (<see cref="ImpostazioniVetrina.ImmagineOgId"/>, <c>DeleteBehavior.Restrict</c>) quello
-    /// stesso ordine diventa un guasto: il ② solleverebbe un errore <b>grezzo di chiave
-    /// esterna</b> dopo che il ① ha già cancellato gli otto file. Esito: riga presente, file
-    /// spariti, immagine di anteprima rotta su ogni condivisione social, e un messaggio MySQL
-    /// incomprensibile nell'interfaccia.</para>
+    /// <para>🔴 <b>I referenti sono CINQUE, e la verifica di tutti precede il disco.</b> Il
+    /// primo sono i <b>prodotti</b>; gli altri quattro sono gli <b>slot immagine delle
+    /// impostazioni del sito</b> — l'anteprima social
+    /// (<see cref="ImpostazioniVetrina.ImmagineOgId"/>) e i tre slot di pagina
+    /// (<see cref="ImpostazioniVetrina.ImmagineEroeHomeId"/>,
+    /// <see cref="ImpostazioniVetrina.ImmagineRitrattoLocaleId"/>,
+    /// <see cref="ImpostazioniVetrina.ImmagineEroeAperitivoId"/>), tutti con
+    /// <c>DeleteBehavior.Restrict</c>. Il conteggio è scritto qui perché questa docstring è la
+    /// sola documentazione del metodo: quando diceva "DUE" e i referenti erano già quattro,
+    /// sarebbe stata una descrizione <b>falsa</b> nel punto in cui si va a leggere per capire
+    /// cosa proteggere.</para>
+    ///
+    /// <para>All'origine esisteva un solo referente — i prodotti — e l'ordine "① cancella i file,
+    /// ② poi salva" era deliberato e giusto: se la cancellazione dei file fallisce, la riga resta
+    /// e l'operazione è ripetibile. Con un referente in chiave esterna quello stesso ordine
+    /// diventa un guasto: il ② solleverebbe un errore <b>grezzo di chiave esterna</b> dopo che il
+    /// ① ha già cancellato gli otto file. Esito: riga presente, file spariti, immagine rotta su
+    /// una pagina del sito, e un messaggio MySQL incomprensibile nell'interfaccia.</para>
     ///
     /// <para>⚠️ <b>L'ordine è la sostanza, non un dettaglio implementativo</b>, ed è ciò che il
     /// test pinna: un test che verificasse solo il rifiuto resterebbe verde <b>con i file già
     /// cancellati</b>, perché la foreign key rifiuta comunque — solo troppo tardi. L'asserzione
-    /// che conta è quella sui file ancora sul filesystem.</para>
+    /// che conta è quella sui file ancora sul filesystem. Fra la lettura dei referenti e
+    /// <c>storage.EliminaAsync</c> non deve poter entrare nulla.</para>
+    ///
+    /// <para>🔴 <b>Il messaggio nomina il RUOLO, non la colonna.</b> "ImmagineRitrattoLocaleId"
+    /// non dice a nessuno dove andare a togliere il riferimento; <i>«il ritratto della pagina Il
+    /// locale»</i> sì. È la stessa ragione per cui l'errore dei prodotti li elenca per nome
+    /// invece di dire "è in uso".</para>
     /// </summary>
     public static async Task<bool> EliminaMediaAssetAsync(
         AppDbContext dbContext, IMediaStorage storage, int mediaAssetId)
@@ -385,12 +400,30 @@ public partial class VetrinaMutations : ObjectGraphType
             .Select(p => p.Nome)
             .ToListAsync();
 
-        // ── Referente 2: l'immagine di anteprima social delle impostazioni del sito ──────
-        // Nato con ImpostazioniVetrina. Si legge QUI, insieme all'altro e prima di qualunque
-        // scrittura su disco, e non più in basso: fra questa riga e storage.EliminaAsync non
-        // deve poter entrare nulla.
-        bool usataComeOg = await dbContext.ImpostazioniVetrina
-            .AnyAsync(impostazioni => impostazioni.ImmagineOgId == mediaAssetId);
+        // ── Referenti 2-5: i quattro slot immagine delle impostazioni del sito ──────────
+        // L'anteprima social (nata con ImpostazioniVetrina) e i tre slot di pagina. Si leggono
+        // QUI, insieme all'altro e prima di qualunque scrittura su disco, e non più in basso:
+        // fra questa riga e storage.EliminaAsync non deve poter entrare nulla.
+        //
+        // 🔴 UNA query sola, che restituisce già il RUOLO in prosa invece di quattro booleani da
+        //    ricomporre in un messaggio: quattro AnyAsync sarebbero quattro giri sul database e,
+        //    soprattutto, quattro occasioni di dimenticarne uno nel ramo che formatta l'errore.
+        //    La riga è una sola (singleton), quindi l'ordine dei casi conta solo quando la stessa
+        //    foto ricopre più ruoli: si nomina il primo, e chi lo toglie riesegue e trova il
+        //    successivo.
+        string? ruoloOccupato = await dbContext.ImpostazioniVetrina
+            .Where(impostazioni => impostazioni.ImmagineOgId == mediaAssetId
+                || impostazioni.ImmagineEroeHomeId == mediaAssetId
+                || impostazioni.ImmagineRitrattoLocaleId == mediaAssetId
+                || impostazioni.ImmagineEroeAperitivoId == mediaAssetId)
+            .Select(impostazioni => impostazioni.ImmagineOgId == mediaAssetId
+                ? "l'immagine di anteprima social del sito"
+                : impostazioni.ImmagineEroeHomeId == mediaAssetId
+                    ? "l'immagine grande della pagina Home"
+                    : impostazioni.ImmagineRitrattoLocaleId == mediaAssetId
+                        ? "il ritratto della pagina «Il locale»"
+                        : "l'immagine grande della pagina «Aperitivo»")
+            .FirstOrDefaultAsync();
 
         if (inUso.Count > 0)
         {
@@ -400,12 +433,13 @@ public partial class VetrinaMutations : ObjectGraphType
                 + "Rimuovila prima da queste schede, poi riprova.");
         }
 
-        if (usataComeOg)
+        if (ruoloOccupato is not null)
         {
-            // Stessa leggibilità del messaggio dei prodotti: nomina il media e dice cosa fare.
+            // Stessa leggibilità del messaggio dei prodotti: nomina il media, dice quale ruolo
+            // ricopre e cosa fare.
             throw new ExecutionError(
-                $"L'immagine \"{asset.NomeOriginale}\" è l'immagine di anteprima social del "
-                + "sito. Sostituiscila o rimuovila dalle impostazioni del sito, poi riprova.");
+                $"L'immagine \"{asset.NomeOriginale}\" è {ruoloOccupato}. "
+                + "Sostituiscila o rimuovila dalle impostazioni del sito, poi riprova.");
         }
 
         // Record e file se ne vanno insieme. L'ordine è deliberato: se la cancellazione dei

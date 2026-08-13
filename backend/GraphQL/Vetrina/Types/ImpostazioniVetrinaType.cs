@@ -64,6 +64,34 @@ public class ImpostazioniVetrinaType : ObjectGraphType<ImpostazioniVetrina>
                 + "i file vengano toccati.")
             .Resolve(context => context.Source.ImmagineOg);
 
+        // ── I tre slot immagine delle pagine ─────────────────────────────────────────────
+        // ⚠️ Stanno nel tipo di OUTPUT unico, insieme a tutto il resto. La divisione per pagina
+        //    riguarda la SCRITTURA, non la lettura: quattro tipi di output vorrebbero dire
+        //    quattro fragment, quattro refetch e quattro copie in cache della stessa riga.
+        //
+        // 🔴 Ogni descrizione dice cosa succede a lasciare lo slot vuoto, con le stesse parole
+        //    della scheda: è la risposta alla domanda «cosa perdo se non lo compilo», e l'unico
+        //    posto in cui esiste per chi legge lo schema invece del pannello.
+        Field("immagineEroeHomeId", x => x.ImmagineEroeHomeId, nullable: true)
+            .Description("L'immagine grande in cima alla Home. Vuota: il sito usa la prima della "
+                + "galleria, che è il comportamento di oggi.");
+        Field<MediaAssetType>("immagineEroeHome")
+            .Resolve(context => context.Source.ImmagineEroeHome);
+
+        Field("immagineRitrattoLocaleId", x => x.ImmagineRitrattoLocaleId, nullable: true)
+            .Description("Il ritratto verticale della pagina «Il locale». Vuoto: il sito usa la "
+                + "seconda della galleria — la prima se ce n'è una sola.");
+        Field<MediaAssetType>("immagineRitrattoLocale")
+            .Resolve(context => context.Source.ImmagineRitrattoLocale);
+
+        Field("immagineEroeAperitivoId", x => x.ImmagineEroeAperitivoId, nullable: true)
+            .Description("L'immagine grande in cima alla pagina «Aperitivo». 🔴 Vuota: la pagina "
+                + "esce SENZA immagine di testata. È l'unico slot senza ripiego, e la ragione è "
+                + "che il ripiego di prima — l'ultima foto caricata — faceva cambiare questa "
+                + "immagine a ogni caricamento in galleria, anche fatto per un'altra pagina.");
+        Field<MediaAssetType>("immagineEroeAperitivo")
+            .Resolve(context => context.Source.ImmagineEroeAperitivo);
+
         // ── Tema ─────────────────────────────────────────────────────────────────────────
         Field("oraInizioTemaSera", x => x.OraInizioTemaSera)
             .Description("Forma \"HH:mm\". È un dato, non un calcolo: il confronto con l'ora "

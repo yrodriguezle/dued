@@ -321,4 +321,75 @@ public class RuoliImmaginiVetrinaTests
 
         nominate.Should().OnlyContain(immagine => galleria.Contains(immagine));
     }
+
+    // ── L'overload di comodo: delega, non reimplementa (task 3.3) ────────────────────────
+
+    /// <summary>
+    /// 🔴 <b>Le due forme di <c>Risolvi</c> sono la stessa regola.</b> L'overload che accetta
+    /// l'entità esiste per comodità dei chiamanti che hanno già in mano la riga, e il rischio che
+    /// porta è uno solo: che un giorno qualcuno lo riscriva invece di lasciarlo delegare. Due
+    /// implementazioni divergerebbero nel modo peggiore — il pannello direbbe che una pagina usa
+    /// una foto e il sito ne renderebbe un'altra, con zero errori da qualunque parte si guardi.
+    ///
+    /// <para>Il confronto gira su <b>tutta</b> la matrice del test portante (0, 1, 2, 3, 5, 6
+    /// immagini) e in <b>entrambi</b> gli stati degli slot: vuoti e valorizzati. Un confronto sui
+    /// soli slot vuoti resterebbe verde anche se l'overload leggesse le colonne sbagliate, perché
+    /// a slot vuoti tutte e tre valgono <c>null</c>.</para>
+    /// </summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(5)]
+    [InlineData(6)]
+    public void Risolvi_DallEntita_CoincideConLaFirmaAtreIdentificativi(int quanteImmagini)
+    {
+        List<MediaAsset> galleria = Galleria(quanteImmagini);
+
+        // Slot vuoti: le due forme devono coincidere anche quando non c'è nulla da leggere.
+        RuoliImmaginiVetrina.Risolvi(new ImpostazioniVetrina(), galleria)
+            .Should().BeEquivalentTo(ASlotVuoti(galleria));
+
+        // 🔴 E slot valorizzati, uno diverso per ciascun ruolo: è l'unico modo di accorgersi che
+        //    l'overload ha passato la colonna del ritratto dove andava quella dell'eroe.
+        int? eroeHome = galleria.ElementAtOrDefault(0)?.MediaAssetId;
+        int? ritratto = galleria.ElementAtOrDefault(1)?.MediaAssetId;
+        int? eroeAperitivo = galleria.ElementAtOrDefault(2)?.MediaAssetId;
+
+        var impostazioni = new ImpostazioniVetrina
+        {
+            ImmagineEroeHomeId = eroeHome,
+            ImmagineRitrattoLocaleId = ritratto,
+            ImmagineEroeAperitivoId = eroeAperitivo,
+        };
+
+        RuoliImmaginiVetrina.Risolvi(impostazioni, galleria)
+            .Should().BeEquivalentTo(
+                RuoliImmaginiVetrina.Risolvi(eroeHome, ritratto, eroeAperitivo, galleria));
+    }
+
+    /// <summary>
+    /// L'overload legge <b>le tre colonne giuste, nell'ordine giusto</b>. Il test precedente
+    /// confronta due chiamate fra loro; questo verifica il risultato contro valori attesi scritti
+    /// a mano, così uno scambio fra due parametri non può passare inosservato per simmetria.
+    /// </summary>
+    [Fact]
+    public void Risolvi_DallEntita_NonScambiaLeTreColonne()
+    {
+        List<MediaAsset> galleria = Galleria(6);
+
+        var impostazioni = new ImpostazioniVetrina
+        {
+            ImmagineEroeHomeId = galleria[3].MediaAssetId,
+            ImmagineRitrattoLocaleId = galleria[4].MediaAssetId,
+            ImmagineEroeAperitivoId = galleria[5].MediaAssetId,
+        };
+
+        PianoImmagini piano = RuoliImmaginiVetrina.Risolvi(impostazioni, galleria);
+
+        piano.EroeHome.Should().BeSameAs(galleria[3]);
+        piano.RitrattoLocale.Should().BeSameAs(galleria[4]);
+        piano.EroeAperitivo.Should().BeSameAs(galleria[5]);
+    }
 }
