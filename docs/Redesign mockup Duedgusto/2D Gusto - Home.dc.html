@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  body { margin: 0; background: #14100E; -webkit-font-smoothing: antialiased; }
+  * { box-sizing: border-box; }
+  a { color: #F4EDE3; text-decoration: none; }
+  a:hover { color: #E39A6B; }
+  @keyframes marq { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+  ::selection { background: #C64B3C; color: #F4EDE3; }
+</style>
+</helmet>
+<div style="background:#14100E;color:#F4EDE3;font-family:Manrope,system-ui,sans-serif;min-height:100vh;overflow-x:hidden">
+
+  <header style="position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:32px;padding:18px 48px;background:rgba(20,16,14,0.82);backdrop-filter:blur(14px);border-bottom:1px solid rgba(244,237,227,0.09)">
+    <a href="#top" style="display:flex;align-items:center;gap:12px">
+      <span style="display:grid;place-items:center;width:38px;height:38px;border-radius:50%;background:#C64B3C;font-family:'Instrument Serif',serif;font-size:19px;letter-spacing:-0.02em">2D</span>
+      <span style="font-family:'Instrument Serif',serif;font-size:22px;letter-spacing:0.01em">Gusto</span>
+    </a>
+    <nav style="display:flex;align-items:center;gap:34px;font-size:14px;font-weight:500;letter-spacing:0.02em;white-space:nowrap">
+      <a href="#momenti" style="opacity:0.72" style-hover="opacity:1">Momenti</a>
+      <a href="#apericosto" style="opacity:0.72" style-hover="opacity:1">Apericosto</a>
+      <a href="#locale" style="opacity:0.72" style-hover="opacity:1">Il locale</a>
+      <a href="#dove" style="opacity:0.72" style-hover="opacity:1">Dove siamo</a>
+    </nav>
+    <div style="display:flex;align-items:center;gap:16px">
+      <span style="display:flex;align-items:center;gap:8px;padding:8px 14px;border:1px solid rgba(244,237,227,0.16);border-radius:999px;font-family:'JetBrains Mono',monospace;font-size:11.5px;letter-spacing:0.06em;text-transform:uppercase">
+        <span style="{{ statusDotStyle }}"></span>{{ statusLabel }}
+      </span>
+      <a href="https://duedgusto.it/menu" style="padding:11px 20px;border-radius:999px;background:#F4EDE3;color:#14100E;font-size:14px;font-weight:600" style-hover="background:#E39A6B;color:#14100E">Il menu</a>
+    </div>
+  </header>
+
+  <section id="top" style="position:relative;display:grid;grid-template-columns:1.05fr 0.95fr;gap:56px;align-items:center;padding:96px 48px 88px">
+    <div style="position:absolute;top:-180px;left:-140px;width:620px;height:620px;border-radius:50%;background:radial-gradient(circle,rgba(198,75,60,0.22),transparent 68%);pointer-events:none"></div>
+    <div style="position:relative;animation:fadeUp 0.7s ease both">
+      <p style="margin:0 0 26px;font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:#E39A6B">Caffetteria italiana · anima cubana · Thiene</p>
+      <h1 style="margin:0;font-family:'Instrument Serif',serif;font-weight:400;font-size:clamp(56px,7.4vw,118px);line-height:0.94;letter-spacing:-0.03em;text-wrap:balance">
+        Colazione,<br />pranzo e <em style="color:#E39A6B">aperitivo</em>
+      </h1>
+      <p style="max-width:44ch;margin:30px 0 0;font-size:19px;line-height:1.6;color:rgba(244,237,227,0.68);text-wrap:pretty">
+        L'attesa del piacere è essa stessa il piacere. Dal primo espresso alle 7:00 all'ultimo mojito della sera.
+      </p>
+      <div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:40px">
+        <a href="https://duedgusto.it/menu" style="padding:16px 30px;border-radius:999px;background:#C64B3C;font-size:15px;font-weight:600;letter-spacing:0.01em" style-hover="background:#D9584A">Guarda il menu</a>
+        <a href="#dove" style="padding:16px 30px;border-radius:999px;border:1px solid rgba(244,237,227,0.22);font-size:15px;font-weight:600" style-hover="border-color:#F4EDE3">Come arrivare</a>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:48px;padding-top:28px;border-top:1px solid rgba(244,237,227,0.1)">
+        <sc-for list="{{ days }}" as="day" hint-placeholder-count="7">
+          <span style="padding:7px 13px;border-radius:8px;background:rgba(244,237,227,0.06);font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:rgba(244,237,227,0.7)">{{ day.label }}</span>
+        </sc-for>
+        <span style="padding:7px 13px;font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.08em;color:#E39A6B">07:00 — 20:00</span>
+      </div>
+    </div>
+    <div style="position:relative;animation:fadeUp 0.9s ease both">
+      <div style="position:relative;aspect-ratio:4/5;border-radius:22px;overflow:hidden;background:#221A16">
+        <img src="https://duedgusto.it/media/2026/08/mojito-gx9ch4/1200.jpg" alt="Mojito preparato al banco" style="width:100%;height:100%;object-fit:cover;display:block" />
+        <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(20,16,14,0.55),transparent 55%)"></div>
+      </div>
+      <div style="position:absolute;bottom:-26px;left:-34px;width:236px;padding:22px 24px;border-radius:18px;background:#F4EDE3;color:#14100E;box-shadow:0 26px 60px rgba(0,0,0,0.45)">
+        <p style="margin:0 0 6px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#8A7461">Ogni sera 18:00</p>
+        <p style="margin:0;font-family:'Instrument Serif',serif;font-size:34px;line-height:1;letter-spacing:-0.02em">Apericosto</p>
+        <p style="margin:8px 0 0;font-size:14px;color:#5C4E43">Cocktail cubani + tagliere · 10 €</p>
+      </div>
+    </div>
+  </section>
+
+  <div style="display:flex;overflow:hidden;padding:15px 0;background:#C64B3C;border-top:1px solid rgba(20,16,14,0.2);border-bottom:1px solid rgba(20,16,14,0.2)">
+    <div style="display:flex;flex-shrink:0;gap:44px;padding-right:44px;animation:marq 26s linear infinite;font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:0.2em;text-transform:uppercase;white-space:nowrap">
+      <sc-for list="{{ marquee }}" as="w" hint-placeholder-count="12">
+        <span>{{ w.label }}</span>
+      </sc-for>
+    </div>
+  </div>
+
+  <section id="momenti" style="padding:104px 48px">
+    <div style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:32px;margin-bottom:44px">
+      <div>
+        <p style="margin:0 0 16px;font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:#E39A6B">Tre momenti, un banco</p>
+        <h2 style="max-width:16ch;margin:0;font-family:'Instrument Serif',serif;font-weight:400;font-size:clamp(38px,4.4vw,66px);line-height:1.02;letter-spacing:-0.025em">Che ora è, per te?</h2>
+      </div>
+      <div style="display:flex;gap:8px;padding:6px;border:1px solid rgba(244,237,227,0.14);border-radius:999px">
+        <sc-for list="{{ tabs }}" as="tab" hint-placeholder-count="3">
+          <button onClick="{{ tab.onClick }}" style="{{ tab.style }}">{{ tab.label }}</button>
+        </sc-for>
+      </div>
+    </div>
+    <p style="max-width:52ch;margin:0 0 40px;font-size:18px;line-height:1.6;color:rgba(244,237,227,0.62)">{{ partIntro }}</p>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px">
+      <sc-for list="{{ dishes }}" as="dish" hint-placeholder-count="3">
+        <article style="display:flex;flex-direction:column;padding:26px;border:1px solid rgba(244,237,227,0.12);border-radius:18px;background:rgba(244,237,227,0.035);transition:transform 0.28s ease,background 0.28s ease" style-hover="transform:translateY(-6px);background:rgba(244,237,227,0.07)">
+          <div style="aspect-ratio:16/10;margin-bottom:22px;border-radius:12px;background-color:#241C18;background-image:repeating-linear-gradient(135deg,rgba(244,237,227,0.07) 0 8px,transparent 8px 16px);display:grid;place-items:center">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(244,237,227,0.4)">{{ dish.slot }}</span>
+          </div>
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px">
+            <h3 style="margin:0;font-family:'Instrument Serif',serif;font-weight:400;font-size:27px;letter-spacing:-0.01em">{{ dish.name }}</h3>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:15px;color:#E39A6B;white-space:nowrap">{{ dish.price }}</span>
+          </div>
+          <p style="margin:12px 0 22px;font-size:15px;line-height:1.55;color:rgba(244,237,227,0.6);text-wrap:pretty">{{ dish.desc }}</p>
+          <span style="margin-top:auto;align-self:flex-start;padding:6px 12px;border-radius:999px;background:rgba(198,75,60,0.18);color:#E7907F;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase">{{ dish.tag }}</span>
+        </article>
+      </sc-for>
+    </div>
+    <a href="https://duedgusto.it/menu" style="display:inline-flex;align-items:center;gap:12px;margin-top:40px;font-size:16px;font-weight:600;border-bottom:1px solid rgba(244,237,227,0.3);padding-bottom:6px">Tutto il menu, 60+ voci →</a>
+  </section>
+
+  <section id="apericosto" style="padding:0 48px 104px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-radius:26px;overflow:hidden;background:#F4EDE3;color:#14100E">
+      <div style="padding:72px 64px">
+        <p style="margin:0 0 22px;font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:#C64B3C">Ogni sera dalle 18:00</p>
+        <h2 style="margin:0;font-family:'Instrument Serif',serif;font-weight:400;font-size:clamp(44px,5.2vw,80px);line-height:0.98;letter-spacing:-0.03em">Aperitivo<br />Apericosto</h2>
+        <p style="max-width:40ch;margin:26px 0 0;font-size:18px;line-height:1.65;color:#5C4E43;text-wrap:pretty">Un cocktail cubano fatto al banco, il tagliere del giorno e la lavagna che cambia con quello che troviamo al mercato. Si sta fuori finché c'è luce.</p>
+        <div style="display:flex;align-items:baseline;gap:18px;margin:38px 0 0">
+          <span style="font-family:'Instrument Serif',serif;font-size:84px;line-height:0.8;letter-spacing:-0.04em">10</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:0.12em;text-transform:uppercase;color:#8A7461">euro<br />a persona</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:36px">
+          <sc-for list="{{ aperiTags }}" as="t" hint-placeholder-count="4">
+            <span style="padding:9px 15px;border:1px solid rgba(20,16,14,0.16);border-radius:999px;font-size:13.5px;font-weight:500">{{ t.label }}</span>
+          </sc-for>
+        </div>
+      </div>
+      <div style="position:relative;min-height:520px;background-color:#E4D5C0;background-image:repeating-linear-gradient(135deg,rgba(20,16,14,0.06) 0 10px,transparent 10px 20px);display:grid;place-items:center">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(20,16,14,0.45);text-align:center;line-height:1.8">foto tagliere + cocktail<br />formato verticale</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="locale" style="padding:0 48px 104px">
+    <div style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:32px;margin-bottom:36px">
+      <h2 style="max-width:22ch;margin:0;font-family:'Instrument Serif',serif;font-weight:400;font-size:clamp(38px,4.4vw,66px);line-height:1.02;letter-spacing:-0.025em">Il locale, di giorno<br />e di notte</h2>
+      <p style="max-width:38ch;margin:0;font-size:17px;line-height:1.6;color:rgba(244,237,227,0.6)">Banco lungo, musica bassa, bandiera cubana dietro le bottiglie. Un bar di quartiere che sa dove vuole andare.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:1.4fr 1fr;grid-template-rows:240px 240px;gap:16px">
+      <div style="grid-row:span 2;border-radius:20px;overflow:hidden">
+        <img src="https://duedgusto.it/media/2026/08/mojito-gx9ch4/1200.jpg" alt="Mojito al banco" style="width:100%;height:100%;object-fit:cover;display:block" />
+      </div>
+      <div style="border-radius:20px;background-color:#241C18;background-image:repeating-linear-gradient(135deg,rgba(244,237,227,0.07) 0 8px,transparent 8px 16px);display:grid;place-items:center">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(244,237,227,0.4)">il banco al mattino</span>
+      </div>
+      <div style="border-radius:20px;background-color:#241C18;background-image:repeating-linear-gradient(135deg,rgba(244,237,227,0.07) 0 8px,transparent 8px 16px);display:grid;place-items:center">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(244,237,227,0.4)">tavoli fuori, ora dell'aperitivo</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="dove" style="display:grid;grid-template-columns:1fr 1fr;gap:64px;padding:88px 48px;border-top:1px solid rgba(244,237,227,0.1)">
+    <div>
+      <p style="margin:0 0 20px;font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:#E39A6B">Dove e quando</p>
+      <h2 style="margin:0 0 30px;font-family:'Instrument Serif',serif;font-weight:400;font-size:clamp(36px,4vw,58px);line-height:1.02;letter-spacing:-0.025em">Via del Costo 99<br />Thiene (VI)</h2>
+      <div style="display:grid;gap:2px;max-width:420px">
+        <sc-for list="{{ days }}" as="day" hint-placeholder-count="7">
+          <div style="display:flex;justify-content:space-between;padding:13px 0;border-bottom:1px solid rgba(244,237,227,0.1);font-size:15px">
+            <span style="{{ day.nameStyle }}">{{ day.full }}</span>
+            <span style="{{ day.hoursStyle }}">{{ day.hours }}</span>
+          </div>
+        </sc-for>
+        <div style="display:flex;justify-content:space-between;padding:13px 0;font-size:15px;color:rgba(244,237,227,0.35)">
+          <span>Domenica</span><span>chiuso</span>
+        </div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:36px">
+        <a href="https://maps.google.com/?q=Via+del+Costo+99+Thiene" style="padding:15px 26px;border-radius:999px;background:#F4EDE3;color:#14100E;font-size:15px;font-weight:600" style-hover="background:#E39A6B">Indicazioni</a>
+        <a href="https://www.instagram.com/2dgusto/" style="padding:15px 26px;border-radius:999px;border:1px solid rgba(244,237,227,0.22);font-size:15px;font-weight:600" style-hover="border-color:#F4EDE3">@2dgusto</a>
+      </div>
+    </div>
+    <div style="min-height:420px;border-radius:20px;background-color:#241C18;background-image:repeating-linear-gradient(135deg,rgba(244,237,227,0.07) 0 8px,transparent 8px 16px);display:grid;place-items:center">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(244,237,227,0.4)">mappa interattiva</span>
+    </div>
+  </section>
+
+  <footer style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:24px;padding:34px 48px;border-top:1px solid rgba(244,237,227,0.1);font-size:13.5px;color:rgba(244,237,227,0.45)">
+    <span style="font-family:'Instrument Serif',serif;font-size:20px;color:#F4EDE3">2D Gusto Bar</span>
+    <span>Caffetteria italiana con anima cubana · Thiene (VI)</span>
+    <span style="font-family:'JetBrains Mono',monospace;letter-spacing:0.08em">© 2026</span>
+  </footer>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;defaultPart&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Colazione&quot;,&quot;Pranzo&quot;,&quot;Aperitivo&quot;],&quot;default&quot;:&quot;Colazione&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Contenuto&quot;}}">
+class Component extends DCLogic {
+  state = { part: null };
+
+  get part() { return this.state.part || this.props.defaultPart || "Colazione"; }
+
+  menu() {
+    return {
+      Colazione: {
+        intro: "Dalle 7:00 il banco è pieno: brioche del giorno, cappuccino disegnato bene e il caffè della casa estratto al momento.",
+        dishes: [
+          { name: "Caffè espresso", price: "1,20 €", desc: "La miscela della casa, estratta al momento.", tag: "Consigliato", slot: "tazzina sul banco" },
+          { name: "Cappuccino & brioche", price: "3,00 €", desc: "Latte montato a mano, sfoglia calda del forno accanto.", tag: "Classico", slot: "colazione al tavolo" },
+          { name: "Cortadito cubano", price: "1,80 €", desc: "Espresso e latte zuccherato, come all'Avana.", tag: "Anima cubana", slot: "cortadito" }
+        ]
+      },
+      Pranzo: {
+        intro: "A mezzogiorno si fa veloce ma per bene: piatti freddi, panini imbottiti al momento e la pasta del giorno sulla lavagna.",
+        dishes: [
+          { name: "Panino del banco", price: "5,50 €", desc: "Pane croccante, affettati veneti, verdure sott'olio.", tag: "Pronto in 5'", slot: "panino tagliato" },
+          { name: "Piatto del giorno", price: "9,00 €", desc: "Cambia ogni giorno, lo trovi sulla lavagna all'ingresso.", tag: "Lavagna", slot: "piatto caldo" },
+          { name: "Insalatona 2D", price: "7,50 €", desc: "Verdure di stagione, frutta, lime e un filo d'olio buono.", tag: "Leggero", slot: "insalata dall'alto" }
+        ]
+      },
+      Aperitivo: {
+        intro: "Dalle 18:00 si accendono le luci basse: cocktail cubani fatti al banco, taglieri e tavoli fuori fino alla chiusura.",
+        dishes: [
+          { name: "Mojito", price: "7,00 €", desc: "Rum, lime, menta pestata a mano, zucchero di canna.", tag: "La firma", slot: "mojito al banco" },
+          { name: "Apericosto", price: "10,00 €", desc: "Un cocktail a scelta più il tagliere del giorno.", tag: "Ogni sera", slot: "tagliere completo" },
+          { name: "Spritz di casa", price: "4,50 €", desc: "Per chi resta in Veneto, con oliva e stuzzichini.", tag: "Classico", slot: "spritz in controluce" }
+        ]
+      }
+    };
+  }
+
+  tabStyle(active) {
+    return "padding:11px 22px;border:none;border-radius:999px;cursor:pointer;font-family:Manrope,sans-serif;font-size:14px;font-weight:600;letter-spacing:0.01em;transition:background 0.2s ease,color 0.2s ease;" +
+      (active ? "background:#F4EDE3;color:#14100E;" : "background:transparent;color:rgba(244,237,227,0.6);");
+  }
+
+  renderVals() {
+    const menu = this.menu();
+    const part = menu[this.part] ? this.part : "Colazione";
+    const now = new Date();
+    const dow = now.getDay();
+    const h = now.getHours();
+    const open = dow !== 0 && h >= 7 && h < 20;
+
+    const dayDefs = [
+      ["lun", "Lunedì"], ["mar", "Martedì"], ["mer", "Mercoledì"],
+      ["gio", "Giovedì"], ["ven", "Venerdì"], ["sab", "Sabato"]
+    ];
+
+    return {
+      statusLabel: open ? "Aperto ora · fino alle 20:00" : "Ora chiuso · apre alle 07:00",
+      statusDotStyle: "width:7px;height:7px;border-radius:50%;flex:none;background:" + (open ? "#8FBE6E" : "rgba(244,237,227,0.35)"),
+      days: dayDefs.map(([label, full], i) => {
+        const today = dow === i + 1;
+        return {
+          label, full, hours: "07:00 — 20:00",
+          nameStyle: today ? "color:#E39A6B;font-weight:600" : "color:#F4EDE3",
+          hoursStyle: today ? "color:#E39A6B;font-family:'JetBrains Mono',monospace;font-size:14px" : "color:rgba(244,237,227,0.55);font-family:'JetBrains Mono',monospace;font-size:14px"
+        };
+      }),
+      marquee: ["Espresso", "·", "Mojito", "·", "Taglieri", "·", "Cortadito", "·", "Lavagna del giorno", "·", "Tavoli fuori", "·", "Espresso", "·", "Mojito", "·", "Taglieri", "·", "Cortadito", "·", "Lavagna del giorno", "·", "Tavoli fuori", "·"].map(label => ({ label })),
+      aperiTags: ["Cocktail cubani", "Tagliere del giorno", "Tavoli fuori", "Senza prenotazione"].map(label => ({ label })),
+      tabs: Object.keys(menu).map(label => ({
+        label,
+        style: this.tabStyle(label === part),
+        onClick: () => this.setState({ part: label })
+      })),
+      partIntro: menu[part].intro,
+      dishes: menu[part].dishes
+    };
+  }
+}
+
+</script>
+</body>
+</html>

@@ -10,6 +10,8 @@ Change incorporate in questa spec:
 |--------|---------------|-----------|
 | fix-salvataggio-cassa-fase1 | 2026-06-10 | Spec iniziale del dominio: esposizione errori GraphQL, gestione secrets |
 | sicurezza-autorizzazione-graphql | 2026-08-11 | Autorizzazione dello schema GraphQL: autorizzazione di tipo sui rami root, contratto enumerato dallo schema, dati pubblici via `/api/public/*`, privilegio amministrativo, regola fine su `mutateUtente`, introspezione fuori da Development, allowlist CORS |
+| vetrina-fondamenta-media | 2026-08-13 | Media e campi vetrina come area riservata agli amministratori: privilegio dal flag e non dal nome, una verifica sola per due trasporti, il gate client-side non è sicurezza |
+| vetrina-api-pubblica | 2026-08-13 | La superficie anonima esiste solo in REST (e il meccanismo enumerativo non la copre: serve la prova manuale); impostazioni vetrina riservate anche in lettura; policy CORS dedicata senza credenziali; nessun rate limit sulle letture pubbliche, con il criterio scritto |
 
 > Nessuna modifica alla **forma** dello schema GraphQL da parte di queste change: nessun tipo, campo
 > o argomento aggiunto, rinominato o rimosso, nessuna migrazione database. I requirement riguardano
@@ -439,6 +441,323 @@ essere propagata al container backend e documentata nel file di esempio dell'amb
 - WHEN l'host viene aggiunto a `ALLOWED_ORIGINS` e il container backend viene riavviato
 - THEN il client è ammesso
 - AND non è stato necessario alcun rebuild né deploy applicativo
+
+### Requirement: Media e campi vetrina sono un'area riservata agli amministratori
+
+Ogni operazione su media e campi vetrina MUST essere riservata agli utenti il cui ruolo ha
+il flag amministrativo. In dettaglio:
+
+- **Scritture GraphQL**: il ramo root `vetrina` MUST richiedere l'autenticazione a
+  livello di tipo come gli altri rami, e **ciascuna** delle sue mutation
+  (`mutateProdottoVetrina`, `mutateMediaAsset`, `eliminaMediaAsset`) MUST verificare il flag
+  amministrativo dell'utente **come prima operazione del resolver**, prima di qualunque
+  lettura o scrittura. L'autorizzazione a livello di tipo verifica solo l'autenticazione e
+  MUST NOT essere considerata sufficiente.
+- **Lettura dei media in GraphQL**: la `connection { mediaAssets }` MUST richiedere anch'essa
+  il flag amministrativo. Non esiste alcun consumatore anonimo né non amministrativo dei media
+  in GraphQL: la superficie anonima è REST, ed è definita più avanti in questa spec.
+- **Endpoint REST dei media**: `POST /api/media` MUST richiedere sia l'autenticazione sia il
+  flag amministrativo. `GET /api/media/configurazione` MUST richiedere l'autenticazione ma
+  MAY essere accessibile a qualunque utente autenticato, perché espone soltanto costanti di
+  validazione e nessun dato.
+- **Una verifica sola, due forme d'errore**: la verifica del privilegio MUST essere
+  implementata una volta sola e condivisa fra i due trasporti. In GraphQL il rifiuto MUST
+  essere un errore applicativo; in REST MUST essere una risposta **403 con corpo JSON
+  contenente un messaggio leggibile**, nella stessa forma già usata dall'autenticazione, e
+  MUST NOT essere un 500 generato dalla propagazione di un errore pensato per GraphQL.
+- **Privilegio dal flag, non dal nome**: la verifica MUST basarsi sul flag
+  `Ruolo.Amministratore`, così che rinominare un ruolo non sposti i permessi e revocare il
+  flag li tolga immediatamente.
+- **Il gate client-side non è un controllo di sicurezza**: nascondere le voci di menu o
+  mostrare un avviso nella pagina MUST NOT essere l'unico ostacolo. Le stesse operazioni,
+  invocate direttamente via GraphQL o via HTTP saltando l'interfaccia, MUST essere rifiutate
+  dal backend.
+- **Letture dei campi vetrina**: i campi vetrina esposti su `Prodotto` MAY restare leggibili
+  da qualunque utente autenticato (restano coperti dall'`Authorize()` di ramo), perché non
+  contengono dati sensibili e la loro destinazione è comunque la pubblicazione.
+
+Il rifiuto MUST produrre un errore esplicito che indichi la mancanza di privilegi
+amministrativi, e MUST NOT lasciare alcun effetto collaterale: nessun record creato o
+modificato, nessun file scritto sul filesystem.
+
+#### Scenario: Utente autenticato non amministratore su GraphQL
+
+- GIVEN un utente autenticato il cui ruolo ha `Amministratore = false`
+- WHEN invoca una qualsiasi mutation del ramo `vetrina` direttamente sull'endpoint GraphQL, senza passare dall'interfaccia
+- THEN la richiesta viene rifiutata con un errore esplicito di privilegi insufficienti
+- AND nessun campo del prodotto e nessun media vengono modificati
+
+#### Scenario: Utente autenticato non amministratore sull'upload dei media
+
+- GIVEN un utente autenticato il cui ruolo ha `Amministratore = false`
+- WHEN invia una richiesta multipart a `/api/media` con un client HTTP qualsiasi
+- THEN la risposta ha stato 403 con un corpo JSON contenente un messaggio leggibile
+- AND nessun file viene scritto sotto la radice dei media
+- AND nessun record di media viene creato
+
+#### Scenario: Utente non amministratore in lettura sui media
+
+- GIVEN un utente autenticato non amministratore
+- WHEN interroga `connection { mediaAssets }`
+- THEN la richiesta viene rifiutata per privilegi insufficienti
+
+#### Scenario: Richiesta anonima
+
+- GIVEN nessun token di accesso valido
+- WHEN viene invocato un qualsiasi endpoint dei media o una qualsiasi operazione del ramo `vetrina`
+- THEN la richiesta viene rifiutata come non autenticata
+- AND non viene eseguita alcuna verifica di ruolo né alcuna scrittura
+
+#### Scenario: Il nuovo ramo GraphQL non è raggiungibile in anonimo
+
+- GIVEN lo schema GraphQL della change applicata
+- WHEN il test che enumera i rami root dallo schema verifica quali sono raggiungibili senza autenticazione
+- THEN il ramo `vetrina` risulta protetto
+- AND non compare in alcuna lista di eccezioni
+
+#### Scenario: Amministratore autorizzato
+
+- GIVEN un utente autenticato il cui ruolo ha `Amministratore = true`
+- WHEN carica un'immagine e modifica i campi vetrina di un prodotto
+- THEN entrambe le operazioni vanno a buon fine
+
+#### Scenario: Il privilegio segue il flag, non il nome del ruolo
+
+- GIVEN un ruolo con `Amministratore = true` di nome `"Direzione"`
+- WHEN il ruolo viene rinominato in `"Titolare"` mantenendo il flag
+- THEN gli utenti di quel ruolo continuano a poter scrivere su media e campi vetrina
+
+#### Scenario: Revoca del flag amministrativo
+
+- GIVEN un utente che opera regolarmente sulla vetrina
+- WHEN il flag `Amministratore` viene rimosso dal suo ruolo
+- THEN le sue successive scritture su media e campi vetrina vengono rifiutate
+- AND il rifiuto avviene lato backend, indipendentemente da ciò che l'interfaccia mostra
+
+#### Scenario: Menu della sezione riservato ai soli ruoli amministrativi
+
+- GIVEN il seed dei menu della sezione dedicata al sito
+- WHEN il seed assegna le voci ai ruoli
+- THEN le voci risultano assegnate ai soli ruoli con flag amministrativo (più il superadmin)
+- AND un utente non amministratore non vede la sezione nella navigazione
+- AND questo MUST NOT essere l'unico controllo: le chiamate dirette restano rifiutate dal backend
+
+### Requirement: La superficie anonima esiste solo in REST, e nasce con la sveglia già suonata
+
+Nessun ramo GraphQL MUST diventare raggiungibile senza autenticazione per effetto dell'apertura
+dell'API pubblica. Ogni nuovo ramo root di query MUST dichiarare l'autorizzazione a livello di
+tipo, come tutti gli altri, e MUST NOT comparire in alcuna lista di eccezioni.
+
+⚠️ Il test che pinna l'elenco dei rami root **fallisce** all'introduzione di un ramo nuovo, e
+aggiornarlo aggiungendo il ramo fra le query è il comportamento **progettato**: quel test è la
+sveglia che chiede *"è nato un ramo root, hai verificato che sia autorizzato?"*. L'aggiornamento
+MUST consistere nell'aggiunta del nome all'elenco atteso e MUST NOT consistere nell'esclusione
+del ramo dalle verifiche enumerative, che MUST continuare a coprirlo senza che nessuno le tocchi.
+
+🔴 Il meccanismo enumerativo **non copre la superficie REST**, e questo MUST essere dichiarato
+invece che dato per scontato: un test che istanzia direttamente il controller pubblico e ne
+invoca un metodo non attraversa autenticazione né autorizzazione, quindi sarebbe verde anche se
+il controller richiedesse un login. Le due mezze misure MUST essere entrambe presenti, e nessuna
+delle due MUST essere considerata sufficiente da sola:
+
+1. un test che verifica che il controller **dichiari** l'accesso anonimo e non porti alcun
+   attributo di autorizzazione — non prova che funzioni, prova che l'intenzione non è stata
+   cancellata il giorno in cui qualcuno aggiunge un `[Authorize]` "per coerenza";
+2. una verifica **manuale** con un client HTTP privo di credenziali, in sviluppo **e** in
+   produzione, che è l'unica prova reale dell'anonimato.
+
+Lo stesso vale per la rotta del nome attività, che è una minimal API e non è raggiungibile da un
+test unitario: la sua verifica MUST essere manuale e MUST includere l'avvio dell'applicazione,
+perché il suo fallimento non rompe una pagina ma il **bootstrap** del frontend.
+
+#### Scenario: Il nuovo ramo di query nega l'anonimo
+
+- GIVEN lo schema GraphQL con il ramo pubblico introdotto
+- WHEN il test che enumera i rami root verifica quali sono raggiungibili senza autenticazione
+- THEN il nuovo ramo di query risulta protetto
+- AND non compare in alcuna lista di eccezioni
+
+#### Scenario: L'elenco atteso dei rami root viene aggiornato, non aggirato
+
+- GIVEN il test che pinna l'elenco dei rami root
+- WHEN nasce un ramo root nuovo
+- THEN l'elenco atteso delle query contiene il ramo nuovo
+- AND le verifiche enumerative continuano a includerlo senza esclusioni
+
+#### Scenario: L'anonimato del controller pubblico è dichiarato
+
+- GIVEN il controller delle rotte pubbliche
+- WHEN se ne ispezionano gli attributi
+- THEN dichiara esplicitamente l'accesso anonimo e non porta alcun attributo di autorizzazione
+
+#### Scenario: 🔴 Il test strutturale da solo non prova l'anonimato
+
+- GIVEN il test che istanzia direttamente il controller pubblico e ne invoca i metodi
+- WHEN si aggiunge un requisito di autorizzazione al controller
+- THEN quel test resta verde
+- AND soltanto la verifica con un client HTTP senza credenziali rileva il cambiamento
+
+#### Scenario: Prova manuale dell'accesso anonimo
+
+- GIVEN una shell senza header di autorizzazione e senza cookie
+- WHEN si richiedono le tre rotte pubbliche in sviluppo e in produzione
+- THEN tutte rispondono `200`
+
+#### Scenario: Il bootstrap dell'applicazione resta intatto
+
+- GIVEN il sistema con l'API pubblica attiva
+- WHEN si apre l'applicazione, si completa il login e si osserva l'intestazione
+- THEN il titolo dell'attività è visibile
+- AND la rotta del nome attività ha risposto correttamente
+
+### Requirement: Le impostazioni della vetrina sono riservate agli amministratori anche in lettura
+
+Sia la query di lettura sia la mutation delle impostazioni della vetrina MUST verificare il flag
+amministrativo **come prima operazione del resolver**, prima di qualunque lettura o scrittura.
+L'autorizzazione a livello di tipo verifica solo l'autenticazione e MUST NOT essere considerata
+sufficiente. La verifica MUST basarsi sul flag del ruolo e non sul suo nome, riusando la funzione
+condivisa già esistente.
+
+🔴 La riserva **in lettura** MUST valere anche se una parte degli stessi dati esce anonima dalla
+rotta pubblica dell'identità: il tipo di amministrazione espone campi che la risposta pubblica
+non contiene — chiave del servizio antispam, parametri delle prenotazioni, e tutto ciò che le
+fasi successive aggiungeranno. È il precedente già stabilito nel progetto per la lettura dei
+media: *aprirla dopo è una riga; accorgersi che era aperta è un incidente*.
+
+Il rifiuto MUST essere un errore applicativo esplicito e MUST NOT lasciare alcun effetto: nessuna
+riga creata o modificata.
+
+La voce di menu delle impostazioni della vetrina MUST essere assegnata ai soli ruoli con flag
+amministrativo, e ciò MUST NOT essere l'unico controllo: le chiamate dirette MUST restare
+rifiutate dal backend.
+
+#### Scenario: Utente autenticato non amministratore in scrittura
+
+- GIVEN un utente autenticato il cui ruolo non ha il flag amministrativo
+- WHEN invoca la mutation delle impostazioni della vetrina direttamente sull'endpoint GraphQL
+- THEN la richiesta viene rifiutata con un errore esplicito di privilegi insufficienti
+- AND nessun campo delle impostazioni risulta modificato
+
+#### Scenario: Utente autenticato non amministratore in lettura
+
+- GIVEN un utente autenticato il cui ruolo non ha il flag amministrativo
+- WHEN interroga la query delle impostazioni della vetrina
+- THEN la richiesta viene rifiutata per privilegi insufficienti
+
+#### Scenario: Richiesta anonima sul ramo di amministrazione
+
+- GIVEN nessun token di accesso valido
+- WHEN viene invocata la query o la mutation delle impostazioni della vetrina
+- THEN la richiesta viene rifiutata come non autenticata
+- AND non viene eseguita alcuna verifica di ruolo né alcuna scrittura
+
+#### Scenario: Amministratore autorizzato
+
+- GIVEN un utente autenticato con flag amministrativo
+- WHEN legge e poi salva le impostazioni della vetrina
+- THEN entrambe le operazioni vanno a buon fine
+
+#### Scenario: La voce di menu è riservata
+
+- GIVEN il seed dei menu della sezione del sito
+- WHEN il seed assegna la terza voce ai ruoli
+- THEN risulta assegnata ai soli ruoli con flag amministrativo (più il superadmin)
+- AND un utente non amministratore non vede la voce nella navigazione
+
+### Requirement: Le rotte pubbliche non possono diventare un vettore credenziale
+
+Le tre rotte pubbliche MUST essere servite da una policy di condivisione fra origini **dedicata**
+che MUST NOT ammettere credenziali, e MUST limitarsi al metodo di lettura. La policy globale
+credenziale MUST restare invariata e MUST continuare ad applicarsi all'endpoint GraphQL e alle
+rotte di autenticazione.
+
+Ammettere qualunque origine **senza** credenziali è più restrittivo, non meno: le due cose sono
+mutuamente esclusive per specifica, quindi questa famiglia di rotte non può diventare un vettore
+credenziale **nemmeno per un errore di configurazione futuro**. Restringere per origine una API
+che risponde a chiunque con un client da riga di comando non protegge nulla: il controllo di
+origine vive nel browser e protegge letture credenziali, che qui non esistono.
+
+Nessuna estensione della policy globale MUST essere usata al posto della policy dedicata:
+allargherebbe **anche** l'endpoint GraphQL e le rotte di autenticazione.
+
+#### Scenario: Le rotte pubbliche non ammettono credenziali
+
+- GIVEN il backend in esecuzione
+- WHEN un browser richiede una rotta pubblica includendo i cookie
+- THEN la risposta non dichiara di ammettere credenziali
+- AND il browser non espone la risposta come credenziale al codice chiamante
+
+#### Scenario: L'endpoint GraphQL resta sotto la policy credenziale
+
+- GIVEN la configurazione con l'API pubblica attiva
+- WHEN si ispezionano le policy applicate all'endpoint GraphQL e alle rotte di autenticazione
+- THEN sono quelle precedenti, con allowlist di host e credenziali
+
+#### Scenario: Nessuna riga inutile nella configurazione delle origini
+
+- GIVEN la verifica che l'allowlist confronta il solo host e ammette già le origini locali
+- WHEN si valuta l'aggiunta della porta di sviluppo del sito all'elenco delle origini ammesse
+- THEN non viene aggiunta, perché sarebbe priva di effetto
+
+### Requirement: Nessun rate limit applicativo sulle letture pubbliche, e il criterio è scritto
+
+Le tre rotte pubbliche MUST NOT essere aggiunte al dizionario del rate limiting applicativo
+esistente. La decisione MUST essere motivata nel codice, accanto al dizionario, perché una rotta
+di **scrittura** pubblica (le prenotazioni) farà la scelta **opposta** e deve poterlo fare senza
+rileggere il design.
+
+Le tre ragioni, tutte verificate:
+
+1. **la chiave del contatore è falsificabile**: viene letta da un header della richiesta senza
+   alcuna validazione e senza sapere se davanti c'è un proxy fidato. Un abusatore ruota l'header
+   e ottiene contatori illimitati, mentre un client onesto — che l'header non lo manda — resta
+   l'unico davvero limitato. Un limitatore che frena solo chi non sta abusando non è una
+   mitigazione;
+2. **il dizionario dei contatori non viene mai ripulito**: la procedura di pulizia esiste ma
+   nessun servizio la invoca. Il danno è contenuto perché le rotte limitate sono di login, con
+   pochi indirizzi distinti; agganciarvi la rotta più richiesta di un sito pubblico
+   significherebbe una voce permanente per ogni visitatore, cioè una perdita di memoria
+   **proporzionale al traffico anonimo**;
+3. **la protezione vera è già progettata e non è un contatore**: ogni risposta ha **costo fisso**
+   — nessun parametro di query, nessun filtro libero, nessuna paginazione, tetto di 300 elementi
+   — e gli header di cache permettono al reverse proxy di collassare le richieste concorrenti
+   identiche in una sola verso l'applicazione.
+
+Il criterio da scrivere MUST essere: **lettura cacheabile a costo fisso, no; scrittura che
+persiste dati o invia email, sì.**
+
+**Rischio residuo dichiarato**: fino all'introduzione del micro-cache, un flusso anonimo intenso
+raggiunge il database con una query limitata a 300 righe. La mitigazione, se servirà, MUST essere
+un limite nel reverse proxy — che vede l'indirizzo reale della connessione e non può essere
+ingannato da un header — e MUST NOT essere una riga nel dizionario applicativo.
+
+#### Scenario: Le rotte pubbliche non sono nel dizionario
+
+- GIVEN il codice del backend
+- WHEN si ispeziona il dizionario delle rotte sottoposte a limite
+- THEN contiene esattamente le due voci di autenticazione preesistenti
+- AND accanto è scritto il criterio che spiega perché le letture pubbliche non ci sono e perché
+  una futura scrittura pubblica ci andrà
+
+#### Scenario: Molte richieste consecutive non vengono rifiutate
+
+- GIVEN un client anonimo
+- WHEN richiede ripetutamente `/api/public/menu`
+- THEN nessuna richiesta viene rifiutata per superamento di limite
+- AND ogni risposta è identica
+
+#### Scenario: Il costo per richiesta non è amplificabile
+
+- GIVEN una qualsiasi delle tre rotte pubbliche
+- WHEN un chiamante tenta di allargare il risultato tramite parametri di query
+- THEN il numero di righe lette dal database resta lo stesso
+- AND resta limitato dal tetto dichiarato
+
+#### Scenario: Il comportamento delle rotte di autenticazione è invariato
+
+- GIVEN le rotte di autenticazione
+- WHEN si superano i limiti già configurati
+- THEN il rifiuto avviene esattamente come prima
 
 ---
 

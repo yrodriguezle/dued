@@ -173,7 +173,7 @@ significare qualcosa. Ognuna qui sotto ha il comando che la esegue.
 L'automazione dell'audit e della regressione visiva è **Fase 7 del progetto**: qui non entra
 alcun automatore di browser, alcun motore di audit e alcun DOM simulato — sarebbero tre
 dipendenze pesanti esercitate da nessuno. Gli script di prova vivono **fuori** da `sito/`, in
-`openspec/changes/vetrina-sito-astro/prove/`, e importano Playwright da `duedgusto/` per
+`openspec/changes/archive/2026-08-13-vetrina-sito-astro/prove/`, e importano Playwright da `duedgusto/` per
 percorso esplicito.
 
 Si eseguono contro il **bundle costruito**, non contro il dev server: i due falliscono in modi
@@ -183,7 +183,7 @@ diversi, e in produzione va il secondo.
 cd sito && npm run build
 PORT=4399 NODE_EXTRA_CA_CERTS=../backend/.certs/aspnet-dev.pem node dist/server/entry.mjs
 
-cd ../openspec/changes/vetrina-sito-astro/prove
+cd ../openspec/changes/archive/2026-08-13-vetrina-sito-astro/prove
 node 12-verifiche-di-browser.mjs     # 1, 2, 3 e il logo
 node 5.8-richieste-font.mjs          # 5
 node 8.6-menu-contro-api.mjs         # 4
