@@ -5,7 +5,14 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { eSera, eAperto, oraDiRoma, giornoDiRoma, dataDiRoma } from '../src/lib/tema.ts';
+import {
+  eSera,
+  eAperto,
+  oraDiRoma,
+  giornoDiRoma,
+  dataDiRoma,
+  dataFraGiorni,
+} from '../src/lib/tema.ts';
 
 const SERA = '18:00';
 const APERTURA = '07:00';
@@ -120,6 +127,41 @@ test('la data di Roma è quella di Roma, e nella forma dell\'API', () => {
   assert.match(dataDiRoma(new Date('2026-08-12T15:30:00Z')), /^\d{4}-\d{2}-\d{2}$/);
 });
 
+test('🔴 ogni riga della settimana vale la sua prossima occorrenza', () => {
+  // ─────────────────────────────────────────────────────────────────────────────────────
+  // È IL SECONDO MEZZO-VERO, quello rimasto dopo il primo: la tabella «Dove e quando»
+  // marcava la sola riga di oggi, quindi il 13 agosto — giovedì, in ferie fino al 22 —
+  // scriveva «chiuso · Ferie» su giovedì e «07:00 — 20:00» su venerdì e sabato.
+  //
+  // La riga «Venerdì» significa il venerdì che sta per arrivare: questo è il conto che le
+  // dà una data, ed è quello che permette allo script di confrontarla con le chiusure.
+  // ─────────────────────────────────────────────────────────────────────────────────────
+  const GIOVEDI = 3;
+  const oggi = '2026-08-13';
+  const scarto = (indice) => (indice - GIOVEDI + 7) % 7;
+
+  assert.equal(dataFraGiorni(oggi, scarto(GIOVEDI)), '2026-08-13', 'oggi è a distanza zero');
+  assert.equal(dataFraGiorni(oggi, scarto(4)), '2026-08-14', 'venerdì è domani');
+  assert.equal(dataFraGiorni(oggi, scarto(5)), '2026-08-15');
+  assert.equal(
+    dataFraGiorni(oggi, scarto(2)),
+    '2026-08-19',
+    'mercoledì è già passato questa settimana: vale quello della prossima, e cade nelle ferie'
+  );
+});
+
+test('la data che scavalca il mese, l\'anno e l\'ora legale resta esatta', () => {
+  // ⚠️ Il capodanno e il cambio di mese sono i due punti in cui un conto scritto a mano
+  //    sbaglia: `Date.UTC` normalizza il traboccamento da solo, e questo lo pinna.
+  assert.equal(dataFraGiorni('2026-08-31', 1), '2026-09-01');
+  assert.equal(dataFraGiorni('2026-12-30', 5), '2027-01-04');
+  // ⚠️ L'ultima domenica di ottobre: con un'aritmetica su fuso locale, «+1 giorno» a
+  //    cavallo del ritorno all'ora solare può restituire lo STESSO giorno. In UTC no.
+  assert.equal(dataFraGiorni('2026-10-24', 1), '2026-10-25');
+  assert.equal(dataFraGiorni('2026-10-25', 1), '2026-10-26');
+  assert.equal(dataFraGiorni('2026-02-28', 1), '2026-03-01', 'il 2026 non è bisestile');
+});
+
 test('🔴 le funzioni serializzate restano codice funzionante', () => {
   // Il layout le manda al browser con `Function.prototype.toString()`, perché la formula
   // deve esistere in un posto solo. Il prezzo è che devono essere AUTOSUFFICIENTI: se
@@ -131,13 +173,15 @@ test('🔴 le funzioni serializzate restano codice funzionante', () => {
     const oraDiRoma = ${oraDiRoma.toString()};
     const giornoDiRoma = ${giornoDiRoma.toString()};
     const dataDiRoma = ${dataDiRoma.toString()};
+    const dataFraGiorni = ${dataFraGiorni.toString()};
     return [eSera('01:00','18:00','07:00'),
             eAperto('10:00',0,'07:00','20:00',null,'2026-08-13',[]),
             eAperto('10:00',3,'07:00','20:00',null,'2026-08-13',['2026-08-13']),
             oraDiRoma(new Date('2026-08-12T15:30:00Z')),
             giornoDiRoma(new Date('2026-08-10T12:00:00Z')),
-            dataDiRoma(new Date('2026-08-12T23:30:00Z'))];
+            dataDiRoma(new Date('2026-08-12T23:30:00Z')),
+            dataFraGiorni('2026-08-13', 1)];
   `;
   const risultato = new Function(sorgente)();
-  assert.deepEqual(risultato, [true, true, false, '17:30', 0, '2026-08-13']);
+  assert.deepEqual(risultato, [true, true, false, '17:30', 0, '2026-08-13', '2026-08-14']);
 });

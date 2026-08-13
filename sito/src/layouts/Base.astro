@@ -16,7 +16,14 @@ import '../styles/global.css';
 import Intestazione from '../components/Intestazione.astro';
 import PiePagina from '../components/PiePagina.astro';
 import BarraMobile from '../components/BarraMobile.astro';
-import { eSera, eAperto, oraDiRoma, giornoDiRoma, dataDiRoma } from '../lib/tema.ts';
+import {
+  eSera,
+  eAperto,
+  oraDiRoma,
+  giornoDiRoma,
+  dataDiRoma,
+  dataFraGiorni,
+} from '../lib/tema.ts';
 import { raggruppa, ORARIO_CHIUSO_SCHEMA } from '../lib/chiusure.ts';
 import { ORA_TEMA_SERA_DI_RIPIEGO, ORA_APERTURA_DI_RIPIEGO } from '../lib/degradazione.ts';
 import { mediaUrl } from '../lib/mediaUrl.ts';
@@ -90,6 +97,7 @@ const GIORNI = ${JSON.stringify(GIORNI_ESTESI)};
 const oraDiRoma = ${oraDiRoma.toString()};
 const giornoDiRoma = ${giornoDiRoma.toString()};
 const dataDiRoma = ${dataDiRoma.toString()};
+const dataFraGiorni = ${dataFraGiorni.toString()};
 const eSera = ${eSera.toString()};
 const eAperto = ${eAperto.toString()};
 
@@ -162,24 +170,41 @@ document.addEventListener('DOMContentLoaded', function () {
     pastiglia.classList.remove('opacity-0');
   }
 
-  // La riga di OGGI nella tabella degli orari — stessa ragione: è orologio.
+  // La tabella degli orari — stessa ragione: è orologio.
+  //
+  // 🔴 **Non la sola riga di oggi.** La tabella è la settimana RICORRENTE, ma una chiusura è
+  //    un INTERVALLO di date: il 13 agosto, in ferie fino al 22, marcare il solo giovedì
+  //    lasciava venerdì e sabato con la loro fascia oraria intatta, sotto un avviso che
+  //    diceva il contrario — la stessa mezza verità di prima, spostata di una riga. Ogni riga
+  //    vale la sua PROSSIMA occorrenza, che è ciò che intende chi la legge: se quella data è
+  //    chiusa, la riga lo dice.
   const oggi = giornoDiRoma();
-  document.querySelectorAll('[data-orari-settimana] [data-giorno="' + oggi + '"]').forEach(
-    function (riga) {
-      const nome = riga.querySelector('[data-nome-giorno]');
-      const ore = riga.querySelector('[data-ore-giorno]');
+  document.querySelectorAll('[data-orari-settimana] [data-giorno]').forEach(function (riga) {
+    const indice = Number(riga.getAttribute('data-giorno'));
+    const data = dataFraGiorni(dataOggi, (indice - oggi + 7) % 7);
+    const chiusura = P.chiusure.filter(function (c) { return c.data === data; })[0];
+    const nome = riga.querySelector('[data-nome-giorno]');
+    const ore = riga.querySelector('[data-ore-giorno]');
+
+    if (indice === oggi) {
       if (nome) {
         nome.classList.add('text-accento', 'font-bold');
         nome.textContent = GIORNI[oggi] + ' · oggi';
       }
-      if (ore) {
-        ore.classList.add('text-accento');
-        // La tabella è la settimana RICORRENTE: la riga di oggi mostrerebbe la fascia
-        // oraria anche in un giorno di ferie, accanto a una pastiglia che dice «Chiuso».
-        if (chiusuraOggi) ore.textContent = 'chiuso · ' + chiusuraOggi.descrizione;
-      }
+      if (ore) ore.classList.add('text-accento');
+    } else if (chiusura) {
+      // ⚠️ Il grigio dei giorni non operativi, NON l'accento: in questa tabella l'accento
+      //    significa «oggi», e un colore con due significati non ne comunica nessuno.
+      riga.classList.add('text-inchiostro-tenue');
     }
-  );
+
+    // ⚠️ Solo dove c'è una fascia oraria da smentire. Una domenica già scritta «chiuso»
+    //    resta com'è: aggiungerle «· Ferie» la farebbe leggere come un'eccezione di questa
+    //    settimana invece della regola settimanale che è.
+    if (chiusura && ore && ore.textContent.indexOf('chiuso') === -1) {
+      ore.textContent = 'chiuso · ' + chiusura.descrizione;
+    }
+  });
 });
 
 // Le transizioni restano spente finché non è dipinto il primo frame: senza, il registro

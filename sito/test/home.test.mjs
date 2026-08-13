@@ -9,6 +9,7 @@ import {
   immagineFinta,
   prodottoFinto,
 } from './_sito-di-prova.mjs';
+import { dataDiRoma, dataFraGiorni, giornoDiRoma } from '../src/lib/tema.ts';
 
 let api;
 let sito;
@@ -173,6 +174,126 @@ test('🔴 lo script riceve le date chiuse: è ciò che spegne «Aperto»', asyn
     html.match(/<script>([\s\S]*?)<\/script>/)[1].match(/const P = (\{.*?\});/)[1]
   );
   assert.deepEqual(parametri.chiusure, [{ data: '2026-08-13', descrizione: 'Ferie' }]);
+});
+
+/**
+ * Il documento minimo su cui lo script del guscio può girare davvero.
+ *
+ * 🔴 **Serve perché la marcatura delle righe è codice che nessun altro test esegue.** Il resto
+ *    della suite legge l'HTML *reso*, e quello arriva dal server senza marcature per
+ *    costruzione: tutto ciò che accade dopo il primo paint — la pastiglia, la riga di oggi, le
+ *    righe chiuse — vive in una stringa serializzata che, se un giorno smettesse di funzionare
+ *    (un `ReferenceError` su una funzione dimenticata fuori dalla serializzazione basta),
+ *    lascerebbe la pagina esattamente com'è: verde, silenziosa e sbagliata.
+ *
+ * ⚠️ Le righe NON sono inventate: si leggono dal markup reso, così l'accordo fra questo stub e
+ *    `OrariSettimana.astro` non può divergere in silenzio. Se cambiano gli attributi, qui non
+ *    si trova più nulla e il test lo dice.
+ */
+/** Un nodo con il minimo che lo script tocca: il testo e le classi che gli aggiunge. */
+function elementoFinto(testo) {
+  const classi = [];
+  return {
+    textContent: testo.trim(),
+    classi,
+    classList: { add: (...c) => classi.push(...c) },
+  };
+}
+
+function eseguiLoScript(html) {
+  const sorgente = html.match(/<script>([\s\S]*?)<\/script>/)[1];
+
+  const righe = [
+    ...html.matchAll(
+      /data-giorno="(\d)"[\s\S]*?data-nome-giorno[^>]*>([\s\S]*?)<\/span>[\s\S]*?data-ore-giorno[^>]*>([\s\S]*?)<\/span>/g
+    ),
+  ].map((pezzi) => {
+    const indice = Number(pezzi[1]);
+    const nome = elementoFinto(pezzi[2]);
+    const ore = elementoFinto(pezzi[3]);
+    const classi = [];
+    return {
+      indice,
+      nome,
+      ore,
+      classi,
+      oreIniziali: ore.textContent,
+      classList: { add: (...c) => classi.push(...c) },
+      getAttribute: (attributo) => (attributo === 'data-giorno' ? String(indice) : null),
+      querySelector: (selettore) =>
+        selettore.includes('nome') ? nome : selettore.includes('ore') ? ore : null,
+    };
+  });
+
+  assert.equal(righe.length, 7, 'la tabella dei sette giorni deve essere nel markup');
+
+  const ascoltatori = [];
+  const documento = {
+    documentElement: { setAttribute() {}, dataset: {} },
+    addEventListener: (evento, fn) => ascoltatori.push([evento, fn]),
+    getElementById: () => null,
+    // ⚠️ Il selettore va ONORATO, non solo riconosciuto. Un `querySelectorAll` che
+    //    restituisce tutte le righe qualunque cosa gli si chieda rende verde anche la
+    //    versione che ne interrogava una sola — provato mutando lo script, ed è esattamente
+    //    il modo in cui questo test sarebbe nato inutile.
+    querySelectorAll: (selettore) => {
+      if (!selettore.includes('data-giorno')) return [];
+      const uno = selettore.match(/data-giorno="(\d)"/);
+      return uno ? righe.filter((riga) => riga.indice === Number(uno[1])) : righe;
+    },
+  };
+
+  new Function('document', 'requestAnimationFrame', sorgente)(documento, () => {});
+  ascoltatori.filter(([evento]) => evento === 'DOMContentLoaded').forEach(([, fn]) => fn());
+  return righe;
+}
+
+test('🔴 in ferie la tabella non lascia aperte le righe dei giorni chiusi', async () => {
+  // ─────────────────────────────────────────────────────────────────────────────────────
+  // È IL SECONDO MEZZO-VERO. Con le sole ferie di oggi marcate, il 13 agosto la sezione
+  // «Dove e quando» diceva «Giovedì · oggi — chiuso · Ferie» e subito sotto «Venerdì» e
+  // «Sabato» con la fascia oraria intatta, mentre il bar era chiuso fino al 22. La tabella è
+  // la settimana ricorrente; la chiusura è un intervallo di date; ogni riga vale la sua
+  // PROSSIMA occorrenza.
+  //
+  // ⚠️ Le date si calcolano da OGGI e non sono fisse: lo script legge l'orologio vero (non ha
+  //    modo di non farlo) e un `2026-08-13` scritto qui renderebbe il test verde per sempre
+  //    dal 14 in poi, senza provare nulla.
+  // ─────────────────────────────────────────────────────────────────────────────────────
+  const oggi = dataDiRoma();
+  const chiuse = [0, 1, 2, 3].map((scarto) => dataFraGiorni(oggi, scarto));
+  const html = await conChiusure(
+    chiuse.map((data) => ({ data, descrizione: 'Ferie', motivo: 'FERIE' }))
+  );
+
+  const righe = eseguiLoScript(html);
+  const indiceDi = (scarto) => (giornoDiRoma() + scarto) % 7;
+  const inFerie = [0, 1, 2, 3].map(indiceDi);
+
+  righe
+    .filter((riga) => inFerie.includes(riga.indice))
+    .forEach((riga) =>
+      assert.match(
+        riga.ore.textContent,
+        /^chiuso/,
+        `la riga ${riga.nome.textContent} cade nelle ferie e mostra ancora "${riga.ore.textContent}"`
+      )
+    );
+
+  const marcate = righe.filter((riga) => riga.ore.textContent === 'chiuso · Ferie');
+  assert.ok(marcate.length >= 3, 'il motivo compare sulle righe che avevano una fascia oraria');
+
+  // ⚠️ La controprova, senza cui il test passerebbe anche svuotando tutta la tabella: i
+  //    giorni FUORI dalle ferie conservano i loro orari.
+  righe
+    .filter((riga) => !inFerie.includes(riga.indice) && riga.oreIniziali.includes('—'))
+    .forEach((riga) =>
+      assert.equal(riga.ore.textContent, riga.oreIniziali, 'un giorno aperto resta aperto')
+    );
+
+  const oggiMarcato = righe.find((riga) => riga.indice === giornoDiRoma());
+  assert.match(oggiMarcato.nome.textContent, /· oggi$/, 'la riga di oggi resta riconoscibile');
+  assert.ok(oggiMarcato.nome.classi.includes('text-accento'));
 });
 
 test('⚠️ una descrizione lunga arriva alla pastiglia accorciata, non intera', async () => {

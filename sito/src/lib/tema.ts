@@ -72,6 +72,29 @@ export function dataDiRoma(adesso: Date = new Date()): string {
 }
 
 /**
+ * La data `"yyyy-MM-dd"` che cade **`giorni` avanti** rispetto a `data`.
+ *
+ * 🔴 Serve a dare una DATA alle righe della tabella settimanale. La tabella elenca giorni
+ *    ricorrenti, ma una chiusura è un intervallo di date: senza questo passaggio si può
+ *    marcare solo la riga di oggi, ed è esattamente ciò che il 13 agosto 2026 lasciava
+ *    scritto «Venerdì 07:00 — 20:00» con il bar in ferie fino al 22. Ogni riga vale la sua
+ *    **prossima occorrenza**, che è ciò che intende chi la legge.
+ *
+ * ⚠️ Aritmetica in UTC e nient'altro, come in `lib/chiusure.ts`: `new Date('2026-08-14')` è
+ *    mezzanotte UTC e `new Date('2026-08-14T00:00:00')` è mezzanotte locale, e la differenza
+ *    si manifesta come un giorno di scarto per i soli visitatori a est di Greenwich. Qui il
+ *    fuso non entra affatto — è già stato applicato da `dataDiRoma()` — e questo conta solo
+ *    quanti giorni mancano.
+ */
+export function dataFraGiorni(data: string, giorni: number): string {
+  const pezzi = data.split('-');
+  const spostata = new Date(
+    Date.UTC(Number(pezzi[0]), Number(pezzi[1]) - 1, Number(pezzi[2]) + giorni)
+  );
+  return spostata.toISOString().slice(0, 10);
+}
+
+/**
  * Il giorno della settimana a Roma, con **lunedì = 0**, come `giorniOperativi` dell'API.
  *
  * ⚠️ `Date.getDay()` non va bene per due ragioni: usa il fuso del visitatore (a Tokyo è già
