@@ -1,4 +1,4 @@
-// Le due funzioni che l'orologio decide — e che il SERVER non deve decidere mai.
+// Le funzioni che l'orologio decide — e che il SERVER non deve decidere mai.
 //
 // ─────────────────────────────────────────────────────────────────────────────────────
 // 🔴 PERCHÉ QUESTE DUE COSE SONO CLIENT-SIDE, E PERCHÉ È LA STESSA DECISIONE PRESA DUE VOLTE
@@ -49,6 +49,29 @@ export function oraDiRoma(adesso: Date = new Date()): string {
 }
 
 /**
+ * La **data** a Roma, `"yyyy-MM-dd"`, nella stessa forma in cui l'API scrive le chiusure.
+ *
+ * 🔴 Serve perché «sono chiuso oggi?» sia un confronto fra stringhe e nient'altro: nessuna
+ *    aritmetica di date nel browser, nessun fuso del visitatore, nessuna conversione. L'API ha
+ *    già proiettato le ricorrenze su date vere, e qui si cerca la propria dentro l'elenco.
+ *
+ * ⚠️ `formatToParts` e non una stringa formattata: `toLocaleDateString` con un locale scelto a
+ *    caso può inserire separatori diversi, e in alcune combinazioni di locale e ICU un anno
+ *    non gregoriano — cioè una stringa che non combacerà mai con quella del server, senza che
+ *    nulla sollevi. Qui i tre pezzi si prendono per nome e si ricompongono a mano.
+ */
+export function dataDiRoma(adesso: Date = new Date()): string {
+  const parti = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Rome',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(adesso);
+  const prendi = (tipo: string) => parti.find((parte) => parte.type === tipo)?.value ?? '';
+  return `${prendi('year')}-${prendi('month')}-${prendi('day')}`;
+}
+
+/**
  * Il giorno della settimana a Roma, con **lunedì = 0**, come `giorniOperativi` dell'API.
  *
  * ⚠️ `Date.getDay()` non va bene per due ragioni: usa il fuso del visitatore (a Tokyo è già
@@ -85,18 +108,28 @@ export function eSera(ora: string, oraSera: string, oraApertura: string): boolea
 /**
  * Se il locale è aperto adesso.
  *
+ * 🔴 **Tre condizioni, e la prima è quella che mancava.** Un locale è aperto se la data non è
+ *    fra le chiusure, **e** il giorno della settimana è operativo, **e** l'ora sta nella
+ *    fascia. Le prime due sono cose diverse e nessuna implica l'altra: il 13 agosto 2026 era
+ *    un giovedì operativo, dentro la fascia 07:00–20:00, e il bar era in ferie — questa
+ *    funzione rispondeva «aperto» e la pastiglia si accendeva verde.
+ *
  * ⚠️ `giorniOperativi` può essere `null` — il backend lo espone così quando il JSON
  *    persistito non è leggibile come sette booleani, perché *omettere gli orari settimanali
  *    è meglio che dichiararne di sbagliati*. In quel caso ci si limita al **confronto
- *    orario**, invece di indovinare i giorni.
+ *    orario**, invece di indovinare i giorni. `chiusure` invece è sempre un elenco: vuoto
+ *    quando non ce n'è.
  */
 export function eAperto(
   ora: string,
   giorno: number,
   apertura: string,
   chiusura: string,
-  giorniOperativi: boolean[] | null
+  giorniOperativi: boolean[] | null,
+  oggi: string,
+  chiusure: string[]
 ): boolean {
+  if (chiusure.indexOf(oggi) !== -1) return false;
   if (giorniOperativi && giorniOperativi[giorno] === false) return false;
   return ora >= apertura && ora < chiusura;
 }

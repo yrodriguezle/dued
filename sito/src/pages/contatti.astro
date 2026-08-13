@@ -10,6 +10,7 @@ import Base from '../layouts/Base.astro';
 import Mappa from '../components/Mappa.astro';
 import OrariSettimana from '../components/OrariSettimana.astro';
 import AvvisoDegradazione from '../components/AvvisoDegradazione.astro';
+import AvvisoChiusura from '../components/AvvisoChiusura.astro';
 import { leggiSito } from '../lib/api.ts';
 
 const esitoSito = await leggiSito();
@@ -109,6 +110,13 @@ const voci: Voce[] = sito
                 {sito.orari.apertura} — {sito.orari.chiusura}
               </p>
             )}
+
+            {/*
+              Qui i periodi si elencano — fino a quattro — invece di mostrarne uno solo come
+              sulla home: è la pagina che uno apre proprio per sapere quando il bar è aperto,
+              e nasconderle sarebbe la stessa omissione da cui è nato questo lavoro.
+            */}
+            <AvvisoChiusura chiusure={sito.chiusure} massimo={4} classe="mt-7 max-w-md" />
 
             <div class="mt-9 grid max-w-md gap-3.5">
               {voci.map((voce) => {

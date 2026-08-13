@@ -16,6 +16,7 @@ import OrariSettimana from '../components/OrariSettimana.astro';
 import Lavagna from '../components/Lavagna.astro';
 import Recensioni from '../components/Recensioni.astro';
 import AvvisoDegradazione from '../components/AvvisoDegradazione.astro';
+import AvvisoChiusura from '../components/AvvisoChiusura.astro';
 import { leggiSito, leggiMenu, leggiGalleria } from '../lib/api.ts';
 import { euro, riassumiGiorni } from '../lib/formato.ts';
 
@@ -186,6 +187,17 @@ const griglia = altre.slice(0, 3);
               ))}
             </dl>
           )
+        }
+
+        {
+          /*
+            🔴 SUBITO SOTTO i tre numeri, e non in fondo alla pagina. Quei numeri dicono
+               «apre alle 07:00, chiude alle 20:00» ed è la settimana ricorrente: se il locale
+               è in ferie, la smentita deve stare dove uno legge l'affermazione. Metterla in
+               fondo significherebbe che chi guarda l'eroe e chiude la pagina — cioè la
+               maggioranza — se ne va convinto che il bar apra domani mattina.
+          */
+          sito && <AvvisoChiusura chiusure={sito.chiusure} classe="mt-8 max-w-md" />
         }
       </div>
 
@@ -407,6 +419,15 @@ const griglia = altre.slice(0, 3);
                   </p>
                 )
               }
+
+              {/*
+                ⚠️ Qui NON si ripete la fascia delle chiusure, ed è una scelta: sta già sotto
+                   i tre numeri dell'eroe, cioè accanto all'affermazione che smentisce, e due
+                   copie della stessa frase nella stessa pagina si leggono come due chiusure
+                   diverse. Quello che manca a questa tabella lo mette lo script del guscio,
+                   che marca la riga di oggi con la chiusura quando ce n'è una: la tabella è
+                   la settimana ricorrente, e l'eccezione riguarda un giorno.
+              */}
             </div>
 
             <Mappa sito={sito} classe="min-h-[24rem]" />

@@ -147,6 +147,7 @@ test('🔴 Promise.all di due letture di cui una fallisce restituisce ENTRAMBI g
           insegna: '2D Gusto Bar',
           indirizzo: {},
           orari: {},
+          chiusure: [],
           oraInizioTemaSera: '18:00',
           testi: {},
           recensioni: [],

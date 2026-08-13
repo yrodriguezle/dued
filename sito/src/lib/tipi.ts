@@ -171,6 +171,33 @@ export interface SitoPubblico {
     timezone: string;
   };
 
+  /**
+   * I giorni in cui il locale è chiuso **nonostante** l'orario settimanale: ferie, festività,
+   * chiusure straordinarie. In ordine crescente, **una voce per data**, da oggi in avanti.
+   *
+   * 🔴 **Senza questo campo il sito raccontava metà della verità, e non se ne accorgeva
+   *    nessuno.** L'orario settimanale è ricorrente e arrivava vivo e corretto; le eccezioni
+   *    vivevano solo nel gestionale. Il 13 agosto 2026, con il bar in ferie dal 10 al 22
+   *    registrate in cassa, la vetrina scriveva «Giovedì 07:00 — 20:00» e accendeva «Aperto».
+   *
+   * ⚠️ `data` è `"yyyy-MM-dd"` **nel fuso del locale**, già proiettata dal server: le
+   *    ricorrenze annuali sono state risolte là. Il sito non conosce il concetto di ricorrenza
+   *    e non deve conoscerlo — qui una chiusura è una data, e «sono chiuso oggi?» è un
+   *    confronto fra stringhe.
+   *
+   * ⚠️ `motivo` è un **codice**, non un'etichetta da stampare: la parola che il visitatore
+   *    legge è `descrizione`, che l'amministratore scrive. Serve per distinguere i casi
+   *    (un'icona, una classe), non per comporre una frase.
+   *
+   * Elenco **vuoto** quando non ce n'è — mai `null`: è lo stato di quasi tutto l'anno e non
+   * deve avere due forme.
+   */
+  chiusure: {
+    data: string;
+    descrizione: string;
+    motivo: 'FERIE' | 'FESTIVITA_NAZIONALE' | 'CHIUSURA_STRAORDINARIA';
+  }[];
+
   seo: {
     titoloDefault: string | null;
     descrizioneDefault: string | null;

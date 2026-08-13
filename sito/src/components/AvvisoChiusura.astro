@@ -1,0 +1,61 @@
+---
+// «Chiuso per ferie, dal 10 al 22 agosto» — l'informazione che il sito non aveva.
+//
+// 🔴 **È DATO, non orologio, e per questo lo rende il server.** La distinzione di `tema.ts`
+//    (orari server-side, stato client-side) nasce dal micro-cache: una decisione al MINUTO
+//    resa dal server resta stantia fino a sessanta secondi e può dire «aperto» dopo la
+//    chiusura. Qui la granularità è il GIORNO — la finestra la sceglie già il backend, che
+//    manda solo le chiusure da oggi in avanti — e sessanta secondi di ritardo attorno a
+//    mezzanotte non spostano nulla. Renderlo client-side lo toglierebbe a chi ha JavaScript
+//    spento, cioè proprio a chi ha più bisogno che la pagina dica la verità da sola.
+//
+// ⚠️ **Non dice «adesso».** Il testo nomina le date e basta: «Chiuso per ferie · dal 10 al 22
+//    agosto» è vero il 5 agosto come il 15. È la pastiglia dell'intestazione a dire se il
+//    locale è chiuso *in questo momento*, e quella è orologio, quindi sta nel browser. Due
+//    frasi, due granularità, nessuna delle due che finge di essere l'altra.
+//
+// ⚠️ Se non c'è nessuna chiusura in vista il componente **non rende niente** — nemmeno un
+//    contenitore vuoto. È la regola di tutto il sito: una sezione senza il suo dato non si
+//    rende affatto.
+
+import { raggruppa, descrivi } from '../lib/chiusure.ts';
+import type { SitoPubblico } from '../lib/tipi.ts';
+
+interface Props {
+  chiusure: SitoPubblico['chiusure'];
+  /**
+   * Quanti periodi mostrare. Uno sulla home — un avviso solo si legge, tre diventano un
+   * calendario — e qualcuno in più sulla pagina degli orari, che è il posto in cui uno li
+   * cerca davvero.
+   */
+  massimo?: number;
+  classe?: string;
+}
+
+const { chiusure, massimo = 1, classe = '' } = Astro.props;
+
+const periodi = raggruppa(chiusure).slice(0, massimo);
+---
+
+{
+  periodi.length > 0 && (
+    <div
+      role="status"
+      data-avviso-chiusura
+      class:list={['border-arancio bg-sfondo-alt rounded-lg border-l-4 px-5 py-4', classe]}
+    >
+      <p class="font-mono text-accento text-[11px] tracking-[0.14em] uppercase">
+        {periodi.length > 1 ? 'Chiusure' : 'Chiusura'}
+      </p>
+
+      <div class="mt-2 grid gap-1.5">
+        {periodi.map((periodo) => (
+          <p data-periodo-chiuso={periodo.inizio} class="text-[15.5px] leading-snug">
+            <span class="font-semibold">{periodo.descrizione}</span>
+            <span class="text-inchiostro-tenue"> · {descrivi(periodo)}</span>
+          </p>
+        ))}
+      </div>
+    </div>
+  )
+}
