@@ -174,6 +174,41 @@ test('🔴 lo stato di apertura non compare nel corpo, gli orari sì', () => {
   assert.match(corpo, /\d{2}:\d{2}/, 'gli orari non sono stati resi dal server');
 });
 
+test('🔴 nessun indirizzo assoluto in http:// nella testa del documento', () => {
+  // ─────────────────────────────────────────────────────────────────────────────────────
+  // In produzione il sito gira dietro nginx, che inoltra in **HTTP**: `Astro.url.protocol`
+  // vale quindi `http:`, e ogni indirizzo assoluto costruito su `Astro.url` esce insicuro.
+  // Vanno costruiti su `Astro.site`, l'origine pubblica della configurazione.
+  //
+  // 🔴 È un guasto che NON si vede: canonical, og:url e og:image non sono risorse che il
+  //    browser scarica, quindi non c'è contenuto misto, nessuna icona, nessun avviso. Si
+  //    manifesta il giorno in cui qualcuno condivide il link e l'anteprima non compare —
+  //    diversi consumatori scartano le immagini non sicure — oppure settimane dopo nella
+  //    Search Console. Il file lo conteneva davvero, sull'`og:image` di ripiego.
+  //
+  // ⚠️ `http://www.w3.org/2000/svg` è escluso ed è giusto: è l'identificativo di uno spazio
+  //    dei nomi XML, non un indirizzo che qualcuno contatta.
+  // ─────────────────────────────────────────────────────────────────────────────────────
+  // ⚠️ **Nessuna esenzione per `127.0.0.1`**, ed è ciò che rende questa prova capace di
+  //    vedere il guasto invece di essere verde per la ragione sbagliata. Qui il server di
+  //    prova gira proprio su `http://127.0.0.1:porta`: un indirizzo costruito su `Astro.url`
+  //    esce quindi come `http://127.0.0.1:4400/og-default.jpg`, ed è la forma in cui il
+  //    difetto si presenta. Escluderla — la tentazione naturale, perché «in prova è normale
+  //    che ci sia localhost» — spegnerebbe l'unico caso che questa prova deve prendere.
+  const testa = html.slice(0, html.indexOf('</head>'));
+  const insicuri = [...testa.matchAll(/http:\/\/[^"'\s<)]+/g)]
+    .map((m) => m[0])
+    // L'identificativo di uno spazio dei nomi XML, non un indirizzo che qualcuno contatta.
+    .filter((indirizzo) => !indirizzo.startsWith('http://www.w3.org/'));
+
+  assert.deepEqual(
+    insicuri,
+    [],
+    `indirizzi assoluti in http:// nel <head>: ${insicuri.join(', ')}. Vanno costruiti su ` +
+      '`Astro.site`, non su `Astro.url`.'
+  );
+});
+
 test('🔴 nemmeno la scelta del registro è nel markup servito', () => {
   // `data-scelta` è il secondo attributo che lo script scrive sulla radice — è quello che
   // permette al CSS di dipingere l'icona giusta del selettore prima del primo paint. Vale la
