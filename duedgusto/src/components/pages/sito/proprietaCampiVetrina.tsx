@@ -30,10 +30,11 @@ export type SchedaSito = "impostazioni" | "home" | "locale" | "aperitivo";
  *    l'insieme di tutte le chiavi. I quattro input sono disgiunti, quindi ogni chiave compare
  *    esattamente una volta.
  *
- * ⚠️ Finché `ImpostazioniVetrinaInput` non è ridotto ai suoi 20 campi (Fase 5), i tre input di
- *    pagina sono **sottoinsiemi** di quello: l'intersezione nomina comunque le stesse chiavi, e
- *    va bene così. È deliberato — la rete di prova deve esistere **prima** che il modulo si
- *    divida, altrimenti verificherebbe il codice appena scritto invece del contrario.
+ * 🔴 I quattro input sono **davvero** disgiunti da quando `ImpostazioniVetrinaInput` si è ridotto
+ *    ai suoi 20 campi: 20 + 5 + 3 + 5 = 33 chiavi distinte. Prima i tre input di pagina erano
+ *    sottoinsiemi del quarto e l'intersezione nominava comunque le stesse chiavi — era
+ *    deliberato, perché la rete di prova doveva esistere **prima** che il modulo si dividesse,
+ *    altrimenti avrebbe verificato il codice appena scritto invece del contrario.
  */
 export type CampiScrivibiliVetrina = ImpostazioniVetrinaInput & PaginaHomeInput & PaginaLocaleInput & PaginaAperitivoInput;
 

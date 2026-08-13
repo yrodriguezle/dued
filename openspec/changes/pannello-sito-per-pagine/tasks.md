@@ -176,12 +176,14 @@ identici prima e dopo (`3c4adb02…`, `3907e500…`), e una terza cattura di con
 **identica byte per byte** al `riepilogo.json` dello stato pubblicato.
 
 **0.3 — 🔴 quante immagini ci sono davvero.**
-`SELECT COUNT(*) FROM MediaAssets WHERE Cartella='galleria' AND Pubblicato=1` → **2**, non 1.
-⚠️ **Il numero misurato è quello del database di sviluppo locale** (`localhost:3306/duedgusto`), che
-è l'unico raggiungibile da qui. Il testo del task afferma «in produzione ce n'è **una sola**»: la
-divergenza **non è stata risolta**, perché verificarla richiede l'accesso al VPS. Le due letture
-vanno tenute distinte, e i task 2.3, 4.6 e 6.17 devono coprire **entrambi** i casi — che comunque
-già fanno, perché la matrice del task 2.3 include 0, 1 **e** 2 immagini.
+`SELECT COUNT(*) FROM MediaAssets WHERE Cartella='galleria' AND Pubblicato=1` → **2** in sviluppo
+locale (`localhost:3306/duedgusto`).
+✅ **La divergenza è RISOLTA** (aggiornata in Fase 5): la galleria di **produzione** ha **1**
+immagine pubblicata — verificato su `https://duedgusto.it/api/public/galleria` — e quella di
+**sviluppo locale** ne ha **2**. Non è una misura incerta: sono **due database diversi**, e i due
+numeri sono entrambi corretti per il proprio ambiente. Le due letture restano distinte, e i task
+2.3, 4.6 e 6.17 devono coprire **entrambi** i casi — che comunque già fanno, perché la matrice del
+task 2.3 include 0, 1 **e** 2 immagini.
 Il caso a **2** immagini è quello osservato ed è già degenere quanto quello a 1:
 `RitrattoLocale` = `EroeAperitivo` = `GrigliaHome[0]` = la **stessa** foto (`B`), `QuadrateLocale` è
 **vuota**, `FotoMenu` ha due elementi. La cattura 0.2 lo conferma riga per riga.
@@ -959,7 +961,8 @@ slot ancora `NULL`; 22 media e 2 foto in galleria.
 **4.9 — la rotta, a mano.** `curl -k https://localhost:4000/api/public/galleria` restituisce
 `immagini` **e** `ruoli`. ⚠️ Il task prevedeva la galleria **a una foto**; quella raggiungibile da
 qui ne ha **due** — è la divergenza fra produzione e sviluppo locale già dichiarata al task 0.3 e
-**tuttora non risolta**, perché verificarla richiede l'accesso al VPS. Con due foto l'esito
+✅ **risolta in Fase 5**: sono due database diversi, la produzione ne ha davvero **1** (verificato su
+`https://duedgusto.it/api/public/galleria`) e lo sviluppo locale **2**. Con due foto l'esito
 osservato è quello che il task 2.3 prescrive per quel caso: `eroeHome` = **A**, `ritrattoLocale` =
 **B** (non la stessa, come sarebbe con una foto sola), `grigliaHome` = `[B]`, `fotoMenu` =
 `[A, B]`, `quadrateLocale` = **vuota**, `eroeAperitivo` = **`null`**.
@@ -986,7 +989,7 @@ scheda e scheda.
 i due, un frontend vecchio invierebbe 30 campi a un input che ne accetta 20 e verrebbe **rifiutato
 dalla validazione del documento** — rumoroso, non silenzioso, ma comunque un'interruzione.
 
-- [ ] 5.1 **`CaricaOCreaSingletonAsync` estratto** — l'helper privato di [D1](./design.md), **sede
+- [x] 5.1 **`CaricaOCreaSingletonAsync` estratto** — l'helper privato di [D1](./design.md), **sede
   unica dell'upsert**: legge per `ImpostazioniVetrinaId == IdSingleton` e crea la riga se manca
   (installazione con `SEED_ON_STARTUP=false`, dove il primo salvataggio è anche il primo
   inserimento). `ApplicaImpostazioniVetrinaAsync` smette di avere il proprio `FirstOrDefaultAsync`.
@@ -995,7 +998,7 @@ dalla validazione del documento** — rumoroso, non silenzioso, ma comunque un'i
   *Verifica*: `grep -n "ImpostazioniVetrina$" -A3 backend/GraphQL/Vetrina/VetrinaMutations.cs` mostra
   **una sola** lettura del singleton; `dotnet build` esce 0.
 
-- [ ] 5.2 🔴 **I tre input type nuovi e la riduzione del quarto** — `PaginaHomeInputType` (4 campi +
+- [x] 5.2 🔴 **I tre input type nuovi e la riduzione del quarto** — `PaginaHomeInputType` (4 campi +
   `immagineEroeHomeId`), `PaginaLocaleInputType` (2 + `immagineRitrattoLocaleId`),
   `PaginaAperitivoInputType` (4 + `immagineEroeAperitivoId`) in
   `backend/GraphQL/Vetrina/Types/`; `ImpostazioniVetrinaInputType` **ridotto a 20 campi**.
@@ -1004,7 +1007,7 @@ dalla validazione del documento** — rumoroso, non silenzioso, ma comunque un'i
   *Verifica*: l'introspezione mostra quattro input; nessun campo compare in due; nessuno dei quattro
   nomina `openingTime`, `closingTime`, `operatingDays`, `timezone`.
 
-- [ ] 5.3 🔴 **I tre resolver e le tre `Applica…Async`, ad assegnazione totale sul proprio
+- [x] 5.3 🔴 **I tre resolver e le tre `Applica…Async`, ad assegnazione totale sul proprio
   sottoinsieme** — `mutatePaginaHome`, `mutatePaginaLocale`, `mutatePaginaAperitivo`, ognuna con
   `GuardAmministratore` come **prima istruzione** e **tutte** le validazioni prima di qualunque tocco
   al change tracker.
@@ -1016,26 +1019,26 @@ dalla validazione del documento** — rumoroso, non silenzioso, ma comunque un'i
   *Verifica*: `dotnet build` esce 0; il tipo di ritorno delle quattro è `ImpostazioniVetrina`, **uno
   solo** (dividere anche l'output significherebbe quattro fragment e quattro copie in cache).
 
-- [ ] 5.4 **Le due validazioni incrociate cambiano chiamante, non forma** — `ValidaCoordinate` resta
+- [x] 5.4 **Le due validazioni incrociate cambiano chiamante, non forma** — `ValidaCoordinate` resta
   dov'è ed è chiamata **solo** da `mutateImpostazioniVetrina`; `ValidaReputazione` **solo** da
   `mutatePaginaHome`.
   *Verifica* (spec `impostazioni-vetrina` → *Le coppie a validazione incrociata non si separano*):
   ciascuna delle due funzioni ha **un solo** chiamante, e i due membri di ogni coppia stanno nello
   stesso input.
 
-- [ ] 5.5 **`VerificaImmagineAssegnabileAsync` per ciascuno slot** — `mutatePaginaHome` per l'eroe,
+- [x] 5.5 **`VerificaImmagineAssegnabileAsync` per ciascuno slot** — `mutatePaginaHome` per l'eroe,
   `mutatePaginaLocale` per il ritratto, `mutatePaginaAperitivo` per il suo eroe. È `internal static`
   ed è la **sede unica** della regola *«esiste ed è pubblicato»*: si chiama, non si reimplementa.
   *Verifica*: assegnare uno slot a un media non pubblicato viene rifiutato con lo stesso messaggio
   che già oggi protegge `immagineOgId`.
 
-- [ ] 5.6 **Query `ruoliImmagini` dietro `GuardAmministratore`** — in `VetrinaQueries.cs`, con
+- [x] 5.6 **Query `ruoliImmagini` dietro `GuardAmministratore`** — in `VetrinaQueries.cs`, con
   `origine: SLOT | POSIZIONE` per i tre ruoli singoli, come da [D6](./design.md). 🔴 `origine` **non
   esce in pubblico**: il sito non ha nulla da farci.
   *Verifica*: l'introspezione mostra il campo sotto `vetrina`; nessun campo `origine` compare nel DTO
   di `/api/public/galleria`.
 
-- [ ] 5.7 🔴 **Il pin per riflessione diventa un confronto contro il modello** — in
+- [x] 5.7 🔴 **Il pin per riflessione diventa un confronto contro il modello** — in
   `ImpostazioniVetrinaTests.cs`, l'elenco letterale di
   `ImpostazioniVetrinaInput_HaEsattamenteICampiScrivibili` (righe 427-447) è sostituito da
   `NonScrivibiliDaGraphQL` + i due `Fact` di [D3](./design.md) ②:
@@ -1046,13 +1049,13 @@ dalla validazione del documento** — rumoroso, non silenzioso, ma comunque un'i
   *Verifica* (spec `impostazioni-vetrina` → *L'unione dei perimetri è l'insieme dei campi
   scrivibili*): un campo aggiunto al modello e a nessun input viene dichiarato **orfano per nome**.
 
-- [ ] 5.8 🔴 **Verifica per mutazione del pin, nei due versi** — togli un campo da un input: il test
+- [x] 5.8 🔴 **Verifica per mutazione del pin, nei due versi** — togli un campo da un input: il test
   nomina l'orfano; copia un campo in due input: il test nomina il conteso. Ripristina entrambi.
   *Verifica* (spec `impostazioni-vetrina` → *Verifica per mutazione — campo orfano*, *— campo
   conteso*): l'esito è annotato con i nomi dei test rossi. Sono **due proprietà distinte** e nessun
   meccanismo singolo le copre bene entrambe: qui si dimostra che sono coperte davvero.
 
-- [ ] 5.9 🔴 **Nessun azzeramento incrociato — il test che è il motivo del change** — per **ognuna**
+- [x] 5.9 🔴 **Nessun azzeramento incrociato — il test che è il motivo del change** — per **ognuna**
   delle quattro mutation: si semina la riga con tutti i **33** campi a valori non di default, si
   salva la scheda, e si asserisce che **ogni** campo fuori dal gruppo è **invariato**.
   🔴 Parametrizzato sulla **definizione dei gruppi**, non copiato quattro volte: una copia
@@ -1062,13 +1065,13 @@ dalla validazione del documento** — rumoroso, non silenzioso, ma comunque un'i
   salvataggi*): `dotnet test --filter "AzzeramentoIncrociato"` passa; `TurnstileSiteKey` sopravvive
   a tutti e quattro i salvataggi.
 
-- [ ] 5.10 🔴 **Verifica per mutazione dell'assenza di azzeramento** — togli un campo dal proprio
+- [x] 5.10 🔴 **Verifica per mutazione dell'assenza di azzeramento** — togli un campo dal proprio
   input **lasciandolo assegnato** nella `Applica…Async` (cioè assegnandolo da un valore assente):
   il test 5.9 deve diventare rosso **nominando il campo azzerato**. Ripristina.
   *Verifica* (spec `impostazioni-vetrina` → *Verifica per mutazione dell'assenza di azzeramento
   incrociato*): annota il nome del campo comparso nel messaggio.
 
-- [ ] 5.11 🔴 **Lo svuotamento continua a funzionare** —
+- [x] 5.11 🔴 **Lo svuotamento continua a funzionare** —
   `Mutation_ConUnCampoOpzionaleSvuotato_PersisteLAssenza`
   ([ImpostazioniVetrinaTests.cs:82](../../../backend/DuedGusto.Tests/Integration/GraphQL/ImpostazioniVetrinaTests.cs))
   passa **senza modifiche di sostanza**, + un caso equivalente per ciascuna delle tre mutation nuove
@@ -1077,14 +1080,14 @@ dalla validazione del documento** — rumoroso, non silenzioso, ma comunque un'i
   possiede*, *Lo scenario di svuotamento preesistente resta valido*): se quel test ha richiesto una
   modifica di **sostanza**, la semantica di patch è rientrata dalla finestra ed è da rifiutare.
 
-- [ ] 5.12 🔴 **Gli orari restano fuori, per costruzione, su quattro mutation** — la `[Theory]` di
+- [x] 5.12 🔴 **Gli orari restano fuori, per costruzione, su quattro mutation** — la `[Theory]` di
   [`ImpostazioniVetrinaTests.cs:386-418`](../../../backend/DuedGusto.Tests/Integration/GraphQL/ImpostazioniVetrinaTests.cs)
   passa da **una** mutation × 6 campi vietati a **quattro** × 6 = **24 casi generati, non copiati**.
   *Verifica* (spec `impostazioni-vetrina` → *Nessun campo di orario in alcuna scheda*;
   [D14](./design.md)): il rifiuto arriva dalla **validazione del documento**, prima del resolver, su
   tutte e quattro. È ciò che fa ereditare la protezione a una scheda scritta fra sei mesi.
 
-- [ ] 5.13 **Privilegi** — un utente autenticato **non amministratore** è respinto su tutte e quattro
+- [x] 5.13 **Privilegi** — un utente autenticato **non amministratore** è respinto su tutte e quattro
   le mutation e sulla query `ruoliImmagini`.
   ⚠️ L'anonimo **non** richiede test nuovi, e per una ragione precisa: le `[Theory]` di
   `AutorizzazioneAnonimaTests` enumerano i **rami root** (`vetrina`), non i singoli campi, e il ramo
@@ -1093,14 +1096,14 @@ dalla validazione del documento** — rumoroso, non silenzioso, ma comunque un'i
   *Verifica*: `dotnet test --filter "Privilegi|AutorizzazioneAnonima"` passa; `git diff` su
   `AutorizzazioneAnonimaTests.cs` è **vuoto**.
 
-- [ ] 5.14 🔴 **Il modulo Formik si divide davvero** — in `impostazioniVetrinaModulo.tsx` le quattro
+- [x] 5.14 🔴 **Il modulo Formik si divide davvero** — in `impostazioniVetrinaModulo.tsx` le quattro
   `inputXxx` del task 1.3 smettono di essere proiezioni di `inputDaValori` e diventano **costruttori
   indipendenti**; `inputDaValori` sparisce con l'ultimo dei suoi chiamanti.
   *Verifica*: 🔴 il test del task 1.4 resta **verde senza modifiche di sostanza**. È il momento per
   cui quella rete è stata scritta per prima: se ha richiesto un ritocco per restare verde, è stata
   adattata al codice invece di verificarlo.
 
-- [ ] 5.15 🔴 **Il `superRefine` si spezza in due schemi** —
+- [x] 5.15 🔴 **Il `superRefine` si spezza in due schemi** —
   [`impostazioniVetrinaModulo.tsx:249-288`](../../../duedgusto/src/components/pages/sito/impostazioniVetrinaModulo.tsx)
   contiene **entrambi** i grappoli incrociati: le coordinate vanno nello schema di **Impostazioni
   sito**, la reputazione in quello della **Home**.
@@ -1111,7 +1114,7 @@ dalla validazione del documento** — rumoroso, non silenzioso, ma comunque un'i
   `validaImpostazioniSito({latitudine: "45", longitudine: ""})` segnala **entrambi**;
   `validaPaginaHome({punteggioGoogle: "4.7", numeroRecensioniGoogle: ""})` segnala **entrambi**.
 
-- [ ] 5.16 **`ImpostazioniVetrinaPage.tsx` ridotta ai 20 campi trasversali** — le cinque sezioni
+- [x] 5.16 **`ImpostazioniVetrinaPage.tsx` ridotta ai 20 campi trasversali** — le cinque sezioni
   editoriali (claim, reputazione, storia, aperitivo) escono dalla pagina; identità, indirizzo,
   contatti, social, SEO di default, aspetto e ganci spenti restano. La pagina **non si rinomina**
   (risoluzione 4).
@@ -1120,19 +1123,19 @@ dalla validazione del documento** — rumoroso, non silenzioso, ma comunque un'i
   totale su questo gruppo, e questo campo appartiene a questo gruppo»*.
   *Verifica*: `npm run test` verde; la pagina non mostra alcun campo editoriale.
 
-- [ ] 5.17 **GraphQL del frontend** — `duedgusto/src/graphql/vetrina/mutations.tsx`: tre mutation
+- [x] 5.17 **GraphQL del frontend** — `duedgusto/src/graphql/vetrina/mutations.tsx`: tre mutation
   nuove; `fragments.tsx`: il fragment delle impostazioni guadagna i tre slot e resta **unico**
   (il tipo di ritorno non si divide); `queries.tsx`: `ruoliImmagini`.
   *Verifica*: `npm run ts:check` e `npm run lint` escono 0.
 
-- [ ] 5.18 **Prova manuale end-to-end della partizione** — su una seconda istanza, da GraphiQL con un
+- [x] 5.18 **Prova manuale end-to-end della partizione** — su una seconda istanza, da GraphiQL con un
   token di amministratore: salva `mutatePaginaHome` con `claimVetrina` modificato e verifica a
   database che **`Via`, `UrlInstagram`, `StoriaTesto`, `AperitivoTesto` e `TurnstileSiteKey` siano
   invariati**; poi svuota `claimVetrina` e verifica che persista l'assenza.
   🔧 Il JWT scade in 5 minuti: prendi il token una volta e riusalo.
   *Verifica*: un `SELECT` prima e uno dopo, confrontati; la sola colonna cambiata è quella salvata.
 
-- [ ] 5.19 🔴 **Nota di deploy scritta dove serve** — annota nel messaggio del commit (o nella PR) che
+- [x] 5.19 🔴 **Nota di deploy scritta dove serve** — annota nel messaggio del commit (o nella PR) che
   backend e frontend di questa fase vanno **nello stesso deploy**, e che il rollback richiede di
   **riespandere l'input a 30 campi PRIMA** del revert del frontend, non dopo ([D15](./design.md)
   punto 3).
@@ -1147,6 +1150,177 @@ da GraphiQL.
 campi non cambiano, quindi il ripristino è meccanico — ma è la **forma** dell'input a essere
 cambiata, non i nomi, e l'ordine inverso lascerebbe una scheda in linea che scrive su una mutation
 che non esiste più.
+
+### ✅ Esito misurato — Fase 5 (2026-08-13)
+
+| Comando | Esito | Delta sulla fase precedente |
+|---|---|---|
+| `dotnet build backend/duedgusto.csproj` | **0 errori, 0 avvisi** | — |
+| `dotnet test` (suite intera) | **806 / 806** | **+52** sui 754 della Fase 4 |
+| `npm run ts:check` in `duedgusto/` | **0** | — |
+| `npm run lint` in `duedgusto/` | **0** | — |
+| `npm run test` in `duedgusto/` | **790 / 790** (100 file) | **0** — nessun test aggiunto, tredici riscritti sul nuovo nome dello schema |
+| `git status -- sito/` | **vuoto** | il sito e il contratto pubblico non sono toccati da questa fase |
+
+**5.1 / 5.2 / 5.3 — la partizione, in codice.** `CaricaOCreaSingletonAsync` è la sede unica
+dell'upsert e ha **quattro** chiamanti; `grep -n "FirstOrDefaultAsync" VetrinaMutations.cs` non trova
+più alcuna seconda lettura del singleton. `ImpostazioniVetrinaInputType` è sceso a **20** campi; i
+tre input nuovi ne portano 5 + 3 + 5. Le `Description` dei dieci campi migrati sono state spostate
+**carattere per carattere**. Il tipo di ritorno delle quattro mutation è **uno solo**.
+
+🔴 **Un'aggiunta non prevista dal task, e la ragione per cui non è facoltativa.** Le quattro
+scritture chiamano ora `RicaricaImmaginiAsync`, che ricarica **tutte e quattro** le navigazioni
+immagine, non solo quella del proprio slot. Il tipo di ritorno è unico e il client legge lo stesso
+fragment da tutte e quattro: una risposta che portasse a casa la sola navigazione toccata
+scriverebbe `null` in cache sugli altri tre slot. Con il lazy loading disattivato una navigazione
+non caricata **non solleva alcun errore** — risponde `null`, che è indistinguibile da «non ancora
+scelta». È lo stesso guasto silenzioso già evitato al task 3.10 con i quattro `Include`.
+
+**5.4 — le due validazioni incrociate.** `ValidaCoordinate` ha **un solo** chiamante
+(`ApplicaImpostazioniVetrinaAsync`), `ValidaReputazione` **un solo** chiamante
+(`ApplicaPaginaHomeAsync`): verificato con `grep -c`. Le docstring di entrambe dicono adesso che il
+chiamante unico **è una proprietà da conservare**, e perché: se un giorno ne avessero due, la coppia
+sarebbe stata separata e la regola sarebbe già rotta.
+
+**5.5 — `VerificaImmagineAssegnabileAsync` ha cinque chiamanti** (prodotto, anteprima social, tre
+slot) e la docstring lo dice, invece di continuare a nominarne due. Sei test nuovi lo esercitano: tre
+sul rifiuto con lo **stesso messaggio** dell'anteprima social, tre sull'assegnazione e sul successivo
+azzeramento dello slot.
+
+**5.6 — `ruoliImmagini`.** Nuovo tipo di output `RuoliImmaginiVetrina` con `origine: SLOT |
+POSIZIONE` sui tre ruoli singoli. 🔴 `origine` **non esce in pubblico**: `SuperficiePubblicaTests`
+resta verde **senza modifiche**, e nel DTO di `/api/public/galleria` quel campo non compare.
+⚠️ **Deroga dichiarata dalla forma illustrata in [D6](./design.md)**: i tre ruoli singoli sono un
+oggetto che espone `mediaAssetId` **e** `origine` **e** `immagine` (il media per intero), invece di
+essere il media con un campo in più. La ragione: appiattire `origine` dentro `MediaAssetType`
+avrebbe voluto dire duplicarne i sedici campi in un secondo tipo. La query di [D6](./design.md)
+(`eroeHome { mediaAssetId origine }`) funziona **alla lettera** su questa forma.
+⚠️ **E una seconda estrazione, per non duplicare una regola**: «che cosa è la galleria» — cartella,
+pubblicazione, ordine — aveva un chiamante solo (`PublicController`) e adesso ne ha due. È stata
+spostata in `Services/Vetrina/SelezioneGalleria.cs`, da cui entrambi pescano. Due selezioni che
+differissero anche solo nell'ordinamento darebbero **ruoli diversi a dati identici**, ed è
+esattamente il guasto che il piano dei ruoli esiste per togliere.
+`QueryDellaGalleria_ConfrontaLaColonnaSenzaApplicarleAlcunaFunzione` resta verde.
+
+**5.7 — il pin per riflessione, riscritto contro il modello.** L'elenco letterale di trenta nomi è
+sparito: l'autorità è ora `typeof(ImpostazioniVetrina).GetProperties()` meno le **sette** voci di
+`NonScrivibiliDaGraphQL` — l'identificativo, le due marche temporali e le **quattro navigazioni**
+(non gli identificativi degli slot, che sono scrivibili). 33 campi scrivibili, 20 + 5 + 3 + 5 = 33
+rivendicati.
+
+**5.11 — lo svuotamento.** `Mutation_ConUnCampoOpzionaleSvuotato_PersisteLAssenza` passa **senza
+alcuna modifica**: `git diff` su quel blocco è vuoto. Accanto, una `[Theory]` su cinque campi delle
+tre mutation nuove (`claimVetrina`, `storiaTitolo`, `storiaTesto`, `aperitivoTesto`,
+`aperitivoCategorie`) fa lo stesso giro — valorizza, svuota, rilegge — perché la proprietà non è
+della mutation che ce l'aveva: è di **ogni canale di scrittura**.
+
+**5.12 — gli orari, da 6 a 24 casi generati.** La `[Theory]` enumera adesso `Enum.GetValues<Scheda>()`
+× i sei campi vietati, e i casi sono **generati**: aggiungere una quinta scheda domani è una riga
+nell'enum, non sei righe copiate.
+
+**5.13 — privilegi.** Sei test nuovi: tre sul rifiuto delle scritture di pagina a un operatore (con
+la verifica che **la riga non venga creata** — il guard precede l'upsert), tre sul successo per
+l'amministratore, più il rifiuto e il successo su `ruoliImmagini`.
+`git diff AutorizzazioneAnonimaTests.cs` è **vuoto**: nessun ramo root nuovo, quindi la copertura
+dell'anonimo si eredita senza toccare nulla.
+
+#### 🔴 Le tre verifiche per mutazione — eseguite, non dedotte
+
+| # | Mutazione | Rossi | Verdi intorno |
+|---|---|---|---|
+| **5.8 ①** (orfano) | `UrlProfiloGoogle` tolto da `PaginaHomeInput` (+ la sua validazione) | **3**, fra cui `UnioneDegliInput_EEsattamenteLInsiemeDeiCampiScrivibili` — `Expected orfani to be empty …, but found at least one item {"UrlProfiloGoogle"}` | **94 su 97**, fra cui `NessunCampoAppartieneADueSchede` |
+| **5.8 ②** (conteso) | `ClaimVetrina` aggiunto **anche** a `PaginaLocaleInput` | **2**, fra cui `NessunCampoAppartieneADueSchede` — `but found at least one item {"ClaimVetrina (Home + Locale)"}` | **95 su 97**, e 🔴 fra questi `UnioneDegliInput…`, che resta **verde** |
+| **5.10** (azzeramento) | `AperitivoPunti` tolto da `PaginaAperitivoInput` e assegnato da un valore assente | **3**, fra cui `AzzeramentoIncrociato_SalvandoUnaSchedaConInputVuoto_SoloIlSuoPerimetroCambia(Aperitivo)` — `but found at least one item {"AperitivoPunti"}` | **94 su 97** |
+| **5.14** (rete di Fase 1) | `urlProfiloGoogle` tolto da `inputHome`, il costruttore appena riscritto a mano | **1 su 19** — `campi scrivibili che NESSUNA scheda spedisce (verrebbero azzerati): urlProfiloGoogle` | **18 su 19** |
+
+🔴 **Le due letture che valgono più del rosso.**
+
+1. Le mutazioni **①** e **②** falliscono su **test diversi**, e questo è il punto di
+   [D3](./design.md): la totalità e la disgiunzione sono due proprietà distinte, e nella ②
+   `UnioneDegliInput…` resta **verde** mentre un campo ha due proprietari. Un solo test che le
+   coprisse entrambe avrebbe nominato la proprietà sbagliata, o non avrebbe nominato nulla.
+2. La mutazione **5.14** è la prova che la rete scritta in Fase 1 è **viva contro il codice nuovo**.
+   Finché le quattro `inputXxx` erano proiezioni filtrate, «l'unione copre esattamente i campi
+   scrivibili» era vero **per costruzione** e quel test non poteva che essere verde. Adesso i quattro
+   costruttori sono scritti a mano e il test è l'unica ragione per cui dimenticarne un campo non
+   produce un salvataggio che lo azzera in silenzio.
+
+Dopo ogni mutazione il ripristino è stato verificato: suite backend **806 / 806**, file di pagina
+**19 / 19**.
+
+#### 🔴 5.14 — il criterio di successo della fase
+
+`inputDaValori` **è sparito** insieme al suo ultimo chiamante. Le quattro `inputXxx` sono adesso
+costruttori indipendenti, e `rivendicazioniComplete` / `proiezione` non esistono più.
+
+🔴 **Il test del task 1.4 è rimasto verde SENZA modifiche di sostanza — e senza modifiche affatto.**
+La prova non è una lettura: le righe 144-226 del file di test a `HEAD` (il test di partizione **e**
+quello sulla mappa di proprietà) sono state estratte e confrontate con `diff` contro le
+corrispondenti righe 148-230 del tree. **Identiche, byte per byte.** L'unico motivo per cui gli
+indici sono spostati di quattro è un commento aggiunto **altrove nel file**, nel test della chiave
+antispam.
+
+#### 🔴 5.15 — il `superRefine` spezzato, e la proprietà che non si è persa
+
+Da **uno** schema con **un** `superRefine` che conteneva entrambi i grappoli a **quattro** schemi:
+`schemaImpostazioniSito` (20 campi, grappolo coordinate), `schemaPaginaHome` (4 campi, grappolo
+reputazione), `schemaPaginaLocale` e `schemaPaginaAperitivo` (nessuna regola incrociata). Il
+traduttore da esito Zod alla forma di Formik è **uno solo** per tutte e quattro.
+
+| Verifica | Esito |
+|---|---|
+| `validaImpostazioniSito({latitudine: "45.7075", longitudine: ""})` | segnala **entrambi**: `latitudine` **e** `longitudine` |
+| `validaImpostazioniSito({latitudine: "", longitudine: "11.4789"})` | segnala **entrambi** |
+| `validaPaginaHome({punteggioGoogle: "4.7", numeroRecensioniGoogle: ""})` | segnala **entrambi** |
+| `validaPaginaHome({punteggioGoogle: "", numeroRecensioniGoogle: "180"})` | segnala **entrambi** |
+
+⚠️ L'ultima riga è un **rafforzamento**: prima della fase quel caso asseriva un campo solo. Con i
+due grappoli su due schemi diversi, «segnala entrambi» è precisamente la proprietà che la divisione
+poteva perdere — un controllo incrociato spezzato fra due schemi segnalerebbe solo il campo che il
+suo schema conosce, e l'amministratore leggerebbe un errore che gli dice di guardare un campo che
+quella scheda non mostra.
+
+**5.16 — la pagina, ridotta ai 20 campi.** Le quattro sezioni editoriali (claim, «Il locale»,
+«Aperitivo», reputazione) sono uscite; restano identità, indirizzo, posizione, contatti e social,
+SEO di default, anteprima social, aspetto, prenotazioni e l'avviso sugli orari. La pagina **non è
+stata rinominata** (risoluzione 4) e il suo `Percorso` non è stato toccato.
+⚠️ Aggiunto un avviso che dice **dove sono andati** i testi: una sezione che sparisce senza
+spiegazione si legge come un dato perso, e fra questa fase e la Fase 6 quei campi non hanno ancora
+una scheda. Non è un campo: la verifica «la pagina non mostra alcun campo editoriale» resta
+soddisfatta.
+
+**5.17 — GraphQL del frontend.** Tre mutation nuove, la query `ruoliImmagini`, e il fragment delle
+impostazioni **unico e invariato** — già conteneva i tre slot dal task 3.11. I tre nuovi
+`TypedDocumentNode` rendono lo **stesso** fragment: quattro fragment vorrebbero dire quattro copie
+in cache Apollo della stessa riga singleton, che divergerebbero al primo salvataggio.
+
+#### 5.18 — la prova end-to-end, sul backend reale
+
+Seconda istanza avviata da `dotnet run` sul database di sviluppo, un token di amministratore preso
+**una volta** e riusato. ⚠️ `ASPNETCORE_URLS=https://localhost:4012` **non ha effetto**: il profilo
+`http` di `backend/Properties/launchSettings.json` impone `http://0.0.0.0:4000` e vince sulla
+variabile d'ambiente. L'istanza è girata quindi sulla 4000, che era libera.
+
+| Passo | Esito osservato |
+|---|---|
+| `turnstileSiteKey` valorizzata a `"0xPROVA-FASE-5"` | ⚠️ necessario: era `NULL`, e «invariata» da `NULL` a `NULL` sarebbe stata una verifica **vacua** |
+| `mutatePaginaHome` con il **solo** `claimVetrina` cambiato | campi cambiati sull'intera riga: **`['claimVetrina']`**, uno solo |
+| `Via`, `UrlInstagram`, `StoriaTesto`, `AperitivoTesto`, `TurnstileSiteKey` | **invariati**, confrontati uno per uno |
+| `punteggioGoogle` (dentro il gruppo, rispedito) | `4.7` → `4.7` |
+| `claimVetrina` svuotato con `""` | persistito come **`null`**, e `storiaTesto` ancora intatto |
+| Ripristino dei due gruppi ai valori di partenza | campi ancora divergenti: **NESSUNO** |
+
+🔴 **Il dato non è stato lasciato modificato, e lo si è verificato con SQL indipendente**:
+`MD5(StoriaTesto)` = `3c4adb02…` e `MD5(AperitivoTesto)` = `3907e500…`, **gli stessi numeri della
+Fase 0 e della Fase 4**; `TurnstileSiteKey` di nuovo `NULL`; `PunteggioGoogle` = 4.7.
+⚠️ **Nessun accesso alla produzione**: backend e database sono locali, e il processo è stato
+**fermato** a fine fase (porte 4000-4019 e 4321 libere).
+
+**5.19 — la nota di deploy, dove la legge chi deploya.** Non solo in questo file: in
+[`DEPLOY.md`](../../../DEPLOY.md), §5 «Deploy Successivi», con la tabella dei rilasci che hanno
+questo vincolo e l'ordine **asimmetrico** del rollback (prima il backend, poi il frontend) ripetuto
+nella sezione Rollback del §7. Nella stessa modifica è stata scritta anche la nota che mancava sulle
+**migrazioni che non tornano indietro** con un `git checkout`.
 
 ---
 

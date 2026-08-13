@@ -3,7 +3,25 @@ using GraphQL.Types;
 namespace duedgusto.GraphQL.Vetrina.Types;
 
 /// <summary>
-/// Esattamente i campi <b>scrivibili</b> delle impostazioni del sito, e nient'altro.
+/// Esattamente i campi scrivibili della scheda <b>Impostazioni sito</b>, e nient'altro: identità,
+/// indirizzo, coordinate, contatti, social, SEO di default, anteprima social, aspetto e ganci
+/// spenti. <b>Venti campi.</b>
+///
+/// <para>🔴 <b>Da questa change l'input NON possiede più i testi editoriali né la reputazione.</b>
+/// Erano dieci campi (claim, storia, aperitivo, reputazione) e sono passati ai tre input di
+/// pagina — <see cref="PaginaHomeInput"/>, <see cref="PaginaLocaleInput"/>,
+/// <see cref="PaginaAperitivoInput"/> — perché appartengono a <b>una</b> pagina e la scheda di
+/// quella pagina è l'unico posto da cui si scrivono. È una modifica <b>breaking</b> della forma
+/// dell'input, dichiarata e accettata: l'unico consumatore è il frontend di questo repository,
+/// che si deploya insieme. La conseguenza operativa è che backend e frontend di questa fase vanno
+/// <b>nello stesso deploy</b>, e che un rollback deve <b>prima</b> riespandere l'input e
+/// <b>poi</b> revertire il frontend, mai il contrario.</para>
+///
+/// <para>🔴 <b>La riduzione è ciò che rende la partizione vera, non solo dichiarata.</b> Se
+/// <c>claimVetrina</c> restasse qui <i>e</i> stesse in <see cref="PaginaHomeInput"/>, due schede
+/// scriverebbero lo stesso campo e vincerebbe l'ultima che salva — senza alcun errore da nessuna
+/// parte. Il test di disgiunzione per riflessione lo verifica a ogni build proprio perché questa
+/// è la forma in cui l'errore si commetterebbe: aggiungendo, non togliendo.</para>
 ///
 /// <para>🔴 <b>Nessun identificativo.</b> C'è una riga sola e il resolver sa quale: accettare un
 /// id sarebbe invitare qualcuno a passarne un altro. Il resolver fa upsert sulla costante di
@@ -53,19 +71,12 @@ public class ImpostazioniVetrinaInput
     // ── Tema ─────────────────────────────────────────────────────────────────────────────
     public string OraInizioTemaSera { get; set; } = "18:00";
 
-    // ── Testi editoriali del sito ────────────────────────────────────────────────────────
-    public string? ClaimVetrina { get; set; }
-    public string? StoriaTitolo { get; set; }
-    public string? StoriaTesto { get; set; }
-    public string? AperitivoTitolo { get; set; }
-    public string? AperitivoTesto { get; set; }
-    public string? AperitivoPunti { get; set; }
-    public string? AperitivoCategorie { get; set; }
-
-    // ── Reputazione ──────────────────────────────────────────────────────────────────────
-    public decimal? PunteggioGoogle { get; set; }
-    public int? NumeroRecensioniGoogle { get; set; }
-    public string? UrlProfiloGoogle { get; set; }
+    // ── Testi editoriali e reputazione: NON sono più qui ─────────────────────────────────
+    // claimVetrina, punteggioGoogle, numeroRecensioniGoogle e urlProfiloGoogle stanno in
+    // PaginaHomeInput; storiaTitolo e storiaTesto in PaginaLocaleInput; i quattro campi
+    // dell'aperitivo in PaginaAperitivoInput. Ogni campo ha un proprietario solo, e questa
+    // assenza è ciò che lo rende vero: non essendo nominabili da qui, non c'è alcun percorso
+    // per cui un salvataggio delle impostazioni del sito li tocchi.
 
     // ── Ganci spenti ─────────────────────────────────────────────────────────────────────
     public bool PrenotazioniAttive { get; set; }
@@ -79,10 +90,14 @@ public class ImpostazioniVetrinaInputType : InputObjectGraphType<ImpostazioniVet
     public ImpostazioniVetrinaInputType()
     {
         Name = "ImpostazioniVetrinaInput";
-        Description = "Campi scrivibili delle impostazioni del sito. Non contiene "
-            + "l'identificativo della riga (ce n'è una sola), né le marche temporali, né alcun "
-            + "campo di orario: apertura, chiusura, giorni operativi e fuso si modificano dalle "
-            + "impostazioni della cassa, che ne sono la sola sorgente.";
+        Description = "Campi scrivibili della scheda «Impostazioni sito»: identità, indirizzo, "
+            + "coordinate, contatti, social, SEO di default, anteprima social, aspetto e ganci "
+            + "spenti. Non contiene l'identificativo della riga (ce n'è una sola), né le marche "
+            + "temporali, né alcun campo di orario: apertura, chiusura, giorni operativi e fuso "
+            + "si modificano dalle impostazioni della cassa, che ne sono la sola sorgente. Non "
+            + "contiene nemmeno i testi editoriali e la reputazione: appartengono alle pagine "
+            + "che li rendono e si scrivono da mutatePaginaHome, mutatePaginaLocale e "
+            + "mutatePaginaAperitivo.";
 
         Field(x => x.InsegnaPubblica);
         Field(x => x.Via);
@@ -109,33 +124,6 @@ public class ImpostazioniVetrinaInputType : InputObjectGraphType<ImpostazioniVet
                 + "lascia il media in libreria.");
 
         Field(x => x.OraInizioTemaSera).Description("Forma \"HH:mm\", es. \"18:00\".");
-
-        Field(x => x.ClaimVetrina, nullable: true)
-            .Description("Il paragrafo sotto il titolo della home. Una o due frasi. Vuoto: la "
-                + "home non mostra alcun paragrafo, invece di mostrarne uno scritto nel codice.");
-        Field(x => x.StoriaTitolo, nullable: true);
-        Field(x => x.StoriaTesto, nullable: true)
-            .Description("La storia del locale, con nomi e date veri. Vuota: la pagina \"Il "
-                + "locale\" non si rende affatto e sparisce dalla navigazione.");
-        Field(x => x.AperitivoTitolo, nullable: true);
-        Field(x => x.AperitivoTesto, nullable: true)
-            .Description("Vuoto: la pagina dell'aperitivo non si rende affatto.");
-        Field(x => x.AperitivoPunti, nullable: true)
-            .Description("Cosa è compreso, UNA VOCE PER RIGA. Righe vuote e spazi vengono "
-                + "ignorati; se ne pubblicano al massimo sei.");
-        Field(x => x.AperitivoCategorie, nullable: true)
-            .Description("Quali categorie di vetrina mostrare nella pagina dell'aperitivo, UNA "
-                + "PER RIGA, con il nome esatto. 🔴 Esiste per non indovinare: cercare la parola "
-                + "\"cocktail\" nel nome smette di funzionare alla prima rinomina, e la pagina "
-                + "mostrerebbe le cose sbagliate senza lasciare traccia.");
-
-        Field(x => x.PunteggioGoogle, nullable: true)
-            .Description("Da 1 a 5, es. 4.7. 🔴 Va insieme a numeroRecensioniGoogle: il sito "
-                + "mostra i due numeri insieme o nessuno dei due — \"4,7\" su tre recensioni e "
-                + "\"4,7\" su ottocento sono due affermazioni diverse.");
-        Field(x => x.NumeroRecensioniGoogle, nullable: true);
-        Field(x => x.UrlProfiloGoogle, nullable: true)
-            .Description("URL assoluto http/https del profilo Google del locale.");
 
         Field(x => x.PrenotazioniAttive);
         Field(x => x.PrenotazioniPreavvisoOre);

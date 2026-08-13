@@ -1,3 +1,5 @@
+using FluentAssertions.Execution;
+
 using GraphQL;
 
 using duedgusto.GraphQL.Vetrina;
@@ -49,6 +51,47 @@ public class ImpostazioniVetrinaTests : IDisposable
     private Task<ImpostazioniVetrina> Salva(ImpostazioniVetrinaInput input) =>
         VetrinaMutations.ApplicaImpostazioniVetrinaAsync(_dbContext, input);
 
+    // ── Le quattro schede, come dato del test ────────────────────────────────────────────
+    //
+    // 🔴 L'elenco dei campi di una scheda NON è scritto a mano da nessuna parte di questo file:
+    //    è `TipoInput(scheda).GetProperties()`. È ciò che rende i test di partizione e di
+    //    azzeramento incrociato *parametrizzati sulla definizione dei gruppi* invece che copiati
+    //    quattro volte — una copia dimenticherebbe il campo aggiunto domani, che è esattamente
+    //    il guasto contro cui questi test esistono.
+
+    public enum Scheda { Impostazioni, Home, Locale, Aperitivo }
+
+    private static Type TipoInput(Scheda scheda) => scheda switch
+    {
+        Scheda.Impostazioni => typeof(ImpostazioniVetrinaInput),
+        Scheda.Home => typeof(PaginaHomeInput),
+        Scheda.Locale => typeof(PaginaLocaleInput),
+        _ => typeof(PaginaAperitivoInput),
+    };
+
+    private static string NomeMutation(Scheda scheda) => scheda switch
+    {
+        Scheda.Impostazioni => "mutateImpostazioniVetrina",
+        Scheda.Home => "mutatePaginaHome",
+        Scheda.Locale => "mutatePaginaLocale",
+        _ => "mutatePaginaAperitivo",
+    };
+
+    private static string[] PerimetroDi(Scheda scheda) =>
+        [.. TipoInput(scheda).GetProperties().Select(p => p.Name)];
+
+    private Task<ImpostazioniVetrina> SalvaScheda(Scheda scheda, object input) => scheda switch
+    {
+        Scheda.Impostazioni => VetrinaMutations.ApplicaImpostazioniVetrinaAsync(
+            _dbContext, (ImpostazioniVetrinaInput)input),
+        Scheda.Home => VetrinaMutations.ApplicaPaginaHomeAsync(
+            _dbContext, (PaginaHomeInput)input),
+        Scheda.Locale => VetrinaMutations.ApplicaPaginaLocaleAsync(
+            _dbContext, (PaginaLocaleInput)input),
+        _ => VetrinaMutations.ApplicaPaginaAperitivoAsync(
+            _dbContext, (PaginaAperitivoInput)input),
+    };
+
     private async Task<ImpostazioniVetrina> Rileggi() =>
         (await VetrinaQueries.LeggiImpostazioniAsync(_dbContext))!;
 
@@ -95,6 +138,47 @@ public class ImpostazioniVetrinaTests : IDisposable
             "cancellare un campo e salvare deve persistere l'assenza: è la proprietà che lo "
             + "stile condizionale di updateBusinessSettings rende impossibile");
         (await Rileggi()).UrlFacebook.Should().BeNull("e la rilettura deve confermarlo");
+    }
+
+    /// <summary>
+    /// 🔴 <b>Lo stesso scenario, una volta per ciascuna delle tre scritture nuove.</b> La
+    /// proprietà «un campo valorizzato si deve poter svuotare» non è una proprietà della mutation
+    /// che ce l'aveva: è una proprietà di <b>ogni canale di scrittura</b>, e con la divisione in
+    /// quattro il modo di perderla è che una delle tre nuove nasca con un
+    /// <c>if (!string.IsNullOrEmpty(...))</c> copiato da <c>updateBusinessSettings</c>.
+    ///
+    /// <para>⚠️ I tre campi scelti non sono intercambiabili con altri: <c>storiaTesto</c> e
+    /// <c>aperitivoTesto</c> svuotati <b>cancellano un URL</b> — la pagina risponde 404 e sparisce
+    /// dalla navigazione — quindi qui la forma condizionale non renderebbe soltanto impossibile
+    /// una modifica, renderebbe impossibile <i>ritirare una pagina dal sito</i>.</para>
+    /// </summary>
+    [Theory]
+    [InlineData(Scheda.Home, "ClaimVetrina")]
+    [InlineData(Scheda.Locale, "StoriaTitolo")]
+    [InlineData(Scheda.Locale, "StoriaTesto")]
+    [InlineData(Scheda.Aperitivo, "AperitivoTesto")]
+    [InlineData(Scheda.Aperitivo, "AperitivoCategorie")]
+    public async Task Mutation_DiPagina_ConUnCampoSvuotato_PersisteLAssenza(Scheda scheda, string campo)
+    {
+        System.Reflection.PropertyInfo proprietaInput = TipoInput(scheda).GetProperty(campo)!;
+        System.Reflection.PropertyInfo proprietaEntita =
+            typeof(ImpostazioniVetrina).GetProperty(campo)!;
+
+        object conValore = Activator.CreateInstance(TipoInput(scheda))!;
+        proprietaInput.SetValue(conValore, "un testo che c'era");
+        await SalvaScheda(scheda, conValore);
+        proprietaEntita.GetValue(await Rileggi()).Should().Be("un testo che c'era",
+            "il presupposto dello scenario è che il campo fosse valorizzato");
+
+        // Il modulo con quel campo cancellato: stringa vuota, non "campo assente".
+        object svuotato = Activator.CreateInstance(TipoInput(scheda))!;
+        proprietaInput.SetValue(svuotato, "");
+        ImpostazioniVetrina salvate = await SalvaScheda(scheda, svuotato);
+
+        proprietaEntita.GetValue(salvate).Should().BeNull(
+            "cancellare un campo e salvare deve persistere l'assenza, in OGNI canale di "
+            + "scrittura: è la proprietà che lo stile condizionale rende impossibile");
+        proprietaEntita.GetValue(await Rileggi()).Should().BeNull("e la rilettura deve confermarlo");
     }
 
     [Fact]
@@ -382,15 +466,18 @@ public class ImpostazioniVetrinaTests : IDisposable
     /// <para><c>impostazioniVetrinaId</c>: c'è una riga sola e il resolver sa quale — accettare un
     /// identificativo sarebbe invitare qualcuno a passarne un altro. <c>openingTime</c>: gli
     /// orari hanno una sola sorgente, e non è la vetrina.</para>
+    ///
+    /// <para>🔴 <b>Da una mutation a QUATTRO, e i 24 casi sono GENERATI, non copiati.</b> Il
+    /// rischio di questa change non è che qualcuno violi lo sbarramento di proposito: è che una
+    /// scheda nuova, scritta fra sei mesi, non erediti la protezione perché la protezione era
+    /// pinnata <b>su una mutation nominata</b>. Enumerare le mutation è ciò che fa ereditare la
+    /// copertura a chi arriva dopo — e il giorno in cui nascesse una quinta scheda, aggiungerne il
+    /// nome qui è una riga.</para>
     /// </summary>
     [Theory]
-    [InlineData("impostazioniVetrinaId: 2")]
-    [InlineData("openingTime: \"07:00\"")]
-    [InlineData("closingTime: \"21:00\"")]
-    [InlineData("operatingDays: \"[true,true,true,true,true,true,false]\"")]
-    [InlineData("timezone: \"Europe/Rome\"")]
-    [InlineData("createdAt: \"2026-01-01T00:00:00Z\"")]
-    public async Task Input_ConUnCampoCheNonPossiede_RifiutatoDallaValidazioneDelloSchema(string campo)
+    [MemberData(nameof(CampiVietatiSulleQuattroMutation))]
+    public async Task Input_ConUnCampoCheNonPossiede_RifiutatoDallaValidazioneDelloSchema(
+        Scheda scheda, string campo)
     {
         using var host = new GraphQLTestHost(_dbContext);
 
@@ -398,11 +485,8 @@ public class ImpostazioniVetrinaTests : IDisposable
             $$"""
             mutation {
               vetrina {
-                mutateImpostazioniVetrina(input: {
-                  insegnaPubblica: "X", via: "V", cap: "36016", citta: "Thiene",
-                  provincia: "VI", paese: "IT", oraInizioTemaSera: "18:00",
-                  prenotazioniAttive: false, prenotazioniPreavvisoOre: 2,
-                  prenotazioniCopertiMax: 20, {{campo}}
+                {{NomeMutation(scheda)}}(input: {
+                  {{InputMinimoValido(scheda)}}, {{campo}}
                 }) { impostazioniVetrinaId }
               }
             }
@@ -417,33 +501,393 @@ public class ImpostazioniVetrinaTests : IDisposable
         _dbContext.ImpostazioniVetrina.Should().BeEmpty();
     }
 
+    public static TheoryData<Scheda, string> CampiVietatiSulleQuattroMutation()
+    {
+        string[] vietati =
+        [
+            "impostazioniVetrinaId: 2",
+            "openingTime: \"07:00\"",
+            "closingTime: \"21:00\"",
+            "operatingDays: \"[true,true,true,true,true,true,false]\"",
+            "timezone: \"Europe/Rome\"",
+            "createdAt: \"2026-01-01T00:00:00Z\"",
+        ];
+
+        var casi = new TheoryData<Scheda, string>();
+        Enum.GetValues<Scheda>().ToList()
+            .ForEach(scheda => vietati.ToList().ForEach(campo => casi.Add(scheda, campo)));
+        return casi;
+    }
+
+    /// <summary>Il minimo che ciascuna delle quattro mutation accetta come input valido.</summary>
+    private static string InputMinimoValido(Scheda scheda) => scheda switch
+    {
+        Scheda.Impostazioni =>
+            """
+            insegnaPubblica: "X", via: "V", cap: "36016", citta: "Thiene",
+            provincia: "VI", paese: "IT", oraInizioTemaSera: "18:00",
+            prenotazioniAttive: false, prenotazioniPreavvisoOre: 2,
+            prenotazioniCopertiMax: 20
+            """,
+        Scheda.Home => "claimVetrina: \"X\"",
+        Scheda.Locale => "storiaTitolo: \"X\"",
+        _ => "aperitivoTitolo: \"X\"",
+    };
+
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    //  🔴 LA PARTIZIONE, PER RIFLESSIONE — totale e disgiunta, contro il MODELLO
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+
     /// <summary>
-    /// Il pin per riflessione, che copre anche i campi che nessuno ha pensato di provare: l'input
-    /// possiede <b>esattamente</b> i campi scrivibili. È ciò che rende sicura l'assegnazione
-    /// totale — non c'è nulla da ricordarsi di preservare perché non c'è nulla che questo canale
-    /// possa toccare fuori perimetro.
+    /// Ciò che dell'entità <b>dichiaratamente</b> non si scrive da GraphQL. È il complemento
+    /// dell'unione dei quattro input: tutto il resto deve avere un proprietario.
+    ///
+    /// <para>🔴 <b>L'autorità non è più una lista scritta a mano</b>, com'era il pin precedente
+    /// (<c>ImpostazioniVetrinaInput_HaEsattamenteICampiScrivibili</c>, trenta nomi ricopiati): è
+    /// <b>l'entità</b>, meno queste sette eccezioni. Un campo aggiunto al modello e a nessun input
+    /// diventa <b>orfano</b>, e il test lo dice per nome — mentre una lista letterale sarebbe
+    /// rimasta verde, perché avrebbe continuato a descrivere il mondo di ieri.</para>
+    ///
+    /// <para>⚠️ Le tre voci nuove sono le <b>navigazioni</b>, non gli identificativi: gli slot
+    /// <c>ImmagineEroeHomeId</c>, <c>ImmagineRitrattoLocaleId</c> e
+    /// <c>ImmagineEroeAperitivoId</c> <b>sono scrivibili</b>, ciascuno dalla scheda della sua
+    /// pagina. Sono le proprietà di navigazione a non esserlo, come <c>ImmagineOg</c> — si scrive
+    /// l'identificativo, e l'entità la carica EF.</para>
+    /// </summary>
+    private static readonly string[] NonScrivibiliDaGraphQL =
+    [
+        "ImpostazioniVetrinaId",   // c'è una riga sola e il resolver sa quale
+        "CreatedAt", "UpdatedAt",  // ciò che il sistema ha osservato, non ciò che un client dichiara
+        "ImmagineOg",              // navigazione: si scrive ImmagineOgId
+        "ImmagineEroeHome", "ImmagineRitrattoLocale", "ImmagineEroeAperitivo",
+    ];
+
+    private static string[] CampiScrivibiliDelModello() =>
+        [.. typeof(ImpostazioniVetrina).GetProperties()
+            .Select(proprieta => proprieta.Name)
+            .Where(nome => !NonScrivibiliDaGraphQL.Contains(nome))];
+
+    /// <summary>
+    /// 🔴 <b>Totalità.</b> L'unione dei quattro perimetri è <b>esattamente</b> l'insieme dei campi
+    /// scrivibili del modello.
+    ///
+    /// <para>Un campo orfano — presente sul modello e in nessun input — è un campo che
+    /// <b>nessuno può più modificare</b>, e la sua perdita è invisibile: il valore resta corretto
+    /// finché non serve cambiarlo. È il guasto che il pin precedente non poteva vedere, perché
+    /// confrontava l'input con una lista scritta a mano <i>accanto</i> a quell'input.</para>
+    ///
+    /// <para>Il messaggio nomina i campi e non la cardinalità: «31 invece di 33» costringerebbe a
+    /// cercare quale, ed è precisamente l'informazione che il test già possiede.</para>
     /// </summary>
     [Fact]
-    public void ImpostazioniVetrinaInput_HaEsattamenteICampiScrivibili()
+    public void UnioneDegliInput_EEsattamenteLInsiemeDeiCampiScrivibili()
     {
-        typeof(ImpostazioniVetrinaInput).GetProperties().Select(p => p.Name)
-            .Should().BeEquivalentTo(
-                "InsegnaPubblica",
-                "Via", "Cap", "Citta", "Provincia", "Paese",
-                "Latitudine", "Longitudine",
-                "Telefono", "Email", "UrlInstagram", "UrlFacebook",
-                "MetaTitoloDefault", "MetaDescrizioneDefault", "ImmagineOgId",
-                "OraInizioTemaSera",
-                // I testi editoriali del sito: nascono nel CMS e non nel codice del sito,
-                // perché una frase sul locale scritta in un componente è una verità che
-                // invecchia lontano da chi la conosce.
-                "ClaimVetrina",
-                "StoriaTitolo", "StoriaTesto",
-                "AperitivoTitolo", "AperitivoTesto", "AperitivoPunti", "AperitivoCategorie",
-                // La reputazione: i due numeri si valorizzano insieme o nessuno dei due.
-                "PunteggioGoogle", "NumeroRecensioniGoogle", "UrlProfiloGoogle",
-                "PrenotazioniAttive", "PrenotazioniPreavvisoOre", "PrenotazioniCopertiMax",
-                "TurnstileSiteKey");
+        string[] scrivibili = CampiScrivibiliDelModello();
+        string[] rivendicati = [.. Enum.GetValues<Scheda>().SelectMany(PerimetroDi)];
+
+        string[] orfani = [.. scrivibili.Except(rivendicati).Order()];
+        string[] intrusi = [.. rivendicati.Except(scrivibili).Order()];
+
+        orfani.Should().BeEmpty(
+            "un campo scrivibile che nessuna scheda possiede non si può più modificare da "
+            + "nessuna parte, e la perdita è invisibile finché non serve cambiarlo");
+        intrusi.Should().BeEmpty(
+            "un input che nomina un campo che il modello non ha è un campo che il salvataggio "
+            + "ignora in silenzio");
+    }
+
+    /// <summary>
+    /// 🔴 <b>Disgiunzione.</b> Le intersezioni a due a due dei quattro perimetri sono vuote.
+    ///
+    /// <para>Due schede che scrivono lo stesso campo sono <b>due verità</b>, e vince l'ultima che
+    /// salva — senza alcun errore da nessuna parte. È la proprietà che il compilatore del frontend
+    /// <b>non</b> vede: se un campo finisse in due input, l'intersezione dei tipi lo nominerebbe
+    /// comunque una volta sola e la mappa di proprietà resterebbe valida. Per questo la
+    /// disgiunzione si verifica qui, per riflessione, e non lassù.</para>
+    /// </summary>
+    [Fact]
+    public void NessunCampoAppartieneADueSchede()
+    {
+        Scheda[] schede = [.. Enum.GetValues<Scheda>()];
+
+        string[] contese =
+        [
+            .. schede.SelectMany((prima, indice) => schede.Skip(indice + 1)
+                .SelectMany(seconda => PerimetroDi(prima).Intersect(PerimetroDi(seconda))
+                    .Select(campo => $"{campo} ({prima} + {seconda})")))
+        ];
+
+        contese.Should().BeEmpty(
+            "un campo rivendicato da due schede è due verità sullo stesso dato, e vince l'ultima "
+            + "che salva: il messaggio nomina il campo E le due schede, perché sapere quale campo "
+            + "senza sapere chi se lo contende non basta a correggerlo");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+    //  🔴 AZZERAMENTO INCROCIATO — il motivo per cui questa change esiste
+    // ═══════════════════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Semina la riga con <b>tutti</b> i campi scrivibili a valori distinti e riconoscibili, e
+    /// verifica di averlo fatto davvero.
+    ///
+    /// <para>🔴 <b>La verifica sul seme non è pignoleria.</b> Un campo dimenticato qui resterebbe
+    /// al proprio valore di default, e un test di «non è cambiato» su un campo che valeva già
+    /// <c>null</c> passa <b>sempre</b> — cioè coprirebbe il campo nuovo di domani soltanto
+    /// all'apparenza. L'asserzione è quindi sul seme stesso, non sui suoi effetti.</para>
+    /// </summary>
+    private async Task<MediaAsset[]> SeminaTuttiICampiScrivibili()
+    {
+        MediaAsset[] media =
+        [
+            await CreaMedia("og.jpg"),
+            await CreaMedia("eroe-home.jpg"),
+            await CreaMedia("ritratto-locale.jpg"),
+            await CreaMedia("eroe-aperitivo.jpg"),
+        ];
+
+        var riga = new ImpostazioniVetrina
+        {
+            ImpostazioniVetrinaId = ImpostazioniVetrina.IdSingleton,
+            InsegnaPubblica = "SEME insegna",
+            Via = "SEME via",
+            Cap = "36016",
+            Citta = "SEME citta",
+            Provincia = "VI",
+            Paese = "IT",
+            Latitudine = 45.707500m,
+            Longitudine = 11.478900m,
+            Telefono = "SEME telefono",
+            Email = "seme@2dgusto.it",
+            UrlInstagram = "https://www.instagram.com/seme/",
+            UrlFacebook = "https://www.facebook.com/seme/",
+            MetaTitoloDefault = "SEME meta titolo",
+            MetaDescrizioneDefault = "SEME meta descrizione",
+            ImmagineOgId = media[0].MediaAssetId,
+            ImmagineEroeHomeId = media[1].MediaAssetId,
+            ImmagineRitrattoLocaleId = media[2].MediaAssetId,
+            ImmagineEroeAperitivoId = media[3].MediaAssetId,
+            OraInizioTemaSera = "19:30",
+            ClaimVetrina = "SEME claim",
+            StoriaTitolo = "SEME storia titolo",
+            StoriaTesto = "SEME storia testo",
+            AperitivoTitolo = "SEME aperitivo titolo",
+            AperitivoTesto = "SEME aperitivo testo",
+            AperitivoPunti = "SEME punto uno\nSEME punto due",
+            AperitivoCategorie = "SEME categoria",
+            PunteggioGoogle = 4.7m,
+            NumeroRecensioniGoogle = 180,
+            UrlProfiloGoogle = "https://maps.app.goo.gl/seme",
+            PrenotazioniAttive = true,
+            PrenotazioniPreavvisoOre = 7,
+            PrenotazioniCopertiMax = 33,
+            TurnstileSiteKey = "0xSEME",
+        };
+        _dbContext.ImpostazioniVetrina.Add(riga);
+        await _dbContext.SaveChangesAsync();
+
+        string[] rimastiAlDefault =
+        [
+            .. CampiScrivibiliDelModello()
+                .Where(campo => ValoreDi(riga, campo) is null or "" or 0 or false)
+        ];
+        rimastiAlDefault.Should().BeEmpty(
+            "il seme deve valorizzare OGNI campo scrivibile: su un campo lasciato al default "
+            + "l'asserzione «non è cambiato» passerebbe sempre, e il test coprirebbe quel campo "
+            + "solo all'apparenza");
+
+        return media;
+    }
+
+    private static object? ValoreDi(ImpostazioniVetrina riga, string campo) =>
+        typeof(ImpostazioniVetrina).GetProperty(campo)!.GetValue(riga);
+
+    private static Dictionary<string, object?> Istantanea(ImpostazioniVetrina riga) =>
+        CampiScrivibiliDelModello().ToDictionary(campo => campo, campo => ValoreDi(riga, campo));
+
+    /// <summary>Un input della scheda che rispedisce esattamente ciò che la riga già contiene.</summary>
+    private static object InputDallaRiga(Scheda scheda, ImpostazioniVetrina riga)
+    {
+        object input = Activator.CreateInstance(TipoInput(scheda))!;
+        TipoInput(scheda).GetProperties().ToList()
+            .ForEach(proprieta => proprieta.SetValue(input, ValoreDi(riga, proprieta.Name)));
+        return input;
+    }
+
+    /// <summary>
+    /// 🔴 <b>Salvataggio a vuoto di ciascuna scheda: nessun campo cambia.</b> È lo scenario che
+    /// l'amministratore produce senza volerlo — apre una scheda, guarda, salva.
+    ///
+    /// <para>Con la mutation unica precedente questo era garantito solo perché la pagina
+    /// rispediva tutti e trenta i campi: bastava che una scheda ne dimenticasse uno per azzerarlo
+    /// a ogni apertura. Qui la garanzia è strutturale, e il test la esercita <b>campo per
+    /// campo</b> su tutti e trentatré.</para>
+    /// </summary>
+    [Theory]
+    [InlineData(Scheda.Impostazioni)]
+    [InlineData(Scheda.Home)]
+    [InlineData(Scheda.Locale)]
+    [InlineData(Scheda.Aperitivo)]
+    public async Task AzzeramentoIncrociato_SalvandoUnaSchedaAVuoto_NessunCampoCambia(Scheda scheda)
+    {
+        await SeminaTuttiICampiScrivibili();
+        Dictionary<string, object?> prima = Istantanea(await Rileggi());
+
+        await SalvaScheda(scheda, InputDallaRiga(scheda, await Rileggi()));
+
+        Istantanea(await Rileggi()).Should().BeEquivalentTo(prima,
+            $"salvare la scheda {scheda} senza modificare nulla non deve cambiare nulla, "
+            + "dentro né fuori dal suo perimetro");
+    }
+
+    /// <summary>
+    /// 🔴 <b>Il test che è il motivo della change.</b> Si salva una scheda con l'input
+    /// <b>completamente vuoto</b> — il caso peggiore, cioè un modulo che non trasporta niente — e
+    /// si pretende che <b>ogni</b> campo fuori dal suo perimetro sia rimasto identico.
+    ///
+    /// <para>⚠️ <b>Due asserzioni, e la seconda è quella che impedisce al test di mentire.</b> Se
+    /// ci fosse solo la prima, una <c>Applica…Async</c> che non scrivesse <b>niente</b> la
+    /// passerebbe a pieni voti: «nessun campo fuori perimetro è cambiato» è banalmente vero per
+    /// una funzione che non fa nulla. La seconda pretende che i campi <b>dentro</b> il perimetro
+    /// siano stati azzerati davvero — cioè che l'assegnazione totale abbia funzionato — ed è ciò
+    /// che rende il verde della prima significativo.</para>
+    ///
+    /// <para>🔴 Parametrizzato sulla <b>definizione dei gruppi</b> (<c>TipoInput</c>), non copiato
+    /// quattro volte: una copia dimenticherebbe il campo aggiunto domani.</para>
+    /// </summary>
+    [Theory]
+    [InlineData(Scheda.Impostazioni)]
+    [InlineData(Scheda.Home)]
+    [InlineData(Scheda.Locale)]
+    [InlineData(Scheda.Aperitivo)]
+    public async Task AzzeramentoIncrociato_SalvandoUnaSchedaConInputVuoto_SoloIlSuoPerimetroCambia(
+        Scheda scheda)
+    {
+        await SeminaTuttiICampiScrivibili();
+        Dictionary<string, object?> prima = Istantanea(await Rileggi());
+
+        await SalvaScheda(scheda, Activator.CreateInstance(TipoInput(scheda))!);
+
+        Dictionary<string, object?> dopo = Istantanea(await Rileggi());
+        string[] perimetro = PerimetroDi(scheda);
+
+        using (new AssertionScope())
+        {
+            // ① Nessun campo fuori perimetro è stato toccato.
+            string[] fuoriPerimetro = [.. prima.Keys.Where(campo => !perimetro.Contains(campo))];
+            fuoriPerimetro.Where(campo => !Equals(dopo[campo], prima[campo]))
+                .Should().BeEmpty(
+                    $"salvare la scheda {scheda} non deve toccare alcun campo che quella scheda "
+                    + "non possiede: sono i campi che l'amministratore non ha visto, non ha "
+                    + "modificato e non saprebbe di aver perso");
+
+            // ② E l'assegnazione totale ha funzionato DENTRO il perimetro, altrimenti ① sarebbe
+            //    verde anche per una funzione che non scrive niente.
+            perimetro.Where(campo => Equals(dopo[campo], prima[campo]))
+                .Should().BeEmpty(
+                    "un input vuoto deve azzerare i campi della PROPRIA scheda: è la riga che "
+                    + "permette di svuotare un campo, ed è ciò che rende significativo il verde "
+                    + "dell'asserzione precedente");
+        }
+    }
+
+    /// <summary>
+    /// 🔴 <b>La chiave del servizio antispam sopravvive a tutti i salvataggi.</b> È il campo che
+    /// il pannello <b>non mostra</b> e che finora viaggiava comunque, per non essere azzerato
+    /// dall'assegnazione totale: con sei schede quel trucco sarebbe diventato sei superfici di
+    /// trasporto invisibile, ognuna capace di riscrivere un valore che il suo utilizzatore non ha
+    /// mai visto.
+    ///
+    /// <para>Adesso appartiene a una scheda sola e nessun'altra la nomina, quindi non ha più
+    /// bisogno di viaggiare per sopravvivere. Il test lo dimostra <b>sul dato persistito</b>, non
+    /// sulla risposta della mutation.</para>
+    /// </summary>
+    [Theory]
+    [InlineData(Scheda.Home)]
+    [InlineData(Scheda.Locale)]
+    [InlineData(Scheda.Aperitivo)]
+    public async Task AzzeramentoIncrociato_LaChiaveAntispamSopravvive_SalvandoUnaSchedaCheNonLaPossiede(
+        Scheda scheda)
+    {
+        await SeminaTuttiICampiScrivibili();
+
+        await SalvaScheda(scheda, Activator.CreateInstance(TipoInput(scheda))!);
+
+        _dbContext.ChangeTracker.Clear();
+        (await Rileggi()).TurnstileSiteKey.Should().Be("0xSEME",
+            "la chiave non appartiene a questa scheda, quindi questa scheda non ha alcun modo di "
+            + "toccarla — e la prova va cercata nel dato persistito, non nella risposta");
+    }
+
+    // ── Gli slot immagine delle pagine: adesso si SCRIVONO, ciascuno dalla sua scheda ────
+
+    /// <summary>
+    /// La regola «esiste ed è pubblicata» vale per i tre slot esattamente come per l'anteprima
+    /// social e per l'immagine di un prodotto — e vale con lo <b>stesso messaggio</b>, perché è
+    /// la stessa sede: <c>VerificaImmagineAssegnabileAsync</c>. Uno slot che accettasse un media
+    /// ritirato farebbe rendere al sito un'immagine che la rotta pubblica non seleziona: la
+    /// pagina resterebbe senza foto e il pannello direbbe che ce n'è una.
+    /// </summary>
+    [Theory]
+    [InlineData(Scheda.Home, "ImmagineEroeHomeId")]
+    [InlineData(Scheda.Locale, "ImmagineRitrattoLocaleId")]
+    [InlineData(Scheda.Aperitivo, "ImmagineEroeAperitivoId")]
+    public async Task Mutation_DiPagina_ConSlotSuMediaNonPubblicato_Rifiutata(
+        Scheda scheda, string slot)
+    {
+        MediaAsset ritirata = await CreaMedia("non-pubblicata.jpg", pubblicato: false);
+
+        object input = Activator.CreateInstance(TipoInput(scheda))!;
+        TipoInput(scheda).GetProperty(slot)!.SetValue(input, ritirata.MediaAssetId);
+
+        Func<Task> act = () => SalvaScheda(scheda, input);
+
+        await act.Should().ThrowAsync<ExecutionError>().WithMessage("*non è pubblicata*");
+        _dbContext.ImpostazioniVetrina.Should().BeEmpty(
+            "il rifiuto precede l'upsert: non deve restare nemmeno un'entità agganciata in "
+            + "stato Added");
+    }
+
+    [Theory]
+    [InlineData(Scheda.Home, "ImmagineEroeHomeId")]
+    [InlineData(Scheda.Locale, "ImmagineRitrattoLocaleId")]
+    [InlineData(Scheda.Aperitivo, "ImmagineEroeAperitivoId")]
+    public async Task Mutation_DiPagina_AssegnaEPoiAzzeraLoSlot_IlMediaRestaInLibreria(
+        Scheda scheda, string slot)
+    {
+        MediaAsset immagine = await CreaMedia();
+
+        object conSlot = Activator.CreateInstance(TipoInput(scheda))!;
+        TipoInput(scheda).GetProperty(slot)!.SetValue(conSlot, immagine.MediaAssetId);
+        await SalvaScheda(scheda, conSlot);
+        ValoreDi(await Rileggi(), slot).Should().Be(immagine.MediaAssetId);
+
+        await SalvaScheda(scheda, Activator.CreateInstance(TipoInput(scheda))!);
+
+        ValoreDi(await Rileggi(), slot).Should().BeNull(
+            "azzerare uno slot è un'operazione voluta: riporta la pagina al ripiego posizionale");
+        _dbContext.MediaAssets.Should().HaveCount(1, "azzerare il riferimento non elimina il media");
+    }
+
+    /// <summary>
+    /// 🔴 <b>Il complemento della disgiunzione, detto per nome.</b> Gli slot di pagina non sono
+    /// nell'input delle impostazioni del sito, e non è una dimenticanza: ciascuno appartiene alla
+    /// scheda della <b>sua</b> pagina, insieme ai testi di quella pagina. L'anteprima social è
+    /// l'eccezione che conferma il criterio — è del sito intero, quindi resta qui.
+    ///
+    /// <para><see cref="NessunCampoAppartieneADueSchede"/> lo garantisce già in generale: questo
+    /// test lo dice per nome, così chi aggiunge lo slot all'input trova un rosso che spiega
+    /// <i>perché</i> non si fa qui.</para>
+    /// </summary>
+    [Theory]
+    [InlineData("ImmagineEroeHomeId")]
+    [InlineData("ImmagineRitrattoLocaleId")]
+    [InlineData("ImmagineEroeAperitivoId")]
+    public void ImpostazioniVetrinaInput_NonPossiedeGliSlotDiPagina(string campo)
+    {
+        PerimetroDi(Scheda.Impostazioni).Should().NotContain(campo,
+            "lo slot appartiene alla scheda della sua pagina: due schede che lo scrivessero "
+            + "entrambe sarebbero due verità, e vincerebbe l'ultima che salva");
     }
 
     // ── I tre slot immagine delle pagine: in LETTURA, e per ora solo in lettura ──────────

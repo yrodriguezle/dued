@@ -630,12 +630,14 @@ public class PublicController(
     /// <c>Public.Dto</c> — leggere una colonna e non serializzarla non è esporla. Il giorno in cui
     /// alla tabella dei media si aggiungesse un campo interno, il DTO continuerebbe a non
     /// possederlo e <c>SuperficiePubblicaTests</c> lo direbbe comunque.</para>
+    ///
+    /// <para>🔴 <b>La selezione non è scritta qui</b>: dal momento in cui il pannello legge lo
+    /// stesso piano dei ruoli, «che cosa è la galleria» ha due chiamanti e deve avere una sede
+    /// sola — <see cref="SelezioneGalleria"/>. Due selezioni che differissero anche solo
+    /// nell'ordinamento darebbero ruoli diversi a dati identici.</para>
     /// </summary>
     private static IQueryable<MediaAsset> RigheDellaGalleria(AppDbContext dbContext) =>
-        dbContext.MediaAssets
-            .Where(media => media.Cartella == CartelleVetrina.Galleria && media.Pubblicato)
-            .OrderBy(media => media.Ordinamento)
-            .ThenBy(media => media.MediaAssetId);
+        SelezioneGalleria.Righe(dbContext);
 
     // ─────────────────────────────────────────────────────────────────────────────────────
     //  Mappatura condivisa e forme intermedie

@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { PROPRIETA_CAMPI, type CampiScrivibiliVetrina, type CampoScrivibileVetrina, type SchedaSito } from "./proprietaCampiVetrina";
 
 /**
  * Il modulo delle impostazioni della vetrina, senza React: mappatura, validazione e forma
@@ -188,7 +187,36 @@ function numeroONull(valore: string): number | null {
   return pulito === "" ? null : Number(pulito);
 }
 
-export function inputDaValori(valori: ValoriImpostazioniVetrina): ImpostazioniVetrinaInput {
+// ═══════════════════════════════════════════════════════════════════════════════════════════
+// LE QUATTRO COSTRUZIONI, UNA PER SCHEDA — ora indipendenti
+//
+// 🔴 Fino alla fase precedente queste quattro erano **proiezioni** di un `inputDaValori` unico,
+//    filtrate per `PROPRIETA_CAMPI`. Adesso sono quattro **costruttori indipendenti**, scritti
+//    a mano uno per uno, e `inputDaValori` è sparito con l'ultimo dei suoi chiamanti.
+//
+// 🔴 **È il momento per cui il test di partizione è stato scritto prima.** Finché erano
+//    proiezioni, «l'unione delle quattro copre esattamente i campi scrivibili» era vero per
+//    costruzione e il test non poteva che essere verde. Adesso è una cosa che qualcuno deve
+//    aver scritto giusto a mano, quattro volte, e il test è l'unica ragione per cui dimenticare
+//    `urlProfiloGoogle` qui sotto non produce un salvataggio che lo azzera in silenzio.
+//    Se per restare verde quel test avesse richiesto un ritocco, la divisione sarebbe sbagliata.
+//
+// ⚠️ Ogni campo compare in **una sola** di queste quattro funzioni. Non è una raccomandazione:
+//    è ciò che il test di disgiunzione verifica, ed è la ragione per cui non esiste alcun
+//    helper condiviso che «riempia i campi comuni» — non ci sono campi comuni.
+// ═══════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * I campi della scheda **Impostazioni sito**: identità, indirizzo, coordinate, contatti,
+ * social, SEO di default, anteprima social, aspetto e ganci spenti. Venti.
+ *
+ * ⚠️ `turnstileSiteKey` viaggia pur non essendo mostrato da alcun campo. La ragione non è più
+ *    «l'assegnazione del server è totale» in astratto — sarebbe un argomento che vale per tutte
+ *    le schede e quindi per nessuna: è che l'assegnazione è totale **su questo gruppo**, e
+ *    questo campo **appartiene a questo gruppo**. Non rispedirlo lo cancellerebbe a ogni
+ *    salvataggio della scheda del sito; nessun'altra scheda può toccarlo.
+ */
+export function inputImpostazioni(valori: ValoriImpostazioniVetrina): ImpostazioniVetrinaInput {
   return {
     insegnaPubblica: valori.insegnaPubblica.trim(),
     via: valori.via.trim(),
@@ -206,9 +234,49 @@ export function inputDaValori(valori: ValoriImpostazioniVetrina): ImpostazioniVe
     metaDescrizioneDefault: nullSeVuoto(valori.metaDescrizioneDefault),
     immagineOgId: valori.immagineOgId,
     oraInizioTemaSera: valori.oraInizioTemaSera.trim(),
+    prenotazioniAttive: Boolean(valori.prenotazioniAttive),
+    prenotazioniPreavvisoOre: Number(valori.prenotazioniPreavvisoOre) || 0,
+    prenotazioniCopertiMax: Number(valori.prenotazioniCopertiMax) || 0,
+    turnstileSiteKey: nullSeVuoto(valori.turnstileSiteKey),
+  };
+}
+
+/**
+ * I campi della scheda **Home**: il paragrafo sotto il titolo, il grappolo della reputazione e
+ * lo slot dell'immagine grande.
+ *
+ * ⚠️ I testi dell'aperitivo **non sono qui**, benché la home li renda: la scheda Home li mostra
+ *    in sola lettura e non li spedisce. Spedirli vorrebbe dire due schede che scrivono lo stesso
+ *    campo, cioè due verità con la vittoria dell'ultima che salva.
+ */
+export function inputHome(valori: ValoriImpostazioniVetrina): PaginaHomeInput {
+  return {
     claimVetrina: nullSeVuoto(valori.claimVetrina),
+    punteggioGoogle: numeroONull(valori.punteggioGoogle),
+    numeroRecensioniGoogle: numeroONull(valori.numeroRecensioniGoogle),
+    urlProfiloGoogle: nullSeVuoto(valori.urlProfiloGoogle),
+    immagineEroeHomeId: valori.immagineEroeHomeId,
+  };
+}
+
+/**
+ * I campi della scheda **Il locale**: titolo e testo della storia, e lo slot del ritratto.
+ *
+ * 🔴 `storiaTesto` svuotato **fa sparire la pagina dal sito**: 404, navigazione e sitemap. È il
+ *    motivo per cui `nullSeVuoto` è qui e non un `if (valore)` da qualche parte — svuotare deve
+ *    poter arrivare fino al database.
+ */
+export function inputLocale(valori: ValoriImpostazioniVetrina): PaginaLocaleInput {
+  return {
     storiaTitolo: nullSeVuoto(valori.storiaTitolo),
     storiaTesto: nullSeVuoto(valori.storiaTesto),
+    immagineRitrattoLocaleId: valori.immagineRitrattoLocaleId,
+  };
+}
+
+/** I campi della scheda **Aperitivo**: titolo, testo, punti, categorie e lo slot dell'eroe. */
+export function inputAperitivo(valori: ValoriImpostazioniVetrina): PaginaAperitivoInput {
+  return {
     aperitivoTitolo: nullSeVuoto(valori.aperitivoTitolo),
     aperitivoTesto: nullSeVuoto(valori.aperitivoTesto),
     // ⚠️ Le due aree «una voce per riga» NON si normalizzano qui: si manda ciò che è stato
@@ -217,96 +285,8 @@ export function inputDaValori(valori: ValoriImpostazioniVetrina): ImpostazioniVe
     //    l'altra, perché è quella che il sito legge.
     aperitivoPunti: nullSeVuoto(valori.aperitivoPunti),
     aperitivoCategorie: nullSeVuoto(valori.aperitivoCategorie),
-    punteggioGoogle: numeroONull(valori.punteggioGoogle),
-    numeroRecensioniGoogle: numeroONull(valori.numeroRecensioniGoogle),
-    urlProfiloGoogle: nullSeVuoto(valori.urlProfiloGoogle),
-    prenotazioniAttive: Boolean(valori.prenotazioniAttive),
-    prenotazioniPreavvisoOre: Number(valori.prenotazioniPreavvisoOre) || 0,
-    prenotazioniCopertiMax: Number(valori.prenotazioniCopertiMax) || 0,
-    turnstileSiteKey: nullSeVuoto(valori.turnstileSiteKey),
-  };
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════════════════
-// LE QUATTRO PROIEZIONI, SOPRA IL MODULO ANCORA UNICO
-//
-// 🔴 In questa fase NON sono quattro costruttori indipendenti: sono quattro **proiezioni**
-//    filtrate per `PROPRIETA_CAMPI` di ciò che `inputDaValori` costruisce (più i tre slot
-//    immagine, che quella mutation non accetta — vedi `rivendicazioniComplete`). È deliberato,
-//    ed è ciò che rende la rete di prova dimostrabile: togliendo un campo a `inputDaValori` il
-//    campo sparisce dall'unione delle quattro, e il test di partizione lo nomina. Se il modulo
-//    si dividesse **prima**, il test verificherebbe il codice appena scritto invece del
-//    contrario.
-//
-//    Alla Fase 5 (task 5.14) queste quattro diventano costruttori indipendenti e
-//    `inputDaValori` sparisce con l'ultimo dei suoi chiamanti. Il test di partizione deve
-//    restare verde **senza modifiche di sostanza**: è il momento per cui è stato scritto prima.
-//
-// ⚠️ Finché dura questa fase, `ImpostazioniVetrinaPage` continua a chiamare `inputDaValori` e
-//    NON queste: il salvataggio non cambia comportamento.
-// ═══════════════════════════════════════════════════════════════════════════════════════════
-
-/**
- * Tutto ciò che le quattro schede, insieme, rivendicano: i 30 campi che
- * `mutateImpostazioniVetrina` accetta oggi **più** i tre slot immagine delle pagine.
- *
- * 🔴 **I tre slot si aggiungono QUI e non dentro `inputDaValori`**, e la ragione è operativa:
- *    `inputDaValori` è ciò che la pagina spedisce ancora a `mutateImpostazioniVetrina`, e quella
- *    mutation **non possiede** i tre campi — infilarceli farebbe fallire il salvataggio alla
- *    validazione dello schema, su una pagina che questa fase ha promesso di non toccare. Gli
- *    slot si scriveranno dalle mutation per pagina, che è il solo posto in cui hanno senso.
- *
- * ⚠️ Resta intatta la proprietà che rende dimostrabile il test di partizione: togliendo un campo
- *    a `inputDaValori`, quel campo sparisce comunque dall'unione delle quattro proiezioni e il
- *    test lo nomina come orfano.
- */
-function rivendicazioniComplete(valori: ValoriImpostazioniVetrina): CampiScrivibiliVetrina {
-  return {
-    ...inputDaValori(valori),
-    immagineEroeHomeId: valori.immagineEroeHomeId,
-    immagineRitrattoLocaleId: valori.immagineRitrattoLocaleId,
     immagineEroeAperitivoId: valori.immagineEroeAperitivoId,
   };
-}
-
-/**
- * I campi di una scheda, estratti dall'insieme intero.
- *
- * ⚠️ Il `as T` è il prezzo della forma provvisoria: il filtro è a runtime, quindi il
- *    compilatore non può dedurre quali chiavi sopravvivono. La totalità resta garantita dal
- *    compilatore **altrove** — nella mappa esaustiva di `proprietaCampiVetrina.tsx` — e la
- *    disgiunzione dal test di partizione. Alla Fase 5 questo helper sparisce insieme al filtro.
- */
-function proiezione<T>(input: CampiScrivibiliVetrina, scheda: SchedaSito): T {
-  return Object.fromEntries(Object.entries(input).filter(([chiave]) => PROPRIETA_CAMPI[chiave as CampoScrivibileVetrina] === scheda)) as T;
-}
-
-/**
- * I campi della scheda **Impostazioni sito**: identità, indirizzo, coordinate, contatti,
- * social, SEO di default, anteprima social, aspetto e ganci spenti.
- *
- * 🔴 In questa fase il tipo dichiara **30** campi mentre il valore ne porta **20**:
- *    l'annotazione è **in avanti**, e diventa esatta alla Fase 5, quando
- *    `ImpostazioniVetrinaInput` si riduce ai 20 campi della scheda (task 5.2). Finché dura,
- *    questa funzione **non va usata per salvare** — la pagina chiama ancora `inputDaValori`.
- */
-export function inputImpostazioni(valori: ValoriImpostazioniVetrina): ImpostazioniVetrinaInput {
-  return proiezione(rivendicazioniComplete(valori), "impostazioni");
-}
-
-/** I campi della scheda **Home**: il claim e il grappolo della reputazione. */
-export function inputHome(valori: ValoriImpostazioniVetrina): PaginaHomeInput {
-  return proiezione(rivendicazioniComplete(valori), "home");
-}
-
-/** I campi della scheda **Il locale**: titolo e testo della storia. */
-export function inputLocale(valori: ValoriImpostazioniVetrina): PaginaLocaleInput {
-  return proiezione(rivendicazioniComplete(valori), "locale");
-}
-
-/** I campi della scheda **Aperitivo**: titolo, testo, punti e categorie. */
-export function inputAperitivo(valori: ValoriImpostazioniVetrina): PaginaAperitivoInput {
-  return proiezione(rivendicazioniComplete(valori), "aperitivo");
 }
 
 /** Un campo facoltativo vuoto non è un errore: si valida solo ciò che è stato scritto. */
@@ -314,7 +294,23 @@ function urlFacoltativo(messaggio: string) {
   return z.string().refine((valore) => valore.trim() === "" || z.string().url().safeParse(valore.trim()).success, { message: messaggio });
 }
 
-const schemaValidazione = z
+// ═══════════════════════════════════════════════════════════════════════════════════════════
+// LA VALIDAZIONE, UNO SCHEMA PER SCHEDA
+//
+// 🔴 Fino alla fase precedente esisteva **uno** schema con **un** `superRefine` che conteneva
+//    ENTRAMBI i grappoli incrociati: coordinate e reputazione. Adesso ce n'è uno per scheda, e
+//    i due grappoli si sono divisi — le coordinate stanno con l'indirizzo in «Impostazioni
+//    sito», la reputazione sta nella «Home», che è l'unica pagina che la rende.
+//
+// 🔴 **La proprietà che la divisione non deve perdere è che ciascun controllo incrociato
+//    segnali ENTRAMBI i campi della propria coppia.** Un controllo spezzato fra due schemi
+//    segnalerebbe solo quello che lo schema conosce, e l'amministratore vedrebbe un errore su
+//    un campo dicendogli di guardarne un altro che quella scheda non mostra. È la ragione per
+//    cui i due grappoli non potevano essere separati fra due schede, e la ragione per cui i due
+//    test che lo dimostrano sono stati replicati, uno per schema.
+// ═══════════════════════════════════════════════════════════════════════════════════════════
+
+const schemaImpostazioniSito = z
   .object({
     insegnaPubblica: z.string().trim().min(1, "L'insegna pubblica è il nome che legge il cliente: non può restare vuota"),
     via: z.string(),
@@ -331,16 +327,6 @@ const schemaValidazione = z
     metaTitoloDefault: z.string(),
     metaDescrizioneDefault: z.string(),
     oraInizioTemaSera: z.string().regex(FORMATO_ORARIO, 'Formato orario non valido: serve "HH:mm" fra "00:00" e "23:59"'),
-    claimVetrina: z.string(),
-    storiaTitolo: z.string(),
-    storiaTesto: z.string(),
-    aperitivoTitolo: z.string(),
-    aperitivoTesto: z.string(),
-    aperitivoPunti: z.string(),
-    aperitivoCategorie: z.string(),
-    punteggioGoogle: z.string(),
-    numeroRecensioniGoogle: z.string(),
-    urlProfiloGoogle: urlFacoltativo("Serve l'URL completo del profilo Google del locale"),
     prenotazioniPreavvisoOre: z.number().min(0, "Il preavviso non può essere negativo"),
     prenotazioniCopertiMax: z.number().min(0, "I coperti non possono essere negativi"),
   })
@@ -364,12 +350,24 @@ const schemaValidazione = z
     if (longitudine !== "" && !(Number(longitudine) >= -180 && Number(longitudine) <= 180)) {
       contesto.addIssue({ code: z.ZodIssueCode.custom, path: ["longitudine"], message: "La longitudine deve stare fra -180 e 180" });
     }
+  });
 
-    // 🔴 Stesso controllo incrociato delle coordinate, per la stessa ragione: presi da soli
-    //    questi due numeri non sono un dato incompleto, sono un dato FUORVIANTE. «4,7» senza
-    //    conteggio nasconde che le recensioni potrebbero essere tre; «180 recensioni» senza
-    //    media nasconde che la media potrebbe essere 2,1. Il sito li mostra insieme o non li
-    //    mostra, quindi è qui che l'appaiamento va imposto.
+const schemaPaginaHome = z
+  .object({
+    claimVetrina: z.string(),
+    punteggioGoogle: z.string(),
+    numeroRecensioniGoogle: z.string(),
+    urlProfiloGoogle: urlFacoltativo("Serve l'URL completo del profilo Google del locale"),
+  })
+  // 🔴 Stesso controllo incrociato delle coordinate, per la stessa ragione: presi da soli
+  //    questi due numeri non sono un dato incompleto, sono un dato FUORVIANTE. «4,7» senza
+  //    conteggio nasconde che le recensioni potrebbero essere tre; «180 recensioni» senza
+  //    media nasconde che la media potrebbe essere 2,1. Il sito li mostra insieme o non li
+  //    mostra, quindi è qui che l'appaiamento va imposto.
+  //
+  // ⚠️ Ed è **qui** e non nello schema delle impostazioni perché i due campi appartengono a
+  //    questa scheda: un controllo incrociato vive dove vivono entrambi i suoi membri, sempre.
+  .superRefine((valori, contesto) => {
     const punteggio = valori.punteggioGoogle.trim();
     const numero = valori.numeroRecensioniGoogle.trim();
     const messaggioReputazione = "Il punteggio e il numero di recensioni vanno inseriti insieme, oppure lasciati entrambi vuoti";
@@ -388,8 +386,30 @@ const schemaValidazione = z
     }
   });
 
-export function validaImpostazioniVetrina(valori: ValoriImpostazioniVetrina): Record<string, string> | undefined {
-  const esito = schemaValidazione.safeParse(valori);
+/**
+ * Le due schede editoriali non hanno alcuna regola incrociata e nessun campo obbligatorio:
+ * **anche svuotare è un'operazione legittima**, ed è quella che ritira la pagina dal sito.
+ * Gli schemi esistono comunque, perché una scheda senza `validate` sarebbe l'unica del gruppo a
+ * non averne uno — e la prima regola che servisse domani nascerebbe in un posto nuovo.
+ */
+const schemaPaginaLocale = z.object({
+  storiaTitolo: z.string(),
+  storiaTesto: z.string(),
+});
+
+const schemaPaginaAperitivo = z.object({
+  aperitivoTitolo: z.string(),
+  aperitivoTesto: z.string(),
+  aperitivoPunti: z.string(),
+  aperitivoCategorie: z.string(),
+});
+
+/**
+ * Il traduttore da esito Zod alla forma che Formik si aspetta, **uno solo** per tutte e quattro
+ * le schede: quattro copie di sei righe divergerebbero al primo campo annidato.
+ */
+function erroriDi(schema: z.ZodTypeAny, valori: ValoriImpostazioniVetrina): Record<string, string> | undefined {
+  const esito = schema.safeParse(valori);
   if (esito.success) {
     return;
   }
@@ -398,4 +418,22 @@ export function validaImpostazioniVetrina(valori: ValoriImpostazioniVetrina): Re
     errori[problema.path[0] as string] = problema.message;
   });
   return errori;
+}
+
+/** La validazione della scheda **Impostazioni sito**. Contiene il grappolo delle coordinate. */
+export function validaImpostazioniSito(valori: ValoriImpostazioniVetrina): Record<string, string> | undefined {
+  return erroriDi(schemaImpostazioniSito, valori);
+}
+
+/** La validazione della scheda **Home**. Contiene il grappolo della reputazione. */
+export function validaPaginaHome(valori: ValoriImpostazioniVetrina): Record<string, string> | undefined {
+  return erroriDi(schemaPaginaHome, valori);
+}
+
+export function validaPaginaLocale(valori: ValoriImpostazioniVetrina): Record<string, string> | undefined {
+  return erroriDi(schemaPaginaLocale, valori);
+}
+
+export function validaPaginaAperitivo(valori: ValoriImpostazioniVetrina): Record<string, string> | undefined {
+  return erroriDi(schemaPaginaAperitivo, valori);
 }

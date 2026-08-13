@@ -318,6 +318,100 @@ public class PrivilegiAmministrativiTests : IDisposable
         _dbContext.ImpostazioniVetrina.Should().BeEmpty();
     }
 
+    // ---- Le TRE scritture di pagina e la lettura dei ruoli immagine ----
+
+    /// <summary>
+    /// 🔴 <b>Il guard non si eredita: si scrive in ognuna delle quattro.</b>
+    /// <c>this.Authorize()</c> di tipo ferma l'anonimo su tutto il ramo, ma non dice nulla
+    /// sull'utente autenticato senza privilegi — quello lo ferma il guard dentro il resolver, e un
+    /// resolver nuovo che se lo dimenticasse sarebbe <b>aperto a ogni operatore</b> senza che
+    /// nulla diventi rosso. Enumerare le quattro mutation è ciò che rende quel guasto impossibile
+    /// da introdurre in silenzio.
+    ///
+    /// <para>⚠️ Si verifica anche che il rifiuto <b>non crei la riga</b>: il guard è la prima
+    /// istruzione, prima di <c>CaricaOCreaSingletonAsync</c>. Un guard messo dopo l'upsert
+    /// rifiuterebbe comunque, ma lascerebbe dietro di sé una riga vuota creata da chi non aveva il
+    /// diritto di crearla.</para>
+    /// </summary>
+    [Theory]
+    [InlineData("mutatePaginaHome", "claimVetrina: \"Scritto da un operatore\"")]
+    [InlineData("mutatePaginaLocale", "storiaTesto: \"Scritto da un operatore\"")]
+    [InlineData("mutatePaginaAperitivo", "aperitivoTesto: \"Scritto da un operatore\"")]
+    public async Task Operatore_ScriveUnaPaginaDelSito_RifiutataESenzaEffetti(
+        string mutazione, string campo)
+    {
+        ExecutionResult result = await _host.EseguiAsync(
+            $$"""
+            mutation {
+              vetrina {
+                {{mutazione}}(input: { {{campo}} }) { impostazioniVetrinaId }
+              }
+            }
+            """,
+            GraphQLTestHost.Autenticato(UtenteOperatoreId));
+
+        AssertRifiutata(result,
+            $"un non amministratore non deve poter scrivere i contenuti del sito ({mutazione})");
+
+        _dbContext.ImpostazioniVetrina.Should().BeEmpty(
+            "il guard è la prima istruzione del resolver: il rifiuto non deve lasciare alcuna "
+            + "riga creata, nemmeno vuota");
+    }
+
+    private const string LeggiRuoliImmagini =
+        "query { vetrina { ruoliImmagini { eroeHome { mediaAssetId origine } fotoMenu { mediaAssetId } } } }";
+
+    /// <summary>
+    /// La lettura dei ruoli è una lettura della <b>libreria media</b> vista da un'altra angolazione:
+    /// dice quali foto il sito sta usando e in che ruolo. La stessa regola che chiude
+    /// <c>connection { mediaAssets }</c> agli operatori vale qui, e per la stessa ragione — con in
+    /// più il campo <c>origine</c>, che non esce nemmeno in pubblico.
+    ///
+    /// <para>⚠️ Attenzione al modo in cui si asserisce: una risposta con i ruoli vuoti <b>non</b> è
+    /// un rifiuto. Su un database senza media — cioè esattamente la condizione della CI — un test
+    /// che si accontentasse di «nessuna immagine» passerebbe anche a guard rimosso.</para>
+    /// </summary>
+    [Fact]
+    public async Task Operatore_LeggeRuoliImmagini_Rifiutata()
+    {
+        ExecutionResult result = await _host.EseguiAsync(
+            LeggiRuoliImmagini, GraphQLTestHost.Autenticato(UtenteOperatoreId));
+
+        AssertRifiutata(result,
+            "un non amministratore non deve poter leggere quali immagini il sito sta usando");
+    }
+
+    [Fact]
+    public async Task Amministratore_LeggeRuoliImmagini_Riesce()
+    {
+        // Il complemento indispensabile: senza, un guard che rifiuta *chiunque* passerebbe
+        // inosservato e le schede non funzionerebbero per nessuno.
+        AssertRiuscita(
+            await _host.EseguiAsync(LeggiRuoliImmagini, GraphQLTestHost.Autenticato(UtenteAdminId)),
+            "un amministratore deve poter leggere i ruoli delle immagini");
+    }
+
+    [Theory]
+    [InlineData("mutatePaginaHome", "claimVetrina: \"Espresso alle sette\"")]
+    [InlineData("mutatePaginaLocale", "storiaTesto: \"Due mani italiane\"")]
+    [InlineData("mutatePaginaAperitivo", "aperitivoTesto: \"Dalle 18 alle 21\"")]
+    public async Task Amministratore_ScriveUnaPaginaDelSito_Riesce(string mutazione, string campo)
+    {
+        AssertRiuscita(
+            await _host.EseguiAsync(
+                $$"""
+                mutation {
+                  vetrina {
+                    {{mutazione}}(input: { {{campo}} }) { impostazioniVetrinaId }
+                  }
+                }
+                """,
+                GraphQLTestHost.Autenticato(UtenteAdminId)),
+            $"un amministratore deve poter scrivere i contenuti del sito ({mutazione})");
+
+        _dbContext.ImpostazioniVetrina.Should().ContainSingle();
+    }
+
     [Fact]
     public async Task Amministratore_LeggeEScriveImpostazioniVetrina_Riesce()
     {

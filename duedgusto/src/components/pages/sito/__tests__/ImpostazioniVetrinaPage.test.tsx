@@ -80,65 +80,69 @@ vi.mock("react-router", () => ({
 }));
 
 import ImpostazioniVetrinaPage from "../ImpostazioniVetrinaPage";
-import { inputAperitivo, inputDaValori, inputHome, inputImpostazioni, inputLocale, validaImpostazioniVetrina, valoriDaImpostazioni } from "../impostazioniVetrinaModulo";
+import { inputAperitivo, inputHome, inputImpostazioni, inputLocale, validaImpostazioniSito, validaPaginaHome, valoriDaImpostazioni } from "../impostazioniVetrinaModulo";
 import { CAMPI_SCRIVIBILI, PROPRIETA_CAMPI, campiDellaScheda } from "../proprietaCampiVetrina";
 
 const VALORI_BASE = valoriDaImpostazioni(IMPOSTAZIONI);
 
 describe("ImpostazioniVetrinaPage — validazione", () => {
   it("accetta i valori letti dal server così come sono", () => {
-    expect(validaImpostazioniVetrina(VALORI_BASE)).toBeUndefined();
+    expect(validaImpostazioniSito(VALORI_BASE)).toBeUndefined();
   });
 
   it("rifiuta mezza coordinata segnalando entrambi i campi", () => {
     // 🔴 Mezza coordinata è un punto sull'equatore: un luogo sbagliato mostrato con sicurezza.
-    const soloLatitudine = validaImpostazioniVetrina({ ...VALORI_BASE, latitudine: "45.7075", longitudine: "" });
+    const soloLatitudine = validaImpostazioniSito({ ...VALORI_BASE, latitudine: "45.7075", longitudine: "" });
     expect(soloLatitudine?.latitudine).toContain("insieme");
     expect(soloLatitudine?.longitudine).toContain("insieme");
 
-    const soloLongitudine = validaImpostazioniVetrina({ ...VALORI_BASE, latitudine: "", longitudine: "11.4789" });
+    const soloLongitudine = validaImpostazioniSito({ ...VALORI_BASE, latitudine: "", longitudine: "11.4789" });
     expect(soloLongitudine?.latitudine).toContain("insieme");
     expect(soloLongitudine?.longitudine).toContain("insieme");
   });
 
   it("accetta entrambe le coordinate e accetta l'assenza di entrambe", () => {
-    expect(validaImpostazioniVetrina({ ...VALORI_BASE, latitudine: "45.7075", longitudine: "11.4789" })).toBeUndefined();
-    expect(validaImpostazioniVetrina({ ...VALORI_BASE, latitudine: "", longitudine: "" })).toBeUndefined();
+    expect(validaImpostazioniSito({ ...VALORI_BASE, latitudine: "45.7075", longitudine: "11.4789" })).toBeUndefined();
+    expect(validaImpostazioniSito({ ...VALORI_BASE, latitudine: "", longitudine: "" })).toBeUndefined();
   });
 
   it("rifiuta coordinate fuori intervallo", () => {
-    expect(validaImpostazioniVetrina({ ...VALORI_BASE, latitudine: "91", longitudine: "11" })?.latitudine).toContain("-90");
-    expect(validaImpostazioniVetrina({ ...VALORI_BASE, latitudine: "45", longitudine: "181" })?.longitudine).toContain("-180");
+    expect(validaImpostazioniSito({ ...VALORI_BASE, latitudine: "91", longitudine: "11" })?.latitudine).toContain("-90");
+    expect(validaImpostazioniSito({ ...VALORI_BASE, latitudine: "45", longitudine: "181" })?.longitudine).toContain("-180");
   });
 
   it("valida l'ora del tema serale con lo stesso rigore del backend", () => {
-    expect(validaImpostazioniVetrina({ ...VALORI_BASE, oraInizioTemaSera: "19:30" })).toBeUndefined();
+    expect(validaImpostazioniSito({ ...VALORI_BASE, oraInizioTemaSera: "19:30" })).toBeUndefined();
     // Un `\d{2}:\d{2}` accetterebbe entrambi questi: qui il formato è quello stretto del server.
-    expect(validaImpostazioniVetrina({ ...VALORI_BASE, oraInizioTemaSera: "25:00" })?.oraInizioTemaSera).toBeDefined();
-    expect(validaImpostazioniVetrina({ ...VALORI_BASE, oraInizioTemaSera: "18:60" })?.oraInizioTemaSera).toBeDefined();
-    expect(validaImpostazioniVetrina({ ...VALORI_BASE, oraInizioTemaSera: "18.00" })?.oraInizioTemaSera).toBeDefined();
-    expect(validaImpostazioniVetrina({ ...VALORI_BASE, oraInizioTemaSera: "" })?.oraInizioTemaSera).toBeDefined();
+    expect(validaImpostazioniSito({ ...VALORI_BASE, oraInizioTemaSera: "25:00" })?.oraInizioTemaSera).toBeDefined();
+    expect(validaImpostazioniSito({ ...VALORI_BASE, oraInizioTemaSera: "18:60" })?.oraInizioTemaSera).toBeDefined();
+    expect(validaImpostazioniSito({ ...VALORI_BASE, oraInizioTemaSera: "18.00" })?.oraInizioTemaSera).toBeDefined();
+    expect(validaImpostazioniSito({ ...VALORI_BASE, oraInizioTemaSera: "" })?.oraInizioTemaSera).toBeDefined();
   });
 
   it("pretende l'URL completo del profilo social, non il nome utente", () => {
-    expect(validaImpostazioniVetrina({ ...VALORI_BASE, urlInstagram: "@2dgusto" })?.urlInstagram).toContain("URL completo");
-    expect(validaImpostazioniVetrina({ ...VALORI_BASE, urlFacebook: "2dgusto" })?.urlFacebook).toBeDefined();
+    expect(validaImpostazioniSito({ ...VALORI_BASE, urlInstagram: "@2dgusto" })?.urlInstagram).toContain("URL completo");
+    expect(validaImpostazioniSito({ ...VALORI_BASE, urlFacebook: "2dgusto" })?.urlFacebook).toBeDefined();
     // Vuoto NON è un errore: è il modo di togliere un link già inserito.
-    expect(validaImpostazioniVetrina({ ...VALORI_BASE, urlInstagram: "", urlFacebook: "" })).toBeUndefined();
+    expect(validaImpostazioniSito({ ...VALORI_BASE, urlInstagram: "", urlFacebook: "" })).toBeUndefined();
   });
 
   it("trasforma i campi svuotati in null, non in stringa vuota", () => {
     // L'assegnazione del server è totale: `null` è ciò che cancella davvero il valore.
-    const input = inputDaValori({ ...VALORI_BASE, urlInstagram: "", telefono: "   " });
+    const input = inputImpostazioni({ ...VALORI_BASE, urlInstagram: "", telefono: "   " });
     expect(input.urlInstagram).toBeNull();
     expect(input.telefono).toBeNull();
     expect(input.latitudine).toBeNull();
   });
 
   it("trasporta la chiave antispam che la pagina non mostra", () => {
-    // Non rispedirla la cancellerebbe a ogni salvataggio, in silenzio: l'assegnazione è totale.
+    // 🔴 La ragione NON è più «l'assegnazione del server è totale» in astratto — sarebbe un
+    //    argomento valido per tutte le schede e quindi per nessuna: è che l'assegnazione è
+    //    totale SU QUESTO GRUPPO, e questo campo APPARTIENE a questo gruppo. Non rispedirlo lo
+    //    cancellerebbe a ogni salvataggio della scheda del sito, in silenzio; nessun'altra
+    //    scheda ha modo di toccarlo, perché nessun altro input lo nomina.
     const valori = valoriDaImpostazioni({ ...IMPOSTAZIONI, turnstileSiteKey: "0x4AAA" });
-    expect(inputDaValori(valori).turnstileSiteKey).toBe("0x4AAA");
+    expect(inputImpostazioni(valori).turnstileSiteKey).toBe("0x4AAA");
   });
 
   it("🔴 l'unione delle schede copre esattamente i campi scrivibili, senza sovrapposizioni", () => {
@@ -229,27 +233,35 @@ describe("ImpostazioniVetrinaPage — validazione", () => {
     // Stessa forma del controllo sulle coordinate, e per la stessa ragione: presi da soli non
     // sono un dato incompleto, sono un dato FUORVIANTE. «4,7» senza conteggio nasconde che le
     // recensioni potrebbero essere tre.
-    const soloPunteggio = validaImpostazioniVetrina({ ...VALORI_BASE, punteggioGoogle: "4.7", numeroRecensioniGoogle: "" });
+    //
+    // 🔴 Questo test e quello sulle coordinate vivono adesso su DUE SCHEMI DIVERSI —
+    //    `validaPaginaHome` e `validaImpostazioniSito` — perché i due grappoli sono finiti su
+    //    due schede diverse. La proprietà che la divisione non doveva perdere è che ciascun
+    //    controllo segnali ENTRAMBI i campi della propria coppia: un controllo spezzato fra due
+    //    schemi ne segnalerebbe uno solo, e l'amministratore leggerebbe un errore su un campo
+    //    che gli dice di guardarne un altro che quella scheda non mostra.
+    const soloPunteggio = validaPaginaHome({ ...VALORI_BASE, punteggioGoogle: "4.7", numeroRecensioniGoogle: "" });
     expect(soloPunteggio?.punteggioGoogle).toMatch(/insieme/i);
     expect(soloPunteggio?.numeroRecensioniGoogle).toMatch(/insieme/i);
 
-    const soloNumero = validaImpostazioniVetrina({ ...VALORI_BASE, punteggioGoogle: "", numeroRecensioniGoogle: "180" });
+    const soloNumero = validaPaginaHome({ ...VALORI_BASE, punteggioGoogle: "", numeroRecensioniGoogle: "180" });
+    expect(soloNumero?.punteggioGoogle).toMatch(/insieme/i);
     expect(soloNumero?.numeroRecensioniGoogle).toMatch(/insieme/i);
 
-    expect(validaImpostazioniVetrina({ ...VALORI_BASE, punteggioGoogle: "4.7", numeroRecensioniGoogle: "180" })).toBeUndefined();
-    expect(validaImpostazioniVetrina({ ...VALORI_BASE, punteggioGoogle: "", numeroRecensioniGoogle: "" })).toBeUndefined();
+    expect(validaPaginaHome({ ...VALORI_BASE, punteggioGoogle: "4.7", numeroRecensioniGoogle: "180" })).toBeUndefined();
+    expect(validaPaginaHome({ ...VALORI_BASE, punteggioGoogle: "", numeroRecensioniGoogle: "" })).toBeUndefined();
   });
 
   it("rifiuta un punteggio fuori dalle cinque stelle", () => {
-    expect(validaImpostazioniVetrina({ ...VALORI_BASE, punteggioGoogle: "7", numeroRecensioniGoogle: "180" })?.punteggioGoogle).toMatch(/fra 1 e 5/i);
-    expect(validaImpostazioniVetrina({ ...VALORI_BASE, punteggioGoogle: "4.7", numeroRecensioniGoogle: "-3" })?.numeroRecensioniGoogle).toMatch(/non negativo/i);
+    expect(validaPaginaHome({ ...VALORI_BASE, punteggioGoogle: "7", numeroRecensioniGoogle: "180" })?.punteggioGoogle).toMatch(/fra 1 e 5/i);
+    expect(validaPaginaHome({ ...VALORI_BASE, punteggioGoogle: "4.7", numeroRecensioniGoogle: "-3" })?.numeroRecensioniGoogle).toMatch(/non negativo/i);
   });
 
   it("le aree «una voce per riga» arrivano al server come sono state scritte", () => {
     // ⚠️ Non si normalizzano qui: le righe vuote le toglie il DTO pubblico. Ripulirle in due
     //    posti significherebbe due regole che un giorno divergono — e quella che conta è
     //    l'altra, perché è quella che il sito legge.
-    const input = inputDaValori({ ...VALORI_BASE, aperitivoPunti: "Un cocktail\n\nIl tagliere\n" });
+    const input = inputAperitivo({ ...VALORI_BASE, aperitivoPunti: "Un cocktail\n\nIl tagliere\n" });
     expect(input.aperitivoPunti).toBe("Un cocktail\n\nIl tagliere");
   });
 });

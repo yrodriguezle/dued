@@ -25,6 +25,51 @@ export const getImpostazioniVetrina: TypedDocumentNode<GetImpostazioniVetrinaDat
   }
 `;
 
+interface GetRuoliImmaginiData {
+  vetrina: {
+    ruoliImmagini: RuoliImmaginiVetrina;
+  };
+}
+
+/**
+ * Quale immagine ricopre quale ruolo su ciascuna pagina del sito, adesso.
+ *
+ * 🔴 **Lo stesso piano che alimenta il sito**, calcolato dalla stessa funzione del backend: la
+ * scheda di una pagina non può dichiarare che quella pagina usa una foto mentre il sito ne rende
+ * un'altra. Fino a questa change la regola viveva scritta quattro volte dentro quattro file
+ * `.astro`, e il pannello non aveva alcun modo di conoscerla.
+ *
+ * ⚠️ `origine` non esiste nella risposta pubblica: è ciò che permette alla scheda di distinguere
+ * «scelta da te» da «è la prima della galleria, e cambierà», e al sito non serve.
+ */
+export const getRuoliImmaginiVetrina: TypedDocumentNode<GetRuoliImmaginiData, Record<string, never>> = gql`
+  ${mediaAssetFragment}
+  query GetRuoliImmaginiVetrina {
+    vetrina {
+      ruoliImmagini {
+        eroeHome {
+          mediaAssetId
+          origine
+          immagine { ...MediaAssetFragment }
+        }
+        ritrattoLocale {
+          mediaAssetId
+          origine
+          immagine { ...MediaAssetFragment }
+        }
+        eroeAperitivo {
+          mediaAssetId
+          origine
+          immagine { ...MediaAssetFragment }
+        }
+        grigliaHome { ...MediaAssetFragment }
+        fotoMenu { ...MediaAssetFragment }
+        quadrateLocale { ...MediaAssetFragment }
+      }
+    }
+  }
+`;
+
 interface GetRecensioniVetrinaData {
   vetrina: {
     /** Pubblicate **e non**, nell'ordine in cui compaiono sul sito. */

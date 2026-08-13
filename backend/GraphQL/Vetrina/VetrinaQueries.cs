@@ -49,6 +49,19 @@ public class VetrinaQueries : ObjectGraphType
                 return await LeggiImpostazioniAsync(dbContext);
             });
 
+        Field<RuoliImmaginiVetrinaType, PianoImmagini>("ruoliImmagini")
+            .Description("Quale immagine ricopre quale ruolo su ciascuna pagina del sito, adesso. "
+                + "🔴 Lo stesso piano che alimenta /api/public/galleria, calcolato dalla stessa "
+                + "funzione: la scheda non può dichiarare che una pagina usa una foto mentre il "
+                + "sito ne rende un'altra. In più, il campo `origine`, che il sito non riceve.")
+            .ResolveAsync(async context =>
+            {
+                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                await VetrinaMutations.GuardAmministratore(context, dbContext);
+
+                return await LeggiRuoliImmaginiAsync(dbContext);
+            });
+
         Field<ListGraphType<RecensioneVetrinaType>, IReadOnlyList<RecensioneVetrina>>("recensioni")
             .Description("Le recensioni riportate sul sito, PUBBLICATE E NON, nell'ordine in cui "
                 + "l'amministratore le ha messe. La rotta pubblica ne restituisce solo il "
@@ -74,6 +87,48 @@ public class VetrinaQueries : ObjectGraphType
         if (solePubblicate) query = query.Where(recensione => recensione.Pubblicata);
 
         return OrdineRecensioni.Applica(query).ToListAsync();
+    }
+
+    /// <summary>
+    /// Il piano dei ruoli immagine, letto come lo legge la rotta pubblica: la <b>stessa</b>
+    /// selezione della galleria (<see cref="SelezioneGalleria"/>), gli <b>stessi</b> tre slot e la
+    /// <b>stessa</b> funzione di risoluzione (<see cref="RuoliImmaginiVetrina"/>).
+    ///
+    /// <para>🔴 <b>La coincidenza dei due chiamanti è il punto</b>, non un'ottimizzazione: se il
+    /// pannello calcolasse i ruoli per conto proprio, direbbe con sicurezza quale foto una pagina
+    /// sta usando e potrebbe sbagliare — che è peggio del non dirlo affatto, perché uno strumento
+    /// di orientamento che mente non lascia sospettare nulla.</para>
+    ///
+    /// <para>⚠️ La riga delle impostazioni <b>assente</b> non è un guasto: è l'installazione prima
+    /// del primo salvataggio, e significa «nessuno slot scelto». I tre ruoli singoli ricadono
+    /// allora sulla posizione, esattamente come fa la rotta pubblica.</para>
+    ///
+    /// <para>⚠️ Si leggono <b>tre colonne</b> e non l'entità: è la forma per cui la firma a tre
+    /// <c>int?</c> di <c>Risolvi</c> esiste, e tenerla evita di portare in memoria — per una
+    /// domanda che parla solo di immagini — la chiave del servizio antispam e i ganci spenti.</para>
+    /// </summary>
+    internal static async Task<PianoImmagini> LeggiRuoliImmaginiAsync(AppDbContext dbContext)
+    {
+        List<MediaAsset> galleria = await SelezioneGalleria.Righe(dbContext)
+            .AsNoTracking()
+            .ToListAsync();
+
+        var slot = await dbContext.ImpostazioniVetrina
+            .Where(impostazioni =>
+                impostazioni.ImpostazioniVetrinaId == ImpostazioniVetrina.IdSingleton)
+            .Select(impostazioni => new
+            {
+                impostazioni.ImmagineEroeHomeId,
+                impostazioni.ImmagineRitrattoLocaleId,
+                impostazioni.ImmagineEroeAperitivoId,
+            })
+            .FirstOrDefaultAsync();
+
+        return RuoliImmaginiVetrina.Risolvi(
+            slot?.ImmagineEroeHomeId,
+            slot?.ImmagineRitrattoLocaleId,
+            slot?.ImmagineEroeAperitivoId,
+            galleria);
     }
 
     /// <summary>
