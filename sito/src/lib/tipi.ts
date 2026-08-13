@@ -216,7 +216,11 @@ export interface SitoPubblico {
 
   /**
    * I giorni in cui il locale è chiuso **nonostante** l'orario settimanale: ferie, festività,
-   * chiusure straordinarie. In ordine crescente, **una voce per data**, da oggi in avanti.
+   * chiusure straordinarie. In ordine crescente, **una voce per data**, da oggi in avanti —
+   * più i giorni **già trascorsi** della chiusura in corso, se ce n'è una: senza, «dal 10 al
+   * 22 agosto» letto il 13 diventerebbe «dal 13 al 22», cioè una data d'inizio che si sposta
+   * ogni notte. Una chiusura conclusa ieri invece non c'è: non riguarda chi apre il sito
+   * adesso.
    *
    * 🔴 **Senza questo campo il sito raccontava metà della verità, e non se ne accorgeva
    *    nessuno.** L'orario settimanale è ricorrente e arrivava vivo e corretto; le eccezioni

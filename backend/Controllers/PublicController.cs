@@ -465,8 +465,20 @@ public class PublicController(
     }
 
     /// <summary>
-    /// Le date chiuse da oggi in avanti: ferie, festività e chiusure straordinarie, già proiettate
-    /// su un calendario.
+    /// Le date chiuse da oggi in avanti — più la <b>testa già trascorsa</b> della chiusura in
+    /// corso: ferie, festività e chiusure straordinarie, già proiettate su un calendario.
+    ///
+    /// <para>🔴 <b>Perché i giorni passati non sono sempre passati.</b> La finestra partiva da oggi,
+    /// e il 13 agosto 2026 il sito annunciava «dal 13 al 22» con le ferie inserite dal 10: il
+    /// periodo in corso perdeva la testa, e la sua data d'inizio si spostava di un giorno ogni
+    /// notte. Ora l'estremo sinistro lo decide
+    /// <see cref="ChiusureProgrammate.InizioDelPeriodoInCorso"/> — che risale <b>solo</b> lungo la
+    /// chiusura che contiene oggi. Una chiusura conclusa ieri continua a non comparire: non
+    /// riguarda chi apre il sito adesso.</para>
+    ///
+    /// <para>⚠️ L'estremo destro resta ancorato a <b>oggi</b>, non all'inizio del periodo: la
+    /// risalita allunga la finestra all'indietro, non la trascina: sessanta giorni di preavviso
+    /// devono restare sessanta anche il quinto giorno di ferie.</para>
     ///
     /// <para>🔴 <b>Il filtro in SQL non può essere completo, e va saputo.</b> Una riga ricorrente
     /// vale ogni anno, quindi la sua <c>Data</c> — che porta l'anno in cui è stata inserita — non
@@ -491,17 +503,26 @@ public class PublicController(
     {
         DateOnly oggi = OggiNel(fuso);
         DateOnly fine = oggi.AddDays(ChiusureProgrammate.GiorniDiOrizzonte - 1);
+        // ⚠️ Il database legge anche all'indietro perché la risalita possa trovare qualcosa, ma
+        //    leggere non è pubblicare: che cosa esce lo decide `InizioDelPeriodoInCorso` qui sotto,
+        //    e le chiusure già chiuse restano fuori dall'elenco proiettato.
+        DateOnly primaLetta = oggi.AddDays(-ChiusureProgrammate.GiorniIndietro);
 
         List<GiornoNonLavorativo> righe = await dbContext.GiorniNonLavorativi
             .Where(giorno =>
-                giorno.Ricorrente || (giorno.Data >= oggi && giorno.Data <= fine))
+                giorno.Ricorrente || (giorno.Data >= primaLetta && giorno.Data <= fine))
             .OrderBy(giorno => giorno.Ricorrente)
             .ThenBy(giorno => giorno.GiornoId)
             .Take(ChiusureProgrammate.MaxRigheLette)
             .ToListAsync(cancellationToken);
 
+        DateOnly inizio = ChiusureProgrammate.InizioDelPeriodoInCorso(righe, oggi);
+
         return ChiusureProgrammate
-            .NellaFinestra(righe, oggi)
+            .NellaFinestra(
+                righe,
+                inizio,
+                ChiusureProgrammate.GiorniDiOrizzonte + (oggi.DayNumber - inizio.DayNumber))
             .Select(chiusa => new ChiusuraPubblicaDto(
                 chiusa.Data.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
                 chiusa.Giorno.Descrizione.Trim(),

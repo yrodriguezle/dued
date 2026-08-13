@@ -39,6 +39,22 @@ public static class ChiusureProgrammate
     public const int GiorniDiOrizzonte = 60;
 
     /// <summary>
+    /// Quanto indietro si può risalire per ritrovare l'<b>inizio</b> di una chiusura già cominciata.
+    ///
+    /// <para>🔴 Esiste per un guasto vero: il 13 agosto 2026, con le ferie dal 10 al 22 a database,
+    /// il sito annunciava «dal 13 al 22». La finestra partiva da oggi, quindi il periodo in corso
+    /// perdeva la testa e la sua data d'inizio cambiava ogni mattina — una data <b>sbagliata detta
+    /// con sicurezza</b>, che è lo stesso difetto contro cui mette in guardia
+    /// <see cref="GiorniDiOrizzonte"/>, sull'altro capo del periodo.</para>
+    ///
+    /// <para>⚠️ Guarda indietro <b>solo</b> lungo la chiusura che contiene oggi (vedi
+    /// <see cref="InizioDelPeriodoInCorso"/>): una chiusura finita ieri resta fuori, perché non
+    /// riguarda chi apre il sito adesso. Sessanta come l'orizzonte, e per la stessa ragione — una
+    /// chiusura più lunga di due mesi non è una chiusura, è una cessazione.</para>
+    /// </summary>
+    public const int GiorniIndietro = 60;
+
+    /// <summary>
     /// Il tetto alle righe lette dal database. Non protegge da un input — la rotta pubblica non ne
     /// accetta — ma tiene il costo della risposta <b>fisso</b> anche se un giorno la tabella
     /// crescesse: i ricorrenti non sono filtrabili per data in SQL e vengono letti tutti.
@@ -92,5 +108,59 @@ public static class ChiusureProgrammate
         }
 
         return chiuse;
+    }
+
+    /// <summary>
+    /// Il primo giorno della chiusura che contiene <paramref name="oggi"/>, o
+    /// <paramref name="oggi"/> stesso se oggi è un giorno aperto.
+    ///
+    /// <para>🔴 <b>È ciò che rende la finestra un periodo invece che un residuo.</b> Chi legge la
+    /// vetrina durante le ferie vuole sapere quando sono cominciate — «dal 10 al 22 agosto» — non
+    /// quanti giorni ne restano travestiti da data d'inizio. Senza questa risalita l'avviso si
+    /// accorcia da solo ogni notte, e nessuno se ne accorge perché ogni singola giornata sembra
+    /// coerente.</para>
+    ///
+    /// <para>⚠️ Si risale solo finché la <b>descrizione</b> non cambia, ed è il confine giusto
+    /// perché è lo stesso su cui il sito raggruppa i giorni in periodi (<c>lib/chiusure.ts</c>).
+    /// Risalire sulla sola contiguità unirebbe qui ciò che là resta diviso: con «Festivo» il 12 e
+    /// «Ferie» dal 13, la home — che mostra <b>un</b> periodo solo — annuncerebbe il giorno di
+    /// festa già passato invece delle ferie in corso.</para>
+    ///
+    /// <para>⚠️ Il confronto è sulla descrizione <b>ripulita</b>, come quella che finisce nel DTO:
+    /// due righe che differiscono per uno spazio in coda sono lo stesso periodo per chi legge, e
+    /// devono esserlo anche qui.</para>
+    ///
+    /// <para>⚠️ Un giorno aperto <b>ferma</b> la risalita: chiuso lunedì, aperto martedì e chiuso
+    /// oggi sono due chiusure, e fonderle direbbe al visitatore che il bar era chiuso in un giorno
+    /// in cui ha servito.</para>
+    /// </summary>
+    public static DateOnly InizioDelPeriodoInCorso(
+        IEnumerable<GiornoNonLavorativo> giorni,
+        DateOnly oggi,
+        int maxIndietro = GiorniIndietro)
+    {
+        List<GiornoNonLavorativo> elenco = giorni.ToList();
+        GiornoNonLavorativo? chiusuraDiOggi = elenco.FirstOrDefault(giorno => CadeIl(giorno, oggi));
+        if (chiusuraDiOggi is null)
+        {
+            return oggi;
+        }
+
+        string descrizione = chiusuraDiOggi.Descrizione.Trim();
+        DateOnly inizio = oggi;
+
+        for (int passo = 1; passo <= maxIndietro; passo++)
+        {
+            DateOnly data = oggi.AddDays(-passo);
+            GiornoNonLavorativo? primo = elenco.FirstOrDefault(giorno => CadeIl(giorno, data));
+            if (primo is null || !string.Equals(primo.Descrizione.Trim(), descrizione, StringComparison.Ordinal))
+            {
+                break;
+            }
+
+            inizio = data;
+        }
+
+        return inizio;
     }
 }

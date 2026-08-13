@@ -5,9 +5,11 @@
 //    (orari server-side, stato client-side) nasce dal micro-cache: una decisione al MINUTO
 //    resa dal server resta stantia fino a sessanta secondi e può dire «aperto» dopo la
 //    chiusura. Qui la granularità è il GIORNO — la finestra la sceglie già il backend, che
-//    manda solo le chiusure da oggi in avanti — e sessanta secondi di ritardo attorno a
-//    mezzanotte non spostano nulla. Renderlo client-side lo toglierebbe a chi ha JavaScript
-//    spento, cioè proprio a chi ha più bisogno che la pagina dica la verità da sola.
+//    manda le chiusure da oggi in avanti più la testa già trascorsa di quella in corso, così
+//    che «dal 10 al 22» resti «dal 10» anche letto il 13 — e sessanta secondi di ritardo
+//    attorno a mezzanotte non spostano nulla. Renderlo client-side lo toglierebbe a chi ha
+//    JavaScript spento, cioè proprio a chi ha più bisogno che la pagina dica la verità da
+//    sola.
 //
 // ⚠️ **Non dice «adesso».** Il testo nomina le date e basta: «Chiuso per ferie · dal 10 al 22
 //    agosto» è vero il 5 agosto come il 15. È la pastiglia dell'intestazione a dire se il

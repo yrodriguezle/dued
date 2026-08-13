@@ -582,8 +582,10 @@ public class PublicControllerTests : IDisposable
     }
 
     /// <summary>
-    /// ⚠️ Una chiusura di ieri non riguarda chi guarda il sito oggi, e tenerla dentro
-    /// significherebbe far annunciare al sito una chiusura già finita.
+    /// ⚠️ Una chiusura <b>finita</b> ieri non riguarda chi guarda il sito oggi, e tenerla dentro
+    /// significherebbe far annunciare al sito una chiusura già conclusa. È il confine che la
+    /// risalita di <see cref="Site_ChiusuraInCorso_PortaAncheIGiorniGiaTrascorsi"/> non deve
+    /// scavalcare: indietro si va solo lungo il periodo che contiene oggi.
     /// </summary>
     [Fact]
     public async Task Site_ChiusuraPassata_NonCompare()
@@ -595,6 +597,74 @@ public class PublicControllerTests : IDisposable
         SitoPubblicoDto sito = await LeggiSito();
 
         sito.Chiusure.Should().BeEmpty();
+    }
+
+    /// <summary>
+    /// 🔴 Il secondo guasto, scoperto quando il primo era già in produzione: il 13 agosto, con le
+    /// ferie dal 10 al 22, il sito annunciava «dal 13 al 22». La finestra cominciava da oggi,
+    /// quindi la chiusura <b>in corso</b> perdeva la testa e la sua data d'inizio si spostava di
+    /// un giorno ogni notte — una data sbagliata detta con sicurezza.
+    /// </summary>
+    [Fact]
+    public async Task Site_ChiusuraInCorso_PortaAncheIGiorniGiaTrascorsi()
+    {
+        AggiungiImpostazioniVetrina();
+        AggiungiImpostazioniOperative();
+        foreach (int passo in Enumerable.Range(-3, 13))
+        {
+            AggiungiChiusura(Oggi.AddDays(passo), "Ferie", "FERIE");
+        }
+
+        SitoPubblicoDto sito = await LeggiSito();
+
+        sito.Chiusure.Select(c => c.Data).Should().Equal(
+            Enumerable.Range(-3, 13).Select(passo => Iso(Oggi.AddDays(passo))),
+            "il periodo che contiene oggi va esposto INTERO: è quello che il sito annuncia");
+    }
+
+    /// <summary>
+    /// ⚠️ La risalita si ferma dove il sito cambia periodo, cioè sulla <b>descrizione</b>. Senza
+    /// questo confine la home — che mostra un avviso solo — annuncerebbe la festa di ieri invece
+    /// delle ferie in corso.
+    /// </summary>
+    [Fact]
+    public async Task Site_ChiusuraInCorso_NonRisaleOltreUnaDescrizioneDiversa()
+    {
+        AggiungiImpostazioniVetrina();
+        AggiungiImpostazioniOperative();
+        AggiungiChiusura(Oggi.AddDays(-2), "Festa del paese", "FESTIVITA_NAZIONALE");
+        AggiungiChiusura(Oggi.AddDays(-1), "Ferie", "FERIE");
+        AggiungiChiusura(Oggi, "Ferie", "FERIE");
+
+        SitoPubblicoDto sito = await LeggiSito();
+
+        sito.Chiusure.Select(c => c.Data).Should().Equal(
+            Iso(Oggi.AddDays(-1)),
+            Iso(Oggi));
+    }
+
+    /// <summary>
+    /// ⚠️ La risalita allunga la finestra all'indietro, non la <b>trascina</b>: sessanta giorni di
+    /// preavviso devono restare sessanta anche al quinto giorno di ferie.
+    /// </summary>
+    [Fact]
+    public async Task Site_ChiusuraInCorso_LOrizzonteRestaAncoratoAOggi()
+    {
+        AggiungiImpostazioniVetrina();
+        AggiungiImpostazioniOperative();
+        AggiungiChiusura(Oggi.AddDays(-1), "Ferie", "FERIE");
+        AggiungiChiusura(Oggi, "Ferie", "FERIE");
+        AggiungiChiusura(
+            Oggi.AddDays(ChiusureProgrammate.GiorniDiOrizzonte - 1), "Ultimo utile", "FERIE");
+        AggiungiChiusura(
+            Oggi.AddDays(ChiusureProgrammate.GiorniDiOrizzonte), "Troppo in là", "FERIE");
+
+        SitoPubblicoDto sito = await LeggiSito();
+
+        sito.Chiusure.Select(c => c.Data).Should().Equal(
+            Iso(Oggi.AddDays(-1)),
+            Iso(Oggi),
+            Iso(Oggi.AddDays(ChiusureProgrammate.GiorniDiOrizzonte - 1)));
     }
 
     /// <summary>
