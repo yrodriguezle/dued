@@ -23,11 +23,21 @@ public class FatturaIvaDigitataTests : IDisposable
     private readonly AppDbContext _dbContext;
     private readonly FatturaAcquistoOrchestrator _orchestrator;
 
+    /// <summary>
+    /// L'utenteId serve solo a intestare il registro cassa creato quando la fattura arriva con
+    /// dei pagamenti: qui nessun test ne passa, quindi il valore non viene mai letto.
+    /// </summary>
+    private const int UtenteIdNonUsato = 1;
+
     public FatturaIvaDigitataTests()
     {
         _dbContext = TestDbContextFactory.Create();
-        _orchestrator = new FatturaAcquistoOrchestrator(new UnitOfWork(_dbContext));
+        var unitOfWork = new UnitOfWork(_dbContext);
+        _orchestrator = new FatturaAcquistoOrchestrator(unitOfWork, new RegistroCassaSyncService(unitOfWork));
     }
+
+    private Task<FatturaAcquisto> MutateFattura(FatturaAcquistoInput input)
+        => _orchestrator.MutateAsync(input, UtenteIdNonUsato);
 
     public void Dispose()
     {
@@ -93,7 +103,7 @@ public class FatturaIvaDigitataTests : IDisposable
 
         // Fattura Cash & Carry: 204,42 di imponibile e 23,08 di IVA stampata (≈11,29%,
         // nessuna aliquota di legge). L'aliquota 22 nell'input non deve entrare nel calcolo.
-        FatturaAcquisto fattura = await _orchestrator.MutateAsync(
+        FatturaAcquisto fattura = await MutateFattura(
             InputFattura(fornitore.FornitoreId, imponibile: 204.42m, aliquotaIva: 22m, importoIva: 23.08m));
 
         fattura.Imponibile.Should().Be(204.42m);
@@ -107,7 +117,7 @@ public class FatturaIvaDigitataTests : IDisposable
     {
         Fornitore fornitore = SeedFornitore();
 
-        FatturaAcquisto fattura = await _orchestrator.MutateAsync(
+        FatturaAcquisto fattura = await MutateFattura(
             InputFattura(fornitore.FornitoreId, imponibile: 300m, aliquotaIva: 22m));
 
         fattura.Imponibile.Should().Be(300m);
@@ -120,10 +130,10 @@ public class FatturaIvaDigitataTests : IDisposable
     public async Task MutateAsync_RimettendoLaSpunta_TornaACalcolareDallAliquota()
     {
         Fornitore fornitore = SeedFornitore();
-        FatturaAcquisto fattura = await _orchestrator.MutateAsync(
+        FatturaAcquisto fattura = await MutateFattura(
             InputFattura(fornitore.FornitoreId, imponibile: 204.42m, aliquotaIva: 22m, importoIva: 23.08m));
 
-        FatturaAcquisto riscritta = await _orchestrator.MutateAsync(
+        FatturaAcquisto riscritta = await MutateFattura(
             InputFattura(fornitore.FornitoreId, imponibile: 204.42m, aliquotaIva: 22m,
                 fatturaId: fattura.FatturaId));
 
@@ -139,7 +149,7 @@ public class FatturaIvaDigitataTests : IDisposable
     public async Task AssociaDdt_SuFatturaConIvaDigitata_CongelaLIvaEMuoveLImponibile()
     {
         Fornitore fornitore = SeedFornitore();
-        FatturaAcquisto fattura = await _orchestrator.MutateAsync(
+        FatturaAcquisto fattura = await MutateFattura(
             InputFattura(fornitore.FornitoreId, imponibile: 204.42m, aliquotaIva: 22m, importoIva: 23.08m));
         DocumentoTrasporto ddt = SeedDdt(fornitore, "DDT-CC-1", 300m);
 
@@ -159,7 +169,7 @@ public class FatturaIvaDigitataTests : IDisposable
         // Il flag persistito chiude il buco che la deduzione dagli importi lasciava aperto:
         // 22,00 su 100,00 è aritmeticamente un 22% ma l'operatore l'ha digitato, quindi resta.
         Fornitore fornitore = SeedFornitore();
-        FatturaAcquisto fattura = await _orchestrator.MutateAsync(
+        FatturaAcquisto fattura = await MutateFattura(
             InputFattura(fornitore.FornitoreId, imponibile: 100m, aliquotaIva: 22m, importoIva: 22m));
         DocumentoTrasporto ddt = SeedDdt(fornitore, "DDT-CC-22", 300m);
 
@@ -175,7 +185,7 @@ public class FatturaIvaDigitataTests : IDisposable
     public async Task AssociaDdt_SuFatturaMonoaliquota_RiscorporaComePrima()
     {
         Fornitore fornitore = SeedFornitore();
-        FatturaAcquisto fattura = await _orchestrator.MutateAsync(
+        FatturaAcquisto fattura = await MutateFattura(
             InputFattura(fornitore.FornitoreId, imponibile: 200m, aliquotaIva: 22m));
         DocumentoTrasporto ddt = SeedDdt(fornitore, "DDT-MONO-1", 244m);
 
@@ -192,7 +202,7 @@ public class FatturaIvaDigitataTests : IDisposable
     public async Task DisassociaDdt_SuFatturaConIvaDigitata_CongelaLIva()
     {
         Fornitore fornitore = SeedFornitore();
-        FatturaAcquisto fattura = await _orchestrator.MutateAsync(
+        FatturaAcquisto fattura = await MutateFattura(
             InputFattura(fornitore.FornitoreId, imponibile: 204.42m, aliquotaIva: 22m, importoIva: 23.08m));
         DocumentoTrasporto primo = SeedDdt(fornitore, "DDT-CC-A", 300m);
         DocumentoTrasporto secondo = SeedDdt(fornitore, "DDT-CC-B", 120m);
