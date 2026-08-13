@@ -127,6 +127,63 @@ public class SeedRiparaPagamentiOrfaniTests
         registro.SpeseFornitori.Should().Be(122m);
     }
 
+    /// <summary>
+    /// La riparazione si ferma al 01/07/2026: i mesi pregressi hanno una discrepanza aperta fra
+    /// prod e foglio, e riagganciarli in blocco cambierebbe registri di mesi già chiusi.
+    /// </summary>
+    [Fact]
+    public async Task OrfanoAnterioreAllaSoglia_RestaOrfanoENonCreaRegistri()
+    {
+        using AppDbContext db = CreateDb();
+        db.PagamentiFornitori.Add(new PagamentoFornitore
+        {
+            DataPagamento = new DateTime(2026, 6, 30),
+            Importo = 80m,
+            RegistroCassaId = null,
+        });
+        await db.SaveChangesAsync();
+
+        await SeedRiparaPagamentiOrfani.Initialize(BuildProvider(db));
+
+        PagamentoFornitore pagamento = await db.PagamentiFornitori.SingleAsync();
+        pagamento.RegistroCassaId.Should().BeNull();
+        db.RegistriCassa.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task OrfaniMisti_RiparaSoloQuelliDallaSogliaInPoi()
+    {
+        using AppDbContext db = CreateDb();
+        db.PagamentiFornitori.AddRange(
+            new PagamentoFornitore
+            {
+                DataPagamento = new DateTime(2026, 2, 15),
+                Importo = 80m,
+                RegistroCassaId = null,
+            },
+            new PagamentoFornitore
+            {
+                DataPagamento = new DateTime(2026, 7, 31),
+                Importo = 122m,
+                RegistroCassaId = null,
+            });
+        await db.SaveChangesAsync();
+
+        await SeedRiparaPagamentiOrfani.Initialize(BuildProvider(db));
+
+        PagamentoFornitore febbraio = await db.PagamentiFornitori
+            .SingleAsync(p => p.DataPagamento == new DateTime(2026, 2, 15));
+        febbraio.RegistroCassaId.Should().BeNull();
+
+        PagamentoFornitore luglio = await db.PagamentiFornitori
+            .SingleAsync(p => p.DataPagamento == new DateTime(2026, 7, 31));
+        luglio.RegistroCassaId.Should().NotBeNull();
+
+        RegistroCassa registro = await db.RegistriCassa.SingleAsync();
+        registro.Data.Date.Should().Be(new DateTime(2026, 7, 31));
+        registro.SpeseFornitori.Should().Be(122m);
+    }
+
     [Fact]
     public async Task PagamentiGiaCollegati_RestanoIntoccati()
     {

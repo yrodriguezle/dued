@@ -29,6 +29,15 @@ namespace duedgusto.SeedData;
 /// </summary>
 public static class SeedRiparaPagamentiOrfani
 {
+    /// <summary>
+    /// Gli orfani precedenti a questa data NON vengono riagganciati: si limitano a comparire nel
+    /// log. I mesi 2026 fino a giugno hanno una discrepanza aperta fra le spese in produzione e
+    /// il foglio di chiusura, mai chiarita; riagganciarli in blocco cambierebbe registri di mesi
+    /// già chiusi prima che qualcuno li abbia verificati. Alzare la soglia è una modifica di una
+    /// riga, da fare quando quella verifica è stata chiusa.
+    /// </summary>
+    private static readonly DateTime DataMinimaRiparazione = new(2026, 7, 1);
+
     public static async Task Initialize(IServiceProvider serviceProvider)
     {
         using IServiceScope scope = serviceProvider.CreateScope();
@@ -38,10 +47,36 @@ public static class SeedRiparaPagamentiOrfani
             .GetRequiredService<ILoggerFactory>()
             .CreateLogger(nameof(SeedRiparaPagamentiOrfani));
 
-        List<PagamentoFornitore> orfani = await dbContext.PagamentiFornitori
+        List<PagamentoFornitore> tuttiGliOrfani = await dbContext.PagamentiFornitori
             .Where(p => p.RegistroCassaId == null)
             .OrderBy(p => p.DataPagamento)
             .ToListAsync();
+
+        if (tuttiGliOrfani.Count == 0)
+        {
+            return;
+        }
+
+        List<PagamentoFornitore> esclusi = tuttiGliOrfani
+            .Where(p => p.DataPagamento < DataMinimaRiparazione)
+            .ToList();
+
+        if (esclusi.Count > 0)
+        {
+            // Restano orfani per scelta, ma non in silenzio: senza questa riga sparirebbero
+            // esattamente come il pagamento che ha fatto nascere tutta la vicenda.
+            logger.LogWarning(
+                "Pagamenti orfani anteriori al {Soglia:dd/MM/yyyy} NON riagganciati ({Count} per {Totale:N2} EUR): {Dettaglio}. "
+                + "Restano invisibili alle chiusure finché non si chiarisce la discrepanza dei mesi pregressi.",
+                DataMinimaRiparazione,
+                esclusi.Count,
+                esclusi.Sum(p => p.Importo),
+                string.Join(", ", esclusi.Select(p => $"{p.DataPagamento:dd/MM/yyyy} {p.Importo:N2}")));
+        }
+
+        List<PagamentoFornitore> orfani = tuttiGliOrfani
+            .Where(p => p.DataPagamento >= DataMinimaRiparazione)
+            .ToList();
 
         if (orfani.Count == 0)
         {
