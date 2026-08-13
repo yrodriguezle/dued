@@ -80,7 +80,8 @@ vi.mock("react-router", () => ({
 }));
 
 import ImpostazioniVetrinaPage from "../ImpostazioniVetrinaPage";
-import { inputDaValori, validaImpostazioniVetrina, valoriDaImpostazioni } from "../impostazioniVetrinaModulo";
+import { inputAperitivo, inputDaValori, inputHome, inputImpostazioni, inputLocale, validaImpostazioniVetrina, valoriDaImpostazioni } from "../impostazioniVetrinaModulo";
+import { CAMPI_SCRIVIBILI, PROPRIETA_CAMPI, campiDellaScheda } from "../proprietaCampiVetrina";
 
 const VALORI_BASE = valoriDaImpostazioni(IMPOSTAZIONI);
 
@@ -140,25 +141,75 @@ describe("ImpostazioniVetrinaPage — validazione", () => {
     expect(inputDaValori(valori).turnstileSiteKey).toBe("0x4AAA");
   });
 
-  it("🔴 ogni valore del modulo finisce nell'input: nessun campo si perde per strada", () => {
+  it("🔴 l'unione delle schede copre esattamente i campi scrivibili, senza sovrapposizioni", () => {
     // ─────────────────────────────────────────────────────────────────────────────────────
-    // È la difesa strutturale contro il guasto più silenzioso di questa pagina.
+    // È la difesa strutturale contro il guasto più silenzioso di questa pagina, e sostituisce
+    // il test che confrontava il modulo CON SÉ STESSO — `Object.keys(valori).filter(chiave =>
+    // !(chiave in input))`. Quella forma sarebbe rimasta VERDE su una scheda che conosce 4
+    // campi su 30 mentre il salvataggio ne azzera 26: il modulo era insieme il misurato e il
+    // metro.
     //
-    // L'assegnazione del server è TOTALE: scrive tutti i campi con quello che riceve. Un campo
-    // che il modulo conosce ma che `inputDaValori` dimentica di rispedire viene quindi
-    // AZZERATO a ogni salvataggio — e non c'è alcun errore, alcun avviso e alcun sintomo se
-    // non che un giorno la storia del locale sparisce dal sito e nessuno sa perché.
+    // L'autorità qui è ESTERNA: `CAMPI_SCRIVIBILI`, derivato dalla mappa di proprietà che il
+    // compilatore obbliga a essere esaustiva.
     //
-    // Il caso è già capitato una volta in questo modulo, ed è la ragione per cui
-    // `turnstileSiteKey` viaggia pur non essendo mostrato. Con dieci campi editoriali nuovi
-    // la probabilità di ripeterlo è dieci volte più alta, quindi la regola si verifica invece
-    // di ricordarsela.
+    // L'assegnazione del server è TOTALE: scrive tutti i campi del proprio perimetro con
+    // quello che riceve. Un campo che nessuna scheda spedisce viene quindi AZZERATO a ogni
+    // salvataggio — nessun errore, nessun avviso, nessun sintomo se non che un giorno la
+    // storia del locale sparisce dal sito e nessuno sa perché. Il caso è già capitato una
+    // volta in questo modulo, ed è la ragione per cui `turnstileSiteKey` viaggia pur non
+    // essendo mostrato.
+    //
+    // 🔴 DUE asserzioni e non una, perché sono DUE proprietà distinte e nessun meccanismo
+    //    singolo le copre bene entrambe. La disgiunzione va per prima: un campo conteso
+    //    farebbe fallire anche il confronto di totalità (l'elenco avrebbe un elemento in più),
+    //    e il messaggio parlerebbe della proprietà sbagliata.
     // ─────────────────────────────────────────────────────────────────────────────────────
     const valori = valoriDaImpostazioni(IMPOSTAZIONI);
-    const input = inputDaValori(valori);
+    // Coppie (scheda, campo) e non solo i nomi: è ciò che permette al messaggio di nominare
+    // **le due schede** che si contendono un campo, e non soltanto il campo.
+    const rivendicazioni = ([
+      ["impostazioni", inputImpostazioni(valori)],
+      ["home", inputHome(valori)],
+      ["locale", inputLocale(valori)],
+      ["aperitivo", inputAperitivo(valori)],
+    ] as const).flatMap(([scheda, input]) => Object.keys(input).map((campo) => ({ scheda, campo })));
+    const prodotti = rivendicazioni.map((rivendicazione) => rivendicazione.campo);
 
-    const mancanti = Object.keys(valori).filter((chiave) => !(chiave in input));
-    expect(mancanti, `campi del modulo che il salvataggio NON rispedisce: ${mancanti.join(", ")}`).toEqual([]);
+    // ① Disgiunzione: nessun campo rivendicato da due schede.
+    const contesi = [...new Set(prodotti.filter((campo, indice) => prodotti.indexOf(campo) !== indice))].map(
+      (campo) => `${campo} (${rivendicazioni.filter((rivendicazione) => rivendicazione.campo === campo).map((rivendicazione) => rivendicazione.scheda).join(" + ")})`
+    );
+    expect(contesi, `campi rivendicati da PIÙ DI UNA scheda (vince l'ultima che salva): ${contesi.join(", ") || "—"}`).toEqual([]);
+
+    // ② Totalità: nessun campo orfano e nessun intruso.
+    const orfani = CAMPI_SCRIVIBILI.filter((campo) => !prodotti.includes(campo));
+    const intrusi = prodotti.filter((campo) => !(CAMPI_SCRIVIBILI as string[]).includes(campo));
+    expect({ orfani, intrusi }, `campi scrivibili che NESSUNA scheda spedisce (verrebbero azzerati): ${orfani.join(", ") || "—"} — campi spediti che non sono scrivibili: ${intrusi.join(", ") || "—"}`).toEqual({
+      orfani: [],
+      intrusi: [],
+    });
+  });
+
+  it("🔴 la mappa di proprietà è esaustiva e non separa i grappoli a validazione incrociata", () => {
+    // La totalità della mappa la garantisce il compilatore (`Record<keyof …>`); qui si fissano
+    // le due cose che il compilatore NON vede: quanti campi sono, e dove cadono le due coppie.
+    expect(Object.keys(PROPRIETA_CAMPI)).toHaveLength(30);
+    expect(CAMPI_SCRIVIBILI).toHaveLength(30);
+
+    // 🔴 I due membri di ciascuna coppia nella STESSA scheda: separati, la regola «insieme o
+    //    nessuno dei due» diventerebbe impossibile da valutare al momento del salvataggio.
+    expect(PROPRIETA_CAMPI.latitudine).toBe("impostazioni");
+    expect(PROPRIETA_CAMPI.longitudine).toBe(PROPRIETA_CAMPI.latitudine);
+    expect(PROPRIETA_CAMPI.punteggioGoogle).toBe("home");
+    expect(PROPRIETA_CAMPI.numeroRecensioniGoogle).toBe(PROPRIETA_CAMPI.punteggioGoogle);
+
+    // La partizione, per cardinalità: 20 + 4 + 2 + 4 = 30.
+    expect({
+      impostazioni: campiDellaScheda("impostazioni").length,
+      home: campiDellaScheda("home").length,
+      locale: campiDellaScheda("locale").length,
+      aperitivo: campiDellaScheda("aperitivo").length,
+    }).toEqual({ impostazioni: 20, home: 4, locale: 2, aperitivo: 4 });
   });
 
   it("🔴 punteggio e numero di recensioni: insieme o nessuno dei due", () => {

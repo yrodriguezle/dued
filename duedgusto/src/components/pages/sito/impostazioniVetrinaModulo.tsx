@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PROPRIETA_CAMPI, type CampoScrivibileVetrina, type SchedaSito } from "./proprietaCampiVetrina";
 
 /**
  * Il modulo delle impostazioni della vetrina, senza React: mappatura, validazione e forma
@@ -206,6 +207,63 @@ export function inputDaValori(valori: ValoriImpostazioniVetrina): ImpostazioniVe
     prenotazioniCopertiMax: Number(valori.prenotazioniCopertiMax) || 0,
     turnstileSiteKey: nullSeVuoto(valori.turnstileSiteKey),
   };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════
+// LE QUATTRO PROIEZIONI, SOPRA IL MODULO ANCORA UNICO
+//
+// 🔴 In questa fase NON sono quattro costruttori indipendenti: sono quattro **proiezioni** di
+//    `inputDaValori`, filtrate per `PROPRIETA_CAMPI`. È deliberato, ed è ciò che rende la rete
+//    di prova dimostrabile: togliendo un campo a `inputDaValori` il campo sparisce dall'unione
+//    delle quattro, e il test di partizione lo nomina. Se il modulo si dividesse **prima**, il
+//    test verificherebbe il codice appena scritto invece del contrario.
+//
+//    Alla Fase 5 (task 5.14) queste quattro diventano costruttori indipendenti e
+//    `inputDaValori` sparisce con l'ultimo dei suoi chiamanti. Il test di partizione deve
+//    restare verde **senza modifiche di sostanza**: è il momento per cui è stato scritto prima.
+//
+// ⚠️ Finché dura questa fase, `ImpostazioniVetrinaPage` continua a chiamare `inputDaValori` e
+//    NON queste: il salvataggio non cambia comportamento.
+// ═══════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * I campi di una scheda, estratti dall'input intero.
+ *
+ * ⚠️ Il `as T` è il prezzo della forma provvisoria: il filtro è a runtime, quindi il
+ *    compilatore non può dedurre quali chiavi sopravvivono. La totalità resta garantita dal
+ *    compilatore **altrove** — nella mappa esaustiva di `proprietaCampiVetrina.tsx` — e la
+ *    disgiunzione dal test di partizione. Alla Fase 5 questo helper sparisce insieme al filtro.
+ */
+function proiezione<T>(input: ImpostazioniVetrinaInput, scheda: SchedaSito): T {
+  return Object.fromEntries(Object.entries(input).filter(([chiave]) => PROPRIETA_CAMPI[chiave as CampoScrivibileVetrina] === scheda)) as T;
+}
+
+/**
+ * I campi della scheda **Impostazioni sito**: identità, indirizzo, coordinate, contatti,
+ * social, SEO di default, anteprima social, aspetto e ganci spenti.
+ *
+ * 🔴 In questa fase il tipo dichiara **30** campi mentre il valore ne porta **20**:
+ *    l'annotazione è **in avanti**, e diventa esatta alla Fase 5, quando
+ *    `ImpostazioniVetrinaInput` si riduce ai 20 campi della scheda (task 5.2). Finché dura,
+ *    questa funzione **non va usata per salvare** — la pagina chiama ancora `inputDaValori`.
+ */
+export function inputImpostazioni(valori: ValoriImpostazioniVetrina): ImpostazioniVetrinaInput {
+  return proiezione(inputDaValori(valori), "impostazioni");
+}
+
+/** I campi della scheda **Home**: il claim e il grappolo della reputazione. */
+export function inputHome(valori: ValoriImpostazioniVetrina): PaginaHomeInput {
+  return proiezione(inputDaValori(valori), "home");
+}
+
+/** I campi della scheda **Il locale**: titolo e testo della storia. */
+export function inputLocale(valori: ValoriImpostazioniVetrina): PaginaLocaleInput {
+  return proiezione(inputDaValori(valori), "locale");
+}
+
+/** I campi della scheda **Aperitivo**: titolo, testo, punti e categorie. */
+export function inputAperitivo(valori: ValoriImpostazioniVetrina): PaginaAperitivoInput {
+  return proiezione(inputDaValori(valori), "aperitivo");
 }
 
 /** Un campo facoltativo vuoto non è un errore: si valida solo ciò che è stato scritto. */

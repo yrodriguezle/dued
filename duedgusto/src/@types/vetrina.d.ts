@@ -239,6 +239,53 @@ type ImpostazioniVetrinaInput = {
 };
 
 /**
+ * I campi che la scheda **Home** possiede: il paragrafo sotto il titolo e il grappolo della
+ * reputazione. Sono i campi che `/` — e **solo** `/` — rende.
+ *
+ * 🔴 `punteggioGoogle` e `numeroRecensioniGoogle` stanno **nello stesso input** perché sono un
+ *    grappolo a validazione incrociata: il sito mostra i due numeri insieme o nessuno dei due,
+ *    e i due membri su due schede diverse renderebbero la regola «insieme o nessuno»
+ *    impossibile da valutare al momento del salvataggio.
+ *
+ * ⚠️ I testi dell'aperitivo sono letti dalla home ma **non le appartengono**: la regola non è
+ *    «un campo, una pagina», è **un campo, un proprietario**. La scheda Home li mostra in sola
+ *    lettura, con il collegamento a `Sito → Aperitivo`.
+ */
+type PaginaHomeInput = {
+  claimVetrina?: string | null;
+  punteggioGoogle?: number | null;
+  numeroRecensioniGoogle?: number | null;
+  urlProfiloGoogle?: string | null;
+};
+
+/**
+ * I campi che la scheda **Il locale** possiede.
+ *
+ * 🔴 `storiaTesto` vuoto significa che `/locale` **non esiste**: risponde 404 e sparisce da
+ *    intestazione, piè di pagina, 404 e sitemap. Il titolo da solo non la fa esistere — la
+ *    regola del server guarda soltanto il corpo del testo.
+ */
+type PaginaLocaleInput = {
+  storiaTitolo?: string | null;
+  storiaTesto?: string | null;
+};
+
+/**
+ * I campi che la scheda **Aperitivo** possiede.
+ *
+ * 🔴 `aperitivoTesto` vuoto significa che `/aperitivo` **non esiste**, esattamente come per
+ *    `/locale`.
+ */
+type PaginaAperitivoInput = {
+  aperitivoTitolo?: string | null;
+  aperitivoTesto?: string | null;
+  /** Cosa è compreso, **una voce per riga**. Ne vengono pubblicate al massimo sei. */
+  aperitivoPunti?: string | null;
+  /** Quali categorie di vetrina mostra la pagina, **una per riga**, col nome esatto. */
+  aperitivoCategorie?: string | null;
+};
+
+/**
  * Una recensione **riportata** sul sito.
  *
  * 🔴 Non è una recensione ricevuta: il sito non raccoglie giudizi, non c'è alcun form e nessuna
