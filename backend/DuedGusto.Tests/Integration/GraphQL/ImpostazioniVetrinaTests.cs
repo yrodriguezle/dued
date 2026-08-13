@@ -434,6 +434,14 @@ public class ImpostazioniVetrinaTests : IDisposable
                 "Telefono", "Email", "UrlInstagram", "UrlFacebook",
                 "MetaTitoloDefault", "MetaDescrizioneDefault", "ImmagineOgId",
                 "OraInizioTemaSera",
+                // I testi editoriali del sito: nascono nel CMS e non nel codice del sito,
+                // perché una frase sul locale scritta in un componente è una verità che
+                // invecchia lontano da chi la conosce.
+                "ClaimVetrina",
+                "StoriaTitolo", "StoriaTesto",
+                "AperitivoTitolo", "AperitivoTesto", "AperitivoPunti", "AperitivoCategorie",
+                // La reputazione: i due numeri si valorizzano insieme o nessuno dei due.
+                "PunteggioGoogle", "NumeroRecensioniGoogle", "UrlProfiloGoogle",
                 "PrenotazioniAttive", "PrenotazioniPreavvisoOre", "PrenotazioniCopertiMax",
                 "TurnstileSiteKey");
     }

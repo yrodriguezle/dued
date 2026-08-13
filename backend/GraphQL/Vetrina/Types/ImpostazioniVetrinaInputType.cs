@@ -53,6 +53,20 @@ public class ImpostazioniVetrinaInput
     // ── Tema ─────────────────────────────────────────────────────────────────────────────
     public string OraInizioTemaSera { get; set; } = "18:00";
 
+    // ── Testi editoriali del sito ────────────────────────────────────────────────────────
+    public string? ClaimVetrina { get; set; }
+    public string? StoriaTitolo { get; set; }
+    public string? StoriaTesto { get; set; }
+    public string? AperitivoTitolo { get; set; }
+    public string? AperitivoTesto { get; set; }
+    public string? AperitivoPunti { get; set; }
+    public string? AperitivoCategorie { get; set; }
+
+    // ── Reputazione ──────────────────────────────────────────────────────────────────────
+    public decimal? PunteggioGoogle { get; set; }
+    public int? NumeroRecensioniGoogle { get; set; }
+    public string? UrlProfiloGoogle { get; set; }
+
     // ── Ganci spenti ─────────────────────────────────────────────────────────────────────
     public bool PrenotazioniAttive { get; set; }
     public int PrenotazioniPreavvisoOre { get; set; }
@@ -95,6 +109,33 @@ public class ImpostazioniVetrinaInputType : InputObjectGraphType<ImpostazioniVet
                 + "lascia il media in libreria.");
 
         Field(x => x.OraInizioTemaSera).Description("Forma \"HH:mm\", es. \"18:00\".");
+
+        Field(x => x.ClaimVetrina, nullable: true)
+            .Description("Il paragrafo sotto il titolo della home. Una o due frasi. Vuoto: la "
+                + "home non mostra alcun paragrafo, invece di mostrarne uno scritto nel codice.");
+        Field(x => x.StoriaTitolo, nullable: true);
+        Field(x => x.StoriaTesto, nullable: true)
+            .Description("La storia del locale, con nomi e date veri. Vuota: la pagina \"Il "
+                + "locale\" non si rende affatto e sparisce dalla navigazione.");
+        Field(x => x.AperitivoTitolo, nullable: true);
+        Field(x => x.AperitivoTesto, nullable: true)
+            .Description("Vuoto: la pagina dell'aperitivo non si rende affatto.");
+        Field(x => x.AperitivoPunti, nullable: true)
+            .Description("Cosa è compreso, UNA VOCE PER RIGA. Righe vuote e spazi vengono "
+                + "ignorati; se ne pubblicano al massimo sei.");
+        Field(x => x.AperitivoCategorie, nullable: true)
+            .Description("Quali categorie di vetrina mostrare nella pagina dell'aperitivo, UNA "
+                + "PER RIGA, con il nome esatto. 🔴 Esiste per non indovinare: cercare la parola "
+                + "\"cocktail\" nel nome smette di funzionare alla prima rinomina, e la pagina "
+                + "mostrerebbe le cose sbagliate senza lasciare traccia.");
+
+        Field(x => x.PunteggioGoogle, nullable: true)
+            .Description("Da 1 a 5, es. 4.7. 🔴 Va insieme a numeroRecensioniGoogle: il sito "
+                + "mostra i due numeri insieme o nessuno dei due — \"4,7\" su tre recensioni e "
+                + "\"4,7\" su ottocento sono due affermazioni diverse.");
+        Field(x => x.NumeroRecensioniGoogle, nullable: true);
+        Field(x => x.UrlProfiloGoogle, nullable: true)
+            .Description("URL assoluto http/https del profilo Google del locale.");
 
         Field(x => x.PrenotazioniAttive);
         Field(x => x.PrenotazioniPreavvisoOre);

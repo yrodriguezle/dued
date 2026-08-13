@@ -69,6 +69,30 @@ public class ImpostazioniVetrinaType : ObjectGraphType<ImpostazioniVetrina>
             .Description("Forma \"HH:mm\". È un dato, non un calcolo: il confronto con l'ora "
                 + "corrente resta lato client, dove l'orologio è quello del visitatore.");
 
+        // ── Testi editoriali del sito ────────────────────────────────────────────────────
+        // 🔴 Stanno qui e non nel codice del sito perché il sito non deve contenere frasi sul
+        //    locale: una riga di prosa dentro un componente Astro è una verità che invecchia
+        //    lontano da chi la conosce. Ogni sezione che li usa non si rende affatto quando
+        //    sono vuoti — meglio una sezione in meno che una sezione che mente.
+        Field("claimVetrina", x => x.ClaimVetrina, nullable: true)
+            .Description("Il paragrafo sotto il titolo della home.");
+        Field("storiaTitolo", x => x.StoriaTitolo, nullable: true);
+        Field("storiaTesto", x => x.StoriaTesto, nullable: true);
+        Field("aperitivoTitolo", x => x.AperitivoTitolo, nullable: true);
+        Field("aperitivoTesto", x => x.AperitivoTesto, nullable: true);
+        Field("aperitivoPunti", x => x.AperitivoPunti, nullable: true)
+            .Description("Cosa è compreso nell'aperitivo, una voce per riga.");
+        Field("aperitivoCategorie", x => x.AperitivoCategorie, nullable: true)
+            .Description("Quali categorie di vetrina mostra la pagina dell'aperitivo, una per "
+                + "riga. Esiste per non dedurle: ogni deduzione si romperebbe in silenzio.");
+
+        // ── Reputazione ──────────────────────────────────────────────────────────────────
+        Field("punteggioGoogle", x => x.PunteggioGoogle, nullable: true)
+            .Description("Si aggiorna a mano, e questo è il suo limite dichiarato: invecchia. "
+                + "Leggerlo dalla Places API vuole chiave, fatturazione e vincoli di caching.");
+        Field("numeroRecensioniGoogle", x => x.NumeroRecensioniGoogle, nullable: true);
+        Field("urlProfiloGoogle", x => x.UrlProfiloGoogle, nullable: true);
+
         // ── Ganci SPENTI delle fasi successive ───────────────────────────────────────────
         // Si espongono all'amministratore perché la pagina li salva già, e nessuno di essi
         // compare in alcuna risposta pubblica.

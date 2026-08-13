@@ -70,7 +70,7 @@ public partial class VetrinaMutations : ObjectGraphType
 
         Field<ProdottoType>("mutateProdottoVetrina")
             .Argument<NonNullGraphType<IntGraphType>>("prodottoId", "Prodotto ESISTENTE da arricchire")
-            .Argument<NonNullGraphType<ProdottoVetrinaInputType>>("input", "I dieci campi vetrina")
+            .Argument<NonNullGraphType<ProdottoVetrinaInputType>>("input", "Gli undici campi vetrina")
             .ResolveAsync(async context =>
             {
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
@@ -124,10 +124,122 @@ public partial class VetrinaMutations : ObjectGraphType
                     dbContext,
                     context.GetArgument<ImpostazioniVetrinaInput>("input"));
             });
+
+        // ── Recensioni riportate ─────────────────────────────────────────────────────────
+        // ⚠️ Qui esiste un ramo di CREAZIONE, al contrario di mutateProdottoVetrina. Non è
+        //    un'incoerenza: i prodotti nascono in cassa dal listino, e una vetrina che sapesse
+        //    crearli diventerebbe un secondo listino. Una recensione riportata non ha alcuna
+        //    controparte in cassa — non nasce da nessun'altra parte, quindi deve nascere qui.
+        Field<RecensioneVetrinaType>("mutateRecensioneVetrina")
+            .Argument<IntGraphType>("recensioneVetrinaId",
+                "Assente o null per crearne una nuova.")
+            .Argument<NonNullGraphType<RecensioneVetrinaInputType>>(
+                "input", "Tutti i campi scrivibili: l'assegnazione è totale")
+            .ResolveAsync(async context =>
+            {
+                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                await GuardAmministratore(context, dbContext);
+
+                return await ApplicaRecensioneAsync(
+                    dbContext,
+                    context.GetArgument<int?>("recensioneVetrinaId"),
+                    context.GetArgument<RecensioneVetrinaInput>("input"));
+            });
+
+        Field<BooleanGraphType>("eliminaRecensioneVetrina")
+            .Argument<NonNullGraphType<IntGraphType>>("recensioneVetrinaId")
+            .ResolveAsync(async context =>
+            {
+                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                await GuardAmministratore(context, dbContext);
+
+                return await EliminaRecensioneAsync(
+                    dbContext, context.GetArgument<int>("recensioneVetrinaId"));
+            });
     }
 
     /// <summary>
-    /// Scrive i dieci campi vetrina di un prodotto <b>esistente</b>. Nessun ramo di creazione,
+    /// Crea o aggiorna una recensione riportata, con <b>assegnazione totale</b> — stesso stile e
+    /// stessa ragione di <see cref="ApplicaImpostazioniVetrinaAsync"/>: l'input possiede
+    /// esattamente i campi scrivibili, quindi non c'è nulla da preservare e nessuna ragione di
+    /// assegnare sotto condizione. Un campo si può quindi <b>svuotare</b>, che è ciò che
+    /// l'assegnazione condizionale rende impossibile.
+    /// </summary>
+    public static async Task<RecensioneVetrina> ApplicaRecensioneAsync(
+        AppDbContext dbContext, int? recensioneId, RecensioneVetrinaInput input)
+    {
+        // ── Validazioni, tutte prima di toccare il change tracker ────────────────────────
+        string autore = Obbligatorio(input.Autore);
+        string testo = Obbligatorio(input.Testo);
+
+        if (autore.Length == 0)
+        {
+            throw new ExecutionError(
+                "La firma non può essere vuota: serve almeno una fonte generica, per esempio "
+                + "\"Recensione Google\". Una citazione senza attribuzione in pagina sembra una "
+                + "frase scritta dal locale su sé stesso.");
+        }
+
+        if (testo.Length == 0)
+        {
+            throw new ExecutionError("Il testo della recensione non può essere vuoto.");
+        }
+
+        if (input.Punteggio is < 1 or > 5)
+        {
+            throw new ExecutionError(
+                $"Il punteggio {input.Punteggio} è fuori intervallo: deve stare fra 1 e 5. "
+                + "Il vincolo è anche a database, perché queste righe si inseriscono anche a "
+                + "mano quando si migra del contenuto.");
+        }
+
+        RecensioneVetrina recensione;
+        if (recensioneId is int id)
+        {
+            recensione = await dbContext.RecensioniVetrina
+                .FirstOrDefaultAsync(r => r.RecensioneVetrinaId == id)
+                ?? throw new ExecutionError($"Recensione {id} non trovata.");
+        }
+        else
+        {
+            recensione = new RecensioneVetrina();
+            dbContext.RecensioniVetrina.Add(recensione);
+        }
+
+        recensione.Autore = autore;
+        recensione.Testo = testo;
+        recensione.Fonte = NullSeVuoto(input.Fonte);
+        recensione.Punteggio = input.Punteggio;
+        recensione.Ordinamento = input.Ordinamento;
+        recensione.Pubblicata = input.Pubblicata;
+        recensione.UpdatedAt = DateTime.UtcNow;
+
+        await dbContext.SaveChangesAsync();
+        return recensione;
+    }
+
+    /// <summary>
+    /// Elimina una recensione riportata — e qui l'eliminazione <b>esiste davvero</b>, al
+    /// contrario dei prodotti, che si possono solo disattivare.
+    ///
+    /// <para>La differenza ha una ragione: un prodotto è referenziato dalle vendite e dalla
+    /// contabilità, quindi cancellarlo riscriverebbe la storia. Una citazione non è referenziata
+    /// da nulla, e tenersi per sempre una recensione inserita per sbaglio — magari attribuita a
+    /// una persona che ha chiesto di toglierla — sarebbe il difetto, non la prudenza.</para>
+    /// </summary>
+    public static async Task<bool> EliminaRecensioneAsync(AppDbContext dbContext, int recensioneId)
+    {
+        RecensioneVetrina recensione = await dbContext.RecensioniVetrina
+            .FirstOrDefaultAsync(r => r.RecensioneVetrinaId == recensioneId)
+            ?? throw new ExecutionError($"Recensione {recensioneId} non trovata.");
+
+        dbContext.RecensioniVetrina.Remove(recensione);
+        await dbContext.SaveChangesAsync();
+        return true;
+    }
+
+    /// <summary>
+    /// Scrive gli undici campi vetrina di un prodotto <b>esistente</b>. Nessun ramo di creazione,
     /// e non è una dimenticanza: i prodotti nascono in cassa, dal listino. Una vetrina che sa
     /// creare prodotti diventa un secondo listino, e due listini divergono sempre.
     /// </summary>
@@ -169,6 +281,7 @@ public partial class VetrinaMutations : ObjectGraphType
         prodotto.Allergeni = NullSeVuoto(input.Allergeni);
         prodotto.Novita = input.Novita;
         prodotto.Consigliato = input.Consigliato;
+        prodotto.InLavagnaDal = input.InLavagnaDal;
         prodotto.UpdatedAt = DateTime.UtcNow;
 
         await dbContext.SaveChangesAsync();
@@ -347,6 +460,10 @@ public partial class VetrinaMutations : ObjectGraphType
             input.UrlInstagram, "Instagram", "https://www.instagram.com/2dgusto/");
         string? facebook = UrlSocialValidato(
             input.UrlFacebook, "Facebook", "https://www.facebook.com/2dgusto/");
+        string? profiloGoogle = UrlSocialValidato(
+            input.UrlProfiloGoogle, "Google", "https://maps.app.goo.gl/…");
+
+        ValidaReputazione(input.PunteggioGoogle, input.NumeroRecensioniGoogle);
 
         await VerificaImmagineAssegnabileAsync(dbContext, input.ImmagineOgId);
 
@@ -392,6 +509,18 @@ public partial class VetrinaMutations : ObjectGraphType
 
         impostazioni.OraInizioTemaSera = oraTemaSera;
 
+        impostazioni.ClaimVetrina = NullSeVuoto(input.ClaimVetrina);
+        impostazioni.StoriaTitolo = NullSeVuoto(input.StoriaTitolo);
+        impostazioni.StoriaTesto = NullSeVuoto(input.StoriaTesto);
+        impostazioni.AperitivoTitolo = NullSeVuoto(input.AperitivoTitolo);
+        impostazioni.AperitivoTesto = NullSeVuoto(input.AperitivoTesto);
+        impostazioni.AperitivoPunti = NullSeVuoto(input.AperitivoPunti);
+        impostazioni.AperitivoCategorie = NullSeVuoto(input.AperitivoCategorie);
+
+        impostazioni.PunteggioGoogle = input.PunteggioGoogle;
+        impostazioni.NumeroRecensioniGoogle = input.NumeroRecensioniGoogle;
+        impostazioni.UrlProfiloGoogle = profiloGoogle;
+
         impostazioni.PrenotazioniAttive = input.PrenotazioniAttive;
         impostazioni.PrenotazioniPreavvisoOre = input.PrenotazioniPreavvisoOre;
         impostazioni.PrenotazioniCopertiMax = input.PrenotazioniCopertiMax;
@@ -434,6 +563,37 @@ public partial class VetrinaMutations : ObjectGraphType
         {
             throw new ExecutionError(
                 $"La longitudine {longitudine} è fuori intervallo: deve stare fra -180 e 180.");
+        }
+    }
+
+    /// <summary>
+    /// 🔴 <b>Punteggio e conteggio si valorizzano insieme o nessuno dei due</b>, per la stessa
+    /// ragione delle coordinate: presi da soli non sono un dato incompleto, sono un dato
+    /// <b>fuorviante</b>. «4,7» senza conteggio nasconde che le recensioni potrebbero essere tre;
+    /// «180 recensioni» senza media nasconde che la media potrebbe essere 2,1. Il sito li mostra
+    /// insieme, quindi è qui che l'appaiamento va imposto — non nel componente che li rende.
+    /// </summary>
+    private static void ValidaReputazione(decimal? punteggio, int? numero)
+    {
+        if (punteggio.HasValue != numero.HasValue)
+        {
+            throw new ExecutionError(
+                "Il punteggio Google e il numero di recensioni vanno inseriti insieme, oppure "
+                + "lasciati entrambi vuoti: una media senza conteggio, o un conteggio senza "
+                + "media, dice al visitatore meno di quanto sembra. "
+                + $"Ricevuto solo {(punteggio.HasValue ? "il punteggio" : "il numero")}.");
+        }
+
+        if (punteggio is < 1 or > 5)
+        {
+            throw new ExecutionError(
+                $"Il punteggio Google {punteggio} è fuori intervallo: deve stare fra 1 e 5.");
+        }
+
+        if (numero is < 0)
+        {
+            throw new ExecutionError(
+                $"Il numero di recensioni non può essere negativo (ricevuto {numero}).");
         }
     }
 

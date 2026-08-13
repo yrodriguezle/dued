@@ -3,7 +3,7 @@ using GraphQL.Types;
 namespace duedgusto.GraphQL.Vetrina.Types;
 
 /// <summary>
-/// I dieci campi vetrina di un prodotto, e nient'altro.
+/// Gli undici campi vetrina di un prodotto, e nient'altro.
 ///
 /// 🔴 <b>Zero campi cassa.</b> Non è un promemoria per chi legge: è il motivo per cui questa
 /// change esiste come fase a sé. <c>mutateProdottoVetrina</c> fa un'assegnazione totale dei
@@ -32,6 +32,7 @@ public class ProdottoVetrinaInput
     public string? Allergeni { get; set; }
     public bool Novita { get; set; }
     public bool Consigliato { get; set; }
+    public DateOnly? InLavagnaDal { get; set; }
 }
 
 public class ProdottoVetrinaInputType : InputObjectGraphType<ProdottoVetrinaInput>
@@ -55,5 +56,11 @@ public class ProdottoVetrinaInputType : InputObjectGraphType<ProdottoVetrinaInpu
         Field(x => x.Allergeni, nullable: true);
         Field(x => x.Novita);
         Field(x => x.Consigliato);
+        Field(x => x.InLavagnaDal, nullable: true)
+            .Description("Il giorno in cui il prodotto sta sulla lavagna all'ingresso. Il sito "
+                + "mostra la lavagna SOLO per i prodotti il cui valore è oggi. 🔴 È una data e "
+                + "non un interruttore apposta: un booleano resta acceso finché qualcuno se ne "
+                + "ricorda, e il primo lunedì di fretta il sito mostra il piatto di venerdì "
+                + "scorso come «lavagna di oggi». Una data scade da sola.");
     }
 }

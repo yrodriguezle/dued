@@ -26,7 +26,68 @@ public record SitoPubblicoDto(
     SocialPubbliciDto Social,
     OrariPubbliciDto Orari,
     SeoPubblicaDto Seo,
-    string OraInizioTemaSera);
+    string OraInizioTemaSera,
+    TestiPubbliciDto Testi,
+    ReputazionePubblicaDto? Reputazione,
+    IReadOnlyList<RecensionePubblicaDto> Recensioni);
+
+/// <summary>
+/// I testi che il sito scrive in prima persona sul locale.
+///
+/// <para>🔴 <b>Ogni campo è nullable, e il consumatore che riceve <c>null</c> non rende la sezione
+/// — non la riempie con un ripiego.</b> È la sola forma che tiene l'informazione onesta: una frase
+/// sul locale scritta dentro un componente del sito è una verità che invecchia lontano da chi la
+/// conosce, e il giorno in cui smette di essere vera chi lo sa non ha modo di dirlo.</para>
+/// </summary>
+public record TestiPubbliciDto(
+    string? Claim,
+    StoriaPubblicaDto? Storia,
+    AperitivoPubblicoDto? Aperitivo);
+
+/// <summary>La storia del locale. Esiste solo se c'è il testo: un titolo da solo non è una storia.</summary>
+public record StoriaPubblicaDto(string? Titolo, string Testo);
+
+/// <param name="Punti">
+/// Cosa è compreso, già <b>normalizzato</b>: righe vuote e spazi tolti, ordine conservato.
+///
+/// <para>⚠️ La sorgente è un campo di testo con una voce per riga — una scelta deliberata contro
+/// un'entità da quattro righe — e il prezzo di quella scelta è che <b>la difesa sta qui</b>. Il
+/// consumatore riceve una lista pulita e non deve sapere che dall'altra parte c'era una stringa.</para>
+/// </param>
+/// <param name="Categorie">
+/// I nomi delle categorie di vetrina che la pagina dell'aperitivo mostra, nell'ordine scelto
+/// dall'amministratore.
+///
+/// <para>🔴 Sono <b>dichiarati</b> e non dedotti. Cercare la parola «cocktail» nel nome di una
+/// categoria smette di funzionare il giorno in cui si chiama «Drink»; prendere «le ultime due»
+/// smette il giorno in cui se ne aggiunge una. Nessuna delle due deduzioni lascerebbe traccia: la
+/// pagina mostrerebbe le cose sbagliate, e nessuno collegherebbe la cosa a una rinomina.</para>
+///
+/// <para>⚠️ Un nome che non corrisponde ad alcuna categoria <b>non è un errore</b>: semplicemente
+/// non porta prodotti. È testo libero da entrambe le parti, e irrigidirlo vorrebbe dire un'entità
+/// categoria che oggi non esiste.</para>
+/// </param>
+public record AperitivoPubblicoDto(
+    string? Titolo,
+    string Testo,
+    IReadOnlyList<string> Punti,
+    IReadOnlyList<string> Categorie);
+
+/// <summary>
+/// Il giudizio medio, quando c'è.
+///
+/// <para>🔴 L'oggetto <b>intero</b> è <c>null</c> se manca uno dei due numeri, per la stessa
+/// ragione per cui <c>Geo</c> lo è quando manca una coordinata: presi da soli non sono un dato
+/// incompleto, sono un dato <b>fuorviante</b>. «4,7» senza conteggio nasconde che le recensioni
+/// potrebbero essere tre; «180 recensioni» senza media nasconde che la media potrebbe essere 2,1.</para>
+/// </summary>
+public record ReputazionePubblicaDto(decimal Punteggio, int Numero, string? UrlProfilo);
+
+/// <summary>
+/// Una recensione <b>riportata</b>: una citazione scelta dall'amministratore da ciò che un cliente
+/// ha scritto altrove. Il sito non raccoglie giudizi e non esiste alcuna rotta che scriva qui.
+/// </summary>
+public record RecensionePubblicaDto(int Id, string Autore, string Testo, string? Fonte, int Punteggio);
 
 /// <summary>
 /// L'indirizzo <b>scomposto</b>, perché lo pretende <c>schema.org/PostalAddress</c>: un campo

@@ -10,11 +10,23 @@ namespace duedgusto.Controllers.Public.Dto;
 /// consumatore non deve indovinarlo, e <see cref="Troncato"/> esiste perché nessuno deve
 /// dedurlo confrontando due numeri.</para>
 /// </summary>
+/// <param name="Lavagna">
+/// I piatti che oggi stanno sulla <b>lavagna</b> all'ingresso — quella che cambia ogni mattina.
+///
+/// <para>🔴 Sono gli stessi prodotti che compaiono anche in <see cref="Categorie"/>: la lavagna è
+/// una <b>vista</b>, non un secondo listino. La ripetizione nel payload costa qualche centinaio di
+/// byte e risparmia al consumatore di dover incrociare due liste per sapere cosa evidenziare.</para>
+///
+/// <para>⚠️ <b>Vuota è lo stato normale, non un guasto</b>: significa che nessuno ha messo nulla in
+/// lavagna oggi. Il consumatore non rende affatto la sezione — è il modo giusto di sbagliare per
+/// un dato che scade da solo.</para>
+/// </param>
 public record MenuPubblicoDto(
     IReadOnlyList<CategoriaMenuDto> Categorie,
     int TotaleProdottiPubblicati,
     int LimiteApplicato,
-    bool Troncato);
+    bool Troncato,
+    IReadOnlyList<ProdottoPubblicoDto> Lavagna);
 
 /// <summary>
 /// Un raggruppamento del menu.
