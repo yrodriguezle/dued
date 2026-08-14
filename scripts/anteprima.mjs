@@ -47,6 +47,8 @@ import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { createServer } from 'node:http';
 
+import { liberaPorta } from './libera-porte.mjs';
+
 const radice = dirname(dirname(fileURLToPath(import.meta.url)));
 const conProve = process.argv.includes('--prove');
 const conSeed = process.argv.includes('--seed');
@@ -101,32 +103,18 @@ function portaLibera() {
 }
 
 /**
- * Libera una porta **davvero**, anche su Windows.
+ * Libera una porta **davvero**, anche su Windows, e lo dice.
  *
- * 🔴 È la funzione per cui questo file esiste. `pkill -f entry.mjs` su Git Bash non tocca i
- *    processi Windows: ritorna zero, sembra aver funzionato, e il server resta vivo a
- *    servire la build precedente. La correzione successiva «non ha effetto», e si finisce a
- *    cercare il difetto nel codice giusto.
+ * 🔴 Il come sta in `scripts/libera-porte.mjs`, che è anche il gancio `predev` di
+ *    `package.json`: la logica per sistema operativo esiste in UN posto solo. Due copie
+ *    divergono, e la copia che diverge è sempre quella del ramo che si prova di meno —
+ *    cioè Windows, dove `pkill` riferisce successo senza aver fatto nulla.
  */
-function liberaPorta(porta) {
-  if (process.platform === 'win32') {
-    const esito = spawnSync(
-      'powershell',
-      [
-        '-NoProfile',
-        '-Command',
-        // `Select-Object -Unique`: una porta in ascolto su IPv4 e IPv6 dà due righe con lo
-        // stesso PID, e senza questo la riga di log lo stampa due volte.
-        `$p = (Get-NetTCPConnection -LocalPort ${porta} -State Listen -ErrorAction SilentlyContinue).OwningProcess | Select-Object -Unique; ` +
-          `if ($p) { Stop-Process -Id $p -Force -ErrorAction SilentlyContinue; "fermato $p" }`,
-      ],
-      { encoding: 'utf8' }
-    );
-    const detto = (esito.stdout ?? '').trim();
-    if (detto) log(`   porta ${porta}: ${detto}`);
-    return;
+function annunciaLiberaPorta(porta) {
+  const abbattuti = liberaPorta(porta);
+  if (abbattuti.length > 0) {
+    log(`   porta ${porta}: fermato ${abbattuti.join(', ')}`);
   }
-  spawnSync('sh', ['-c', `lsof -ti tcp:${porta} | xargs -r kill -9`], { encoding: 'utf8' });
 }
 
 /** Attende che un indirizzo risponda, invece di dormire un tempo scelto a caso. */
@@ -179,7 +167,7 @@ function chiudi(codice) {
   // 🔴 E poi per porta: su Windows `kill()` sul processo che abbiamo lanciato non basta
   //    quando quello ha generato figli suoi (dotnet lo fa). Senza questa seconda passata la
   //    porta resta occupata e l'anteprima successiva serve la build vecchia.
-  [porteScelte.backend, porteScelte.sito].filter(Boolean).forEach(liberaPorta);
+  [porteScelte.backend, porteScelte.sito].filter(Boolean).forEach((porta) => liberaPorta(porta));
   process.exit(codice);
 }
 
@@ -203,8 +191,8 @@ try {
   porteScelte.sito = await portaLibera();
 
   log('🔓  libero le porte (su Windows `pkill` non le libera, e il server vecchio resta)');
-  liberaPorta(porteScelte.backend);
-  liberaPorta(porteScelte.sito);
+  annunciaLiberaPorta(porteScelte.backend);
+  annunciaLiberaPorta(porteScelte.sito);
 
   // ── (1) Il backend, costruito FUORI da bin/ ─────────────────────────────────────────
   const uscita = mkdtempSync(join(tmpdir(), 'anteprima-backend-'));
