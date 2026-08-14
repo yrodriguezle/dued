@@ -38,11 +38,7 @@ public class ConnectionQueries : ObjectGraphType
                 Connection<Utente> connection = await GraphQLService.GetConnectionAsync<Utente>(
                     context,
                     context.GetArgument<string>("where"),
-                    context.GetArgument<string>("orderBy"),
-                    utente =>
-                    {
-                        return utente.Id.ToString();
-                    });
+                    context.GetArgument<string>("orderBy"));
                 return connection;
             });
         Field<ConnectionType<MenuType>>("menus")
@@ -56,11 +52,7 @@ public class ConnectionQueries : ObjectGraphType
                 Connection<Menu> connection = await GraphQLService.GetConnectionAsync<Menu>(
                     context,
                     context.GetArgument<string>("where"),
-                    context.GetArgument<string>("orderBy"),
-                    menu =>
-                    {
-                        return menu.Id.ToString();
-                    });
+                    context.GetArgument<string>("orderBy"));
                 return connection;
             });
         Field<ConnectionType<RuoloType>>("ruoli")
@@ -74,11 +66,7 @@ public class ConnectionQueries : ObjectGraphType
                 Connection<Ruolo> connection = await GraphQLService.GetConnectionAsync<Ruolo>(
                     context,
                     context.GetArgument<string>("where"),
-                    context.GetArgument<string>("orderBy"),
-                    ruolo =>
-                    {
-                        return ruolo.Id.ToString();
-                    });
+                    context.GetArgument<string>("orderBy"));
                 return connection;
             });
 
@@ -97,10 +85,6 @@ public class ConnectionQueries : ObjectGraphType
                     context,
                     whereClause,
                     orderByClause,
-                    registroCassa =>
-                    {
-                        return registroCassa.Id.ToString();
-                    },
                     query =>
                     {
                         // Parse and apply WHERE clause safely using LINQ
@@ -136,11 +120,7 @@ public class ConnectionQueries : ObjectGraphType
                 Connection<Fornitore> connection = await GraphQLService.GetConnectionAsync<Fornitore>(
                     context,
                     context.GetArgument<string>("where"),
-                    context.GetArgument<string>("orderBy"),
-                    supplier =>
-                    {
-                        return supplier.FornitoreId.ToString();
-                    });
+                    context.GetArgument<string>("orderBy"));
                 return connection;
             });
 
@@ -156,10 +136,6 @@ public class ConnectionQueries : ObjectGraphType
                     context,
                     context.GetArgument<string>("where"),
                     context.GetArgument<string>("orderBy"),
-                    invoice =>
-                    {
-                        return invoice.FatturaId.ToString();
-                    },
                     query =>
                     {
                         return query;
@@ -179,10 +155,6 @@ public class ConnectionQueries : ObjectGraphType
                     context,
                     context.GetArgument<string>("where"),
                     context.GetArgument<string>("orderBy"),
-                    ddt =>
-                    {
-                        return ddt.DdtId.ToString();
-                    },
                     query =>
                     {
                         return query;
@@ -201,11 +173,7 @@ public class ConnectionQueries : ObjectGraphType
                 Connection<PagamentoFornitore> connection = await GraphQLService.GetConnectionAsync<PagamentoFornitore>(
                     context,
                     context.GetArgument<string>("where"),
-                    context.GetArgument<string>("orderBy"),
-                    payment =>
-                    {
-                        return payment.PagamentoId.ToString();
-                    });
+                    context.GetArgument<string>("orderBy"));
                 return connection;
             });
 
@@ -221,10 +189,6 @@ public class ConnectionQueries : ObjectGraphType
                     context,
                     context.GetArgument<string>("where"),
                     context.GetArgument<string>("orderBy"),
-                    closure =>
-                    {
-                        return closure.ChiusuraId.ToString();
-                    },
                     query =>
                     {
                         return query
@@ -252,10 +216,6 @@ public class ConnectionQueries : ObjectGraphType
                     context,
                     context.GetArgument<string>("where"),
                     context.GetArgument<string>("orderBy"),
-                    prodotto =>
-                    {
-                        return prodotto.ProdottoId.ToString();
-                    },
                     query =>
                     {
                         // 🔴 L'Include è l'unico punto in cui va messo: il lazy loading è
@@ -294,10 +254,6 @@ public class ConnectionQueries : ObjectGraphType
                     context,
                     context.GetArgument<string>("where"),
                     context.GetArgument<string>("orderBy"),
-                    asset =>
-                    {
-                        return asset.MediaAssetId.ToString();
-                    },
                     query =>
                     {
                         // CreatedAt come criterio di parità: senza, due asset con la stessa

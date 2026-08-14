@@ -7,7 +7,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 
 using GraphQL;
-using GraphQL.DataLoader;
 using GraphQL.Types.Relay.DataObjects;
 
 using duedgusto.DataAccess;
@@ -34,101 +33,25 @@ public class GraphQLService
         return serviceProvider.GetRequiredService<T>();
     }
 
-    public static async Task<Connection<T>> GetConnectionAsync<T>(
+    public static Task<Connection<T>> GetConnectionAsync<T>(
         IResolveFieldContext<object?> context,
         string? whereClause,
-        string? orderByClause,
-        Func<T, string> cursorSelector
-    ) where T : class
-    {
-        AppDbContext dbContext = GetService<AppDbContext>(context);
-        IDataLoaderContextAccessor dataLoaderAccessor = GetService<IDataLoaderContextAccessor>(context);
-        DataLoaderContext dataLoader = dataLoaderAccessor.Context;
-
-        int pageSize = context.GetArgument<int?>("first") ?? 10;
-
-        // Support both 'after' (Relay standard string cursor) and 'cursor' (legacy int offset)
-        int offset = 0;
-        string? afterCursor = context.GetArgument<string?>("after");
-        if (!string.IsNullOrEmpty(afterCursor) && int.TryParse(afterCursor, out int parsedAfter))
-        {
-            offset = parsedAfter;
-        }
-        else
-        {
-            offset = context.GetArgument<int?>("cursor") ?? 0;
-        }
-
-        IQueryable<T> query = dbContext.Set<T>();
-
-        // Apply LIKE-based filtering safely using LINQ expressions (no raw SQL)
-        if (!string.IsNullOrEmpty(whereClause))
-        {
-            query = ApplyLikeWhereClause(query, whereClause);
-        }
-
-        // Get total count after filtering but before pagination
-        int totalCount = await query.CountAsync();
-
-        // Apply pagination using LINQ (safe from SQL injection)
-        List<T> items = await query
-            .Skip(offset)
-            .Take(pageSize)
-            .ToListAsync();
-
-        List<Edge<T>> edges = [.. items.Select(item => new Edge<T>
-        {
-            Node = item,
-            Cursor = cursorSelector(item)
-        })];
-
-        string? startCursor = edges.FirstOrDefault()?.Cursor;
-        string? endCursor = edges.LastOrDefault()?.Cursor;
-
-        PageInfo pageInfo = new()
-        {
-            StartCursor = startCursor,
-            EndCursor = endCursor,
-            HasNextPage = (offset + pageSize) < totalCount,
-            HasPreviousPage = offset > 0
-        };
-
-        Connection<T> connectionResult = new()
-        {
-            Edges = edges,
-            PageInfo = pageInfo,
-            TotalCount = totalCount
-        };
-
-        return connectionResult;
-    }
+        string? orderByClause
+    ) where T : class =>
+        GetConnectionAsync<T>(context, whereClause, orderByClause, query => query);
 
     // Overload that accepts a query configurator for complex queries with includes
     public static async Task<Connection<T>> GetConnectionAsync<T>(
         IResolveFieldContext<object?> context,
         string? whereClause,
         string? orderByClause,
-        Func<T, string> cursorSelector,
         Func<IQueryable<T>, IQueryable<T>> queryConfigurator
     ) where T : class
     {
         AppDbContext dbContext = GetService<AppDbContext>(context);
-        IDataLoaderContextAccessor dataLoaderAccessor = GetService<IDataLoaderContextAccessor>(context);
-        DataLoaderContext dataLoader = dataLoaderAccessor.Context;
 
         int pageSize = context.GetArgument<int?>("first") ?? 10;
-
-        // Support both 'after' (Relay standard string cursor) and 'cursor' (legacy int offset)
-        int offset = 0;
-        string? afterCursor = context.GetArgument<string?>("after");
-        if (!string.IsNullOrEmpty(afterCursor) && int.TryParse(afterCursor, out int parsedAfter))
-        {
-            offset = parsedAfter;
-        }
-        else
-        {
-            offset = context.GetArgument<int?>("cursor") ?? 0;
-        }
+        int offset = LeggiOffset(context);
 
         // Start with base query
         IQueryable<T> query = dbContext.Set<T>();
@@ -152,20 +75,27 @@ public class GraphQLService
             .Take(pageSize)
             .ToListAsync();
 
-        List<Edge<T>> edges = [.. items.Select(item => new Edge<T>
+        // 🔴 Il cursore è la POSIZIONE dell'elemento nella sequenza ordinata, non la sua chiave
+        //    primaria — cioè esattamente ciò che `Skip` qui sopra si aspetta di ricevere indietro.
+        //    Emettere la chiave era il guasto che faceva sparire righe intere dalle griglie: il
+        //    client rimandava `endCursor` come `cursor`, lo `Skip` saltava a un id arbitrario e le
+        //    righe in mezzo non venivano richieste mai, senza alcun errore. Il contratto è uno
+        //    solo: **ciò che esce da endCursor deve poter rientrare da cursor/after**.
+        //
+        // ⚠️ Vale anche per il cursore del singolo edge, non solo per pageInfo: un client Relay
+        //    pagina con `after: edges.last.cursor`, e due semantiche diverse nella stessa risposta
+        //    romperebbero quel client lasciando sano il nostro.
+        List<Edge<T>> edges = [.. items.Select((item, indice) => new Edge<T>
         {
             Node = item,
-            Cursor = cursorSelector(item)
+            Cursor = (offset + indice + 1).ToString()
         })];
-
-        string? startCursor = edges.FirstOrDefault()?.Cursor;
-        string? endCursor = edges.LastOrDefault()?.Cursor;
 
         PageInfo pageInfo = new()
         {
-            StartCursor = startCursor,
-            EndCursor = endCursor,
-            HasNextPage = (offset + pageSize) < totalCount,
+            StartCursor = edges.FirstOrDefault()?.Cursor,
+            EndCursor = edges.LastOrDefault()?.Cursor,
+            HasNextPage = (offset + items.Count) < totalCount,
             HasPreviousPage = offset > 0
         };
 
@@ -177,6 +107,23 @@ public class GraphQLService
         };
 
         return connectionResult;
+    }
+
+    /// <summary>
+    /// Quante righe saltare, letta dai due argomenti che il progetto espone: <c>after</c> (stringa,
+    /// forma Relay) e <c>cursor</c> (intero, forma storica). Sono deliberatamente <b>la stessa
+    /// cosa</b> — un offset — perché le due metà del frontend usano l'uno o l'altro
+    /// (<c>useFetchData</c> il primo, <c>useGetAll</c> il secondo) e una divergenza fra i due
+    /// romperebbe metà delle liste lasciando l'altra sana, che è il modo peggiore di sbagliare.
+    /// </summary>
+    private static int LeggiOffset(IResolveFieldContext<object?> context)
+    {
+        string? afterCursor = context.GetArgument<string?>("after");
+        if (!string.IsNullOrEmpty(afterCursor) && int.TryParse(afterCursor, out int parsedAfter))
+        {
+            return parsedAfter;
+        }
+        return context.GetArgument<int?>("cursor") ?? 0;
     }
 
     /// <summary>
