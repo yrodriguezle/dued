@@ -376,15 +376,54 @@ i secchi una volta sola) resta **senza rete**.
 
 Separata dal codice applicativo, come richiede `openspec/config.yaml`.
 
-- [ ] 4.1 `cd backend && dotnet ef migrations add OrdiniPuntoVendita`.
-  **Verifica**: il file generato crea le due tabelle e non tocca quelle esistenti.
-- [ ] 4.2 Riscontro a mano del DDL generato in `backend/Migrations/`: l'indice unico
+- [x] 4.1 `cd backend && dotnet ef migrations add AddOrdiniPuntoVendita`.
+  ⚠️ **Nome corretto in `AddOrdiniPuntoVendita`**, non `OrdiniPuntoVendita`: questa stesura divergeva
+  da `design.md` §«Due migrazioni, non una» e dalla tabella dei file (`*_AddOrdiniPuntoVendita.cs`).
+  Vale il design, come per ogni altra divergenza di nomenclatura di questo change.
+  **Verifica**: il file generato crea le due tabelle nuove **e aggiunge `Vendite.OrdineId`** — vedi
+  la correzione in 4.2.
+  ✅ **Fatto**: `backend/Migrations/20260828173716_AddOrdiniPuntoVendita.cs` (+ `.Designer.cs`).
+  `AppDbContextModelSnapshot.cs` aggiornato in modo **puramente additivo** (216 righe aggiunte, 0
+  rimosse: nessuna entità preesistente è stata ridisegnata di rimbalzo).
+  ℹ️ `dotnet ef` locale è **10.0.3** mentre il progetto gira su EF Core **8.0.13**: i tool guidano il
+  provider dell'app, non lo sostituiscono. Riscontrato sull'annotazione `ProductVersion` del file
+  generato, che è `8.0.13` come tutte le migrazioni precedenti.
+- [x] 4.2 Riscontro a mano del DDL generato in `backend/Migrations/`: l'indice unico
   `(RegistroCassaId, Numero, SuffissoSplit)` è presente; la FK verso `RegistriCassa` è `RESTRICT` e
-  non `CASCADE`; `RowVersion` è la colonna del token; `Down()` è simmetrico e droppa entrambe le
-  tabelle; **nessuna istruzione sui dati esistenti**, perché non c'è nulla da migrare (le tabelle
-  sono nuove).
-  **Verifica**: avviare il backend su un database di sviluppo e constatare che la migrazione si
-  applica da sola all'avvio senza errori.
+  non `CASCADE`; `Down()` è simmetrico e droppa entrambe le tabelle; **nessuna istruzione sui dati
+  esistenti**, perché non c'è nulla da migrare.
+  🔴 **Due correzioni a questa stesura, entrambe necessarie perché presa alla lettera farebbe passare
+  una verifica sbagliata:**
+  1. **«non tocca quelle esistenti» (4.1) va letto «nessuna riga esistente viene modificata».** La
+     migrazione **tocca `Vendite`**: `ALTER TABLE Vendite ADD OrdineId int NULL`, più
+     `IX_Vendite_OrdineId` e `FK_Vendite_Ordini_OrdineId`. È previsto da `design.md` §«Due
+     migrazioni, non una» ed è già annotato nello scostamento 4 di 3.4. Chi verificasse «solo tabelle
+     nuove» darebbe per buona una migrazione a cui manca metà del lavoro.
+  2. **Il token di concorrenza non è una colonna `RowVersion`: è `Stato`.** `RowVersion` non esiste
+     in `Ordine` e non è una dimenticanza — vedi la nota di 3.1: nessuno dei due motori genera un
+     `rowversion` da sé, quindi la colonna sarebbe rimasta ferma e la guardia avrebbe **finto** di
+     funzionare. Nel DDL il token si riconosce da `Stato varchar(20) NOT NULL DEFAULT 'APERTO'`.
+  **Verifica eseguita — sullo schema reale, non sul solo file `.cs`:**
+  - `dotnet build` → 0 errori, 0 warning.
+  - Backend avviato: log `Applying migration '20260828173716_AddOrdiniPuntoVendita'`, seguito da
+    `ALTER TABLE Vendite ADD OrdineId`, `CREATE TABLE Ordini`, `CREATE TABLE RigheOrdine`,
+    `CREATE UNIQUE INDEX IX_Ordini_RegistroCassaId_Numero_SuffissoSplit`, e la riga in
+    `__EFMigrationsHistory`. **Si applica da sola all'avvio**, come previsto.
+  - `SHOW CREATE TABLE` su MySQL: `SuffissoSplit varchar(2) NOT NULL DEFAULT ''` (non nullable, come
+    impone 3.1), `UNIQUE KEY IX_Ordini_RegistroCassaId_Numero_SuffissoSplit`, FK
+    `Ordini→RegistriCassa` **RESTRICT**, `Ordini→Ordini` (padre) **RESTRICT**, `RigheOrdine→Ordini`
+    **CASCADE**, `RigheOrdine→Prodotti` **RESTRICT**, `Vendite→Ordini` **RESTRICT**.
+  - 🔴 **L'indice unico è stato provato, non dedotto**: due INSERT con la stessa terna e
+    `SuffissoSplit` lasciato al default, dentro una transazione poi annullata → il secondo fallisce
+    con `Duplicate entry '629-1-' for key 'IX_Ordini_RegistroCassaId_Numero_SuffissoSplit'`. La
+    stringa vuota **entra nella chiave**: è esattamente ciò che con la colonna nullable non
+    sarebbe successo, ed è il caso normale (ordine non splittato).
+  - 🔴 **`eliminaRegistroCassa` è tornata a funzionare**, che è la ragione dell'urgenza di questa
+    fase. Prima della migrazione la mutation rispondeva
+    `MySqlException: Table 'duedgusto.ordini' doesn't exist` (il debito aperto in coda a 3.4); dopo,
+    su un registro DRAFT senza ordini restituisce `true` e il registro sparisce, e su un registro con
+    un ordine restituisce l'errore parlante di `GuardNessunOrdineSulRegistro` invece del 500 opaco
+    del database.
 
 ---
 
