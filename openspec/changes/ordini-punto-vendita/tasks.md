@@ -477,27 +477,70 @@ Separata dal codice applicativo, come richiede `openspec/config.yaml`.
 
 Il cuore del change. Qui vive l'unica scrittura sui secchi di tutto il backend.
 
-- [ ] 5.1 Guardia di transizione, in `backend/GraphQL/Vendite/` accanto all'orchestrator.
+> ### ✅ Fase completata — 5.1-5.7, più i test 9.1-9.5 e 9.7
+>
+> **File nuovi**: `backend/GraphQL/Vendite/TransizioneOrdine.cs` (la guardia, punto unico),
+> `ApriOrdineOrchestrator.cs`, `ChiudiOrdineOrchestrator.cs`, `AnnullaOrdineOrchestrator.cs`,
+> `StornaOrdineOrchestrator.cs`, `Types/ChiudiOrdineInput.cs`. **Modificato**: `Program.cs` (DI).
+> **Nessun cambio al modello dati**, quindi nessuna migrazione nuova.
+>
+> **La decisione aperta è chiusa**: la guardia è il **token di concorrenza su `Ordine.Stato`** — vedi
+> 5.1 e `design.md` §«la guardia della transizione», entrambi aggiornati.
+>
+> 🔴 **Ogni protezione è stata vista fallire**, non solo scritta: token rimosso → la corsa incassa due
+> volte; `SaveChanges` spostato dopo il breakdown → la ripartizione IVA resta indietro di un ordine in
+> silenzio; transazione tolta → due figli orfani sopravvivono a uno split fallito; retry disattivato →
+> l'apertura muore sulla collisione. Tutte ripristinate.
+>
+> **Verifica**: `dotnet build` → 0 errori, 0 warning; `dotnet test` → **933/933** (893 + 40 nuovi).
+
+- [x] 5.1 Guardia di transizione, in `backend/GraphQL/Vendite/` accanto all'orchestrator.
   **Requisito**: due chiusure concorrenti sullo stesso ordine devono produrre **una** chiusura e un
   errore pulito, mai due delta. È il punto più importante del change, perché
   `SecchiIncassiApplier.ApplicaDelta` è dichiarato non idempotente per costruzione: applicarlo due
   volte raddoppia l'importo e nessun controllo a valle se ne accorge.
-  **Forma**: token di concorrenza (`RowVersion`) più UPDATE condizionata `WHERE Stato = 'APERTO'`,
-  verificando che le righe toccate siano **esattamente 1**. Se sono 0, qualcun altro ha già chiuso:
-  errore parlante, nessun delta.
   🔴 Un read-then-write **non basta**: sotto REPEATABLE READ (isolamento di default di MySQL) leggere
   `Stato = APERTO` e poi scrivere non impedisce al secondo scrittore di fare lo stesso.
   La guardia sta nella **macchina a stati**, non nel chiamante — richiesta esplicita della issue #24 —
   e vale per tutte e tre le transizioni: chiusura, annullo, storno.
-  **Verifica**: test 9.1 (richiede 2.1).
-- [ ] 5.2 Nuovo `backend/GraphQL/Vendite/ChiudiOrdineOrchestrator.cs` — scheletro, dipendenze
+  ✅ **Fatto** — `backend/GraphQL/Vendite/TransizioneOrdine.cs`, punto unico attraversato da tutte e
+  tre le transizioni: `GuardStatoAtteso` (diagnosi anticipata, parlante, **non** la guardia),
+  `SalvaTransizioneAsync` (il `SaveChanges` che fa scattare il token e traduce il conflitto in
+  `ExecutionError`), `Identificativo` (`{data:yyMMdd}-{numero:D3}[-{suffisso}]`, derivato).
+  🔴 **La forma era la decisione aperta della fase, ed è chiusa: token di concorrenza su
+  `Ordine.Stato`**, non `ExecuteUpdateAsync` con conteggio delle righe. La stesura qui sopra diceva
+  «token di concorrenza (`RowVersion`) **più** UPDATE condizionata»: sono **due strade alternative**,
+  non due pezzi dello stesso meccanismo, e `RowVersion` per giunta non esiste — vedi 3.1. Le ragioni
+  per esteso sono in `design.md` §«la guardia della transizione», aggiornata; in breve: (a) il
+  confronto avviene dentro un `SaveChanges` che **serve comunque**, quello che scrive metodo, totale,
+  orario e crea le vendite; (b) `ExecuteUpdateAsync` **scavalca il change tracker** e lascerebbe
+  l'ordine in memoria con lo stato vecchio, imponendo un `Reload()` che il prossimo bugfix dimentica;
+  (c) il token gira su **entrambi** i provider, mentre `ExecuteUpdateAsync` non è supportata da
+  InMemory; (d) il `WHERE` lo genera EF dal valore **effettivamente letto**, invece di farlo ridigitare
+  in ognuna delle tre transizioni.
+  **Verifica eseguita — provata rossa, non solo scritta**: rimuovendo `.IsConcurrencyToken()` da
+  `AppDbContext`, `DueChiusureConcorrenti_UnaSolaVinceEIlSecchioSiMuoveUnaVolta` fallisce con «No
+  exception was thrown» (il secondo dispositivo incassa una seconda volta). Annotazione ripristinata.
+  ⚠️ **Ritrovamento**: `MigrazioniAllineateAlModelloTests` **resta verde** senza il token —
+  `IsConcurrencyToken` non cambia il DDL, quindi il differ non produce operazioni. La rete che
+  protegge l'annotazione è solo quel test di concorrenza. Annotato anche in `design.md`.
+- [x] 5.2 Nuovo `backend/GraphQL/Vendite/ChiudiOrdineOrchestrator.cs` — scheletro, dipendenze
   (`IUnitOfWork`, `ChiusuraMensileService`, `IEventBus`, sullo stampo di
   `ChiudiRegistroCassaOrchestrator`), caricamento di ordine + righe + registro, guardia di 5.1,
   guardia del mese chiuso via `ChiusuraMensileService`, guardia «registro non già CLOSED»,
   transizione `APERTO → CHIUSO` con scrittura di `MetodoPagamento`, `ContanteRicevuto`, `Totale`.
   Registrazione in DI in `backend/Program.cs`.
-  **Verifica**: `dotnet build`; test 9.4 esercita già questo scheletro tramite l'annullo.
-- [ ] 5.3 `ChiudiOrdineOrchestrator` — il corpo, dentro `_unitOfWork.ExecuteInTransactionAsync`, in
+  ✅ **Fatto**, più `ILogger<ChiudiOrdineOrchestrator>` fra le dipendenze — serve a
+  `SecchiIncassiApplier` e a `BreakdownIvaApplier`, che lo pretendono per i loro warning di clamp.
+  Input e output in `backend/GraphQL/Vendite/Types/ChiudiOrdineInput.cs`
+  (`ChiudiOrdineInput`, `TaglioOrdineInput`, `EsitoChiusuraOrdine`) — le classi C# nude, senza gli
+  `InputObjectGraphType`, che sono di 6.1.
+  ⚠️ **Quattro orchestrator e non uno**, come vuole `design.md` §File Changes: `ApriOrdineOrchestrator`
+  (5.4), `ChiudiOrdineOrchestrator` (5.3 e 5.5), `AnnullaOrdineOrchestrator` (5.6),
+  `StornaOrdineOrchestrator` (5.7). Tutti `AddScoped` in `Program.cs`: condividono l'`IUnitOfWork`
+  della richiesta, ed è ciò che rende una chiusura **una** transazione.
+  **Verifica eseguita**: `dotnet build` → 0 errori, 0 warning.
+- [x] 5.3 `ChiudiOrdineOrchestrator` — il corpo, dentro `_unitOfWork.ExecuteInTransactionAsync`, in
   **quest'ordine esatto**:
   1. una `Vendita` per ogni `RigaOrdine`, riusando `VenditeMutations.RicalcolaImportiSnapshot` — non
      riscrivere lo scorporo, che ha un solo posto in cui vive;
@@ -515,14 +558,37 @@ Il cuore del change. Qui vive l'unica scrittura sui secchi di tutto il backend.
   🔴 **Il passo 3 precede il 4** perché il 4 calcola `TotaleVendite` a partire da
   `IncassiElettronici`: leggerlo prima del delta darebbe un totale vecchio di un ordine. È già
   scritto nel commento XML di `SecchiIncassiApplier`.
-  **Verifica**: test 9.2, che va rosso se si toglie il `SaveChangesAsync()` del passo 2.
-- [ ] 5.4 Assegnazione del `Numero` all'apertura dell'ordine: `MAX(Numero)+1` sul registro ha una
+  ✅ **Fatto**, con **una fusione rispetto a questa stesura**: il `SaveChangesAsync()` del passo 2 e
+  il salvataggio della transizione di stato **sono lo stesso salvataggio**, ed è deliberato. Il token
+  di concorrenza sta su `Ordine.Stato`, quindi la guardia scatta esattamente lì: un solo `SaveChanges`
+  scrive la transizione, crea le `Vendita` e verifica che nessun altro sia passato di qui — e lo fa
+  **prima** di qualunque delta, che è la proprietà che conta. Sono quindi due salvataggi in tutto,
+  come previsto, non tre.
+  **Verifica eseguita — provata rossa, non solo scritta**: spostando quel salvataggio **dopo** il
+  breakdown, `Chiusura_IlBreakdownVedeLeVenditeAppenaCreate_NessunResiduoStimato` fallisce con
+  `VenditeContanti` a `0M` invece di `18.50M`, e cade anche
+  `ChiusuraInContanteNonTracciato_NonMuoveAlcunSecchio_MaRaffinaLIva`. È esattamente il guasto
+  silenzioso descritto in `design.md` §Discovery 1: mutation OK, ordine chiuso, secchi mossi, e la
+  ripartizione IVA indietro di un ordine intero. Codice ripristinato.
+- [x] 5.4 Assegnazione del `Numero` all'apertura dell'ordine: `MAX(Numero)+1` sul registro ha una
   **corsa** — due operatori che aprono un ordine nello stesso istante leggono lo stesso massimo.
   L'indice unico di 3.4 trasforma la corsa da duplicato silenzioso in `DbUpdateException`; qui si
   aggiunge il retry limitato (3 tentativi) perché l'operatore veda un ordine nuovo e non un 500.
   🔴 L'indice è la correttezza, il retry è l'ergonomia: non invertire i ruoli.
-  **Verifica**: test 9.7 (richiede 2.1).
-- [ ] 5.5 Split — `ChiudiOrdineOrchestrator` accetta 2..n destinazioni
+  ✅ **Fatto** — `backend/GraphQL/Vendite/ApriOrdineOrchestrator.cs`. Oltre alla numerazione porta le
+  due guardie che chiudono la finestra a monte: mese chiuso e **registro non già `CLOSED`/`RECONCILED`**
+  (`design.md` §«Chiusura di cassa bloccata dagli ordini aperti» ne chiede due, e questa è la prima —
+  la seconda è il conteggio dentro la chiusura di cassa, che è 7.1).
+  ⚠️ **I figli di uno split non consumano un numero**: ereditano quello del padre e si distinguono per
+  suffisso, quindi `MAX(Numero)` li conta senza doverli escludere.
+  **Verifica eseguita — provata rossa**: la corsa non è riproducibile chiamando due volte `apriOrdine`,
+  perché la finestra sta **dentro** il metodo, fra la lettura del massimo e la scrittura. È aperta a
+  comando con un `SaveChangesInterceptor` (`UnAltroOperatorePrendeIlNumero`) che, alla prima scrittura,
+  fa inserire il numero 1 da un secondo contesto. Con `TentativiNumerazione = 1` il test fallisce; con
+  3 l'apertura riesce con `Numero = 2` e l'asserzione `HaColpito` prova che la corsa è davvero
+  avvenuta. Ha richiesto un parametro `params IInterceptor[]` opzionale su
+  `TestDbContextFactory.CreateSqlite`, additivo e senza effetti sui chiamanti esistenti.
+- [x] 5.5 Split — `ChiudiOrdineOrchestrator` accetta 2..n destinazioni
   `[{ metodo, righeIds, contanteRicevuto? }]` in **una sola** transazione. Il padre passa a `CHIUSO`,
   nascono n figli con `SuffissoSplit` e `OrdinePadreId`.
   Validare che l'unione delle `righeIds` sia **esattamente** l'insieme delle righe del padre, senza
@@ -532,13 +598,30 @@ Il cuore del change. Qui vive l'unica scrittura sui secchi di tutto il backend.
   chiamarlo n volte sono n−1 riletture inutili sugli stessi dati.
   ℹ️ Fuori perimetro, e va detto in pagina (7.8): lo split per **importo** sullo stesso insieme di
   righe.
-  **Verifica**: test 9.3 (richiede 2.1).
-- [ ] 5.6 Annullo — `APERTO → ANNULLATO`, **nessun delta**, traccia di chi e quando in
+  ✅ **Fatto**. Il padre passa a `SPLITTATO` con `MetodoPagamento` lasciato a **`null`** — non ha
+  incassato con alcun metodo — e `TotaleOrdine` pari al totale intero: dice quanto valeva, non come è
+  stato pagato. I figli ereditano `Numero` e prendono `SuffissoSplit` `"A"`, `"B"`, …; le righe sono
+  **riassegnate** via navigazione (`riga.Ordine = figlio`), perché il figlio non ha ancora una chiave
+  e la propaga EF al salvataggio.
+  ⚠️ **La divisione per importo non è nemmeno esprimibile**: `TaglioOrdineInput` non ha un campo
+  importo. Il tentativo arriva quindi al server come una parte **senza voci**, o come una voce
+  assegnata **due volte**, e in entrambi i casi il messaggio dice *perché* — «il conto si divide per
+  voci, non per importo» — invece del solo rifiuto.
+  **Verifica eseguita — provata rossa**: sostituendo `ExecuteInTransactionAsync` con un passthrough,
+  `SplitFallitoAMeta_NessunEffettoParziale` fallisce trovando **3 ordini invece di 1** (il padre più
+  due figli orfani). Il guasto del test è piazzato **dopo** il primo salvataggio (`BusinessSettings`
+  assente → il breakdown lancia), perché uno piazzato prima sarebbe stato coperto dalla transazione
+  implicita di `SaveChanges` e non avrebbe provato nulla. Codice ripristinato.
+- [x] 5.6 Annullo — `APERTO → ANNULLATO`, **nessun delta**, traccia di chi e quando in
   `AnnullatoDaUtenteId`/`AnnullatoIl`/`MotivoAnnullamento`. L'ordine non sparisce e resta
   consultabile: è la scappatoia per sbloccare la chiusura di cassa, e una scappatoia senza traccia
   non controlla niente. Stessa guardia di 5.1.
-  **Verifica**: test 9.4.
-- [ ] 5.7 Storno — `CHIUSO → STORNATO`, delta inverso, **cancellazione** delle `Vendita` generate, poi
+  ✅ **Fatto** — `backend/GraphQL/Vendite/AnnullaOrdineOrchestrator.cs` (nomi di `design.md`:
+  `AnnullatoDa`, non `AnnullatoDaUtenteId`). Motivo **obbligatorio**, spazi soli non valgono: un
+  motivo vuoto salvato somiglierebbe a una traccia senza esserlo. Nessun evento pubblicato — il
+  registro non è cambiato di un centesimo, e annunciarne l'aggiornamento farebbe ricaricare la cassa
+  per niente.
+- [x] 5.7 Storno — `CHIUSO → STORNATO`, delta inverso, **cancellazione** delle `Vendita` generate, poi
   `SaveChangesAsync()`, poi `BreakdownIvaApplier` (stessa regola d'ordine di 5.3). È l'operazione
   pericolosa: il delta non è idempotente, e la guardia di 5.1 è ciò che la rende sicura.
   ✅ **Riscontrato con `design.md`** (§«`stornaOrdine` CANCELLA le `Vendita`, non le marca»):
@@ -562,7 +645,14 @@ Il cuore del change. Qui vive l'unica scrittura sui secchi di tutto il backend.
      che applica n delta inversi trasformerebbe «una volta sola» in n ragionamenti da tenere insieme.
   ⚠️ `design.md` colloca questa logica in un `backend/GraphQL/Vendite/StornaOrdineOrchestrator.cs`
   separato, non dentro `ChiudiOrdineOrchestrator`. In fase di apply vale il design.
-  **Verifica**: test 9.5.
+  ✅ **Fatto** — file separato come vuole il design. I quattro vincoli sono tutti in piedi: le
+  `RigaOrdine` non si toccano, il motivo è obbligatorio, `GuardUtenteAmministratore` è la **prima**
+  cosa che viene eseguita (chi non può stornare non deve sapere nemmeno se l'ordine esiste), e uno
+  `SPLITTATO` è rifiutato **senza un controllo apposito**: `GuardStatoAtteso(ordine, CHIUSO, …)` lo
+  copre da sé, e il messaggio rimanda alle singole parti.
+  ⚠️ Il `SaveChangesAsync()` obbligatorio vale identico qui, e per la stessa ragione al contrario: il
+  breakdown rilegge le vendite **dal database**, quindi senza salvare la `RemoveRange` le vedrebbe
+  ancora tutte e ricostruirebbe un breakdown che comprende l'ordine appena stornato.
 
 ---
 
@@ -687,20 +777,30 @@ dove indicato che sia stato visto **fallire prima** sull'implementazione mancant
 nominato in ogni task; il comando è `cd backend && dotnet test --filter <NomeClasse>` per il backend
 e `cd duedgusto && npm run test -- <file>` per il frontend.
 
-- [ ] 9.1 **[SBLOCCATO — 2.1 non è più fermo]** Nuovo `backend/DuedGusto.Tests/Integration/OrdiniChiusuraTests.cs`, su
+> ### ℹ️ 9.1–9.5 e 9.7 sono stati scritti **dentro la Fase 5**, non rimandati qui
+>
+> Un'implementazione non idempotente lasciata scoperta anche per una sola fase è esattamente il
+> rischio che questo change esiste per togliere: i test della guardia sono nati insieme alla guardia,
+> e ognuno di essi è stato **visto fallire** rimuovendo la protezione che sorveglia (le prove sono
+> annotate sui rispettivi task 5.x). Restano da fare in questa fase 9.6 e 9.8 — che dipendono dalla
+> superficie GraphQL (6.5) e dalla guardia della chiusura di cassa (7.1) — e i quattro task di
+> frontend e di gate.
+> **40 test nuovi**, suite da **893 a 933 verdi**.
+
+- [x] 9.1 **[FATTO IN FASE 5]** Nuovo `backend/DuedGusto.Tests/Integration/OrdiniChiusuraTests.cs`, su
   `TestDbContextFactory.CreateSqlite()`: chiusura di un ordine → il secchio si muove **una volta**;
   una seconda chiusura lancia e lascia il secchio **invariato**.
-- [ ] 9.2 `backend/DuedGusto.Tests/Integration/OrdiniChiusuraTests.cs`, su InMemory: chiusura con
+- [x] 9.2 **[FATTO IN FASE 5]** `backend/DuedGusto.Tests/Integration/OrdiniChiusuraTests.cs`, su InMemory: chiusura con
   righe → `VenditeContanti` del registro pari al totale dell'ordine e **nessuna riga IVA `Stimato`**
   a coprirlo.
   🔴 È il test che va rosso se si toglie il `SaveChangesAsync()` del passo 2 di 5.3. Va scritto
   guardandolo fallire con quella riga commentata, altrimenti non si sa che cosa stia sorvegliando.
-- [ ] 9.3 **[SBLOCCATO — 2.1 non è più fermo]** Nuovo `backend/DuedGusto.Tests/Integration/OrdiniSplitTests.cs`, su
+- [x] 9.3 **[FATTO IN FASE 5]** Nuovo `backend/DuedGusto.Tests/Integration/OrdiniSplitTests.cs`, su
   Sqlite: totale del padre pari alla somma dei figli; secchi mossi una volta **in totale**; uno split
   le cui righe non partizionano il padre viene rifiutato; un rollback a metà non lascia figli orfani.
-- [ ] 9.4 `backend/DuedGusto.Tests/Integration/OrdiniTransizioniTests.cs` (nuovo), su InMemory —
+- [x] 9.4 **[FATTO IN FASE 5]** `backend/DuedGusto.Tests/Integration/OrdiniTransizioniTests.cs` (nuovo), su InMemory —
   annullo: nessun movimento sui secchi, ordine ancora interrogabile con chi e quando.
-- [ ] 9.5 **[SBLOCCATO — 2.1 non è più fermo]** `backend/DuedGusto.Tests/Integration/OrdiniTransizioniTests.cs`, su
+- [x] 9.5 **[FATTO IN FASE 5]** `backend/DuedGusto.Tests/Integration/OrdiniTransizioniTests.cs`, su
   Sqlite — storno: delta inverso applicato una volta sola; una seconda richiesta di storno non muove
   nulla.
   ✅ Casi **aggiunti dalla riconciliazione con `design.md`** (vedi 5.7), tutti sullo stesso file:
@@ -712,7 +812,7 @@ e `cd duedgusto && npm run test -- <file>` per il frontend.
 - [ ] 9.6 `backend/DuedGusto.Tests/Integration/GraphQL/OrdiniQueriesTests.cs` (nuovo), su InMemory —
   `ordiniAperti` a cavallo di mezzanotte: ordine sul registro di ieri, «oggi» è il giorno dopo →
   compare comunque, con la data del registro nella riga.
-- [ ] 9.7 **[SBLOCCATO — 2.1 non è più fermo]** `backend/DuedGusto.Tests/Integration/OrdiniNumerazioneTests.cs`
+- [x] 9.7 **[FATTO IN FASE 5]** `backend/DuedGusto.Tests/Integration/OrdiniNumerazioneTests.cs`
   (nuovo), su Sqlite — indice unico: due ordini con la stessa terna
   `(RegistroCassaId, Numero, SuffissoSplit)` → il secondo fallisce; il retry di 5.4 ne assegna uno
   nuovo e l'apertura va a buon fine.

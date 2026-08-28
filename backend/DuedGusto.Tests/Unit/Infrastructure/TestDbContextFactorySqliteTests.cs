@@ -203,10 +203,11 @@ public class TestDbContextFactorySqliteTests
     [Fact]
     public async Task Sqlite_OnoraIlTokenDiConcorrenza_IlSecondoScrittoreVieneRifiutato()
     {
-        // Il modello di produzione non ha (ancora) un token di concorrenza: Ordine.RowVersion
-        // arriva con questo change. Qui si verifica la CAPACITÀ DEL PROVIDER su cui quella guardia
-        // poggerà — che è ciò che questa fase infrastrutturale deve dimostrare — usando un modello
-        // minimo di prova invece di anticipare entità che non esistono.
+        // ⚠️ AGGIORNATO IN FASE 5: il token del modello di produzione NON è un `Ordine.RowVersion`
+        // — quella colonna non esiste e non può esistere, perché né MySQL né Sqlite la
+        // popolerebbero da soli — ma `Ordine.Stato` con IsConcurrencyToken(). Qui resta il modello
+        // minimo di prova, perché ciò che questo test deve dimostrare è la CAPACITÀ DEL PROVIDER,
+        // non la guardia vera: quella è pinnata da OrdiniChiusuraTests e OrdiniTransizioniTests.
         //
         // Lo scenario è quello vero: due operatori leggono lo stesso ordine APERTO, il primo lo
         // chiude, il secondo prova a chiuderlo di nuovo con in mano un valore ormai vecchio.

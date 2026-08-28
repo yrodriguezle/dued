@@ -31,6 +31,7 @@ using duedgusto.Repositories.Implementations;
 using duedgusto.Repositories.Implementations.Domain;
 using duedgusto.GraphQL.GestioneCassa;
 using duedgusto.GraphQL.Fornitori;
+using duedgusto.GraphQL.Vendite;
 
 using GraphQL.Server.Transports.AspNetCore.WebSockets;
 using System.Security.Claims;
@@ -65,6 +66,14 @@ builder.Services.AddScoped<MutateSpesaCassaOrchestrator>();
 builder.Services.AddScoped<ChiudiRegistroCassaOrchestrator>();
 builder.Services.AddScoped<RiapriRegistroCassaOrchestrator>();
 builder.Services.AddScoped<EliminaRegistroCassaOrchestrator>();
+
+// Ordini del punto vendita — le uniche transizioni che muovono un secchio del registro.
+// ⚠️ Scoped come gli altri: condividono l'IUnitOfWork della richiesta, ed è ciò che rende la
+//    chiusura di un ordine una transazione sola.
+builder.Services.AddScoped<ApriOrdineOrchestrator>();
+builder.Services.AddScoped<ChiudiOrdineOrchestrator>();
+builder.Services.AddScoped<AnnullaOrdineOrchestrator>();
+builder.Services.AddScoped<StornaOrdineOrchestrator>();
 
 // Event Bus per GraphQL Subscriptions
 builder.Services.AddSingleton<IEventBus, EventBus>();

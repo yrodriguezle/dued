@@ -273,19 +273,50 @@ la forma che l'istinto suggerisce, e che il commento di
 nessuno dei due motori**: né quello di produzione né quello dei test. Qualunque forma prenda la
 guardia, **il valore su cui si confronta lo scrive l'applicazione**.
 
-Il vincolo non sposta la conclusione — la transizione resta una-e-una-sola-volta — ma lascia aperta la
-forma. Le strade sono due, **entrambe già provate eseguibili su Sqlite** dai test della Fase 2, e la
-scelta è **della Fase 5**: si registra qui perché non venga data per già presa.
+Il vincolo non sposta la conclusione — la transizione resta una-e-una-sola-volta — ma lasciava aperta
+la forma. Le strade erano due, **entrambe già provate eseguibili su Sqlite** dai test della Fase 2:
 
 | Forma | Chi scrive il valore | Prova già in casa |
 |---|---|---|
 | **Token di concorrenza gestito dall'applicazione** — è `Ordine.Stato` con `IsConcurrencyToken()`, la forma proposta sopra: il token *è* lo stato, e a scriverlo è il codice della transizione. Nessun campo tecnico in più | l'orchestratore assegna `Stato`; EF confronta il valore originale letto | `Sqlite_OnoraIlTokenDiConcorrenza_IlSecondoScrittoreVieneRifiutato` |
 | **Guardia sul solo `WHERE Stato = 'APERTO'` con conteggio delle righe toccate** (`ExecuteUpdateAsync`): 1 = la transizione è mia, 0 = qualcun altro è già passato di qui | nessun token: la condizione è lo stato atteso, scritto nella query | `CreateSqlite_UpdateCondizionata_ToccaUnaRigaLaPrimaVoltaEZeroLaSeconda` |
 
-⚠️ **Chi implementa non deve dare per scontato un token popolato dal database.** E se si sceglie la
-seconda forma valgono le stesse cautele già dette per il SQL grezzo: `ExecuteUpdateAsync` scavalca il
-change tracker, quindi l'`Ordine` già caricato resta in memoria con lo `Stato` vecchio finché non lo si
-ricarica.
+**✅ SCELTA DELLA FASE 5 — il token su `Ordine.Stato`.** Il codice sta in
+`backend/GraphQL/Vendite/TransizioneOrdine.cs`, che è il punto unico da cui passano tutte e tre le
+transizioni. Le quattro ragioni, in ordine di peso:
+
+1. **Il confronto avviene dentro un `SaveChanges` che serve comunque.** La transizione non scrive
+   soltanto lo stato: scrive anche `MetodoPagamento`, `TotaleOrdine`, `ChiusoIl`, `ChiusoDa`, crea le
+   `Vendita` e — nello split — i figli e la riassegnazione delle righe. Con il token, quella UPDATE
+   porta da sé `AND Stato = 'APERTO'`. Con `ExecuteUpdateAsync` ci sarebbero **due scritture sulla
+   stessa riga** nella stessa transazione, e le assegnazioni degli altri campi finirebbero dentro una
+   lambda lontana dall'entità.
+2. **Non scavalca il change tracker.** `ExecuteUpdateAsync` lascerebbe l'`Ordine` già caricato con lo
+   stato vecchio: l'oggetto restituito al client direbbe `APERTO` su un ordine appena chiuso, finché
+   qualcuno non aggiunge un `Reload()`. È il passo che il prossimo bugfix dimentica, perché non ha
+   sintomi finché non ne ha di gravi.
+3. **Gira su entrambi i provider.** `ExecuteUpdateAsync` non è supportata da InMemory — pinnato da un
+   test della Fase 2 — quindi i test della guardia girerebbero solo su Sqlite. Il pezzo più critico
+   del change è quello che merita meno di essere legato a un provider solo. *(In pratica i test della
+   guardia stanno comunque su Sqlite, perché serve un secondo contesto sullo stesso database; ma la
+   possibilità resta aperta e il resto della macchina a stati è verificabile ovunque.)*
+4. **Il `WHERE` è generato, non digitato.** Con `ExecuteUpdateAsync` lo stato atteso andrebbe ripetuto
+   a mano in ognuna delle tre transizioni, dove può divergere da quello che il codice crede di aver
+   letto. Con il token viene dal valore **effettivamente letto**.
+
+**Costo accettato**: la diagnosi arriva come `DbUpdateConcurrencyException` e non come un conteggio di
+righe, quindi va tradotta — lo fa `TransizioneOrdine.SalvaTransizioneAsync`, e propagarla sarebbe un
+500 opaco. In cambio, il `SaveChanges` della transizione va tenuto **stretto**: tutto ciò che vi entra
+condivide la stessa diagnosi.
+
+⚠️ **Fatto misurato in Fase 5, da sapere**: togliere `.IsConcurrencyToken()` **non** rende rosso
+`MigrazioniAllineateAlModelloTests` — `IMigrationsModelDiffer` non produce operazioni per un'annotazione
+che non cambia il DDL. La rete che protegge il token è il test
+`DueChiusureConcorrenti_UnaSolaVinceEIlSecchioSiMuoveUnaVolta`, provato rosso rimuovendo l'annotazione,
+non la coerenza con le migrazioni.
+
+⚠️ **Chi legge questo file più avanti non deve dare per scontato un token popolato dal database**: non
+esiste, su nessuno dei due motori. Il valore lo scrive l'applicazione, ed è lo stato.
 
 ---
 
@@ -1519,10 +1550,18 @@ domanda cancellata non si distingue da una mai posta.
       insieme di voci (30 € totali, 20 in contanti e 10 con carta) resta **non supportato**, come
       proposto nella issue. La UI deve dirlo esplicitamente. Se dovesse capitare davvero al bancone, si
       riapre.
-- [ ] ℹ️ **Non è una domanda all'utente, è una scelta tecnica della Fase 5**: quale **forma** prende la
-      guardia della transizione. Vincolo emerso applicando la Fase 2: **né MySQL né Sqlite popolano un
-      `RowVersion`**, quindi un token di concorrenza, se c'è, lo scrive l'applicazione — non il
-      database. Le due strade (token gestito dall'applicazione su `Ordine.Stato`, oppure
-      `WHERE Stato = 'APERTO'` con conteggio delle righe toccate) sono descritte in §«la guardia della
-      transizione» e sono **entrambe già eseguibili su Sqlite**. Resta qui aperta perché chi implementa
-      non parta dall'assunto di un token popolato dal motore.
+- [x] ✅ **CHIUSA in Fase 5 — la guardia è il token di concorrenza su `Ordine.Stato`.** Non era una
+      domanda all'utente ma una scelta tecnica, lasciata aperta perché chi implementava non partisse
+      dall'assunto — falso su entrambi i motori — di un `RowVersion` popolato dal database.
+      Le ragioni per esteso stanno in §«la guardia della transizione»; in breve: il confronto avviene
+      dentro un `SaveChanges` che **serve comunque** (la transizione scrive metodo, totale, orario e
+      crea le vendite), non **scavalca il change tracker** come farebbe `ExecuteUpdateAsync` — che
+      lascerebbe l'ordine in memoria con lo stato vecchio e imporrebbe un `Reload()` — gira su
+      **entrambi i provider**, e il `WHERE` lo genera EF dal valore effettivamente letto invece di
+      farlo ridigitare in ognuna delle tre transizioni.
+      🔴 **Provata rossa, non solo scritta**: rimuovendo `.IsConcurrencyToken()` il test
+      `DueChiusureConcorrenti_UnaSolaVinceEIlSecchioSiMuoveUnaVolta` fallisce con «No exception was
+      thrown» — cioè il secondo dispositivo incassa una seconda volta. Annotazione ripristinata.
+      ⚠️ **`MigrazioniAllineateAlModelloTests` NON protegge il token**: `IsConcurrencyToken` non cambia
+      il DDL, quindi il differ non produce alcuna operazione e il test resta verde anche senza. Chi
+      togliesse l'annotazione lo scoprirebbe solo da quel test di concorrenza.

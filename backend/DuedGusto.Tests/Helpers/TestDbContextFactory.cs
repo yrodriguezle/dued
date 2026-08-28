@@ -100,10 +100,19 @@ public static class TestDbContextFactory
     /// sullo stesso database, ciascuno con la propria identity map — che è ciò che serve per
     /// simulare due operatori concorrenti.
     /// </summary>
-    public static AppDbContext CreateSqlite(SqliteConnection connection)
-        => CreateSqlite(connection, contextOwnsConnection: false);
+    /// <param name="interceptors">
+    /// Interceptor EF opzionali. Servono a una cosa che altrimenti non è riproducibile in modo
+    /// deterministico: <b>far accadere qualcosa a metà di un <c>SaveChanges</c></b>. La corsa al
+    /// numero d'ordine, per esempio, esiste solo se un secondo operatore inserisce fra la lettura
+    /// del massimo e la scrittura — una finestra che nessuna sequenza di chiamate riesce a
+    /// centrare da fuori. Con un <c>SaveChangesInterceptor</c> quella finestra si apre a comando,
+    /// e il test smette di dipendere dal tempismo.
+    /// </param>
+    public static AppDbContext CreateSqlite(SqliteConnection connection, params IInterceptor[] interceptors)
+        => CreateSqlite(connection, contextOwnsConnection: false, interceptors);
 
-    private static AppDbContext CreateSqlite(SqliteConnection connection, bool contextOwnsConnection)
+    private static AppDbContext CreateSqlite(
+        SqliteConnection connection, bool contextOwnsConnection, params IInterceptor[] interceptors)
     {
         if (connection.State != ConnectionState.Open)
         {
@@ -118,6 +127,7 @@ public static class TestDbContextFactory
             // Il perché di questa forma (e non di un ramo `if (Database.IsSqlite())` in
             // OnModelCreating) è scritto in SqliteTestModelCustomizer.
             .ReplaceService<IModelCustomizer, SqliteTestModelCustomizer>()
+            .AddInterceptors(interceptors)
             .Options;
 
         var context = new AppDbContext(options, CreateConfigurationMock());
