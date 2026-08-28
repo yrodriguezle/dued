@@ -15,6 +15,10 @@
     <PackageReference Include="Moq" Version="4.20.72" />
     <PackageReference Include="FluentAssertions" Version="7.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.13" />
+    <!-- Sqlite AFFIANCA InMemory, non lo sostituisce. Serve ai soli test che hanno bisogno di
+         transazioni vere, token di concorrenza applicati e indici unici applicati — cose che il
+         provider InMemory non fa. Vedi TestDbContextFactory.CreateSqlite. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.13" />
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
   </ItemGroup>
 

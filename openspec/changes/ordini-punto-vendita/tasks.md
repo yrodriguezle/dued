@@ -190,7 +190,7 @@ nel posto sbagliato (1.3).
 Va prima di A, perché senza questa fase il pezzo più importante del change (la transizione che muove
 i secchi una volta sola) resta **senza rete**.
 
-- [ ] 2.1 **[SBLOCCATO da 0.5 — Sqlite si aggiunge]** `backend/DuedGusto.Tests/DuedGusto.Tests.csproj` — aggiungere
+- [x] 2.1 **[SBLOCCATO da 0.5 — Sqlite si aggiunge]** `backend/DuedGusto.Tests/DuedGusto.Tests.csproj` — aggiungere
   `Microsoft.EntityFrameworkCore.Sqlite`; `backend/DuedGusto.Tests/Helpers/TestDbContextFactory.cs` —
   aggiungere `CreateSqlite()` con una `SqliteConnection("DataSource=:memory:")` aperta e **tenuta
   viva** per la durata del test (se la connessione si chiude, il database sparisce), più
@@ -199,11 +199,21 @@ i secchi una volta sola) resta **senza rete**.
   **Perché serve**: `TestDbContextFactory.Create()` usa InMemory, che (a) rende
   `BeginTransactionAsync` un no-op — è soppresso esplicitamente con
   `InMemoryEventId.TransactionIgnoredWarning` — quindi «lo split è atomico» non è dimostrabile;
-  (b) **non applica i token di concorrenza**, quindi la guardia di 5.1 non lancerebbe mai
-  `DbUpdateConcurrencyException`; (c) **non applica gli indici unici**, quindi anche la corsa sul
-  numero d'ordine (4.4) resterebbe scoperta.
-  **Verifica**: task 2.3.
-- [ ] 2.2 **[SBLOCCATO da 0.5]** Neutralizzare le default MySQL-only, o `EnsureCreated()` non parte
+  (b) ~~**non applica i token di concorrenza**~~ → 🔴 **SMENTITO, misurato**: su EF Core 8.0.13
+  InMemory **applica** i token dichiarati con `IsConcurrencyToken()` e lancia
+  `DbUpdateConcurrencyException` esattamente come Sqlite (`InMemoryTable.Update`). La ragione vera è
+  un'altra ed è più forte: **`ExecuteUpdateAsync` non è proprio supportata da InMemory**, quindi la
+  guardia di 5.1 — che *conta le righe toccate* da una UPDATE condizionata — non sarebbe nemmeno
+  eseguibile lì. Entrambi i fatti sono pinnati da un test, così che l'affermazione sbagliata non
+  torni; (c) **non applica gli indici unici**, quindi anche la corsa sul numero d'ordine (5.4)
+  resterebbe scoperta.
+  ✅ **Fatto**: pacchetto `Microsoft.EntityFrameworkCore.Sqlite` 8.0.13 (stessa versione di InMemory,
+  affiancato e non sostitutivo — i test esistenti restano su `Create()`); tre metodi nuovi in
+  `TestDbContextFactory`: `CreateSqliteConnection()` (connessione aperta, di proprietà del test),
+  `CreateSqlite(SqliteConnection)` (n contesti sullo stesso database, per i test di concorrenza) e
+  `CreateSqlite()` (contesto proprietario della connessione, per il caso a contesto singolo). Il mock
+  di `IConfiguration` è stato estratto in `CreateConfigurationMock()` e condiviso fra i due provider.
+- [x] 2.2 **[SBLOCCATO da 0.5]** Neutralizzare le default MySQL-only, o `EnsureCreated()` non parte
   affatto. `backend/DataAccess/AppDbContext.cs` usa
   `HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP")` su **14 entità** —
   `RegistroCassa` riga 228, `Vendita` riga 990, `Prodotto` riga 403, `MediaAsset`, `Fornitore`,
@@ -213,9 +223,21 @@ i secchi una volta sola) resta **senza rete**.
   modello, oppure un ramo condizionale sul provider in `OnModelCreating`. La prima non tocca il
   codice di produzione ed è preferibile.
   ℹ️ `HasCharSet("utf8mb4")` è invece un'annotazione Pomelo che il provider Sqlite ignora senza danni:
-  non va toccata.
-  **Verifica**: task 2.3.
-- [ ] 2.3 **[SBLOCCATO da 0.5]** Test di riscontro della factory in
+  non va toccata. **Confermato in esecuzione**: nessun intervento necessario, lo schema si costruisce.
+  ✅ **Fatto — scelta la prima strada**, `backend/DuedGusto.Tests/Helpers/SqliteTestModelCustomizer.cs`
+  (deriva da `RelationalModelCustomizer`, registrato con `.ReplaceService<IModelCustomizer, …>()`).
+  La ragione che decide non è «non tocca la produzione» ma che **è generico invece che enumerativo**:
+  spazza l'intero modello cercando `DefaultValueSql`, quindi copre da solo `Ordine`, `RigaOrdine` e
+  `GruppoProdotti` quando arriveranno. Un ramo `if (Database.IsSqlite())` andrebbe esteso a mano a
+  ogni entità nuova, e chi se ne dimenticasse scoprirebbe il guasto solo vedendo la factory smettere
+  di partire.
+  ⚠️ **Effetto collaterale recepito, non previsto dal task**: azzerare la sola `DefaultValueSql` non
+  basta. `HasDefaultValueSql` impone anche `ValueGenerated`, e senza toglierlo EF continuerebbe a
+  considerare `CreatedAt`/`UpdatedAt` generate dal database, omettendole dalla INSERT: su Sqlite,
+  senza più una default, la colonna resterebbe NULL e la rilettura di un `DateTime` non nullable
+  fallirebbe. Il customizer imposta quindi anche `ValueGenerated.Never`. **Conseguenza per chi scrive
+  test Sqlite**: i timestamp valgono ciò che scrive l'applicazione, non vengono riempiti dal database.
+- [x] 2.3 **[SBLOCCATO da 0.5]** Test di riscontro della factory in
   `backend/DuedGusto.Tests/Helpers/` o in un `Unit/Infrastructure/TestDbContextFactoryTests.cs`:
   `CreateSqlite()` costruisce lo schema senza eccezioni; inserire due `Prodotto` con lo stesso
   `Codice` fa fallire il secondo (l'indice unico di `AppDbContext.cs:411` viene davvero applicato);
@@ -223,7 +245,18 @@ i secchi una volta sola) resta **senza rete**.
   ⚠️ **Limite da accettare**: Sqlite non riproduce `SELECT … FOR UPDATE`. Se la guardia di 5.1
   finisce pessimistica invece che ottimistica, questa infrastruttura non la prova comunque — la forma
   della guardia decide se questa fase basta.
-  **Verifica**: `cd backend && dotnet test` verde, suite esistente inclusa.
+  ✅ **Fatto**: `backend/DuedGusto.Tests/Unit/Infrastructure/TestDbContextFactorySqliteTests.cs`,
+  **10 test**, ciascuna capacità con accanto il suo contrasto su InMemory:
+  schema costruito e riletto da un contesto nuovo · indice unico applicato **↔** InMemory accetta il
+  duplicato · rollback senza traccia **↔** su InMemory il rollback non annulla nulla · UPDATE
+  condizionata che tocca 1 riga la prima volta e 0 la seconda (la forma esatta della guardia di 5.1)
+  **↔** `ExecuteUpdateAsync` non supportata da InMemory · token di concorrenza onorato, su un modello
+  minimo di prova perché `Ordine.RowVersion` non esiste ancora **↔** InMemory lo onora anch'esso
+  (la smentita di 2.1b, fissata da un test perché non torni).
+  Il limite «righe toccate ≠ locking InnoDB sotto `REPEATABLE READ`» è scritto **dentro** il file,
+  nel commento di testa e accanto al test della guardia: chi legge il verde sa cosa non copre.
+  **Verifica eseguita**: `cd backend && dotnet build` → 0 errori, 0 warning;
+  `cd backend && dotnet test` → **878/878 verdi** (868 preesistenti + 10 nuovi, nessuno rotto).
 
 ---
 
