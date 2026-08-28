@@ -64,7 +64,7 @@ describe("useQueryRegistroCassa", () => {
   it("dovrebbe restituire i dati del registro cassa dal mock", async () => {
     const mock: MockedResponse = {
       request: { query: getRegistroCassa },
-      variableMatcher: (vars) => vars?.data === "2026-03-12",
+      variableMatcher: (vars) => vars?.data === "2026-03-12T00:00:00",
       result: {
         data: {
           gestioneCassa: {
@@ -155,5 +155,51 @@ describe("useQueryRegistroCassa", () => {
 
     expect(result.current.loading).toBe(false);
     expect(result.current.registroCassa).toBeNull();
+  });
+
+  // 🔴 `registroCassa(data:)` sta su DateTimeGraphType, che pretende l'ISO-8601 completo: la data
+  //    secca fa fallire la query in validazione con "Unable to convert '2026-03-12' to 'DateTime'",
+  //    prima ancora che il resolver parta. Il PuntoVendita passava `dayjs().format("YYYY-MM-DD")`
+  //    ed era per questo che la pagina non caricava. Qui si guarda la variabile spedita e non il
+  //    risultato: il mock risponderebbe comunque, perche a rifiutare e il server vero.
+  describe("normalizzazione della data", () => {
+    const catturaVariabili = async (data: string) => {
+      const spedite: Record<string, unknown>[] = [];
+      const mock: MockedResponse = {
+        request: { query: getRegistroCassa },
+        variableMatcher: (vars) => {
+          spedite.push(vars ?? {});
+          return true;
+        },
+        result: {
+          data: {
+            gestioneCassa: {
+              __typename: "CashManagementQueries",
+              registroCassa: mockRegistroCassa,
+            },
+          },
+        },
+      };
+
+      const { result } = renderHook(() => useQueryRegistroCassa({ data }), { wrapper: createWrapper([mock]) });
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+      return spedite;
+    };
+
+    it("estende la data secca a mezzanotte prima di spedirla", async () => {
+      const spedite = await catturaVariabili("2026-03-12");
+
+      expect(spedite).toHaveLength(1);
+      expect(spedite[0].data).toBe("2026-03-12T00:00:00");
+    });
+
+    it("lascia intatta una data gia estesa", async () => {
+      const spedite = await catturaVariabili("2026-03-12T00:00:00");
+
+      expect(spedite).toHaveLength(1);
+      expect(spedite[0].data).toBe("2026-03-12T00:00:00");
+    });
   });
 });
