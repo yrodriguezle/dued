@@ -6,12 +6,40 @@ using duedgusto.DataAccess;
 namespace duedgusto.SeedData;
 
 /// <summary>
-/// La voce di menu del <b>punto vendita</b>, sotto «Cassa».
+/// La voce di menu del <b>punto vendita</b>, al <b>primo livello</b> della sidebar.
 ///
-/// <para>⚠️ Sta in <b>Posizione 1</b>, cioè prima di «Lista Cassa» e di tutto il resto, e non è
-/// una questione di gerarchia: è la pagina che si apre dieci volte al giorno da dietro il
-/// bancone, mentre le altre si aprono una volta a sera. Su un telefono, ogni voce sopra di lei
-/// è uno scorrimento in più con le mani occupate.</para>
+/// <para>🔴 <b>Sta in <c>Posizione 0</c>, sopra Dashboard, e non è una questione di gerarchia</b>:
+/// è la pagina che si apre cento volte al giorno da dietro il bancone, mentre le altre si aprono
+/// una volta a sera. Finché è stata annidata sotto «Cassa» ogni vendita costava un tocco in più
+/// con le mani occupate. La 0 è anche l'unico posto libero <i>sopra</i>: al primo livello
+/// <see cref="SeedMenus"/> occupa già Dashboard 1, Cassa 2, Fornitori 3, Utenti 4, Ruoli 5,
+/// Menù 6, Impostazioni 7, Wiki 8, Sito 9 — e
+/// <c>AuthenticationDataLoaders</c> ordina con <c>OrderBy(m =&gt; m.Posizione)</c>
+/// <b>senza tie-break</b>, quindi a parità con Dashboard l'ordine lo deciderebbe l'Id, cioè il caso.</para>
+///
+/// <para>⚠️ <b>Il <c>Percorso</c> resta <c>/gestionale/cassa/vendita</c></b> anche se la voce non
+/// è più figlia di «Cassa». La gerarchia in barra e l'URL sono indipendenti:
+/// <c>ProtectedRoutes.tsx</c> registra le rotte da <c>percorso</c> + <c>percorsoFile</c>, non
+/// dall'albero. Rinominarlo romperebbe i segnalibri senza guadagno — ed è anche la chiave di
+/// idempotenza di questo seeder, quindi cambiarlo creerebbe una voce nuova lasciando la vecchia
+/// orfana in navigazione.</para>
+///
+/// <para>🔴 <b>Nessuna lookup del menu «Cassa».</b> Una voce di primo livello non ha padre, e la
+/// vecchia guardia <c>if (cassaMenu == null) return;</c> era un fallimento silenzioso: su un
+/// database in cui «Cassa» fosse stata rinominata o rimossa il seeder sarebbe uscito
+/// <b>prima</b> di promuovere, e la promozione non sarebbe avvenuta mai — senza un log, senza un
+/// errore.</para>
+///
+/// <para>🔴 <b>La voce va a TUTTI i ruoli</b>, non al solo SuperAdmin né al sottoinsieme con il
+/// flag <see cref="Ruolo.Amministratore"/> (quello è il criterio di <see cref="SeedMenusSito"/>,
+/// che amministra la vetrina): la vendita non è un'operazione amministrativa. Il menu governa
+/// però <b>la sola visibilità della voce in sidebar</b> — l'autorizzazione dei dati è un
+/// meccanismo separato e resta invariata, perché <c>VenditeQueries</c> e <c>VenditeMutations</c>
+/// dichiarano <c>this.Authorize()</c> a livello di tipo. «Per chiunque» significa quindi
+/// <b>chiunque sia autenticato</b>, e non apre alcun accesso anonimo.</para>
+///
+/// <para>⚠️ <see cref="SeedMenus.AssegnaRuoli"/> è <b>additivo</b>: non toglie mai un ruolo.
+/// Allargare costa un riavvio, restringere richiederebbe SQL diretto sul database di produzione.</para>
 ///
 /// <para>File separato da <see cref="SeedMenusProdotti"/> perché sono due cose diverse:
 /// lì si cura il listino, qui si vende. Tenerli distinti costa un file e rende ovvio, aprendo
@@ -32,16 +60,11 @@ public static class SeedMenusVendita
             return;
         }
 
-        Menu? cassaMenu = await dbContext.Menus
-                .Include(m => m.Ruoli)
-                .FirstOrDefaultAsync(m => m.Titolo == "Cassa" && m.Percorso == string.Empty);
-
-        if (cassaMenu == null)
-        {
-            // Senza padre la voce resterebbe orfana in fondo alla barra: meglio non crearla e
-            // riprovare al prossimo avvio, che il seed è idempotente.
-            return;
-        }
+        // 🔴 TUTTI i ruoli, senza filtro: vedi la docstring di classe. Il SuperAdmin è già
+        //    dentro questa lista, e `UpdateMenuIfNeeded` lo riaggiunge comunque per proprio conto.
+        List<Ruolo> tuttiIRuoli = await dbContext.Ruoli
+                .Include(r => r.Menus)
+                .ToListAsync();
 
         Menu? venditaMenu = await dbContext.Menus
                 .Include(m => m.Ruoli)
@@ -58,19 +81,21 @@ public static class SeedMenusVendita
                 //    guardando la barra.
                 Icona = "ShoppingCart",
                 Visibile = true,
-                Posizione = 1,
+                Posizione = 0,
                 NomeVista = "PuntoVendita",
                 PercorsoFile = "vendite/PuntoVendita.tsx",
-                MenuPadre = cassaMenu,
-                Ruoli = [superAdminRuolo]
+                MenuPadreId = null
             };
+            bool assegnazioneIniziale = false;
+            SeedMenus.AssegnaRuoli(venditaMenu, tuttiIRuoli, ref assegnazioneIniziale);
             dbContext.Menus.Add(venditaMenu);
         }
         else
         {
             bool needsUpdate = false;
-            SeedMenus.UpdateMenuIfNeeded(venditaMenu, "Vendita", "/gestionale/cassa/vendita", "ShoppingCart", true, 1,
-                "PuntoVendita", "vendite/PuntoVendita.tsx", superAdminRuolo, cassaMenu, ref needsUpdate);
+            SeedMenus.UpdateMenuIfNeeded(venditaMenu, "Vendita", "/gestionale/cassa/vendita", "ShoppingCart", true, 0,
+                "PuntoVendita", "vendite/PuntoVendita.tsx", superAdminRuolo, null, ref needsUpdate);
+            SeedMenus.AssegnaRuoli(venditaMenu, tuttiIRuoli, ref needsUpdate);
             if (needsUpdate)
             {
                 dbContext.Menus.Update(venditaMenu);

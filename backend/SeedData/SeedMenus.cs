@@ -7,6 +7,27 @@ namespace duedgusto.SeedData;
 
 public static class SeedMenus
 {
+    /// <summary>
+    /// Allinea una voce di menu esistente ai valori attesi dal seed, segnalando in
+    /// <paramref name="needsUpdate"/> se qualcosa è cambiato.
+    ///
+    /// <para>🔴 <b>Lo spostamento del padre assegna la chiave esterna, non la navigazione.</b>
+    /// I seeder caricano la voce con <c>.Include(m =&gt; m.Ruoli)</c> e <b>non</b> con
+    /// <c>.Include(m =&gt; m.MenuPadre)</c>: la navigazione vale quindi <c>null</c> in memoria
+    /// anche quando <c>MenuPadreId</c> è valorizzato. Scrivere <c>menu.MenuPadre = null</c> per
+    /// <b>promuovere</b> una voce a primo livello sarebbe un no-op — il change tracker confronta
+    /// il valore corrente della relazione con il suo snapshot, entrambi <c>null</c>, e non rileva
+    /// alcuna modifica. <c>needsUpdate</c> diventerebbe <c>true</c>, l'<c>Update</c> girerebbe
+    /// riscrivendo <c>MenuPadreId</c> con il <i>vecchio</i> valore, e la voce resterebbe annidata:
+    /// fallimento perfettamente silenzioso, con la pipeline verde. Assegnare la FK è rilevato in
+    /// entrambe le direzioni.</para>
+    ///
+    /// <para>ℹ️ Il confronto sulla stessa riga leggeva già <c>menu.MenuPadreId</c> ed era corretto:
+    /// sbagliata era solo la scrittura. Vedi <c>SeedMenusVenditaTests</c>, che pinna il caso
+    /// rileggendo <c>MenuPadreId</c> da un <see cref="AppDbContext"/> <b>nuovo</b>. Un test che
+    /// guardasse la <i>navigazione</i> dell'entità tracciata sarebbe verde comunque — è
+    /// <c>null</c> perché non è mai stata caricata, non perché la promozione sia avvenuta.</para>
+    /// </summary>
     internal static void UpdateMenuIfNeeded(Menu menu, string titolo, string? percorso, string icona, bool visibile,
         int posizione, string? nomeVista, string? percorsoFile, Ruolo superAdminRuolo, Menu? menuPadre, ref bool needsUpdate)
     {
@@ -17,7 +38,8 @@ public static class SeedMenus
         if (menu.Posizione != posizione) { menu.Posizione = posizione; needsUpdate = true; }
         if (menu.NomeVista != (nomeVista ?? string.Empty)) { menu.NomeVista = nomeVista ?? string.Empty; needsUpdate = true; }
         if (menu.PercorsoFile != (percorsoFile ?? string.Empty)) { menu.PercorsoFile = percorsoFile ?? string.Empty; needsUpdate = true; }
-        if (menu.MenuPadreId != menuPadre?.Id) { menu.MenuPadre = menuPadre; needsUpdate = true; }
+        // 🔴 Si assegna la CHIAVE ESTERNA, non la navigazione: vedi la docstring del metodo.
+        if (menu.MenuPadreId != menuPadre?.Id) { menu.MenuPadreId = menuPadre?.Id; needsUpdate = true; }
 
         if (!menu.Ruoli.Any(r => r.Id == superAdminRuolo.Id))
         {

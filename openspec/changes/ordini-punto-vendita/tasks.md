@@ -125,7 +125,7 @@ Indipendente da tutto il resto, nessuna migrazione, si fa subito. Il design ha t
 qui, non uno: la voce non si sposta (1.1), non nasce se manca il padre (1.2), e finirebbe comunque
 nel posto sbagliato (1.3).
 
-- [ ] 1.1 `backend/SeedData/SeedMenus.cs:20` — sostituire `menu.MenuPadre = menuPadre;` con
+- [x] 1.1 `backend/SeedData/SeedMenus.cs:20` — sostituire `menu.MenuPadre = menuPadre;` con
   `menu.MenuPadreId = menuPadre?.Id;`.
   **Guasto**: il menu è caricato con `.Include(m => m.Ruoli)` soltanto, quindi la navigazione
   `MenuPadre` non è caricata. Assegnarle `null` non è visto dal change tracker, che non ha il valore
@@ -136,11 +136,11 @@ nel posto sbagliato (1.3).
   a primo livello (FK già `null`, il ramo non si attiva); tutte le altre passano un padre tracciato,
   dove assegnare la navigazione funziona.
   **Verifica**: test 1.4, che deve essere rosso prima di questa modifica.
-- [ ] 1.2 `backend/SeedData/SeedMenusVendita.cs` — eliminare la lookup di `cassaMenu` e il
+- [x] 1.2 `backend/SeedData/SeedMenusVendita.cs` — eliminare la lookup di `cassaMenu` e il
   `if (cassaMenu == null) return;`. Senza padre quella query non serve più, e la guardia impedirebbe
   la creazione della voce su un database in cui «Cassa» non esiste.
   **Verifica**: test 1.5, caso B.
-- [ ] 1.3 `backend/SeedData/SeedMenusVendita.cs` — `Posizione = 1` diventa `Posizione = 0`; togliere
+- [x] 1.3 `backend/SeedData/SeedMenusVendita.cs` — `Posizione = 1` diventa `Posizione = 0`; togliere
   `MenuPadre = cassaMenu` dal ramo di creazione; nel ramo di aggiornamento passare `0` e `null` a
   `UpdateMenuIfNeeded`. Aggiornare il commento XML in testa al file, che oggi descrive la voce come
   figlia di Cassa in posizione 1 e diventerebbe una bugia.
@@ -149,7 +149,7 @@ nel posto sbagliato (1.3).
   con `OrderBy(m => m.Posizione)` **senza tie-break**: a parità con Dashboard l'ordine sarebbe
   incidentale, non «in alto». 0 è l'unico posto libero sopra.
   **Verifica**: test 1.5, caso C.
-- [ ] 1.4 Nuovo `backend/DuedGusto.Tests/Integration/SeedMenusVenditaTests.cs` — test di regressione
+- [x] 1.4 Nuovo `backend/DuedGusto.Tests/Integration/SeedMenusVenditaTests.cs` — test di regressione
   del padre: voce «Vendita» preesistente con `MenuPadreId = idCassa` e `Posizione = 1`; dopo il seed,
   rileggendo da un **DbContext nuovo** (o dopo `ChangeTracker.Clear()`), `MenuPadreId == null` e
   `Posizione == 0`.
@@ -157,13 +157,13 @@ nel posto sbagliato (1.3).
   correzione 1.1, cioè non prova nulla.
   **Verifica**: eseguire il test contro `SeedMenus.cs` non ancora corretto e constatare che è rosso;
   poi applicare 1.1 e constatare che diventa verde.
-- [ ] 1.5 Stesso file — due casi ulteriori: **B)** su un database privo del menu «Cassa» la voce viene
+- [x] 1.5 Stesso file — due casi ulteriori: **B)** su un database privo del menu «Cassa» la voce viene
   creata comunque (copre 1.2); **C)** nessun'altra voce di primo livello ha `Posizione == 0`, e
   «Vendita» è la prima in `OrderBy(m => m.Posizione)` (copre 1.3).
   InMemory basta per tutta la fase: nessuna transazione, nessun token di concorrenza, nessun indice
   unico in gioco.
   **Verifica**: `cd backend && dotnet test --filter SeedMenusVendita`.
-- [ ] 1.6 **[SBLOCCATO da 0.4 — «per chiunque»]** `backend/SeedData/SeedMenusVendita.cs` — ruoli della
+- [x] 1.6 **[SBLOCCATO da 0.4 — «per chiunque»]** `backend/SeedData/SeedMenusVendita.cs` — ruoli della
   voce. Oggi `Ruoli = [superAdminRuolo]`: va allargata a **tutti i ruoli**, perché la vendita non è
   amministrativa (#19 Fase 8) e la voce sta in cima alla sidebar.
   Usare `SeedMenus.AssegnaRuoli` — è l'helper che lo fa già, ed è additivo — su **tutti** i ruoli
@@ -176,7 +176,7 @@ nel posto sbagliato (1.3).
   futuro richiede SQL diretto sul VPS.
   **Verifica**: test che, dato un utente con un ruolo **non** amministrativo, la voce «Vendita»
   compare fra i suoi menu; e che un ruolo creato dopo il seed non la perde al riavvio successivo.
-- [ ] 1.7 Verifica in esecuzione: `cd backend && dotnet run`, login, la voce «Vendita» è la prima
+- [x] 1.7 Verifica in esecuzione: `cd backend && dotnet run`, login, la voce «Vendita» è la prima
   della sidebar con icona `ShoppingCart`. Il seed gira all'avvio e `UpdateMenuIfNeeded` propaga la
   correzione senza toccare il database a mano.
   ⚠️ `ShoppingCart` è già in `duedgusto/src/components/layout/sideBar/iconMapping.tsx:7,45`. Un'icona
