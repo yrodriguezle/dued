@@ -503,8 +503,16 @@ public class Ordine
     /// <summary>Progressivo PER REGISTRO. Vedi l'indice unico: senza, la collisione è muta.</summary>
     public int Numero { get; set; }
 
-    /// <summary>'A', 'B', … — valorizzato solo sui figli di uno split.</summary>
-    public string? SuffissoSplit { get; set; }
+    /// <summary>
+    /// 'A', 'B', … sui figli di uno split; stringa VUOTA su tutti gli altri.
+    /// 🔴 NOT NULL con default `string.Empty`, e non è una svista da «semplificare» a `string?`:
+    /// in MySQL come in Sqlite più NULL sono considerati DISTINTI dentro un indice unico. Con la
+    /// colonna nullable la terna (RegistroCassaId, Numero, NULL) sarebbe duplicabile in silenzio,
+    /// cioè l'indice unico qui sotto smetterebbe di proteggere proprio il caso normale — l'ordine
+    /// non splittato, che è la quasi totalità. Sarebbe la Discovery 6 rientrata dalla porta di
+    /// servizio: due ordini con lo stesso numero stampato.
+    /// </summary>
+    public string SuffissoSplit { get; set; } = string.Empty;
 
     /// <summary>
     /// APERTO | CHIUSO | ANNULLATO | SPLITTATO | STORNATO.
@@ -555,6 +563,8 @@ public class Ordine
 ```
 
 **Identificativo stampabile**: `{Data:yyMMdd}-{Numero:D3}[-{SuffissoSplit}]` → `260828-017-A`.
+Il segmento del suffisso compare quando `SuffissoSplit` **non è vuoto** — non «quando non è null»: la
+colonna è NOT NULL e vale `""` su ogni ordine non splittato.
 Derivato in lettura, mai persistito (stesso criterio di `prezzoEffettivoVetrina`). Un ticket stampato
 con `260828-017` mentre l'ordine era aperto resta rintracciabile anche dopo lo split: il padre esiste
 ancora e punta ai figli.
@@ -662,7 +672,14 @@ modelBuilder.Entity<Ordine>(entity =>
           .HasDefaultValue(StatiOrdine.Aperto)
           .IsConcurrencyToken();
 
-    entity.Property(x => x.SuffissoSplit).HasMaxLength(2);
+    // ⚠️ NON nullable, ed è ciò che rende utile l'indice unico più sotto: in MySQL come in
+    //    Sqlite più NULL sono DISTINTI dentro un indice unico, quindi con la colonna nullable la
+    //    terna (RegistroCassaId, Numero, NULL) — cioè il caso normale, l'ordine non splittato —
+    //    sarebbe duplicabile in silenzio. Con NOT NULL DEFAULT '' la stringa vuota entra nella
+    //    chiave e il duplicato viene rifiutato. Vuoto se non splittato, "A"/"B"/… sui figli.
+    entity.Property(x => x.SuffissoSplit)
+          .HasMaxLength(2).IsRequired().HasDefaultValue(string.Empty);
+
     entity.Property(x => x.MetodoPagamento).HasMaxLength(30);
     entity.Property(x => x.TotaleOrdine).HasColumnType("decimal(10,2)").HasDefaultValue(0m);
     entity.Property(x => x.ContanteRicevuto).HasColumnType("decimal(10,2)");
@@ -683,6 +700,8 @@ modelBuilder.Entity<Ordine>(entity =>
           .HasForeignKey(x => x.OrdinePadreId).OnDelete(DeleteBehavior.Restrict);
 
     // 🔴 L'indice che trasforma una corsa silenziosa in un errore rumoroso. Vedi Discovery 6.
+    //    Regge SOLO perché SuffissoSplit è NOT NULL: con la colonna nullable la terna del caso
+    //    normale sarebbe (registro, numero, NULL), e più NULL non collidono mai fra loro.
     entity.HasIndex(x => new { x.RegistroCassaId, x.Numero, x.SuffissoSplit }).IsUnique();
 
     // Serve alla guardia della chiusura cassa e all'elenco degli ordini aperti.
@@ -1062,6 +1081,26 @@ sbagliato.
 fallito, e `apriOrdine` — che non crea nient'altro — è sicuro da ritentare. Costa una riga di
 configurazione e sostituisce un lock esplicito.
 
+**🔴 Il rimedio funziona solo se `SuffissoSplit` è NOT NULL — e questo il design lo dichiarava male.**
+In MySQL, come in Sqlite, **più `NULL` sono considerati distinti dentro un indice unico**: due righe
+`(629, 1, NULL)` non collidono. Con la colonna nullable — la forma che l'istinto suggerisce, visto che
+il suffisso «esiste solo sui figli di uno split» — l'indice proteggerebbe quindi soltanto gli ordini
+splittati, che sono l'eccezione, e lascerebbe scoperto **il caso normale**: l'ordine non splittato, che
+è la quasi totalità. Sarebbe la corsa di questa Discovery rientrata dalla porta di servizio, con un
+indice unico in bella vista a dare l'impressione che il problema fosse chiuso.
+
+Con `varchar(2) NOT NULL DEFAULT ''` la **stringa vuota entra nella chiave** e il duplicato viene
+rifiutato. Provato in esecuzione sul MySQL reale (Fase 4, verifica `SHOW CREATE TABLE` + due INSERT
+nella stessa transazione, poi annullata):
+
+```
+Duplicate entry '629-1-' for key 'IX_Ordini_RegistroCassaId_Numero_SuffissoSplit'
+```
+
+⚠️ È il tipo di vincolo che qualcuno «semplificherebbe» a `string?` non vedendone la ragione, perché il
+campo *sembra* opzionale e il modello continuerebbe a compilare, le migrazioni a girare e i test a
+passare — mentre la protezione sparisce in silenzio. Se lo si tocca, va rifatta questa prova.
+
 ---
 
 ## Chiusura di cassa bloccata dagli ordini aperti
@@ -1184,7 +1223,7 @@ type Ordine {
   registroCassaId: Int!
   identificativo: String!        # derivato: "260828-017-A" - mai persistito
   numero: Int!
-  suffissoSplit: String
+  suffissoSplit: String!         # "" se non splittato - la colonna è NOT NULL, vedi Discovery 6
   stato: String!                 # APERTO | CHIUSO | ANNULLATO | SPLITTATO | STORNATO
   metodoPagamento: String
   totaleOrdine: Decimal!         # snapshot, valorizzato alla chiusura
@@ -1368,10 +1407,16 @@ Separate perché **A può andare in linea senza B** (ordine di lavoro della issu
 **1. `AddOrdiniPuntoVendita`**
 
 ```sql
-CREATE TABLE Ordini (...);
-CREATE UNIQUE INDEX IX_Ordini_Registro_Numero_Suffisso
+CREATE TABLE Ordini (
+    ...,
+    -- 🔴 NOT NULL DEFAULT '': è la stringa vuota a far entrare nella chiave anche gli ordini
+    --    non splittati. Nullable, la terna (registro, numero, NULL) sarebbe duplicabile.
+    SuffissoSplit varchar(2) NOT NULL DEFAULT '',
+    ...
+);
+CREATE UNIQUE INDEX IX_Ordini_RegistroCassaId_Numero_SuffissoSplit
     ON Ordini (RegistroCassaId, Numero, SuffissoSplit);
-CREATE INDEX IX_Ordini_Registro_Stato ON Ordini (RegistroCassaId, Stato);
+CREATE INDEX IX_Ordini_RegistroCassaId_Stato ON Ordini (RegistroCassaId, Stato);
 
 CREATE TABLE RigheOrdine (...);
 

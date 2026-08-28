@@ -127,6 +127,34 @@ public static class TestDbContextFactory
     }
 
     /// <summary>
+    /// Crea un AppDbContext sul provider <b>MySQL</b> (Pomelo) <b>senza mai aprire una connessione</b>.
+    ///
+    /// <para>Serve a una cosa sola: confrontare il modello con lo snapshot delle migrazioni. Quel
+    /// confronto è provider-specifico — lo snapshot in <c>Migrations/AppDbContextModelSnapshot.cs</c>
+    /// è stato generato da Pomelo e porta i suoi tipi (<c>varchar(20)</c>, <c>decimal(10,2)</c>) e le
+    /// sue annotazioni (<c>MySql:CharSet</c>, <c>MySql:ValueGenerationStrategy</c>). Confrontarlo con
+    /// un modello finalizzato da InMemory o da Sqlite produrrebbe una valanga di differenze finte, e
+    /// un test rosso sempre non è un test.</para>
+    ///
+    /// <para>⚠️ <b>Nessun database viene contattato.</b> La stringa di connessione è finta e la
+    /// versione del server è dichiarata a mano invece che con <c>ServerVersion.AutoDetect</c>, che
+    /// aprirebbe una connessione. Su questo contesto si possono chiamare solo i servizi che lavorano
+    /// sui metadati (<c>IDesignTimeModel</c>, <c>IMigrationsAssembly</c>,
+    /// <c>IMigrationsModelDiffer</c>): qualunque query, <c>EnsureCreated</c> o <c>Migrate</c>
+    /// fallirebbe, perché MySQL non c'è.</para>
+    /// </summary>
+    public static AppDbContext CreateMySqlSoloMetadati()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseMySql(
+                "Server=nessuno;Database=nessuno;User=nessuno;Password=nessuno",
+                new MySqlServerVersion(new Version(8, 0, 0)))
+            .Options;
+
+        return new AppDbContext(options, CreateConfigurationMock());
+    }
+
+    /// <summary>
     /// IConfiguration finta minimale — <c>AppDbContext.OnConfiguring</c> ha un guard
     /// <c>if (!optionsBuilder.IsConfigured)</c> che impedisce di sovrascrivere con MySQL, ma il
     /// costruttore pretende comunque una IConfiguration.

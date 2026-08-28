@@ -257,6 +257,52 @@ i secchi una volta sola) resta **senza rete**.
   nel commento di testa e accanto al test della guardia: chi legge il verde sa cosa non copre.
   **Verifica eseguita**: `cd backend && dotnet build` → 0 errori, 0 warning;
   `cd backend && dotnet test` → **878/878 verdi** (868 preesistenti + 10 nuovi, nessuno rotto).
+- [x] 2.4 **[AGGIUNTO DOPO IL FATTO — il guasto era già successo]** Rete che accorge la suite quando
+  il **modello** e le **migrazioni** divergono:
+  `backend/DuedGusto.Tests/Unit/Infrastructure/MigrazioniAllineateAlModelloTests.cs` (2 test) più
+  `TestDbContextFactory.CreateMySqlSoloMetadati()`.
+  **Perché serve — non è un'ipotesi, è la cronaca della Fase 3.** 3.x ha aggiunto
+  `GestioneCassaGuards.GuardNessunOrdineSulRegistro`, che interroga la tabella `Ordini`, e la
+  migrazione che quella tabella la crea è arrivata (correttamente) solo in Fase 4. Nel mezzo la suite
+  era a **891 verdi** e `eliminaRegistroCassa` era rotta su **ogni** database reale con
+  `MySqlException: Table 'duedgusto.ordini' doesn't exist`. Nessun test poteva accorgersene: tutta la
+  suite costruisce lo schema con `EnsureCreated()` **dal modello**, che ignora del tutto
+  `Migrations/`. `Migrate()` non è chiamato da nessuna parte — e non può esserlo su InMemory o
+  Sqlite, perché le migrazioni sono MySQL-specifiche (Pomelo: `varchar(20)`, `MySql:CharSet`,
+  `MySql:ValueGenerationStrategy`).
+  **Strada scelta e perché.** Confronto **modello ↔ snapshot senza database**, con lo stesso servizio
+  che `dotnet ef migrations add` usa per decidere cosa scrivere (`IMigrationsModelDiffer`; il comando
+  `dotnet ef migrations has-pending-model-changes` esiste solo da EF 9, qui si è su 8.0.13). Il
+  contesto è costruito **sul provider MySQL** ma non apre mai una connessione: il confronto è
+  provider-specifico, e farlo con un modello finalizzato da InMemory o Sqlite produrrebbe differenze
+  finte. La strada alternativa — `Migrate()` su MySQL vero — copre di più ma è **impraticabile in
+  CI**: `.github/workflows/deploy.yml` esegue `dotnet test` su `ubuntu-latest` senza alcun servizio
+  database, quindi renderebbe la pipeline rossa o andrebbe marcata skippabile, e un test che si salta
+  da solo non protegge da niente.
+  ✅ **Fatto**: (1) `IlModelloNonDeveAvereModificheSenzaMigrazione` — il modello di oggi non deve
+  produrre altre operazioni rispetto allo snapshot; (2) `LoSnapshotDeveCorrispondereAllUltimaMigrazione`
+  — intercetta il caso diverso di una migrazione persa in un merge o in un `migrations remove` a metà,
+  dove modello e snapshot restano d'accordo fra loro e sbagliati entrambi. Il messaggio di fallimento
+  dice **cosa fare** (`dotnet ef migrations add <Nome>`) ed elenca le operazioni mancanti in chiaro
+  («colonna nuova: `Ordini.X`», «tabella nuova: `Ordini`»), non i nomi delle classi.
+  **Provati rossi, non solo scritti**: (a) aggiunta una proprietà a `Ordine` senza migrazione → il
+  test 1 fallisce con `colonna nuova: Ordini.ProvaGuastoMigrazioneMancante`, il test 2 resta verde
+  (giustamente: lo snapshot non è stato toccato); (b) rimossa l'ultima migrazione lasciando lo
+  snapshot → il test 2 fallisce elencando `tabella nuova: Ordini`, `RigheOrdine`, `colonna nuova:
+  Vendite.OrdineId`, il test 1 resta verde. Entrambe le condizioni ripristinate.
+  ⚠️ **Ritrovamento collaterale**: i modelli intermedi delle migrazioni **non si concatenano** in
+  questo repository — il Designer di `20260813153823_AddMetodoPagamentoVendita` non conosce le colonne
+  `ImmagineEroe*` introdotte da `20260813141525_SlotImmaginiPagineVetrina`, che ha id *precedente*
+  (rami paralleli fusi in ordine). È innocuo in esecuzione, ma è il motivo per cui il test 2 confronta
+  solo l'**ultima** migrazione con lo snapshot: un test sulla catena completa nascerebbe rosso su
+  storia passata.
+  🔴 **Cosa questa copertura NON intercetta** (scritto anche dentro il file, perché chi legge il verde
+  lo sappia): prova che una migrazione *esista*, non che *funzioni*. Non applica lo SQL a un server,
+  quindi non vede una `AddColumn NOT NULL` senza default su tabella piena, una FK verso righe orfane,
+  un indice troppo lungo per il charset; non vede i dati; non vede viste, trigger o indici creati a
+  mano fuori dal modello EF; non dice se la **produzione** è aggiornata, solo se il codice è coerente
+  con sé stesso; ed è cieca al caso in cui modello *e* snapshot sbagliano allo stesso modo. Quella
+  copertura richiede `Migrate()` su MySQL vero in CI, che oggi non c'è.
 
 ---
 
