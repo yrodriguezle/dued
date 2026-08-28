@@ -5,6 +5,7 @@ import {
   List,
   Settings,
   ShoppingCart,
+  HandCoins,
   CalendarRange,
   CalendarDays,
   Pencil,
@@ -43,6 +44,14 @@ export const iconMapping: Record<string, LucideIcon> = {
   List,
   Settings,
   ShoppingCart,
+  // ⚠️ `HandCoins` esiste per «Vendita», ed è entrata nella mappa invece di riusare una chiave
+  //    libera perché nessuna delle libere reggeva il **primo livello**: `List` è la stessa pila di
+  //    righe di `Menu`, `CalendarDays` sarebbe il terzo calendario a schermo aprendo «Cassa»,
+  //    `UserCog` la seconda sagoma di persona accanto a `Users`, e `Wrench`/`FileText` dicono
+  //    «manutenzione» e «documenti» sulla voce che si apre cento volte al giorno.
+  //    🔴 Non è `ShoppingCart`: quella è «Cassa», da anni, e a cassetto chiuso le due sarebbero
+  //    lo stesso bottone — la regola già imposta a `Settings` qui sotto.
+  HandCoins,
   CalendarRange,
   CalendarDays,
   Pencil,

@@ -62,6 +62,9 @@ public static class SeedMenusProdotti
                 // 🔴 Un'icona non presente in `iconMapping.tsx` non dà errore: la voce compare
                 //    senza icona e la cosa si nota solo guardando la barra. `PackageSearch` è
                 //    già mappata, e NON è `ShoppingBag`, che è la vetrina.
+                // ⚠️ `PackageSearch` è ORA esclusiva di questa voce: «Lista fornitori» la
+                //    condivideva, e le è stata tolta perché un pacco descrive la merce, non i
+                //    fornitori. Non riassegnarla altrove: `iconeDelSeed.test.tsx` diventa rosso.
                 Icona = "PackageSearch",
                 Visibile = true,
                 Posizione = 6,

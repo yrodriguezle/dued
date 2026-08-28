@@ -207,7 +207,9 @@ public class SeedMenusVenditaTests
         vendita.Titolo.Should().Be("Vendita");
         vendita.MenuPadreId.Should().BeNull();
         vendita.Posizione.Should().Be(0);
-        vendita.Icona.Should().Be("ShoppingCart");
+        // 🔴 `HandCoins` e non il carrello: quello è «Cassa», ora adiacente al primo livello, e a
+        //    cassetto chiuso due voci con la stessa icona sono lo stesso bottone.
+        vendita.Icona.Should().Be("HandCoins");
         vendita.NomeVista.Should().Be("PuntoVendita");
         vendita.PercorsoFile.Should().Be("vendite/PuntoVendita.tsx");
         vendita.Visibile.Should().BeTrue();

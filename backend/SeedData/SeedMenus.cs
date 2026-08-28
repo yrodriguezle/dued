@@ -676,7 +676,17 @@ public static class SeedMenus
             {
                 Titolo = "Lista fornitori",
                 Percorso = "/gestionale/fornitori-list",
-                Icona = "PackageSearch",
+                // 🔴 `List` e non più `PackageSearch`: quel pacco è anche l'icona di «Prodotti»
+                //    (SeedMenusProdotti), e un'icona che vuol dire due cose non indicizza niente —
+                //    in `MenuList.tsx` le due voci finiscono per giunta nella stessa colonna, una
+                //    sotto l'altra.
+                //    ⚠️ Fra le due si cede QUESTA e non «Prodotti», al contrario del criterio usato
+                //    al primo livello: il pacco descrive la merce, non le aziende che la portano, e
+                //    un figlio non viene mai disegnato senza la sua etichetta accanto
+                //    (`Collapse in={isOpen && drawerOpen}` con `unmountOnExit`), quindi qui
+                //    l'abitudine all'icona pesa molto meno che su una voce di primo livello.
+                //    `List` è poi la lettura letterale del titolo.
+                Icona = "List",
                 Visibile = true,
                 Posizione = 1,
                 NomeVista = "FornitoreList",
@@ -689,7 +699,7 @@ public static class SeedMenus
         else
         {
             bool needsUpdate = false;
-            UpdateMenuIfNeeded(fornitoriChild1, "Lista fornitori", "/gestionale/fornitori-list", "PackageSearch", true, 1,
+            UpdateMenuIfNeeded(fornitoriChild1, "Lista fornitori", "/gestionale/fornitori-list", "List", true, 1,
                 "FornitoreList", "fornitori/FornitoreList.tsx", superAdminRuolo, fornitoriMenu, ref needsUpdate);
             if (needsUpdate)
             {

@@ -76,10 +76,17 @@ public static class SeedMenusVendita
             {
                 Titolo = "Vendita",
                 Percorso = "/gestionale/cassa/vendita",
-                // 🔴 `ShoppingCart` è già mappata in iconMapping.tsx. Un'icona assente da quella
-                //    lista non dà errore: la voce compare senza icona, e ce ne si accorge solo
-                //    guardando la barra.
-                Icona = "ShoppingCart",
+                // 🔴 `HandCoins` e NON `ShoppingCart`: il carrello è «Cassa», che sta al primo
+                //    livello subito qui sotto. Finché «Vendita» è stata annidata dentro «Cassa» la
+                //    ripetizione non si vedeva; da quando è salita accanto, a cassetto chiuso le due
+                //    voci sono lo **stesso bottone** — `NestedList` mette `opacity: 0` sulle
+                //    etichette, quindi lì l'icona non decora la voce, la È.
+                //    ⚠️ A cambiare è «Vendita», non «Cassa»: il carrello della cassa se lo sono
+                //    imparato in anni, questa voce è nuova e non l'ha ancora memorizzata nessuno.
+                //    ⚠️ Un'icona assente da `iconMapping.tsx` non dà errore: la voce compare senza
+                //    icona. `iconeDelSeed.test.tsx` verifica sia che esista, sia che nessun'altra
+                //    voce la usi.
+                Icona = "HandCoins",
                 Visibile = true,
                 Posizione = 0,
                 NomeVista = "PuntoVendita",
@@ -93,7 +100,7 @@ public static class SeedMenusVendita
         else
         {
             bool needsUpdate = false;
-            SeedMenus.UpdateMenuIfNeeded(venditaMenu, "Vendita", "/gestionale/cassa/vendita", "ShoppingCart", true, 0,
+            SeedMenus.UpdateMenuIfNeeded(venditaMenu, "Vendita", "/gestionale/cassa/vendita", "HandCoins", true, 0,
                 "PuntoVendita", "vendite/PuntoVendita.tsx", superAdminRuolo, null, ref needsUpdate);
             SeedMenus.AssegnaRuoli(venditaMenu, tuttiIRuoli, ref needsUpdate);
             if (needsUpdate)
