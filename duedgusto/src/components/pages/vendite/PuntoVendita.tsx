@@ -12,6 +12,7 @@ import Paper from "@mui/material/Paper";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import ButtonBase from "@mui/material/ButtonBase";
+import { useTheme } from "@mui/material/styles";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import SearchIcon from "@mui/icons-material/Search";
 import UndoIcon from "@mui/icons-material/Undo";
@@ -23,6 +24,7 @@ import SceltaMetodoPagamento from "./SceltaMetodoPagamento";
 import PageTitleContext from "../../layout/headerBar/PageTitleContext";
 import formatCurrency from "../../../common/bones/formatCurrency";
 import showToast from "../../../common/toast/showToast";
+import { coloreCategoria, coloreProdotto, indiciPerCategoria } from "./coloriProdotto";
 import useQueryRegistroCassa from "../../../graphql/registroCassa/useQueryRegistroCassa";
 import { getProdottiVendibili, getVenditeDelRegistro } from "../../../graphql/vendite/queries";
 import { mutationCreaVendita, mutationEliminaVendita } from "../../../graphql/vendite/mutations";
@@ -40,6 +42,7 @@ const TUTTE = "__tutte__";
 function PuntoVendita() {
   const { setTitle } = useContext(PageTitleContext);
   const navigate = useNavigate();
+  const { palette } = useTheme();
 
   const [categoria, setCategoria] = useState<string>(TUTTE);
   const [ricerca, setRicerca] = useState("");
@@ -91,6 +94,11 @@ function PuntoVendita() {
       return perCategoria && perTermine;
     });
   }, [categoria, prodotti, ricerca]);
+
+  // 🔴 Gli indici si calcolano sul listino INTERO, non su `prodottiVisibili`: legarli a quello
+  //    che si vede farebbe cambiare colore alle tessere a ogni lettera della ricerca, e la mano
+  //    ha gia imparato dov'era il pulsante.
+  const indiciColore = useMemo(() => indiciPerCategoria(prodotti), [prodotti]);
 
   const totaleBattuto = useMemo(() => vendite.reduce((somma, vendita) => somma + vendita.prezzoTotale, 0), [vendite]);
 
@@ -224,6 +232,22 @@ function PuntoVendita() {
               label={nome}
               color={categoria === nome ? "primary" : "default"}
               onClick={() => setCategoria(nome)}
+              // Il pallino è dove si impara l'associazione categoria→tinta, prima ancora di
+              // guardare la griglia. L'anello lo tiene visibile anche sul chip selezionato, che
+              // è ambra e altrimenti si mangerebbe le brioches.
+              icon={
+                <Box
+                  component="span"
+                  sx={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: "50%",
+                    flexShrink: 0,
+                    bgcolor: coloreCategoria(nome, palette.mode),
+                    boxShadow: palette.mode === "light" ? "0 0 0 1px rgba(0, 0, 0, 0.25)" : "0 0 0 1px rgba(255, 255, 255, 0.3)",
+                  }}
+                />
+              }
               sx={{ flexShrink: 0 }}
             />
           ))}
@@ -244,41 +268,61 @@ function PuntoVendita() {
         {/* Due colonne a 360 px, tre a 390, quattro da tablet: `auto-fill` con una base di
             150 px lo fa da sé, senza breakpoint da tenere allineati a mano. */}
         <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 1 }}>
-          {prodottiVisibili.map((prodotto) => (
-            <ButtonBase
-              key={prodotto.prodottoId}
-              onClick={() => setProdottoScelto(prodotto)}
-              sx={{
-                // ⚠️ 72 px: molto sopra i 48 minimi. Si preme al volo, di sbieco, senza guardare.
-                minHeight: 72,
-                p: 1,
-                borderRadius: 2,
-                border: 1,
-                borderColor: "divider",
-                bgcolor: "background.paper",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "flex-start",
-                justifyContent: "space-between",
-                textAlign: "left",
-                "&:hover": { bgcolor: "action.hover" },
-              }}
-            >
-              <Typography
-                variant="body2"
-                sx={{ fontWeight: 600, lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+          {prodottiVisibili.map((prodotto) => {
+            const colore = coloreProdotto(prodotto.categoria, indiciColore.get(prodotto.prodottoId) ?? 0, palette.mode);
+            return (
+              <ButtonBase
+                key={prodotto.prodottoId}
+                onClick={() => setProdottoScelto(prodotto)}
+                sx={{
+                  // ⚠️ 72 px: molto sopra i 48 minimi. Si preme al volo, di sbieco, senza guardare.
+                  minHeight: 72,
+                  p: 1,
+                  // La banda vive nel padding sinistro: 6 px di fascia più il respiro del testo.
+                  pl: 1.75,
+                  borderRadius: 2,
+                  border: 1,
+                  borderColor: "divider",
+                  bgcolor: colore.sfondo,
+                  position: "relative",
+                  overflow: "hidden",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "flex-start",
+                  justifyContent: "space-between",
+                  textAlign: "left",
+                  transition: "transform 80ms ease-out, filter 80ms ease-out",
+                  "&::before": {
+                    content: '""',
+                    position: "absolute",
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    width: 6,
+                    bgcolor: colore.banda,
+                  },
+                  // Al tocco vale la deformazione, non il colore: sul telefono l'hover non esiste
+                  // e schiarire uno sfondo già tenue non si vedrebbe comunque.
+                  "&:active": { transform: "scale(0.97)" },
+                  "&:hover": { filter: palette.mode === "light" ? "brightness(0.96)" : "brightness(1.12)" },
+                }}
               >
-                {prodotto.nome}
-              </Typography>
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{ fontVariantNumeric: "tabular-nums" }}
-              >
-                {formatCurrency(prodotto.prezzo)}
-              </Typography>
-            </ButtonBase>
-          ))}
+                <Typography
+                  variant="body2"
+                  sx={{ fontWeight: 600, lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+                >
+                  {prodotto.nome}
+                </Typography>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ fontVariantNumeric: "tabular-nums" }}
+                >
+                  {formatCurrency(prodotto.prezzo)}
+                </Typography>
+              </ButtonBase>
+            );
+          })}
         </Box>
       </Box>
 
