@@ -20,6 +20,11 @@ public class AppDbContext : DbContext
     public DbSet<Prodotto> Prodotti { get; set; }
     public DbSet<Vendita> Vendite { get; set; }
 
+    // Ordini del punto vendita — il conto aperto al bancone. ⚠️ Un Ordine APERTO non ha mosso
+    // alcun secchio: le Vendite (e con esse gli incassi) nascono solo alla sua chiusura.
+    public DbSet<Ordine> Ordini { get; set; }
+    public DbSet<RigaOrdine> RigheOrdine { get; set; }
+
     // Cash Management
     public DbSet<DenominazioneMoneta> DenominazioniMoneta { get; set; }
     public DbSet<RegistroCassa> RegistriCassa { get; set; }
@@ -999,11 +1004,192 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.ProdottoId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // L'ordine alla cui chiusura la vendita è nata.
+            // ⚠️ Restrict e non Cascade: un ordine che ha incassato non si cancella a database, si
+            //    STORNA — e lo storno cancella le Vendite esplicitamente, dopo aver applicato il
+            //    delta inverso. Una cascata renderebbe possibile far sparire l'incasso passando
+            //    dalla porta di servizio, senza che nessun secchio se ne accorga.
+            entity.HasOne(x => x.Ordine)
+                .WithMany(x => x.Vendite)
+                .HasForeignKey(x => x.OrdineId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // Index on RegistroCassaId for faster queries by register
             entity.HasIndex(x => x.RegistroCassaId);
 
             // Index on DataOra for time-based filtering
             entity.HasIndex(x => x.DataOra);
+
+            // Serve allo storno, che deve ritrovare tutte le vendite di un ordine.
+            entity.HasIndex(x => x.OrdineId);
+        });
+
+        // Ordini del punto vendita (Ordine + RigaOrdine)
+        modelBuilder.Entity<Ordine>(entity =>
+        {
+            entity
+                .ToTable("Ordini")
+                .HasCharSet("utf8mb4")
+                .UseCollation("utf8mb4_unicode_ci")
+                .HasKey(x => x.OrdineId);
+
+            entity.Property(x => x.OrdineId)
+                .ValueGeneratedOnAdd();
+
+            // 🔴 LA GUARDIA DELLA TRANSIZIONE, e sta qui — non nel chiamante.
+            //    Con IsConcurrencyToken ogni UPDATE su un Ordine porta in coda
+            //    "AND Stato = <valore letto>", ed EF lancia DbUpdateConcurrencyException se tocca
+            //    zero righe. È ciò che rende chiusura, annullo e storno una-e-una-sola-volta senza
+            //    SQL grezzo e senza il Reload() che il SQL grezzo imporrebbe.
+            //    Serve perché SecchiIncassiApplier.ApplicaDelta NON è idempotente: applicarlo due
+            //    volte raddoppia l'incasso e nessun controllo a valle se ne accorge.
+            entity.Property(x => x.Stato)
+                .HasMaxLength(20)
+                .IsRequired()
+                .HasDefaultValue(Common.StatiOrdine.Aperto)
+                .IsConcurrencyToken();
+
+            // ⚠️ NON nullable, e non è una svista: in MySQL (come in Sqlite) più NULL sono
+            //    distinti dentro un indice unico. Con SuffissoSplit nullable la terna
+            //    (RegistroCassaId, Numero, NULL) sarebbe duplicabile in silenzio, cioè l'indice
+            //    qui sotto smetterebbe di proteggere il caso normale — l'ordine non splittato,
+            //    che è la quasi totalità. Vuoto se non splittato, "A"/"B"/… sui figli.
+            entity.Property(x => x.SuffissoSplit)
+                .HasMaxLength(2)
+                .IsRequired()
+                .HasDefaultValue(string.Empty);
+
+            entity.Property(x => x.MetodoPagamento)
+                .HasMaxLength(30);
+
+            entity.Property(x => x.TotaleOrdine)
+                .HasColumnType("decimal(10,2)")
+                .IsRequired()
+                .HasDefaultValue(0m);
+
+            // Il contante dato dal cliente: aiuto all'operatore per il resto da rendere, MAI un
+            // dato contabile. Non confondere con RegistroCassa.Resto (colonna AG del foglio).
+            entity.Property(x => x.ContanteRicevuto)
+                .HasColumnType("decimal(10,2)");
+
+            entity.Property(x => x.MotivoAnnullamento)
+                .HasColumnType("text");
+
+            entity.Property(x => x.MotivoStorno)
+                .HasColumnType("text");
+
+            entity.Property(x => x.Note)
+                .HasColumnType("text");
+
+            entity.Property(x => x.ApertoIl)
+                .HasColumnType("datetime")
+                .IsRequired();
+
+            entity.Property(x => x.ChiusoIl)
+                .HasColumnType("datetime");
+
+            entity.Property(x => x.AnnullatoIl)
+                .HasColumnType("datetime");
+
+            entity.Property(x => x.StornatoIl)
+                .HasColumnType("datetime");
+
+            entity.Property(x => x.CreatedAt)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.Property(x => x.UpdatedAt)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+
+            // Restrict: un registro con ordini non si porta via gli ordini in cascata. La guardia
+            // parlante sta in EliminaRegistroCassaOrchestrator; questo è il fondo che regge se
+            // qualcuno arrivasse da un'altra strada.
+            entity.HasOne(x => x.RegistroCassa)
+                .WithMany()
+                .HasForeignKey(x => x.RegistroCassaId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Restrict anche qui: cancellare un padre non deve far sparire i figli CHIUSO, che
+            // hanno mosso i secchi. Il padre comunque non si cancella — passa a SPLITTATO.
+            entity.HasOne(x => x.OrdinePadre)
+                .WithMany(x => x.Figli)
+                .HasForeignKey(x => x.OrdinePadreId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // 🔴 Correttezza, non ottimizzazione. MAX(Numero)+1 all'apertura ha una corsa: due
+            //    aperture concorrenti leggono lo stesso massimo. Senza questo indice la collisione
+            //    è MUTA — due ticket stampati identici, scoperti quando qualcuno incassa quello
+            //    sbagliato. Con l'indice diventa un insert fallito, e apriOrdine è ritentabile
+            //    perché non crea nient'altro.
+            entity.HasIndex(x => new { x.RegistroCassaId, x.Numero, x.SuffissoSplit })
+                .IsUnique();
+
+            // Elenco degli ordini aperti di un registro: è la guardia della chiusura di cassa.
+            entity.HasIndex(x => new { x.RegistroCassaId, x.Stato });
+        });
+
+        modelBuilder.Entity<RigaOrdine>(entity =>
+        {
+            entity
+                .ToTable("RigheOrdine")
+                .HasCharSet("utf8mb4")
+                .UseCollation("utf8mb4_unicode_ci")
+                .HasKey(x => x.RigaOrdineId);
+
+            entity.Property(x => x.RigaOrdineId)
+                .ValueGeneratedOnAdd();
+
+            entity.Property(x => x.Quantita)
+                .HasColumnType("decimal(10,2)")
+                .IsRequired();
+
+            entity.Property(x => x.PrezzoUnitario)
+                .HasColumnType("decimal(10,2)")
+                .IsRequired();
+
+            entity.Property(x => x.PrezzoTotale)
+                .HasColumnType("decimal(10,2)")
+                .IsRequired();
+
+            // Snapshot dell'aliquota al momento del tocco, stessa forma di Vendita.AliquotaIva.
+            // ⚠️ Qui NON vivono Imponibile/ImportoIva: lo scorporo ha un solo posto in cui accade,
+            //    RicalcolaImportiSnapshot, e avviene sulla Vendita alla chiusura.
+            entity.Property(x => x.AliquotaIva)
+                .HasColumnType("decimal(5,2)")
+                .IsRequired()
+                .HasDefaultValue(10.00m);
+
+            entity.Property(x => x.Note)
+                .HasColumnType("text");
+
+            entity.Property(x => x.DataOra)
+                .HasColumnType("datetime")
+                .IsRequired();
+
+            entity.Property(x => x.CreatedAt)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.Property(x => x.UpdatedAt)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+
+            // Cascade: le righe di un ordine cancellato a database non hanno vita propria.
+            // ⚠️ Nessuna transizione dell'ordine le cancella: lo storno conserva le righe e
+            //    cancella le Vendite, non il contrario.
+            entity.HasOne(x => x.Ordine)
+                .WithMany(x => x.Righe)
+                .HasForeignKey(x => x.OrdineId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Restrict come Vendita → Prodotto: un prodotto battuto in un ordine non si cancella.
+            entity.HasOne(x => x.Prodotto)
+                .WithMany()
+                .HasForeignKey(x => x.ProdottoId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(x => x.OrdineId);
         });
 
         // Supplier Management Configuration

@@ -265,6 +265,28 @@ blocca fino al commit della prima, poi rivaluta il `WHERE`, trova `Stato != 'APE
 L'istinto sbagliato è pensare che REPEATABLE READ faccia vedere al secondo UPDATE lo stato vecchio: per
 le letture di scrittura non è così.
 
+**🔴 Vincolo emerso applicando la Fase 2 — nessun token è popolato dal database.**
+`rowversion` **non esiste su MySQL** (Pomelo non ha un tipo che si auto-incrementi a ogni UPDATE) **né
+su Sqlite**, dove servirebbe un trigger scritto a mano. Un campo `RowVersion` valorizzato dal motore —
+la forma che l'istinto suggerisce, e che il commento di
+`TestDbContextFactorySqliteTests.cs:206` dà per in arrivo con questo change — **non è realizzabile su
+nessuno dei due motori**: né quello di produzione né quello dei test. Qualunque forma prenda la
+guardia, **il valore su cui si confronta lo scrive l'applicazione**.
+
+Il vincolo non sposta la conclusione — la transizione resta una-e-una-sola-volta — ma lascia aperta la
+forma. Le strade sono due, **entrambe già provate eseguibili su Sqlite** dai test della Fase 2, e la
+scelta è **della Fase 5**: si registra qui perché non venga data per già presa.
+
+| Forma | Chi scrive il valore | Prova già in casa |
+|---|---|---|
+| **Token di concorrenza gestito dall'applicazione** — è `Ordine.Stato` con `IsConcurrencyToken()`, la forma proposta sopra: il token *è* lo stato, e a scriverlo è il codice della transizione. Nessun campo tecnico in più | l'orchestratore assegna `Stato`; EF confronta il valore originale letto | `Sqlite_OnoraIlTokenDiConcorrenza_IlSecondoScrittoreVieneRifiutato` |
+| **Guardia sul solo `WHERE Stato = 'APERTO'` con conteggio delle righe toccate** (`ExecuteUpdateAsync`): 1 = la transizione è mia, 0 = qualcun altro è già passato di qui | nessun token: la condizione è lo stato atteso, scritto nella query | `CreateSqlite_UpdateCondizionata_ToccaUnaRigaLaPrimaVoltaEZeroLaSeconda` |
+
+⚠️ **Chi implementa non deve dare per scontato un token popolato dal database.** E se si sceglie la
+seconda forma valgono le stesse cautele già dette per il SQL grezzo: `ExecuteUpdateAsync` scavalca il
+change tracker, quindi l'`Ordine` già caricato resta in memoria con lo `Stato` vecchio finché non lo si
+ricarica.
+
 ---
 
 ### Decision: lo split produce uno stato `SPLITTATO`, il padre non diventa un taglio
@@ -631,6 +653,10 @@ modelBuilder.Entity<Ordine>(entity =>
     //    "AND Stato = <valore letto>", ed EF lancia DbUpdateConcurrencyException se tocca
     //    0 righe. È ciò che rende la chiusura una-e-una-sola-volta senza SQL grezzo e
     //    senza il Reload() che il SQL grezzo imporrebbe.
+    //    ⚠️ Il token è lo STATO, scritto dall'applicazione: non c'è (e non può esserci) un
+    //    RowVersion popolato dal database — né MySQL né Sqlite lo generano. La forma
+    //    alternativa — WHERE Stato='APERTO' con conteggio delle righe toccate — resta una
+    //    scelta aperta della Fase 5. Vedi §«la guardia della transizione».
     entity.Property(x => x.Stato)
           .HasMaxLength(20).IsRequired()
           .HasDefaultValue(StatiOrdine.Aperto)
@@ -947,30 +973,57 @@ voci.
 `ProtectedRoutes.tsx` registra le rotte da `percorso` + `percorsoFile`, non dall'albero. Rinominarlo
 romperebbe i segnalibri senza guadagno. Va scritto, o qualcuno lo «sistema».
 
-### Discovery 4 — 🔴 la guardia non è verificabile con `EntityFrameworkCore.InMemory`
+### Discovery 4 — 🔴 `EntityFrameworkCore.InMemory` non basta a provare la transizione
 
-`backend/DuedGusto.Tests/DuedGusto.Tests.csproj` dichiara **solo**
+⚠️ **Corretta dopo la Fase 2: una delle tre ragioni originali era falsa.** La conclusione **non
+cambia** — Sqlite serve — ma la motivazione sì. L'assunto sbagliato resta scritto qui, corretto invece
+che cancellato: era stato dato per verificato, e chi rilegge deve poter vedere che è stato misurato e
+smentito, non che non è mai esistito.
+
+`backend/DuedGusto.Tests/DuedGusto.Tests.csproj` dichiarava **solo**
 `Microsoft.EntityFrameworkCore.InMemory`. Niente Sqlite, niente Testcontainers, nessun MySQL.
 `TestDbContextFactory` inoltre sopprime `InMemoryEventId.TransactionIgnoredWarning`, con il commento che
 lo dice: *«Le transazioni diventano no-op nei test»*.
 
-Conseguenze, tutte e tre:
+**~~1. L'InMemory non applica i token di concorrenza.~~ — FALSO, misurato su EF Core 8.0.13.**
+`InMemoryTable.Update` confronta i valori originali delle proprietà dichiarate con
+`IsConcurrencyToken()` e lancia `DbUpdateConcurrencyException` **esattamente come Sqlite**: su questo
+provider il `WHERE Stato = 'APERTO'` non è SQL da generare, ma il confronto — cioè l'effetto — c'è
+lo stesso. Il fatto è pinnato in forma eseguibile da
+`InMemory_OnoraIlTokenDiConcorrenzaEsplicito_ContrariamenteAQuantoDiceIlDesign`, in
+`backend/DuedGusto.Tests/Unit/Infrastructure/TestDbContextFactorySqliteTests.cs`, scritto apposta
+perché nessuno riprenda l'affermazione da questo documento credendola verificata.
 
-1. **L'InMemory non applica i token di concorrenza.** Il `WHERE Stato = 'APERTO'` non viene generato,
-   quindi la doppia chiusura non verrebbe rifiutata in un test InMemory **anche se il codice fosse
-   sbagliato**.
-2. **Le transazioni sono no-op**: l'atomicità fra transizione, creazione delle vendite e delta non è
-   osservabile.
-3. `ExecuteSqlInterpolatedAsync` — l'alternativa scartata — **non è nemmeno supportata** dal provider
-   InMemory: sarebbe stata ancora meno testabile.
+**Le ragioni vere sono tre**, e ognuna è provata **nei due sensi** — Sqlite sì, InMemory no — dallo
+stesso file di test:
+
+1. **Le transazioni su InMemory sono no-op**: un `RollbackAsync` non annulla nulla, la riga resta
+   (`InMemory_LaTransazioneEUnNoOp_EccoPercheServeSqlite` contro
+   `CreateSqlite_RollbackDiUnaTransazione_NonLasciaTraccia`). L'atomicità fra transizione, creazione
+   delle vendite e delta non è quindi **osservabile**: lì «l'operazione è atomica» non è
+   un'affermazione verificabile.
+2. **Gli indici unici sono ignorati**: lo stesso codice duplicato viene accettato
+   (`InMemory_NonApplicaLIndiceUnico_EccoPercheServeSqlite` contro
+   `CreateSqlite_ApplicaLIndiceUnicoSulCodiceProdotto`). Un test sulla corsa al numero d'ordine
+   (Discovery 6) scritto su InMemory sarebbe verde qualunque cosa faccia il codice sotto — cioè peggio
+   di non averlo.
+3. 🔴 **`ExecuteUpdateAsync` non è proprio supportata dal provider InMemory**: lancia
+   `InvalidOperationException` (`InMemory_NonSupportaExecuteUpdate_EccoPercheServeSqlite`). È la
+   ragione più secca, perché la guardia della Fase 5 **conta le righe toccate da una UPDATE
+   condizionata** — 1 la prima volta, 0 la seconda
+   (`CreateSqlite_UpdateCondizionata_ToccaUnaRigaLaPrimaVoltaEZeroLaSeconda`) — e su InMemory quel
+   test non sarebbe nemmeno **scrivibile**. Vale anche per `ExecuteSqlInterpolatedAsync`,
+   l'alternativa scartata in §«la guardia della transizione»: sarebbe stata ancora meno testabile.
 
 **Il pezzo più importante del change resterebbe quindi scoperto**, e il verde della CI sembrerebbe una
 prova che non è.
 
-**Rimedio — ✅ DECISO DALL'UTENTE, si fa**: aggiungere `Microsoft.EntityFrameworkCore.Sqlite` al
-progetto di test e scrivere lì il test delle due chiusure concorrenti. Sqlite supporta SQL grezzo,
-transazioni e token di concorrenza. Non era più una raccomandazione da valutare: è parte dello scope,
-e sblocca i quattro test che ne dipendono (`tasks.md` 9.1, 9.3, 9.5, 9.7).
+**Rimedio — ✅ DECISO DALL'UTENTE, si fa** (e ✅ **fatto nella Fase 2**, commit `52eb19b`): aggiungere
+`Microsoft.EntityFrameworkCore.Sqlite` al progetto di test e scrivere lì il test delle due chiusure
+concorrenti. Sqlite supporta SQL grezzo, transazioni **vere**, indici unici ed `ExecuteUpdateAsync`: è
+questa terna — non il token di concorrenza, che InMemory onora — a mancare alla suite. Non era più una
+raccomandazione da valutare: è parte dello scope, e sblocca i quattro test che ne dipendono
+(`tasks.md` 9.1, 9.3, 9.5, 9.7).
 ⚠️ **Costo da mettere in conto, non evitabile**: `AppDbContext` usa
 `HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP")` — sintassi MySQL — su 14 entità,
 ed `EnsureCreated()` la emette dentro la `CREATE TABLE`, dove Sqlite la rifiuta. Serve un
@@ -1421,3 +1474,10 @@ domanda cancellata non si distingue da una mai posta.
       insieme di voci (30 € totali, 20 in contanti e 10 con carta) resta **non supportato**, come
       proposto nella issue. La UI deve dirlo esplicitamente. Se dovesse capitare davvero al bancone, si
       riapre.
+- [ ] ℹ️ **Non è una domanda all'utente, è una scelta tecnica della Fase 5**: quale **forma** prende la
+      guardia della transizione. Vincolo emerso applicando la Fase 2: **né MySQL né Sqlite popolano un
+      `RowVersion`**, quindi un token di concorrenza, se c'è, lo scrive l'applicazione — non il
+      database. Le due strade (token gestito dall'applicazione su `Ordine.Stato`, oppure
+      `WHERE Stato = 'APERTO'` con conteggio delle righe toccate) sono descritte in §«la guardia della
+      transizione» e sono **entrambe già eseguibili su Sqlite**. Resta qui aperta perché chi implementa
+      non parta dall'assunto di un token popolato dal motore.

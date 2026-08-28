@@ -120,4 +120,30 @@ public static class GestioneCassaGuards
                 "Operazione riservata agli amministratori: il tuo ruolo non ha i privilegi necessari.");
         }
     }
+
+    /// <summary>
+    /// Nessun ordine — di alcuno stato — è agganciato al registro che si sta per eliminare.
+    ///
+    /// <para>🔴 <b>Perché serve un guard e non basta la foreign key.</b>
+    /// <c>Ordine → RegistroCassa</c> è <c>Restrict</c>, quindi il database rifiuta comunque
+    /// l'eliminazione — ma lo fa con una <c>DbUpdateException</c> che al client arriva come un
+    /// 500 opaco. Le <c>Vendita</c>, che invece cascatano, hanno abituato a un'altra semantica:
+    /// senza questo controllo l'operatore vedrebbe un errore incomprensibile proprio dove prima
+    /// l'eliminazione funzionava.</para>
+    ///
+    /// <para>⚠️ Si conta <b>ogni</b> ordine, non i soli aperti: un ordine chiuso o stornato è la
+    /// storia di un incasso su quel giorno, e va tolta di mezzo consapevolmente prima di
+    /// cancellare il registro che la contiene.</para>
+    /// </summary>
+    public static async Task GuardNessunOrdineSulRegistro(AppDbContext dbContext, int registroCassaId)
+    {
+        int ordini = await dbContext.Ordini.CountAsync(o => o.RegistroCassaId == registroCassaId);
+
+        if (ordini > 0)
+        {
+            throw new ExecutionError(
+                $"Impossibile eliminare il registro: contiene {ordini} " +
+                $"ordine{(ordini == 1 ? "" : "i")} del punto vendita.");
+        }
+    }
 }

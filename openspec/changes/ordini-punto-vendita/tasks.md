@@ -262,7 +262,7 @@ i secchi una volta sola) resta **senza rete**.
 
 ## Phase 3: A — Modello dati (entità e configurazione)
 
-- [ ] 3.1 Nuovo `backend/Models/Ordine.cs` — `Id`, `RegistroCassaId`, `Numero` (progressivo per
+- [x] 3.1 Nuovo `backend/Models/Ordine.cs` — `Id`, `RegistroCassaId`, `Numero` (progressivo per
   registro), `SuffissoSplit` (`string.Empty` se non splittato, `"A"`/`"B"`/… per i figli), `Stato`,
   `MetodoPagamento` (`null` finché aperto), `ContanteRicevuto` (`decimal?`), `Totale` (snapshot alla
   chiusura), `UtenteId`, `ChiusoIl`/`ChiusoDaUtenteId`,
@@ -283,7 +283,24 @@ i secchi una volta sola) resta **senza rete**.
   fin da subito, pur non implementando la stampa ora.
   **Verifica**: `dotnet build` pulito; XML doc su `ContanteRicevuto` che spiega perché non si chiama
   `Resto`.
-- [ ] 3.2 Nuovo `backend/Models/RigaOrdine.cs` — `Id`, `OrdineId`, `ProdottoId`, `Quantita`,
+  ✅ **Fatto** — nomi di `design.md`: `OrdineId`, `TotaleOrdine`, `ApertoDa`/`ApertoIl`,
+  `ChiusoDa`/`ChiusoIl`, `AnnullatoDa`/`AnnullatoIl`/`MotivoAnnullamento`,
+  `StornatoDa`/`StornatoIl`/`MotivoStorno`, più `Note` e le navigazioni
+  `RegistroCassa`/`OrdinePadre`/`Figli`/`Righe`/`Vendite`.
+  🔴 **`RowVersion` NON è stato aggiunto, e non è una dimenticanza.** `design.md` §«la guardia della
+  transizione è `IsConcurrencyToken()` su `Ordine.Stato`» non usa affatto un `RowVersion`: il token è
+  lo **stato stesso**, gestito dall'applicazione. È anche l'unica forma realizzabile qui — la Fase 2
+  ha misurato che *nessuno* dei due motori genera un `rowversion` da sé (MySQL non ha il tipo, Sqlite
+  nemmeno), quindi una colonna `RowVersion` sarebbe rimasta ferma al suo valore iniziale e la guardia
+  avrebbe **finto** di funzionare. La scelta della Fase 5 resta libera: il token su `Stato` non
+  esclude né la UPDATE condizionata con conteggio righe né altro.
+  ⚠️ **`SuffissoSplit` è `string` NON nullable** (`string.Empty` di default), come dice questo task e
+  **non** come lo dichiara `design.md` (`string?`). Non è un dettaglio di stile: in MySQL — e in
+  Sqlite — più `NULL` sono **distinti** dentro un indice unico, quindi con la colonna nullable la
+  terna `(RegistroCassaId, Numero, NULL)` sarebbe duplicabile in silenzio e l'indice di 3.4
+  smetterebbe di proteggere proprio il caso normale, l'ordine non splittato. → `design.md` va
+  corretto qui.
+- [x] 3.2 Nuovo `backend/Models/RigaOrdine.cs` — `Id`, `OrdineId`, `ProdottoId`, `Quantita`,
   `PrezzoUnitario` (snapshot al tocco), `PrezzoTotale`, `AliquotaIva` (snapshot), `Note`,
   `CreatedAt`.
   **Non** portare `Imponibile`/`ImportoIva` sulla riga: lo scorporo resta in un punto solo,
@@ -295,7 +312,12 @@ i secchi una volta sola) resta **senza rete**.
   ⚠️ `Quantita` è `decimal`, non `int`, come `Vendita.Quantita`.
   **Verifica**: `dotnet build` pulito; test che modificare `Prodotto.Prezzo` con l'ordine aperto non
   cambia il totale dell'ordine né l'importo della `Vendita` generata alla chiusura.
-- [ ] 3.3 Nuovo `backend/Common/StatiOrdine.cs` — costanti `Aperto`, `Chiuso`, `Annullato`,
+  ✅ **Fatto** — `RigaOrdineId`, `OrdineId`, `ProdottoId`, `Quantita` (`decimal`), `PrezzoUnitario`,
+  `AliquotaIva`, `PrezzoTotale`, `Note`, `DataOra`, `CreatedAt`/`UpdatedAt`, navigazioni `Ordine` e
+  `Prodotto`. Nessun `Imponibile`/`ImportoIva`, come richiesto.
+  ⏳ Il test sullo snapshot del prezzo **non è scrivibile qui**: richiede la chiusura, cioè la Fase 5.
+  Resta a carico di 9.2.
+- [x] 3.3 Nuovo `backend/Common/StatiOrdine.cs` — costanti `Aperto`, `Chiuso`, `Annullato`,
   **`Splittato`**, `Stornato`, più `Ammessi` e `IsAmmesso`, sullo stampo esatto di
   `backend/Common/MetodiPagamentoVendita.cs`. Le transizioni ammesse vanno documentate qui in XML doc,
   perché è il posto dove le si cerca.
@@ -304,7 +326,13 @@ i secchi una volta sola) resta **senza rete**.
   secchi (li muovono i figli, che nascono `CHIUSO`) e **non è stornabile** — vedi 5.7.
   **Verifica**: test unitario che `IsAmmesso` rifiuta una stringa fuori insieme e accetta tutti e
   cinque gli stati.
-- [ ] 3.4 `backend/DataAccess/AppDbContext.cs` — `DbSet<Ordine> Ordini`,
+  ✅ **Fatto**, con la macchina a stati in XML doc sulla classe (diagramma + tabella «quale stato ha
+  mosso i secchi»), e il perché di `SPLITTATO` scritto sulla costante: senza, il padre di uno split
+  resterebbe `APERTO` per sempre e bloccherebbe la chiusura di cassa su un incasso già dichiarato dai
+  figli. Test in `backend/DuedGusto.Tests/Unit/Common/StatiOrdineTests.cs` (**13 casi**): i cinque
+  stati accettati, sei stringhe fuori insieme rifiutate — compresi `null`, `"aperto"` minuscolo e
+  `"DRAFT"`, che è uno stato del *registro* — e `Ammessi` pinnato a cinque voci senza duplicati.
+- [x] 3.4 `backend/DataAccess/AppDbContext.cs` — `DbSet<Ordine> Ordini`,
   `DbSet<RigaOrdine> RigheOrdine`, e in `OnModelCreating`:
   `entity.HasIndex(x => new { x.RegistroCassaId, x.Numero, x.SuffissoSplit }).IsUnique();`
   — 🔴 è il meccanismo di **correttezza** del numero d'ordine, non un'ottimizzazione: vedi 5.4.
@@ -314,6 +342,33 @@ i secchi una volta sola) resta **senza rete**.
   `RowVersion` come token di concorrenza. Tipi decimal coerenti col resto del file.
   ⚠️ **Non** aggiungere `HasDefaultValueSql` MySQL-only su queste entità: peggiorerebbe 2.2.
   **Verifica**: `dotnet build`; il DDL della migrazione 4.1 riporta l'indice unico.
+  ✅ **Fatto**, con quattro scostamenti da questa stesura, tutti verificati sullo schema realmente
+  generato (`EnsureCreated()` su Sqlite, riletto da `sqlite_master`):
+  1. **Il token di concorrenza è `Stato`**, non un `RowVersion`: `IsConcurrencyToken()` su
+     `Ordine.Stato`, come vuole `design.md`. Vedi la nota di 3.1.
+  2. **L'indice per l'elenco è `(RegistroCassaId, Stato)`** e non `(Stato, RegistroCassaId)`: è
+     l'ordine scelto da `design.md`. ⚠️ Da rivedere in 6.5, che interroga gli aperti **su tutti i
+     registri** (trappola mezzanotte): quella query non ha il prefisso dell'indice. Su questi volumi
+     non costa nulla, ma è meglio deciderlo che scoprirlo.
+  3. **`HasDefaultValueSql("CURRENT_TIMESTAMP …")` su `CreatedAt`/`UpdatedAt` è stato messo**, contro
+     l'avvertenza qui sopra e in accordo con `design.md`. L'avvertenza era scritta prima che 2.2
+     scegliesse la strada **generica**: `SqliteTestModelCustomizer` spazza l'intero modello cercando
+     `DefaultValueSql` e copre da sé le entità nuove — è scritto nel suo commento di testa. Ometterle
+     avrebbe reso queste due tabelle le uniche due su 16 senza default a livello di colonna, senza
+     alcun guadagno. **Riscontrato**: la suite Sqlite resta verde e le tabelle si costruiscono.
+  4. **`Vendita.OrdineId` (`int?`) + navigazione `Ordine` sono stati aggiunti qui**, con FK
+     `Restrict` e indice. Non erano in questo task ma sono nella tabella «Modifiche a entità
+     esistenti» di `design.md`, e senza di essi la navigazione `Ordine.Vendite` avrebbe comunque
+     prodotto una FK **ombra** con lo stesso nome — cioè la stessa colonna, ma non configurabile e
+     non leggibile dal codice. Lo storno (5.7) ne ha bisogno per ritrovare le vendite da cancellare.
+     ⚠️ Ricade su 4.2: la migrazione **tocca** una tabella esistente (`ALTER TABLE Vendite ADD
+     OrdineId`), come del resto prevede `design.md` §«Due migrazioni, non una». La formula «non tocca
+     quelle esistenti» di 4.2 va letta come «nessuna riga esistente viene modificata».
+  🔴 **Debito aperto fino alla Fase 4**: `GestioneCassaGuards.GuardNessunOrdineSulRegistro` —
+  aggiunta come chiede questo task e invocata da `EliminaRegistroCassaOrchestrator` — **interroga
+  `Ordini`**. Su un database il cui schema non ha ancora la tabella (cioè ogni database finché 4.1
+  non è applicata) `eliminaRegistroCassa` fallisce. Non è una regressione da correggere: è la ragione
+  per cui 4.1 va eseguita subito dopo, e il backend applica le migrazioni da solo all'avvio.
 
 ---
 

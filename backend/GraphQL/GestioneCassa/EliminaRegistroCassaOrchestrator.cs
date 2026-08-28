@@ -35,6 +35,10 @@ public class EliminaRegistroCassaOrchestrator
 
         await GestioneCassaGuards.GuardMeseChiusoPerEliminazione(_chiusuraService, registroCassa.Data);
 
+        // Gli ordini NON cascatano con il registro (FK Restrict): senza questo controllo il
+        // rifiuto arriverebbe dal database come un 500 opaco invece che come un errore leggibile.
+        await GestioneCassaGuards.GuardNessunOrdineSulRegistro(db, registroCassaId);
+
         return await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
             db.RegistriCassa.Remove(registroCassa);
