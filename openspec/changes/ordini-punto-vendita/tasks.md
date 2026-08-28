@@ -1,0 +1,664 @@
+# Tasks: Ordini al punto vendita, gruppi di prodotti, voce in sidebar
+
+**Change**: ordini-punto-vendita
+**Riferimenti**: `proposal.md`, `design.md`, `specs/`, GitHub issue #24 (segue #19)
+
+Convenzioni vincolanti: le `Vendita` nascono **solo** dentro `ChiudiOrdineOrchestrator`, ed è l'unico
+punto del backend in cui si muove un secchio; `SecchiIncassiApplier` va sempre invocato **prima** di
+`BreakdownIvaApplier`, con un `SaveChangesAsync()` obbligatorio fra la creazione delle vendite e il
+breakdown; nessun campo nuovo si chiama `Resto` (il nome è già preso e significa un'altra cosa); la
+guardia sulle transizioni sta nella macchina a stati, non nel chiamante.
+
+Ordine di lavoro dalla issue: **C** (indipendente) → **infrastruttura di test** → **A** (cambio
+strutturale) → **B** (dipende da A e da decisioni di listino).
+
+---
+
+> ### ✅ Riconciliazione con `design.md` — eseguita
+>
+> Questo breakdown era stato scritto quando il design integrale non era leggibile (engram troncava a
+> ~2000 caratteri) e conteneva **due punti inferiti** dalle issue #24 e #19 invece che letti.
+> `design.md` è ora integrale (1360 righe) ed è stato riscontrato. **Entrambe le inferenze sono
+> confermate**; il design aggiunge però dettagli che i task non riportavano e che sono stati recepiti:
+>
+> 1. **La sorte delle `Vendita` allo storno** (task 5.7, test 9.5) — **CONFERMATO**.
+>    `design.md` §«`stornaOrdine` CANCELLA le `Vendita`, non le marca» sceglie la cancellazione, con
+>    la stessa motivazione dell'inferenza vista da un'altra angolazione: `BreakdownIvaApplier` fa
+>    `registro.VenditeContanti = vendite.Sum(v => v.PrezzoTotale)` sulle `Vendita` **persistite**, e
+>    un flag `Stornata` obbligherebbe ad aggiungere un `Where(v => !v.Stornata)` negli applier — cioè
+>    «stato su `Vendita` + filtro negli applier», l'alternativa già scartata altrove, rientrata dalla
+>    finestra su un percorso meno battuto.
+>    **Recepito in più**: (a) le `RigaOrdine` **non si cancellano mai** — il libro mastro è l'`Ordine`;
+>    (b) la traccia sta su `Ordine.StornatoDa` / `StornatoIl` / `MotivoStorno` (aggiunti a 3.1);
+>    (c) `stornaOrdine` su un ordine `SPLITTATO` si **rifiuta** — si stornano i figli uno per uno, e
+>    da qui lo stato `SPLITTATO` aggiunto a 3.3; (d) lo storno richiede il **ruolo amministratore**
+>    (`GestioneCassaGuards.GuardUtenteAmministratore`, già esistente e usato da
+>    `RiapriRegistroCassaOrchestrator`), mentre l'annullo no.
+> 2. **Lo snapshot del prezzo al momento del tocco** (task 3.2, usato da 5.3) — **CONFERMATO**.
+>    `design.md` §«il prezzo si congela quando la voce viene battuta, non alla chiusura» dice
+>    esattamente questo: `RigaOrdine.PrezzoUnitario` e `AliquotaIva` sono presi *quando la voce entra
+>    nell'ordine*, perché è il prezzo detto al cliente; la `Vendita` li eredita alla chiusura e
+>    `RicalcolaImportiSnapshot` non cambia semantica. L'alternativa «prezzo corrente alla chiusura» è
+>    scartata esplicitamente. **Nessuna modifica necessaria a 3.2 e 5.3.**
+>
+> ℹ️ La vecchia nota citava i task come 4.7 / 8.5 / 4.3: numerazione di una stesura precedente. I
+> riferimenti corretti sono 5.7 / 9.5 / 5.3 e sono stati sistemati anche nelle Fasi 0 e 10.
+>
+> ⚠️ **Divergenze di nomenclatura residue** fra questo file e `design.md`, non sciolte qui perché non
+> sono decisioni ma nomi: il design chiama `TotaleOrdine` ciò che 3.1 chiama `Totale`, `ApertoDa` /
+> `ChiusoDa` ciò che 3.1 chiama `UtenteId` / `ChiusoDaUtenteId`, e colloca lo storno in un
+> `StornaOrdineOrchestrator.cs` separato invece che dentro `ChiudiOrdineOrchestrator`. **Vale
+> `design.md`**: in fase di apply si seguono i suoi nomi.
+
+---
+
+## Phase 0: Decisioni utente (nessun codice)
+
+Nessuno di questi è un task di implementazione: sono le cinque domande poste all'utente. **Quattro su
+cinque sono chiuse**; resta aperta solo 0.1, che l'utente produrrà più avanti. Ogni task marcato
+**[BLOCCATO]** nelle fasi successive cita qui la decisione che lo ferma — dopo questa chiusura ne
+restano **due**, entrambi in Fase 10 ed entrambi fermi sulla sola 0.1.
+
+- [ ] 0.1 **[BLOCCATO — unica decisione ancora aperta]** Lista esatta delle varianti (~147 voci):
+  nomi, codici, prezzi. **RIMANDATA dall'utente**: la produrrà lui. È una decisione di listino, non
+  tecnica, e la convenzione dei codici è già fissata da #19 D2 (`CATEGORIA-NOME`, es. `BIB-COCA-33`).
+  🔴 Blocca **solo i dati**, non il meccanismo: schema, migrazione, seeder parametrico, pagina di
+  gestione e UI si costruiscono senza conoscere le voci. → blocca 10.1, 10.2
+- [x] 0.2 **CHIUSA — `GRAPPA` e le righe 49-50 del foglio ENTRANO ORA**, nello scope di questo change.
+  Il seeder delle varianti è il posto giusto e non c'è motivo di rimandarle a un secondo passaggio.
+  ⚠️ La decisione «entrano» **non scioglie i due problemi originali**, li sposta dentro:
+  - `GRAPPA` porta **due importi in una cella** («€ 3 / 4»). Con la decisione «ogni variante è un
+    articolo a sé» il caso si risolve da solo: diventano **due articoli distinti**, uno a 3,00 € e uno
+    a 4,00 €, ciascuno col proprio codice. Nessuna cella da interpretare a runtime.
+  - Le righe **49-50** hanno prezzo **2,50 €** e **nessun nome**. Il nome non si inventa qui: arriva
+    con la lista di 0.1. Finché non c'è, quelle due righe restano senza identità e non sono
+    seminabili — sono parte di ciò che 10.1 attende.
+- [x] 0.3 **CHIUSA — molti-a-molti.** L'utente ha posto il criterio: «può essere in più gruppi *se non
+  è complicato*, altrimenti uno solo». **Non è complicato in questo progetto**, e il molti-a-molti è
+  già la scelta di `design.md` §«gruppi molti-a-molti con entità di join esplicita». Valutazione fatta
+  sul codice, non in astratto:
+  - **Il pattern è già in casa, due volte.** `AppDbContext.cs:104-118` configura `Ruolo` ↔ `Menu`
+    molti-a-molti con tabella di join `RuoloMenu`; e — precedente più vicino perché l'appartenenza
+    **porta un dato proprio** — `backend/Models/RegistroCassaMensile.cs` è un'entità di join esplicita
+    con chiave composita `{ChiusuraId, RegistroId}` e payload `Incluso`, configurata in
+    `AppDbContext.cs:~1318-1341`. `ProdottoGruppo` ha esattamente quella forma: chiave composita
+    `{GruppoProdottiId, ProdottoId}` più il payload `Ordinamento`.
+  - **La UI di gestione ha già uno stampo.** `duedgusto/src/components/pages/roles/RoleMenus.tsx` +
+    `RoleDetails.tsx` sono una pagina che assegna un molti-a-molti con AG Grid a selezione multipla:
+    la pagina gruppi di 10.8 la ricalca, non la inventa.
+  - **Il seed lo sa già fare.** `SeedMenus.AssegnaRuoli` popola un molti-a-molti in modo additivo.
+  - **Le query non peggiorano in modo apprezzabile.** L'unico punto che costa qualcosa è «prodotti non
+    raggruppati» della griglia principale (10.9): con l'1:N sarebbe `p.GruppoId == null`, col
+    molti-a-molti è `!p.Gruppi.Any()`. È una anti-join su ~147 righe già interamente in cache: costo
+    reale nullo, complessità di lettura trascurabile.
+  - **Il costo dell'errore è asimmetrico**, ed è ciò che decide il caso dubbio: passare da 1:N a N:N
+    più avanti è una migrazione **con dati dentro**; il contrario non serve mai, perché un
+    molti-a-molti usato con un gruppo solo per prodotto si comporta come un 1:N.
+  Le altre due domande che questo task teneva insieme sono già chiuse in `design.md` e restano tali:
+  prezzo del tastone **«da X €» derivato** da `Min(prezzo dei membri attivi)`, mai persistito; ordine
+  dentro il gruppo **manuale** (`ProdottoGruppo.Ordinamento`), pareggio su `Prodotto.Codice`.
+  → sblocca 10.3, 10.4, 10.8, 10.9
+- [x] 0.4 **CHIUSA — la voce «Vendita» è per chiunque**, non più il solo SuperAdmin.
+  🔴 **Che cosa significa davvero, verificato sul codice**: il menu governa **la sola visibilità della
+  voce in sidebar**; l'autorizzazione delle operazioni è un meccanismo separato e resta invariata.
+  `backend/GraphQL/Vendite/VenditeMutations.cs:26` e `VenditeQueries.cs:21` chiamano `this.Authorize()`
+  **a livello di tipo**: richiedono un utente autenticato, non un ruolo specifico. Quindi «per
+  chiunque» = **chiunque sia autenticato**, e non apre alcun accesso anonimo.
+  ℹ️ Sweep di controllo su tutti i moduli GraphQL — in questo progetto un modulo senza
+  `this.Authorize()` è **pubblico per default**, perché `/graphql` è montato con
+  `AuthorizationRequired = false`. Tutti i rami montati in `GraphQLQueries.cs:18-25` /
+  `GraphQLMutations.cs` hanno `this.Authorize()`. **Nessuna esposizione trovata.** L'unico file senza
+  la chiamata è `backend/GraphQL/Management/ManagementQueries.cs`, che è un `ObjectGraphType` **vuoto e
+  non montato** in nessun ramo root: codice morto, non una porta aperta.
+  ⚠️ Resta valida l'asimmetria del seed: `SeedMenus.AssegnaRuoli` solo **aggiunge** ruoli, non li
+  toglie mai. Allargare ora costa un riavvio; restringere in futuro richiederebbe SQL diretto sul VPS.
+  → sblocca 1.6
+- [x] 0.5 **CHIUSA — Sqlite si aggiunge** al progetto di test. Senza, la guardia della transizione — il
+  pezzo più critico del change — resta scoperta e il verde della CI è fuorviante.
+  → sblocca 2.1, 2.2, 2.3, e con esse 9.1, 9.3, 9.5, 9.7
+
+---
+
+## Phase 1: C — «Vendita» al primo livello della sidebar
+
+Indipendente da tutto il resto, nessuna migrazione, si fa subito. Il design ha trovato **tre** guasti
+qui, non uno: la voce non si sposta (1.1), non nasce se manca il padre (1.2), e finirebbe comunque
+nel posto sbagliato (1.3).
+
+- [ ] 1.1 `backend/SeedData/SeedMenus.cs:20` — sostituire `menu.MenuPadre = menuPadre;` con
+  `menu.MenuPadreId = menuPadre?.Id;`.
+  **Guasto**: il menu è caricato con `.Include(m => m.Ruoli)` soltanto, quindi la navigazione
+  `MenuPadre` non è caricata. Assegnarle `null` non è visto dal change tracker, che non ha il valore
+  originale da confrontare: la FK resta agganciata a Cassa, `needsUpdate` vale `true` e parte una
+  UPDATE che sembra riuscita. Il confronto sulla stessa riga legge già `menu.MenuPadreId` ed è
+  corretto — sbagliata è solo la scrittura.
+  **Impatto sugli altri chiamanti**: nullo. Le righe 137/230/323/456 passano `null` per voci nate già
+  a primo livello (FK già `null`, il ramo non si attiva); tutte le altre passano un padre tracciato,
+  dove assegnare la navigazione funziona.
+  **Verifica**: test 1.4, che deve essere rosso prima di questa modifica.
+- [ ] 1.2 `backend/SeedData/SeedMenusVendita.cs` — eliminare la lookup di `cassaMenu` e il
+  `if (cassaMenu == null) return;`. Senza padre quella query non serve più, e la guardia impedirebbe
+  la creazione della voce su un database in cui «Cassa» non esiste.
+  **Verifica**: test 1.5, caso B.
+- [ ] 1.3 `backend/SeedData/SeedMenusVendita.cs` — `Posizione = 1` diventa `Posizione = 0`; togliere
+  `MenuPadre = cassaMenu` dal ramo di creazione; nel ramo di aggiornamento passare `0` e `null` a
+  `UpdateMenuIfNeeded`. Aggiornare il commento XML in testa al file, che oggi descrive la voce come
+  figlia di Cassa in posizione 1 e diventerebbe una bugia.
+  **Perché 0 e non 1**: a primo livello `SeedMenus` occupa già Dashboard=1, Cassa=2, Fornitori=3,
+  Utenti=4, Ruoli=5, Menù=6, Impostazioni=7, (8), Sito=9. `AuthenticationDataLoaders.cs:123` ordina
+  con `OrderBy(m => m.Posizione)` **senza tie-break**: a parità con Dashboard l'ordine sarebbe
+  incidentale, non «in alto». 0 è l'unico posto libero sopra.
+  **Verifica**: test 1.5, caso C.
+- [ ] 1.4 Nuovo `backend/DuedGusto.Tests/Integration/SeedMenusVenditaTests.cs` — test di regressione
+  del padre: voce «Vendita» preesistente con `MenuPadreId = idCassa` e `Posizione = 1`; dopo il seed,
+  rileggendo da un **DbContext nuovo** (o dopo `ChangeTracker.Clear()`), `MenuPadreId == null` e
+  `Posizione == 0`.
+  ⚠️ Senza il contesto nuovo la identity map maschera il no-op e il test passa anche **prima** della
+  correzione 1.1, cioè non prova nulla.
+  **Verifica**: eseguire il test contro `SeedMenus.cs` non ancora corretto e constatare che è rosso;
+  poi applicare 1.1 e constatare che diventa verde.
+- [ ] 1.5 Stesso file — due casi ulteriori: **B)** su un database privo del menu «Cassa» la voce viene
+  creata comunque (copre 1.2); **C)** nessun'altra voce di primo livello ha `Posizione == 0`, e
+  «Vendita» è la prima in `OrderBy(m => m.Posizione)` (copre 1.3).
+  InMemory basta per tutta la fase: nessuna transazione, nessun token di concorrenza, nessun indice
+  unico in gioco.
+  **Verifica**: `cd backend && dotnet test --filter SeedMenusVendita`.
+- [ ] 1.6 **[SBLOCCATO da 0.4 — «per chiunque»]** `backend/SeedData/SeedMenusVendita.cs` — ruoli della
+  voce. Oggi `Ruoli = [superAdminRuolo]`: va allargata a **tutti i ruoli**, perché la vendita non è
+  amministrativa (#19 Fase 8) e la voce sta in cima alla sidebar.
+  Usare `SeedMenus.AssegnaRuoli` — è l'helper che lo fa già, ed è additivo — su **tutti** i ruoli
+  esistenti, non sul solo sottoinsieme con flag `Ruolo.Amministratore` (quello è il criterio di
+  `SeedMenusSito`, che è una sezione amministrativa: qui sarebbe la restrizione che 0.4 toglie).
+  🔴 **Il menu è visibilità, non autorizzazione**: allargare la voce non allarga nulla lato dati.
+  `VenditeMutations` e `VenditeQueries` hanno `this.Authorize()` a livello di tipo e continuano a
+  richiedere un utente autenticato. Non aggiungere né togliere `Authorize` qui.
+  ⚠️ Irreversibile a buon mercato: `AssegnaRuoli` non toglie mai un ruolo, quindi un restringimento
+  futuro richiede SQL diretto sul VPS.
+  **Verifica**: test che, dato un utente con un ruolo **non** amministrativo, la voce «Vendita»
+  compare fra i suoi menu; e che un ruolo creato dopo il seed non la perde al riavvio successivo.
+- [ ] 1.7 Verifica in esecuzione: `cd backend && dotnet run`, login, la voce «Vendita» è la prima
+  della sidebar con icona `ShoppingCart`. Il seed gira all'avvio e `UpdateMenuIfNeeded` propaga la
+  correzione senza toccare il database a mano.
+  ⚠️ `ShoppingCart` è già in `duedgusto/src/components/layout/sideBar/iconMapping.tsx:7,45`. Un'icona
+  assente da quella lista non dà errore: la voce comparirebbe senza icona e ce ne si accorgerebbe
+  solo guardando la barra.
+
+---
+
+## Phase 2: Infrastruttura di test — Sqlite per la guardia di transizione
+
+Va prima di A, perché senza questa fase il pezzo più importante del change (la transizione che muove
+i secchi una volta sola) resta **senza rete**.
+
+- [ ] 2.1 **[SBLOCCATO da 0.5 — Sqlite si aggiunge]** `backend/DuedGusto.Tests/DuedGusto.Tests.csproj` — aggiungere
+  `Microsoft.EntityFrameworkCore.Sqlite`; `backend/DuedGusto.Tests/Helpers/TestDbContextFactory.cs` —
+  aggiungere `CreateSqlite()` con una `SqliteConnection("DataSource=:memory:")` aperta e **tenuta
+  viva** per la durata del test (se la connessione si chiude, il database sparisce), più
+  `EnsureCreated()`. Riusare il mock di `IConfiguration` già presente nella factory, che aggira il
+  guard `if (!optionsBuilder.IsConfigured)` di `AppDbContext.OnConfiguring`.
+  **Perché serve**: `TestDbContextFactory.Create()` usa InMemory, che (a) rende
+  `BeginTransactionAsync` un no-op — è soppresso esplicitamente con
+  `InMemoryEventId.TransactionIgnoredWarning` — quindi «lo split è atomico» non è dimostrabile;
+  (b) **non applica i token di concorrenza**, quindi la guardia di 5.1 non lancerebbe mai
+  `DbUpdateConcurrencyException`; (c) **non applica gli indici unici**, quindi anche la corsa sul
+  numero d'ordine (4.4) resterebbe scoperta.
+  **Verifica**: task 2.3.
+- [ ] 2.2 **[SBLOCCATO da 0.5]** Neutralizzare le default MySQL-only, o `EnsureCreated()` non parte
+  affatto. `backend/DataAccess/AppDbContext.cs` usa
+  `HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP")` su **14 entità** —
+  `RegistroCassa` riga 228, `Vendita` riga 990, `Prodotto` riga 403, `MediaAsset`, `Fornitore`,
+  `FatturaAcquisto`, `DocumentoTrasporto`, `PagamentoFornitore`, … — che è sintassi MySQL, e
+  `EnsureCreated()` la emette dentro la `CREATE TABLE`: Sqlite la rifiuta.
+  Due strade: un `IModelCustomizer` di test che azzeri `DefaultValueSql` su tutte le proprietà del
+  modello, oppure un ramo condizionale sul provider in `OnModelCreating`. La prima non tocca il
+  codice di produzione ed è preferibile.
+  ℹ️ `HasCharSet("utf8mb4")` è invece un'annotazione Pomelo che il provider Sqlite ignora senza danni:
+  non va toccata.
+  **Verifica**: task 2.3.
+- [ ] 2.3 **[SBLOCCATO da 0.5]** Test di riscontro della factory in
+  `backend/DuedGusto.Tests/Helpers/` o in un `Unit/Infrastructure/TestDbContextFactoryTests.cs`:
+  `CreateSqlite()` costruisce lo schema senza eccezioni; inserire due `Prodotto` con lo stesso
+  `Codice` fa fallire il secondo (l'indice unico di `AppDbContext.cs:411` viene davvero applicato);
+  una transazione esplicita con rollback non lascia traccia.
+  ⚠️ **Limite da accettare**: Sqlite non riproduce `SELECT … FOR UPDATE`. Se la guardia di 5.1
+  finisce pessimistica invece che ottimistica, questa infrastruttura non la prova comunque — la forma
+  della guardia decide se questa fase basta.
+  **Verifica**: `cd backend && dotnet test` verde, suite esistente inclusa.
+
+---
+
+## Phase 3: A — Modello dati (entità e configurazione)
+
+- [ ] 3.1 Nuovo `backend/Models/Ordine.cs` — `Id`, `RegistroCassaId`, `Numero` (progressivo per
+  registro), `SuffissoSplit` (`string.Empty` se non splittato, `"A"`/`"B"`/… per i figli), `Stato`,
+  `MetodoPagamento` (`null` finché aperto), `ContanteRicevuto` (`decimal?`), `Totale` (snapshot alla
+  chiusura), `UtenteId`, `ChiusoIl`/`ChiusoDaUtenteId`,
+  `AnnullatoIl`/`AnnullatoDaUtenteId`/`MotivoAnnullamento`,
+  **`StornatoIl`/`StornatoDaUtenteId`/`MotivoStorno`**, `OrdinePadreId` (self-FK, provenienza
+  dello split), `CreatedAt`/`UpdatedAt`, `RowVersion` (token di concorrenza, vedi 5.1).
+  ℹ️ **I tre campi di storno vengono dalla riconciliazione con `design.md`** (vedi la nota in testa):
+  poiché lo storno **cancella** le `Vendita`, l'unica traccia dell'incasso disfatto vive qui e sulle
+  `RigaOrdine`, che non si cancellano mai. Senza questi campi lo storno sarebbe muto.
+  ⚠️ `design.md` usa i nomi `TotaleOrdine`, `ApertoDa`, `ChiusoDa`, `AnnullatoDa`, `StornatoDa`: in
+  fase di apply valgono quelli.
+  🔴 **Nome**: non chiamarlo `Resto`. `RegistroCassa.Resto` esiste già ed è la colonna AG del foglio
+  («Ecc al netto delle spese con scontrino»), e `RiepilogoCards` è il riferimento vincolante per
+  quelle formule. Si persiste `ContanteRicevuto`; il resto da dare è `ContanteRicevuto − Totale`,
+  calcolato, mai persistito, e non tocca alcun secchio: è un aiuto all'operatore, non un dato
+  contabile.
+  `Numero` + `SuffissoSplit` è anche l'**identificativo stampabile** che la issue chiede di prevedere
+  fin da subito, pur non implementando la stampa ora.
+  **Verifica**: `dotnet build` pulito; XML doc su `ContanteRicevuto` che spiega perché non si chiama
+  `Resto`.
+- [ ] 3.2 Nuovo `backend/Models/RigaOrdine.cs` — `Id`, `OrdineId`, `ProdottoId`, `Quantita`,
+  `PrezzoUnitario` (snapshot al tocco), `PrezzoTotale`, `AliquotaIva` (snapshot), `Note`,
+  `CreatedAt`.
+  **Non** portare `Imponibile`/`ImportoIva` sulla riga: lo scorporo resta in un punto solo,
+  `VenditeMutations.RicalcolaImportiSnapshot`, e avviene sulla `Vendita` alla chiusura.
+  ✅ **Riscontrato con `design.md`** (§«il prezzo si congela quando la voce viene battuta, non alla
+  chiusura»): lo snapshot è preso **quando la voce entra nell'ordine**, perché è il prezzo detto al
+  cliente; un ritocco di listino a ordine aperto non cambia il conto sotto al cliente. La `Vendita`
+  eredita entrambi i valori alla chiusura. Non era un'inferenza sbagliata: **nessuna modifica**.
+  ⚠️ `Quantita` è `decimal`, non `int`, come `Vendita.Quantita`.
+  **Verifica**: `dotnet build` pulito; test che modificare `Prodotto.Prezzo` con l'ordine aperto non
+  cambia il totale dell'ordine né l'importo della `Vendita` generata alla chiusura.
+- [ ] 3.3 Nuovo `backend/Common/StatiOrdine.cs` — costanti `Aperto`, `Chiuso`, `Annullato`,
+  **`Splittato`**, `Stornato`, più `Ammessi` e `IsAmmesso`, sullo stampo esatto di
+  `backend/Common/MetodiPagamentoVendita.cs`. Le transizioni ammesse vanno documentate qui in XML doc,
+  perché è il posto dove le si cerca.
+  ℹ️ **`SPLITTATO` viene dalla riconciliazione con `design.md`**: la macchina a stati è
+  `APERTO → {CHIUSO | SPLITTATO | ANNULLATO}` e `CHIUSO → STORNATO`. Un padre `SPLITTATO` non muove
+  secchi (li muovono i figli, che nascono `CHIUSO`) e **non è stornabile** — vedi 5.7.
+  **Verifica**: test unitario che `IsAmmesso` rifiuta una stringa fuori insieme e accetta tutti e
+  cinque gli stati.
+- [ ] 3.4 `backend/DataAccess/AppDbContext.cs` — `DbSet<Ordine> Ordini`,
+  `DbSet<RigaOrdine> RigheOrdine`, e in `OnModelCreating`:
+  `entity.HasIndex(x => new { x.RegistroCassaId, x.Numero, x.SuffissoSplit }).IsUnique();`
+  — 🔴 è il meccanismo di **correttezza** del numero d'ordine, non un'ottimizzazione: vedi 5.4.
+  `entity.HasIndex(x => new { x.Stato, x.RegistroCassaId });` per l'elenco degli aperti.
+  FK `Ordine → RegistroCassa` con `DeleteBehavior.Restrict`, e `EliminaRegistroCassaOrchestrator`
+  deve rifiutare un registro con ordini invece di portarseli via in cascata.
+  `RowVersion` come token di concorrenza. Tipi decimal coerenti col resto del file.
+  ⚠️ **Non** aggiungere `HasDefaultValueSql` MySQL-only su queste entità: peggiorerebbe 2.2.
+  **Verifica**: `dotnet build`; il DDL della migrazione 4.1 riporta l'indice unico.
+
+---
+
+## Phase 4: A — Migrazione database
+
+Separata dal codice applicativo, come richiede `openspec/config.yaml`.
+
+- [ ] 4.1 `cd backend && dotnet ef migrations add OrdiniPuntoVendita`.
+  **Verifica**: il file generato crea le due tabelle e non tocca quelle esistenti.
+- [ ] 4.2 Riscontro a mano del DDL generato in `backend/Migrations/`: l'indice unico
+  `(RegistroCassaId, Numero, SuffissoSplit)` è presente; la FK verso `RegistriCassa` è `RESTRICT` e
+  non `CASCADE`; `RowVersion` è la colonna del token; `Down()` è simmetrico e droppa entrambe le
+  tabelle; **nessuna istruzione sui dati esistenti**, perché non c'è nulla da migrare (le tabelle
+  sono nuove).
+  **Verifica**: avviare il backend su un database di sviluppo e constatare che la migrazione si
+  applica da sola all'avvio senza errori.
+
+---
+
+## Phase 5: A — Chiusura dell'ordine, guardia, transizioni
+
+Il cuore del change. Qui vive l'unica scrittura sui secchi di tutto il backend.
+
+- [ ] 5.1 Guardia di transizione, in `backend/GraphQL/Vendite/` accanto all'orchestrator.
+  **Requisito**: due chiusure concorrenti sullo stesso ordine devono produrre **una** chiusura e un
+  errore pulito, mai due delta. È il punto più importante del change, perché
+  `SecchiIncassiApplier.ApplicaDelta` è dichiarato non idempotente per costruzione: applicarlo due
+  volte raddoppia l'importo e nessun controllo a valle se ne accorge.
+  **Forma**: token di concorrenza (`RowVersion`) più UPDATE condizionata `WHERE Stato = 'APERTO'`,
+  verificando che le righe toccate siano **esattamente 1**. Se sono 0, qualcun altro ha già chiuso:
+  errore parlante, nessun delta.
+  🔴 Un read-then-write **non basta**: sotto REPEATABLE READ (isolamento di default di MySQL) leggere
+  `Stato = APERTO` e poi scrivere non impedisce al secondo scrittore di fare lo stesso.
+  La guardia sta nella **macchina a stati**, non nel chiamante — richiesta esplicita della issue #24 —
+  e vale per tutte e tre le transizioni: chiusura, annullo, storno.
+  **Verifica**: test 9.1 (richiede 2.1).
+- [ ] 5.2 Nuovo `backend/GraphQL/Vendite/ChiudiOrdineOrchestrator.cs` — scheletro, dipendenze
+  (`IUnitOfWork`, `ChiusuraMensileService`, `IEventBus`, sullo stampo di
+  `ChiudiRegistroCassaOrchestrator`), caricamento di ordine + righe + registro, guardia di 5.1,
+  guardia del mese chiuso via `ChiusuraMensileService`, guardia «registro non già CLOSED»,
+  transizione `APERTO → CHIUSO` con scrittura di `MetodoPagamento`, `ContanteRicevuto`, `Totale`.
+  Registrazione in DI in `backend/Program.cs`.
+  **Verifica**: `dotnet build`; test 9.4 esercita già questo scheletro tramite l'annullo.
+- [ ] 5.3 `ChiudiOrdineOrchestrator` — il corpo, dentro `_unitOfWork.ExecuteInTransactionAsync`, in
+  **quest'ordine esatto**:
+  1. una `Vendita` per ogni `RigaOrdine`, riusando `VenditeMutations.RicalcolaImportiSnapshot` — non
+     riscrivere lo scorporo, che ha un solo posto in cui vive;
+  2. `dbContext.Vendite.AddRange(...)` e poi **`await SaveChangesAsync()`** — obbligatorio;
+  3. `SecchiIncassiApplier.ApplicaDelta(register, metodo, totale, logger)` — **una** chiamata per
+     l'ordine intero, non una per riga;
+  4. `await BreakdownIvaApplier.ApplicaAsync(db, register, settings.VatRate, logger)`;
+  5. `await SaveChangesAsync()`, poi commit; eventi pubblicati **dopo** il commit, come fa
+     `ChiudiRegistroCassaOrchestrator`.
+  🔴 **Il passo 2 non è stile.** `BreakdownIvaApplier` apre con
+  `await db.Vendite.Where(v => v.RegistroCassaId == registro.Id).ToListAsync()`: **rilegge dal
+  database**. EF non applica gli insert pendenti a una query server-side, quindi le vendite aggiunte
+  e non salvate sono invisibili e l'ordine intero finirebbe nel residuo «stimato» invece che nelle
+  righe IVA esatte.
+  🔴 **Il passo 3 precede il 4** perché il 4 calcola `TotaleVendite` a partire da
+  `IncassiElettronici`: leggerlo prima del delta darebbe un totale vecchio di un ordine. È già
+  scritto nel commento XML di `SecchiIncassiApplier`.
+  **Verifica**: test 9.2, che va rosso se si toglie il `SaveChangesAsync()` del passo 2.
+- [ ] 5.4 Assegnazione del `Numero` all'apertura dell'ordine: `MAX(Numero)+1` sul registro ha una
+  **corsa** — due operatori che aprono un ordine nello stesso istante leggono lo stesso massimo.
+  L'indice unico di 3.4 trasforma la corsa da duplicato silenzioso in `DbUpdateException`; qui si
+  aggiunge il retry limitato (3 tentativi) perché l'operatore veda un ordine nuovo e non un 500.
+  🔴 L'indice è la correttezza, il retry è l'ergonomia: non invertire i ruoli.
+  **Verifica**: test 9.7 (richiede 2.1).
+- [ ] 5.5 Split — `ChiudiOrdineOrchestrator` accetta 2..n destinazioni
+  `[{ metodo, righeIds, contanteRicevuto? }]` in **una sola** transazione. Il padre passa a `CHIUSO`,
+  nascono n figli con `SuffissoSplit` e `OrdinePadreId`.
+  Validare che l'unione delle `righeIds` sia **esattamente** l'insieme delle righe del padre, senza
+  sovrapposizioni né omissioni: altrimenti una riga sparisce in silenzio.
+  `ApplicaDelta` una volta per figlio (importi disgiunti, somma pari al totale del padre), ma
+  `BreakdownIvaApplier` **una volta sola alla fine**: è un ricalcolo completo che rilegge tutto,
+  chiamarlo n volte sono n−1 riletture inutili sugli stessi dati.
+  ℹ️ Fuori perimetro, e va detto in pagina (7.8): lo split per **importo** sullo stesso insieme di
+  righe.
+  **Verifica**: test 9.3 (richiede 2.1).
+- [ ] 5.6 Annullo — `APERTO → ANNULLATO`, **nessun delta**, traccia di chi e quando in
+  `AnnullatoDaUtenteId`/`AnnullatoIl`/`MotivoAnnullamento`. L'ordine non sparisce e resta
+  consultabile: è la scappatoia per sbloccare la chiusura di cassa, e una scappatoia senza traccia
+  non controlla niente. Stessa guardia di 5.1.
+  **Verifica**: test 9.4.
+- [ ] 5.7 Storno — `CHIUSO → STORNATO`, delta inverso, **cancellazione** delle `Vendita` generate, poi
+  `SaveChangesAsync()`, poi `BreakdownIvaApplier` (stessa regola d'ordine di 5.3). È l'operazione
+  pericolosa: il delta non è idempotente, e la guardia di 5.1 è ciò che la rende sicura.
+  ✅ **Riscontrato con `design.md`** (§«`stornaOrdine` CANCELLA le `Vendita`, non le marca»):
+  l'inferenza era corretta. La ragione del design è più forte di quella che avevo scritto:
+  `BreakdownIvaApplier` fa `registro.VenditeContanti = vendite.Sum(v => v.PrezzoTotale)` sulle
+  `Vendita` **persistite**, quindi un flag `Stornata` costringerebbe ad aggiungere
+  `Where(v => !v.Stornata)` negli applier — cioè a reintrodurre «stato + filtro», l'accoppiata che
+  questo change esiste per togliere. Cancellare tiene l'invariante: **una `Vendita` che esiste è una
+  riga incassata adesso**.
+  Quattro vincoli **da recepire dal design**, non presenti nella stesura precedente:
+  1. Le **`RigaOrdine` non si cancellano mai**. Il libro mastro è l'`Ordine`, che conserva tutto:
+     righe, importi, chi ha stornato e perché. Cancellare anche le righe renderebbe lo storno
+     indistinguibile da un ordine mai esistito.
+  2. La traccia è **obbligatoria**: `MotivoStorno` non vuoto, `StornatoDa`, `StornatoIl` (campi
+     aggiunti a 3.1). Uno storno senza motivo va rifiutato, non salvato con motivo vuoto.
+  3. **Solo amministratori**: `GestioneCassaGuards.GuardUtenteAmministratore` — esiste già ed è usata
+     da `RiapriRegistroCassaOrchestrator.cs:39` e `AuthMutations.cs:55`. È l'asimmetria voluta con
+     l'annullo (5.6), che invece è **per chiunque venda**: un annullo riservato all'amministratore
+     spingerebbe l'operatore a non chiudere affatto gli ordini, che è peggio del rischio che evita.
+  4. **Storno di un ordine `SPLITTATO`: rifiutato.** Si stornano i figli, uno per uno. Un solo gesto
+     che applica n delta inversi trasformerebbe «una volta sola» in n ragionamenti da tenere insieme.
+  ⚠️ `design.md` colloca questa logica in un `backend/GraphQL/Vendite/StornaOrdineOrchestrator.cs`
+  separato, non dentro `ChiudiOrdineOrchestrator`. In fase di apply vale il design.
+  **Verifica**: test 9.5.
+
+---
+
+## Phase 6: A — Superficie GraphQL
+
+- [ ] 6.1 Nuovi type in `backend/GraphQL/Vendite/Types/`: `OrdineType`, `RigaOrdineType`, e gli input
+  `ApriOrdineInput`, `AggiungiRigaOrdineInput`, `ChiudiOrdineInput`, `SplitOrdineInput`.
+  **Verifica**: `dotnet build`; lo schema si costruisce in `GraphQLTestHost` senza eccezioni.
+- [ ] 6.2 `backend/GraphQL/Vendite/VenditeMutations.cs` — mutation di **composizione**: `apriOrdine`,
+  `aggiungiRigaOrdine`, `rimuoviRigaOrdine`. Nessuna di queste tocca i secchi né il breakdown: un
+  ordine aperto è una pre-vendita, non un incasso.
+  ℹ️ Il tipo ha già `this.Authorize()` in testa e copre da solo i campi nuovi.
+  🔴 Se invece si crea un modulo `OrdiniMutations` separato, **deve** chiamare `this.Authorize()`:
+  `/graphql` è montato con `AuthorizationRequired = false` e un modulo senza autorizzazione è
+  pubblico per default. `AutorizzazioneAnonimaTests` enumera i rami root **dallo schema** e rompe la
+  CI da solo — non aggiungere allowlist.
+  **Verifica**: `dotnet test --filter AutorizzazioneAnonima` verde; test che aggiungere una riga a un
+  ordine aperto lascia `IncassiElettronici` e `VenditeContanti` invariati.
+- [ ] 6.3 `VenditeMutations.cs` — mutation di **transizione**: `chiudiOrdine`,
+  `chiudiOrdineConSplit`, `annullaOrdine`, `stornaOrdine`, che delegano interamente a
+  `ChiudiOrdineOrchestrator` (fase 5) senza logica propria.
+  **Verifica**: test 9.1–9.5.
+- [ ] 6.4 `backend/GraphQL/Vendite/VenditeQueries.cs` — `ordine(id)` e
+  `ordini(registroCassaId, stato)`.
+  **Verifica**: query di lettura su un ordine seminato restituisce righe e totale corretti.
+- [ ] 6.5 `VenditeQueries.cs` — `ordiniAperti`.
+  🔴 **Non va filtrata sul registro di oggi.** Un ordine aperto alle 23:50 appartiene al registro di
+  **ieri** — decisione della issue: finché la cassa non si chiude, tutto resta nel giorno di apertura.
+  Alle 00:05 un filtro su `data == oggi` lo fa sparire: invisibile, non chiudibile, e la guardia di
+  7.1 bloccherebbe la chiusura mostrando un elenco **vuoto**, che è il modo peggiore di bloccare.
+  Filtrare su `Stato == APERTO` su tutti i registri, e restituire la data del registro su ogni riga
+  perché l'operatore veda che è di ieri.
+  **Verifica**: test 9.6.
+- [ ] 6.6 Ritiro della vecchia porta: `creaVendita` oggi crea una `Vendita` e muove i secchi
+  direttamente, e con gli ordini diventa un secondo ingresso all'invariante.
+  ⚠️ Va tolta **nella stessa release** in cui il frontend passa agli ordini (8.3), non prima:
+  `PuntoVendita.tsx` la usa fino a quel momento. Coordinare con 11.2.
+  ℹ️ `design.md` §«`creaVendita` viene RIMOSSA dallo schema, non deprecata» chiude anche la sorte delle
+  altre due: `aggiornaVendita` / `eliminaVendita` **restano** ma rifiutano ogni `Vendita` con
+  `OrdineId != null`, indicando `stornaOrdine`. Serve un test che pinni che `creaVendita` **non esiste
+  più** nello schema, altrimenti qualcuno la rimetterà per comodità e nulla lo segnalerà.
+  **Verifica**: `grep -rn "creaVendita" duedgusto/src backend/` non trova più occorrenze attive.
+
+---
+
+## Phase 7: A — Guardia sulla chiusura di cassa
+
+- [ ] 7.1 `backend/GraphQL/GestioneCassa/GestioneCassaGuards.cs` — nuova
+  `GuardNessunOrdineAperto(AppDbContext dbContext, int registroCassaId)` che lancia un
+  `ExecutionError` parlante con il numero di ordini aperti. Un ordine aperto è per definizione un
+  incasso non dichiarato.
+  **Verifica**: test 9.8.
+- [ ] 7.2 `backend/GraphQL/GestioneCassa/ChiudiRegistroCassaOrchestrator.cs` — invocare la guardia
+  accanto alle due esistenti (`GuardMeseChiuso`, `GuardGiornoOperativoConPeriodi`), **prima** della
+  transazione.
+  **Verifica**: test 9.8; chiudere una cassa con un ordine aperto restituisce l'errore e non cambia
+  lo `Stato` del registro.
+
+---
+
+## Phase 8: A — Frontend
+
+- [ ] 8.1 Nuovi `duedgusto/src/graphql/ordini/queries.tsx`, `mutations.tsx`, `fragments.tsx`, sullo
+  stampo di `duedgusto/src/graphql/vendite/`.
+  **Verifica**: `npm run ts:check`.
+- [ ] 8.2 Nuovo `duedgusto/src/@types/Ordine.d.ts` — tipi di `Ordine`, `RigaOrdine`, stati e input,
+  coerenti con i type GraphQL di 6.1.
+  **Verifica**: `npm run ts:check`.
+- [ ] 8.3 `duedgusto/src/components/pages/vendite/PuntoVendita.tsx` — il tocco sul prodotto aggiunge
+  una riga all'**ordine aperto** invece di aprire `SceltaMetodoPagamento`. Apertura implicita
+  dell'ordine al primo tocco se non ce n'è uno.
+  ℹ️ Restano validi `fetchPolicy` e filtro in memoria: il listino cresce a ~147 voci, ancora tutte in
+  cache, e gli indici colore vanno ancora calcolati sul listino **intero** e non su quello visibile.
+  **Verifica**: test 9.9; `npm run lint`.
+- [ ] 8.4 `PuntoVendita.tsx` — barra in basso con il totale corrente dell'ordine, il numero di voci e
+  il pulsante «Chiudi ordine». Bersagli ≥ 56 px, una mano sola: è la stessa disciplina del resto della
+  pagina, che è la prima del gestionale disegnata prima per il telefono.
+  **Verifica**: test 9.9.
+- [ ] 8.5 `duedgusto/src/components/pages/vendite/SceltaMetodoPagamento.tsx` — si sposta da riga a
+  fine ordine.
+  ⚠️ Il gesto resta **identico** (foglio dal basso, bersagli ≥ 56 px, una mano sola): non
+  ridisegnarlo, la issue lo dà esplicitamente per valido. Cambia solo *quando* si apre.
+  **Verifica**: test 9.10; `duedgusto/src/components/pages/vendite/__tests__/SceltaMetodoPagamento.test.tsx`
+  aggiornato e verde.
+- [ ] 8.6 `SceltaMetodoPagamento.tsx` — tastierino «quanto ha dato il cliente» quando il metodo è
+  contante, con il resto calcolato e mostrato.
+  🔴 Etichetta **«Resto da dare»**, mai «Resto» da solo: `Resto` è già la colonna AG in
+  `RiepilogoCards` e significa un'altra cosa. Confondere i due nomi in UI crea un equivoco che poi
+  non si toglie più.
+  **Verifica**: test 9.10, incluso il caso «contante ricevuto minore del totale» e il caso «resto
+  esatto, zero».
+- [ ] 8.7 Nuovo elenco degli ordini aperti (pagina o drawer), con la **data del registro** su ogni
+  riga — vedi 6.5 e la trappola della mezzanotte. Due azioni per riga: chiudi incassando, annulla.
+  **Verifica**: test che un ordine su un registro di ieri compare nell'elenco.
+- [ ] 8.8 UI dello split: si scelgono le righe per metodo.
+  ⚠️ Deve **dire in pagina** che la divisione per importo non è supportata, invece di lasciarlo
+  scoprire alla cassa. La issue lo chiede esplicitamente.
+  **Verifica**: test che una selezione che non copre tutte le righe non permette di confermare.
+- [ ] 8.9 `duedgusto/src/components/pages/vendite/ScontrinoDelGiorno.tsx` — legge le `Vendite`: con
+  gli ordini quelle esistono solo se incassate, quindi non dovrebbe cambiare. **Verificarlo**, e
+  verificare che non mostri ordini aperti.
+  **Verifica**: test esistenti verdi senza modifiche, più un caso con un ordine aperto sul registro
+  che non compare nello scontrino.
+- [ ] 8.10 `PuntoVendita.tsx` / elenco ordini — mostrare l'identificativo dell'ordine
+  (`Numero` + `SuffissoSplit`). La stampa non si implementa ora, ma vedere il numero valida la
+  numerazione da subito e mette in evidenza eventuali duplicati.
+  **Verifica**: ispezione visiva in 8.12.
+- [ ] 8.11 Schermata di chiusura cassa — mostrare l'elenco degli ordini aperti che bloccano la
+  chiusura, con le due uscite per riga (chiudi incassando, annulla). È la via d'uscita dal blocco
+  richiesta dalla issue: senza questa, l'errore di 7.1 è un vicolo cieco.
+  **Verifica**: test che l'errore di chiusura mostra l'elenco e non un toast generico.
+- [ ] 8.12 Verifica in esecuzione dell'intero gesto: aprire un ordine, battere tre voci, chiudere in
+  contanti digitando il ricevuto, controllare il resto mostrato, e riscontrare sul registro che
+  `IncassoContanteTracciato` si è mosso **una volta sola** dell'importo giusto.
+
+---
+
+## Phase 9: Testing
+
+In questa fase il test **è** la verifica: per ogni task il criterio è che il caso descritto passi, e
+dove indicato che sia stato visto **fallire prima** sull'implementazione mancante. Il file toccato è
+nominato in ogni task; il comando è `cd backend && dotnet test --filter <NomeClasse>` per il backend
+e `cd duedgusto && npm run test -- <file>` per il frontend.
+
+- [ ] 9.1 **[SBLOCCATO — 2.1 non è più fermo]** Nuovo `backend/DuedGusto.Tests/Integration/OrdiniChiusuraTests.cs`, su
+  `TestDbContextFactory.CreateSqlite()`: chiusura di un ordine → il secchio si muove **una volta**;
+  una seconda chiusura lancia e lascia il secchio **invariato**.
+- [ ] 9.2 `backend/DuedGusto.Tests/Integration/OrdiniChiusuraTests.cs`, su InMemory: chiusura con
+  righe → `VenditeContanti` del registro pari al totale dell'ordine e **nessuna riga IVA `Stimato`**
+  a coprirlo.
+  🔴 È il test che va rosso se si toglie il `SaveChangesAsync()` del passo 2 di 5.3. Va scritto
+  guardandolo fallire con quella riga commentata, altrimenti non si sa che cosa stia sorvegliando.
+- [ ] 9.3 **[SBLOCCATO — 2.1 non è più fermo]** Nuovo `backend/DuedGusto.Tests/Integration/OrdiniSplitTests.cs`, su
+  Sqlite: totale del padre pari alla somma dei figli; secchi mossi una volta **in totale**; uno split
+  le cui righe non partizionano il padre viene rifiutato; un rollback a metà non lascia figli orfani.
+- [ ] 9.4 `backend/DuedGusto.Tests/Integration/OrdiniTransizioniTests.cs` (nuovo), su InMemory —
+  annullo: nessun movimento sui secchi, ordine ancora interrogabile con chi e quando.
+- [ ] 9.5 **[SBLOCCATO — 2.1 non è più fermo]** `backend/DuedGusto.Tests/Integration/OrdiniTransizioniTests.cs`, su
+  Sqlite — storno: delta inverso applicato una volta sola; una seconda richiesta di storno non muove
+  nulla.
+  ✅ Casi **aggiunti dalla riconciliazione con `design.md`** (vedi 5.7), tutti sullo stesso file:
+  le `Vendita` dell'ordine **non esistono più** dopo lo storno; le `RigaOrdine` **ci sono ancora**,
+  con gli stessi importi; `VenditeContanti` ricalcolato da `BreakdownIvaApplier` non le conta più;
+  uno storno **senza motivo** viene rifiutato; uno storno chiesto da un utente **non amministratore**
+  viene rifiutato senza toccare nulla; lo storno di un ordine in stato **`SPLITTATO` viene rifiutato**
+  e i figli restano chiusi.
+- [ ] 9.6 `backend/DuedGusto.Tests/Integration/GraphQL/OrdiniQueriesTests.cs` (nuovo), su InMemory —
+  `ordiniAperti` a cavallo di mezzanotte: ordine sul registro di ieri, «oggi» è il giorno dopo →
+  compare comunque, con la data del registro nella riga.
+- [ ] 9.7 **[SBLOCCATO — 2.1 non è più fermo]** `backend/DuedGusto.Tests/Integration/OrdiniNumerazioneTests.cs`
+  (nuovo), su Sqlite — indice unico: due ordini con la stessa terna
+  `(RegistroCassaId, Numero, SuffissoSplit)` → il secondo fallisce; il retry di 5.4 ne assegna uno
+  nuovo e l'apertura va a buon fine.
+  🔴 InMemory non applica gli indici unici: senza 2.1 questo test passerebbe **verde senza provare
+  nulla**, che è peggio di non averlo.
+- [ ] 9.8 `backend/DuedGusto.Tests/Integration/GraphQL/CashManagementMutationsTests.cs` (esistente,
+  esteso), su InMemory — guardia chiusura cassa: registro con un ordine aperto → chiusura rifiutata
+  con messaggio parlante e `Stato` del registro invariato; dopo l'annullo dell'ordine, chiusura
+  riuscita.
+- [ ] 9.9 Nuovo `duedgusto/src/components/pages/vendite/__tests__/PuntoVendita.test.tsx`: il tocco
+  aggiunge una riga senza aprire la modale; la barra mostra il totale corrente; il secondo tocco
+  sullo stesso prodotto non apre un secondo ordine.
+- [ ] 9.10 `duedgusto/src/components/pages/vendite/__tests__/SceltaMetodoPagamento.test.tsx`
+  (esistente, esteso): apertura a fine ordine invece che per riga; tastierino contante; resto da dare
+  nei tre casi (esatto, in eccesso, insufficiente).
+- [ ] 9.11 Gate di fase backend: `cd backend && dotnet build && dotnet test` verdi, zero warning.
+- [ ] 9.12 Gate di fase frontend: `cd duedgusto && npm run ts:check && npm run lint && npm run test`
+  verdi.
+
+---
+
+## Phase 10: B — Gruppi di prodotti e varianti
+
+Dipende da A (i gruppi servono a riempire un ordine). Dopo la chiusura delle decisioni di Fase 0,
+**tutta la fase è eseguibile tranne 10.1 e 10.2**, che aspettano la sola lista di listino (0.1).
+🔴 La distinzione che regge questa fase: **il meccanismo non ha bisogno dei dati**. Schema, migrazione,
+seeder parametrico, pagina di gestione e tastoni si costruiscono e si testano con gruppi e prodotti
+inventati dal test; solo il *contenuto* del listino reale è fermo.
+
+- [ ] 10.1 **[BLOCCATO da 0.1]** `backend/SeedData/SeedProdottiListino.cs` — caricare le ~147
+  voci. Il listino vero è `2026ListinoPrezzi.xlsx`; la tabella `Prodotti` in produzione è vuota.
+  Codici secondo la convenzione `CATEGORIA-NOME` (#19 D2).
+  ℹ️ Per **decisione 0.2** il perimetro ora include anche `GRAPPA` — che diventa **due articoli**, uno
+  a 3,00 € e uno a 4,00 €, perché ogni variante è un articolo a sé — e le **righe 49-50** a 2,50 €.
+  ⚠️ Le righe 49-50 sono **senza nome** e il nome non si inventa: arriva con la lista di 0.1. È parte
+  di ciò che tiene fermo questo task, non un motivo in più.
+  🔴 I codici sono **irreversibili**: `eliminaProdotto` non esiste nell'API, un prodotto creato con il
+  codice sbagliato resta in anagrafica per sempre e toglierlo richiede SQL diretto sul VPS.
+  **Verifica**: conteggio dei prodotti attivi dopo il seed; nessun codice duplicato.
+  ℹ️ La **struttura** del seeder (idempotenza, mondo produzione vs sviluppo, nessun prezzo esistente
+  riscritto) è verificabile fin da ora con una tabella di voci fittizie: quei test non aspettano 0.1.
+- [ ] 10.2 **[BLOCCATO da 0.1]** Disattivare (`Attivo = false`) le 14 voci accorpate vecchie. Restano
+  in anagrafica per sempre: la tabella arriva a ~161 righe di cui 14 spente.
+  **Verifica**: le 14 voci non compaiono più in `prodotti(ricerca, categoria)` ma esistono ancora a
+  database.
+- [ ] 10.3 **[SBLOCCATO da 0.3 — molti-a-molti]** Nuovo `backend/Models/GruppoProdotti.cs` più
+  l'entità di appartenenza `ProdottoGruppo`: **join esplicita** con chiave composita
+  `{GruppoProdottiId, ProdottoId}` e payload `Ordinamento` (ordine manuale dentro il gruppo, pareggio
+  su `Prodotto.Codice`). Configurazione in `backend/DataAccess/AppDbContext.cs`.
+  ℹ️ Lo stampo è `backend/Models/RegistroCassaMensile.cs` + la sua configurazione in
+  `AppDbContext.cs:~1318-1341`: stessa forma, chiave composita e payload. **Non** usare
+  `UsingEntity<Dictionary<string, object>>` come `RuoloMenu` (`AppDbContext.cs:107`): quel pattern non
+  regge un payload in modo leggibile né tipizzato.
+  🔴 **Nessun prezzo sul gruppo**: il tastone mostra «da X €» derivato da `Min(prezzo dei membri
+  attivi)`, calcolato in lettura e **mai persistito** — un prezzo indicativo salvato invecchia in
+  silenzio. Quando tutti i membri costano uguale si mostra il prezzo nudo, senza «da».
+  ⚠️ **Nessun colore sulla riga di join**: il colore è del prodotto (10.5); `GruppoProdotti.Colore`
+  esiste a parte per il tastone del gruppo. Vedi `design.md` §«il colore esplicito sta su `Prodotto`».
+  **Verifica**: `dotnet build`; test che lo stesso prodotto può appartenere a due gruppi e comparire in
+  entrambi con ordinamenti diversi.
+- [ ] 10.4 **[SBLOCCATO da 0.3]** Migrazione `dotnet ef migrations add AddGruppiProdotti` e riscontro
+  del DDL. Separata da 10.3 come richiede `config.yaml`.
+  **Verifica**: la migrazione si applica all'avvio senza errori; il DDL contiene `CREATE TABLE
+  GruppiProdotti`, l'indice unico su `Codice` e `CREATE TABLE ProdottiGruppi` con chiave composita.
+- [ ] 10.5 **[ESEGUIBILE SUBITO]** — `backend/Models/Prodotto.cs`: campo `Colore` (`string?`, nullable), il
+  colore editoriale della bevanda (Liscio bianco, Aperol arancione, Campari rosso, Cynar viola), che
+  quando è valorizzato **vince** sul colore generato dalla categoria. Configurazione in
+  `AppDbContext.cs`; campo negli input e nei type di `mutateProdotto`.
+  ℹ️ Il meccanismo è indipendente da *quali* prodotti esistano, quindi si può fare appena atterra A,
+  senza attendere le decisioni di listino.
+  ⚠️ Attenzione al confine di `UpsertProdottoAsync`, che assegna ogni campo esplicitamente: `Colore`
+  appartiene alla cassa, non alla vetrina, quindi va in `ProdottoInput` — a differenza dei campi
+  vetrina, che non devono mai comparirvi.
+  **Verifica**: `dotnet build`; test che un upsert senza `Colore` non azzera quello esistente.
+- [ ] 10.6 Migrazione della colonna `Prodotti.Colore` — `varchar(20)` nullable, nessun backfill
+  (l'assenza significa «usa il colore generato», che è il comportamento di oggi).
+  ℹ️ `design.md` la **accorpa in `AddGruppiProdotti`** (10.4), non in una migrazione propria: sono la
+  stessa fase B e la stessa finestra di deploy, e due migrazioni consecutive sulla stessa fase
+  moltiplicano i `Down()` da tenere simmetrici senza guadagno. Se 10.4 è già stata generata, questa è
+  una `dotnet ef migrations add AddColoreProdotto` a sé; altrimenti si genera una volta sola.
+  **Verifica**: DDL con `AddColumn<string>` nullable (`maxLength: 20`) e `Down()` simmetrico.
+- [ ] 10.7 `duedgusto/src/components/pages/vendite/coloriProdotto.tsx` — `coloreProdotto()` ritorna il
+  colore esplicito quando presente, altrimenti quello generato dalla categoria come oggi.
+  **Verifica**: `__tests__/coloriProdotto.test.tsx` esteso — colore esplicito vince, assenza ricade
+  sul generato, il generato resta identico a prima per i prodotti senza colore.
+- [ ] 10.8 **[SBLOCCATO da 0.3]** Pagina di gestione dei gruppi: si crea il gruppo e ci si mettono
+  dentro i prodotti. È un raggruppamento libero, non per prezzo né per gusto.
+  ℹ️ Lo stampo esiste: `duedgusto/src/components/pages/roles/RoleDetails.tsx` +
+  `RoleMenus.tsx` assegnano già un molti-a-molti con AG Grid a selezione multipla. Qui AG Grid **sì**:
+  è anagrafica, non bancone.
+  ⚠️ Con il molti-a-molti la pagina deve reggere **lo stesso prodotto in più gruppi** senza trattarlo
+  come un errore, e l'ordinamento (`ProdottoGruppo.Ordinamento`) è **per gruppo**, non per prodotto.
+  **Verifica**: creare un gruppo, assegnarvi tre prodotti, riaprire la pagina e ritrovarli **nello
+  stesso ordine**; assegnare uno di quei tre anche a un secondo gruppo e ritrovarlo in entrambi.
+- [ ] 10.9 **[SBLOCCATO da 0.3]** Tastoni di gruppo in `PuntoVendita.tsx`: la griglia mostra i
+  **gruppi** più i prodotti non raggruppati, non tutte le ~147 voci. Il tocco sul gruppo apre la
+  griglia delle varianti — pulsanti, non AG Grid.
+  ℹ️ «Non raggruppato» con il molti-a-molti è `!p.Gruppi.Any()`, non `p.GruppoId == null`: anti-join su
+  un listino già interamente in cache, costo irrilevante.
+  ⚠️ Un prodotto in due gruppi compare sotto **entrambi** i tastoni. È voluto, non un duplicato da
+  deduplicare: è il motivo per cui il molti-a-molti esiste.
+  **Verifica**: con un gruppo «Spritz» di 4 varianti, la griglia principale mostra un tastone invece
+  di quattro.
+
+---
+
+## Phase 11: Pulizia e documentazione
+
+- [ ] 11.1 `openspec/specs/gestione-cassa/specs.md` — la #19 segnala che la formula di
+  `TotaleVendite` alla riga 1204 diverge dal codice, e la spec delle vendite itemizzate diverge
+  anch'essa. Va riallineata al codice **prima** di considerare chiuso il change, o si costruisce
+  sopra una spec che mente.
+  **Verifica**: la formula in spec coincide con quella di `BreakdownIvaApplier.ApplicaAsync`.
+- [ ] 11.2 Rimozione del percorso a due tocchi: `creaVendita`, `aggiornaVendita` e `eliminaVendita`
+  in `backend/GraphQL/Vendite/VenditeMutations.cs` non devono più essere la strada per far nascere
+  una vendita. Coordinare con 6.6 e 8.3 — stessa release.
+  **Verifica**: `dotnet test` verde dopo la rimozione; nessun riferimento residuo in
+  `duedgusto/src`.
+- [ ] 11.3 `backend/CLAUDE.md` e `duedgusto/CLAUDE.md` — documentare il confine nuovo: le `Vendita`
+  nascono solo in `ChiudiOrdineOrchestrator`, e un ordine aperto non tocca né i secchi né il
+  breakdown IVA. È l'invariante su cui poggia tutto il resto e va scritta dove la si cerca.
+  **Verifica**: rilettura a mano.
