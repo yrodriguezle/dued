@@ -126,6 +126,12 @@ Standardizzare la nomenclatura del modulo gestione cassa in italiano, eliminando
 | `updateSale` | `aggiornaVendita` |
 | `deleteSale` | `eliminaVendita` |
 
+> ⚠️ **Questa tabella documenta la rinominazione inglese → italiano, non lo schema di oggi.**
+> `creaVendita` è stata poi **ritirata** e `aggiornaVendita`/`eliminaVendita` ristrette alle sole
+> righe storiche senza `OrdineId` — vedi «Le Vendita nascono solo dalla chiusura di un ordine».
+> La riga resta perché serve a leggere il codice e le migrazioni di quel periodo; gli scenari qui
+> sotto descrivono i nomi di allora, non il comportamento corrente.
+
 #### Sales Query Argument Names
 
 | Attuale | Nuovo |
@@ -328,6 +334,9 @@ Il sistema DEVE utilizzare nomenclatura italiana per tutte le classi, metodi, ca
 
 #### Scenario: Creazione vendita con nomi italiani
 
+> 🔴 **Scenario SUPERATO**: `creaVendita` non esiste più nello schema. Vale come registro della
+> rinominazione di allora; il percorso odierno è `chiudiOrdine`.
+
 - GIVEN il backend e stato aggiornato con la rinominazione
 - WHEN un client invia la mutation `{ gestioneCassa { creaVendita(input: { registroCassaId: 1, prodottoId: 1, quantita: 2 }) { venditaId prezzoTotale prodotto { nome } } } }`
 - THEN il server crea la vendita e risponde con i dati nei campi italiani
@@ -335,12 +344,17 @@ Il sistema DEVE utilizzare nomenclatura italiana per tutte le classi, metodi, ca
 
 #### Scenario: Aggiornamento vendita con nomi italiani
 
+> ⚠️ **Scenario ristretto**: oggi vale solo se quella vendita ha `OrdineId is null`. Su una riga
+> nata da un ordine la mutation rifiuta.
+
 - GIVEN esiste una vendita con `venditaId: 5`
 - WHEN un client invia la mutation `{ gestioneCassa { aggiornaVendita(id: 5, input: { quantita: 3 }) { venditaId prezzoTotale } } }`
 - THEN la vendita viene aggiornata e il `prezzoTotale` viene ricalcolato
 - AND il server risponde con i nuovi campi italiani
 
 #### Scenario: Eliminazione vendita con nomi italiani
+
+> ⚠️ **Scenario ristretto**: come sopra, vale sulle sole righe storiche senza `OrdineId`.
 
 - GIVEN esiste una vendita con `venditaId: 5` il cui registro non appartiene a un mese chiuso
 - WHEN un client invia la mutation `{ gestioneCassa { eliminaVendita(id: 5) } }`
@@ -1052,6 +1066,35 @@ input ProdottoInput {
 - THEN i campi contabili risultano aggiornati
 - AND ognuno dei dieci campi di vetrina conserva esattamente il valore precedente
 
+### Requirement: Le Vendita nascono solo dalla chiusura di un ordine
+
+Una `Vendita` DEVE essere creata **esclusivamente** da `ChiudiOrdineOrchestrator`, cioè alla
+chiusura di un ordine del punto vendita. `creaVendita` NON DEVE esistere nello schema GraphQL.
+
+🔴 **Non è una preferenza di percorso, è l'invariante su cui poggia tutto il resto: se una
+`Vendita` esiste, allora è incassata.** I secchi del registro (`SecchiIncassiApplier`) si muovono
+per **delta**, e il delta non è idempotente per costruzione: applicarlo due volte per la stessa
+vendita raddoppia l'importo e nessun controllo a valle se ne accorge. Finché esistevano due
+regimi — uno che muoveva i secchi al momento della riga e uno alla chiusura dell'ordine — bastava
+un ordine chiuso su righe nate dall'altro percorso per contare l'incasso due volte.
+
+⚠️ Un ordine **aperto** non tocca né i secchi né il breakdown IVA: le sue `RigaOrdine` non sono
+`Vendita` e non entrano in alcuna somma. È una pre-vendita, non un incasso.
+
+#### Scenario: creaVendita non esiste
+
+- GIVEN lo schema GraphQL in esecuzione
+- WHEN un client interroga il tipo `VenditeMutation`
+- THEN il campo `creaVendita` NON è presente
+- AND l'unico percorso che crea `Vendita` è `chiudiOrdine`
+
+#### Scenario: un ordine aperto non muove nulla
+
+- GIVEN un registro con `IncassiElettronici = 0` e nessuna vendita
+- WHEN si apre un ordine e si battono tre voci per 12,00 €
+- THEN il registro ha ancora `IncassiElettronici = 0` e nessuna `Vendita` persistita
+- AND il breakdown IVA del registro non contiene alcuna riga esatta
+
 ### Requirement: Snapshot IVA sulla vendita alla creazione
 
 Ogni vendita creata DEVE persistere lo snapshot IVA al momento della creazione: `AliquotaIva` (percentuale, copiata dal prodotto), `Imponibile` e `ImportoIva` (`decimal(10,2)`), calcolati per scorporo dal `PrezzoTotale` (prezzi IVA inclusa) tramite `IvaCalculator.ScorporaDaLordo`. L'invariante `Imponibile + ImportoIva == PrezzoTotale` DEVE valere al centesimo per ogni riga.
@@ -1059,14 +1102,14 @@ Ogni vendita creata DEVE persistere lo snapshot IVA al momento della creazione: 
 #### Scenario: Creazione vendita con scorporo per riga
 
 - GIVEN un prodotto con `Prezzo = 1.20` e `AliquotaIva = 10.00`
-- WHEN un client invia `creaVendita` con `quantita: 3` (PrezzoTotale = 3.60)
+- WHEN si chiude un ordine con una voce da `quantita: 3` (PrezzoTotale = 3.60)
 - THEN la vendita persiste `AliquotaIva = 10.00`, `Imponibile = 3.27`, `ImportoIva = 0.33`
 - AND `Imponibile + ImportoIva == PrezzoTotale` al centesimo
 
 #### Scenario: Creazione vendita con aliquota zero
 
 - GIVEN un prodotto con `AliquotaIva = 0.00`
-- WHEN un client invia `creaVendita` per quel prodotto con `PrezzoTotale = 5.00`
+- WHEN si chiude un ordine con una voce di quel prodotto per `PrezzoTotale = 5.00`
 - THEN la vendita persiste `AliquotaIva = 0.00`, `Imponibile = 5.00`, `ImportoIva = 0.00`
 
 #### Scenario: Backfill delle vendite esistenti
@@ -1077,8 +1120,30 @@ Ogni vendita creata DEVE persistere lo snapshot IVA al momento della creazione: 
 - AND per ogni vendita backfillata vale `Imponibile + ImportoIva == PrezzoTotale` al centesimo
 - AND i valori coincidono con quelli che `IvaCalculator.ScorporaDaLordo` produrrebbe per gli stessi input (nessun midpoint per le aliquote ammesse su lordi a 2 decimali)
 
+### Requirement: aggiornaVendita ed eliminaVendita rifiutano le righe nate da un ordine
+
+`aggiornaVendita` ed `eliminaVendita` DEVONO rifiutare ogni vendita con `OrdineId` valorizzato.
+Restano applicabili alle sole righe storiche nate prima degli ordini (`OrdineId is null`).
+
+🔴 **La guardia è strutturale, non disciplinare**: poiché ogni nuova `Vendita` nasce da
+`ChiudiOrdineOrchestrator` e porta quindi un `OrdineId`, il rifiuto chiude quel percorso da sé
+senza dipendere da chi lo chiama. È il motivo per cui le due mutation **non** sono state rimosse
+dallo schema come `creaVendita`: rimuoverle avrebbe reso incorreggibili le righe storiche senza
+togliere alcun rischio, perché su quelle nuove non passano comunque.
+
+⚠️ Una riga incassata per sbaglio non si corregge riga per riga ma si **storna** — `stornaOrdine`,
+che disfa il delta dei secchi una volta sola e richiede il ruolo amministratore.
+
+#### Scenario: correzione rifiutata su una riga d'ordine
+
+- GIVEN una vendita nata dalla chiusura dell'ordine 42
+- WHEN un client invia `aggiornaVendita` su quella vendita
+- THEN la mutation fallisce con un messaggio che nomina l'ordine e indirizza allo storno
+- AND la vendita resta invariata
+
 ### Requirement: Immutabilità dello snapshot IVA in aggiornamento vendita
 
+Vale per le sole righe che la guardia qui sopra lascia passare (`OrdineId is null`).
 In `aggiornaVendita`, lo snapshot `AliquotaIva` DEVE restare immutato salvo cambio prodotto: se `ProdottoId` cambia, l'aliquota snapshot DEVE essere ripresa dall'aliquota corrente del nuovo prodotto (coerentemente con la ripresa del prezzo corrente). `Imponibile` e `ImportoIva` DEVONO essere ricalcolati (con l'aliquota snapshot vigente) solo quando cambia il `PrezzoTotale` o l'aliquota snapshot, preservando l'invariante al centesimo. Un aggiornamento che non tocca né prodotto né prezzo NON DEVE alterare lo snapshot.
 
 #### Scenario: Aggiornamento solo note
@@ -1176,7 +1241,7 @@ Il residuo `TotaleVendite − Σ Vendita.PrezzoTotale` rappresenta i canali dich
 
 ### Requirement: Rigenerazione del breakdown a ogni ricalcolo dei totali
 
-Il breakdown DEVE essere rigenerato integralmente (delete + reinsert delle righe figlie, come per conteggi e spese) a ogni esecuzione del ricalcolo totali del registro: salvataggio del registro (`mutateRegistroCassa`) e mutation vendite che alterano i totali (`creaVendita`, `aggiornaVendita`, `eliminaVendita`). La rigenerazione DEVE essere idempotente: ricalcoli ripetuti sugli stessi dati DEVONO produrre lo stesso insieme di righe, senza duplicati (garantito anche dal vincolo unique `(RegistroCassaId, Aliquota, Stimato)`).
+Il breakdown DEVE essere rigenerato integralmente (delete + reinsert delle righe figlie, come per conteggi e spese) a ogni esecuzione del ricalcolo totali del registro: salvataggio del registro (`mutateRegistroCassa`), chiusura e storno di un ordine (`chiudiOrdine`, `stornaOrdine`) e le mutation vendite superstiti sulle righe storiche (`aggiornaVendita`, `eliminaVendita`). ⚠️ `creaVendita` **non compare più** perché non esiste: il posto in cui una vendita nasce, e quindi il breakdown si rigenera, è la chiusura dell'ordine. La rigenerazione DEVE essere idempotente: ricalcoli ripetuti sugli stessi dati DEVONO produrre lo stesso insieme di righe, senza duplicati (garantito anche dal vincolo unique `(RegistroCassaId, Aliquota, Stimato)`).
 
 #### Scenario: Risalvataggio idempotente
 
@@ -1188,7 +1253,7 @@ Il breakdown DEVE essere rigenerato integralmente (delete + reinsert delle righe
 #### Scenario: Ricalcolo su eliminazione vendita
 
 - GIVEN un registro con breakdown comprendente una riga esatta all'aliquota 10
-- WHEN l'unica vendita ad aliquota 10 viene eliminata con `eliminaVendita`
+- WHEN l'unica vendita ad aliquota 10 sparisce (storno del suo ordine, o `eliminaVendita` se è una riga storica)
 - THEN il breakdown rigenerato non contiene più la riga esatta all'aliquota 10
 - AND `ImportoIva` e i totali del registro riflettono il nuovo stato
 
@@ -1201,8 +1266,25 @@ Nel ricalcolo dei totali del registro, `VenditeContanti` DEVE essere ricalcolato
 - GIVEN un registro con vendite persistite per `Σ PrezzoTotale = 60.00`
 - WHEN il registro viene risalvato con `mutateRegistroCassa`
 - THEN `VenditeContanti == 60.00` (non azzerato)
-- AND `TotaleVendite == VenditeContanti + IncassiElettronici + IncassoContanteTracciato + IncassiFattura`
+- AND `TotaleVendite == (TotaleChiusura − TotaleApertura) + IncassiElettronici + IncassiFattura`
 - AND il residuo del breakdown è `TotaleVendite − 60.00` (mai negativo a regime)
+
+> 🔴 **La formula qui sopra è stata corretta: prima diceva `VenditeContanti + IncassiElettronici +
+> IncassoContanteTracciato + IncassiFattura`, e divergeva dal codice in due punti.**
+> `BreakdownIvaApplier.ApplicaAsync` calcola il totale dal **movimento fisico del cassetto**
+> (`TotaleChiusura − TotaleApertura`), non da `VenditeContanti`, e **non** somma
+> `IncassoContanteTracciato`.
+>
+> ⚠️ Le due differenze hanno la stessa causa, ed è contabile prima che tecnica: **il contante è già
+> nel cassetto**. `IncassoContanteTracciato` è contante entrato in cassa, quindi è già dentro
+> `TotaleChiusura − TotaleApertura`; sommarlo di nuovo sarebbe un doppio conteggio, e lo stesso
+> vale per `VenditeContanti`, che è la somma delle vendite itemizzate — incassate anch'esse, in
+> gran parte, in contanti. La stessa lettura si ritrova in `RiepilogoAnnualeCassa.cs:58`, dove il
+> ricavo **non** tracciato è `(TotaleChiusura − TotaleApertura) − IncassoContanteTracciato`: se il
+> tracciato non fosse dentro il movimento di cassa, quella sottrazione non avrebbe senso.
+>
+> ℹ️ `VenditeContanti` resta ciò che il requirement dice — `Σ PrezzoTotale` delle vendite
+> persistite — ma serve al **residuo** del breakdown, non al totale.
 
 #### Scenario: Registro senza vendite (comportamento invariato)
 

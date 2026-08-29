@@ -122,6 +122,30 @@ Vedi [ENV_SETUP.md](./ENV_SETUP.md) per dettagli.
 
 ### Pattern Importanti
 
+**Il punto vendita batte ordini, non vendite**: al bancone il metodo di pagamento si scopre alla
+fine, quando il cliente arriva alla cassa. Il gesto è quindi `nuovo ordine → n tocchi → chiudi →
+metodo di pagamento`, e i secchi del registro si muovono **una volta sola**, alla chiusura. Una
+`Vendita` lato server nasce solo lì: nel frontend non esiste alcuna mutation che la crei
+(`mutationCreaVendita` è stata rimossa, non deprecata).
+Conseguenze da tenere presenti lavorando su `components/pages/vendite/`:
+
+- **Più ordini restano aperti insieme** — è il caso ordinario, non l'eccezione: due clienti
+  arrivano insieme, o il secondo mentre il primo aspetta di pagare. `PuntoVendita` ne tiene uno
+  *corrente*; «Nuovo ordine» lo mette da parte (resta aperto, con le sue voci) e il tocco
+  successivo ne apre un altro.
+- **L'ordine si apre implicitamente al primo tocco**, e l'apertura in volo vive in una `ref` e non
+  in uno stato: due tocchi ravvicinati devono attendere la **stessa** apertura, o nascono due
+  ordini per un tocco solo.
+- **La pagina «Ordini»** monta `ElencoOrdiniAperti`, lo stesso corpo che il punto vendita e la
+  scheda del registro mostrano dentro un `Drawer` (`OrdiniAperti`). Il pulsante «Chiudi» sta nel
+  guscio, non nel corpo: da una pagina non avrebbe un chiamante a cui tornare.
+- **`ordiniAperti` non filtra sul registro di oggi.** Un ordine aperto alle 23:50 sta sul registro
+  di ieri e alle 00:05 è ancora lì: filtrare su oggi lo renderebbe invisibile proprio mentre
+  blocca la chiusura di ieri.
+- **I gruppi di prodotti** danno un tastone al posto di n varianti. Si sciolgono sotto ricerca —
+  chi digita «campari» cerca quella variante — e spegnere un gruppo fa **riapparire** i suoi
+  membri fra le tessere sciolte, non sparire.
+
 **Generazione Route Dinamiche**: Le route non sono definite staticamente. Invece, vengono generate a runtime in base ai permessi menu dell'utente (memorizzati in `user.menus`). Il componente
 `ProtectedRoutes` (`src/routes/ProtectedRoutes.tsx`) filtra i menu con percorsi e li mappa a componenti caricati dinamicamente tramite `loadDynamicComponent()`. Per aggiungere nuove route:
 1. Crea il componente pagina in `src/components/pages/[feature]/[ComponentName].tsx`

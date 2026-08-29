@@ -253,9 +253,48 @@ In Development esistono fallback locali hardcoded in `Program.cs` (connection st
 - Hash alla creazione utente: `PasswordService.HashPassword(plaintext)` restituisce (hash, salt)
 - Verifica al login: `PasswordService.VerifyPassword(plaintext, storedHash, storedSalt)`
 
+## Il confine degli ordini — l'invariante da non rompere
+
+> **Se una `Vendita` esiste, allora è incassata.**
+
+Le `Vendita` nascono in **un solo posto**: `ChiudiOrdineOrchestrator`. È anche l'unico punto del
+backend in cui si muove un secchio del registro. `creaVendita` **non esiste più** nello schema, e
+la rimozione non è una deprecazione: finché quel campo rispondeva, convivevano due regimi — uno
+che muoveva i secchi al momento della riga, uno alla chiusura dell'ordine — cioè il difetto per
+cui l'ordine è stato introdotto, tenuto in vita da un commento.
+
+**Perché è un'invariante e non una preferenza di percorso.** `SecchiIncassiApplier` muove i
+secchi per **delta**, e il delta **non è idempotente per costruzione**: applicarlo due volte per
+la stessa vendita raddoppia l'importo, e nessun controllo a valle se ne accorge. La guardia sta
+sulla **transizione di stato** dell'ordine, non sul chiamante.
+
+Regole operative, tutte già pinnate da test:
+
+- Un ordine **aperto** non tocca né i secchi né il breakdown IVA. Le sue `RigaOrdine` non sono
+  `Vendita` e non entrano in alcuna somma: è una pre-vendita, non un incasso.
+- `SecchiIncassiApplier` va invocato **prima** di `BreakdownIvaApplier`, con un
+  `SaveChangesAsync()` obbligatorio in mezzo: il breakdown rilegge le vendite dal database e
+  senza quel salvataggio non vedrebbe quelle appena create.
+- `aggiornaVendita` ed `eliminaVendita` **rifiutano** ogni riga con `OrdineId` valorizzato.
+  Sopravvivono per le sole righe storiche nate prima degli ordini, e la guardia le chiude
+  **strutturalmente**: ogni vendita nuova ha un `OrdineId`.
+- Annullare e stornare sono **due gesti diversi**. `annullaOrdine` agisce su un ordine aperto e
+  non muove nulla, perché non c'era nulla da disfare. `stornaOrdine` agisce su un ordine già
+  incassato, disfa il delta una volta sola e richiede il ruolo amministratore.
+- Nessun campo nuovo si chiama `Resto`: il nome è già preso da `RegistroCassa.Resto`, che è la
+  colonna AG del foglio e non c'entra col resto dato al cliente.
+
+`TotaleVendite` si calcola dal **movimento fisico del cassetto**
+(`TotaleChiusura − TotaleApertura`) più elettronici e fatture. ⚠️ `IncassoContanteTracciato`
+**non** va sommato: è contante già dentro il cassetto, e aggiungerlo sarebbe un doppio conteggio.
+
 ## Note Importanti
 
-- **Nessun progetto di test**: Questo codebase non ha test unitari; test manuali o test di integrazione dovrebbero essere aggiunti
+- **Il progetto ha una suite di test** (`backend/DuedGusto.Tests`, xUnit + FluentAssertions +
+  Moq): unitari, di integrazione e di superficie GraphQL. Si esegue con `dotnet test`. ⚠️ La nota
+  precedente diceva il contrario ed era rimasta indietro. InMemory basta per quasi tutto; Sqlite
+  (`TestDbContextFactory.CreateSqlite`) serve ai casi che hanno bisogno di transazioni vere,
+  come la guardia sulla transizione dell'ordine, che InMemory non sa riprodurre.
 - **Service location in GraphQL**: I resolver usano `GraphQLService.GetService<T>(context)` invece dell'iniezione nel costruttore; questo è intenzionale per l'attivazione dei tipi GraphQL
 - **Navigazione basata sui ruoli**: I menu vengono recuperati per l'utente autenticato tramite le relazioni dei ruoli; usare Role.Menus per popolare la navigazione
 - **Workflow registro di cassa**: Creare un CashRegister con conteggi apertura/chiusura persiste le entità CashCount; la chiusura transiziona lo stato a CLOSED; la riconciliazione è manuale tramite mutation successive

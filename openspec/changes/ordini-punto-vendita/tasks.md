@@ -1142,7 +1142,7 @@ e `cd duedgusto && npm run test -- <file>` per il frontend.
   uno storno **senza motivo** viene rifiutato; uno storno chiesto da un utente **non amministratore**
   viene rifiutato senza toccare nulla; lo storno di un ordine in stato **`SPLITTATO` viene rifiutato**
   e i figli restano chiusi.
-- [ ] 9.6 `backend/DuedGusto.Tests/Integration/GraphQL/OrdiniQueriesTests.cs` (nuovo), su InMemory —
+- [x] 9.6 **FATTO** (anticipato in Fase 6, come annotato lì) — `backend/DuedGusto.Tests/Integration/GraphQL/OrdiniQueriesTests.cs`, 10 casi su InMemory —
   `ordiniAperti` a cavallo di mezzanotte: ordine sul registro di ieri, «oggi» è il giorno dopo →
   compare comunque, con la data del registro nella riga.
 - [x] 9.7 **[FATTO IN FASE 5]** `backend/DuedGusto.Tests/Integration/OrdiniNumerazioneTests.cs`
@@ -1204,8 +1204,8 @@ e `cd duedgusto && npm run test -- <file>` per il frontend.
   `OrdineCorrente.test.tsx` (**4**). Più `ScontrinoDelGiorno.test.tsx` (**5**), che prima non
   esisteva affatto e che pinna la conseguenza di 6.6: **niente icone di correzione** sulle righe
   nate da un ordine, e lo storno visibile ai soli amministratori.
-- [ ] 9.11 Gate di fase backend: `cd backend && dotnet build && dotnet test` verdi, zero warning.
-- [ ] 9.12 Gate di fase frontend: `cd duedgusto && npm run ts:check && npm run lint && npm run test`
+- [x] 9.11 **VERDE (29 agosto 2026)** — `dotnet build --no-incremental`: 0 warning, 0 errori; `dotnet test`: **998 passati, 0 falliti**.
+- [x] 9.12 **VERDE (29 agosto 2026)** — `ts:check` e `lint` puliti, `npm run test`: **943 passati** su 116 file. `cd duedgusto && npm run ts:check && npm run lint && npm run test`
   verdi.
 
 ---
@@ -1360,7 +1360,7 @@ motivo di coincidere, e `OrdinamentoVetrina` è per costruzione fuori da `Prodot
   nasconderebbe le poche righe davvero disposte a mano.
   ℹ️ Il default a `0` è anche nella bozza di riga nuova (`nuovaBozza`): un prodotto appena creato non
   scavalca al bancone le tessere che qualcuno ha disposto.
-- [ ] 10.14 **[DECISIONE APERTA — non implementare prima di scioglierla]** L'interazione fra
+- [x] 10.14 **CHIUSA — si lascia com'è, il colore resta ancorato al codice.** L'interazione fra
   l'ordinamento e il **colore** delle tessere.
   `coloriProdotto.tsx:130` assegna l'indice di luminosità ordinando per `codice`
   (`indiciPerCategoria`), quindi oggi la gradazione segue l'alfabeto — che è anche l'ordine a
@@ -1370,27 +1370,65 @@ motivo di coincidere, e `OrdinamentoVetrina` è per costruzione fuori da `Prodot
   - **Ancorare all'`Ordinamento`**: la gradazione segue la fila, ma **ogni riordino ricolora** le
     tessere a valle — e il codice avverte esplicitamente che «la mano ha già imparato dov'era il
     pulsante» (`PuntoVendita.tsx:151`).
-  ℹ️ Il riordino è raro e deliberato, la lettura della fila è quotidiana: è l'argomento a favore del
-  secondo. Ma è una scelta di UI e la fa l'utente.
-  **Verifica**: `__tests__/coloriProdotto.test.tsx` esteso secondo la decisione presa.
+  ℹ️ Il riordino è raro e deliberato, la lettura della fila è quotidiana: era l'argomento a favore
+  del secondo.
+  ✅ **Decisione dell'utente (29 agosto 2026)**: «il colore delle tessere cambia, non è importante
+  per ora». Si tiene l'ancoraggio al **codice**, cioè nessuna modifica: le tessere non cambiano
+  mai colore, e riordinando la gradazione si mescola. Da riaprire se al banco la fila risulterà
+  illeggibile.
+  ℹ️ Il campo `Prodotto.Colore` (10.5) copre già il caso in cui una tessera debba avere un colore
+  suo a prescindere dalla posizione: è la via d'uscita se il problema si presenta davvero.
 
 ---
 
 ## Phase 11: Pulizia e documentazione
 
-- [ ] 11.1 `openspec/specs/gestione-cassa/specs.md` — la #19 segnala che la formula di
+- [x] 11.1 **FATTO** — `openspec/specs/gestione-cassa/specs.md`: la #19 segnalava che la formula di
   `TotaleVendite` alla riga 1204 diverge dal codice, e la spec delle vendite itemizzate diverge
   anch'essa. Va riallineata al codice **prima** di considerare chiuso il change, o si costruisce
   sopra una spec che mente.
-  **Verifica**: la formula in spec coincide con quella di `BreakdownIvaApplier.ApplicaAsync`.
-- [ ] 11.2 Rimozione del percorso a due tocchi: `creaVendita`, `aggiornaVendita` e `eliminaVendita`
-  in `backend/GraphQL/Vendite/VenditeMutations.cs` non devono più essere la strada per far nascere
-  una vendita. Coordinare con 6.6 e 8.3 — stessa release.
-  **Verifica**: `dotnet test` verde dopo la rimozione; nessun riferimento residuo in
-  `duedgusto/src`.
-- [ ] 11.3 `backend/CLAUDE.md` e `duedgusto/CLAUDE.md` — documentare il confine nuovo: le `Vendita`
+  ✅ **Trovate DUE divergenze nella stessa riga, non una.** La spec diceva
+  `TotaleVendite == VenditeContanti + IncassiElettronici + IncassoContanteTracciato + IncassiFattura`;
+  il codice fa `(TotaleChiusura − TotaleApertura) + IncassiElettronici + IncassiFattura`.
+  🔴 **Ha ragione il codice, e la ragione è contabile: il contante è già nel cassetto.**
+  `IncassoContanteTracciato` è contante entrato in cassa, quindi è già dentro
+  `TotaleChiusura − TotaleApertura`; sommarlo di nuovo sarebbe un doppio conteggio, e lo stesso
+  vale per `VenditeContanti`. Riscontro indipendente in `RiepilogoAnnualeCassa.cs:58`, dove il
+  ricavo **non** tracciato è `(TotaleChiusura − TotaleApertura) − IncassoContanteTracciato`: se il
+  tracciato non fosse dentro il movimento di cassa, quella sottrazione non avrebbe senso.
+  ✅ **Riallineata anche la spec delle vendite itemizzate**, che il task citava senza dettagliarla:
+  gli scenari nominavano `creaVendita` (ritirata), il requirement sullo snapshot in
+  `aggiornaVendita` non menzionava la guardia su `OrdineId`, e la rigenerazione del breakdown
+  elencava `creaVendita` fra i suoi inneschi. Aggiunto un requirement nuovo — «Le Vendita nascono
+  solo dalla chiusura di un ordine» — con i due scenari che lo pinnano.
+  ⚠️ La sezione storica della **rinominazione inglese → italiano** è stata annotata, non riscritta:
+  documenta un change passato e serve a leggere il codice di allora. Gli scenari superati portano
+  ora un contrassegno che dice cosa vale oggi.
+  **Verifica**: ✅ la formula in spec coincide con `BreakdownIvaApplier.ApplicaAsync`.
+- [x] 11.2 **GIÀ SODDISFATTO, ma non come il task lo scriveva.**
+  ✅ `creaVendita` è **rimossa** dallo schema (non deprecata), e un test ne pinna l'assenza.
+  ⚠️ **SCOSTAMENTO: `aggiornaVendita` ed `eliminaVendita` NON sono state rimosse, ed è la scelta
+  giusta.** Rifiutano ogni riga con `OrdineId` valorizzato
+  (`VenditeMutations.cs:496`), quindi la guardia le chiude **strutturalmente**: poiché ogni
+  vendita nuova nasce da `ChiudiOrdineOrchestrator` e porta un `OrdineId`, su quelle non passano
+  comunque. Restano applicabili alle sole righe storiche precedenti agli ordini.
+  🔴 Rimuoverle avrebbe reso **incorreggibili** quelle righe storiche senza togliere alcun rischio,
+  e avrebbe rotto `ScontrinoDelGiorno.tsx`, che le usa proprio per quel caso.
+  ℹ️ La verifica originale del task — «nessun riferimento residuo in `duedgusto/src`» — non è
+  quindi raggiungibile né desiderabile: i riferimenti che restano sono quelli allo scontrino.
+  **Verifica**: ✅ `dotnet test` verde; `creaVendita` assente dallo schema.
+- [x] 11.3 **FATTO** — `backend/CLAUDE.md` e `duedgusto/CLAUDE.md`: documentato il confine, le `Vendita`
   nascono solo in `ChiudiOrdineOrchestrator`, e un ordine aperto non tocca né i secchi né il
-  breakdown IVA. È l'invariante su cui poggia tutto il resto e va scritta dove la si cerca.
+  breakdown IVA. È l'invariante su cui poggia tutto il resto ed è scritta dove la si cerca.
+  ✅ **Backend**: sezione «Il confine degli ordini — l'invariante da non rompere», con l'ordine
+  obbligatorio `SecchiIncassiApplier` → `SaveChangesAsync` → `BreakdownIvaApplier`, la differenza
+  fra annullare e stornare, il divieto sul nome `Resto` e la formula di `TotaleVendite`.
+  ✅ **Frontend**: sezione «Il punto vendita batte ordini, non vendite», con gli ordini in
+  parallelo, la `ref` dell'apertura in volo, il perché `ordiniAperti` non filtra su oggi e il
+  comportamento dei gruppi.
+  ⚠️ **Corretta anche una nota falsa** trovata in `backend/CLAUDE.md`: diceva «Nessun progetto di
+  test: questo codebase non ha test unitari», mentre la suite ne conta 998. Era rimasta indietro,
+  ed è il tipo di riga che porta chi legge a non cercare i test prima di cambiare qualcosa.
   **Verifica**: rilettura a mano.
 
 ---
@@ -1455,7 +1493,7 @@ sintomo descritto: per battere il secondo cliente bisogna prima chiudere il prim
   ℹ️ Da coordinare con 12.1: sono lo stesso gesto visto dai due lati — «su quale sto battendo» e
   «passa a un altro».
   **Verifica**: con due ordini aperti, l'identificativo a schermo cambia riprendendo l'altro.
-- [ ] 12.3 **[DECISIONE APERTA — non implementare prima di scioglierla]** Basta il numero a
+- [x] 12.3 **CHIUSA — basta il numero.** La domanda era se bastasse il numero a
   distinguere due ordini **agli occhi dell'operatore**?
   `260828-017` individua l'ordine senza ambiguità per la macchina e per la stampa, ma non dice *di
   chi è*. Con due conti in piedi la domanda vera al bancone è «qual è quello dei due spritz al
@@ -1467,9 +1505,11 @@ sintomo descritto: per battere il secondo cliente bisogna prima chiudere il prim
     davanti al gesto più frequente**, a meno di lasciarla vuota per default e modificabile dopo.
   ℹ️ 🔴 Se si sceglie l'etichetta, **non chiamarla `Tavolo`**: la decisione «si gestisce l'ordine, non
   il tavolo» è nella issue e un nome fa da promessa. Vale lo stesso avvertimento già speso su `Resto`.
-  ℹ️ Con due o tre ordini il contenuto delle righe probabilmente basta; il numero non regge quando
-  diventano cinque. Vale la pena partire dal numero e aggiungere l'etichetta se il banco la chiede.
-  **Verifica**: dipende dalla decisione.
+  ✅ **Decisione dell'utente (29 agosto 2026)**: «per ora non serve un'etichetta». Si resta al solo
+  `260828-017`, e l'operatore si orienta sul contenuto delle righe che l'elenco già mostra. Zero
+  campi nuovi, zero migrazioni.
+  ℹ️ Da riaprire se gli ordini in piedi diventeranno abitualmente cinque: con due o tre il
+  contenuto basta, e il numero è quello che regge meno bene quando crescono.
 - [x] 12.4 **FATTO** — voce «Ordini» in sidebar — opzione B già scelta dall'utente** nei commenti della #24:
   `Vendita` e `Ordini` **sorelle**, entrambe `MenuPadreId = null`, entrambe in un tocco. Seed dedicato
   sullo stampo di `SeedMenusVendita.cs`, `Posizione` subito dopo `Vendita`.
@@ -1574,3 +1614,37 @@ puliti. Nulla committato.
 - **10.14** — se il colore delle tessere debba seguire il codice o l'`Ordinamento`.
 - **12.3** — se basti il numero a distinguere due ordini agli occhi dell'operatore.
 - **Fase 11** — allineamento delle spec e documentazione dell'invariante nei due `CLAUDE.md`.
+
+
+---
+
+## Consuntivo della fase 11 — 29 agosto 2026
+
+**Suite invariata e verde**: backend **998** (0 warning di build), frontend **943**. Le modifiche
+sono documentali: nessuna riga di codice di produzione toccata.
+
+### Quello che il riallineamento ha fatto emergere
+
+- 🔴 **La spec sbagliava la formula di `TotaleVendite` in due punti, non in uno.** Diceva
+  `VenditeContanti + IncassiElettronici + IncassoContanteTracciato + IncassiFattura`; il codice fa
+  `(TotaleChiusura − TotaleApertura) + IncassiElettronici + IncassiFattura`. Ha ragione il codice,
+  e la ragione è contabile prima che tecnica: **il contante è già nel cassetto**, quindi sia
+  `IncassoContanteTracciato` sia `VenditeContanti` sarebbero un doppio conteggio. Il riscontro
+  indipendente è in `RiepilogoAnnualeCassa.cs:58`.
+- ⚠️ **11.2 chiedeva una rimozione che sarebbe stata un peggioramento.** `aggiornaVendita` ed
+  `eliminaVendita` restano, perché la guardia su `OrdineId` le chiude già strutturalmente e
+  toglierle avrebbe reso incorreggibili le righe storiche rompendo `ScontrinoDelGiorno.tsx`.
+- ⚠️ **`backend/CLAUDE.md` dichiarava «Nessun progetto di test»** mentre la suite ne conta 998.
+  Corretto: è il tipo di riga che porta chi legge a non cercare i test prima di cambiare qualcosa.
+
+### Decisioni chiuse dall'utente
+
+- **10.14 — il colore delle tessere**: si lascia ancorato al codice. «Cambia, non è importante per
+  ora». Nessuna modifica; `Prodotto.Colore` resta la via d'uscita se il problema si presenterà.
+- **12.3 — l'etichetta sugli ordini**: non serve. Resta il solo identificativo `260828-017`.
+
+### Resta aperto, e non dipende dal codice
+
+- **0.1 → 10.1, 10.2**: la lista delle ~147 varianti (nomi, codici, prezzi), che l'utente produrrà.
+  Meccanismo, schema, seeder parametrico, pagina di gestione e tastoni sono in piedi e provati con
+  gruppi e prodotti inventati dai test: manca **solo il contenuto del listino**.
