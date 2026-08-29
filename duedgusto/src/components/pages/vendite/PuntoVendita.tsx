@@ -180,10 +180,16 @@ function PuntoVendita() {
     if (ricerca.trim()) {
       return [];
     }
+    // 🔴 Un gruppo senza varianti battibili non va al banco. `prezzoMinimo` è nullo esattamente
+    //    quando nessun membro è attivo — è il criterio del server, non un conteggio nostro — e
+    //    un tastone in quello stato è un pulsante morto: si preme, si apre un cassetto vuoto, e
+    //    l'unica uscita è chiuderlo. Capita davvero, perché un gruppo si crea prima di
+    //    riempirlo, e capita anche quando l'ultima variante viene disattivata dal listino.
+    const componibili = gruppi.filter((gruppo) => gruppo.prezzoMinimo != null);
     if (categoria === TUTTE) {
-      return gruppi;
+      return componibili;
     }
-    return gruppi.filter((gruppo) => gruppo.membri.some((membro) => membro.prodotto?.categoria === categoria));
+    return componibili.filter((gruppo) => gruppo.membri.some((membro) => membro.prodotto?.categoria === categoria));
   }, [categoria, gruppi, ricerca]);
 
   /**

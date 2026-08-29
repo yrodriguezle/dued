@@ -415,6 +415,109 @@ describe("PuntoVendita", () => {
       expect(screen.queryByText("Spritz")).not.toBeInTheDocument();
     });
 
+    /**
+     * Il caso riportato dal banco: quattro gruppi di CAFFETTERIA creati, e l'aspettativa che
+     * filtrando quella categoria le singole voci lascino il posto ai tastoni.
+     *
+     * 🔴 È l'incrocio che mancava: i gruppi erano provati solo senza filtro. Un gruppo NON ha
+     *    una categoria propria — è il livello sopra — quindi il filtro deve guardare i suoi
+     *    membri, e un gruppo che non ne ha nessuno di quella categoria deve sparire.
+     */
+    describe("insieme al filtro per categoria", () => {
+      const ESPRESSO: ProdottoVendibile = { prodottoId: 16, codice: "CAF-01", nome: "Espresso / decaffeinato", prezzo: 1.2, categoria: "CAFFETTERIA", aliquotaIva: 10 };
+      const AMERICANO: ProdottoVendibile = { prodottoId: 20, codice: "CAF-02", nome: "Americano", prezzo: 1.5, categoria: "CAFFETTERIA", aliquotaIva: 10 };
+      const CAPPUCCINO: ProdottoVendibile = { prodottoId: 33, codice: "CAF-03", nome: "Cappuccino", prezzo: 1.6, categoria: "CAFFETTERIA", aliquotaIva: 10 };
+      const CIOCCOLATA: ProdottoVendibile = { prodottoId: 40, codice: "CAF-04", nome: "Cioccolata calda", prezzo: 2.5, categoria: "CAFFETTERIA", aliquotaIva: 10 };
+      const BIRRA: ProdottoVendibile = { prodottoId: 7, codice: "BIR-01", nome: "Ganter 0.2", prezzo: 2.5, categoria: "BIRRA", aliquotaIva: 10 };
+
+      const GRUPPO_CAFFE: GruppoProdotti = {
+        gruppoProdottiId: 2,
+        codice: "CAFFE",
+        nome: "Caffè",
+        colore: "#aa6d41",
+        ordinamento: 0,
+        attivo: true,
+        prezzoMinimo: 1.2,
+        prezzoUniforme: false,
+        membri: [
+          { prodottoId: 16, ordinamento: 1, prodotto: ESPRESSO },
+          { prodottoId: 20, ordinamento: 2, prodotto: AMERICANO },
+        ],
+      };
+
+      /** ⚠️ Si chiama come una delle sue varianti, come nel listino vero. */
+      const GRUPPO_CAPPUCCINO: GruppoProdotti = {
+        gruppoProdottiId: 6,
+        codice: "CAPPUCCINO",
+        nome: "Cappuccino",
+        colore: "#aa6d41",
+        ordinamento: 0,
+        attivo: true,
+        prezzoMinimo: 1.6,
+        prezzoUniforme: true,
+        membri: [{ prodottoId: 33, ordinamento: 1, prodotto: CAPPUCCINO }],
+      };
+
+      beforeEach(() => {
+        prodotti = [BIRRA, ESPRESSO, AMERICANO, CAPPUCCINO, CIOCCOLATA];
+        gruppi = [GRUPPO_CAFFE, GRUPPO_CAPPUCCINO];
+      });
+
+      const filtraCaffetteria = async () => {
+        renderPuntoVendita();
+        await waitFor(() => expect(screen.getByText("Caffè")).toBeInTheDocument());
+        await act(async () => {
+          screen.getByText("CAFFETTERIA").click();
+        });
+      };
+
+      it("mostra i tastoni dei gruppi al posto delle voci che contengono", async () => {
+        await filtraCaffetteria();
+
+        expect(screen.getByText("Caffè")).toBeInTheDocument();
+        expect(screen.queryByText("Espresso / decaffeinato")).not.toBeInTheDocument();
+        expect(screen.queryByText("Americano")).not.toBeInTheDocument();
+      });
+
+      it("lascia a listino le voci della categoria che nessun gruppo ha preso", async () => {
+        // ⚠️ Un gruppo copre le sue varianti, non l'intera categoria: la cioccolata resta una
+        //    tessera, altrimenti creare un gruppo farebbe sparire mezzo listino dal banco.
+        await filtraCaffetteria();
+
+        expect(screen.getByText("Cioccolata calda")).toBeInTheDocument();
+      });
+
+      it("un gruppo che si chiama come una sua variante compare una volta sola", async () => {
+        await filtraCaffetteria();
+
+        expect(screen.getAllByText("Cappuccino")).toHaveLength(1);
+      });
+
+      it("i gruppi senza membri di quella categoria spariscono col filtro", async () => {
+        // Un gruppo non ha una categoria propria: quello degli spritz non c'entra nulla con la
+        // caffetteria, e mostrarlo lì sarebbe un tastone che il filtro doveva togliere.
+        gruppi = [GRUPPO_CAFFE, { ...GRUPPO_CAPPUCCINO, gruppoProdottiId: 1, nome: "Spritz", membri: [{ prodottoId: 7, ordinamento: 1, prodotto: BIRRA }] }];
+        await filtraCaffetteria();
+
+        expect(screen.queryByText("Spritz")).not.toBeInTheDocument();
+        expect(screen.getByText("Caffè")).toBeInTheDocument();
+      });
+    });
+
+    it("un gruppo ancora vuoto non arriva al banco", async () => {
+      // 🔴 Il caso visto sui dati veri: un gruppo si crea prima di riempirlo, e finché è vuoto
+      //    il suo tastone è un pulsante morto — si preme, si apre un cassetto senza varianti, e
+      //    l'unica cosa da fare è richiuderlo. `prezzoMinimo` nullo è il segnale del server per
+      //    «nessun membro attivo».
+      gruppi = [{ ...GRUPPO_SPRITZ, membri: [], prezzoMinimo: null, prezzoUniforme: false }];
+      renderPuntoVendita();
+
+      await waitFor(() => expect(screen.getByText("Ganter 0.2")).toBeInTheDocument());
+      expect(screen.queryByText("Spritz")).not.toBeInTheDocument();
+      // ⚠️ E il listino non ci perde niente: un gruppo vuoto non teneva nascosta alcuna voce.
+      expect(screen.getByText("Espresso")).toBeInTheDocument();
+    });
+
     it("senza gruppi la griglia resta quella di prima", async () => {
       // La proprietà che rende la feature additiva: finché nessuno crea un gruppo, al banco non
       // cambia niente.
