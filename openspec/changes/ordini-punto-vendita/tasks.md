@@ -658,10 +658,44 @@ Il cuore del change. Qui vive l'unica scrittura sui secchi di tutto il backend.
 
 ## Phase 6: A — Superficie GraphQL
 
-- [ ] 6.1 Nuovi type in `backend/GraphQL/Vendite/Types/`: `OrdineType`, `RigaOrdineType`, e gli input
+> ### ✅ Fase completata — 6.1-6.6
+>
+> **File nuovi**: `Types/OrdineType.cs`, `Types/RigaOrdineType.cs`, `Types/ChiudiOrdineInputType.cs`
+> (i due input insieme), `Types/EsitoChiusuraOrdineType.cs`, `DataLoaders/OrdiniDataLoaders.cs`,
+> `DuedGusto.Tests/Integration/GraphQL/OrdiniQueriesTests.cs` (22 test),
+> `Migrations/20260829070649_RiordinaIndiceOrdiniStato.cs`.
+> **Modificati**: `VenditeMutations.cs`, `VenditeQueries.cs`, `Types/VenditaType.cs` (`+ ordineId`),
+> `AppDbContext.cs` (ordine delle colonne dell'indice), due helper di test che usavano la factory
+> ritirata. **Eliminato**: `Types/CreaVenditaInputType.cs`.
+>
+> **Verifica**: `dotnet build` → 0 errori, 0 warning; `dotnet test` → **955/955** (933 + 22).
+> `npm run ts:check` → **verde**, e vedi 6.6: è un verde che non prova nulla.
+>
+> 🔴 **L'autorizzazione è stata vista fallire**, non dedotta: togliendo `this.Authorize()` da
+> `VenditeMutations`, 7 dei 10 casi di `OgniCampoDOrdine_InAnonimo_NegaAccesso` diventano rossi (le
+> 3 query restano coperte da `VenditeQueries`). Annotazione ripristinata.
+
+- [x] 6.1 Nuovi type in `backend/GraphQL/Vendite/Types/`: `OrdineType`, `RigaOrdineType`, e gli input
   `ApriOrdineInput`, `AggiungiRigaOrdineInput`, `ChiudiOrdineInput`, `SplitOrdineInput`.
   **Verifica**: `dotnet build`; lo schema si costruisce in `GraphQLTestHost` senza eccezioni.
-- [ ] 6.2 `backend/GraphQL/Vendite/VenditeMutations.cs` — mutation di **composizione**: `apriOrdine`,
+  ✅ **Fatto**, con **due scostamenti da questa stesura, entrambi presi da `design.md`**:
+  1. **Niente `ApriOrdineInput` né `AggiungiRigaOrdineInput`**: `design.md` §Interfaces/Contracts
+     dichiara quelle due mutation con **argomenti nudi** (`apriOrdine(registroCassaId: Int!)`,
+     `aggiungiRigaOrdine(ordineId, prodottoId, quantita, note)`). Un input object per due o tre
+     scalari sarebbe un tipo in più da tenere allineato senza nulla in cambio.
+  2. **Niente `SplitOrdineInput`**: lo split *è* `chiudiOrdine` con più di un taglio — decisione
+     «una sola mutation con i tagli in ingresso» — quindi un input dedicato aprirebbe la seconda
+     strada verso la chiusura che quella decisione esiste per chiudere.
+  I due input graph type stanno **nello stesso file** (`ChiudiOrdineInputType.cs`) invece che in due:
+  sono le due metà di un contratto solo e cambiano insieme.
+  ℹ️ `OrdineType` espone tre campi **derivati e mai persistiti** — `identificativo`, `dataRegistro`,
+  `totaleCorrente` — sullo stampo di `prezzoEffettivoVetrina`. `dataRegistro` **non era in
+  `design.md`** ed è stato aggiunto lì: è ciò che 6.5 chiede di mostrare su ogni riga.
+  🔴 Tutti i subfield di navigazione passano da **DataLoader** (`OrdiniDataLoaders.cs`), mai da
+  `context.Source.Navigazione`: il lazy loading è disabilitato in questo progetto, quindi la
+  navigazione risponderebbe con una collezione **vuota** e non con un errore — e un ordine senza
+  voci è uno stato legittimo, che nessuno metterebbe in dubbio.
+- [x] 6.2 `backend/GraphQL/Vendite/VenditeMutations.cs` — mutation di **composizione**: `apriOrdine`,
   `aggiungiRigaOrdine`, `rimuoviRigaOrdine`. Nessuna di queste tocca i secchi né il breakdown: un
   ordine aperto è una pre-vendita, non un incasso.
   ℹ️ Il tipo ha già `this.Authorize()` in testa e copre da solo i campi nuovi.
@@ -671,14 +705,47 @@ Il cuore del change. Qui vive l'unica scrittura sui secchi di tutto il backend.
   CI da solo — non aggiungere allowlist.
   **Verifica**: `dotnet test --filter AutorizzazioneAnonima` verde; test che aggiungere una riga a un
   ordine aperto lascia `IncassiElettronici` e `VenditeContanti` invariati.
-- [ ] 6.3 `VenditeMutations.cs` — mutation di **transizione**: `chiudiOrdine`,
+  ✅ **Fatto**, **quattro** mutation e non tre: `aggiornaRigaOrdine(rigaOrdineId, quantita)` è in
+  `design.md` ed è il gesto dello stepper di quantità della Fase 8. Restano tutte sotto `vendite`,
+  quindi `this.Authorize()` a livello di tipo le copre da sé e nessun ramo root nuovo esiste.
+  ⚠️ **Il prezzo non si riprende dal listino in `aggiornaRigaOrdine`**: resta quello del tocco.
+  Rileggerlo lì farebbe cambiare il conto a un cliente che ha già sentito dire l'altro prezzo, ed è
+  il modo più naturale di perdere lo snapshot senza accorgersene.
+  ℹ️ Le tre guardie comuni stanno in un punto solo (`CaricaOrdineApertoAsync`): ordine esistente,
+  **stato `APERTO`** e mese non chiuso. Lo stato si controlla anche qui benché nessuna riga muova un
+  secchio — su un ordine già chiuso una voce in più cambierebbe il totale **dopo** che le `Vendita`
+  sono nate, e il conto smetterebbe di corrispondere all'incasso senza che nulla lo dica.
+  ⚠️ `rimuoviRigaOrdine` **non** contraddice «le `RigaOrdine` non si cancellano mai»: quella regola
+  parla delle **transizioni** (lo storno conserva le righe). Togliere una voce da un conto ancora
+  aperto è la correzione di un tocco sbagliato, prima che esista un incasso da spiegare — ed è la
+  guardia di stato a tenere separati i due casi. Scritto nel codice, perché letto di fretta sembra
+  una violazione.
+- [x] 6.3 `VenditeMutations.cs` — mutation di **transizione**: `chiudiOrdine`,
   `chiudiOrdineConSplit`, `annullaOrdine`, `stornaOrdine`, che delegano interamente a
   `ChiudiOrdineOrchestrator` (fase 5) senza logica propria.
   **Verifica**: test 9.1–9.5.
-- [ ] 6.4 `backend/GraphQL/Vendite/VenditeQueries.cs` — `ordine(id)` e
+  ✅ **Fatto** — ⚠️ **`chiudiOrdineConSplit` NON esiste**, ed è deliberato: `design.md` §«`chiudiOrdine`
+  è una sola mutation con i tagli in ingresso» sceglie una mutation sola, perché un taglio è una
+  chiusura semplice e n sono uno split, e in entrambi i casi è **una transizione, una transazione,
+  un commit**. Una seconda mutation sarebbe una seconda strada verso un delta non idempotente. Vale
+  `design.md`, come per ogni divergenza di questo change.
+  I quattro resolver sono **tre righe l'uno**: risolvono l'orchestrator, leggono gli argomenti,
+  delegano. L'unica cosa che fanno in proprio è leggere l'utente **dal JWT** e non da un argomento:
+  un id passato dal client renderebbe la traccia dello storno un'informazione fornita da chi va
+  tracciato.
+- [x] 6.4 `backend/GraphQL/Vendite/VenditeQueries.cs` — `ordine(id)` e
   `ordini(registroCassaId, stato)`.
   **Verifica**: query di lettura su un ordine seminato restituisce righe e totale corretti.
-- [ ] 6.5 `VenditeQueries.cs` — `ordiniAperti`.
+  ✅ **Fatto** — nome e firma di `design.md`: `ordiniDelRegistro(registroCassaId: Int!, stati: [String!])`,
+  al plurale e con la lista di stati, non `ordini(…, stato)`.
+  🔴 Uno **stato fuori insieme è rifiutato** con un messaggio che elenca quelli ammessi, invece di
+  restituire una lista vuota: il vuoto è una risposta legittima — «non ci sono ordini» — e nessuno
+  la mette in dubbio, quindi un filtro sbagliato passerebbe per un dato.
+  **Verifica eseguita**: `Ordine_RestituisceRigheTotaleCorrenteEIdentificativo` legge un ordine
+  seminato con due voci **attraverso il motore GraphQL vero** e riscontra
+  `identificativo == "260828-017"`, `suffissoSplit == ""` (non null), `totaleOrdine == 0`
+  (lo snapshot si scrive alla chiusura) e `totaleCorrente == 5.90`.
+- [x] 6.5 `VenditeQueries.cs` — `ordiniAperti`.
   🔴 **Non va filtrata sul registro di oggi.** Un ordine aperto alle 23:50 appartiene al registro di
   **ieri** — decisione della issue: finché la cassa non si chiude, tutto resta nel giorno di apertura.
   Alle 00:05 un filtro su `data == oggi` lo fa sparire: invisibile, non chiudibile, e la guardia di
@@ -686,7 +753,34 @@ Il cuore del change. Qui vive l'unica scrittura sui secchi di tutto il backend.
   Filtrare su `Stato == APERTO` su tutti i registri, e restituire la data del registro su ogni riga
   perché l'operatore veda che è di ieri.
   **Verifica**: test 9.6.
-- [ ] 6.6 Ritiro della vecchia porta: `creaVendita` oggi crea una `Vendita` e muove i secchi
+  ✅ **Fatto**: `registroCassaId` è **opzionale**; omesso, la query interroga tutti i registri. Ogni
+  riga porta `dataRegistro` (derivato dal registro, non da `ApertoIl`), che è ciò che permette di
+  vedere che l'ordine è di ieri invece di cercarlo fra quelli di oggi.
+  🔴 **L'opzionalità dell'argomento è essa stessa protetta da un test**
+  (`OrdiniAperti_HaIlRegistroOpzionale`): renderlo obbligatorio costringerebbe ogni chiamante a
+  scegliere un registro, e il chiamante naturale sceglierebbe quello di oggi — cioè la trappola
+  della mezzanotte reintrodotta **dal contratto** invece che dal codice, dove nessuno la
+  cercherebbe.
+  ✅ **9.6 è di fatto anticipata qui** (lasciata comunque non spuntata, è di Fase 9):
+  `OrdiniAperti_SenzaRegistro_ComprendeGliOrdiniDeiGiorniPrecedenti` semina un ordine aperto sul
+  registro di ieri e uno su quello di oggi e riscontra che compaiono entrambi, con `dataRegistro`
+  di ieri sul primo.
+  ✅ **SCIOGLIMENTO DELLO SCOSTAMENTO APERTO IN 3.4 — l'indice è stato cambiato, non lasciato com'era.**
+  L'indice secondario passa da `(RegistroCassaId, Stato)` a **`(Stato, RegistroCassaId)`**, con la
+  migrazione `20260829070649_RiordinaIndiceOrdiniStato` (solo `DropIndex` + `CreateIndex`, `Down()`
+  simmetrico, nessun dato toccato).
+  **Perché questo e non «lasciare così» né «aggiungere un indice su `Stato`»**: le letture sugli
+  ordini sono due — la guardia della chiusura di cassa (`RegistroCassaId` + `Stato`) e questa query
+  (`Stato` soltanto, su tutti i registri). Con `RegistroCassaId` in testa la seconda non ha il
+  prefisso e legge tutta la tabella; con `Stato` in testa **un solo indice le serve entrambe**,
+  perché la prima confronta le due colonne per uguaglianza e a quella l'ordine è indifferente. Un
+  secondo indice su `Stato` sarebbe stato costo di scrittura senza copertura nuova. Le letture per
+  solo `RegistroCassaId` (`MAX(Numero)` dell'apertura, `GuardNessunOrdineSulRegistro`) non restano
+  scoperte: hanno già il prefisso dell'indice unico.
+  ⚠️ Si fa **ora** perché ora è gratis: in produzione `Ordini` è ancora vuota, quindi il rifacimento
+  dell'indice non tocca alcuna riga. Motivato nel codice (`AppDbContext`), nella migrazione e in
+  `design.md`, che è stato corretto in entrambi i punti in cui riportava il vecchio ordine.
+- [x] 6.6 Ritiro della vecchia porta: `creaVendita` oggi crea una `Vendita` e muove i secchi
   direttamente, e con gli ordini diventa un secondo ingresso all'invariante.
   ⚠️ Va tolta **nella stessa release** in cui il frontend passa agli ordini (8.3), non prima:
   `PuntoVendita.tsx` la usa fino a quel momento. Coordinare con 11.2.
@@ -695,6 +789,26 @@ Il cuore del change. Qui vive l'unica scrittura sui secchi di tutto il backend.
   `OrdineId != null`, indicando `stornaOrdine`. Serve un test che pinni che `creaVendita` **non esiste
   più** nello schema, altrimenti qualcuno la rimetterà per comodità e nulla lo segnalerà.
   **Verifica**: `grep -rn "creaVendita" duedgusto/src backend/` non trova più occorrenze attive.
+  ✅ **Fatto**: via il campo, via il resolver `CreaVenditaAsync`, e via anche
+  `Types/CreaVenditaInputType.cs` con la factory `CostruisciVendita` — che dopo la rimozione **non
+  aveva più alcun chiamante di produzione**: le `Vendita` nascono da `RigaOrdine` dentro
+  `ChiudiOrdineOrchestrator`. Restavano solo due helper di test, riscritti per costruire la
+  `Vendita` a mano e chiamare `RicalcolaImportiSnapshot`, che è il punto in cui lo scorporo vive
+  davvero. Lasciare in piedi una factory usata dai soli test avrebbe tenuto viva una seconda
+  descrizione di «come nasce una vendita».
+  `aggiornaVendita`/`eliminaVendita` rifiutano ogni `Vendita` con `OrdineId != null` con un
+  messaggio che indica **stornaOrdine** — la via d'uscita, non solo il rifiuto — e `VenditaType`
+  espone `ordineId` perché il client sappia *prima* quali righe sono chiuse.
+  🔴 **RISPOSTA ALLA DOMANDA APERTA — `npm run ts:check` è VERDE, e non prova nulla.** Il ritiro
+  **non** rompe la compilazione del frontend, ma non perché il frontend sia a posto: le mutation
+  sono stringhe `gql` e **non esiste alcun codegen contro lo schema** (nessuno script `graphql-codegen`
+  in `package.json`), quindi `PuntoVendita.tsx` continua a compilare e si romperà **solo a runtime**,
+  con un errore di validazione GraphQL al momento della conferma della vendita.
+  ⚠️ **Conseguenza pratica**: nulla anticipa la Fase 8, ma nemmeno nulla la ricorda. Finché 8.3 non
+  arriva, in sviluppo il tasto «conferma» del punto vendita è rotto, e la pipeline resta **verde**.
+  Il vincolo «stessa release» di 11.2 va tenuto a mano: qui non c'è un test che lo faccia rispettare.
+  ℹ️ Occorrenze residue di `creaVendita` nel repository: le sole di `duedgusto/src` (Fase 8) e i
+  commenti di questo file. Nel backend non ne resta nessuna attiva.
 
 ---
 

@@ -144,6 +144,20 @@ if (sale.OrdineId is not null)
 quindi non cambia. Va **aggiunto** un test che pinna che `creaVendita` non esiste più nello schema:
 altrimenti qualcuno la rimetterà per comodità e nulla lo segnalerà.
 
+> ✅ **Eseguito in Fase 6** — `OrdiniQueriesTests`: `CreaVendita_NonEsistePiuNelloSchema` pinna
+> l'assenza del campo, e `OgniCampoDOrdine_InAnonimo_NegaAccesso` esegue **davvero** i dieci campi
+> nuovi in anonimo. Quest'ultimo non è ridondante rispetto al ramo root: le tre `Theory` di
+> `AutorizzazioneAnonimaTests` non cambiano quando si aggiunge un campo sotto `vendite`, quindi la
+> copertura per campo non nasce da sola. **Provato rosso**: togliendo `this.Authorize()` da
+> `VenditeMutations`, sette dei dieci casi falliscono (le tre query restano coperte da
+> `VenditeQueries`). Annotazione ripristinata.
+>
+> 🔴 **Il ritiro di `creaVendita` è invisibile a `npm run ts:check`**, misurato: il frontend
+> descrive le mutation come stringhe `gql` e non c'è alcun codegen contro lo schema, quindi
+> `PuntoVendita.tsx` continua a compilare e si rompe **solo a runtime**, con un errore di
+> validazione GraphQL al momento della conferma. Il verde di TypeScript non è la prova che il
+> passaggio della Fase 8 sia stato fatto.
+
 ---
 
 ### Decision: `chiudiOrdine` è una sola mutation con i tagli in ingresso
@@ -735,8 +749,17 @@ modelBuilder.Entity<Ordine>(entity =>
     //    normale sarebbe (registro, numero, NULL), e più NULL non collidono mai fra loro.
     entity.HasIndex(x => new { x.RegistroCassaId, x.Numero, x.SuffissoSplit }).IsUnique();
 
-    // Serve alla guardia della chiusura cassa e all'elenco degli ordini aperti.
-    entity.HasIndex(x => new { x.RegistroCassaId, x.Stato });
+    // 🔴 STATO PER PRIMO — deciso in Fase 6, non scoperto dopo. Le letture sugli ordini sono
+    //    due: la guardia della chiusura cassa (RegistroCassaId + Stato) e `ordiniAperti` senza
+    //    registro (Stato soltanto), che NON può filtrare su oggi — Discovery 5. Con
+    //    (RegistroCassaId, Stato) la seconda non ha il prefisso e legge tutta la tabella; con
+    //    (Stato, RegistroCassaId) l'indice le serve entrambe, perché la prima confronta le due
+    //    colonne per uguaglianza e a quella l'ordine è indifferente. Le letture per solo
+    //    RegistroCassaId (MAX(Numero), guardia dell'eliminazione registro) hanno già il prefisso
+    //    dell'indice unico qui sopra: un secondo indice sarebbe costo di scrittura senza
+    //    copertura nuova. Migrazione: 20260829070649_RiordinaIndiceOrdiniStato — gratis, perché
+    //    in produzione Ordini è ancora vuota.
+    entity.HasIndex(x => new { x.Stato, x.RegistroCassaId });
 });
 
 modelBuilder.Entity<RigaOrdine>(entity =>
@@ -1253,6 +1276,7 @@ type Ordine {
   ordineId: Int!
   registroCassaId: Int!
   identificativo: String!        # derivato: "260828-017-A" - mai persistito
+  dataRegistro: DateTime!        # derivato dal registro: può essere IERI, vedi Discovery 5
   numero: Int!
   suffissoSplit: String!         # "" se non splittato - la colonna è NOT NULL, vedi Discovery 6
   stato: String!                 # APERTO | CHIUSO | ANNULLATO | SPLITTATO | STORNATO
@@ -1447,7 +1471,10 @@ CREATE TABLE Ordini (
 );
 CREATE UNIQUE INDEX IX_Ordini_RegistroCassaId_Numero_SuffissoSplit
     ON Ordini (RegistroCassaId, Numero, SuffissoSplit);
-CREATE INDEX IX_Ordini_RegistroCassaId_Stato ON Ordini (RegistroCassaId, Stato);
+-- ⚠️ Nato come (RegistroCassaId, Stato) e riordinato in Fase 6 dalla migrazione
+--    20260829070649_RiordinaIndiceOrdiniStato: `ordiniAperti` interroga tutti i registri e con
+--    RegistroCassaId in testa non ne usava il prefisso. Vedi la nota nella configurazione EF.
+CREATE INDEX IX_Ordini_Stato_RegistroCassaId ON Ordini (Stato, RegistroCassaId);
 
 CREATE TABLE RigheOrdine (...);
 

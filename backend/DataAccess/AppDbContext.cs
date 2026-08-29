@@ -1125,8 +1125,19 @@ public class AppDbContext : DbContext
             entity.HasIndex(x => new { x.RegistroCassaId, x.Numero, x.SuffissoSplit })
                 .IsUnique();
 
-            // Elenco degli ordini aperti di un registro: è la guardia della chiusura di cassa.
-            entity.HasIndex(x => new { x.RegistroCassaId, x.Stato });
+            // 🔴 STATO PER PRIMO, e la ragione è la query che NON filtra sul registro.
+            //    Le letture sugli ordini sono due: la guardia della chiusura di cassa
+            //    (RegistroCassaId + Stato) e l'elenco degli ordini aperti di TUTTI i registri
+            //    (Stato soltanto), che non può filtrare su oggi o un ordine aperto a cavallo di
+            //    mezzanotte sparirebbe dall'elenco bloccando per sempre la chiusura di ieri.
+            //    Con (RegistroCassaId, Stato) la seconda non ha il prefisso e legge tutta la
+            //    tabella; con (Stato, RegistroCassaId) le serve entrambe — la prima è un doppio
+            //    confronto di uguaglianza, a cui l'ordine delle colonne è indifferente.
+            //    ⚠️ Le letture per solo RegistroCassaId (MAX(Numero) dell'apertura, la guardia
+            //    dell'eliminazione registro) non restano scoperte: hanno già il prefisso
+            //    dell'indice unico qui sopra. Un secondo indice sarebbe stato costo di scrittura
+            //    senza copertura nuova.
+            entity.HasIndex(x => new { x.Stato, x.RegistroCassaId });
         });
 
         modelBuilder.Entity<RigaOrdine>(entity =>
