@@ -49,3 +49,14 @@ export const METODI_PAGAMENTO: DescrizioneMetodo[] = [
 export function etichettaMetodo(metodo: MetodoPagamentoVendita): string {
   return METODI_PAGAMENTO.find((m) => m.valore === metodo)?.etichetta ?? metodo;
 }
+
+/**
+ * I due metodi per cui ha senso chiedere **quanto ha dato il cliente**.
+ *
+ * 🔴 Non è una comodità di UI: il server **rifiuta** un `contanteRicevuto` valorizzato insieme a
+ *    `ELETTRONICO`, perché lì non significa nulla. Chiedendolo comunque si otterrebbe un errore
+ *    alla conferma — cioè col cliente davanti — invece di non proporre un campo che non serve.
+ */
+export function isMetodoContante(metodo: MetodoPagamentoVendita): boolean {
+  return metodo === "CONTANTE_TRACCIATO" || metodo === "CONTANTE_NON_TRACCIATO";
+}

@@ -31,6 +31,7 @@ using duedgusto.Repositories.Implementations;
 using duedgusto.Repositories.Implementations.Domain;
 using duedgusto.GraphQL.GestioneCassa;
 using duedgusto.GraphQL.Fornitori;
+using duedgusto.GraphQL.Vendite;
 
 using GraphQL.Server.Transports.AspNetCore.WebSockets;
 using System.Security.Claims;
@@ -65,6 +66,14 @@ builder.Services.AddScoped<MutateSpesaCassaOrchestrator>();
 builder.Services.AddScoped<ChiudiRegistroCassaOrchestrator>();
 builder.Services.AddScoped<RiapriRegistroCassaOrchestrator>();
 builder.Services.AddScoped<EliminaRegistroCassaOrchestrator>();
+
+// Ordini del punto vendita — le uniche transizioni che muovono un secchio del registro.
+// ⚠️ Scoped come gli altri: condividono l'IUnitOfWork della richiesta, ed è ciò che rende la
+//    chiusura di un ordine una transazione sola.
+builder.Services.AddScoped<ApriOrdineOrchestrator>();
+builder.Services.AddScoped<ChiudiOrdineOrchestrator>();
+builder.Services.AddScoped<AnnullaOrdineOrchestrator>();
+builder.Services.AddScoped<StornaOrdineOrchestrator>();
 
 // Event Bus per GraphQL Subscriptions
 builder.Services.AddSingleton<IEventBus, EventBus>();
@@ -356,6 +365,9 @@ using (IServiceScope scope = app.Services.CreateScope())
         // Dopo SeedMenus: la voce si aggancia al menu padre "Cassa" che quel seed crea, e
         // senza padre non fa nulla — è idempotente e riprova al prossimo avvio.
         await SeedMenusProdotti.Initialize(services);
+        // "Vendita" è invece di PRIMO LIVELLO e non ha padre: non dipende da "Cassa" e nasce
+        // anche su un database che non la contiene. Resta qui, dopo SeedMenus, solo perché
+        // assegna la voce a TUTTI i ruoli e quel seed è ciò che li crea al primo avvio.
         await SeedMenusVendita.Initialize(services);
         // Dopo SeedMenus: la sezione "Sito" riusa i ruoli amministrativi che quel seed
         // ha già creato/aggiornato, e si aggancia in coda alle voci esistenti (Posizione 9).

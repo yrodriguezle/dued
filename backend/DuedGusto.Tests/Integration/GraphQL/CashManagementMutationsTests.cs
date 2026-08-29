@@ -492,13 +492,23 @@ public class CashManagementMutationsTests : IDisposable
 
     private Vendita SeedVendita(RegistroCassa registro, Prodotto prodotto, decimal quantita)
     {
-        var input = new duedgusto.GraphQL.Vendite.Types.CreaVenditaInput
+        // ⚠️ Costruita a mano: con gli ordini le Vendita nascono solo dentro
+        //    ChiudiOrdineOrchestrator, e la factory CostruisciVendita è sparita insieme a
+        //    creaVendita. Lo scorporo IVA resta quello di produzione.
+        var vendita = new Vendita
         {
             RegistroCassaId = registro.Id,
             ProdottoId = prodotto.ProdottoId,
             Quantita = quantita,
+            PrezzoUnitario = prodotto.Prezzo,
+            PrezzoTotale = quantita * prodotto.Prezzo,
+            AliquotaIva = prodotto.AliquotaIva,
+            DataOra = DateTime.UtcNow,
+            MetodoPagamento = duedgusto.Common.MetodiPagamentoVendita.ContanteNonTracciato,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
         };
-        Vendita vendita = duedgusto.GraphQL.Vendite.VenditeMutations.CostruisciVendita(prodotto, input);
+        duedgusto.GraphQL.Vendite.VenditeMutations.RicalcolaImportiSnapshot(vendita);
         _dbContext.Vendite.Add(vendita);
         _dbContext.SaveChanges();
         return vendita;

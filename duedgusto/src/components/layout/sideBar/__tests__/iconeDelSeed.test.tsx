@@ -64,6 +64,39 @@ function iconeNominateDalSeed(): IconaNominata[] {
   });
 }
 
+/**
+ * Le stesse due forme, lette però come **coppie titolo → icona** invece che come occorrenze sciolte.
+ *
+ * ⚠️ Serve una scansione a parte, e non basta contare i nomi di `iconeNominateDalSeed`: ogni voce
+ *    compare **due volte** nel seed, una per ramo dell'idempotenza (creazione + allineamento).
+ *    Contare le occorrenze farebbe risultare duplicata *ogni* icona, e il test sarebbe rosso
+ *    sempre — cioè inutile. L'unità di misura è la **voce di menu**, non l'occorrenza, e il
+ *    `Titolo` è ciò che le dà un nome leggibile nel messaggio di errore.
+ *
+ * ⚠️ La forma ① usa un «tempered token» — `(?:(?!Titolo\s*=)[\s\S])*?` — e non un `[\s\S]*?`
+ *    qualunque: fra `Titolo` e `Icona` ci sono commenti lunghi, ma **non** deve mai attraversare
+ *    il `Titolo` della voce successiva. Senza quel freno, una voce con `Icona = string.Empty`
+ *    (ce ne sono sei: i figli di Utenti, Ruoli e Menù) si accoppierebbe all'icona della voce
+ *    *dopo*, e il test comincerebbe a lamentare collisioni inventate.
+ *
+ * ⚠️ La forma ② accetta `true|false` mentre `FORME` accetta il solo `true`: «Gestione ddt» è
+ *    `Visibile = false` in sidebar ma compare comunque nella griglia di `MenuList.tsx`, con la
+ *    sua icona. Escluderla vorrebbe dire non accorgersi di una collisione visibile a schermo.
+ */
+const FORME_ACCOPPIATE = [
+  { nome: "inizializzatore di oggetto", regex: /Titolo\s*=\s*"([^"]+)"\s*,(?:(?!Titolo\s*=)[\s\S])*?Icona\s*=\s*"([^"]+)"/g },
+  { nome: "argomento posizionale", regex: /"([^"]+)",\s*(?:"[^"]*"|null|string\.Empty),\s*"([A-Z][A-Za-z0-9_]*)",\s*(?:true|false),/g },
+];
+
+type VoceConIcona = { file: string; titolo: string; icona: string; forma: string };
+
+function vociConIconaDalSeed(): VoceConIcona[] {
+  return Object.entries(SORGENTI_SEED).flatMap(([percorso, sorgente]) => {
+    const file = percorso.split("/").pop() ?? percorso;
+    return FORME_ACCOPPIATE.flatMap((forma) => [...sorgente.matchAll(forma.regex)].map((trovata) => ({ file, titolo: trovata[1], icona: trovata[2], forma: forma.nome })));
+  });
+}
+
 describe("le icone del seed", () => {
   it("🔴 ogni icona nominata dal seed esiste in iconMapping", () => {
     const nominate = iconeNominateDalSeed();
@@ -87,6 +120,77 @@ describe("le icone del seed", () => {
       [...new Set(mancanti)],
       "icone nominate dal seed e assenti da iconMapping: la voce di menu comparirebbe SENZA ICONA e senza alcun errore. Aggiungerle a iconMapping.tsx nello stesso commit."
     ).toEqual([]);
+  });
+
+  /**
+   * 🔴 **PERCHÉ QUESTO SECONDO TEST ESISTE.** Il primo verifica che un'icona *esista*; niente
+   *    verificava che fosse *sua*. Due voci con lo stesso nome di icona passavano indisturbate, ed
+   *    è così che «Vendita» e «Cassa» sono arrivate fino allo screenshot con lo stesso carrello.
+   *
+   * 🔴 **La severità scelta è l'unicità GLOBALE**, non l'unicità fra voci visibili insieme. La
+   *    regola più permissiva sarebbe stata difendibile — `NestedList` tiene aperto **un solo**
+   *    gruppo alla volta (`openIndex` è un indice singolo), quindi i figli di due padri diversi non
+   *    sono mai a schermo insieme. Si è scelta la globale per tre ragioni, in ordine di peso:
+   *
+   *    ① **La voce spostata.** Una regola che guarda il padre cambia verdetto quando una voce viene
+   *       *ri-appesa*. È esattamente ciò che è appena successo: l'icona di «Vendita» non l'ha
+   *       toccata nessuno, è la voce a essere salita al primo livello — e la collisione è comparsa
+   *       da sola, in un commit che di icone non parlava. Una regola che sarebbe stata verde prima
+   *       della promozione e rossa dopo si accorge del guasto nel momento sbagliato: dopo che è
+   *       stato introdotto, non quando l'icona è stata scelta.
+   *    ② **A cassetto chiuso l'icona È la voce.** `NestedList` mette `opacity: 0` sulle etichette e
+   *       smonta i figli (`Collapse in={isOpen && drawerOpen}` con `unmountOnExit`): restano i soli
+   *       bottoni di primo livello, senza testo. Lì un'icona condivisa non rende due voci «simili»,
+   *       le rende **lo stesso bottone**. Ed è il caso di Vendita/Cassa.
+   *    ③ **La barra non è l'unico posto dove le icone si vedono insieme.** `MenuList.tsx` disegna
+   *       tutte le voci in **una griglia piatta**, con la colonna «Icona» renderizzata da
+   *       `IconFactory`: lì i duplicati stanno uno sotto l'altro qualunque sia il ramo.
+   *
+   *    Il costo dell'unicità globale è reale ma piccolo — `iconMapping` ha più chiavi delle voci che
+   *    il seed nomina — e in cambio la regola non va ricalcolata ogni volta che l'albero cambia
+   *    forma. Se un giorno le voci supereranno le icone disponibili, il modo giusto di allentarla è
+   *    aggiungere un'icona alla mappa, non ammettere due voci che si somigliano.
+   *
+   * ⚠️ **Le voci SENZA icona non sono in collisione fra loro.** Sei voci (i figli di Utenti, Ruoli
+   *    e Menù) hanno `Icona = string.Empty` e condividono il nulla: è una scelta preesistente e
+   *    diversa — nessuna icona non è un'icona sbagliata, e la voce si legge dall'etichetta. Le
+   *    regex non le raccolgono perché `string.Empty` non è un letterale fra virgolette, ed è
+   *    voluto, non una svista.
+   */
+  it("🔴 due voci di menu non condividono la stessa icona", () => {
+    const voci = vociConIconaDalSeed();
+
+    // ① La scansione accoppiata ha funzionato. Vale qui la stessa paura del test sopra: una regex
+    //    che non trova più niente non produce collisioni, e il verde sembra una promozione.
+    expect(voci.length, "la scansione accoppiata titolo→icona non ha trovato quasi nulla: le regex non riconoscono più la forma del seed, e questo test è CIECO invece che verde").toBeGreaterThan(40);
+
+    FORME_ACCOPPIATE.forEach((forma) => {
+      expect(voci.filter((voce) => voce.forma === forma.nome).length, `nessuna coppia trovata nella forma «${forma.nome}»: quel ramo della scansione non copre più niente`).toBeGreaterThan(0);
+    });
+
+    // ② Le due scansioni si controllano a vicenda. Sono indipendenti e devono vedere le stesse
+    //    icone: se una perde un ramo del seed, l'altra lo dice. È l'unica guardia che regge anche
+    //    quando *entrambe* le forme di una scansione trovano ancora qualcosa, ma di meno.
+    const daOccorrenze = [...new Set(iconeNominateDalSeed().map((nominata) => nominata.icona))].sort();
+    const daCoppie = [...new Set(voci.map((voce) => voce.icona))].sort();
+    expect(daCoppie, "le due scansioni del seed non vedono le stesse icone: una delle due ha smesso di coprire un ramo, e la differenza è ciò che non viene più controllato").toEqual(daOccorrenze);
+
+    // ③ Ogni voce ha UNA icona sola. Se l'accoppiamento slittasse di una voce — il guasto naturale
+    //    di una regex che salta un `Icona = string.Empty` — comincerebbe a produrre collisioni
+    //    inventate: meglio fallire qui, dicendo che è rotto lo strumento, che là, accusando il seed.
+    const iconePerVoce = new Map<string, Set<string>>();
+    voci.forEach((voce) => iconePerVoce.set(voce.titolo, (iconePerVoce.get(voce.titolo) ?? new Set()).add(voce.icona)));
+    const vociAmbigue = [...iconePerVoce].filter(([, icone]) => icone.size > 1).map(([titolo, icone]) => `${titolo}: ${[...icone].join(" / ")}`);
+    expect(vociAmbigue, "una stessa voce risulta con due icone diverse: o i due rami dell'idempotenza del seed sono disallineati (la voce cambierebbe icona al riavvio), o l'accoppiamento titolo→icona di questo test è slittato").toEqual([]);
+
+    // ④ E finalmente la proprietà: nessuna icona su più di una voce.
+    const vociPerIcona = new Map<string, Set<string>>();
+    voci.forEach((voce) => vociPerIcona.set(voce.icona, (vociPerIcona.get(voce.icona) ?? new Set()).add(voce.titolo)));
+    const collisioni = [...vociPerIcona]
+      .filter(([, titoli]) => titoli.size > 1)
+      .map(([icona, titoli]) => `"${icona}" su ${[...titoli].sort().join(", ")}`)
+      .sort();
+    expect(collisioni, "due voci di menu condividono la stessa icona: a cassetto chiuso sono lo stesso bottone, e nella griglia di MenuList sono due righe indistinguibili. Cambiare l'icona della voce più RECENTE — quella che nessuno ha ancora imparato — scegliendone una già in iconMapping.tsx e non usata da alcuna voce.").toEqual([]);
   });
 
   it("le cinque icone delle pagine del sito sono distinte fra loro e dalle risorse della sezione", () => {

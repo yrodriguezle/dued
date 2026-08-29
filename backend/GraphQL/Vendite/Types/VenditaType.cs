@@ -20,6 +20,11 @@ public class VenditaType : ObjectGraphType<Vendita>
         Field("note", x => x.Note, nullable: true);
         Field("dataOra", x => x.DataOra);
         Field("metodoPagamento", x => x.MetodoPagamento);
+
+        // L'ordine alla cui chiusura questa vendita è nata. È anche il campo che dice al client
+        // perché aggiornaVendita/eliminaVendita la rifiutano: una riga con un ordine si disfa
+        // stornando l'ordine, non correggendola.
+        Field("ordineId", x => x.OrdineId, nullable: true);
         Field("createdAt", x => x.CreatedAt, type: typeof(DateTimeGraphType));
         Field("updatedAt", x => x.UpdatedAt, type: typeof(DateTimeGraphType));
 

@@ -26,6 +26,15 @@ type Vendita = {
   __typename?: "Vendita";
   venditaId: number;
   registroCassaId: number;
+  /**
+   * L'ordine da cui questa riga è nata. `null` solo sulle righe di sviluppo battute col vecchio
+   * regime, quando `creaVendita` esisteva ancora.
+   *
+   * 🔴 **È il campo che dice se la riga si può ancora toccare**: con un ordine dietro,
+   *    `aggiornaVendita` ed `eliminaVendita` la rifiutano — si passa da `stornaOrdine`, che è
+   *    l'unico modo di disfare un incasso senza muovere i secchi una seconda volta.
+   */
+  ordineId?: number | null;
   prodottoId: number;
   quantita: number;
   prezzoUnitario: number;
@@ -42,18 +51,11 @@ type Vendita = {
   prodotto?: { prodottoId: number; codice: string; nome: string } | null;
 };
 
-type CreaVenditaInput = {
-  registroCassaId: number;
-  prodottoId: number;
-  quantita: number;
-  note?: string | null;
-  dataOra?: string | null;
-  /**
-   * Omesso vale contante **non** tracciato, l'unico dei tre che non muove alcun campo del
-   * registro: chi dimentica questo campo sbaglia per difetto, non gonfiando un incasso.
-   */
-  metodoPagamento?: MetodoPagamentoVendita | null;
-};
+/*
+ * 🔴 **`CreaVenditaInput` non esiste più.** Non c'è più alcuna porta che crei una vendita
+ *    direttamente: una vendita nasce solo dalla chiusura di un ordine, dove la guardia della
+ *    transizione garantisce che i secchi si muovano una volta sola. Vedi `ordine.d.ts`.
+ */
 
 type AggiornaVenditaInput = {
   prodottoId?: number | null;

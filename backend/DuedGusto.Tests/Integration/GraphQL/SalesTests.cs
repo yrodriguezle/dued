@@ -78,15 +78,31 @@ public class SalesTests : IDisposable
         return prodotto;
     }
 
+    /// <summary>
+    /// Una vendita con lo snapshot IVA già calcolato.
+    ///
+    /// <para>⚠️ Costruita a mano e non più da <c>CostruisciVendita</c>: quella factory è sparita
+    /// insieme a <c>creaVendita</c>, perché con gli ordini le <c>Vendita</c> nascono solo dentro
+    /// <c>ChiudiOrdineOrchestrator</c>. Lo scorporo resta invece quello di produzione —
+    /// <see cref="VenditeMutations.RicalcolaImportiSnapshot"/> — che è il punto in cui l'invariante
+    /// <c>Imponibile + ImportoIva == PrezzoTotale</c> vive davvero.</para>
+    /// </summary>
     private Vendita CreaVenditaConSnapshot(RegistroCassa registro, Prodotto prodotto, decimal quantita)
     {
-        // Stesso percorso di codice della mutation creaVendita
-        Vendita vendita = VenditeMutations.CostruisciVendita(prodotto, new CreaVenditaInput
+        var vendita = new Vendita
         {
             RegistroCassaId = registro.Id,
             ProdottoId = prodotto.ProdottoId,
             Quantita = quantita,
-        });
+            PrezzoUnitario = prodotto.Prezzo,
+            PrezzoTotale = quantita * prodotto.Prezzo,
+            AliquotaIva = prodotto.AliquotaIva,
+            DataOra = DateTime.UtcNow,
+            MetodoPagamento = MetodiPagamentoVendita.ContanteNonTracciato,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        };
+        VenditeMutations.RicalcolaImportiSnapshot(vendita);
         _dbContext.Vendite.Add(vendita);
         _dbContext.SaveChanges();
         return vendita;

@@ -1,35 +1,18 @@
 import { gql, TypedDocumentNode } from "@apollo/client";
 import { venditaFragment } from "./fragments";
 
-interface CreaVenditaData {
-  vendite: {
-    creaVendita: Vendita;
-  };
-}
-
-interface CreaVenditaVariables {
-  input: CreaVenditaInput;
-}
-
-/**
- * Batte una consumazione. Il server calcola lo snapshot IVA di riga, muove il secchio del
- * metodo scelto e ricalcola il breakdown del registro.
+/*
+ * 🔴 **`mutationCreaVendita` non esiste più**, e il campo `creaVendita` non esiste più nemmeno
+ *    nello schema: è una rimozione, non una deprecazione. Finché quel campo rispondeva, i due
+ *    regimi convivevano — uno che muove i secchi al momento della riga, uno che li muove alla
+ *    chiusura dell'ordine — cioè esattamente il difetto che gli ordini esistono per togliere.
+ *    Una vendita nasce ora **solo** dalla chiusura di un ordine: vedi
+ *    `graphql/ordini/mutations.tsx`, `mutationChiudiOrdine`.
  *
- * 🔴 **Non va mai ritentata automaticamente.** L'alimentazione dei secchi è per delta e quindi
- *    non è idempotente: la stessa vendita inviata due volte somma due volte l'importo a
- *    `IncassiElettronici`, e nessun controllo a valle se ne accorge. In caso di dubbio si
- *    ricarica lo scontrino e si guarda, invece di riprovare.
+ * ⚠️ Le due mutation qui sotto **rifiutano** ogni vendita nata da un ordine (`ordineId != null`)
+ *    e rimandano a `stornaOrdine`: correggere lì muoverebbe i secchi una seconda volta. Restano
+ *    in piedi per le sole righe di sviluppo nate col vecchio regime.
  */
-export const mutationCreaVendita: TypedDocumentNode<CreaVenditaData, CreaVenditaVariables> = gql`
-  ${venditaFragment}
-  mutation CreaVendita($input: CreaVenditaInput!) {
-    vendite {
-      creaVendita(input: $input) {
-        ...VenditaFragment
-      }
-    }
-  }
-`;
 
 interface AggiornaVenditaData {
   vendite: {

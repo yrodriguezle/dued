@@ -1,6 +1,7 @@
 export const venditaFragment = `fragment VenditaFragment on Vendita {
   venditaId
   registroCassaId
+  ordineId
   prodottoId
   quantita
   prezzoUnitario

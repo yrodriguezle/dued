@@ -1,6 +1,7 @@
 using GraphQL;
 using GraphQL.Types;
 using Microsoft.EntityFrameworkCore;
+using duedgusto.Common;
 using duedgusto.DataAccess;
 using duedgusto.Services.GraphQL;
 
@@ -114,6 +115,86 @@ public class VenditeQueries : ObjectGraphType
                 var id = context.GetArgument<int>("id");
                 return await dbContext.Vendite
                     .FirstOrDefaultAsync(s => s.VenditaId == id);
+            });
+
+        // ── Ordini ──────────────────────────────────────────────────────────────────────────
+
+        Field<OrdineType>("ordine")
+            .Description("Un ordine per id, in qualunque stato.")
+            .Argument<NonNullGraphType<IntGraphType>>("id", "ID ordine")
+            .ResolveAsync(async context =>
+            {
+                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                var id = context.GetArgument<int>("id");
+                return await dbContext.Ordini.FirstOrDefaultAsync(o => o.OrdineId == id);
+            });
+
+        Field<NonNullGraphType<ListGraphType<NonNullGraphType<OrdineType>>>>("ordiniDelRegistro")
+            .Description("Gli ordini di un registro, filtrabili per stato. Omettere `stati` "
+                + "restituisce tutto lo storico del giorno, annullati e stornati compresi.")
+            .Argument<NonNullGraphType<IntGraphType>>("registroCassaId", "ID registro cassa")
+            .Argument<ListGraphType<NonNullGraphType<StringGraphType>>>("stati", "Stati ammessi")
+            .ResolveAsync(async context =>
+            {
+                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                var registroCassaId = context.GetArgument<int>("registroCassaId");
+                var stati = context.GetArgument<List<string>?>("stati");
+
+                IQueryable<Ordine> query = dbContext.Ordini
+                    .Where(o => o.RegistroCassaId == registroCassaId);
+
+                if (stati is { Count: > 0 })
+                {
+                    // Uno stato scritto male darebbe una lista vuota, che si legge come «non ci
+                    // sono ordini» invece che «hai sbagliato il filtro»: il caso peggiore, perché
+                    // il vuoto è una risposta legittima e nessuno la mette in dubbio.
+                    foreach (string stato in stati.Where(s => !StatiOrdine.IsAmmesso(s)))
+                    {
+                        throw new ExecutionError(
+                            $"Stato ordine non ammesso: {stato}. Valori ammessi: " +
+                            string.Join(", ", StatiOrdine.Ammessi) + ".");
+                    }
+
+                    query = query.Where(o => stati.Contains(o.Stato));
+                }
+
+                return await query
+                    .OrderBy(o => o.Numero)
+                    .ThenBy(o => o.SuffissoSplit)
+                    .ToListAsync();
+            });
+
+        // 🔴 L'ARGOMENTO È OPZIONALE, E NON È UNA COMODITÀ.
+        //    Omesso, questa query restituisce gli ordini aperti di TUTTI i registri, e deve farlo.
+        //    Un ordine aperto alle 23:50 appartiene al registro di IERI — decisione della issue:
+        //    finché la cassa non si chiude, tutto resta nel giorno di apertura — quindi un filtro
+        //    su «oggi» lo farebbe sparire dall'elenco alle 00:05. Siccome la chiusura di cassa si
+        //    blocca finché ci sono ordini aperti, il registro di ieri resterebbe bloccato per
+        //    sempre da un ordine invisibile, con un blocco che non mostra la propria causa.
+        //    Chi consuma questa query mostra `dataRegistro` su ogni riga: è così che l'operatore
+        //    vede che quell'ordine è di ieri invece di cercarlo fra quelli di oggi.
+        Field<NonNullGraphType<ListGraphType<NonNullGraphType<OrdineType>>>>("ordiniAperti")
+            .Description("Gli ordini in stato APERTO. Senza registroCassaId li restituisce di "
+                + "TUTTI i registri: un ordine aperto ieri e non ancora incassato deve restare "
+                + "visibile, o bloccherebbe la chiusura di ieri senza farsi trovare.")
+            .Argument<IntGraphType>("registroCassaId", "Limita a un solo registro. Opzionale.")
+            .ResolveAsync(async context =>
+            {
+                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                int? registroCassaId = context.GetArgument<int?>("registroCassaId");
+
+                IQueryable<Ordine> query = dbContext.Ordini
+                    .Where(o => o.Stato == StatiOrdine.Aperto);
+
+                if (registroCassaId.HasValue)
+                {
+                    query = query.Where(o => o.RegistroCassaId == registroCassaId.Value);
+                }
+
+                // Per istante di apertura: il più vecchio in cima, che è anche il più urgente da
+                // chiudere. Ordinare per data del registro darebbe lo stesso esito passando però
+                // da una join, e l'ordine dentro la giornata coincide con il progressivo.
+                return await query.OrderBy(o => o.ApertoIl).ToListAsync();
             });
 
         // Get product categories

@@ -38,6 +38,21 @@ public class Vendita
     /// <summary>IVA di riga (PrezzoTotale − Imponibile), parte dello snapshot.</summary>
     public decimal ImportoIva { get; set; }
 
+    /// <summary>
+    /// L'<see cref="Models.Ordine"/> alla cui chiusura questa vendita è nata.
+    ///
+    /// <para>⚠️ <b>Nullable solo per le righe di sviluppo nate prima degli ordini.</b> Con gli
+    /// ordini una <c>Vendita</c> nasce esclusivamente nella chiusura di un ordine, quindi in
+    /// produzione — dove la tabella <c>Vendite</c> è vuota — questo campo è di fatto obbligatorio
+    /// dal primo giorno. La query di controllo post-deploy è
+    /// <c>SELECT COUNT(*) FROM Vendite WHERE OrdineId IS NULL</c>: atteso 0.</para>
+    ///
+    /// <para>È il campo su cui poggia la guardia che impedisce di modificare o cancellare a mano
+    /// una vendita nata da un ordine: quella si disfa <b>stornando l'ordine</b>, o il delta sui
+    /// secchi resterebbe applicato senza più la riga che lo giustifica.</para>
+    /// </summary>
+    public int? OrdineId { get; set; }
+
     // Metadati
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
@@ -45,4 +60,5 @@ public class Vendita
     // Navigation properties
     public RegistroCassa RegistroCassa { get; set; } = null!;
     public Prodotto Prodotto { get; set; } = null!;
+    public Ordine? Ordine { get; set; }
 }
