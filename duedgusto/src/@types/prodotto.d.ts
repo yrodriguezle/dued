@@ -27,6 +27,12 @@ type ProdottoCassa = {
   attivo: boolean;
   /** Aliquota in PERCENTUALE (es. `10` = 10%), non in frazione. Ammesse: 0, 4, 5, 10, 22. */
   aliquotaIva: number;
+  /**
+   * Ordine della tessera nella griglia del punto vendita, **dentro la sua categoria**.
+   * `0` significa «mai ordinato» e non «primo»: il pareggio su `codice` manda in coda chi non
+   * è stato disposto a mano. ⚠️ Non è `ordinamentoVetrina`, che dispone i piatti sul sito.
+   */
+  ordinamento: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -45,4 +51,10 @@ type ProdottoCassaInput = {
   unitaDiMisura?: string | null;
   attivo: boolean;
   aliquotaIva: number;
+  /**
+   * 🔴 **Opzionale, e conta che lo resti.** `UpsertProdottoAsync` scrive l'ordinamento solo se
+   * l'input lo porta: ometterlo significa «non toccare». Inviare `0` per riempire il campo lo
+   * riporterebbe in coda, che è l'opposto di non decidere.
+   */
+  ordinamento?: number | null;
 };

@@ -136,7 +136,7 @@ public static class SeedMenusSito
                 Percorso = string.Empty,
                 Icona = "Globe",
                 Visibile = true,
-                Posizione = 9,
+                Posizione = 10,
                 NomeVista = string.Empty,
                 PercorsoFile = string.Empty,
                 MenuPadreId = null
@@ -149,7 +149,7 @@ public static class SeedMenusSito
         else
         {
             bool needsUpdate = false;
-            SeedMenus.UpdateMenuIfNeeded(sitoMenu, "Sito", null, "Globe", true, 9, null, null, superAdminRuolo, null, ref needsUpdate);
+            SeedMenus.UpdateMenuIfNeeded(sitoMenu, "Sito", null, "Globe", true, 10, null, null, superAdminRuolo, null, ref needsUpdate);
             SeedMenus.AssegnaRuoli(sitoMenu, ruoliSito, ref needsUpdate);
             if (needsUpdate)
             {

@@ -1213,7 +1213,13 @@ e `cd duedgusto && npm run test -- <file>` per il frontend.
 ## Phase 10: B — Gruppi di prodotti e varianti
 
 Dipende da A (i gruppi servono a riempire un ordine). Dopo la chiusura delle decisioni di Fase 0,
-**tutta la fase è eseguibile tranne 10.1 e 10.2**, che aspettano la sola lista di listino (0.1).
+**tutta la fase è eseguibile tranne 10.1 e 10.2**, che aspettano la sola lista di listino (0.1), e
+**10.14**, che aspetta una decisione di UI.
+
+La fase tiene insieme **tre assi di ordinamento distinti**, che è bene non confondere:
+`ProdottoGruppo.Ordinamento` (10.3) ordina le varianti **dentro un tastone di gruppo**;
+`Prodotto.Ordinamento` (10.10) ordina le tessere **dentro la categoria** nella griglia principale;
+`Prodotto.OrdinamentoVetrina`, che esiste già, ordina i piatti **sul sito** e non c'entra con la cassa.
 🔴 La distinzione che regge questa fase: **il meccanismo non ha bisogno dei dati**. Schema, migrazione,
 seeder parametrico, pagina di gestione e tastoni si costruiscono e si testano con gruppi e prodotti
 inventati dal test; solo il *contenuto* del listino reale è fermo.
@@ -1234,7 +1240,7 @@ inventati dal test; solo il *contenuto* del listino reale è fermo.
   in anagrafica per sempre: la tabella arriva a ~161 righe di cui 14 spente.
   **Verifica**: le 14 voci non compaiono più in `prodotti(ricerca, categoria)` ma esistono ancora a
   database.
-- [ ] 10.3 **[SBLOCCATO da 0.3 — molti-a-molti]** Nuovo `backend/Models/GruppoProdotti.cs` più
+- [x] 10.3 **FATTO** — Nuovo `backend/Models/GruppoProdotti.cs` più
   l'entità di appartenenza `ProdottoGruppo`: **join esplicita** con chiave composita
   `{GruppoProdottiId, ProdottoId}` e payload `Ordinamento` (ordine manuale dentro il gruppo, pareggio
   su `Prodotto.Codice`). Configurazione in `backend/DataAccess/AppDbContext.cs`.
@@ -1249,11 +1255,11 @@ inventati dal test; solo il *contenuto* del listino reale è fermo.
   esiste a parte per il tastone del gruppo. Vedi `design.md` §«il colore esplicito sta su `Prodotto`».
   **Verifica**: `dotnet build`; test che lo stesso prodotto può appartenere a due gruppi e comparire in
   entrambi con ordinamenti diversi.
-- [ ] 10.4 **[SBLOCCATO da 0.3]** Migrazione `dotnet ef migrations add AddGruppiProdotti` e riscontro
+- [x] 10.4 **FATTO** — migrazione `dotnet ef migrations add AddGruppiProdotti` e riscontro
   del DDL. Separata da 10.3 come richiede `config.yaml`.
   **Verifica**: la migrazione si applica all'avvio senza errori; il DDL contiene `CREATE TABLE
   GruppiProdotti`, l'indice unico su `Codice` e `CREATE TABLE ProdottiGruppi` con chiave composita.
-- [ ] 10.5 **[ESEGUIBILE SUBITO]** — `backend/Models/Prodotto.cs`: campo `Colore` (`string?`, nullable), il
+- [x] 10.5 **FATTO** — `backend/Models/Prodotto.cs`: campo `Colore` (`string?`, nullable), il
   colore editoriale della bevanda (Liscio bianco, Aperol arancione, Campari rosso, Cynar viola), che
   quando è valorizzato **vince** sul colore generato dalla categoria. Configurazione in
   `AppDbContext.cs`; campo negli input e nei type di `mutateProdotto`.
@@ -1263,18 +1269,18 @@ inventati dal test; solo il *contenuto* del listino reale è fermo.
   appartiene alla cassa, non alla vetrina, quindi va in `ProdottoInput` — a differenza dei campi
   vetrina, che non devono mai comparirvi.
   **Verifica**: `dotnet build`; test che un upsert senza `Colore` non azzera quello esistente.
-- [ ] 10.6 Migrazione della colonna `Prodotti.Colore` — `varchar(20)` nullable, nessun backfill
+- [x] 10.6 **FATTO (accorpata in 10.4)** — colonna `Prodotti.Colore` — `varchar(20)` nullable, nessun backfill
   (l'assenza significa «usa il colore generato», che è il comportamento di oggi).
   ℹ️ `design.md` la **accorpa in `AddGruppiProdotti`** (10.4), non in una migrazione propria: sono la
   stessa fase B e la stessa finestra di deploy, e due migrazioni consecutive sulla stessa fase
   moltiplicano i `Down()` da tenere simmetrici senza guadagno. Se 10.4 è già stata generata, questa è
   una `dotnet ef migrations add AddColoreProdotto` a sé; altrimenti si genera una volta sola.
   **Verifica**: DDL con `AddColumn<string>` nullable (`maxLength: 20`) e `Down()` simmetrico.
-- [ ] 10.7 `duedgusto/src/components/pages/vendite/coloriProdotto.tsx` — `coloreProdotto()` ritorna il
+- [x] 10.7 **FATTO** — `duedgusto/src/components/pages/vendite/coloriProdotto.tsx` — `coloreProdotto()` ritorna il
   colore esplicito quando presente, altrimenti quello generato dalla categoria come oggi.
   **Verifica**: `__tests__/coloriProdotto.test.tsx` esteso — colore esplicito vince, assenza ricade
   sul generato, il generato resta identico a prima per i prodotti senza colore.
-- [ ] 10.8 **[SBLOCCATO da 0.3]** Pagina di gestione dei gruppi: si crea il gruppo e ci si mettono
+- [x] 10.8 **FATTO** — pagina di gestione dei gruppi: si crea il gruppo e ci si mettono
   dentro i prodotti. È un raggruppamento libero, non per prezzo né per gusto.
   ℹ️ Lo stampo esiste: `duedgusto/src/components/pages/roles/RoleDetails.tsx` +
   `RoleMenus.tsx` assegnano già un molti-a-molti con AG Grid a selezione multipla. Qui AG Grid **sì**:
@@ -1283,7 +1289,7 @@ inventati dal test; solo il *contenuto* del listino reale è fermo.
   come un errore, e l'ordinamento (`ProdottoGruppo.Ordinamento`) è **per gruppo**, non per prodotto.
   **Verifica**: creare un gruppo, assegnarvi tre prodotti, riaprire la pagina e ritrovarli **nello
   stesso ordine**; assegnare uno di quei tre anche a un secondo gruppo e ritrovarlo in entrambi.
-- [ ] 10.9 **[SBLOCCATO da 0.3]** Tastoni di gruppo in `PuntoVendita.tsx`: la griglia mostra i
+- [x] 10.9 **FATTO** — tastoni di gruppo in `PuntoVendita.tsx`: la griglia mostra i
   **gruppi** più i prodotti non raggruppati, non tutte le ~147 voci. Il tocco sul gruppo apre la
   griglia delle varianti — pulsanti, non AG Grid.
   ℹ️ «Non raggruppato» con il molti-a-molti è `!p.Gruppi.Any()`, non `p.GruppoId == null`: anti-join su
@@ -1292,6 +1298,81 @@ inventati dal test; solo il *contenuto* del listino reale è fermo.
   deduplicare: è il motivo per cui il molti-a-molti esiste.
   **Verifica**: con un gruppo «Spritz» di 4 varianti, la griglia principale mostra un tastone invece
   di quattro.
+
+### Ordinamento manuale dei prodotti dentro la categoria
+
+Richiesta dell'utente (29 agosto 2026): «nella categoria CAFETERIA voglio che il caffè espresso
+appaia per primo, poi x, poi y». È un asse **distinto** dall'ordinamento dentro il gruppo
+(`ProdottoGruppo.Ordinamento`, 10.3): quello dice l'ordine delle varianti dentro un tastone, questo
+dice l'ordine delle tessere nella griglia principale, filtrata per categoria.
+
+🔴 **Oggi l'ordine è alfabetico per codice e non è governabile.**
+`backend/GraphQL/Vendite/VenditeQueries.cs:55` fa `.OrderBy(p => p.Codice)`; il frontend non
+riordina mai (`PuntoVendita.tsx:142`, filtra e basta). Quindi la posizione di un prodotto al bancone
+è decisa dalla convenzione dei codici `CATEGORIA-NOME` (#19 D2) — cioè dall'alfabeto, non da quanto
+spesso lo si batte. L'espresso, che è la voce più battuta della giornata, sta dove capita.
+
+ℹ️ **Il precedente esiste già in casa**: `Prodotto.OrdinamentoVetrina` (int) fa esattamente questo
+per il sito, ed è editabile in griglia da `duedgusto/src/components/pages/sito/VetrinaProdottiList.tsx:318`.
+Qui serve il gemello di cassa. ⚠️ **Sono due campi distinti e devono restare tali**: l'ordine con cui
+i piatti si presentano al cliente sul sito e l'ordine con cui la mano li trova al bancone non hanno
+motivo di coincidere, e `OrdinamentoVetrina` è per costruzione fuori da `ProdottoInput` (§D8).
+
+- [x] 10.10 **FATTO** — `backend/Models/Prodotto.cs` — campo `Ordinamento` (`int`,
+  default `0`), l'ordine manuale della tessera **dentro la sua categoria**. Configurazione in
+  `AppDbContext.cs`; campo in `ProdottoInput` e `ProdottoType`.
+  🔴 **`Ordinamento` è di cassa, quindi va in `ProdottoInput`** — al contrario di `OrdinamentoVetrina`,
+  che non deve mai comparirvi. Stesso confine già discusso per `Colore` in 10.5.
+  ⚠️ **Trappola dell'`int` non nullable in `UpsertProdottoAsync`**: quel metodo assegna **ogni** campo
+  esplicitamente, quindi un upsert che non invia `Ordinamento` lo riporterebbe a `0` — cioè
+  rimescolerebbe la griglia a ogni salvataggio dell'anagrafica. Il campo va trattato come
+  `Colore`: si scrive solo quando l'input lo porta.
+  **Verifica**: `dotnet build`; test che un upsert senza `Ordinamento` **non azzera** quello esistente.
+- [x] 10.11 **FATTO** — migrazione della colonna `Prodotti.Ordinamento` — `int NOT NULL DEFAULT 0`, **nessun
+  backfill**.
+  🔴 Lo zero universale è la scelta che rende il cambio invisibile il giorno del deploy: con tutti i
+  prodotti a `0` il pareggio su `Codice` (10.12) riproduce **esattamente** l'ordine di oggi. Un
+  backfill che numerasse le righe darebbe lo stesso ordine iniziale ma renderebbe indistinguibile
+  «mai ordinato» da «ordinato apposta lì», e non si tornerebbe più indietro.
+  ℹ️ Da accorpare in `AddGruppiProdotti` (10.4) insieme a `Prodotti.Colore` (10.6) se quella
+  migrazione non è ancora stata generata: stessa fase, stessa finestra di deploy, un solo `Down()`
+  da tenere simmetrico.
+  **Verifica**: DDL con `AddColumn<int>(nullable: false, defaultValue: 0)` e `Down()` simmetrico.
+- [x] 10.12 **FATTO** — `backend/GraphQL/Vendite/VenditeQueries.cs:55` — l'ordinamento della query `prodotti`
+  passa da `.OrderBy(p => p.Codice)` a `.OrderBy(p => p.Ordinamento).ThenBy(p => p.Codice)`.
+  🔴 **Il pareggio su `Codice` non è un dettaglio**: è ciò che tiene deterministico l'ordine fra i
+  prodotti mai ordinati (tutti a `0`) e che rende il deploy un no-op visivo.
+  ⚠️ L'ordinamento è **globale, non per categoria**, e va bene così: la griglia mostra una categoria
+  per volta (`PuntoVendita.tsx:144`), quindi due prodotti di categorie diverse non si confrontano mai
+  a schermo. Un `Ordinamento` scoped per categoria richiederebbe una chiave composita e una
+  rinumerazione a ogni cambio di categoria di un prodotto, per un guadagno che nessuno vede.
+  ℹ️ Sotto «Tutte» le categorie si intercalano secondo i numeri scelti. È l'unico punto in cui la
+  scelta globale si nota, ed è un elenco di consultazione, non il gesto del bancone.
+  **Verifica**: test di integrazione — tre prodotti della stessa categoria con `Ordinamento` 2/1/3
+  tornano nell'ordine 1/2/3; tre prodotti tutti a `0` tornano in ordine di codice.
+- [x] 10.13 **FATTO** — `duedgusto/src/components/pages/prodotti/ProdottiList.tsx`: colonna «Ordine»
+  editabile e ordinabile, con lo stampo di `VetrinaProdottiList.tsx:318`, collocata dopo Categoria.
+  ⚠️ **SCOSTAMENTO DAL PIANO, deliberato.** Il task chiedeva di riordinare la lista per `categoria`
+  poi `ordinamento`; l'ordinamento di default **resta `codice ASC`**. Visto il codice, quel cambio
+  peggiorava il caso d'uso principale della pagina — trovare un prodotto — per servirne uno raro, e
+  AG Grid dà già il sorting per colonna: la colonna è `sortable`, chi vuole vedere l'effetto ordina
+  di lì. 🔴 Il valore `0` **non si stampa**: è l'assenza di una scelta, e un listino di 147 zeri
+  nasconderebbe le poche righe davvero disposte a mano.
+  ℹ️ Il default a `0` è anche nella bozza di riga nuova (`nuovaBozza`): un prodotto appena creato non
+  scavalca al bancone le tessere che qualcuno ha disposto.
+- [ ] 10.14 **[DECISIONE APERTA — non implementare prima di scioglierla]** L'interazione fra
+  l'ordinamento e il **colore** delle tessere.
+  `coloriProdotto.tsx:130` assegna l'indice di luminosità ordinando per `codice`
+  (`indiciPerCategoria`), quindi oggi la gradazione segue l'alfabeto — che è anche l'ordine a
+  schermo. Introdotto `Ordinamento`, i due si separano e c'è da scegliere:
+  - **Ancorare al codice** (nessuna modifica): il colore di una tessera **non cambia mai**, ma
+    riordinando la griglia le gradazioni si mescolano e la fila non ha più una progressione leggibile.
+  - **Ancorare all'`Ordinamento`**: la gradazione segue la fila, ma **ogni riordino ricolora** le
+    tessere a valle — e il codice avverte esplicitamente che «la mano ha già imparato dov'era il
+    pulsante» (`PuntoVendita.tsx:151`).
+  ℹ️ Il riordino è raro e deliberato, la lettura della fila è quotidiana: è l'argomento a favore del
+  secondo. Ma è una scelta di UI e la fa l'utente.
+  **Verifica**: `__tests__/coloriProdotto.test.tsx` esteso secondo la decisione presa.
 
 ---
 
@@ -1311,3 +1392,185 @@ inventati dal test; solo il *contenuto* del listino reale è fermo.
   nascono solo in `ChiudiOrdineOrchestrator`, e un ordine aperto non tocca né i secchi né il
   breakdown IVA. È l'invariante su cui poggia tutto il resto e va scritta dove la si cerca.
   **Verifica**: rilettura a mano.
+
+---
+
+## Phase 12: Ordini in parallelo e voce «Ordini» in sidebar
+
+Richiesta dell'utente (29 agosto 2026), che **corregge la priorità** data nei commenti della #24:
+«arrivano due ordini in contemporanea oppure a cavallo, non ho la possibilità di aprire il secondo
+ordine senza aver chiuso il primo — per quello avevo chiesto la lista degli ordini».
+
+🔴 **La lista non era la richiesta: era il rimedio a questa.** Nel commento della issue gli ordini
+multipli erano stati archiviati come «comportamento attuale, coerente con la decisione *conto per
+volta*, da riaprire nel prossimo giro **se** al banco serve». Non era un *se*: è il caso ordinario
+del bancone, e senza di esso il secondo cliente aspetta che il primo paghi.
+
+### Quanto è già in piedi — verificato sul codice, non assunto
+
+| Pezzo | Stato |
+|---|---|
+| **Più ordini aperti insieme** | ✅ **già regge**, per costruzione: è la ragione per cui la guardia della chiusura di cassa esiste e per cui `ordiniAperti` non filtra sul registro di oggi |
+| **Identificativo per distinguerli** | ✅ **già esiste**: `Ordine.Numero` progressivo per registro + `SuffissoSplit`, resi come `260828-017` (`OrdiniQueriesTests.cs:268`) |
+| **Elenco degli aperti** | ✅ `OrdiniAperti.tsx`, con totale, data del registro e le due uscite (incassa / annulla) |
+| **Riprendere un ordine dalla lista** | ✅ **già implementato**: `onRiprendi` → `handleRiprendi` (`PuntoVendita.tsx:305`) fa `setOrdineCorrenteId(ordine.ordineId)` |
+| **Aprire un ordine NUOVO mentre uno è in corso** | 🔴 **manca, ed è l'unico vero blocco** |
+| **Arrivarci di proposito** | 🔴 manca: `OrdiniAperti` è un componente, non una pagina |
+
+🔴 **Dove sta esattamente il blocco.** `assicuraOrdine` (`PuntoVendita.tsx:181-183`) apre in
+`ref` — non in stato — e **la prima cosa che fa è restituire `ordineCorrenteId` se c'è**. Quindi
+finché un ordine è corrente, ogni tocco su un prodotto ci finisce dentro. L'unico modo di tornare a
+`null` è `setOrdineCorrenteId(null)`, che compare in due soli punti: dopo l'incasso (riga 266) e dopo
+l'annullo (riga 295). **Non esiste un gesto che apra un secondo ordine**, ed è precisamente il
+sintomo descritto: per battere il secondo cliente bisogna prima chiudere il primo.
+
+ℹ️ La `ref` di apertura in volo va lasciata com'è: serve a far attendere due tocchi ravvicinati sulla
+**stessa** apertura. Il gesto nuovo le si affianca, non la sostituisce.
+
+- [x] 12.1 **FATTO** — gesto **«nuovo ordine»** esplicito in `PuntoVendita.tsx`:
+  mette `ordineCorrenteId` a `null` e lascia che il tocco successivo apra l'ordine, riusando
+  `assicuraOrdine` così com'è. L'ordine lasciato indietro **resta aperto** e si ritrova nell'elenco.
+  ⚠️ Il gesto va **confermato o reso evidente**, non silenzioso: un tocco che sposta il conto senza
+  dirlo fa finire lo spritz del secondo cliente sull'ordine del primo, che è l'errore che questa
+  fase esiste per togliere.
+  ⚠️ Non azzerare `aperturaInVolo.current`: se un'apertura è in volo, il nuovo ordine si chiede
+  **dopo** che è atterrata, o si aprono due ordini per un tocco solo.
+  ✅ **Come è stato fatto**: `IconButton` «Nuovo ordine» (`PostAddIcon`) nella barra bassa, visibile
+  **solo** con un ordine corrente — a pagina appena aperta il primo tocco apre già un ordine da sé, e
+  un bersaglio in più a 360 px si paga in errori. `handleNuovoOrdine` azzera `ordineCorrenteId` e
+  nient'altro: `assicuraOrdine` apre solo quando non c'è un corrente, quindi il gesto **riusa**
+  l'apertura implicita invece di duplicarne una seconda che potrebbe divergerne.
+  ✅ **Evidenza del gesto, senza un tocco in più**: nessuna conferma modale — la barra torna a
+  «Nessun ordine aperto» e un toast dice *quale* conto è stato messo da parte. Senza il numero,
+  «un altro ordine» non aiuta a ritrovarlo fra due minuti.
+  ✅ `aperturaInVolo` **non** viene azzerata, come da avvertenza. Il pulsante compare solo con un
+  ordine corrente già caricato, cioè quando nessuna apertura è più in volo.
+  **Verifica**: ✅ tre test in `PuntoVendita.test.tsx` › «ordini in parallelo».
+- [x] 12.2 **GIÀ IN PIEDI — nessun lavoro necessario.** La barra bassa mostra già
+  «Ordine 260829-007 · 2 voci» e il totale corrente, ed è coperta da un test esistente. Il task era
+  stato scritto senza averlo verificato: la pagina lo faceva già dalla Fase 8.
+  🔴 Con un ordine solo l'indicatore è un lusso; con due in piedi è **la garanzia che serve prima di
+  toccare un prodotto**. Il costo dell'ambiguità non è un fastidio: è una consumazione battuta sul
+  conto sbagliato, che si scopre alla cassa.
+  ℹ️ Da coordinare con 12.1: sono lo stesso gesto visto dai due lati — «su quale sto battendo» e
+  «passa a un altro».
+  **Verifica**: con due ordini aperti, l'identificativo a schermo cambia riprendendo l'altro.
+- [ ] 12.3 **[DECISIONE APERTA — non implementare prima di scioglierla]** Basta il numero a
+  distinguere due ordini **agli occhi dell'operatore**?
+  `260828-017` individua l'ordine senza ambiguità per la macchina e per la stampa, ma non dice *di
+  chi è*. Con due conti in piedi la domanda vera al bancone è «qual è quello dei due spritz al
+  tavolo fuori», e un progressivo non risponde.
+  - **Solo il numero** (nessun lavoro): zero campi nuovi; l'operatore si orienta sul contenuto delle
+    righe, che l'elenco già mostra.
+  - **Etichetta libera opzionale** su `Ordine` (`string?`, es. «tavolo fuori», «signora bionda»):
+    un campo, una migrazione, un input alla nascita dell'ordine — che però **aggiunge un tocco
+    davanti al gesto più frequente**, a meno di lasciarla vuota per default e modificabile dopo.
+  ℹ️ 🔴 Se si sceglie l'etichetta, **non chiamarla `Tavolo`**: la decisione «si gestisce l'ordine, non
+  il tavolo» è nella issue e un nome fa da promessa. Vale lo stesso avvertimento già speso su `Resto`.
+  ℹ️ Con due o tre ordini il contenuto delle righe probabilmente basta; il numero non regge quando
+  diventano cinque. Vale la pena partire dal numero e aggiungere l'etichetta se il banco la chiede.
+  **Verifica**: dipende dalla decisione.
+- [x] 12.4 **FATTO** — voce «Ordini» in sidebar — opzione B già scelta dall'utente** nei commenti della #24:
+  `Vendita` e `Ordini` **sorelle**, entrambe `MenuPadreId = null`, entrambe in un tocco. Seed dedicato
+  sullo stampo di `SeedMenusVendita.cs`, `Posizione` subito dopo `Vendita`.
+  🔴 **La Fase 1 non si disfa**: `Vendita` resta a `Posizione = 0`. Ci si affianca, non la si annida.
+  ⚠️ **Rinumerare le voci di primo livello successive** (oggi 0..9, tutte distinte):
+  `AuthenticationDataLoaders` ordina per `Posizione` **senza tie-break**, quindi due voci a pari
+  posizione cadrebbero sull'Id — un ordine che nessuno ha scelto.
+  ⚠️ `SeedMenus.AssegnaRuoli` solo **aggiunge** ruoli e non li toglie mai: come «Vendita», la voce è
+  per chiunque sia autenticato (decisione 0.4), e restringere in futuro costa SQL sul VPS.
+  **Verifica**: dopo il riavvio la sidebar mostra `Ordini` accanto a `Vendita`; nessuna posizione
+  duplicata fra le voci di primo livello.
+- [x] 12.5 **FATTO — `ConciergeBell`.** Il test `iconeDelSeed` pretende ora l'**unicità
+  globale** e nessuna icona già in `iconMapping.tsx` è libera: va aggiunta da `lucide-react`, come si
+  è fatto con `HandCoins`. Candidati: `ReceiptText`, `ScrollText`, `NotepadText`, `ListChecks`.
+  ⚠️ **Sceglierla guardando la forma accanto alle altre, non il nome**: `ListChecks` e `List` (Lista
+  fornitori) sono due pile di righe e il test — che confronta i nomi — non se ne accorgerebbe.
+  **Verifica**: `iconeDelSeed` verde; riscontro visivo della sidebar.
+- [x] 12.6 **FATTO** — pagina che monta `OrdiniAperti` come vista di primo livello, **senza perdere i due usi
+  attuali** (`PuntoVendita.tsx:603` e `RegistroCassaDetails.tsx:742`), che restano validi.
+  ℹ️ Oggi il componente vive come modale (`Dialog` con `aperto` / `onChiudi`): come pagina non ha un
+  «chiudi» né un chiamante a cui tornare. O si estrae il corpo dell'elenco dal guscio della modale, o
+  la pagina si trova a montare una modale sempre aperta che non si può chiudere.
+  ⚠️ `onRiprendi` è **opzionale** e dalla pagina non c'è un punto vendita a cui consegnare l'ordine:
+  o la pagina naviga verso `Vendita` con l'ordine scelto, o lì l'azione non si offre. Scegliere, e
+  non lasciare che il caso sia deciso da un `undefined`.
+  **Verifica**: la pagina elenca gli stessi ordini della modale; i due usi esistenti continuano a
+  funzionare.
+- [x] 12.7 **FATTO** — route dinamica: la voce vive a database con `Percorso`, `NomeVista` e `PercorsoFile`,
+  come tutte le altre (`ProtectedRoutes.tsx` → `loadDynamicComponent()`).
+  **Verifica**: navigazione diretta all'URL della voce; nessun errore di caricamento dinamico.
+- [x] 12.8 **FATTO** — test frontend degli ordini in parallelo, in `PuntoVendita.test.tsx`.
+  🔴 **Il doppio di Apollo teneva UN ordine solo** (`let ordine`), quindi il caso vero del bancone
+  era inesprimibile e un test sarebbe passato anche con una pagina che sovrascrive il primo ordine
+  con il secondo — cioè proprio il guasto da escludere. Il doppio ora tiene una **lista**:
+  `apriOrdine` conia un id e un numero nuovi a ogni chiamata, `GetOrdine` risponde **per id** e
+  `AggiungiRigaOrdine` scrive sull'ordine che la pagina indica, non sull'ultimo aperto.
+  ✅ Sei casi, due aggiunti con la pagina «Ordini»: la ripresa da lì non apre un ordine nuovo, e
+  lo `state` della navigazione si consuma con un `replace` — senza, un ritorno indietro nel
+  browser rimetterebbe la pagina su quell'ordine e la voce successiva finirebbe sul conto
+  sbagliato.
+  ✅ Quattro casi originari: il secondo ordine nasce senza chiudere il primo; il primo resta `APERTO` con la
+  sua riga e il suo totale; le due voci finiscono su `ordineId` **diversi** (55 e 56); e senza un
+  ordine in corso il pulsante non si offre.
+  🔴 È l'invariante che questa fase introduce e l'unica che, se si rompe, produce **danno contabile
+  silenzioso**: una consumazione sul conto sbagliato non lascia traccia di errore, chiude
+  regolarmente e sposta soldi fra due incassi entrambi plausibili.
+  **Verifica**: `cd duedgusto && npm run test` verde.
+
+
+---
+
+## Consuntivo delle fasi 10 e 12 — 29 agosto 2026
+
+**Suite**: backend da 986 a **998** verdi, frontend da 934 a **943** verdi; `ts:check` e `lint`
+puliti. Nulla committato.
+
+### Scelte prese durante l'apply, che il piano non fissava
+
+- 🔴 **`ConciergeBell` per «Ordini»**, e la scelta è di *forma* prima che di nome. I candidati che
+  il piano suggeriva erano tutti pile di righe o fogli: `ListChecks` accanto a `List` (Lista
+  fornitori), `ReceiptText` accanto a `Receipt` (Lista fatture), `NotepadText` accanto a
+  `FileText`. `iconeDelSeed` confronta i **nomi** e non se ne sarebbe accorto, ma a cassetto
+  chiuso `NestedList` mette `opacity: 0` sulle etichette e l'icona **è** la voce.
+- 🔴 **`Layers` per «Gruppi prodotti»**, per la stessa ragione: `Boxes` e `Blocks` sarebbero stati
+  il secondo pacco accanto a `PackageSearch` di «Prodotti», e le due voci stanno nello stesso
+  cassetto una sotto l'altra.
+- ⚠️ **La rinumerazione ha toccato tre file e due rami per voce.** Le posizioni di primo livello
+  erano 0..9 senza buchi: «Ordini» in 1 ha spostato di uno le nove sotto, in `SeedMenus.cs`,
+  `SeedMenusSito.cs` e su entrambi i rami dell'idempotenza (creazione + `UpdateMenuIfNeeded`).
+  🔴 Il ramo di allineamento di «Sito» portava la posizione **hardcoded separatamente** dal ramo
+  di creazione: correggerne uno solo avrebbe lasciato la voce a oscillare fra due posizioni a
+  ogni riavvio. `LeVociDiPrimoLivello_NonCondividonoUnaPosizione` è il test che lo sorveglia.
+- **`OrdiniAperti` si è spaccato in due**: `ElencoOrdiniAperti` (query, mutation, dialog) e il
+  guscio `OrdiniAperti` (il `Drawer` più il pulsante «Chiudi»). I due usi storici non cambiano
+  una riga. Il «Chiudi» sta nel guscio perché da una pagina non ha un chiamante a cui tornare.
+- **«Riprendi» dalla pagina naviga al punto vendita** passando l'ordine nello `state`, invece di
+  non offrire l'azione. Il punto vendita lo consuma con un `replace`.
+- **Con una ricerca in corso i gruppi si sciolgono** e la griglia torna piatta: chi digita
+  «campari» cerca *quella* variante, e un tastone che la contiene sarebbe un tocco in più
+  proprio nel gesto che doveva essere più corto.
+- **`prodottiNonRaggruppati` filtra sui gruppi ATTIVI**, non sull'appartenenza: spegnere un
+  gruppo deve far **riapparire** i suoi membri come tessere sciolte, altrimenti sparirebbero
+  dalla griglia senza che nessuno li abbia disattivati — invisibili e invendibili.
+- **`ProdottoInput.Colore` ha tre valori e tre intenzioni**: `null` è «non toccare», una stringa
+  è il colore, la **stringa vuota** è «togli il colore». Senza il terzo caso un colore messo per
+  sbaglio non si potrebbe più rimuovere, perché `null` è già impegnato a non azzerarlo.
+- **I membri di un gruppo sono una sostituzione totale**, ma solo quando l'input li porta:
+  `null` significa «non toccare l'elenco», lista vuota «svuotalo». Appiattirle cancellerebbe la
+  composizione a ogni rinomina, in silenzio — svuotare un gruppo non è un errore.
+
+### Ciò che il piano dava per mancante ed era già in piedi
+
+- **12.2 (indicatore dell'ordine corrente)**: la barra bassa mostrava già identificativo, voci e
+  totale dalla Fase 8. Il task era stato scritto senza verificarlo.
+- **`handleRiprendi`**: riprendere un ordine dall'elenco era già implementato. Il blocco vero era
+  solo l'assenza di un gesto «nuovo ordine».
+
+### Resta aperto
+
+- **0.1** — la lista delle ~147 varianti, che blocca **solo i dati** (10.1, 10.2). Meccanismo,
+  schema, pagina e tastoni sono in piedi e si provano con gruppi inventati.
+- **10.14** — se il colore delle tessere debba seguire il codice o l'`Ordinamento`.
+- **12.3** — se basti il numero a distinguere due ordini agli occhi dell'operatore.
+- **Fase 11** — allineamento delle spec e documentazione dell'invariante nei due `CLAUDE.md`.

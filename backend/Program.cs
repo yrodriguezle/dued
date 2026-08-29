@@ -369,6 +369,10 @@ using (IServiceScope scope = app.Services.CreateScope())
         // anche su un database che non la contiene. Resta qui, dopo SeedMenus, solo perché
         // assegna la voce a TUTTI i ruoli e quel seed è ciò che li crea al primo avvio.
         await SeedMenusVendita.Initialize(services);
+        // Dopo SeedMenusVendita, e non per una dipendenza: «Ordini» non guarda «Vendita» né
+        // alcun padre, essendo anch'essa di primo livello. Sta qui perché è la sua sorella in
+        // barra, e trovarle vicine nel seed dice che sono una coppia.
+        await SeedMenusOrdini.Initialize(services);
         // Dopo SeedMenus: la sezione "Sito" riusa i ruoli amministrativi che quel seed
         // ha già creato/aggiornato, e si aggancia in coda alle voci esistenti (Posizione 9).
         await SeedMenusSito.Initialize(services);

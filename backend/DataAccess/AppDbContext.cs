@@ -18,6 +18,8 @@ public class AppDbContext : DbContext
 
     // Products and Sales
     public DbSet<Prodotto> Prodotti { get; set; }
+    public DbSet<GruppoProdotti> GruppiProdotti { get; set; }
+    public DbSet<ProdottoGruppo> ProdottiGruppi { get; set; }
     public DbSet<Vendita> Vendite { get; set; }
 
     // Ordini del punto vendita — il conto aperto al bancone. ⚠️ Un Ordine APERTO non ha mosso
@@ -415,6 +417,18 @@ public class AppDbContext : DbContext
             // Index on Codice for faster lookups
             entity.HasIndex(x => x.Codice)
                 .IsUnique();
+
+            // Ordine manuale delle tessere al punto vendita. Il default a database è ciò che
+            // rende la migrazione additiva su un listino già popolato: tutte le righe nascono
+            // a 0, e con il pareggio su Codice la griglia si presenta esattamente come prima.
+            entity.Property(x => x.Ordinamento)
+                .HasDefaultValue(0);
+
+            // Nullable senza default: l'assenza significa «usa il colore generato dalla
+            // categoria», che è il comportamento di prima del campo. Un default qui darebbe a
+            // ogni prodotto un colore esplicito che nessuno ha scelto.
+            entity.Property(x => x.Colore)
+                .HasMaxLength(20);
 
             // ── Campi vetrina ────────────────────────────────────────────────────────
             // Default espliciti anche dove coinciderebbero con il default di CLR: sono ciò
@@ -1534,6 +1548,76 @@ public class AppDbContext : DbContext
             // Indici per performance
             entity.HasIndex(e => e.ChiusuraId);
             entity.HasIndex(e => e.RegistroId);
+        });
+
+        modelBuilder.Entity<GruppoProdotti>(entity =>
+        {
+            entity.ToTable("GruppiProdotti")
+                .HasCharSet("utf8mb4")
+                .UseCollation("utf8mb4_unicode_ci");
+
+            entity.HasKey(e => e.GruppoProdottiId);
+
+            entity.Property(e => e.Codice)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.Property(e => e.Nome)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(e => e.Colore)
+                .HasMaxLength(20);
+
+            entity.Property(e => e.Ordinamento)
+                .HasDefaultValue(0);
+
+            entity.Property(e => e.Attivo)
+                .HasDefaultValue(true);
+
+            entity.Property(e => e.CreatedAt)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.Property(e => e.UpdatedAt)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+
+            // Come Prodotto.Codice: la chiave stabile è univoca, e il vincolo sta a database
+            // perché è lì che regge anche contro due scritture in corsa.
+            entity.HasIndex(e => e.Codice)
+                .IsUnique();
+        });
+
+        modelBuilder.Entity<ProdottoGruppo>(entity =>
+        {
+            entity.ToTable("ProdottiGruppi")
+                .HasCharSet("utf8mb4")
+                .UseCollation("utf8mb4_unicode_ci");
+
+            // Chiave composita: un prodotto sta in un gruppo una volta sola, e il vincolo lo
+            // dice lo schema invece di un controllo applicativo che qualcuno dimenticherà.
+            entity.HasKey(e => new { e.GruppoProdottiId, e.ProdottoId });
+
+            entity.Property(e => e.Ordinamento)
+                .HasDefaultValue(0);
+
+            // 🔴 Cascade sul gruppo, Restrict sul prodotto, e l'asimmetria è deliberata:
+            //    sciogliere un gruppo è un'operazione ordinaria e deve portarsi via le sole
+            //    appartenenze; un prodotto invece non si elimina affatto — non esiste
+            //    `eliminaProdotto` — quindi la Restrict qui non blocca nulla che accada
+            //    davvero, e vale come dichiarazione che quel verso non è previsto.
+            entity.HasOne(e => e.Gruppo)
+                .WithMany(g => g.Membri)
+                .HasForeignKey(e => e.GruppoProdottiId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Prodotto)
+                .WithMany(p => p.Gruppi)
+                .HasForeignKey(e => e.ProdottoId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(e => e.ProdottoId);
         });
 
     }

@@ -6,6 +6,8 @@ import {
   Settings,
   ShoppingCart,
   HandCoins,
+  ConciergeBell,
+  Layers,
   CalendarRange,
   CalendarDays,
   Pencil,
@@ -52,6 +54,20 @@ export const iconMapping: Record<string, LucideIcon> = {
   //    🔴 Non è `ShoppingCart`: quella è «Cassa», da anni, e a cassetto chiuso le due sarebbero
   //    lo stesso bottone — la regola già imposta a `Settings` qui sotto.
   HandCoins,
+  // ⚠️ `ConciergeBell` per «Ordini», sorella di «Vendita» al primo livello. La scelta è di
+  //    **forma** prima che di nome: i candidati naturali erano tutti pile di righe o fogli —
+  //    `ListChecks` accanto a `List` (Lista fornitori), `ReceiptText` accanto a `Receipt` (Lista
+  //    fatture), `NotepadText` accanto a `FileText`. `iconeDelSeed` confronta i *nomi* e non se
+  //    ne accorgerebbe, ma a cassetto chiuso `NestedList` mette `opacity: 0` sulle etichette e
+  //    l'icona **è** la voce: due pile di righe lì sono lo stesso bottone.
+  //    🔴 Il campanello da bancone non somiglia a nulla di ciò che è già in mappa, ed è anche il
+  //    gesto giusto — è la comanda che aspetta di essere servita.
+  ConciergeBell,
+  // ⚠️ `Layers` per «Gruppi prodotti»: strati sovrapposti, che è letteralmente ciò che un gruppo
+  //    è — un livello sopra i prodotti. 🔴 Non `Boxes` né `Blocks`: sarebbero il secondo pacco
+  //    accanto a `PackageSearch` (Prodotti), e le due voci stanno nello stesso cassetto, una
+  //    sotto l'altra.
+  Layers,
   CalendarRange,
   CalendarDays,
   Pencil,

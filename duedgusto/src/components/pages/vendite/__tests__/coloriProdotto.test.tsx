@@ -147,3 +147,38 @@ describe("coloreCategoria", () => {
     expect(coloreCategoria("BIRRA", "light")).toBe(coloreProdotto("BIRRA", 0, "light").banda);
   });
 });
+
+describe("il colore esplicito", () => {
+  // 🔴 Il generato deriva la tinta dalla categoria e distingue le voci per sola luminosità:
+  //    dentro un gruppo di varianti non basta, perché lì il colore È il modo in cui si
+  //    riconosce lo spritz giusto senza leggere l'etichetta.
+  it("vince su quello generato dalla categoria", () => {
+    const esplicito = coloreProdotto("APERITIVO", 0, "light", "#F4801A");
+
+    expect(esplicito.banda).toBe("#F4801A");
+    expect(esplicito.sfondo).toContain("#F4801A");
+  });
+
+  it("assente, il colore generato resta identico a prima", () => {
+    // ⚠️ La proprietà che rende il campo additivo: nessuna tessera cambia colore finché
+    //    qualcuno non gliene assegna uno.
+    const senza = coloreProdotto("APERITIVO", 2, "light");
+    const conNull = coloreProdotto("APERITIVO", 2, "light", null);
+    const conVuoto = coloreProdotto("APERITIVO", 2, "light", "   ");
+
+    expect(conNull).toEqual(senza);
+    expect(conVuoto).toEqual(senza);
+  });
+
+  it("lo sfondo è una sfumatura del colore, diversa fra chiaro e scuro", () => {
+    // Al buio una tinta satura pesa di più e ruberebbe contrasto al testo: la percentuale
+    // cambia, per la stessa ragione per cui cambia nel colore generato.
+    const chiaro = coloreProdotto(null, 0, "light", "#B02A37");
+    const scuro = coloreProdotto(null, 0, "dark", "#B02A37");
+
+    expect(chiaro.banda).toBe(scuro.banda);
+    expect(chiaro.sfondo).not.toBe(scuro.sfondo);
+    expect(chiaro.sfondo).toContain("white");
+    expect(scuro.sfondo).toContain("black");
+  });
+});

@@ -41,6 +41,9 @@ function nuovaBozza(idProvvisorio: number): ProdottoCassa {
     // 10% e non il 22 del server: è l'aliquota di tutto il listino del locale, e far ripartire
     // ogni riga dal valore sbagliato è un errore che si nota solo mesi dopo, in liquidazione.
     aliquotaIva: 10,
+    // 0 vuol dire «mai ordinato», non «primo»: una riga nuova non deve scavalcare al bancone
+    // le tessere che qualcuno ha disposto a mano.
+    ordinamento: 0,
     createdAt: "",
     updatedAt: "",
   };
@@ -126,6 +129,7 @@ function ProdottiList() {
           unitaDiMisura: riga.unitaDiMisura || "pz",
           attivo: Boolean(riga.attivo),
           aliquotaIva: Number(riga.aliquotaIva),
+          ordinamento: Number(riga.ordinamento) || 0,
         });
         if (!salvato) {
           return;
@@ -244,6 +248,22 @@ function ProdottiList() {
           searchType: "match",
         },
         headerTooltip: "Categoria contabile, per i raggruppamenti di cassa. Non è la categoria con cui il prodotto compare sul sito: quella si imposta in Sito › Prodotti vetrina.",
+      },
+      {
+        headerName: "Ordine",
+        field: "ordinamento",
+        width: 110,
+        editable: true,
+        cellDataType: "number",
+        cellEditor: "agNumberCellEditor",
+        cellEditorParams: { min: 0, precision: 0 },
+        cellStyle: { textAlign: "right" },
+        cellClass: "ag-right-aligned-cell",
+        sortable: true,
+        // 0 non si scrive: è l'assenza di una scelta, e un listino pieno di zeri nasconderebbe
+        // le poche righe davvero disposte a mano.
+        valueFormatter: (params) => (params.value ? String(params.value) : ""),
+        headerTooltip: "Ordine con cui la tessera compare al punto vendita, dentro la sua categoria. Vuoto significa «mai ordinato»: quelle righe restano in coda, in ordine di codice. Non è l'ordine del sito, che si imposta in Sito › Prodotti vetrina.",
       },
       {
         headerName: "U.M.",

@@ -21,7 +21,8 @@ public class ConfineVetrinaCassaTests
     /// poter toccare. Elencati una volta sola e usati da entrambe le direzioni del confine.
     /// </summary>
     private static readonly string[] CampiCassa =
-        ["Codice", "Nome", "Descrizione", "Prezzo", "Categoria", "UnitaDiMisura", "Attivo", "AliquotaIva"];
+        ["Codice", "Nome", "Descrizione", "Prezzo", "Categoria", "UnitaDiMisura", "Attivo", "AliquotaIva",
+         "Ordinamento", "Colore"];
 
     private static readonly string[] CampiVetrina =
     [
@@ -39,7 +40,7 @@ public class ConfineVetrinaCassaTests
         typeof(ProdottoInput).GetProperties().Select(p => p.Name)
             .Should().BeEquivalentTo(
                 "ProdottoId", "Codice", "Nome", "Descrizione", "Prezzo",
-                "Categoria", "UnitaDiMisura", "Attivo", "AliquotaIva");
+                "Categoria", "UnitaDiMisura", "Attivo", "AliquotaIva", "Ordinamento", "Colore");
     }
 
     [Fact]

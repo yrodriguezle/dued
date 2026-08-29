@@ -86,6 +86,43 @@ public static class SeedMenusProdotti
             }
         }
 
+        // Voce: Gruppi prodotti — dove si creano i raggruppamenti e ci si mettono dentro i
+        // prodotti. Accanto a «Prodotti» perché è la stessa anagrafica vista da un livello sopra.
+        Menu? gruppiMenu = await dbContext.Menus
+                .Include(m => m.Ruoli)
+                .FirstOrDefaultAsync(m => m.Percorso == "/gestionale/cassa/gruppi-prodotti");
+
+        if (gruppiMenu == null)
+        {
+            gruppiMenu = new Menu
+            {
+                Titolo = "Gruppi prodotti",
+                Percorso = "/gestionale/cassa/gruppi-prodotti",
+                // ⚠️ `Layers` e NON `Boxes`/`Blocks`: sarebbe il secondo pacco accanto a
+                //    `PackageSearch` di «Prodotti», e le due voci stanno nello stesso cassetto
+                //    una sotto l'altra. Gli strati dicono anche la cosa giusta — un gruppo è un
+                //    livello sopra i prodotti. `iconeDelSeed` pretende l'unicità globale.
+                Icona = "Layers",
+                Visibile = true,
+                Posizione = 7,
+                NomeVista = "GruppiProdotti",
+                PercorsoFile = "vendite/GruppiProdotti.tsx",
+                MenuPadre = cassaMenu,
+                Ruoli = [superAdminRuolo]
+            };
+            dbContext.Menus.Add(gruppiMenu);
+        }
+        else
+        {
+            bool needsUpdate = false;
+            SeedMenus.UpdateMenuIfNeeded(gruppiMenu, "Gruppi prodotti", "/gestionale/cassa/gruppi-prodotti", "Layers", true, 7,
+                "GruppiProdotti", "vendite/GruppiProdotti.tsx", superAdminRuolo, cassaMenu, ref needsUpdate);
+            if (needsUpdate)
+            {
+                dbContext.Menus.Update(gruppiMenu);
+            }
+        }
+
         await dbContext.SaveChangesAsync();
     }
 }

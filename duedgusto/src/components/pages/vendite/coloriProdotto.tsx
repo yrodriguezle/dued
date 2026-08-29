@@ -86,7 +86,24 @@ export interface ColoreProdotto {
  * alle tessere a ogni lettera digitata nella ricerca — e un colore che si muove è peggio di
  * nessun colore, perché la mano ha già imparato dov'era.</p>
  */
-export function coloreProdotto(categoria: string | null | undefined, indice: number, modo: ModoTema): ColoreProdotto {
+export function coloreProdotto(
+  categoria: string | null | undefined,
+  indice: number,
+  modo: ModoTema,
+  coloreEsplicito?: string | null
+): ColoreProdotto {
+  // 🔴 Il colore esplicito VINCE su quello generato, e i due meccanismi convivono senza
+  //    sostituirsi. Il generato deriva la tinta dalla categoria e distingue le voci per sola
+  //    luminosità: regge centoquaranta tessere, e non basta dentro un gruppo di varianti, dove
+  //    il colore è il modo in cui si riconosce lo spritz giusto senza leggere — Aperol
+  //    arancione, Campari rosso, Cynar viola sono i colori della bevanda, non della categoria.
+  // ⚠️ Si accetta solo una stringa non vuota: `""` a database significa «nessun colore», e
+  //    trattarla come un colore darebbe una tessera trasparente invece del ripiego generato.
+  const esplicito = coloreEsplicito?.trim();
+  if (esplicito) {
+    return { sfondo: sfumaturaTenue(esplicito, modo), banda: esplicito };
+  }
+
   const nome = categoria?.trim().toUpperCase();
   const base = !nome ? SENZA_CATEGORIA : (CATEGORIE_NOTE[nome] ?? tintaDaNome(nome));
 
@@ -106,6 +123,23 @@ export function coloreProdotto(categoria: string | null | undefined, indice: num
     sfondo: `hsl(${tinta}, ${saturazioneSfondo}%, ${livelloSfondo}%)`,
     banda: `hsl(${tinta}, ${base.saturazione}%, ${livelloBanda}%)`,
   };
+}
+
+/**
+ * Lo sfondo tenue che accompagna un colore esplicito.
+ *
+ * <p>⚠️ Si usa `color-mix` e non un'opacità sulla tessera: l'opacità farebbe trasparire ciò che
+ * sta sotto — bordi, separatori, la tessera vicina — e il colore cambierebbe a seconda di dove
+ * capita nella griglia. Qui si mescola con la tinta di fondo del tema, che è ciò che si vuole
+ * davvero: la stessa tessera ha lo stesso colore ovunque si trovi.</p>
+ *
+ * <p>ℹ️ La percentuale è diversa fra chiaro e scuro per la stessa ragione per cui lo è nel
+ * colore generato: al buio una tinta satura pesa di più e ruberebbe contrasto al testo.</p>
+ */
+function sfumaturaTenue(colore: string, modo: ModoTema): string {
+  return modo === "light"
+    ? `color-mix(in srgb, ${colore} 18%, white)`
+    : `color-mix(in srgb, ${colore} 26%, black)`;
 }
 
 /**

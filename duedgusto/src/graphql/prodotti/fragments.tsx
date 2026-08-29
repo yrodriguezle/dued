@@ -13,6 +13,7 @@ export const prodottoCassaFragment = `fragment ProdottoCassaFragment on Prodotto
   unitaDiMisura
   attivo
   aliquotaIva
+  ordinamento
   createdAt
   updatedAt
 }`;

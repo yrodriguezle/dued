@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using duedgusto.DataAccess;
 
@@ -11,9 +12,11 @@ using duedgusto.DataAccess;
 namespace duedgusto.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260829154339_AddOrdinamentoProdotto")]
+    partial class AddOrdinamentoProdotto
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -500,59 +503,6 @@ namespace duedgusto.Migrations
                         .IsUnique();
 
                     b.ToTable("GiorniNonLavorativi", (string)null);
-
-                    MySqlEntityTypeBuilderExtensions.HasCharSet(b, "utf8mb4");
-                    MySqlEntityTypeBuilderExtensions.UseCollation(b, "utf8mb4_unicode_ci");
-                });
-
-            modelBuilder.Entity("duedgusto.Models.GruppoProdotti", b =>
-                {
-                    b.Property<int>("GruppoProdottiId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("GruppoProdottiId"));
-
-                    b.Property<bool>("Attivo")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true);
-
-                    b.Property<string>("Codice")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
-
-                    b.Property<string>("Colore")
-                        .HasMaxLength(20)
-                        .HasColumnType("varchar(20)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<string>("Nome")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
-
-                    b.Property<int>("Ordinamento")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
-
-                    b.HasKey("GruppoProdottiId");
-
-                    b.HasIndex("Codice")
-                        .IsUnique();
-
-                    b.ToTable("GruppiProdotti", (string)null);
 
                     MySqlEntityTypeBuilderExtensions.HasCharSet(b, "utf8mb4");
                     MySqlEntityTypeBuilderExtensions.UseCollation(b, "utf8mb4_unicode_ci");
@@ -1112,10 +1062,6 @@ namespace duedgusto.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
 
-                    b.Property<string>("Colore")
-                        .HasMaxLength(20)
-                        .HasColumnType("varchar(20)");
-
                     b.Property<bool>("Consigliato")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("tinyint(1)")
@@ -1197,29 +1143,6 @@ namespace duedgusto.Migrations
                     b.HasIndex("VisibileSulSito");
 
                     b.ToTable("Prodotti", (string)null);
-
-                    MySqlEntityTypeBuilderExtensions.HasCharSet(b, "utf8mb4");
-                    MySqlEntityTypeBuilderExtensions.UseCollation(b, "utf8mb4_unicode_ci");
-                });
-
-            modelBuilder.Entity("duedgusto.Models.ProdottoGruppo", b =>
-                {
-                    b.Property<int>("GruppoProdottiId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ProdottoId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Ordinamento")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
-
-                    b.HasKey("GruppoProdottiId", "ProdottoId");
-
-                    b.HasIndex("ProdottoId");
-
-                    b.ToTable("ProdottiGruppi", (string)null);
 
                     MySqlEntityTypeBuilderExtensions.HasCharSet(b, "utf8mb4");
                     MySqlEntityTypeBuilderExtensions.UseCollation(b, "utf8mb4_unicode_ci");
@@ -1879,25 +1802,6 @@ namespace duedgusto.Migrations
                     b.Navigation("Immagine");
                 });
 
-            modelBuilder.Entity("duedgusto.Models.ProdottoGruppo", b =>
-                {
-                    b.HasOne("duedgusto.Models.GruppoProdotti", "Gruppo")
-                        .WithMany("Membri")
-                        .HasForeignKey("GruppoProdottiId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("duedgusto.Models.Prodotto", "Prodotto")
-                        .WithMany("Gruppi")
-                        .HasForeignKey("ProdottoId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Gruppo");
-
-                    b.Navigation("Prodotto");
-                });
-
             modelBuilder.Entity("duedgusto.Models.RegistroCassa", b =>
                 {
                     b.HasOne("duedgusto.Models.Utente", "Utente")
@@ -2042,11 +1946,6 @@ namespace duedgusto.Migrations
                     b.Navigation("FattureAcquisto");
                 });
 
-            modelBuilder.Entity("duedgusto.Models.GruppoProdotti", b =>
-                {
-                    b.Navigation("Membri");
-                });
-
             modelBuilder.Entity("duedgusto.Models.MediaAsset", b =>
                 {
                     b.Navigation("Prodotti");
@@ -2068,8 +1967,6 @@ namespace duedgusto.Migrations
 
             modelBuilder.Entity("duedgusto.Models.Prodotto", b =>
                 {
-                    b.Navigation("Gruppi");
-
                     b.Navigation("Vendite");
                 });
 

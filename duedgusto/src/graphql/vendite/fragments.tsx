@@ -33,4 +33,6 @@ export const prodottoVendibileFragment = `fragment ProdottoVendibileFragment on 
   prezzo
   categoria
   aliquotaIva
+  ordinamento
+  colore
 }`;

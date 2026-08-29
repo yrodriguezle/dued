@@ -15,16 +15,19 @@ import Typography from "@mui/material/Typography";
 import ButtonBase from "@mui/material/ButtonBase";
 import { useTheme } from "@mui/material/styles";
 import PendingActionsIcon from "@mui/icons-material/PendingActions";
+import PostAddIcon from "@mui/icons-material/PostAdd";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import SearchIcon from "@mui/icons-material/Search";
 import dayjs from "dayjs";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 
 import ChiusuraOrdine from "./ChiusuraOrdine";
 import DialogMotivo from "./DialogMotivo";
 import OrdineCorrente from "./OrdineCorrente";
 import OrdiniAperti from "./OrdiniAperti";
 import ScontrinoDelGiorno from "./ScontrinoDelGiorno";
+import TesseraProdotto from "./TesseraProdotto";
+import VariantiGruppo from "./VariantiGruppo";
 import SplitOrdine from "./SplitOrdine";
 import PageTitleContext from "../../layout/headerBar/PageTitleContext";
 import formatCurrency from "../../../common/bones/formatCurrency";
@@ -33,6 +36,7 @@ import { coloreCategoria, coloreProdotto, indiciPerCategoria } from "./coloriPro
 import useQueryRegistroCassa from "../../../graphql/registroCassa/useQueryRegistroCassa";
 import { getProdottiVendibili, getVenditeDelRegistro } from "../../../graphql/vendite/queries";
 import { getOrdine, getOrdiniAperti } from "../../../graphql/ordini/queries";
+import { getGruppiProdotti } from "../../../graphql/gruppi/queries";
 import {
   mutationAggiornaRigaOrdine,
   mutationAnnullaOrdine,
@@ -61,6 +65,7 @@ const TUTTE = "__tutte__";
 function PuntoVendita() {
   const { setTitle } = useContext(PageTitleContext);
   const navigate = useNavigate();
+  const location = useLocation();
   const { palette } = useTheme();
 
   const [categoria, setCategoria] = useState<string>(TUTTE);
@@ -72,6 +77,7 @@ function PuntoVendita() {
   const [annulloAperto, setAnnulloAperto] = useState(false);
   const [scontrinoAperto, setScontrinoAperto] = useState(false);
   const [elencoApertiVisibile, setElencoApertiVisibile] = useState(false);
+  const [gruppoAperto, setGruppoAperto] = useState<GruppoProdotti | null>(null);
 
   // 🔴 L'apertura dell'ordine è **implicita al primo tocco**, e due tocchi rapidi arrivano prima
   //    che la prima risposta torni: senza questa promessa condivisa nascerebbero due ordini, il
@@ -97,6 +103,11 @@ function PuntoVendita() {
   // 🔴 Senza `registroCassaId` questa query risponderebbe con gli aperti di **tutti** i registri.
   //    Qui il registro si passa di proposito: il badge conta ciò che pesa sulla giornata che si
   //    sta battendo. L'elenco completo, ordini di ieri compresi, è l'affare di `OrdiniAperti`.
+  // I gruppi e i prodotti sciolti arrivano insieme: sono le due metà di ciò che la griglia
+  // disegna, e chiederli separatamente aprirebbe una finestra in cui un prodotto compare due
+  // volte — sotto il suo tastone e fra gli sciolti — o sparisce da entrambe.
+  const { data: datiGruppi } = useQuery(getGruppiProdotti, { fetchPolicy: "cache-and-network" });
+
   const { data: datiAperti, refetch: ricaricaAperti } = useQuery(getOrdiniAperti, {
     variables: { registroCassaId },
     skip: !registroCassaId,
@@ -151,6 +162,44 @@ function PuntoVendita() {
   //    che si vede farebbe cambiare colore alle tessere a ogni lettera della ricerca, e la mano
   //    ha gia imparato dov'era il pulsante.
   const indiciColore = useMemo(() => indiciPerCategoria(prodotti), [prodotti]);
+
+  const gruppi = useMemo(() => datiGruppi?.vendite?.gruppiProdotti ?? [], [datiGruppi]);
+
+  /**
+   * I tastoni di gruppo da mostrare, filtrati come le tessere.
+   *
+   * 🔴 **Con una ricerca in corso i gruppi si sciolgono**, e non è una scorciatoia: chi digita
+   *    «campari» sta cercando *quella* variante, e un tastone «Spritz» che la contiene non è una
+   *    risposta — costringerebbe a un tocco in più proprio nel gesto che serviva a fare prima.
+   *    Sotto ricerca la griglia torna a essere il listino piatto di sempre.
+   *
+   * ⚠️ Il filtro per categoria guarda i **membri**, non il gruppo: un gruppo non ha una categoria
+   *    propria — è il livello sopra, e le sue varianti possono stare in categorie diverse.
+   */
+  const gruppiVisibili = useMemo(() => {
+    if (ricerca.trim()) {
+      return [];
+    }
+    if (categoria === TUTTE) {
+      return gruppi;
+    }
+    return gruppi.filter((gruppo) => gruppo.membri.some((membro) => membro.prodotto?.categoria === categoria));
+  }, [categoria, gruppi, ricerca]);
+
+  /**
+   * Le tessere sciolte: i prodotti che nessun gruppo attivo ha preso.
+   *
+   * ⚠️ Finché i gruppi non arrivano — o se non ne esiste nessuno — si mostra il listino intero,
+   *    che è il comportamento di prima della feature. Un elenco vuoto in attesa della risposta
+   *    farebbe lampeggiare una griglia deserta a ogni apertura della pagina.
+   */
+  const scioltiVisibili = useMemo(() => {
+    if (ricerca.trim() || gruppi.length === 0) {
+      return prodottiVisibili;
+    }
+    const raggruppati = new Set(gruppi.flatMap((gruppo) => gruppo.membri.map((membro) => membro.prodottoId)));
+    return prodottiVisibili.filter((prodotto) => !raggruppati.has(prodotto.prodottoId));
+  }, [gruppi, prodottiVisibili, ricerca]);
 
   const inCorso = aggiuntaInCorso || aggiornamentoInCorso || rimozioneInCorso || chiusuraInCorso || annullamentoInCorso;
 
@@ -302,6 +351,53 @@ function PuntoVendita() {
     [annullaOrdine, errore, ordineCorrenteId, ricaricaAperti]
   );
 
+  /**
+   * Mette da parte l'ordine in corso e lascia che il tocco successivo ne apra un altro.
+   *
+   * <p>🔴 <b>Perché azzerare basta.</b> `assicuraOrdine` apre un ordine nuovo solo quando non
+   * ce n'è uno corrente: riportare `ordineCorrenteId` a `null` è quindi tutto ciò che serve, e
+   * il gesto riusa la stessa apertura implicita del primo tocco invece di duplicarne una
+   * seconda che potrebbe divergerne.</p>
+   *
+   * <p>⚠️ L'ordine lasciato indietro <b>non viene toccato</b>: resta aperto con le sue voci e
+   * si ritrova nell'elenco. Mettere da parte non è né chiudere né annullare, ed è l'unica delle
+   * tre uscite che non muove un centesimo.</p>
+   *
+   * <p>⚠️ `aperturaInVolo` non si azzera: serve a far attendere due tocchi ravvicinati sulla
+   * <b>stessa</b> apertura, e pulirla qui farebbe nascere due ordini per un tocco solo. Il
+   * pulsante compare comunque solo con un ordine corrente già caricato, cioè quando nessuna
+   * apertura è più in volo.</p>
+   */
+  const handleNuovoOrdine = useCallback(() => {
+    setOrdineCorrenteId(null);
+    // Il passaggio si vede nella barra, che torna a «Nessun ordine aperto». Il toast dice
+    // *quale* conto è stato messo da parte: senza il numero, «un altro ordine» non aiuta a
+    // ritrovarlo fra due minuti.
+    showToast({
+      type: "info",
+      position: "bottom-center",
+      message: `Ordine ${ordineCorrente?.identificativo ?? ""} messo da parte: resta aperto nell'elenco.`,
+      autoClose: 3000,
+    });
+  }, [ordineCorrente]);
+
+  /**
+   * L'ordine scelto nella pagina «Ordini» diventa quello su cui si batte.
+   *
+   * <p>🔴 <b>Lo `state` si consuma subito</b>, con un `replace` che lo toglie dalla cronologia.
+   * Senza, un ritorno indietro nel browser rimetterebbe la pagina su quell'ordine anche dopo
+   * averne aperto un altro — e il tocco successivo finirebbe sul conto sbagliato, che è il
+   * guasto che non lascia traccia.</p>
+   */
+  useEffect(() => {
+    const scelto = (location.state as { ordineDaRiprendere?: number } | null)?.ordineDaRiprendere;
+    if (!scelto) {
+      return;
+    }
+    setOrdineCorrenteId(scelto);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.pathname, location.state, navigate]);
+
   const handleRiprendi = useCallback(
     (ordine: Ordine) => {
       setOrdineCorrenteId(ordine.ordineId);
@@ -419,63 +515,44 @@ function PuntoVendita() {
         {/* Due colonne a 360 px, tre a 390, quattro da tablet: `auto-fill` con una base di
             150 px lo fa da sé, senza breakpoint da tenere allineati a mano. */}
         <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 1 }}>
-          {prodottiVisibili.map((prodotto) => {
-            const colore = coloreProdotto(prodotto.categoria, indiciColore.get(prodotto.prodottoId) ?? 0, palette.mode);
-            return (
-              <ButtonBase
-                key={prodotto.prodottoId}
-                onClick={() => void handleTocca(prodotto)}
-                sx={{
-                  // ⚠️ 72 px: molto sopra i 48 minimi. Si preme al volo, di sbieco, senza guardare.
-                  minHeight: 72,
-                  p: 1,
-                  // La banda vive nel padding sinistro: 6 px di fascia più il respiro del testo.
-                  pl: 1.75,
-                  borderRadius: 2,
-                  border: 1,
-                  borderColor: "divider",
-                  bgcolor: colore.sfondo,
-                  position: "relative",
-                  overflow: "hidden",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "flex-start",
-                  justifyContent: "space-between",
-                  textAlign: "left",
-                  transition: "transform 80ms ease-out, filter 80ms ease-out",
-                  "&::before": {
-                    content: '""',
-                    position: "absolute",
-                    left: 0,
-                    top: 0,
-                    bottom: 0,
-                    width: 6,
-                    bgcolor: colore.banda,
-                  },
-                  // Al tocco vale la deformazione, non il colore: sul telefono l'hover non esiste
-                  // e schiarire uno sfondo già tenue non si vedrebbe comunque.
-                  "&:active": { transform: "scale(0.97)" },
-                  "&:hover": { filter: palette.mode === "light" ? "brightness(0.96)" : "brightness(1.12)" },
-                  // Chi ha chiesto meno movimento al sistema operativo non deve vederne qui.
-                  "@media (prefers-reduced-motion: reduce)": { transition: "none", "&:active": { transform: "none" } },
-                }}
-              >
-                <Typography
-                  variant="body2"
-                  sx={{ fontWeight: 600, lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
-                >
-                  {prodotto.nome}
-                </Typography>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ fontVariantNumeric: "tabular-nums" }}
-                >
-                  {formatCurrency(prodotto.prezzo)}
-                </Typography>
-              </ButtonBase>
-            );
-          })}
+          {/* 🔴 I tastoni di gruppo vengono PRIMA delle tessere sciolte, e restano in testa
+              anche quando l'ordinamento direbbe altro: sono il gesto più corto della griglia —
+              un tocco al posto di dieci tessere da cercare — e mescolarli in mezzo agli sciolti
+              vanificherebbe la ragione per cui esistono. */}
+          {gruppiVisibili.map((gruppo) => (
+            <TesseraProdotto
+              key={`gruppo-${gruppo.gruppoProdottiId}`}
+              nome={gruppo.nome}
+              // «da X €» quando le varianti costano diverso, il prezzo nudo quando costano
+              // uguale: il «da» su un gruppo a prezzo unico promette una scelta che non c'è.
+              dettaglio={
+                gruppo.prezzoMinimo == null
+                  ? ""
+                  : gruppo.prezzoUniforme
+                    ? `${formatCurrency(gruppo.prezzoMinimo)} €`
+                    : `da ${formatCurrency(gruppo.prezzoMinimo)} €`
+              }
+              colore={coloreProdotto(gruppo.membri[0]?.prodotto?.categoria, 0, palette.mode, gruppo.colore)}
+              indicatore={
+                <Chip
+                  size="small"
+                  label={gruppo.membri.length}
+                  sx={{ position: "absolute", top: 4, right: 4, height: 20, "& .MuiChip-label": { px: 0.75, fontSize: "0.7rem" } }}
+                />
+              }
+              onClick={() => setGruppoAperto(gruppo)}
+            />
+          ))}
+
+          {scioltiVisibili.map((prodotto) => (
+            <TesseraProdotto
+              key={prodotto.prodottoId}
+              nome={prodotto.nome}
+              dettaglio={`${formatCurrency(prodotto.prezzo)} €`}
+              colore={coloreProdotto(prodotto.categoria, indiciColore.get(prodotto.prodottoId) ?? 0, palette.mode, prodotto.colore)}
+              onClick={() => void handleTocca(prodotto)}
+            />
+          ))}
         </Box>
       </Box>
 
@@ -515,6 +592,19 @@ function PuntoVendita() {
               </Typography>
             </Box>
           </ButtonBase>
+
+          {/* Si offre solo con un conto in piedi: a pagina appena aperta il primo tocco apre
+              già un ordine da sé, e un bersaglio in più a 360 px si paga in errori. */}
+          {ordineCorrente && (
+            <IconButton
+              aria-label="Nuovo ordine"
+              disabled={inCorso}
+              onClick={handleNuovoOrdine}
+              sx={{ width: 48, height: 48 }}
+            >
+              <PostAddIcon />
+            </IconButton>
+          )}
 
           <IconButton
             aria-label="Ordini aperti"
@@ -598,6 +688,12 @@ function PuntoVendita() {
         inCorso={chiusuraInCorso}
         onChiudi={() => setSplitAperto(false)}
         onConferma={(tagli) => void handleIncassa(tagli)}
+      />
+
+      <VariantiGruppo
+        gruppo={gruppoAperto}
+        onChiudi={() => setGruppoAperto(null)}
+        onTocca={(prodotto) => void handleTocca(prodotto)}
       />
 
       <OrdiniAperti

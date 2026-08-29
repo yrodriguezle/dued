@@ -19,6 +19,15 @@ type ProdottoVendibile = {
   prezzo: number;
   categoria?: string | null;
   aliquotaIva: number;
+  /**
+   * Ordine della tessera dentro la sua categoria. `0` = «mai ordinato», in coda per codice.
+   */
+  ordinamento?: number;
+  /**
+   * Colore editoriale della bevanda, che **vince** su quello generato dalla categoria.
+   * ⚠️ Non è `ordinamentoVetrina` né un campo di vetrina: appartiene alla cassa.
+   */
+  colore?: string | null;
 };
 
 /** Una consumazione battuta, con lo snapshot IVA che il server calcola alla creazione. */

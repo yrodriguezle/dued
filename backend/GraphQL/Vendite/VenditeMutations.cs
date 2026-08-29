@@ -106,6 +106,142 @@ public class VenditeMutations : ObjectGraphType
         Field<ProdottoType>("mutateProdotto")
             .Argument<NonNullGraphType<ProdottoInputType>>("prodotto", "Dati prodotto")
             .ResolveAsync(async context => await MutateProdottoAsync(context));
+
+        // ── Gruppi di prodotti ───────────────────────────────────────────────────────────────
+
+        Field<GruppoProdottiType>("mutateGruppoProdotti")
+            .Description("Crea o aggiorna un gruppo, membri compresi. L'elenco dei membri è una "
+                + "sostituzione totale: si invia ciò che il gruppo deve contenere.")
+            .Argument<NonNullGraphType<GruppoProdottiInputType>>("gruppo", "Dati gruppo")
+            .ResolveAsync(async context => await MutateGruppoProdottiAsync(context));
+
+        Field<BooleanGraphType>("eliminaGruppoProdotti")
+            .Description("Scioglie un gruppo. I prodotti NON vengono toccati: tornano a comparire "
+                + "sciolti nella griglia.")
+            .Argument<NonNullGraphType<IntGraphType>>("gruppoProdottiId", "ID gruppo")
+            .ResolveAsync(async context => await EliminaGruppoProdottiAsync(context));
+    }
+
+    // ══ Gruppi di prodotti ═══════════════════════════════════════════════════════════════════
+
+    private static async Task<GruppoProdotti> MutateGruppoProdottiAsync(IResolveFieldContext<object?> context)
+    {
+        AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+        var input = context.GetArgument<GruppoProdottiInput>("gruppo");
+        return await UpsertGruppoProdottiAsync(dbContext, input);
+    }
+
+    /// <summary>
+    /// Upsert di un gruppo e della sua composizione.
+    ///
+    /// <para>🔴 <b>I membri sono una sostituzione totale, ma solo quando l'input li porta.</b>
+    /// <c>null</c> significa «non toccare l'elenco» e lista vuota significa «svuotalo»: sono due
+    /// intenzioni diverse, e appiattirle su una sola cancellerebbe la composizione a ogni
+    /// rinomina del gruppo — in silenzio, perché svuotare non è un errore.</para>
+    ///
+    /// <para>⚠️ Le validazioni stanno <b>prima</b> di ogni scrittura, come in
+    /// <see cref="UpsertProdottoAsync"/>: un codice duplicato deve dare un messaggio leggibile,
+    /// non la violazione grezza dell'indice unico.</para>
+    /// </summary>
+    public static async Task<GruppoProdotti> UpsertGruppoProdottiAsync(AppDbContext dbContext, GruppoProdottiInput input)
+    {
+        string codice = input.Codice.Trim();
+        if (codice.Length == 0)
+        {
+            throw new ExecutionError("Il codice del gruppo è obbligatorio.");
+        }
+
+        string nome = input.Nome.Trim();
+        if (nome.Length == 0)
+        {
+            throw new ExecutionError("Il nome del gruppo è obbligatorio.");
+        }
+
+        GruppoProdotti? gruppo = null;
+        if (input.GruppoProdottiId is > 0)
+        {
+            gruppo = await dbContext.GruppiProdotti
+                .Include(g => g.Membri)
+                .FirstOrDefaultAsync(g => g.GruppoProdottiId == input.GruppoProdottiId.Value);
+
+            if (gruppo == null)
+            {
+                throw new InvalidOperationException("Gruppo non trovato");
+            }
+        }
+
+        bool codiceDuplicato = await dbContext.GruppiProdotti.AnyAsync(g =>
+            g.Codice == codice && (gruppo == null || g.GruppoProdottiId != gruppo.GruppoProdottiId));
+        if (codiceDuplicato)
+        {
+            throw new ExecutionError($"Esiste già un gruppo con codice '{codice}'.");
+        }
+
+        if (input.Membri != null)
+        {
+            List<int> idRichiesti = input.Membri.Select(m => m.ProdottoId).ToList();
+
+            // ⚠️ Lo stesso prodotto due volte NELLO STESSO gruppo violerebbe la chiave
+            //    composita: meglio un messaggio qui che un'eccezione del database a valle.
+            //    Il caso «in più gruppi» invece è legittimo, ed è la ragione del molti-a-molti.
+            if (idRichiesti.Count != idRichiesti.Distinct().Count())
+            {
+                throw new ExecutionError("Un prodotto non può comparire due volte nello stesso gruppo.");
+            }
+
+            int esistenti = await dbContext.Prodotti.CountAsync(p => idRichiesti.Contains(p.ProdottoId));
+            if (esistenti != idRichiesti.Count)
+            {
+                throw new ExecutionError("Uno dei prodotti indicati non esiste.");
+            }
+        }
+
+        if (gruppo == null)
+        {
+            gruppo = new GruppoProdotti { CreatedAt = DateTime.UtcNow };
+            dbContext.GruppiProdotti.Add(gruppo);
+        }
+
+        gruppo.Codice = codice;
+        gruppo.Nome = nome;
+        gruppo.Colore = input.Colore;
+        gruppo.Ordinamento = input.Ordinamento ?? gruppo.Ordinamento;
+        gruppo.Attivo = input.Attivo;
+        gruppo.UpdatedAt = DateTime.UtcNow;
+
+        if (input.Membri != null)
+        {
+            dbContext.ProdottiGruppi.RemoveRange(gruppo.Membri);
+            gruppo.Membri = input.Membri
+                .Select(m => new ProdottoGruppo { Gruppo = gruppo, ProdottoId = m.ProdottoId, Ordinamento = m.Ordinamento })
+                .ToList();
+        }
+
+        await dbContext.SaveChangesAsync();
+        return gruppo;
+    }
+
+    private static async Task<bool> EliminaGruppoProdottiAsync(IResolveFieldContext<object?> context)
+    {
+        AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+        int gruppoId = context.GetArgument<int>("gruppoProdottiId");
+
+        GruppoProdotti? gruppo = await dbContext.GruppiProdotti
+            .Include(g => g.Membri)
+            .FirstOrDefaultAsync(g => g.GruppoProdottiId == gruppoId);
+
+        if (gruppo == null)
+        {
+            throw new InvalidOperationException("Gruppo non trovato");
+        }
+
+        // 🔴 Si elimina il GRUPPO, non i prodotti: la cascata porta via le sole appartenenze e i
+        //    membri tornano a comparire sciolti nella griglia. È la differenza fra sciogliere un
+        //    raggruppamento e cancellare mezzo listino — e i prodotti, per costruzione, non si
+        //    eliminano affatto.
+        dbContext.GruppiProdotti.Remove(gruppo);
+        await dbContext.SaveChangesAsync();
+        return true;
     }
 
     // ══ Ordini ═══════════════════════════════════════════════════════════════════════════════
@@ -595,6 +731,15 @@ public class VenditeMutations : ObjectGraphType
         prodotto.UnitaDiMisura = input.UnitaDiMisura ?? prodotto.UnitaDiMisura;
         prodotto.Attivo = input.Attivo;
         prodotto.AliquotaIva = input.AliquotaIva;
+        // `??` e non un'assegnazione secca: chi non invia l'ordinamento non lo sta azzerando,
+        // sta dicendo che non lo tocca. Stesso trattamento di UnitaDiMisura, due righe sopra.
+        prodotto.Ordinamento = input.Ordinamento ?? prodotto.Ordinamento;
+        // Stringa vuota = «togli il colore»; null = «non toccare». Il terzo caso serve perché
+        // null è già impegnato a non azzerare, e senza di esso un colore messo per sbaglio
+        // resterebbe lì per sempre.
+        prodotto.Colore = input.Colore == null ? prodotto.Colore
+            : string.IsNullOrWhiteSpace(input.Colore) ? null
+            : input.Colore.Trim();
         prodotto.UpdatedAt = DateTime.UtcNow;
 
         await dbContext.SaveChangesAsync();

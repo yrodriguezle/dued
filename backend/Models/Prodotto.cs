@@ -17,6 +17,40 @@ public class Prodotto
     /// </summary>
     public decimal AliquotaIva { get; set; } = 22m;
 
+    /// <summary>
+    /// L'ordine con cui la tessera si presenta nella griglia del punto vendita, dentro la sua
+    /// categoria. Zero significa «mai ordinato» e non «primo»: il pareggio su
+    /// <see cref="Codice"/> manda in coda chi non è stato disposto a mano, che è il
+    /// comportamento di prima del campo.
+    ///
+    /// <para>⚠️ Da non confondere con <see cref="OrdinamentoVetrina"/>, che dispone i piatti
+    /// sul sito pubblico. Sono due assi indipendenti e devono restarlo: l'ordine con cui i
+    /// piatti si presentano al cliente e quello con cui la mano li trova al banco non hanno
+    /// motivo di coincidere.</para>
+    /// </summary>
+    public int Ordinamento { get; set; }
+
+    /// <summary>
+    /// Il colore <b>editoriale</b> della tessera: quello della bevanda, non quello della
+    /// categoria. Liscio bianco, Aperol arancione, Campari rosso, Cynar viola.
+    ///
+    /// <para>🔴 <b>Quando è valorizzato vince sul colore generato.</b> Il sistema in produzione
+    /// (<c>coloriProdotto.tsx</c>) deriva la tinta dalla categoria e distingue le voci solo per
+    /// luminosità: va benissimo per centoquaranta tessere, e non basta dentro un gruppo di
+    /// varianti, dove il colore È il modo in cui si riconosce lo spritz giusto senza leggere.
+    /// I due meccanismi convivono: il generato per la griglia, l'esplicito dove serve.</para>
+    ///
+    /// <para>⚠️ Appartiene alla cassa e sta quindi in <c>ProdottoInput</c>, a differenza dei
+    /// campi di vetrina qui sotto, che non devono mai comparirvi.</para>
+    /// </summary>
+    public string? Colore { get; set; }
+
+    /// <summary>
+    /// I gruppi a cui questo prodotto appartiene. ⚠️ Può essere in più d'uno, ed è voluto:
+    /// comparirà sotto entrambi i tastoni.
+    /// </summary>
+    public ICollection<ProdottoGruppo> Gruppi { get; set; } = new List<ProdottoGruppo>();
+
     // ── Campi vetrina (sito pubblico) ────────────────────────────────────────
     // 🔴 NESSUNO di questi campi deve mai comparire in ProdottoInput: UpsertProdottoAsync
     //    assegna ogni campo esplicitamente, quindi il primo upsert della cassa che non li

@@ -51,8 +51,12 @@ public class VenditeQueries : ObjectGraphType
                     query = query.Where(p => p.Categoria == category);
                 }
 
+                // 🔴 Il pareggio su Codice non è un ornamento: è ciò che tiene deterministico
+                //    l'ordine fra i prodotti mai disposti a mano (tutti a 0) e che ha reso il
+                //    giorno del deploy un no-op visivo, con la griglia identica a prima.
                 return await query
-                    .OrderBy(p => p.Codice)
+                    .OrderBy(p => p.Ordinamento)
+                    .ThenBy(p => p.Codice)
                     .Skip(offset)
                     .Take(limit)
                     .ToListAsync();
@@ -207,6 +211,57 @@ public class VenditeQueries : ObjectGraphType
                     .Select(p => p.Categoria)
                     .Distinct()
                     .OrderBy(c => c)
+                    .ToListAsync();
+            });
+
+        // ── Gruppi di prodotti ───────────────────────────────────────────────────────────────
+
+        Field<ListGraphType<GruppoProdottiType>>("gruppiProdotti")
+            .Description("I gruppi con i loro membri. Il punto vendita mostra un tastone per "
+                + "gruppo invece delle singole varianti; la pagina di gestione li amministra.")
+            .Argument<BooleanGraphType>("soloAttivi", "Se vero, esclude i gruppi spenti",
+                configure: arg => arg.DefaultValue = true)
+            .ResolveAsync(async context =>
+            {
+                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                bool soloAttivi = context.GetArgument<bool>("soloAttivi");
+
+                // 🔴 Include a due livelli, obbligatorio: il lazy loading è disabilitato in
+                //    questo progetto, e senza il ThenInclude `MembroGruppo.prodotto` sarebbe
+                //    sempre null — il tastone resterebbe senza nome e senza prezzo, in
+                //    silenzio, perché un campo nullo non è un errore.
+                IQueryable<GruppoProdotti> query = dbContext.GruppiProdotti
+                    .Include(g => g.Membri)
+                        .ThenInclude(m => m.Prodotto);
+
+                if (soloAttivi)
+                {
+                    query = query.Where(g => g.Attivo);
+                }
+
+                return await query
+                    .OrderBy(g => g.Ordinamento)
+                    .ThenBy(g => g.Nome)
+                    .ToListAsync();
+            });
+
+        Field<ListGraphType<ProdottoType>>("prodottiNonRaggruppati")
+            .Description("I prodotti attivi che non stanno in alcun gruppo ATTIVO: la griglia "
+                + "del punto vendita li mostra accanto ai tastoni di gruppo.")
+            .ResolveAsync(async context =>
+            {
+                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+
+                // ⚠️ `!p.Gruppi.Any(...)` e non `p.GruppoId == null`: col molti-a-molti
+                //    l'assenza è un'anti-join. Su un listino di poche centinaia di righe il
+                //    costo è irrilevante.
+                // 🔴 Il filtro è sui gruppi ATTIVI: spegnere un gruppo deve far RIAPPARIRE i
+                //    suoi membri come prodotti sciolti, altrimenti sparirebbero dalla griglia
+                //    senza che nessuno li abbia disattivati — invisibili e invendibili.
+                return await dbContext.Prodotti
+                    .Where(p => p.Attivo && !p.Gruppi.Any(g => g.Gruppo.Attivo))
+                    .OrderBy(p => p.Ordinamento)
+                    .ThenBy(p => p.Codice)
                     .ToListAsync();
             });
     }
