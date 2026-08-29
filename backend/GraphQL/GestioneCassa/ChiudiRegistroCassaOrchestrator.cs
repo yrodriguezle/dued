@@ -39,8 +39,27 @@ public class ChiudiRegistroCassaOrchestrator
         await GestioneCassaGuards.GuardMeseChiuso(_chiusuraService, registroCassa.Data);
         await GestioneCassaGuards.GuardGiornoOperativoConPeriodi(db, registroCassa.Data, "chiudere");
 
+        // ⚠️ In coda alle due preesistenti, mai davanti: l'ordine dei guard è l'ordine in cui
+        // l'operatore vede gli errori, e un mese chiuso o un giorno non operativo restano il
+        // motivo più forte per cui questa giornata non si chiude. Un ordine aperto è invece
+        // risolvibile sul momento — è l'unico blocco con una via d'uscita immediata.
+        await GestioneCassaGuards.GuardNessunOrdineAperto(db, registroCassa.Id);
+
         await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
+            // 🔴 Secondo controllo, e non è una ridondanza. Fra il guard qui sopra e il commit
+            // c'è una finestra in cui un altro dispositivo può aprire un ordine: la finestra è
+            // chiusa a monte da ApriOrdineOrchestrator, che rifiuta su un registro già CLOSED,
+            // ma quel rifiuto vale solo per gli ordini aperti DOPO la scrittura dello stato.
+            // Il costo è una COUNT su indice; il costo dell'alternativa è un incasso non
+            // dichiarato su una giornata già chiusa, che si scopre a fine mese.
+            //
+            // ⚠️ Nessun test sorveglia QUESTA riga, ed è misurato, non supposto: togliendola la
+            // suite resta interamente verde. La corsa che protegge non è riproducibile su
+            // InMemory, dove le transazioni sono un no-op. Chi la cancellasse per «duplicazione»
+            // non vedrebbe nulla diventare rosso — perciò sta scritto qui e non altrove.
+            await GestioneCassaGuards.GuardNessunOrdineAperto(db, registroCassa.Id);
+
             registroCassa.Stato = "CLOSED";
             registroCassa.UpdatedAt = DateTime.UtcNow;
 

@@ -814,16 +814,72 @@ Il cuore del change. Qui vive l'unica scrittura sui secchi di tutto il backend.
 
 ## Phase 7: A — Guardia sulla chiusura di cassa
 
-- [ ] 7.1 `backend/GraphQL/GestioneCassa/GestioneCassaGuards.cs` — nuova
+> ### ✅ Fase completata — 7.1 e 7.2, più il test 9.8 (anticipato qui)
+>
+> **File nuovi**: `backend/DuedGusto.Tests/Integration/GraphQL/ChiudiRegistroCassaOrdiniApertiTests.cs`
+> (16 test). **Modificati**: `GestioneCassaGuards.cs`, `ChiudiRegistroCassaOrchestrator.cs`.
+> **Nessun cambio al modello dati**, quindi nessuna migrazione nuova.
+>
+> 🔴 **Il rischio di questa fase non era la guardia: era la regressione silenziosa.** In produzione
+> `Ordini` è vuota e ci sono 607 registri storici importati; la chiusura di cassa è oggi un gesto
+> manuale su giornate **senza alcun ordine**. Una guardia larga le avrebbe bloccate tutte, e il
+> guasto si sarebbe visto solo a fine turno. Per questo i casi «non blocca» sono più numerosi e più
+> espliciti del caso «blocca», e **la larghezza della guardia è stata vista fallire**: sostituendo
+> il filtro `Stato == APERTO` con «qualunque ordine», **7 dei 16 test diventano rossi**.
+>
+> **Verifica**: `dotnet build` → 0 errori, 0 warning; `dotnet test` → **971/971** (955 + 16).
+
+- [x] 7.1 `backend/GraphQL/GestioneCassa/GestioneCassaGuards.cs` — nuova
   `GuardNessunOrdineAperto(AppDbContext dbContext, int registroCassaId)` che lancia un
   `ExecutionError` parlante con il numero di ordini aperti. Un ordine aperto è per definizione un
   incasso non dichiarato.
   **Verifica**: test 9.8.
-- [ ] 7.2 `backend/GraphQL/GestioneCassa/ChiudiRegistroCassaOrchestrator.cs` — invocare la guardia
+  ✅ **Fatto**, firma esatta di `design.md` §«Chiusura di cassa bloccata dagli ordini aperti».
+  Il messaggio porta **conteggio, importo e identificativi**: «Impossibile chiudere la cassa:
+  2 ordini ancora aperti per 30,00 € (260826-001, 260826-002). Vanno incassati o annullati prima di
+  chiudere la cassa.» La spec chiede quanti e quanto, il design chiede gli identificativi: ci stanno
+  tutti e tre. Oltre il quinto identificativo si passa a «e altri N» — un elenco di venti codici non
+  aiuta a decidere, e l'elenco completo con le sue due azioni per riga è la schermata di 8.11.
+  🔴 **`WHERE Stato = 'APERTO'`, e il filtro è l'intera fase.** Zero ordini ⇒ nessun blocco; ordini
+  presenti ma tutti in stato terminale ⇒ nessun blocco. `SPLITTATO` in particolare: bloccare sul
+  padre di uno split fermerebbe la cassa su un incasso **già dichiarato dai figli** e **senza via
+  d'uscita possibile**, perché quel padre non si può né chiudere né annullare.
+  ⚠️ **L'importo si somma dalle `RigaOrdine`, non da `Ordine.TotaleOrdine`**: quello snapshot si
+  scrive alla chiusura *dell'ordine* e su un ordine aperto vale ancora 0. Leggerlo avrebbe prodotto
+  «2 ordini aperti per 0,00 €» proprio mentre l'operatore cerca di capire quanto gli manca. Il cast
+  a `decimal?` sulla `Sum` regge l'ordine aperto e ancora **vuoto**, dove su SQL la somma è `NULL`.
+  ℹ️ **La differenza con `GuardNessunOrdineSulRegistro` (3.4) è voluta, e ora è scritta in
+  entrambe.** Quella conta **ogni** ordine perché **elimina** il registro: un ordine chiuso è la
+  storia di un incasso, con le sue `Vendita` agganciate, e va tolto di mezzo consapevolmente prima
+  di cancellare il giorno che lo contiene — la FK è `Restrict`, quindi senza il guard sarebbe un 500
+  opaco. Questa ne conta uno solo di stato perché **chiude** il registro, e chiudere significa
+  dichiarare ciò che è stato incassato: gli ordini già risolti *sono* ciò che si sta dichiarando.
+  Criteri diversi per operazioni diverse, non una svista.
+- [x] 7.2 `backend/GraphQL/GestioneCassa/ChiudiRegistroCassaOrchestrator.cs` — invocare la guardia
   accanto alle due esistenti (`GuardMeseChiuso`, `GuardGiornoOperativoConPeriodi`), **prima** della
   transazione.
   **Verifica**: test 9.8; chiudere una cassa con un ordine aperto restituisce l'errore e non cambia
   lo `Stato` del registro.
+  ✅ **Fatto**, **in coda** alle due preesistenti e non davanti: l'ordine dei guard è l'ordine in cui
+  l'operatore vede gli errori, e un mese chiuso o un giorno non operativo restano il motivo più forte
+  per cui la giornata non si chiude — un ordine aperto è invece risolvibile sul momento. Invariato
+  anche il rifiuto della richiusura su `CLOSED`/`RECONCILED`, che resta il primo di tutti.
+  **Provato rosso**: spostando la guardia nuova **prima** delle due esistenti,
+  `MeseChiuso_RestaLErroreCheSiVedePerPrimo` e `GiornoNonOperativo_RestaLErroreCheSiVedePerPrimo`
+  falliscono. Ordine ripristinato.
+  ✅ **Secondo controllo dentro la transazione**, come chiede `design.md` §«Due guardie e non una»:
+  fra il guard e il commit c'è una finestra in cui un altro dispositivo può aprire un ordine, e il
+  rifiuto di `ApriOrdineOrchestrator` su registro `CLOSED` copre solo ciò che accade **dopo** la
+  scrittura dello stato. Costa una `COUNT` su indice.
+  🔴 **Nessun test sorveglia quella seconda riga, ed è misurato**: togliendola la suite resta
+  interamente verde, perché la corsa non è riproducibile su InMemory (transazioni no-op). Il fatto è
+  scritto **dentro il codice**, accanto alla riga, perché chi la cancellasse per «duplicazione» non
+  vedrebbe nulla diventare rosso.
+  ⚠️ **`riapriRegistroCassa` NON acquisisce la guardia**, ed è una lettura della spec e non una
+  deduzione: il requirement «La chiusura di cassa si blocca in presenza di ordini aperti» nomina
+  `chiudiRegistroCassa` soltanto. Riaprire *allarga* ciò che si può fare sul registro invece di
+  dichiarare una giornata, quindi un ordine aperto non è un motivo per impedirla — anzi, è spesso
+  il motivo per cui la si vuole. Pinnato da `LaRiapertura_NonEBloccataDaUnOrdineAperto`.
 
 ---
 
@@ -932,10 +988,27 @@ e `cd duedgusto && npm run test -- <file>` per il frontend.
   nuovo e l'apertura va a buon fine.
   🔴 InMemory non applica gli indici unici: senza 2.1 questo test passerebbe **verde senza provare
   nulla**, che è peggio di non averlo.
-- [ ] 9.8 `backend/DuedGusto.Tests/Integration/GraphQL/CashManagementMutationsTests.cs` (esistente,
-  esteso), su InMemory — guardia chiusura cassa: registro con un ordine aperto → chiusura rifiutata
-  con messaggio parlante e `Stato` del registro invariato; dopo l'annullo dell'ordine, chiusura
-  riuscita.
+- [x] 9.8 **[FATTO IN FASE 7]** ~~`CashManagementMutationsTests.cs` (esistente, esteso)~~ → nuovo
+  `backend/DuedGusto.Tests/Integration/GraphQL/ChiudiRegistroCassaOrdiniApertiTests.cs`, su InMemory
+  — guardia chiusura cassa: registro con un ordine aperto → chiusura rifiutata con messaggio
+  parlante e `Stato` del registro invariato; dopo l'annullo dell'ordine, chiusura riuscita.
+  ⚠️ **File diverso da quello nominato qui, e la ragione è nell'intestazione di quel file**:
+  `CashManagementMutationsTests` dichiara di testare «the underlying EF Core data operations
+  directly, replicating the business logic» — cioè *ricopia* la logica invece di invocarla, e un
+  test dell'ordine dei guard scritto lì proverebbe la copia, non l'orchestrator. Lo stampo giusto è
+  `RiapriRegistroCassaTests.cs`, che l'orchestrator lo costruisce e lo chiama davvero.
+  ✅ **16 test**, più larghi di quanto questo task chiedeva, perché il rischio della fase è la
+  regressione e non la guardia: registro **senza alcun ordine** (il caso di tutta la produzione di
+  oggi, 607 registri e `Ordini` vuota) · ordine aperto su un **altro** registro · uno scenario per
+  **ciascuno** dei quattro stati terminali, più uno che li mette tutti insieme · un aperto fra
+  cinque risolti, che blocca nominando **solo lui** · un aperto **senza voci**, che blocca a 0,00 €
+  invece di far saltare la somma · il blocco con conteggio, importo e identificativi · la via
+  d'uscita per annullo, con i secchi fermi · l'ordine dei guard (mese chiuso, giorno non operativo,
+  registro già chiuso) · la riapertura non bloccata.
+  🔴 **Provati rossi, tutti e tre i modi di sbagliare questa fase**: (a) guardia allargata a
+  *qualunque* stato → **7 rossi**, ed è la regressione che avrebbe bloccato ogni registro storico;
+  (b) guardia non invocata → **5 rossi**; (c) guardia messa **prima** delle due preesistenti →
+  **2 rossi**, quelli sull'ordine degli errori. Tutte le condizioni ripristinate.
 - [ ] 9.9 Nuovo `duedgusto/src/components/pages/vendite/__tests__/PuntoVendita.test.tsx`: il tocco
   aggiunge una riga senza aprire la modale; la barra mostra il totale corrente; il secondo tocco
   sullo stesso prodotto non apre un secondo ordine.
