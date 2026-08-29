@@ -15,6 +15,7 @@ import FormikToolbar from "../../common/form/toolbar/FormikToolbar";
 import FormikToolbarButton from "../../common/form/toolbar/FormikToolbarButton";
 
 import RegistroCassaForm from "./RegistroCassaForm";
+import OrdiniAperti from "../vendite/OrdiniAperti";
 import { DatagridData } from "../../common/datagrid/@types/Datagrid";
 import logger from "../../../common/logger/logger";
 import { formStatuses, statoRegistroCassa } from "../../../common/globals/constants";
@@ -102,6 +103,13 @@ function RegistroCassaDetails() {
   const [initialClosingCounts, setInitialClosingCounts] = useState<CashCount[]>([]);
   const [initialIncomes, setInitialIncomes] = useState<Income[]>([]);
   const [initialExpenses, setInitialExpenses] = useState<Spese[]>([]);
+
+  // 🔴 La via d'uscita dal blocco della chiusura, non un di più. La guardia del server risponde
+  //    «2 ordini ancora aperti per 30,00 €», che è l'informazione giusta ma non è un'azione: senza
+  //    un posto in cui vederli elencati con incassa/annulla su ogni riga, l'operatore leggerebbe
+  //    il problema e non avrebbe dove risolverlo. Il pannello si monta **solo** quando serve,
+  //    così il resto della pagina non paga una query per un caso che quasi sempre non si dà.
+  const [ordiniBloccantiVisibili, setOrdiniBloccantiVisibili] = useState(false);
 
   const getInitialDate = useCallback(() => {
     if (dateParam && isValidDate(dateParam, ["YYYY-MM-DD"])) {
@@ -512,7 +520,23 @@ function RegistroCassaDetails() {
       });
     } catch (error) {
       logger.error("Errore durante la chiusura:", error);
-      toast.error("Errore durante la chiusura della cassa");
+      const messaggio = error instanceof Error ? error.message : "";
+
+      // Il messaggio della guardia nomina quanti ordini e per quanto, e si fermava lì. Da qui in
+      // poi apre l'elenco: quel testo è la diagnosi, l'elenco è il posto dove si risolve.
+      //
+      // 🔴 NESSUN TEST SORVEGLIA QUESTA RIGA, ed è misurato: provarla richiederebbe di montare
+      //    questa pagina con un Apollo vero e far fallire la chiusura, mentre il suo smoke test
+      //    mocka gli hook uno per uno senza provider. Il riconoscimento è quindi legato al
+      //    **testo** di `GestioneCassaGuards.GuardNessunOrdineAperto`: chi lo riformulasse
+      //    toglierebbe la via d'uscita dal blocco senza vedere nulla diventare rosso.
+      if (/ordin[ei] ancora apert[oi]/i.test(messaggio)) {
+        setOrdiniBloccantiVisibili(true);
+        toast.warn(messaggio, { position: "bottom-right", autoClose: 10000 });
+        return;
+      }
+
+      toast.error(messaggio || "Errore durante la chiusura della cassa");
     }
   };
 
@@ -711,6 +735,21 @@ function RegistroCassaDetails() {
                 onExpensesChange={handleExpensesChange}
               />
             </Box>
+
+            {/* Montato solo dopo il rifiuto della chiusura: fuori da quel caso non c'è nulla da
+                elencare, e la query resterebbe a girare su ogni giorno aperto della storia. */}
+            {ordiniBloccantiVisibili && (
+              <OrdiniAperti
+                aperto
+                registroCassaId={values.id}
+                titolo="Ordini che bloccano la chiusura"
+                descrizione="Un ordine aperto è un incasso non ancora dichiarato: finché resta aperto, la giornata non può essere chiusa. Incassalo, oppure annullalo se nessuno lo pagherà."
+                onChiudi={() => setOrdiniBloccantiVisibili(false)}
+                onRisolto={async () => {
+                  await refetchCashRegister();
+                }}
+              />
+            )}
           </Form>
         );
       }}

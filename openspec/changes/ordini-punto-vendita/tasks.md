@@ -885,58 +885,221 @@ Il cuore del change. Qui vive l'unica scrittura sui secchi di tutto il backend.
 
 ## Phase 8: A — Frontend
 
-- [ ] 8.1 Nuovi `duedgusto/src/graphql/ordini/queries.tsx`, `mutations.tsx`, `fragments.tsx`, sullo
+> ### ✅ Fase completata — 8.1-8.12
+>
+> **File nuovi**: `graphql/ordini/{fragments,queries,mutations}.tsx`, `@types/ordine.d.ts`,
+> `vendite/ChiusuraOrdine.tsx`, `vendite/OrdineCorrente.tsx`, `vendite/OrdiniAperti.tsx`,
+> `vendite/SplitOrdine.tsx`, `vendite/DialogMotivo.tsx`, più cinque file di test.
+> **Modificati**: `vendite/PuntoVendita.tsx`, `vendite/ScontrinoDelGiorno.tsx`,
+> `vendite/metodiPagamento.tsx`, `graphql/vendite/{mutations,fragments}.tsx`, `@types/vendita.d.ts`,
+> `registrazioneCassa/RegistroCassaDetails.tsx`.
+> **Eliminati**: `vendite/SceltaMetodoPagamento.tsx` e il suo test (rinominati, vedi 8.5).
+>
+> 🔴 **Il punto vendita era rotto, e questa fase è ciò che lo rimette in piedi.** La Fase 6 ha
+> ritirato `creaVendita` dallo schema, ma `PuntoVendita.tsx` continuava a chiamarla: le mutation
+> sono stringhe `gql` senza codegen, quindi `ts:check` restava **verde** e il guasto si vedeva solo
+> a runtime, alla conferma della vendita.
+>
+> 🔴 **E per la stessa ragione `ts:check` non è stata accettata come prova.** Ogni documento
+> GraphQL scritto qui è stato eseguito **contro il backend vero** (8.12): è l'unica verifica che
+> distingue un client che compila da un client che parla col server.
+>
+> **Verifica**: `npm run ts:check` → verde; `npm run lint` → verde; `npm run test` → **923/923**
+> (888 preesistenti − 7 del test ritirato + 42 nuovi); `dotnet test` → **971/971**, invariati.
+>
+> ⚠️ **Una corsa della suite frontend su tre ha dato 1 rosso**, e va detto invece che nascosto: era
+> la corsa lanciata **in parallelo** a `dotnet test`, e le due successive sono state verdi
+> (923/923 e 115 file su 115). Il fallimento non è stato catturato — l'output era troncato — quindi
+> **non è escluso** che sia un test intermittente preesistente sotto carico. Se la CI mostrasse un
+> rosso solitario e irriproducibile, è questo il precedente da guardare per primo.
+
+- [x] 8.1 Nuovi `duedgusto/src/graphql/ordini/queries.tsx`, `mutations.tsx`, `fragments.tsx`, sullo
   stampo di `duedgusto/src/graphql/vendite/`.
-  **Verifica**: `npm run ts:check`.
-- [ ] 8.2 Nuovo `duedgusto/src/@types/Ordine.d.ts` — tipi di `Ordine`, `RigaOrdine`, stati e input,
-  coerenti con i type GraphQL di 6.1.
-  **Verifica**: `npm run ts:check`.
-- [ ] 8.3 `duedgusto/src/components/pages/vendite/PuntoVendita.tsx` — il tocco sul prodotto aggiunge
-  una riga all'**ordine aperto** invece di aprire `SceltaMetodoPagamento`. Apertura implicita
-  dell'ordine al primo tocco se non ce n'è uno.
-  ℹ️ Restano validi `fetchPolicy` e filtro in memoria: il listino cresce a ~147 voci, ancora tutte in
-  cache, e gli indici colore vanno ancora calcolati sul listino **intero** e non su quello visibile.
-  **Verifica**: test 9.9; `npm run lint`.
-- [ ] 8.4 `PuntoVendita.tsx` — barra in basso con il totale corrente dell'ordine, il numero di voci e
-  il pulsante «Chiudi ordine». Bersagli ≥ 56 px, una mano sola: è la stessa disciplina del resto della
-  pagina, che è la prima del gestionale disegnata prima per il telefono.
-  **Verifica**: test 9.9.
-- [ ] 8.5 `duedgusto/src/components/pages/vendite/SceltaMetodoPagamento.tsx` — si sposta da riga a
-  fine ordine.
-  ⚠️ Il gesto resta **identico** (foglio dal basso, bersagli ≥ 56 px, una mano sola): non
-  ridisegnarlo, la issue lo dà esplicitamente per valido. Cambia solo *quando* si apre.
-  **Verifica**: test 9.10; `duedgusto/src/components/pages/vendite/__tests__/SceltaMetodoPagamento.test.tsx`
-  aggiornato e verde.
-- [ ] 8.6 `SceltaMetodoPagamento.tsx` — tastierino «quanto ha dato il cliente» quando il metodo è
-  contante, con il resto calcolato e mostrato.
-  🔴 Etichetta **«Resto da dare»**, mai «Resto» da solo: `Resto` è già la colonna AG in
-  `RiepilogoCards` e significa un'altra cosa. Confondere i due nomi in UI crea un equivoco che poi
-  non si toglie più.
-  **Verifica**: test 9.10, incluso il caso «contante ricevuto minore del totale» e il caso «resto
-  esatto, zero».
-- [ ] 8.7 Nuovo elenco degli ordini aperti (pagina o drawer), con la **data del registro** su ogni
-  riga — vedi 6.5 e la trappola della mezzanotte. Due azioni per riga: chiudi incassando, annulla.
-  **Verifica**: test che un ordine su un registro di ieri compare nell'elenco.
-- [ ] 8.8 UI dello split: si scelgono le righe per metodo.
-  ⚠️ Deve **dire in pagina** che la divisione per importo non è supportata, invece di lasciarlo
-  scoprire alla cassa. La issue lo chiede esplicitamente.
-  **Verifica**: test che una selezione che non copre tutte le righe non permette di confermare.
-- [ ] 8.9 `duedgusto/src/components/pages/vendite/ScontrinoDelGiorno.tsx` — legge le `Vendite`: con
-  gli ordini quelle esistono solo se incassate, quindi non dovrebbe cambiare. **Verificarlo**, e
-  verificare che non mostri ordini aperti.
-  **Verifica**: test esistenti verdi senza modifiche, più un caso con un ordine aperto sul registro
-  che non compare nello scontrino.
-- [ ] 8.10 `PuntoVendita.tsx` / elenco ordini — mostrare l'identificativo dell'ordine
-  (`Numero` + `SuffissoSplit`). La stampa non si implementa ora, ma vedere il numero valida la
-  numerazione da subito e mette in evidenza eventuali duplicati.
-  **Verifica**: ispezione visiva in 8.12.
-- [ ] 8.11 Schermata di chiusura cassa — mostrare l'elenco degli ordini aperti che bloccano la
-  chiusura, con le due uscite per riga (chiudi incassando, annulla). È la via d'uscita dal blocco
-  richiesta dalla issue: senza questa, l'errore di 7.1 è un vicolo cieco.
-  **Verifica**: test che l'errore di chiusura mostra l'elenco e non un toast generico.
-- [ ] 8.12 Verifica in esecuzione dell'intero gesto: aprire un ordine, battere tre voci, chiudere in
-  contanti digitando il ricevuto, controllare il resto mostrato, e riscontrare sul registro che
-  `IncassoContanteTracciato` si è mosso **una volta sola** dell'importo giusto.
+  ✅ **Fatto**: 3 query (`getOrdiniAperti`, `getOrdine`, `getOrdiniDelRegistro`) e 7 mutation
+  (`apriOrdine`, `aggiungiRigaOrdine`, `aggiornaRigaOrdine`, `rimuoviRigaOrdine`, `chiudiOrdine`,
+  `annullaOrdine`, `stornaOrdine`), tutte sotto il ramo esistente `vendite`.
+  ℹ️ I fragment sono **due** (`rigaOrdineFragment`, `ordineFragment`) più un terzo export
+  `ordineConRigheFragments` che li concatena nell'ordine giusto. Non è zucchero: `OrdineFragment`
+  usa `RigaOrdineFragment`, e chi ne interpolasse uno solo otterrebbe un errore di validazione
+  **a runtime** — cioè esattamente la classe di guasto che questa fase esiste per chiudere.
+  ⚠️ `mutationCreaVendita` è stata **tolta** da `graphql/vendite/mutations.tsx`, e `CreaVenditaInput`
+  da `@types/vendita.d.ts`: era la coda del ritiro di 6.6, che nel frontend era rimasta.
+  ⚠️ `venditaFragment` guadagna `ordineId`, che serve a 8.9 per sapere quali righe sono ancora
+  correggibili.
+
+- [x] 8.2 Nuovo `duedgusto/src/@types/ordine.d.ts` — tipi di `Ordine`, `RigaOrdine`, stati e input.
+  ⚠️ **`ordine.d.ts` minuscolo**, non `Ordine.d.ts`: è il nome di `design.md` §File Changes, ed è
+  anche la convenzione dei due vicini di dominio (`vendita.d.ts`, `prodotto.d.ts`).
+  ✅ **Fatto**: `StatoOrdine` (unione delle cinque stringhe del server), `RigaOrdine`, `Ordine`,
+  `TaglioOrdineInput`, `ChiudiOrdineInput`, `EsitoChiusuraOrdine`.
+  🔴 `Ordine` **non ha alcun campo `resto`**, e il commento dice perché: si legge
+  `contanteRicevuto` e il resto è una sottrazione fatta dal client. `RegistroCassa.resto` è la
+  colonna AG del foglio e significa un'altra cosa.
+
+- [x] 8.3 `PuntoVendita.tsx` — il tocco aggiunge una riga all'ordine aperto, con apertura implicita
+  al primo tocco.
+  ✅ **Fatto**. Restano invariati `fetchPolicy: "cache-first"`, il filtro in memoria e — ciò che
+  conta di più — gli indici colore calcolati sul listino **intero** e non su `prodottiVisibili`.
+  🔴 **L'apertura implicita ha una corsa, ed è chiusa con una promessa condivisa in una `ref`.**
+  Due tocchi ravvicinati arrivano prima che la prima risposta torni: senza `aperturaInVolo`
+  nascerebbero **due** ordini, il secondo con dentro una sola voce, e il guasto si vedrebbe solo
+  alla cassa. Una `ref` e non uno stato, perché il secondo tocco deve vedere il valore **prima**
+  del prossimo render. Pinnato da «due tocchi ravvicinati non aprono due ordini».
+  ⚠️ **Un ricaricamento della pagina non riadotta l'ordine da solo**, ed è deliberato: al banco
+  possono esserci due dispositivi, e indovinare «l'ultimo aperto» li farebbe litigare sullo stesso
+  conto. L'ordine si riprende dall'elenco (8.7), che è un gesto esplicito e mostra quale.
+  ℹ️ Il tocco aggiunge sempre **quantità 1**: la stessa consumazione battuta due volte diventa due
+  righe, e lo stepper del foglio delle voci le riunisce quando serve. Chiedere la quantità a ogni
+  tocco rimetterebbe in mezzo la domanda che questo change ha tolto.
+
+- [x] 8.4 `PuntoVendita.tsx` — barra in basso con il totale corrente, il numero di voci e «Chiudi
+  ordine».
+  ✅ **Fatto**, su **due righe** invece che una: sopra il conto (premibile, apre le voci) più i due
+  badge — ordini aperti e scontrino —, sotto le due azioni «Annulla ordine» e «Chiudi ordine» a
+  56 px. A 360 px cinque bersagli in fila sarebbero stati tutti troppo stretti, ed è la larghezza
+  per cui questa pagina è disegnata.
+  ⚠️ La barra non dice più «Battuto oggi». Il numero che serve mentre si batte è quello che il
+  cliente sta per pagare; il totale del giorno resta a un tocco, nello scontrino.
+  ℹ️ Nuovo `vendite/OrdineCorrente.tsx` (previsto da `design.md` §File Changes e non da questo
+  task): le voci dell'ordine con stepper e rimozione per riga. Senza, l'operatore vedrebbe solo un
+  totale e non avrebbe modo di correggere il tocco appena sbagliato. Il cestino sta **all'estremità
+  opposta** dello stepper: è l'unica azione irreversibile del foglio.
+
+- [x] 8.5 `SceltaMetodoPagamento.tsx` → **`ChiusuraOrdine.tsx`**: si sposta da riga a fine ordine.
+  ⚠️ **Rinominato, come vuole `design.md`** §File Changes (`SceltaMetodoPagamento.tsx →
+  ChiusuraOrdine.tsx`), contro la lettera di questo task e di 9.10, che citavano il vecchio nome.
+  Vale il design, come per ogni divergenza di nomenclatura di questo change — e qui la ragione è
+  anche di merito: il foglio non sceglie più solo un metodo, mostra il totale, il tastierino del
+  contante, il resto e l'ingresso allo split. Il vecchio nome sarebbe diventato una bugia.
+  ✅ **Il gesto è rimasto identico**, come chiede la issue: foglio dal basso, bersagli ≥ 56 px, una
+  mano sola, nessuna azione distruttiva adiacente. Cambia solo *quando* si apre — una volta per
+  ordine invece di una per voce.
+  ⚠️ Il test è `__tests__/ChiusuraOrdine.test.tsx` e **sostituisce**
+  `SceltaMetodoPagamento.test.tsx`, che è stato cancellato: pinnava props che non esistono più (un
+  `ProdottoVendibile` e lo stepper di quantità, ora della riga). Riadattarlo avrebbe tenuto in vita
+  un contratto morto. **13 test**, contro i 7 di prima.
+
+- [x] 8.6 `ChiusuraOrdine.tsx` — tastierino «quanto ha dato il cliente», col resto mostrato.
+  ✅ **Fatto**, con quattro scelte da annotare:
+  1. **Etichetta «Resto da rendere»**, non «Resto da dare» come diceva questa stesura: è il nome di
+     `design.md` §«`ContanteRicevuto` / `RestoDaRendere` — mai `Resto`», della spec e del campo
+     GraphQL `restoDaRendere`. La regola vera — «mai `Resto` da solo» — è rispettata da entrambe le
+     formulazioni; fra le due vince quella che coincide con lo schema. Un test pinna che la parola
+     «Resto» nuda **non compare** in pagina.
+  2. **Il foglio è a due passi, e solo per il contante.** Toccato `Elettronico` la chiusura parte
+     subito e il campo del contante **non viene mai proposto** — il server lo rifiuterebbe insieme
+     a quel metodo, e proporlo porterebbe a un errore col cliente davanti. Toccato un metodo in
+     contanti il foglio passa al tastierino.
+  3. **L'importo si accumula in centesimi**, non si scrive con la virgola: si digita «2 0 0 0» per
+     venti euro senza mai cercare il separatore, che è il tasto che sul telefono si sbaglia. Tasti
+     ≥ 56 px, più le quattro banconote (5/10/20/50) come scorciatoia.
+  4. **Un ricevuto insufficiente non produce un resto negativo**: dice *quanto manca* e tiene
+     spento «Incassa». Un numero negativo mostrato come se fosse valido è il modo più diretto di
+     far rendere soldi che non si sono presi.
+  ℹ️ «Importo esatto» invia `contanteRicevuto: null`, che è il caso normale: obbligare a digitare
+  il totale sarebbe lavoro per niente.
+
+- [x] 8.7 Nuovo `vendite/OrdiniAperti.tsx` — elenco con la **data del registro** su ogni riga e le
+  due azioni: incassa, annulla.
+  ✅ **Fatto come drawer autonomo**, non come pagina, e la ragione è pratica: una pagina nuova
+  richiede un record `menus` nel database (`path` + `filePath`), quindi non sarebbe raggiungibile
+  in produzione senza un seed nuovo — e soprattutto **non** dalla schermata di chiusura cassa, che
+  è il posto in cui 8.11 la vuole. Il componente interroga da sé `ordiniAperti` e porta dentro le
+  due mutation, così i due chiamanti non duplicano nulla.
+  🔴 **Il registro è un filtro opzionale.** Dal punto vendita si passa senza registro — l'elenco
+  mostra anche gli ordini di ieri —, dalla chiusura cassa si passa quello del giorno che si sta
+  chiudendo. È la trappola della mezzanotte, e ogni riga porta `Cassa del gg/mm/aaaa` con un
+  contrassegno quando non è oggi. Pinnato da «mostra un ordine del registro di ieri».
+  ℹ️ «Riprendi» compare **solo** se il chiamante sa dove riprenderlo: dalla chiusura cassa non c'è
+  un banco su cui rimettere l'ordine, e un pulsante che non porta da nessuna parte è peggio di uno
+  assente.
+  ℹ️ Il motivo dell'annullo passa da `vendite/DialogMotivo.tsx`, condiviso con l'annullo del punto
+  vendita e con lo storno dello scontrino: sono le tre operazioni che cancellano qualcosa, ed è la
+  stessa domanda. Il pulsante resta spento su un motivo di soli spazi — un motivo vuoto salvato
+  **somiglierebbe** a una traccia senza esserlo, che è peggio di non averla.
+
+- [x] 8.8 Nuovo `vendite/SplitOrdine.tsx` — si scelgono le righe per metodo.
+  ✅ **Fatto**, con il limite dichiarato **in cima al foglio**: «Si divide per voci, non per
+  importo», con l'esempio esplicito («20 € in contanti e 10 con carta») che è il modo in cui
+  qualcuno ci proverà. Non è un messaggio d'errore: sta scritto prima che si cominci.
+  ℹ️ La forma è «parte corrente + tocco sulla voce»: le parti sono chip in cima con il loro
+  totale, la voce toccata va nella parte selezionata, e le voci non ancora assegnate hanno il
+  bordo **tratteggiato** — si vedono senza leggere.
+  🔴 **La conferma resta spenta in due casi**, entrambi pinnati: una voce non assegnata (sparirebbe
+  dal conto) e una parte senza voci (taglio vuoto). Il server rifiuta entrambi, ma un rifiuto
+  arriva sempre più tardi di un pulsante spento.
+  ⚠️ Nello split **non si digita il contante ricevuto**: sarebbero n tastierini in fila, e il resto
+  si fa comunque una volta sola alla fine. Ogni taglio parte con `contanteRicevuto` assente, che
+  per il server significa «importo esatto».
+
+- [x] 8.9 `ScontrinoDelGiorno.tsx` — verificato, e **NON è rimasto invariato**: la verifica ha
+  trovato un guasto della stessa famiglia di quello di `creaVendita`.
+  🔴 **Il guasto**: 6.6 ha ristretto `aggiornaVendita` ed `eliminaVendita`, che ora **rifiutano**
+  ogni vendita con `ordineId != null`. Le due icone di riga di questo drawer chiamano proprio
+  quelle due mutation: da qui in avanti avrebbero risposto solo con un errore, su **ogni** riga —
+  perché da qui in avanti ogni vendita nasce da un ordine. `ts:check` non poteva vederlo, per la
+  stessa ragione di 6.6.
+  ✅ **Rimediato come vuole `design.md`** §File Changes: righe **raggruppate per ordine** con
+  l'identificativo in testa al gruppo, le due icone di riga **solo** sulle righe senza ordine (le
+  vendite di sviluppo nate col vecchio regime), e al loro posto **«Storna»** sul gruppo.
+  🔴 **«Storna», non «annulla», e solo per amministratori**: sono due gesti diversi e non stanno
+  mai sullo stesso pulsante. L'annullo vale su un ordine ancora aperto e non tocca nulla; lo storno
+  disfa un incasso già dichiarato. Il server esige il ruolo: nascondere il pulsante a chi non può
+  usarlo evita di far scoprire il divieto **dopo** aver scritto un motivo.
+  ✅ **Verificato che gli ordini aperti non compaiono**: il drawer legge le `Vendita`, che esistono
+  solo se qualcuno ha pagato. Il messaggio del caso vuoto lo dice a voce alta, perché è la
+  proprietà che rende leggibile il totale.
+
+- [x] 8.10 Identificativo dell'ordine in pagina.
+  ✅ **Fatto in quattro punti**: la barra del punto vendita, il foglio delle voci, il foglio di
+  chiusura e ogni riga dell'elenco degli aperti. Il gruppo dello scontrino porta lo stesso codice.
+  ℹ️ Viene dal campo derivato `identificativo` del server (`{data:yyMMdd}-{numero:D3}[-{suffisso}]`),
+  non ricomposto dal client: una seconda formula sarebbe una seconda verità da tenere allineata.
+  **Riscontrato in esecuzione** (8.12): `260828-001` sul primo ordine del registro di ieri.
+
+- [x] 8.11 Schermata di chiusura cassa — l'elenco degli ordini che bloccano la chiusura.
+  ✅ **Fatto**: `RegistroCassaDetails.handleCloseCashRegister` riconosce il messaggio della guardia
+  di 7.1 (`/ordin[ei] ancora apert[oi]/i`) e apre `OrdiniAperti` **filtrato su quel registro**, con
+  titolo e spiegazione propri. Il messaggio del server resta visibile in un toast: è la diagnosi,
+  l'elenco è il posto in cui si risolve.
+  🔴 **Non è un abbellimento: è il completamento della Fase 7.** La guardia risponde «2 ordini
+  ancora aperti per 30,00 €» e si ferma lì. Senza una schermata che li elenchi con le due azioni
+  per riga, l'operatore legge il problema e non ha dove risolverlo — e la chiusura di cassa
+  diventa un vicolo cieco.
+  ⚠️ Il pannello si monta **solo** dopo il rifiuto (`{ordiniBloccantiVisibili && …}`). Montarlo
+  sempre farebbe girare una query su ogni giorno aperto della storia, e — cosa che conta di più
+  qui — farebbe partire quella query anche nello smoke test della pagina, che non ha un
+  ApolloProvider e diventerebbe rosso per un motivo che non c'entra nulla.
+  ⚠️ **`riapriRegistroCassa` non è toccata**: la guardia vale sulla chiusura soltanto (vedi 7.2).
+  🔴 **Copertura mancante, dichiarata**: nessun test attraversa questo ramo. Provarlo richiede di
+  montare `RegistroCassaDetails` con un Apollo vero e far fallire la chiusura, e il suo smoke test
+  mocka gli hook uno per uno senza provider. Il riconoscimento del messaggio è quindi legato **al
+  testo della guardia di 7.1**: chi lo riformulasse toglierebbe la via d'uscita senza vedere nulla
+  diventare rosso. Il rischio è annotato qui e nel codice, accanto alla regex.
+
+- [x] 8.12 Verifica in esecuzione dell'intero gesto.
+  🔴 **Eseguita contro il backend vero, non simulata**, e con i **documenti `gql` veri** importati
+  dai file di 8.1: è l'unica prova che il client parli davvero col server, che `ts:check` non dà.
+  ⚠️ **Ritrovamento**: l'istanza già accesa su `:4000` era una build **precedente alla Fase 6** e
+  rispondeva `Unknown type Ordine · Cannot query field 'apriOrdine'`. La verifica è stata rifatta
+  su una seconda istanza avviata dalla build corrente (porta 4010, artifacts fuori dall'albero per
+  non contendere i lock del backend acceso). **Chi rifà questa prova deve riavviare il backend**,
+  o misurerà lo schema di ieri.
+  ✅ **Esito, sul registro #628 del 28/08 in `DRAFT`** — che è anche il caso della mezzanotte, dato
+  che «oggi» è il 29:
+  - le 3 query e le 7 mutation **validano tutte** contro lo schema reale;
+  - apertura → `260828-001`; tre voci battute, una portata a quantità 2, una tolta;
+  - `totaleCorrente` 6,50 e `dataRegistro` **28/08**, non oggi;
+  - 🔴 **con l'ordine aperto `incassoContanteTracciato` resta a 0**: un ordine aperto non è un
+    incasso, ed è l'invariante centrale del change;
+  - chiusura in contante tracciato con 20,00 € ricevuti → `restoDaRendere` **13,50**, esattamente
+    la sottrazione che il tastierino mostra al cliente;
+  - 🔴 `incassoContanteTracciato` passa da 0 a **6,50**: delta pari al totale, **una volta sola**;
+  - storno → torna a **0**, e le vendite generate spariscono;
+  - un secondo ordine aperto e **annullato**, per provare anche quella via d'uscita.
+  ⚠️ Restano in dev sul registro #628 un ordine `STORNATO` e uno `ANNULLATO`, entrambi con motivo
+  «Verifica in esecuzione della fase 8». Nessuno dei due muove un secchio, e la chiusura di cassa
+  non è bloccata da stati terminali (7.1).
 
 ---
 
@@ -1009,12 +1172,38 @@ e `cd duedgusto && npm run test -- <file>` per il frontend.
   *qualunque* stato → **7 rossi**, ed è la regressione che avrebbe bloccato ogni registro storico;
   (b) guardia non invocata → **5 rossi**; (c) guardia messa **prima** delle due preesistenti →
   **2 rossi**, quelli sull'ordine degli errori. Tutte le condizioni ripristinate.
-- [ ] 9.9 Nuovo `duedgusto/src/components/pages/vendite/__tests__/PuntoVendita.test.tsx`: il tocco
-  aggiunge una riga senza aprire la modale; la barra mostra il totale corrente; il secondo tocco
-  sullo stesso prodotto non apre un secondo ordine.
-- [ ] 9.10 `duedgusto/src/components/pages/vendite/__tests__/SceltaMetodoPagamento.test.tsx`
-  (esistente, esteso): apertura a fine ordine invece che per riga; tastierino contante; resto da dare
-  nei tre casi (esatto, in eccesso, insufficiente).
+- [x] 9.9 **[FATTO IN FASE 8]** Nuovo `duedgusto/src/components/pages/vendite/__tests__/PuntoVendita.test.tsx`:
+  il tocco aggiunge una riga senza aprire la modale; la barra mostra il totale corrente; il secondo
+  tocco sullo stesso prodotto non apre un secondo ordine.
+  ✅ **7 test.** Oltre ai tre chiesti: la cassa non aperta (che si gestisce *prima* della griglia),
+  il **listino vuoto** — che in produzione è il caso di oggi, `Prodotti` è vuota — lo stato iniziale
+  senza ordine, e la presenza delle due sole uscite «Annulla ordine» / «Chiudi ordine», con
+  «Storna» **assente** perché è un altro gesto su un altro stato.
+  ⚠️ Il file non usa `MockedProvider` ma un **doppio di `useQuery`/`useMutation`** che smista sul
+  nome dell'operazione, con un mini-store che fa ri-renderizzare chi legge. Non è solo il
+  precedente degli altri test di pagina: ciò che va provato qui è **il numero di chiamate a
+  `apriOrdine` in una corsa fra due tocchi**, e con la cache di Apollo in mezzo si finirebbe a
+  provare la cache.
+  ℹ️ `vi.hoisted` installa `window.matchMedia`: `themeStore` legge la preferenza di sistema alla
+  **creazione dello store**, cioè durante l'import, e senza quello nessun test parte.
+- [x] 9.10 **[FATTO IN FASE 8]** ~~`__tests__/SceltaMetodoPagamento.test.tsx` (esistente, esteso)~~ →
+  nuovo `duedgusto/src/components/pages/vendite/__tests__/ChiusuraOrdine.test.tsx`, **13 test**.
+  ⚠️ **File diverso da quello nominato qui, e il vecchio è stato cancellato**: il componente si è
+  rinominato in `ChiusuraOrdine.tsx` (vedi 8.5) e le props vecchie — un `ProdottoVendibile` e lo
+  stepper di quantità — non esistono più. Estendere quel file avrebbe pinnato un contratto morto.
+  ✅ Coperti tutti e tre i casi del resto (esatto, in eccesso, insufficiente), più: l'elettronico
+  che conferma **senza** proporre il contante, il tastierino che compare solo sul contante,
+  «Importo esatto» che invia `contanteRicevuto: null`, la cancellazione a una cifra per volta,
+  l'ingresso allo split spento con una voce sola, e — 🔴 — che la parola **«Resto» nuda non compare
+  mai** in pagina.
+- [x] 9.13 **[AGGIUNTO IN FASE 8]** Tre file che questa stesura non prevedeva, per i tre componenti
+  nuovi: `OrdiniAperti.test.tsx` (**7**, fra cui l'ordine del registro di **ieri** che compare
+  comunque — la trappola della mezzanotte vista dal client — e il motivo obbligatorio
+  dell'annullo), `SplitOrdine.test.tsx` (**6**: il limite per-importo dichiarato in pagina, la voce
+  non assegnata, la parte vuota, la riassegnazione che sposta invece di duplicare) e
+  `OrdineCorrente.test.tsx` (**4**). Più `ScontrinoDelGiorno.test.tsx` (**5**), che prima non
+  esisteva affatto e che pinna la conseguenza di 6.6: **niente icone di correzione** sulle righe
+  nate da un ordine, e lo storno visibile ai soli amministratori.
 - [ ] 9.11 Gate di fase backend: `cd backend && dotnet build && dotnet test` verdi, zero warning.
 - [ ] 9.12 Gate di fase frontend: `cd duedgusto && npm run ts:check && npm run lint && npm run test`
   verdi.

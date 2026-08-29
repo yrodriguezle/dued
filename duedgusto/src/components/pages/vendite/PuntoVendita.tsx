@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "@apollo/client";
 import Alert from "@mui/material/Alert";
 import AlertTitle from "@mui/material/AlertTitle";
@@ -7,32 +7,51 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
+import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
 import Paper from "@mui/material/Paper";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import ButtonBase from "@mui/material/ButtonBase";
 import { useTheme } from "@mui/material/styles";
+import PendingActionsIcon from "@mui/icons-material/PendingActions";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import SearchIcon from "@mui/icons-material/Search";
-import UndoIcon from "@mui/icons-material/Undo";
 import dayjs from "dayjs";
 import { useNavigate } from "react-router";
 
+import ChiusuraOrdine from "./ChiusuraOrdine";
+import DialogMotivo from "./DialogMotivo";
+import OrdineCorrente from "./OrdineCorrente";
+import OrdiniAperti from "./OrdiniAperti";
 import ScontrinoDelGiorno from "./ScontrinoDelGiorno";
-import SceltaMetodoPagamento from "./SceltaMetodoPagamento";
+import SplitOrdine from "./SplitOrdine";
 import PageTitleContext from "../../layout/headerBar/PageTitleContext";
 import formatCurrency from "../../../common/bones/formatCurrency";
 import showToast from "../../../common/toast/showToast";
 import { coloreCategoria, coloreProdotto, indiciPerCategoria } from "./coloriProdotto";
 import useQueryRegistroCassa from "../../../graphql/registroCassa/useQueryRegistroCassa";
 import { getProdottiVendibili, getVenditeDelRegistro } from "../../../graphql/vendite/queries";
-import { mutationCreaVendita, mutationEliminaVendita } from "../../../graphql/vendite/mutations";
+import { getOrdine, getOrdiniAperti } from "../../../graphql/ordini/queries";
+import {
+  mutationAggiornaRigaOrdine,
+  mutationAnnullaOrdine,
+  mutationApriOrdine,
+  mutationChiudiOrdine,
+  mutationAggiungiRigaOrdine,
+  mutationRimuoviRigaOrdine,
+} from "../../../graphql/ordini/mutations";
 
 const TUTTE = "__tutte__";
 
 /**
- * Il punto vendita: due tocchi per consumazione — il prodotto, poi il metodo.
+ * Il punto vendita: **si compone un ordine**, e il metodo di pagamento si chiede una volta sola,
+ * alla fine.
+ *
+ * <p>Era «due tocchi per consumazione — il prodotto, poi il metodo», ed è il cambiamento che
+ * questa pagina porta: al bancone non si sa come pagheranno finché non arrivano alla cassa, e
+ * chiedere il metodo a ogni birra costringeva a indovinare otto volte di fila. Ora ogni tocco
+ * aggiunge una voce a un conto aperto, che non ha mosso un centesimo finché non lo si incassa.</p>
  *
  * <p>È la prima pagina del gestionale disegnata **prima per il telefono**. Niente AG Grid:
  * battere una consumazione dietro al bancone è un dito, una mano sola, uno schermo da 360 px e
@@ -46,9 +65,18 @@ function PuntoVendita() {
 
   const [categoria, setCategoria] = useState<string>(TUTTE);
   const [ricerca, setRicerca] = useState("");
-  const [prodottoScelto, setProdottoScelto] = useState<ProdottoVendibile | null>(null);
+  const [ordineCorrenteId, setOrdineCorrenteId] = useState<number | null>(null);
+  const [vociAperte, setVociAperte] = useState(false);
+  const [chiusuraAperta, setChiusuraAperta] = useState(false);
+  const [splitAperto, setSplitAperto] = useState(false);
+  const [annulloAperto, setAnnulloAperto] = useState(false);
   const [scontrinoAperto, setScontrinoAperto] = useState(false);
-  const [ultimaVenditaId, setUltimaVenditaId] = useState<number | null>(null);
+  const [elencoApertiVisibile, setElencoApertiVisibile] = useState(false);
+
+  // 🔴 L'apertura dell'ordine è **implicita al primo tocco**, e due tocchi rapidi arrivano prima
+  //    che la prima risposta torni: senza questa promessa condivisa nascerebbero due ordini, il
+  //    secondo con dentro una sola voce, e nessuno se ne accorgerebbe fino alla cassa.
+  const aperturaInVolo = useRef<Promise<number | null> | null>(null);
 
   const oggi = useMemo(() => dayjs().format("YYYY-MM-DD"), []);
   const { registroCassa, loading: caricamentoRegistro, refetch: ricaricaRegistro } = useQueryRegistroCassa({ data: oggi });
@@ -60,17 +88,33 @@ function PuntoVendita() {
 
   const registroCassaId = registroCassa?.id ?? 0;
 
-  const {
-    data: datiVendite,
-    refetch: ricaricaVendite,
-  } = useQuery(getVenditeDelRegistro, {
+  const { data: datiVendite, refetch: ricaricaVendite } = useQuery(getVenditeDelRegistro, {
     variables: { registroCassaId, limite: 500 },
     skip: !registroCassaId,
     fetchPolicy: "cache-and-network",
   });
 
-  const [creaVendita, { loading: venditaInCorso }] = useMutation(mutationCreaVendita);
-  const [eliminaVendita, { loading: eliminazioneInCorso }] = useMutation(mutationEliminaVendita);
+  // 🔴 Senza `registroCassaId` questa query risponderebbe con gli aperti di **tutti** i registri.
+  //    Qui il registro si passa di proposito: il badge conta ciò che pesa sulla giornata che si
+  //    sta battendo. L'elenco completo, ordini di ieri compresi, è l'affare di `OrdiniAperti`.
+  const { data: datiAperti, refetch: ricaricaAperti } = useQuery(getOrdiniAperti, {
+    variables: { registroCassaId },
+    skip: !registroCassaId,
+    fetchPolicy: "cache-and-network",
+  });
+
+  const { data: datiOrdine, refetch: ricaricaOrdineQuery } = useQuery(getOrdine, {
+    variables: { id: ordineCorrenteId ?? 0 },
+    skip: !ordineCorrenteId,
+    fetchPolicy: "cache-and-network",
+  });
+
+  const [apriOrdine] = useMutation(mutationApriOrdine);
+  const [aggiungiRigaOrdine, { loading: aggiuntaInCorso }] = useMutation(mutationAggiungiRigaOrdine);
+  const [aggiornaRigaOrdine, { loading: aggiornamentoInCorso }] = useMutation(mutationAggiornaRigaOrdine);
+  const [rimuoviRigaOrdine, { loading: rimozioneInCorso }] = useMutation(mutationRimuoviRigaOrdine);
+  const [chiudiOrdine, { loading: chiusuraInCorso }] = useMutation(mutationChiudiOrdine);
+  const [annullaOrdine, { loading: annullamentoInCorso }] = useMutation(mutationAnnullaOrdine);
 
   useEffect(() => {
     setTitle("Vendita");
@@ -78,14 +122,22 @@ function PuntoVendita() {
 
   const prodotti = useMemo(() => datiProdotti?.vendite?.prodotti ?? [], [datiProdotti]);
   const vendite = useMemo(() => datiVendite?.vendite?.vendite ?? [], [datiVendite]);
+  const ordiniAperti = useMemo(() => datiAperti?.vendite?.ordiniAperti ?? [], [datiAperti]);
+
+  // La risposta della query può essere ancora quella dell'ordine precedente mentre il nuovo id
+  // vola: mostrarla darebbe un totale che non è di questo conto.
+  const ordineCorrente = useMemo(() => {
+    const letto = datiOrdine?.vendite?.ordine ?? null;
+    return letto && letto.ordineId === ordineCorrenteId ? letto : null;
+  }, [datiOrdine, ordineCorrenteId]);
 
   const categorie = useMemo(
     () => (datiProdotti?.vendite?.categorieProdotto ?? []).filter((c): c is string => Boolean(c)),
     [datiProdotti]
   );
 
-  // Filtro in memoria: il listino sta in 122 righe, già tutte in cache. Rifare il giro di rete
-  // a ogni lettera renderebbe la ricerca più lenta di quanto si scriva.
+  // Filtro in memoria: il listino sta in poche centinaia di righe, già tutte in cache. Rifare il
+  // giro di rete a ogni lettera renderebbe la ricerca più lenta di quanto si scriva.
   const prodottiVisibili = useMemo(() => {
     const termine = ricerca.trim().toLowerCase();
     return prodotti.filter((prodotto) => {
@@ -100,66 +152,164 @@ function PuntoVendita() {
   //    ha gia imparato dov'era il pulsante.
   const indiciColore = useMemo(() => indiciPerCategoria(prodotti), [prodotti]);
 
-  const totaleBattuto = useMemo(() => vendite.reduce((somma, vendita) => somma + vendita.prezzoTotale, 0), [vendite]);
+  const inCorso = aggiuntaInCorso || aggiornamentoInCorso || rimozioneInCorso || chiusuraInCorso || annullamentoInCorso;
 
-  const handleConferma = useCallback(
-    async (metodo: MetodoPagamentoVendita, quantita: number) => {
-      if (!prodottoScelto || !registroCassaId) {
+  const errore = useCallback((errore: unknown, ripiego: string, toastId: string) => {
+    showToast({
+      type: "error",
+      position: "bottom-center",
+      message: errore instanceof Error ? errore.message : ripiego,
+      autoClose: 8000,
+      toastId,
+    });
+  }, []);
+
+  const ricaricaOrdine = useCallback(
+    async (id: number) => {
+      await ricaricaOrdineQuery({ id });
+    },
+    [ricaricaOrdineQuery]
+  );
+
+  /**
+   * L'id dell'ordine su cui battere, aprendolo se non c'è.
+   *
+   * <p>Il ritorno è memorizzato in una `ref` e non in uno stato perché serve **prima** del
+   * prossimo render: due tocchi ravvicinati devono attendere la stessa apertura, non farne
+   * partire una seconda.</p>
+   */
+  const assicuraOrdine = useCallback(async (): Promise<number | null> => {
+    if (ordineCorrenteId) {
+      return ordineCorrenteId;
+    }
+    if (aperturaInVolo.current) {
+      return aperturaInVolo.current;
+    }
+    const apertura = apriOrdine({ variables: { registroCassaId } })
+      .then((esito) => {
+        const nato = esito.data?.vendite?.apriOrdine ?? null;
+        if (nato) {
+          setOrdineCorrenteId(nato.ordineId);
+        }
+        return nato?.ordineId ?? null;
+      })
+      .finally(() => {
+        aperturaInVolo.current = null;
+      });
+    aperturaInVolo.current = apertura;
+    return apertura;
+  }, [apriOrdine, ordineCorrenteId, registroCassaId]);
+
+  const handleTocca = useCallback(
+    async (prodotto: ProdottoVendibile) => {
+      if (!registroCassaId) {
         return;
       }
       try {
-        const esito = await creaVendita({
-          variables: {
-            input: {
-              registroCassaId,
-              prodottoId: prodottoScelto.prodottoId,
-              quantita,
-              metodoPagamento: metodo,
-            },
-          },
-        });
-        const creata = esito.data?.vendite?.creaVendita;
-        setProdottoScelto(null);
-        if (creata) {
-          setUltimaVenditaId(creata.venditaId);
+        const ordineId = await assicuraOrdine();
+        if (!ordineId) {
+          return;
         }
-        // Il registro va riletto perché i suoi secchi sono appena cambiati: è il numero che
-        // l'operatore userà per quadrare a fine giornata.
-        await Promise.all([ricaricaVendite(), ricaricaRegistro()]);
-      } catch (errore) {
-        // 🔴 Nessun ritentativo automatico, qui: l'alimentazione dei secchi è per delta e non è
-        //    idempotente. Riprovare da soli raddoppierebbe l'incasso in silenzio.
-        showToast({
-          type: "error",
-          position: "bottom-center",
-          message: errore instanceof Error ? errore.message : "Vendita non registrata",
-          autoClose: 6000,
-          toastId: "vendita-errore",
-        });
+        // ℹ️ Quantità 1: la stessa consumazione battuta due volte diventa due righe, e lo
+        //    stepper del foglio delle voci le riunisce quando serve. Chiedere la quantità a ogni
+        //    tocco rimetterebbe in mezzo la domanda che questo change ha tolto.
+        await aggiungiRigaOrdine({ variables: { ordineId, prodottoId: prodotto.prodottoId, quantita: 1 } });
+        await Promise.all([ricaricaOrdine(ordineId), ricaricaAperti()]);
+      } catch (guasto) {
+        errore(guasto, "Voce non aggiunta all'ordine", "riga-errore");
       }
     },
-    [creaVendita, prodottoScelto, registroCassaId, ricaricaRegistro, ricaricaVendite]
+    [aggiungiRigaOrdine, assicuraOrdine, errore, ricaricaAperti, ricaricaOrdine, registroCassaId]
   );
 
-  const handleAnnullaUltima = useCallback(async () => {
-    if (!ultimaVenditaId) {
-      return;
-    }
-    try {
-      await eliminaVendita({ variables: { id: ultimaVenditaId } });
-      setUltimaVenditaId(null);
-      await Promise.all([ricaricaVendite(), ricaricaRegistro()]);
-      showToast({ type: "success", position: "bottom-center", message: "Ultima vendita annullata", autoClose: 2500, toastId: "vendita-annullata" });
-    } catch (errore) {
-      showToast({
-        type: "error",
-        position: "bottom-center",
-        message: errore instanceof Error ? errore.message : "Annullamento non riuscito",
-        autoClose: 6000,
-        toastId: "vendita-annulla-errore",
-      });
-    }
-  }, [eliminaVendita, ricaricaRegistro, ricaricaVendite, ultimaVenditaId]);
+  const handleCambiaQuantita = useCallback(
+    async (riga: RigaOrdine, quantita: number) => {
+      if (quantita < 1 || !ordineCorrenteId) {
+        return;
+      }
+      try {
+        await aggiornaRigaOrdine({ variables: { rigaOrdineId: riga.rigaOrdineId, quantita } });
+        await ricaricaOrdine(ordineCorrenteId);
+      } catch (guasto) {
+        errore(guasto, "Quantità non aggiornata", "riga-quantita-errore");
+      }
+    },
+    [aggiornaRigaOrdine, errore, ordineCorrenteId, ricaricaOrdine]
+  );
+
+  const handleRimuoviRiga = useCallback(
+    async (riga: RigaOrdine) => {
+      if (!ordineCorrenteId) {
+        return;
+      }
+      try {
+        await rimuoviRigaOrdine({ variables: { rigaOrdineId: riga.rigaOrdineId } });
+        await Promise.all([ricaricaOrdine(ordineCorrenteId), ricaricaAperti()]);
+      } catch (guasto) {
+        errore(guasto, "Voce non rimossa", "riga-rimozione-errore");
+      }
+    },
+    [errore, ordineCorrenteId, ricaricaAperti, ricaricaOrdine, rimuoviRigaOrdine]
+  );
+
+  const handleIncassa = useCallback(
+    async (tagli: TaglioOrdineInput[]) => {
+      if (!ordineCorrenteId) {
+        return;
+      }
+      try {
+        const esito = await chiudiOrdine({ variables: { input: { ordineId: ordineCorrenteId, tagli } } });
+        const resto = esito.data?.vendite?.chiudiOrdine?.restoDaRendere ?? 0;
+        setChiusuraAperta(false);
+        setSplitAperto(false);
+        setVociAperte(false);
+        setOrdineCorrenteId(null);
+        // Il registro va riletto perché i suoi secchi sono appena cambiati: è il numero che
+        // l'operatore userà per quadrare a fine giornata.
+        await Promise.all([ricaricaVendite(), ricaricaRegistro(), ricaricaAperti()]);
+        showToast({
+          type: "success",
+          position: "bottom-center",
+          message: resto > 0 ? `Ordine incassato · resto da rendere ${formatCurrency(resto)} €` : "Ordine incassato",
+          autoClose: 4000,
+          toastId: "ordine-incassato",
+        });
+      } catch (guasto) {
+        // 🔴 Nessun ritentativo automatico, qui: l'alimentazione dei secchi è per delta e non è
+        //    idempotente. Riprovare da soli raddoppierebbe l'incasso in silenzio.
+        errore(guasto, "Ordine non incassato", "ordine-incasso-errore");
+      }
+    },
+    [chiudiOrdine, errore, ordineCorrenteId, ricaricaAperti, ricaricaRegistro, ricaricaVendite]
+  );
+
+  const handleAnnulla = useCallback(
+    async (motivo: string) => {
+      if (!ordineCorrenteId) {
+        return;
+      }
+      try {
+        await annullaOrdine({ variables: { ordineId: ordineCorrenteId, motivo } });
+        setAnnulloAperto(false);
+        setVociAperte(false);
+        setOrdineCorrenteId(null);
+        await ricaricaAperti();
+        showToast({ type: "success", position: "bottom-center", message: "Ordine annullato", autoClose: 2500, toastId: "ordine-annullato" });
+      } catch (guasto) {
+        errore(guasto, "Annullamento non riuscito", "ordine-annullo-errore");
+      }
+    },
+    [annullaOrdine, errore, ordineCorrenteId, ricaricaAperti]
+  );
+
+  const handleRiprendi = useCallback(
+    (ordine: Ordine) => {
+      setOrdineCorrenteId(ordine.ordineId);
+      setElencoApertiVisibile(false);
+      void ricaricaOrdine(ordine.ordineId);
+    },
+    [ricaricaOrdine]
+  );
 
   if (caricamentoRegistro) {
     return (
@@ -169,9 +319,9 @@ function PuntoVendita() {
     );
   }
 
-  // 🔴 Lo stato «cassa non aperta» si gestisce PRIMA di mostrare la griglia, non alla conferma.
+  // 🔴 Lo stato «cassa non aperta» si gestisce PRIMA di mostrare la griglia, non al primo tocco.
   //    `registroCassa(data)` restituisce null quando il registro del giorno non esiste, e
-  //    `creaVendita` pretende un registro: lasciar battere per poi rifiutare farebbe perdere
+  //    `apriOrdine` pretende un registro: lasciar battere per poi rifiutare farebbe perdere
   //    l'ordinazione. E il registro NON si crea al volo da qui — nasce con i conteggi di
   //    apertura, che sono un gesto di cassa, non un effetto collaterale di una birra.
   if (!registroCassa) {
@@ -182,7 +332,8 @@ function PuntoVendita() {
           sx={{ mb: 2 }}
         >
           <AlertTitle>La cassa di oggi non è ancora aperta</AlertTitle>
-          Le vendite si agganciano al registro del giorno, e quello di {dayjs(oggi).format("DD/MM/YYYY")} non esiste ancora. Va aperto con i conteggi di apertura prima di battere.
+          Gli ordini si agganciano al registro del giorno, e quello di {dayjs(oggi).format("DD/MM/YYYY")} non esiste ancora. Va aperto con i conteggi di apertura prima di
+          battere.
         </Alert>
         <Button
           fullWidth
@@ -273,7 +424,7 @@ function PuntoVendita() {
             return (
               <ButtonBase
                 key={prodotto.prodottoId}
-                onClick={() => setProdottoScelto(prodotto)}
+                onClick={() => void handleTocca(prodotto)}
                 sx={{
                   // ⚠️ 72 px: molto sopra i 48 minimi. Si preme al volo, di sbieco, senza guardare.
                   minHeight: 72,
@@ -305,6 +456,8 @@ function PuntoVendita() {
                   // e schiarire uno sfondo già tenue non si vedrebbe comunque.
                   "&:active": { transform: "scale(0.97)" },
                   "&:hover": { filter: palette.mode === "light" ? "brightness(0.96)" : "brightness(1.12)" },
+                  // Chi ha chiesto meno movimento al sistema operativo non deve vederne qui.
+                  "@media (prefers-reduced-motion: reduce)": { transition: "none", "&:active": { transform: "none" } },
                 }}
               >
                 <Typography
@@ -326,43 +479,62 @@ function PuntoVendita() {
         </Box>
       </Box>
 
-      {/* Barra fissa in basso, sotto il pollice: quanto è stato battuto, quante righe, e la via
-          d'uscita dall'errore appena fatto. */}
+      {/* Barra fissa in basso, sotto il pollice: **il conto aperto**, non più il battuto del
+          giorno. Il totale del giorno resta a un tocco di distanza, nello scontrino, ma il
+          numero che serve mentre si batte è quello che il cliente sta per pagare. */}
       <Paper
         elevation={3}
         square
-        sx={{ flexShrink: 0, px: 1.5, py: 1, display: "flex", alignItems: "center", gap: 1 }}
+        sx={{ flexShrink: 0, px: 1.5, py: 1, display: "flex", flexDirection: "column", gap: 1 }}
       >
-        <Box sx={{ minWidth: 0, flex: 1 }}>
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            display="block"
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <ButtonBase
+            onClick={() => setVociAperte(true)}
+            disabled={!ordineCorrente || ordineCorrente.righe.length === 0}
+            sx={{ minWidth: 0, flex: 1, justifyContent: "flex-start", textAlign: "left", borderRadius: 1, px: 0.5, py: 0.5, minHeight: 48 }}
           >
-            Battuto oggi
-          </Typography>
-          <Typography
-            variant="h6"
-            sx={{ lineHeight: 1.1, fontVariantNumeric: "tabular-nums" }}
+            <Box sx={{ minWidth: 0 }}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                display="block"
+                noWrap
+              >
+                {/* 🔴 L'identificativo si vede da subito, e non solo in stampa: la numerazione è
+                    per registro e vedere il numero salire è ciò che fa notare un duplicato la
+                    sera stessa, invece che a fine mese. */}
+                {ordineCorrente
+                  ? `Ordine ${ordineCorrente.identificativo} · ${ordineCorrente.righe.length} ${ordineCorrente.righe.length === 1 ? "voce" : "voci"}`
+                  : "Nessun ordine aperto"}
+              </Typography>
+              <Typography
+                variant="h6"
+                sx={{ lineHeight: 1.1, fontVariantNumeric: "tabular-nums" }}
+              >
+                {ordineCorrente ? `${formatCurrency(ordineCorrente.totaleCorrente)} €` : "Tocca un prodotto per iniziare"}
+              </Typography>
+            </Box>
+          </ButtonBase>
+
+          <IconButton
+            aria-label="Ordini aperti"
+            onClick={() => setElencoApertiVisibile(true)}
+            sx={{ width: 48, height: 48 }}
           >
-            {formatCurrency(totaleBattuto)}
-          </Typography>
-        </Box>
+            <Badge
+              badgeContent={ordiniAperti.length}
+              color="warning"
+              max={99}
+            >
+              <PendingActionsIcon />
+            </Badge>
+          </IconButton>
 
-        <Button
-          variant="outlined"
-          color="inherit"
-          startIcon={<UndoIcon />}
-          disabled={!ultimaVenditaId || eliminazioneInCorso}
-          onClick={handleAnnullaUltima}
-          sx={{ minHeight: 48 }}
-        >
-          Annulla
-        </Button>
-
-        <Button
-          variant="contained"
-          startIcon={
+          <IconButton
+            aria-label="Scontrino del giorno"
+            onClick={() => setScontrinoAperto(true)}
+            sx={{ width: 48, height: 48 }}
+          >
             <Badge
               badgeContent={vendite.length}
               color="error"
@@ -370,19 +542,82 @@ function PuntoVendita() {
             >
               <ReceiptLongIcon />
             </Badge>
-          }
-          onClick={() => setScontrinoAperto(true)}
-          sx={{ minHeight: 48 }}
-        >
-          Scontrino
-        </Button>
+          </IconButton>
+        </Box>
+
+        {ordineCorrente && (
+          <Box sx={{ display: "flex", gap: 1 }}>
+            <Button
+              variant="outlined"
+              color="error"
+              disabled={inCorso}
+              onClick={() => setAnnulloAperto(true)}
+              sx={{ minHeight: 56, flex: 1 }}
+            >
+              Annulla ordine
+            </Button>
+            <Button
+              variant="contained"
+              disabled={inCorso || ordineCorrente.righe.length === 0}
+              onClick={() => setChiusuraAperta(true)}
+              sx={{ minHeight: 56, flex: 1.6 }}
+            >
+              Chiudi ordine
+            </Button>
+          </Box>
+        )}
       </Paper>
 
-      <SceltaMetodoPagamento
-        prodotto={prodottoScelto}
-        inCorso={venditaInCorso}
-        onChiudi={() => setProdottoScelto(null)}
-        onConferma={handleConferma}
+      <OrdineCorrente
+        aperto={vociAperte}
+        ordine={ordineCorrente}
+        inCorso={inCorso}
+        onChiudi={() => setVociAperte(false)}
+        onCambiaQuantita={(riga, quantita) => void handleCambiaQuantita(riga, quantita)}
+        onRimuovi={(riga) => void handleRimuoviRiga(riga)}
+        onIncassa={() => {
+          setVociAperte(false);
+          setChiusuraAperta(true);
+        }}
+      />
+
+      <ChiusuraOrdine
+        ordine={chiusuraAperta ? ordineCorrente : null}
+        inCorso={chiusuraInCorso}
+        onChiudi={() => setChiusuraAperta(false)}
+        onConferma={(tagli) => void handleIncassa(tagli)}
+        onDividi={() => {
+          setChiusuraAperta(false);
+          setSplitAperto(true);
+        }}
+      />
+
+      <SplitOrdine
+        aperto={splitAperto}
+        ordine={ordineCorrente}
+        inCorso={chiusuraInCorso}
+        onChiudi={() => setSplitAperto(false)}
+        onConferma={(tagli) => void handleIncassa(tagli)}
+      />
+
+      <OrdiniAperti
+        aperto={elencoApertiVisibile}
+        onChiudi={() => setElencoApertiVisibile(false)}
+        onRiprendi={handleRiprendi}
+        onRisolto={async () => {
+          await Promise.all([ricaricaAperti(), ricaricaVendite(), ricaricaRegistro()]);
+        }}
+      />
+
+      <DialogMotivo
+        aperto={annulloAperto}
+        titolo={`Annulla l'ordine ${ordineCorrente?.identificativo ?? ""}`}
+        spiegazione="L'ordine non sparisce e resta consultabile: nessun incasso viene toccato, perché non ne è mai stato dichiarato uno."
+        suggerimenti={["Cliente andato via", "Ordine battuto due volte", "Errore di battitura"]}
+        etichettaConferma="Annulla l'ordine"
+        inCorso={annullamentoInCorso}
+        onChiudi={() => setAnnulloAperto(false)}
+        onConferma={(motivo) => void handleAnnulla(motivo)}
       />
 
       <ScontrinoDelGiorno
@@ -391,7 +626,7 @@ function PuntoVendita() {
         registroCassa={registroCassa}
         onChiudi={() => setScontrinoAperto(false)}
         onModificato={async () => {
-          await Promise.all([ricaricaVendite(), ricaricaRegistro()]);
+          await Promise.all([ricaricaVendite(), ricaricaRegistro(), ricaricaAperti()]);
         }}
       />
     </Box>
