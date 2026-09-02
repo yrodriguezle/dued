@@ -10,12 +10,13 @@ interface IncomesDataGridProps {
   isLocked: boolean;
   onCellChange?: () => void;
   onIncomesChange?: (incomes: IncassiGiornalieri[]) => void;
+  onExitGrid?: () => void;
 }
 
 const toIncassi = (rows: Income[]): IncassiGiornalieri[] => rows.map((row) => ({ tipo: row.type, importo: row.amount }));
 
 const IncomesDataGrid = memo(
-  forwardRef<GridReadyEvent<DatagridData<Income>>, IncomesDataGridProps>(({ initialIncomes, isLocked, onCellChange, onIncomesChange }, ref) => {
+  forwardRef<GridReadyEvent<DatagridData<Income>>, IncomesDataGridProps>(({ initialIncomes, isLocked, onCellChange, onIncomesChange, onExitGrid }, ref) => {
     // Usa i dati iniziali passati come prop
     const items = useMemo(() => {
       return initialIncomes || [];
@@ -117,8 +118,10 @@ const IncomesDataGrid = memo(
             columnDefs={columnDefs}
             readOnly={isLocked}
             getNewRow={() => ({ type: "", amount: 0 })}
+            autoAddRowOnTab={false}
             showRowNumbers={false}
             hideToolbar={true}
+            onExitGrid={onExitGrid}
             onCellValueChanged={handleCellValueChanged}
             onGridReady={handleGridReady}
             suppressRowHoverHighlight={false}

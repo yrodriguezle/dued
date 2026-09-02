@@ -15,10 +15,11 @@ interface CashCountDataGridProps {
   onCellChange?: () => void;
   onCopyFromPrevious?: () => void;
   onTotalChange?: (total: number) => void;
+  onExitGrid?: () => void;
 }
 
 const CashCountDataGrid = memo(
-  forwardRef<GridReadyEvent<DatagridData<CashCountRowData>>, CashCountDataGridProps>(({ gridId, rowData, title, isLocked, onCellChange, onCopyFromPrevious, onTotalChange }, ref) => {
+  forwardRef<GridReadyEvent<DatagridData<CashCountRowData>>, CashCountDataGridProps>(({ gridId, rowData, title, isLocked, onCellChange, onCopyFromPrevious, onTotalChange, onExitGrid }, ref) => {
     const theme = useTheme();
 
     const calculateTotal = useCallback((): number => {
@@ -225,6 +226,7 @@ const CashCountDataGrid = memo(
             readOnly={isLocked}
             showRowNumbers={false}
             hideToolbar={true}
+            onExitGrid={onExitGrid}
             additionalToolbarButtons={copyFromPreviousButton}
             onGridReady={handleGridReady}
             onCellValueChanged={handleCellValueChanged}

@@ -1,4 +1,4 @@
-
+import { useCallback } from "react";
 import { TextField, Box } from "@mui/material";
 import { useFormikContext } from "formik";
 import { FormikRegistroCassaValues } from "./RegistroCassaDetails";
@@ -10,6 +10,7 @@ import { GridReadyEvent } from "ag-grid-community";
 import { DatagridData } from "../../common/datagrid/@types/Datagrid";
 import { CashCountRowData } from "./useCashCountData";
 import { statoRegistroCassa } from "../../../common/globals/constants";
+import { focusFirstEditableCell } from "../../common/datagrid/navigation/editableCells";
 
 // IncomeRow ed ExpenseRow sono i tipi ambient dichiarati in src/@types/RegistroCassa.d.ts
 
@@ -54,6 +55,21 @@ const RegistroCassaForm: React.FC<RegistroCassaFormProps> = ({
   const isLocked = formik.status?.isFormLocked || false;
   const isClosed = formik.values.status === statoRegistroCassa.CLOSED;
 
+  // Le quattro griglie si passano il testimone nell'ordine in cui stanno a
+  // schermo: uscendo dall'ultima cella di una si entra in editing sulla prima
+  // dell'altra, invece di finire sul primo campo che capita dopo nel DOM.
+  const focusClosingGrid = useCallback(() => {
+    focusFirstEditableCell(closingGridRef.current?.api);
+  }, [closingGridRef]);
+
+  const focusIncomesGrid = useCallback(() => {
+    focusFirstEditableCell(incomesGridRef.current?.api);
+  }, [incomesGridRef]);
+
+  const focusExpensesGrid = useCallback(() => {
+    focusFirstEditableCell(expensesGridRef.current?.api);
+  }, [expensesGridRef]);
+
   return (
     <Box sx={{ marginTop: 1, paddingX: { xs: 0, sm: 1, md: 2 }, overflow: "hidden", width: "100%", boxSizing: "border-box" }}>
       <div className="grid grid-cols-12 gap-2 sm:gap-5 md:gap-6">
@@ -67,6 +83,7 @@ const RegistroCassaForm: React.FC<RegistroCassaFormProps> = ({
             onCellChange={onCellChange}
             onCopyFromPrevious={onCopyFromPrevious}
             onTotalChange={onOpeningTotalChange}
+            onExitGrid={focusClosingGrid}
           />
         </div>
 
@@ -79,6 +96,7 @@ const RegistroCassaForm: React.FC<RegistroCassaFormProps> = ({
             isLocked={isLocked}
             onCellChange={onCellChange}
             onTotalChange={onClosingTotalChange}
+            onExitGrid={focusIncomesGrid}
           />
         </div>
 
@@ -89,6 +107,7 @@ const RegistroCassaForm: React.FC<RegistroCassaFormProps> = ({
             isLocked={isLocked}
             onCellChange={onCellChange}
             onIncomesChange={onIncomesChange}
+            onExitGrid={focusExpensesGrid}
           />
         </div>
 

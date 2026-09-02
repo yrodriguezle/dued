@@ -1,5 +1,5 @@
 import { ReactNode, useCallback, useMemo, useRef, useState, useEffect } from "react";
-import { CellValueChangedEvent, Column, GetRowIdParams, GridReadyEvent, IRowNode, RowPinnedType, RowSelectionOptions, SelectionChangedEvent } from "ag-grid-community";
+import { CellEditingStartedEvent, CellEditingStoppedEvent, CellValueChangedEvent, Column, GetRowIdParams, GridReadyEvent, IRowNode, RowPinnedType, RowSelectionOptions, SelectionChangedEvent } from "ag-grid-community";
 import Box from "@mui/material/Box";
 import { useMediaQuery, useTheme } from "@mui/material";
 import { z } from "zod";
@@ -12,6 +12,7 @@ import { DatagridStatus } from "../../../common/globals/constants";
 import useEditingState from "./editing/useEditingState";
 import useZodValidation from "./validation/useZodValidation";
 import useTabNavigation from "./navigation/useTabNavigation";
+import { findNextEditableCell } from "./navigation/editableCells";
 import useEnterNavigation from "./navigation/useEnterNavigation";
 import createRowNumberColumn from "./columns/createRowNumberColumn";
 import DateCellEditor from "./cellEditors/date/DateCellEditor";
@@ -38,18 +39,31 @@ interface BaseDatagridProps<T extends object> extends Omit<DatagridAgGridProps<T
   validationSchema?: z.ZodSchema<T>;
   onValidationErrors?: (errors: Map<number, ValidationError[]>) => void;
   onRowsDeleted?: (deletedRows: DatagridData<T>[]) => void;
+  /**
+   * Chiamata quando il Tab esce dall'ultima cella editabile e la griglia non
+   * aggiunge righe. Serve a passare l'editing alla griglia successiva: senza,
+   * il focus finisce sul primo campo che capita dopo nel DOM.
+   */
+  onExitGrid?: () => void;
 }
 
 interface NormalModeProps<T extends object> extends BaseDatagridProps<T> {
   presentation?: undefined;
   getNewRow?: () => T;
   readOnly: boolean;
+  /**
+   * Tab sull'ultima cella aggiunge una riga. Di serie vale per ogni griglia che
+   * sappia costruire una riga nuova; va spento dove le righe sono un elenco
+   * fisso, altrimenti il Tab finale sforna righe che nessuno può compilare.
+   */
+  autoAddRowOnTab?: boolean;
 }
 
 interface PresentationModeProps<T extends object> extends BaseDatagridProps<T> {
   presentation: true;
   getNewRow?: never;
   readOnly?: never;
+  autoAddRowOnTab?: never;
 }
 
 type DatagridProps<T extends object> = NormalModeProps<T> | PresentationModeProps<T>;
@@ -57,6 +71,16 @@ type DatagridProps<T extends object> = NormalModeProps<T> | PresentationModeProp
 const initialStatus: DatagridAuxData = {
   status: DatagridStatus.Unchanged,
 };
+
+/**
+ * Quanto vale ancora, dopo la chiusura dell'editing, la cella da cui ripartire.
+ * AG Grid chiude l'editing appena il focus esce (stopEditingWhenCellsLoseFocus),
+ * quindi al momento del focusout l'editing risulta gia finito.
+ */
+const EDITING_MEMORY_MS = 400;
+
+/** Un focus arrivato subito dopo un tocco e dell'utente, non della tastiera. */
+const POINTER_GRACE_MS = 500;
 
 function Datagrid<T extends object>(props: DatagridProps<T>) {
   const muiTheme = useTheme();
@@ -86,6 +110,8 @@ function Datagrid<T extends object>(props: DatagridProps<T>) {
     onRowsDeleted,
     columnDefs,
     onGridReady: onGridReadyProp,
+    onExitGrid,
+    autoAddRowOnTab: autoAddRowOnTabProp,
     getRowId,
     ...gridProps
   } = props;
@@ -96,13 +122,46 @@ function Datagrid<T extends object>(props: DatagridProps<T>) {
   const readOnly = !isPresentation ? readOnlyProp : false;
   const getNewRow = !isPresentation ? getNewRowProp : undefined;
 
-  const enableAutoAddRowOnTab = !!getNewRow;
+  const enableAutoAddRowOnTab = !!getNewRow && autoAddRowOnTabProp !== false;
 
   // Hooks per gestione editing e validazione
-  const { handleCellEditingStarted, handleCellEditingStopped } = useEditingState<T>((isEditing) => {
+  const { handleCellEditingStarted: trackEditingStarted, handleCellEditingStopped: trackEditingStopped } = useEditingState<T>((isEditing) => {
     setCanAddNewRow(!isEditing);
     isEditingRef.current = isEditing;
   });
+
+  // Ultima cella aperta in editing e istante in cui l'editing e finito: servono a
+  // sapere da dove ripartire quando il focus lascia la griglia senza passare da
+  // un evento tastiera (vedi handleGridBlur).
+  const lastEditingCellRef = useRef<{ rowIndex: number; colId: string } | null>(null);
+  const editingStoppedAtRef = useRef(0);
+  const pointerDownAtRef = useRef(0);
+
+  const handleCellEditingStarted = useCallback(
+    (event: CellEditingStartedEvent<DatagridData<T>>) => {
+      if (event.node.rowIndex !== null && !event.node.rowPinned) {
+        lastEditingCellRef.current = { rowIndex: event.node.rowIndex, colId: event.column.getColId() };
+      }
+      trackEditingStarted(event);
+    },
+    [trackEditingStarted]
+  );
+
+  const handleCellEditingStopped = useCallback(
+    (event: CellEditingStoppedEvent<DatagridData<T>>) => {
+      editingStoppedAtRef.current = Date.now();
+      trackEditingStopped(event);
+    },
+    [trackEditingStopped]
+  );
+
+  useEffect(() => {
+    const handlePointerDown = () => {
+      pointerDownAtRef.current = Date.now();
+    };
+    document.addEventListener("pointerdown", handlePointerDown, true);
+    return () => document.removeEventListener("pointerdown", handlePointerDown, true);
+  }, []);
 
   const { validateRow } = useZodValidation<T>({ schema: validationSchema });
 
@@ -201,22 +260,79 @@ function Datagrid<T extends object>(props: DatagridProps<T>) {
     return node;
   }, [addNewRowAt, handleAddNewRowAt]);
 
-  // Hook per navigazione Tab (dipende da handleAddNewRowAt e gotoEditCell)
-  const { handleCellKeyDown: handleTabNavigation } = useTabNavigation<T>({
-    getNewRow,
-    onAddRow: handleAddNewRowAt,
-    gotoEditCell,
-    autoAddRowOnTab: enableAutoAddRowOnTab,
-  });
+  /**
+   * Sposta l'editing dopo la cella data. Unico punto in cui si decide dove si va:
+   * ci passano il Tab, l'Invio su mobile e il focus che scappa dalla griglia.
+   *
+   * `fromKeyboard` distingue il Tab vero: lì lo spostamento sulla cella
+   * successiva sa già farlo AG Grid (salta da sé le colonne non editabili), e
+   * rifarlo qui aprirebbe l'editing due volte.
+   */
+  const navigateFromCell = useCallback(
+    (rowIndex: number, colId: string, options: { fromKeyboard: boolean }) => {
+      const api = gridRef.current?.api;
+      if (!api || readOnly) return false;
+
+      const next = findNextEditableCell(api, rowIndex, colId);
+      if (next) {
+        if (options.fromKeyboard) return false;
+        gotoEditCell(next.rowIndex, next.column);
+        return true;
+      }
+
+      // Da qui in giù: era l'ultima cella editabile della griglia. In entrambi i
+      // rami il focus lascia la cella corrente, quindi la memoria va azzerata o
+      // il focusout che segue rifarebbe lo stesso salto una seconda volta.
+      if (enableAutoAddRowOnTab) {
+        lastEditingCellRef.current = null;
+        handleAddNewRowAt(addNewRowAt === "top" ? 0 : undefined);
+        return true;
+      }
+
+      if (onExitGrid) {
+        lastEditingCellRef.current = null;
+        api.stopEditing();
+        onExitGrid();
+        return true;
+      }
+
+      return false;
+    },
+    [readOnly, gotoEditCell, enableAutoAddRowOnTab, handleAddNewRowAt, addNewRowAt, onExitGrid]
+  );
+
+  /**
+   * Il tasto "avanti" (->) delle tastiere mobile non manda un Tab: Chrome sposta
+   * da se il focus al prossimo campo del documento, quindi AG Grid non vede
+   * niente e si finisce fuori dalla griglia - in gestione cassa, dritti sulle
+   * Note. Qui si intercetta quel salto e si riporta l'editing dove doveva andare.
+   *
+   * Un focus partito da un tocco non va toccato: se l'utente ha scelto lui dove
+   * andare, riportarlo indietro sarebbe peggio del bug.
+   */
+  const handleGridBlur = useCallback(
+    (event: React.FocusEvent<HTMLDivElement>) => {
+      const cell = lastEditingCellRef.current;
+      if (!cell || readOnly) return;
+
+      const nextTarget = event.relatedTarget as HTMLElement | null;
+      if (!nextTarget || event.currentTarget.contains(nextTarget)) return;
+
+      const now = Date.now();
+      if (now - pointerDownAtRef.current < POINTER_GRACE_MS) return;
+      if (!isEditingRef.current && now - editingStoppedAtRef.current > EDITING_MEMORY_MS) return;
+
+      lastEditingCellRef.current = null;
+      navigateFromCell(cell.rowIndex, cell.colId, { fromKeyboard: false });
+    },
+    [readOnly, navigateFromCell]
+  );
+
+  // Hook per navigazione Tab
+  const { handleCellKeyDown: handleTabNavigation } = useTabNavigation<T>({ navigateFromCell });
 
   // Hook per navigazione Enter su mobile (Enter → prossima cella editabile)
-  const { handleEnterNavigation } = useEnterNavigation<T>({
-    isMobile,
-    getNewRow,
-    onAddRow: handleAddNewRowAt,
-    gotoEditCell,
-    autoAddRowOnTab: enableAutoAddRowOnTab,
-  });
+  const { handleEnterNavigation } = useEnterNavigation<T>({ isMobile, navigateFromCell });
 
   // Verifica se una riga è uguale a newRow (non modificata)
   const isRowPristine = useCallback(
@@ -452,7 +568,10 @@ function Datagrid<T extends object>(props: DatagridProps<T>) {
   });
 
   return (
-    <Box sx={{ height, display: "flex", flexDirection: "column" }}>
+    <Box
+      sx={{ height, display: "flex", flexDirection: "column" }}
+      onBlur={handleGridBlur}
+    >
       {!isPresentation && (!hideToolbar || additionalToolbarButtons) && (
         <DatagridToolbar
           canAddNewRow={canAddNewRow}

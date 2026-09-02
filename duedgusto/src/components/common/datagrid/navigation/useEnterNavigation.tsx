@@ -1,42 +1,23 @@
 import { useCallback } from "react";
-import { CellKeyDownEvent, Column, GridApi, IRowNode, RowPinnedType } from "ag-grid-community";
+import { CellKeyDownEvent } from "ag-grid-community";
 import { DatagridData } from "../@types/Datagrid";
 
-interface UseEnterNavigationProps<T extends object> {
+interface UseEnterNavigationProps {
   isMobile: boolean;
-  getNewRow?: () => T;
-  onAddRow?: (index?: number) => IRowNode<DatagridData<T>> | undefined;
-  gotoEditCell?: (rowIndex: number, col: string | Column, rowPinned?: RowPinnedType) => Promise<boolean>;
-  autoAddRowOnTab?: boolean;
+  /** Stessa funzione usata dal Tab: su mobile l'Invio deve comportarsi come il Tab. */
+  navigateFromCell: (rowIndex: number, colId: string, options: { fromKeyboard: boolean }) => boolean;
 }
 
 interface UseEnterNavigationReturn<T extends object> {
   handleEnterNavigation: (event: CellKeyDownEvent<DatagridData<T>>) => void;
 }
 
-function useEnterNavigation<T extends object>(props: UseEnterNavigationProps<T>): UseEnterNavigationReturn<T> {
-  const { isMobile, getNewRow, onAddRow, gotoEditCell, autoAddRowOnTab = true } = props;
-
-  const getNextEditableColumn = useCallback((api: GridApi, rowIndex: number, currentColumn: Column): Column | null => {
-    const allColumns = api.getAllDisplayedColumns();
-    const currentColIndex = allColumns.findIndex((col) => col.getColId() === currentColumn.getColId());
-    const node = api.getDisplayedRowAtIndex(rowIndex);
-    if (!node) return null;
-
-    const remaining = allColumns.slice(currentColIndex + 1);
-    return remaining.find((col) => col.isCellEditable(node)) ?? null;
-  }, []);
-
-  const getFirstEditableColumn = useCallback((api: GridApi, rowNode: IRowNode): Column | null => {
-    const columns = api.getAllDisplayedColumns();
-    return columns.find((col) => col.isCellEditable(rowNode)) ?? null;
-  }, []);
-
+function useEnterNavigation<T extends object>({ isMobile, navigateFromCell }: UseEnterNavigationProps): UseEnterNavigationReturn<T> {
   const handleEnterNavigation = useCallback(
     (event: CellKeyDownEvent<DatagridData<T>>) => {
       if (!isMobile) return;
 
-      const { event: keyboardEvent, api, node, column } = event;
+      const { event: keyboardEvent, node, column } = event;
 
       if (!keyboardEvent || !("key" in keyboardEvent)) return;
       if (keyboardEvent.key !== "Enter") return;
@@ -44,48 +25,13 @@ function useEnterNavigation<T extends object>(props: UseEnterNavigationProps<T>)
       const rowIndex = node.rowIndex;
       if (rowIndex === null) return;
 
-      // Previeni il comportamento default di AG Grid (conferma e resta)
+      // AG Grid di suo conferma e resta sulla cella: qui l'Invio deve avanzare.
       keyboardEvent.preventDefault();
       keyboardEvent.stopPropagation();
 
-      api.stopEditing();
-
-      // 1. Cerca la prossima cella editabile nella stessa riga
-      const nextCol = getNextEditableColumn(api, rowIndex, column);
-      if (nextCol && gotoEditCell) {
-        gotoEditCell(rowIndex, nextCol);
-        return;
-      }
-
-      // 2. Vai alla prima cella editabile della riga successiva
-      const nextRowIndex = rowIndex + 1;
-      const totalRows = api.getDisplayedRowCount();
-
-      if (nextRowIndex < totalRows) {
-        const targetNode = api.getDisplayedRowAtIndex(nextRowIndex);
-        if (targetNode && !targetNode.rowPinned) {
-          const firstCol = getFirstEditableColumn(api, targetNode);
-          if (firstCol && gotoEditCell) {
-            gotoEditCell(nextRowIndex, firstCol);
-            return;
-          }
-        }
-      }
-
-      // 3. Ultima riga, ultima cella → aggiungi nuova riga (come Tab)
-      if (autoAddRowOnTab && onAddRow && gotoEditCell && getNewRow) {
-        const newNode = onAddRow();
-        if (newNode) {
-          const firstCol = getFirstEditableColumn(api, newNode);
-          if (firstCol) {
-            setTimeout(() => {
-              gotoEditCell(newNode.rowIndex ?? 0, firstCol);
-            }, 50);
-          }
-        }
-      }
+      navigateFromCell(rowIndex, column.getColId(), { fromKeyboard: false });
     },
-    [isMobile, getNextEditableColumn, getFirstEditableColumn, onAddRow, gotoEditCell, getNewRow, autoAddRowOnTab]
+    [isMobile, navigateFromCell]
   );
 
   return { handleEnterNavigation };
