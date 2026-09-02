@@ -98,7 +98,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
-            ...(isInline ? { height: "100%" } : { minHeight: "100vh", backgroundColor: "grey.100" }),
+            ...(isInline ? { height: "100%" } : { minHeight: "var(--app-height, 100dvh)", backgroundColor: "grey.100" }),
             padding: 2,
           }}
         >

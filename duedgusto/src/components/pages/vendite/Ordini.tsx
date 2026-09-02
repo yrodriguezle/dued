@@ -51,7 +51,7 @@ function Ordini() {
   );
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", height: "calc(100dvh - 64px)", overflow: "auto" }}>
+    <Box sx={{ display: "flex", flexDirection: "column", height: "calc(var(--app-height, 100dvh) - 64px)", overflow: "auto" }}>
       <ElencoOrdiniAperti
         attivo
         onRiprendi={handleRiprendi}

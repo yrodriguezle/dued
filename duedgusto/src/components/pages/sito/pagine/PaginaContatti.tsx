@@ -52,7 +52,7 @@ function PaginaContatti() {
 
   return (
     <SitoGuard>
-      <Box sx={{ display: "flex", flexDirection: "column", height: "calc(100dvh - 48px)" }}>
+      <Box sx={{ display: "flex", flexDirection: "column", height: "calc(var(--app-height, 100dvh) - 48px)" }}>
         <SchedaPagina
           pagina="contatti"
           stato={{ tipo: "sempre" }}

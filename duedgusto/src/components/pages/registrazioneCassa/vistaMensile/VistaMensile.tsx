@@ -187,7 +187,7 @@ function VistaMensile() {
   }, [navigate, currentYear, currentMonth]);
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", height: "calc(100dvh - 64px)" }}>
+    <Box sx={{ display: "flex", flexDirection: "column", height: "calc(var(--app-height, 100dvh) - 64px)" }}>
       <ToolbarNavigazioneMensile
         currentDate={currentDate}
         monthLabel={monthLabel}

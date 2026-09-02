@@ -389,7 +389,7 @@ function VetrinaProdottiList() {
       />
       <Box
         className="scrollable-box"
-        sx={{ marginTop: 1, paddingX: 2, overflow: "auto", height: "calc(100dvh - 64px - 48px)" }}
+        sx={{ marginTop: 1, paddingX: 2, overflow: "auto", height: "calc(var(--app-height, 100dvh) - 64px - 48px)" }}
       >
         <Typography
           id="view-title"

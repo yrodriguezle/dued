@@ -66,7 +66,7 @@ function RegistrazioneCassDashboard() {
   const annoVuoto = !loading && !error && riepilogo.mesi.length > 0 && riepilogo.totaliAnno.registri === 0;
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", height: "calc(100vh - 64px)" }}>
+    <Box sx={{ display: "flex", flexDirection: "column", height: "calc(var(--app-height, 100dvh) - 64px)" }}>
       <DashboardHeader
         anno={selectedYear}
         mese={selectedMonth}

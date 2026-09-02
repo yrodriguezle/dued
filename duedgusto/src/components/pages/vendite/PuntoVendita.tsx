@@ -451,7 +451,7 @@ function PuntoVendita() {
   }
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", height: "calc(100dvh - 64px)" }}>
+    <Box sx={{ display: "flex", flexDirection: "column", height: "calc(var(--app-height, 100dvh) - 64px)" }}>
       <Box sx={{ px: 1.5, pt: 1.5, pb: 1, flexShrink: 0 }}>
         <TextField
           fullWidth

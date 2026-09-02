@@ -350,7 +350,7 @@ function FatturaAcquistoDetails() {
               paddingX: 2,
               py: 2,
               overflow: "auto",
-              height: "calc(100dvh - 64px - 41px)",
+              height: "calc(var(--app-height, 100dvh) - 64px - 41px)",
             }}
           >
             <Typography

@@ -126,7 +126,7 @@ function ProfilePage() {
 
   if (loading && !utente) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100dvh" }}>
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "var(--app-height, 100dvh)" }}>
         <CircularProgress />
       </Box>
     );
@@ -155,7 +155,7 @@ function ProfilePage() {
       initialStatus={{ formStatus: formStatuses.UPDATE, isFormLocked: false }}
     >
       {({ values, setFieldValue }) => (
-        <Form style={{ display: "flex", flexDirection: "column", height: "calc(100dvh - 48px)" }}>
+        <Form style={{ display: "flex", flexDirection: "column", height: "calc(var(--app-height, 100dvh) - 48px)" }}>
           <FormikToolbar
             hideUnlockButton
             hideNewButton

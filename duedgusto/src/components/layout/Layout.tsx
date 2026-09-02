@@ -17,7 +17,7 @@ function Layout() {
   useSettingsSync();
 
   return (
-    <Box sx={{ height: "100dvh", overflow: "hidden" }}>
+    <Box sx={{ height: "var(--app-height, 100dvh)", overflow: "hidden" }}>
       <HeaderBar
         drawerOpen={drawerOpen}
         setHeaderHeight={setHeaderHeight}
@@ -28,7 +28,7 @@ function Layout() {
           display: "flex",
           marginTop: `${headerHeight}px`,
           transition: "margin 0.3s",
-          height: `calc(100dvh - ${headerHeight}px)`,
+          height: `calc(var(--app-height, 100dvh) - ${headerHeight}px)`,
           overflow: "hidden",
         }}
       >

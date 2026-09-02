@@ -232,7 +232,7 @@ function MediaLibrary() {
     <SitoGuard>
       <Box
         className="scrollable-box"
-        sx={{ paddingX: 2, paddingY: 2, overflow: "auto", height: "calc(100dvh - 64px)" }}
+        sx={{ paddingX: 2, paddingY: 2, overflow: "auto", height: "calc(var(--app-height, 100dvh) - 64px)" }}
       >
         <Typography
           id="view-title"

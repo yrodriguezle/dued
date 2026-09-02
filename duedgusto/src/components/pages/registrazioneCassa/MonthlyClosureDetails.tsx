@@ -451,7 +451,7 @@ const MonthlyClosureDetails = () => {
   ];
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", height: "calc(100dvh - 64px)" }}>
+    <Box sx={{ display: "flex", flexDirection: "column", height: "calc(var(--app-height, 100dvh) - 64px)" }}>
       {/* Toolbar */}
       <Box sx={{ borderBottom: 1, borderColor: "divider", bgcolor: "background.paper", flexShrink: 0 }}>
         <Toolbar

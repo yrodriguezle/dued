@@ -310,7 +310,7 @@ function GruppiProdotti() {
   const categoriaAnteprima = bozza?.membri.length ? prodottiPerId.get(bozza.membri[0])?.categoria : undefined;
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", height: "calc(100dvh - 64px)" }}>
+    <Box sx={{ display: "flex", flexDirection: "column", height: "calc(var(--app-height, 100dvh) - 64px)" }}>
       <Box sx={{ flex: 1, minHeight: 0, display: "flex", gap: 2.5, p: 2 }}>
         {/* ── I gruppi ─────────────────────────────────────────────────────────────────────── */}
         <Paper

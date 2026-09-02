@@ -14,6 +14,7 @@ import useStore from "../store/useStore";
 import PageTitleContext from "../components/layout/headerBar/PageTitleContext";
 import { setNavigator } from "../common/navigator/navigator";
 import useBootstrap from "../components/authentication/useBootstrap";
+import useAppHeight from "../common/viewport/useAppHeight";
 import useConfirm from "../components/common/confirm/useConfirm";
 
 function Root() {
@@ -26,6 +27,9 @@ function Root() {
   }, [navigate]);
 
   useBootstrap();
+
+  // Allinea l'altezza dell'app al visual viewport (tastiera virtuale su mobile)
+  useAppHeight();
 
   // Blocco navigazione globale per form con modifiche non salvate
   const isFormDirty = useStore((state) => state.isFormDirty);
@@ -71,7 +75,7 @@ function Root() {
       <PageTitleContext.Provider value={pageTitleContextValue}>
         <ThemeProvider theme={theme(userTheme.theme)}>
           <CssBaseline />
-          <GlobalStyles styles={{ html: { height: "100dvh", overflow: "hidden" }, body: { height: "100dvh", overflow: "hidden" } }} />
+          <GlobalStyles styles={{ html: { height: "var(--app-height, 100dvh)", overflow: "hidden" }, body: { height: "var(--app-height, 100dvh)", overflow: "hidden" } }} />
           <Outlet />
           <ToastContainer theme={userTheme.theme} />
           <UpdateNotification />

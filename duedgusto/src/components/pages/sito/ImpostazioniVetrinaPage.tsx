@@ -214,7 +214,7 @@ function ImpostazioniVetrinaPage() {
         initialStatus={{ formStatus: formStatuses.UPDATE, isFormLocked: true }}
       >
         {({ values, status }) => (
-          <Form style={{ display: "flex", flexDirection: "column", height: "calc(100dvh - 48px)" }}>
+          <Form style={{ display: "flex", flexDirection: "column", height: "calc(var(--app-height, 100dvh) - 48px)" }}>
             <FormikToolbar
               onFormReset={handleResetForm}
               hideNewButton
