@@ -45,7 +45,7 @@ export const SITO_FINTO = {
   //    fallimenti direbbero «manca la striscia dei consigli» invece di «manca una chiave».
   //    Tutti i testi sono `null` di proposito — è lo stato di un'installazione nuova, ed è
   //    quello in cui le sezioni editoriali NON devono rendersi.
-  testi: { claim: null, storia: null, aperitivo: null },
+  testi: { claim: null, storia: null, aperitivo: null, piatto: null },
   reputazione: null,
   recensioni: [],
 };
@@ -61,6 +61,14 @@ export const SITO_FINTO_CON_TESTI = {
       testo: 'Un cocktail e il tagliere del giorno.',
       punti: ['Un cocktail a scelta', 'Il tagliere del giorno'],
       categorie: ['Cocktail'],
+    },
+    // ⚠️ `giorno` è 2 = MERCOLEDÌ, con lunedì a 0 come `orari.giorniOperativi`. Non è un valore
+    //    a caso: se fosse 0 o 1 un fuori-di-uno fra le due convenzioni non si vedrebbe, perché
+    //    «lunedì» e «domenica» sono anche ciò che si ottiene sbagliando.
+    piatto: {
+      titolo: 'Bigoli con l’anatra',
+      testo: 'Primo capoverso del piatto.\n\nSecondo capoverso del piatto.',
+      giorno: 2,
     },
   },
   reputazione: { punteggio: 4.7, numero: 180, urlProfilo: null },
@@ -110,8 +118,9 @@ export function immagineFinta(chiave = '2026/08/foto-prova', larghezze = [400, 8
  *    `SITO_FINTO` rispecchia `SitoPubblicoDto`: senza, ogni pagina di ogni test cadrebbe in
  *    degradazione e i fallimenti direbbero «manca la griglia» invece di «manca una chiave».
  *
- * ⚠️ `eroeAperitivo` è `null` anche a galleria piena, e **non è una dimenticanza**: quel ruolo
- *    non ha ripiego posizionale. Prima del change era `galleria.at(-1)`.
+ * ⚠️ `eroeAperitivo` ed `eroePiatto` sono `null` anche a galleria piena, e **non è una
+ *    dimenticanza**: quei due ruoli non hanno ripiego posizionale. Per l'aperitivo, prima del
+ *    change, era `galleria.at(-1)`; per il piatto non c'è mai stato.
  */
 export function galleriaFinta(immagini = [], ruoli = {}) {
   return {
@@ -123,6 +132,9 @@ export function galleriaFinta(immagini = [], ruoli = {}) {
       ritrattoLocale: immagini[1] ?? immagini[0] ?? null,
       quadrateLocale: immagini.slice(2, 5),
       eroeAperitivo: null,
+      // ⚠️ `null` per la stessa ragione dell'aperitivo, non per dimenticanza: la fotografia del
+      //    piatto non ha ripiego posizionale.
+      eroePiatto: null,
       ...ruoli,
     },
   };

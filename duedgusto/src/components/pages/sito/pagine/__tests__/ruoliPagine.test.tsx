@@ -74,16 +74,17 @@ function pianoASlotVuoti(galleria: MediaAsset[], ampiezzaGriglia = 3): RuoliImma
     ritrattoLocale: { mediaAssetId: ritratto?.mediaAssetId ?? null, immagine: ritratto, origine: "POSIZIONE" },
     quadrateLocale: galleria.slice(2, 5),
     eroeAperitivo: { mediaAssetId: null, immagine: null, origine: "POSIZIONE" },
+    eroePiatto: { mediaAssetId: null, immagine: null, origine: "POSIZIONE" },
     // 🔴 L'ampiezza è un **parametro** del piano, non una costante del pannello: è il server a
     //    dichiararla, e questi test la variano proprio per dimostrare che il pannello la segue.
     ampiezzaGriglia,
   };
 }
 
-const PAGINE: PaginaSito[] = ["home", "menu", "aperitivo", "locale", "contatti"];
+const PAGINE: PaginaSito[] = ["home", "menu", "aperitivo", "piatto", "locale", "contatti"];
 
 describe("la dichiarazione dei ruoli immagine", () => {
-  it("copre esattamente i sei ruoli che il server rende, né uno di più né uno di meno", () => {
+  it("copre esattamente i sette ruoli che il server rende, né uno di più né uno di meno", () => {
     // Un ruolo nuovo sul server e non qui sarebbe invisibile al pannello: la scheda conterebbe
     // in difetto e la libreria non lo nominerebbe. Uno qui e non sul server sarebbe un posto
     // annunciato che non esiste.
@@ -104,6 +105,7 @@ describe("la dichiarazione dei ruoli immagine", () => {
       home: 4, // 1 in evidenza + 3 in griglia
       menu: 3, // in coda al listino
       aperitivo: 1, // in evidenza, senza ripiego
+      piatto: 1, // la fotografia del piatto, senza ripiego
       locale: 4, // 1 ritratto + 3 quadrate
       contatti: 0, // 🔴 zero è una risposta, e va dichiarata
     });
@@ -119,6 +121,7 @@ describe("la dichiarazione dei ruoli immagine", () => {
       home: 5, // 1 in evidenza + 4 in griglia
       menu: 4,
       aperitivo: 1, // un ruolo singolo resta uno: non dipende dalla finestra
+      piatto: 1, // idem
       locale: 5,
       contatti: 0,
     });
@@ -131,15 +134,18 @@ describe("la dichiarazione dei ruoli immagine", () => {
     expect(postiDellaPagina("home", null)).toBeNull();
     expect(postiDellaPagina("menu", null)).toBeNull();
     expect(postiDellaPagina("aperitivo", null)).toBe(1);
+    expect(postiDellaPagina("piatto", null)).toBe(1);
     expect(postiDellaPagina("contatti", null)).toBe(0);
   });
 
-  it("un solo ruolo singolo è senza ripiego, ed è l'eroe dell'aperitivo", () => {
-    // 🔴 È l'unico punto in cui il sito mostra MENO di prima, ed è una decisione: il ripiego
-    //    precedente («l'ultima foto della galleria») faceva cambiare questa immagine ogni volta
-    //    che si caricava una foto qualsiasi, anche per un'altra pagina.
+  it("i ruoli singoli senza ripiego sono l'eroe dell'aperitivo e la fotografia del piatto", () => {
+    // 🔴 Due, e per due ragioni diverse. L'aperitivo è l'unico punto in cui il sito mostra MENO
+    //    di prima, ed è una decisione: il ripiego precedente («l'ultima foto della galleria»)
+    //    faceva cambiare quell'immagine ogni volta che si caricava una foto qualsiasi, anche per
+    //    un'altra pagina. Il piatto non ha mai avuto un ripiego e non deve averne: quella pagina
+    //    promette UN piatto, e una foto per posizione ne mostrerebbe un altro.
     const singoliSenzaRipiego = RUOLI_IMMAGINI.filter((ruolo) => ruolo.singolo && ruolo.ripiego === null).map((ruolo) => ruolo.chiave);
-    expect(singoliSenzaRipiego).toEqual(["eroeAperitivo"]);
+    expect(singoliSenzaRipiego).toEqual(["eroeAperitivo", "eroePiatto"]);
   });
 
   it("nessun ruolo è dichiarato su due pagine", () => {
@@ -154,10 +160,10 @@ describe("capacità e riempimento sono grandezze diverse", () => {
     const piano = pianoASlotVuoti(galleriaDa(1));
 
     // La capacità non si muove…
-    expect(Object.fromEntries(PAGINE.map((pagina) => [pagina, postiDellaPagina(pagina, piano)]))).toEqual({ home: 4, menu: 3, aperitivo: 1, locale: 4, contatti: 0 });
+    expect(Object.fromEntries(PAGINE.map((pagina) => [pagina, postiDellaPagina(pagina, piano)]))).toEqual({ home: 4, menu: 3, aperitivo: 1, piatto: 1, locale: 4, contatti: 0 });
 
     // …il riempimento sì: la home dichiara 1 in evidenza e 0 in griglia.
-    expect(Object.fromEntries(PAGINE.map((pagina) => [pagina, occupatiDellaPagina(piano, pagina)]))).toEqual({ home: 1, menu: 1, aperitivo: 0, locale: 1, contatti: 0 });
+    expect(Object.fromEntries(PAGINE.map((pagina) => [pagina, occupatiDellaPagina(piano, pagina)]))).toEqual({ home: 1, menu: 1, aperitivo: 0, piatto: 0, locale: 1, contatti: 0 });
 
     expect(immaginiDelRuolo(piano, RUOLI_IMMAGINI.find((ruolo) => ruolo.chiave === "grigliaHome")!)).toEqual([]);
   });

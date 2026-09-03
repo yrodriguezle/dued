@@ -48,6 +48,8 @@ export const impostazioniVetrinaFragment = `
     immagineRitrattoLocale { ...MediaAssetFragment }
     immagineEroeAperitivoId
     immagineEroeAperitivo { ...MediaAssetFragment }
+    immagineEroePiattoId
+    immagineEroePiatto { ...MediaAssetFragment }
     oraInizioTemaSera
     claimVetrina
     storiaTitolo
@@ -56,6 +58,9 @@ export const impostazioniVetrinaFragment = `
     aperitivoTesto
     aperitivoPunti
     aperitivoCategorie
+    piattoTitolo
+    piattoTesto
+    piattoGiorno
     punteggioGoogle
     numeroRecensioniGoogle
     urlProfiloGoogle

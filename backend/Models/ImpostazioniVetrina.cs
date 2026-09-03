@@ -90,17 +90,17 @@ public class ImpostazioniVetrina
     //    cambiava tre, senza alcun errore da nessuna parte. Con uno slot, la scelta
     //    dell'amministratore sopravvive a un riordino.
     //
-    // ⚠️ Sono TRE e non nove: le griglie di più foto restano pescate dalla galleria, perché sono
-    //    davvero «foto del locale» e va bene che compaiano su più pagine. Nove slot vorrebbero
-    //    dire nove selettori da compilare prima che il sito sembri finito, più una migrazione
-    //    ogni volta che una griglia passa da tre a quattro foto.
+    // ⚠️ Sono QUATTRO e non dieci: le griglie di più foto restano pescate dalla galleria, perché
+    //    sono davvero «foto del locale» e va bene che compaiano su più pagine. Uno slot per ogni
+    //    posto immagine vorrebbe dire dieci selettori da compilare prima che il sito sembri
+    //    finito, più una migrazione ogni volta che una griglia passa da tre a quattro foto.
     //
     // ⚠️ **Nessun backfill**: nascono null e restano null finché qualcuno non sceglie. Il ripiego
     //    è la semantica PERMANENTE dello slot vuoto, non un ponte verso una migrazione dati — e
     //    la regola completa, con i ripieghi ruolo per ruolo, sta in un posto solo:
     //    <see cref="Services.Vetrina.RuoliImmaginiVetrina"/>.
     //
-    // 🔴 Sono i referenti 3, 4 e 5 dei media, dopo i prodotti e l'anteprima social: relazione
+    // 🔴 Sono i referenti 3, 4, 5 e 6 dei media, dopo i prodotti e l'anteprima social: relazione
     //    con politica restrittiva e SENZA navigazione inversa, e l'eliminazione di un media deve
     //    verificarli tutti **prima** di toccare il disco.
 
@@ -121,8 +121,8 @@ public class ImpostazioniVetrina
 
     /// <summary>
     /// L'immagine grande in cima alla pagina "Aperitivo".
-    /// <para>🔴 <b>Vuota: la pagina esce senza immagine di testata.</b> È l'unico dei tre slot
-    /// <b>senza ripiego</b>, ed è una decisione deliberata: il sito prendeva qui
+    /// <para>🔴 <b>Vuota: la pagina esce senza immagine di testata.</b> È <b>senza ripiego</b>,
+    /// come lo slot del piatto della settimana, ed è una decisione deliberata: il sito prendeva qui
     /// <c>galleria.at(-1)</c>, cioè l'ultima foto caricata, e quindi <b>ogni</b> caricamento in
     /// galleria — anche fatto per un'altra pagina — spostava di nascosto questa immagine.
     /// Siccome il ripiego è permanente e non un ponte, tenerlo avrebbe voluto dire tenere quel
@@ -131,6 +131,18 @@ public class ImpostazioniVetrina
     /// </summary>
     public int? ImmagineEroeAperitivoId { get; set; }
     public MediaAsset? ImmagineEroeAperitivo { get; set; }
+
+    /// <summary>
+    /// La fotografia del piatto della settimana.
+    /// <para>🔴 <b>Vuota: la pagina esce senza fotografia</b> — <b>nessun ripiego posizionale</b>,
+    /// come l'eroe dell'aperitivo e per la stessa ragione. Un ripiego qui sarebbe peggio che
+    /// altrove: la pagina promette <i>questo</i> piatto, e mostrare una foto qualsiasi della
+    /// galleria — quella caricata ieri per un'altra pagina — significherebbe mostrare al
+    /// visitatore <b>un piatto diverso da quello descritto</b>. Non è un'immagine mancante: è
+    /// un'immagine che mente.</para>
+    /// </summary>
+    public int? ImmagineEroePiattoId { get; set; }
+    public MediaAsset? ImmagineEroePiatto { get; set; }
 
     // ── Tema ─────────────────────────────────────────────────────────────────────────────
     /// <summary>
@@ -189,6 +201,49 @@ public class ImpostazioniVetrina
     /// vorrebbe dire un'entità categoria che oggi non esiste.</para>
     /// </summary>
     public string? AperitivoCategorie { get; set; }
+
+    // ── Il piatto della settimana ────────────────────────────────────────────────────────
+    //
+    // 🔴 È **testo libero**, non un riferimento a un Prodotto, ed è una scelta. Il piatto della
+    //    settimana è una pagina di racconto — una fotografia grande e qualche riga su come è
+    //    fatto — e quel racconto non è la scheda di listino: la descrizione di vetrina di un
+    //    prodotto è scritta per stare in una riga di menu accanto al prezzo. Legarla al listino
+    //    avrebbe voluto dire o mostrare quella riga (troppo poco per una pagina intera) o
+    //    aggiungere al prodotto un secondo testo lungo che una sola pagina legge.
+    //
+    // ⚠️ Il prezzo **non c'è, ed è deliberato**: se comparisse qui sarebbe un secondo prezzo,
+    //    scritto a mano, accanto a quello di listino che la cassa aggiorna — cioè la classe di
+    //    bug che tutto il resto di questa entità evita («il sito dice 12, la cassa 14»). Chi
+    //    vuole il prezzo mette il piatto a listino e la pagina rimanda al menu.
+
+    /// <summary>
+    /// Il nome del piatto. <b>Da solo NON fa esistere la pagina</b>: la regola guarda il testo,
+    /// come per la storia e per l'aperitivo.
+    /// </summary>
+    public string? PiattoTitolo { get; set; }
+
+    /// <summary>
+    /// La descrizione del piatto. 🔴 <b>È questo campo a decidere se la pagina esiste</b>:
+    /// vuoto, <c>/piatto-del-giorno</c> risponde 404 e la voce sparisce dalla navigazione.
+    /// </summary>
+    public string? PiattoTesto { get; set; }
+
+    /// <summary>
+    /// Il giorno della settimana del piatto: <b>0 = lunedì … 6 = domenica</b>.
+    ///
+    /// <para>🔴 <b>Stessa indicizzazione di <c>BusinessSettings.OperatingDays</c></b>, e non è
+    /// un dettaglio di gusto: le due liste finiscono nella stessa risposta pubblica, e due
+    /// convenzioni diverse per «che giorno è» produrrebbero un fuori-di-uno che nessun test
+    /// coglie e che si vede solo guardando il sito di mercoledì. ⚠️ <b>Non</b> è
+    /// <c>DayOfWeek</c> di .NET, dove 0 è la domenica.</para>
+    ///
+    /// <para>⚠️ <b>Non è nullable e ha un default</b>, a differenza di ogni altro campo
+    /// editoriale qui dentro: la pagina non esiste finché non c'è il testo, quindi un giorno
+    /// «non scelto» non ha alcuno stato in cui possa essere letto. Renderlo nullable
+    /// aggiungerebbe un ramo — «che titolo scrivo se il giorno manca?» — che nessuno può
+    /// raggiungere.</para>
+    /// </summary>
+    public int PiattoGiorno { get; set; } = 2;
 
     // ── Reputazione ───────────────────────────────────────────────────────────────────────
     //

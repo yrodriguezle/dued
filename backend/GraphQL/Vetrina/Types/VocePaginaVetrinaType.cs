@@ -5,7 +5,7 @@ using duedgusto.Services.Vetrina;
 namespace duedgusto.GraphQL.Vetrina.Types;
 
 /// <summary>
-/// Dove un testo compare: le cinque pagine più <c>CORNICE</c>, che è la cornice condivisa —
+/// Dove un testo compare: le sei pagine più <c>CORNICE</c>, che è la cornice condivisa —
 /// intestazione, piè di pagina e dati strutturati — presente su ognuna.
 /// </summary>
 public class PaginaVetrinaGraphType : EnumerationGraphType<PaginaVetrina>
@@ -19,7 +19,7 @@ public class PaginaVetrinaGraphType : EnumerationGraphType<PaginaVetrina>
 }
 
 /// <summary>
-/// Dove si <b>modifica</b> il valore. ⚠️ Due delle sei sedi non sono schede del sito: gli orari
+/// Dove si <b>modifica</b> il valore. ⚠️ Due delle sette sedi non sono schede del sito: gli orari
 /// vivono nelle impostazioni della cassa e le citazioni nell'anagrafica delle recensioni.
 /// </summary>
 public class SchedaVetrinaGraphType : EnumerationGraphType<SchedaVetrina>
@@ -37,7 +37,7 @@ public class SchedaVetrinaGraphType : EnumerationGraphType<SchedaVetrina>
 /// Una riga della mappa pagina → campo, servita al pannello.
 ///
 /// <para>🔴 <b>Il pannello la legge e non ne tiene una copia.</b> Le due sezioni «testi di questa
-/// pagina» e «testi ereditati» delle cinque schede si costruiscono da qui: un elenco scritto a
+/// pagina» e «testi ereditati» delle sei schede si costruiscono da qui: un elenco scritto a
 /// mano dentro ogni scheda divergerebbe dai sorgenti del sito alla prima modifica, e nessuno se
 /// ne accorgerebbe — una scheda che elenca il campo sbagliato non produce alcun errore.</para>
 ///

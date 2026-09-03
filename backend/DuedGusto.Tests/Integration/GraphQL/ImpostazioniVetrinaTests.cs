@@ -59,14 +59,15 @@ public class ImpostazioniVetrinaTests : IDisposable
     //    quattro volte — una copia dimenticherebbe il campo aggiunto domani, che è esattamente
     //    il guasto contro cui questi test esistono.
 
-    public enum Scheda { Impostazioni, Home, Locale, Aperitivo }
+    public enum Scheda { Impostazioni, Home, Locale, Aperitivo, Piatto }
 
     private static Type TipoInput(Scheda scheda) => scheda switch
     {
         Scheda.Impostazioni => typeof(ImpostazioniVetrinaInput),
         Scheda.Home => typeof(PaginaHomeInput),
         Scheda.Locale => typeof(PaginaLocaleInput),
-        _ => typeof(PaginaAperitivoInput),
+        Scheda.Aperitivo => typeof(PaginaAperitivoInput),
+        _ => typeof(PaginaPiattoInput),
     };
 
     private static string NomeMutation(Scheda scheda) => scheda switch
@@ -74,7 +75,8 @@ public class ImpostazioniVetrinaTests : IDisposable
         Scheda.Impostazioni => "mutateImpostazioniVetrina",
         Scheda.Home => "mutatePaginaHome",
         Scheda.Locale => "mutatePaginaLocale",
-        _ => "mutatePaginaAperitivo",
+        Scheda.Aperitivo => "mutatePaginaAperitivo",
+        _ => "mutatePaginaPiatto",
     };
 
     private static string[] PerimetroDi(Scheda scheda) =>
@@ -88,8 +90,10 @@ public class ImpostazioniVetrinaTests : IDisposable
             _dbContext, (PaginaHomeInput)input),
         Scheda.Locale => VetrinaMutations.ApplicaPaginaLocaleAsync(
             _dbContext, (PaginaLocaleInput)input),
-        _ => VetrinaMutations.ApplicaPaginaAperitivoAsync(
+        Scheda.Aperitivo => VetrinaMutations.ApplicaPaginaAperitivoAsync(
             _dbContext, (PaginaAperitivoInput)input),
+        _ => VetrinaMutations.ApplicaPaginaPiattoAsync(
+            _dbContext, (PaginaPiattoInput)input),
     };
 
     private async Task<ImpostazioniVetrina> Rileggi() =>
@@ -158,6 +162,7 @@ public class ImpostazioniVetrinaTests : IDisposable
     [InlineData(Scheda.Locale, "StoriaTesto")]
     [InlineData(Scheda.Aperitivo, "AperitivoTesto")]
     [InlineData(Scheda.Aperitivo, "AperitivoCategorie")]
+    [InlineData(Scheda.Piatto, "PiattoTesto")]
     public async Task Mutation_DiPagina_ConUnCampoSvuotato_PersisteLAssenza(Scheda scheda, string campo)
     {
         System.Reflection.PropertyInfo proprietaInput = TipoInput(scheda).GetProperty(campo)!;
@@ -531,7 +536,11 @@ public class ImpostazioniVetrinaTests : IDisposable
             """,
         Scheda.Home => "claimVetrina: \"X\"",
         Scheda.Locale => "storiaTitolo: \"X\"",
-        _ => "aperitivoTitolo: \"X\"",
+        Scheda.Aperitivo => "aperitivoTitolo: \"X\"",
+        // ⚠️ `piattoGiorno` è NON nullable: è l'unico input di scheda il cui minimo valido non è
+        //    un campo di testo qualsiasi, e ometterlo farebbe fallire la validazione dello schema
+        //    prima del resolver — cioè per una ragione che non è quella in prova qui.
+        _ => "piattoTitolo: \"X\", piattoGiorno: 2",
     };
 
     // ═══════════════════════════════════════════════════════════════════════════════════════
@@ -544,13 +553,13 @@ public class ImpostazioniVetrinaTests : IDisposable
     ///
     /// <para>🔴 <b>L'autorità non è più una lista scritta a mano</b>, com'era il pin precedente
     /// (<c>ImpostazioniVetrinaInput_HaEsattamenteICampiScrivibili</c>, trenta nomi ricopiati): è
-    /// <b>l'entità</b>, meno queste sette eccezioni. Un campo aggiunto al modello e a nessun input
+    /// <b>l'entità</b>, meno queste otto eccezioni. Un campo aggiunto al modello e a nessun input
     /// diventa <b>orfano</b>, e il test lo dice per nome — mentre una lista letterale sarebbe
     /// rimasta verde, perché avrebbe continuato a descrivere il mondo di ieri.</para>
     ///
-    /// <para>⚠️ Le tre voci nuove sono le <b>navigazioni</b>, non gli identificativi: gli slot
-    /// <c>ImmagineEroeHomeId</c>, <c>ImmagineRitrattoLocaleId</c> e
-    /// <c>ImmagineEroeAperitivoId</c> <b>sono scrivibili</b>, ciascuno dalla scheda della sua
+    /// <para>⚠️ Le quattro voci di slot sono le <b>navigazioni</b>, non gli identificativi:
+    /// <c>ImmagineEroeHomeId</c>, <c>ImmagineRitrattoLocaleId</c>, <c>ImmagineEroeAperitivoId</c>
+    /// e <c>ImmagineEroePiattoId</c> <b>sono scrivibili</b>, ciascuno dalla scheda della sua
     /// pagina. Sono le proprietà di navigazione a non esserlo, come <c>ImmagineOg</c> — si scrive
     /// l'identificativo, e l'entità la carica EF.</para>
     /// </summary>
@@ -559,7 +568,7 @@ public class ImpostazioniVetrinaTests : IDisposable
         "ImpostazioniVetrinaId",   // c'è una riga sola e il resolver sa quale
         "CreatedAt", "UpdatedAt",  // ciò che il sistema ha osservato, non ciò che un client dichiara
         "ImmagineOg",              // navigazione: si scrive ImmagineOgId
-        "ImmagineEroeHome", "ImmagineRitrattoLocale", "ImmagineEroeAperitivo",
+        "ImmagineEroeHome", "ImmagineRitrattoLocale", "ImmagineEroeAperitivo", "ImmagineEroePiatto",
     ];
 
     private static string[] CampiScrivibiliDelModello() =>
@@ -568,7 +577,7 @@ public class ImpostazioniVetrinaTests : IDisposable
             .Where(nome => !NonScrivibiliDaGraphQL.Contains(nome))];
 
     /// <summary>
-    /// 🔴 <b>Totalità.</b> L'unione dei quattro perimetri è <b>esattamente</b> l'insieme dei campi
+    /// 🔴 <b>Totalità.</b> L'unione dei cinque perimetri è <b>esattamente</b> l'insieme dei campi
     /// scrivibili del modello.
     ///
     /// <para>Un campo orfano — presente sul modello e in nessun input — è un campo che
@@ -644,6 +653,7 @@ public class ImpostazioniVetrinaTests : IDisposable
             await CreaMedia("eroe-home.jpg"),
             await CreaMedia("ritratto-locale.jpg"),
             await CreaMedia("eroe-aperitivo.jpg"),
+            await CreaMedia("eroe-piatto.jpg"),
         ];
 
         var riga = new ImpostazioniVetrina
@@ -667,6 +677,7 @@ public class ImpostazioniVetrinaTests : IDisposable
             ImmagineEroeHomeId = media[1].MediaAssetId,
             ImmagineRitrattoLocaleId = media[2].MediaAssetId,
             ImmagineEroeAperitivoId = media[3].MediaAssetId,
+            ImmagineEroePiattoId = media[4].MediaAssetId,
             OraInizioTemaSera = "19:30",
             ClaimVetrina = "SEME claim",
             StoriaTitolo = "SEME storia titolo",
@@ -675,6 +686,11 @@ public class ImpostazioniVetrinaTests : IDisposable
             AperitivoTesto = "SEME aperitivo testo",
             AperitivoPunti = "SEME punto uno\nSEME punto due",
             AperitivoCategorie = "SEME categoria",
+            PiattoTitolo = "SEME piatto titolo",
+            PiattoTesto = "SEME piatto testo",
+            // ⚠️ NON 0 e non il default 2: il seme deve differire da entrambi, altrimenti
+            //    l'asserzione «non è cambiato» passerebbe su un campo mai scritto.
+            PiattoGiorno = 5,
             PunteggioGoogle = 4.7m,
             NumeroRecensioniGoogle = 180,
             UrlProfiloGoogle = "https://maps.app.goo.gl/seme",
@@ -728,6 +744,7 @@ public class ImpostazioniVetrinaTests : IDisposable
     [InlineData(Scheda.Home)]
     [InlineData(Scheda.Locale)]
     [InlineData(Scheda.Aperitivo)]
+    [InlineData(Scheda.Piatto)]
     public async Task AzzeramentoIncrociato_SalvandoUnaSchedaAVuoto_NessunCampoCambia(Scheda scheda)
     {
         await SeminaTuttiICampiScrivibili();
@@ -760,6 +777,7 @@ public class ImpostazioniVetrinaTests : IDisposable
     [InlineData(Scheda.Home)]
     [InlineData(Scheda.Locale)]
     [InlineData(Scheda.Aperitivo)]
+    [InlineData(Scheda.Piatto)]
     public async Task AzzeramentoIncrociato_SalvandoUnaSchedaConInputVuoto_SoloIlSuoPerimetroCambia(
         Scheda scheda)
     {
@@ -806,6 +824,7 @@ public class ImpostazioniVetrinaTests : IDisposable
     [InlineData(Scheda.Home)]
     [InlineData(Scheda.Locale)]
     [InlineData(Scheda.Aperitivo)]
+    [InlineData(Scheda.Piatto)]
     public async Task AzzeramentoIncrociato_LaChiaveAntispamSopravvive_SalvandoUnaSchedaCheNonLaPossiede(
         Scheda scheda)
     {
@@ -832,6 +851,7 @@ public class ImpostazioniVetrinaTests : IDisposable
     [InlineData(Scheda.Home, "ImmagineEroeHomeId")]
     [InlineData(Scheda.Locale, "ImmagineRitrattoLocaleId")]
     [InlineData(Scheda.Aperitivo, "ImmagineEroeAperitivoId")]
+    [InlineData(Scheda.Piatto, "ImmagineEroePiattoId")]
     public async Task Mutation_DiPagina_ConSlotSuMediaNonPubblicato_Rifiutata(
         Scheda scheda, string slot)
     {
@@ -852,6 +872,7 @@ public class ImpostazioniVetrinaTests : IDisposable
     [InlineData(Scheda.Home, "ImmagineEroeHomeId")]
     [InlineData(Scheda.Locale, "ImmagineRitrattoLocaleId")]
     [InlineData(Scheda.Aperitivo, "ImmagineEroeAperitivoId")]
+    [InlineData(Scheda.Piatto, "ImmagineEroePiattoId")]
     public async Task Mutation_DiPagina_AssegnaEPoiAzzeraLoSlot_IlMediaRestaInLibreria(
         Scheda scheda, string slot)
     {

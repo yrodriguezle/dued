@@ -193,15 +193,15 @@ describe("le icone del seed", () => {
     expect(collisioni, "due voci di menu condividono la stessa icona: a cassetto chiuso sono lo stesso bottone, e nella griglia di MenuList sono due righe indistinguibili. Cambiare l'icona della voce più RECENTE — quella che nessuno ha ancora imparato — scegliendone una già in iconMapping.tsx e non usata da alcuna voce.").toEqual([]);
   });
 
-  it("le cinque icone delle pagine del sito sono distinte fra loro e dalle risorse della sezione", () => {
+  it("le sei icone delle pagine del sito sono distinte fra loro e dalle risorse della sezione", () => {
     // Due voci con la stessa icona nella navigazione sono indistinguibili: è la stessa regola
     // per cui «Impostazioni sito» non riusa `Settings`, già occupata dalla cassa.
-    const dellaSezioneSito = ["House", "UtensilsCrossed", "Martini", "Armchair", "MapPin", "Images", "ShoppingBag", "Star", "Store"];
+    const dellaSezioneSito = ["House", "UtensilsCrossed", "Martini", "ChefHat", "Armchair", "MapPin", "Images", "ShoppingBag", "Star", "Store"];
 
     expect(new Set(dellaSezioneSito).size).toBe(dellaSezioneSito.length);
     expect(dellaSezioneSito.filter((nome) => !(nome in iconMapping))).toEqual([]);
 
-    // Le nove sono davvero quelle che il seed assegna alla sezione Sito, non un elenco a parte.
+    // Le dieci sono davvero quelle che il seed assegna alla sezione Sito, non un elenco a parte.
     const nelSeedDelSito = iconeNominateDalSeed()
       .filter((nominata) => nominata.file === "SeedMenusSito.cs")
       .map((nominata) => nominata.icona);

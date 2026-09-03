@@ -152,6 +152,15 @@ export interface RuoliImmagini {
    *    una foto qualsiasi, anche per un'altra pagina, spostava di nascosto questa immagine.
    */
   eroeAperitivo: ImmaginePubblica | null;
+
+  /**
+   * La fotografia di `/piatto-del-giorno`.
+   *
+   * 🔴 **Come `eroeAperitivo`, senza ripiego** — e qui la ragione è più forte: quella pagina
+   *    promette *un* piatto, e una foto scelta per posizione ne mostrerebbe un altro. Non è
+   *    un'immagine mancante: è un'immagine che **mente**.
+   */
+  eroePiatto: ImmaginePubblica | null;
 }
 
 /**
@@ -286,6 +295,34 @@ export interface SitoPubblico {
        *    non porta prodotti.
        */
       categorie: string[];
+    } | null;
+
+    /**
+     * Il piatto della settimana: nome, racconto e giorno.
+     *
+     * 🔴 `null` quando la descrizione non è scritta, e in quel caso `/piatto-del-giorno` risponde
+     *    404 e sparisce dalla navigazione — stessa regola di `storia` e `aperitivo`.
+     *
+     * ⚠️ **La fotografia non è qui**: sta nel ruolo `eroePiatto` di `/api/public/galleria`, come
+     *    ogni altra immagine di pagina. Quindi testo e foto arrivano da **due letture**, e la
+     *    pagina esiste in base alla prima: con il testo e senza foto esce senza fotografia; il
+     *    contrario non si rende affatto.
+     *
+     * ⚠️ **Nessun prezzo, ed è deliberato**: sarebbe un secondo prezzo accanto a quello di
+     *    listino che la cassa aggiorna. Chi vuole il prezzo mette il piatto a menu.
+     */
+    piatto: {
+      titolo: string | null;
+      testo: string;
+      /**
+       * 🔴 `0` = lunedì … `6` = domenica — **la stessa indicizzazione di
+       * `orari.giorniOperativi`**, con cui condivide la risposta. ⚠️ **Non** è `Date.getDay()`,
+       * dove `0` è la domenica: è lo stesso fuori-di-uno che `lib/tema.ts` documenta.
+       *
+       * ⚠️ È un numero e non il nome del giorno: la parola la compone il sito, ed è l'unico a
+       * sapere in che lingua sta scrivendo.
+       */
+      giorno: number;
     } | null;
   };
 

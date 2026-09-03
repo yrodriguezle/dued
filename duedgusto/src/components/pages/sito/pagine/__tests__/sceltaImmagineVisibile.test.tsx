@@ -88,6 +88,7 @@ const PIANO = {
   ritrattoLocale: { mediaAssetId: null, immagine: null, origine: "POSIZIONE" },
   quadrateLocale: [],
   eroeAperitivo: { mediaAssetId: null, immagine: null, origine: "POSIZIONE" },
+  eroePiatto: { mediaAssetId: null, immagine: null, origine: "POSIZIONE" },
   ampiezzaGriglia: 3,
 } as RuoliImmaginiVetrina;
 

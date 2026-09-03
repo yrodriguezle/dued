@@ -42,9 +42,10 @@ public static class SeedMenusSito
     /// <summary>
     /// Una voce figlia della sezione "Sito": creata se manca, allineata se c'è.
     ///
-    /// <para>🔴 <b>Un helper e nove chiamate</b>, al posto di nove blocchi fotocopiati. Prima di
-    /// questo change i blocchi erano quattro e già quasi identici; portarli a nove avrebbe fatto
-    /// del file cinquecento righe di copie, e nove copie della stessa idempotenza divergono al
+    /// <para>🔴 <b>Un helper e dieci chiamate</b>, al posto di dieci blocchi fotocopiati. Prima
+    /// di questo change i blocchi erano quattro e già quasi identici; portarli a dieci avrebbe
+    /// fatto del file cinquecento righe di copie, e dieci copie della stessa idempotenza
+    /// divergono al
     /// primo bugfix applicato a una sola — che è, alla lettera, la ragione scritta nella
     /// docstring di questo file per cui <see cref="SeedMenus.UpdateMenuIfNeeded"/> è riusata.</para>
     ///
@@ -158,7 +159,7 @@ public static class SeedMenusSito
             }
         }
 
-        // ── Le cinque pagine del sito, nell'ordine in cui il visitatore le incontra ──────────
+        // ── Le sei pagine del sito, nell'ordine in cui il visitatore le incontra ────────────
         //
         // 🔴 Le etichette sono IDENTICHE, carattere per carattere, a quelle di
         //    `sito/src/lib/rotte.ts`, che resta la sorgente unica dell'elenco delle pagine: il
@@ -172,7 +173,7 @@ public static class SeedMenusSito
         //
         // ⚠️ `PercorsoFile` è relativo a duedgusto/src/components/pages/. Il caricamento
         //    dinamico usa un glob ricorsivo, quindi la sottocartella `pagine/` si risolve senza
-        //    toccare il router: è la ragione per cui cinque voci non costano più di una.
+        //    toccare il router: è la ragione per cui sei voci non costano più di una.
         await UpsertVoceSitoAsync(dbContext, sitoMenu, ruoliSito, superAdminRuolo,
             "Home", "/gestionale/sito/pagine/home", "House", true, 1,
             "PaginaHome", "sito/pagine/PaginaHome.tsx");
@@ -189,32 +190,42 @@ public static class SeedMenusSito
             "Aperitivo", "/gestionale/sito/pagine/aperitivo", "Martini", true, 3,
             "PaginaAperitivo", "sito/pagine/PaginaAperitivo.tsx");
 
+        // ⚠️ «Piatto della settimana» e NON «Piatto del mercoledì», che è ciò che il visitatore
+        // legge: il giorno è configurabile da questa stessa scheda, e una voce di menu che si
+        // rinomina da sola a ogni salvataggio si sposterebbe sotto i piedi a chi la cerca. Sono
+        // due nomi per due pubblici — la stessa distinzione fra `InsegnaPubblica` e il nome del
+        // gestionale — e `rotte.ts` li tiene entrambi: `etichetta` è questo, `etichettaPubblica`
+        // è quello del sito.
         await UpsertVoceSitoAsync(dbContext, sitoMenu, ruoliSito, superAdminRuolo,
-            "Il locale", "/gestionale/sito/pagine/locale", "Armchair", true, 4,
+            "Piatto della settimana", "/gestionale/sito/pagine/piatto-del-giorno", "ChefHat", true, 4,
+            "PaginaPiatto", "sito/pagine/PaginaPiatto.tsx");
+
+        await UpsertVoceSitoAsync(dbContext, sitoMenu, ruoliSito, superAdminRuolo,
+            "Il locale", "/gestionale/sito/pagine/locale", "Armchair", true, 5,
             "PaginaLocale", "sito/pagine/PaginaLocale.tsx");
 
         await UpsertVoceSitoAsync(dbContext, sitoMenu, ruoliSito, superAdminRuolo,
-            "Contatti", "/gestionale/sito/pagine/contatti", "MapPin", true, 5,
+            "Contatti", "/gestionale/sito/pagine/contatti", "MapPin", true, 6,
             "PaginaContatti", "sito/pagine/PaginaContatti.tsx");
 
         // ── Le risorse trasversali, dopo le pagine ──────────────────────────────────────────
         //
-        // 🔴 I quattro `Percorso` qui sotto sono INVARIATI rispetto a prima del change: sono le
-        //    chiavi di idempotenza, e il riordino cambia soltanto la `Posizione`. Titolo, vista
-        //    e file restano quelli che erano.
+        // 🔴 I quattro `Percorso` qui sotto sono INVARIATI da sempre: sono le chiavi di
+        //    idempotenza, e ogni riordino cambia soltanto la `Posizione`. Titolo, vista e file
+        //    restano quelli che erano — anche adesso che una pagina in più li ha fatti scalare.
         await UpsertVoceSitoAsync(dbContext, sitoMenu, ruoliSito, superAdminRuolo,
-            "Libreria media", "/gestionale/sito/media", "Images", true, 6,
+            "Libreria media", "/gestionale/sito/media", "Images", true, 7,
             "MediaLibrary", "sito/MediaLibrary.tsx");
 
         await UpsertVoceSitoAsync(dbContext, sitoMenu, ruoliSito, superAdminRuolo,
-            "Prodotti vetrina", "/gestionale/sito/prodotti", "ShoppingBag", true, 7,
+            "Prodotti vetrina", "/gestionale/sito/prodotti", "ShoppingBag", true, 8,
             "VetrinaProdottiList", "sito/VetrinaProdottiList.tsx");
 
         // ⚠️ È una voce a sé e non una scheda dentro le impostazioni, e non per abbondanza: le
         // impostazioni sono UNA riga che si compila e si salva insieme, le recensioni sono una
         // lista che si aggiunge e si riordina nel tempo. Due gesti diversi, due pagine.
         await UpsertVoceSitoAsync(dbContext, sitoMenu, ruoliSito, superAdminRuolo,
-            "Recensioni sito", "/gestionale/sito/recensioni", "Star", true, 8,
+            "Recensioni sito", "/gestionale/sito/recensioni", "Star", true, 9,
             "RecensioniVetrinaList", "sito/RecensioniVetrinaList.tsx");
 
         // ⚠️ Icona "Store" e non "Settings": quest'ultima è già la sezione Impostazioni della
@@ -224,7 +235,7 @@ public static class SeedMenusSito
         // esattamente ciò che «Impostazioni sito» già descrive, e il `Percorso` deve comunque
         // restare invariato perché è la chiave di idempotenza.
         await UpsertVoceSitoAsync(dbContext, sitoMenu, ruoliSito, superAdminRuolo,
-            "Impostazioni sito", "/gestionale/sito/impostazioni", "Store", true, 9,
+            "Impostazioni sito", "/gestionale/sito/impostazioni", "Store", true, 10,
             "ImpostazioniVetrinaPage", "sito/ImpostazioniVetrinaPage.tsx");
 
         await dbContext.SaveChangesAsync();

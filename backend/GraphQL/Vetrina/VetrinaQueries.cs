@@ -123,8 +123,8 @@ public class VetrinaQueries : ObjectGraphType
     /// del primo salvataggio, e significa «nessuno slot scelto». I tre ruoli singoli ricadono
     /// allora sulla posizione, esattamente come fa la rotta pubblica.</para>
     ///
-    /// <para>⚠️ Si leggono <b>tre colonne</b> e non l'entità: è la forma per cui la firma a tre
-    /// <c>int?</c> di <c>Risolvi</c> esiste, e tenerla evita di portare in memoria — per una
+    /// <para>⚠️ Si leggono <b>quattro colonne</b> e non l'entità: è la forma per cui la firma a
+    /// quattro <c>int?</c> di <c>Risolvi</c> esiste, e tenerla evita di portare in memoria — per una
     /// domanda che parla solo di immagini — la chiave del servizio antispam e i ganci spenti.</para>
     /// </summary>
     internal static async Task<PianoImmagini> LeggiRuoliImmaginiAsync(AppDbContext dbContext)
@@ -141,6 +141,7 @@ public class VetrinaQueries : ObjectGraphType
                 impostazioni.ImmagineEroeHomeId,
                 impostazioni.ImmagineRitrattoLocaleId,
                 impostazioni.ImmagineEroeAperitivoId,
+                impostazioni.ImmagineEroePiattoId,
             })
             .FirstOrDefaultAsync();
 
@@ -148,6 +149,7 @@ public class VetrinaQueries : ObjectGraphType
             slot?.ImmagineEroeHomeId,
             slot?.ImmagineRitrattoLocaleId,
             slot?.ImmagineEroeAperitivoId,
+            slot?.ImmagineEroePiattoId,
             galleria);
     }
 

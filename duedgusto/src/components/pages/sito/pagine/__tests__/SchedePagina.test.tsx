@@ -94,6 +94,7 @@ const PIANO_UNA_FOTO: RuoliImmaginiVetrina = {
   ritrattoLocale: { mediaAssetId: 1, immagine: foto(1), origine: "POSIZIONE" },
   quadrateLocale: [],
   eroeAperitivo: { mediaAssetId: null, immagine: null, origine: "POSIZIONE" },
+  eroePiatto: { mediaAssetId: null, immagine: null, origine: "POSIZIONE" },
   // 🔴 La capacità delle griglie arriva **dal server**: qui è un dato di prova, non una costante
   //    del pannello. Vedi `ruoliPagine.test.tsx`, che la varia per dimostrarlo.
   ampiezzaGriglia: 3,

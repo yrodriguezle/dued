@@ -529,7 +529,7 @@ public class VetrinaMediaTests : IDisposable
     }
 
     [Fact]
-    public async Task SeedMenusSito_InvocatoTreVolte_LasciaUnPadreENoveFigli()
+    public async Task SeedMenusSito_InvocatoTreVolte_LasciaUnPadreEDieciFigli()
     {
         (ServiceProvider provider, string nomeDatabase) = ProviderDiSeed(
             new Ruolo { Nome = "SuperAdmin", Amministratore = true },
@@ -544,17 +544,18 @@ public class VetrinaMediaTests : IDisposable
         // Il padre si cerca per Titolo + percorso vuoto: cercarlo per il solo percorso ne
         // creerebbe uno nuovo a ogni avvio, come già successo con le Dashboard duplicate.
         verifica.Menus.Count(m => m.Titolo == "Sito" && m.Percorso == string.Empty).Should().Be(1);
-        // Nove, non ventisette: il conteggio è ciò che distingue un seed idempotente da un seed
+        // Dieci, non trenta: il conteggio è ciò che distingue un seed idempotente da un seed
         // che riscrive. Il numero cresce con le voci ed è l'unica riga che va toccata quando ne
         // arriva una — l'elenco dei percorsi qui sotto dice quali sono, così un duplicato non
         // può nascondersi dietro un conteggio giusto per caso.
-        verifica.Menus.Count(m => m.Percorso.StartsWith("/gestionale/sito/")).Should().Be(9);
+        verifica.Menus.Count(m => m.Percorso.StartsWith("/gestionale/sito/")).Should().Be(10);
         verifica.Menus.Where(m => m.Percorso.StartsWith("/gestionale/sito/"))
             .Select(m => m.Percorso)
             .Should().BeEquivalentTo(
                 "/gestionale/sito/pagine/home",
                 "/gestionale/sito/pagine/menu",
                 "/gestionale/sito/pagine/aperitivo",
+                "/gestionale/sito/pagine/piatto-del-giorno",
                 "/gestionale/sito/pagine/locale",
                 "/gestionale/sito/pagine/contatti",
                 "/gestionale/sito/media",
@@ -570,12 +571,12 @@ public class VetrinaMediaTests : IDisposable
             .OrderBy(m => m.Posizione)
             .Select(m => m.Titolo)
             .Should().Equal(
-                "Home", "Menu", "Aperitivo", "Il locale", "Contatti",
+                "Home", "Menu", "Aperitivo", "Piatto della settimana", "Il locale", "Contatti",
                 "Libreria media", "Prodotti vetrina", "Recensioni sito", "Impostazioni sito");
         verifica.Menus.Where(m => m.Percorso.StartsWith("/gestionale/sito/"))
             .Select(m => m.Posizione)
             .OrderBy(posizione => posizione)
-            .Should().Equal(1, 2, 3, 4, 5, 6, 7, 8, 9);
+            .Should().Equal(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
     }
 
     /// <summary>
@@ -656,8 +657,8 @@ public class VetrinaMediaTests : IDisposable
         media2.Titolo.Should().Be("Libreria media");
         media2.NomeVista.Should().Be("MediaLibrary");
         media2.PercorsoFile.Should().Be("sito/MediaLibrary.tsx");
-        media2.Posizione.Should().Be(6);
-        impostazioni2.Posizione.Should().Be(9);
+        media2.Posizione.Should().Be(7);
+        impostazioni2.Posizione.Should().Be(10);
         // E nessun duplicato: le due voci restano una ciascuna.
         verifica.Menus.Count(m => m.Percorso == "/gestionale/sito/media").Should().Be(1);
         verifica.Menus.Count(m => m.Percorso == "/gestionale/sito/impostazioni").Should().Be(1);
@@ -682,12 +683,16 @@ public class VetrinaMediaTests : IDisposable
     [InlineData("/gestionale/sito/pagine/home", "Home", "PaginaHome", "sito/pagine/PaginaHome.tsx", 1, "House")]
     [InlineData("/gestionale/sito/pagine/menu", "Menu", "PaginaMenu", "sito/pagine/PaginaMenu.tsx", 2, "UtensilsCrossed")]
     [InlineData("/gestionale/sito/pagine/aperitivo", "Aperitivo", "PaginaAperitivo", "sito/pagine/PaginaAperitivo.tsx", 3, "Martini")]
-    [InlineData("/gestionale/sito/pagine/locale", "Il locale", "PaginaLocale", "sito/pagine/PaginaLocale.tsx", 4, "Armchair")]
-    [InlineData("/gestionale/sito/pagine/contatti", "Contatti", "PaginaContatti", "sito/pagine/PaginaContatti.tsx", 5, "MapPin")]
-    [InlineData("/gestionale/sito/media", "Libreria media", "MediaLibrary", "sito/MediaLibrary.tsx", 6, "Images")]
-    [InlineData("/gestionale/sito/prodotti", "Prodotti vetrina", "VetrinaProdottiList", "sito/VetrinaProdottiList.tsx", 7, "ShoppingBag")]
-    [InlineData("/gestionale/sito/recensioni", "Recensioni sito", "RecensioniVetrinaList", "sito/RecensioniVetrinaList.tsx", 8, "Star")]
-    [InlineData("/gestionale/sito/impostazioni", "Impostazioni sito", "ImpostazioniVetrinaPage", "sito/ImpostazioniVetrinaPage.tsx", 9, "Store")]
+    // ⚠️ Il percorso della scheda ricalca quello PUBBLICO della pagina (`/piatto-del-giorno`) e
+    //    non il nome corto: `sito/test/schede-pannello.test.mjs` traduce l'uno nell'altro con una
+    //    regola meccanica, ed è l'unica traduzione fra i due mondi.
+    [InlineData("/gestionale/sito/pagine/piatto-del-giorno", "Piatto della settimana", "PaginaPiatto", "sito/pagine/PaginaPiatto.tsx", 4, "ChefHat")]
+    [InlineData("/gestionale/sito/pagine/locale", "Il locale", "PaginaLocale", "sito/pagine/PaginaLocale.tsx", 5, "Armchair")]
+    [InlineData("/gestionale/sito/pagine/contatti", "Contatti", "PaginaContatti", "sito/pagine/PaginaContatti.tsx", 6, "MapPin")]
+    [InlineData("/gestionale/sito/media", "Libreria media", "MediaLibrary", "sito/MediaLibrary.tsx", 7, "Images")]
+    [InlineData("/gestionale/sito/prodotti", "Prodotti vetrina", "VetrinaProdottiList", "sito/VetrinaProdottiList.tsx", 8, "ShoppingBag")]
+    [InlineData("/gestionale/sito/recensioni", "Recensioni sito", "RecensioniVetrinaList", "sito/RecensioniVetrinaList.tsx", 9, "Star")]
+    [InlineData("/gestionale/sito/impostazioni", "Impostazioni sito", "ImpostazioniVetrinaPage", "sito/ImpostazioniVetrinaPage.tsx", 10, "Store")]
     public async Task SeedMenusSito_OgniVoce_PuntaAlProprioComponente(
         string percorso, string titolo, string nomeVista, string percorsoFile, int posizione, string icona)
     {
@@ -720,7 +725,7 @@ public class VetrinaMediaTests : IDisposable
     /// tutte diverse fra loro.
     /// </summary>
     [Fact]
-    public async Task SeedMenusSito_LeNoveIcone_SonoTutteDiverseENessunaEQuellaDellaCassa()
+    public async Task SeedMenusSito_LeDieciIcone_SonoTutteDiverseENessunaEQuellaDellaCassa()
     {
         (ServiceProvider provider, string nomeDatabase) = ProviderDiSeed(
             new Ruolo { Nome = "SuperAdmin", Amministratore = true });
@@ -733,7 +738,7 @@ public class VetrinaMediaTests : IDisposable
             .Select(m => m.Icona)
             .ToListAsync();
 
-        icone.Should().HaveCount(9);
+        icone.Should().HaveCount(10);
         icone.Should().OnlyHaveUniqueItems();
         icone.Should().NotContain("Settings");
         // ⚠️ E nemmeno `Menu`, che nella libreria è l'hamburger di navigazione e non un listino:
@@ -758,12 +763,12 @@ public class VetrinaMediaTests : IDisposable
             .Where(m => m.Titolo == "Sito" || m.Percorso.StartsWith("/gestionale/sito/"))
             .ToListAsync();
 
-        vociSito.Should().HaveCount(10);
+        vociSito.Should().HaveCount(11);
         // Le voci nuove non fanno eccezione: il gating si semina insieme alla voce, non dopo.
-        // 🔴 Le cinque schede di pagina sono la superficie nuova, e sono quelle da cui si
-        //    scrivono i testi del sito: se una nascesse senza ruoli, sarebbe invisibile anche a
-        //    un amministratore — o, peggio, visibile a chiunque se il gating fosse per assenza.
-        vociSito.Where(m => m.Percorso.StartsWith("/gestionale/sito/pagine/")).Should().HaveCount(5);
+        // 🔴 Le schede di pagina sono quelle da cui si scrivono i testi del sito: se una
+        //    nascesse senza ruoli, sarebbe invisibile anche a un amministratore — o, peggio,
+        //    visibile a chiunque se il gating fosse per assenza.
+        vociSito.Where(m => m.Percorso.StartsWith("/gestionale/sito/pagine/")).Should().HaveCount(6);
         vociSito.Where(m => m.Percorso.StartsWith("/gestionale/sito/pagine/"))
             .Should().OnlyContain(m => m.Ruoli.Count == 2);
         vociSito.Should().Contain(m => m.Percorso == "/gestionale/sito/impostazioni");

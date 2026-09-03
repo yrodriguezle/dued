@@ -374,6 +374,9 @@ public class PublicController(
                 impostazioni.AperitivoTesto,
                 impostazioni.AperitivoPunti,
                 impostazioni.AperitivoCategorie,
+                impostazioni.PiattoTitolo,
+                impostazioni.PiattoTesto,
+                impostazioni.PiattoGiorno,
                 impostazioni.PunteggioGoogle,
                 impostazioni.NumeroRecensioniGoogle,
                 impostazioni.UrlProfiloGoogle,
@@ -546,6 +549,16 @@ public class PublicController(
                 aperitivo,
                 PuntiDa(sito.AperitivoPunti),
                 RigheDa(sito.AperitivoCategorie))
+            : null,
+        // Stessa regola, terza applicazione: è il TESTO a far esistere la pagina, mai il titolo.
+        // ⚠️ Il giorno viaggia dentro l'oggetto e non accanto: da solo non significa niente, e
+        //    fuori da qui obbligherebbe il consumatore a chiedersi che farsene quando il piatto
+        //    non c'è — una domanda senza risposta, per un campo che non ha uno stato «vuoto».
+        NullSeVuoto(sito.PiattoTesto) is { } piatto
+            ? new PiattoPubblicoDto(
+                NullSeVuoto(sito.PiattoTitolo),
+                piatto,
+                sito.PiattoGiorno)
             : null);
 
     /// <summary>
@@ -671,16 +684,18 @@ public class PublicController(
             .Select(impostazioni => new SlotImmagini(
                 impostazioni.ImmagineEroeHomeId,
                 impostazioni.ImmagineRitrattoLocaleId,
-                impostazioni.ImmagineEroeAperitivoId))
+                impostazioni.ImmagineEroeAperitivoId,
+                impostazioni.ImmagineEroePiattoId))
             .FirstOrDefaultAsync(cancellationToken)
-            ?? new SlotImmagini(null, null, null);
+            ?? new SlotImmagini(null, null, null, null);
 
         // 🔴 La regola NON è qui: è in RuoliImmaginiVetrina, sede unica, e questo è uno dei suoi
         //    due chiamanti (l'altro è il ramo GraphQL di amministrazione). Il giorno in cui una
         //    finestra passa da tre a quattro foto si cambia lì, e il pannello e il sito cambiano
         //    insieme — che è la proprietà per cui la funzione esiste.
         PianoImmagini piano = RuoliImmaginiVetrina.Risolvi(
-            slot.EroeHomeId, slot.RitrattoLocaleId, slot.EroeAperitivoId, galleria);
+            slot.EroeHomeId, slot.RitrattoLocaleId, slot.EroeAperitivoId, slot.EroePiattoId,
+            galleria);
 
         return Ok(new GalleriaPubblicaDto(
             galleria.Select(Immagine).ToList(),
@@ -690,7 +705,8 @@ public class PublicController(
                 piano.FotoMenu.Select(Immagine).ToList(),
                 ImmagineOpzionale(piano.RitrattoLocale),
                 piano.QuadrateLocale.Select(Immagine).ToList(),
-                ImmagineOpzionale(piano.EroeAperitivo))));
+                ImmagineOpzionale(piano.EroeAperitivo),
+                ImmagineOpzionale(piano.EroePiatto))));
     }
 
     /// <summary>
@@ -777,6 +793,7 @@ public class PublicController(
             vuote.MetaTitoloDefault, vuote.MetaDescrizioneDefault, vuote.OraInizioTemaSera,
             vuote.ClaimVetrina, vuote.StoriaTitolo, vuote.StoriaTesto,
             vuote.AperitivoTitolo, vuote.AperitivoTesto, vuote.AperitivoPunti, vuote.AperitivoCategorie,
+            vuote.PiattoTitolo, vuote.PiattoTesto, vuote.PiattoGiorno,
             vuote.PunteggioGoogle, vuote.NumeroRecensioniGoogle, vuote.UrlProfiloGoogle,
             null);
     }
@@ -812,16 +829,17 @@ public class PublicController(
         RigaImmagine? Immagine);
 
     /// <summary>
-    /// I tre slot immagine delle pagine, letti dal singleton della vetrina con una proiezione a
-    /// tre colonne.
+    /// I quattro slot immagine delle pagine, letti dal singleton della vetrina con una proiezione
+    /// a quattro colonne.
     ///
-    /// <para>🔴 <b>Tre <c>int?</c> e non l'entità</b>: è precisamente la forma per cui
-    /// <see cref="RuoliImmaginiVetrina.Risolvi(int?, int?, int?, IReadOnlyList{MediaAsset})"/>
-    /// esiste con quella firma. Leggere l'<c>ImpostazioniVetrina</c> intera per prenderne tre
+    /// <para>🔴 <b>Quattro <c>int?</c> e non l'entità</b>: è precisamente la forma per cui
+    /// <see cref="RuoliImmaginiVetrina.Risolvi(int?, int?, int?, int?, IReadOnlyList{MediaAsset})"/>
+    /// esiste con quella firma. Leggere l'<c>ImpostazioniVetrina</c> intera per prenderne quattro
     /// colonne porterebbe in memoria, su una rotta anonima, anche i ganci spenti — fra cui la
     /// chiave del servizio antispam, che sta nell'elenco dei nomi vietati in pubblico.</para>
     /// </summary>
-    private sealed record SlotImmagini(int? EroeHomeId, int? RitrattoLocaleId, int? EroeAperitivoId);
+    private sealed record SlotImmagini(
+        int? EroeHomeId, int? RitrattoLocaleId, int? EroeAperitivoId, int? EroePiattoId);
 
     /// <summary>Forma intermedia dell'immagine, condivisa dalle tre query.</summary>
     private sealed record RigaImmagine(
@@ -862,6 +880,9 @@ public class PublicController(
         string? AperitivoTesto,
         string? AperitivoPunti,
         string? AperitivoCategorie,
+        string? PiattoTitolo,
+        string? PiattoTesto,
+        int PiattoGiorno,
         decimal? PunteggioGoogle,
         int? NumeroRecensioniGoogle,
         string? UrlProfiloGoogle,

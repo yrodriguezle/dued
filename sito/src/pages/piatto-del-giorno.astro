@@ -1,0 +1,163 @@
+---
+// Il piatto della settimana — una fotografia grande e il racconto di come è fatto.
+//
+// 🔴 **L'indirizzo è `/piatto-del-giorno` e non `/piatto-del-mercoledi`, anche se la pagina si
+//    intitola «Piatto del mercoledì».** Il giorno è configurabile dal gestionale, e uno slug che
+//    lo seguisse cambierebbe URL a ogni ripensamento: link condivisi rotti, voci di sitemap
+//    morte, posizionamento perso — tutto senza un sintomo visibile dal pannello di chi ha appena
+//    cambiato una tendina. Il nome della voce vive in `lib/rotte.ts`, che è anche l'unico posto
+//    in cui l'indice del giorno diventa una parola.
+//
+// 🔴 **Esiste solo se l'amministratore ha scritto la descrizione.** Come `/aperitivo` e
+//    `/locale`: senza, la rotta risponde 404 e la voce sparisce dalla navigazione. Una pagina
+//    «Piatto del mercoledì» che si apre su un titolo e nient'altro promette un piatto che non c'è.
+//
+// ⚠️ **Testo e fotografia arrivano da due letture diverse** — il testo da `/api/public/site`, la
+//    foto dal ruolo `eroePiatto` di `/api/public/galleria` — e a decidere se la pagina esiste è
+//    **solo il testo**. Con il testo e senza foto la pagina esce senza fotografia, che è la
+//    regola di tutto il sito: una sezione senza il suo dato non si rende.
+
+import Base from '../layouts/Base.astro';
+import Immagine from '../components/Immagine.astro';
+import Freccia from '../components/Freccia.astro';
+import { leggiSito, leggiGalleria, RUOLI_VUOTI } from '../lib/api.ts';
+import { GIORNI_ESTESI } from '../lib/formato.ts';
+
+const [esitoSito, esitoGalleria] = await Promise.all([leggiSito(), leggiGalleria()]);
+const sito = esitoSito.stato === 'ok' ? esitoSito.dati : null;
+const ruoli = esitoGalleria.stato === 'ok' ? esitoGalleria.dati.ruoli : RUOLI_VUOTI;
+
+const piatto = sito?.testi.piatto ?? null;
+
+// Stessa distinzione di `/aperitivo` e `/locale`: contenuto assente → 404 (questa pagina non
+// esiste, e va detto ai motori); backend irraggiungibile → 503 (è un guasto temporaneo, e un 404
+// lo renderebbe permanente agli occhi di chi indicizza).
+if (sito === null) {
+  Astro.response.status = 503;
+  Astro.response.headers.set('Retry-After', '120');
+  Astro.response.headers.set('Cache-Control', 'no-store');
+} else if (piatto === null) {
+  Astro.response.status = 404;
+  Astro.response.headers.set('Cache-Control', 'no-store');
+} else {
+  // 60 secondi come `/menu` e non 300 come le altre editoriali: il piatto della settimana è la
+  // pagina che si cambia *mentre* la giornata va avanti, ed è quella su cui il ritardo fra «l'ho
+  // salvato» e «lo vedo» si nota di più.
+  Astro.response.headers.set('Cache-Control', 'public, max-age=60');
+}
+
+// ⚠️ `?.` e il ripiego: l'indice arriva dall'API, e `GIORNI_ESTESI[7]` sarebbe `undefined`
+//    scritto dentro un `<h1>` e un `<title>`. A database c'è un CHECK che lo impedisce — questa
+//    riga è ciò che rende la pagina indipendente da quella promessa, non un dubbio su di essa.
+const giorno = piatto ? (GIORNI_ESTESI[piatto.giorno] ?? null) : null;
+
+// 🔴 Il titolo della pagina è il GIORNO, non il nome del piatto, e il nome del piatto è il
+//    sottotitolo. È l'ordine in cui la gente cerca: «cosa fanno di mercoledì» è la domanda, «i
+//    bigoli con l'anatra» è la risposta — e chi arriva da una ricerca deve riconoscere di essere
+//    nel posto giusto prima di leggere cosa c'è.
+const intestazione = giorno ? `Il piatto del ${giorno.toLowerCase()}` : 'Il piatto della settimana';
+
+const foto = ruoli.eroePiatto;
+
+// ⚠️ Il testo è un campo `text` scritto in un `textarea`: i capoversi arrivano come righe vuote,
+//    e senza spezzarli qui il racconto diventa un unico blocco. Stessa regola e stesso motivo di
+//    `locale.astro` — `white-space: pre-line` risolverebbe le interruzioni ma non darebbe lo
+//    spazio fra i capoversi.
+const capoversi = piatto
+  ? piatto.testo
+      .split(/\n\s*\n/)
+      .map((capoverso) => capoverso.trim())
+      .filter((capoverso) => capoverso.length > 0)
+  : [];
+---
+
+<Base
+  titolo={`${piatto?.titolo ?? intestazione} — ${sito?.insegna ?? '2 D Gusto'}`}
+  descrizione={piatto?.testo}
+  sito={sito}
+>
+  <main>
+    {
+      piatto === null && (
+        <div class="mx-auto max-w-3xl px-5 py-24 text-center sm:px-8">
+          <h1 class="font-titolo text-[clamp(2.25rem,5vw,4rem)] leading-tight">
+            {sito === null ? 'Torniamo fra poco' : 'Questa pagina non c’è'}
+          </h1>
+          <p class="text-inchiostro-tenue mt-5 text-lg">
+            {sito === null
+              ? 'Le informazioni del locale non sono raggiungibili in questo momento.'
+              : 'Nel frattempo, il listino è tutto sul menu.'}
+          </p>
+          <a
+            href="/menu"
+            class="bg-inchiostro text-sfondo mt-9 inline-flex items-center gap-2 rounded-full px-7 py-4 text-[15px] font-semibold transition-opacity hover:opacity-90"
+          >
+            Vai al menu <Freccia />
+          </a>
+        </div>
+      )
+    }
+
+    {
+      piatto && (
+        <>
+          {/* ── Il piatto: fotografia e racconto, affiancati da `lg` in su ──────────── */}
+          <section class="mx-auto max-w-6xl px-5 pt-10 sm:px-8 sm:pt-14">
+            <div class="grid items-start gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:gap-14">
+              {/*
+                ⚠️ La fotografia sta PRIMA nel markup e resta prima in lettura: su questa pagina
+                   è il contenuto, non l'illustrazione di un testo. Un `order` che la spostasse
+                   sotto su mobile la separerebbe dal titolo che la nomina.
+              */}
+              {foto && (
+                <div class="bg-sfondo-alt overflow-hidden rounded-2xl">
+                  <Immagine
+                    immagine={foto}
+                    sizes="(min-width: 1024px) 46rem, 100vw"
+                    priorita
+                    classe="block h-full w-full"
+                  />
+                </div>
+              )}
+
+              <div class:list={['max-w-[46ch]', !foto && 'lg:col-span-2']}>
+                <p class="font-mono text-accento text-[11.5px] tracking-[0.2em] uppercase">
+                  {intestazione}
+                </p>
+
+                <h1 class="font-titolo mt-4 text-[clamp(2.5rem,5.5vw,4.5rem)] leading-[0.98] tracking-[-0.03em]">
+                  {/*
+                    ⚠️ Senza nome del piatto il titolo è il giorno, che è comunque una frase
+                       intera. La riga sopra non si ripete: è l'occhiello, e diventa muto per chi
+                       legge con uno screen reader se dice la stessa cosa dell'h1.
+                  */}
+                  {piatto.titolo ?? intestazione}
+                </h1>
+
+                <div class="mt-6 grid gap-4">
+                  {capoversi.map((capoverso) => (
+                    <p class="text-inchiostro-tenue text-lg leading-relaxed text-pretty">
+                      {capoverso}
+                    </p>
+                  ))}
+                </div>
+
+                {/*
+                  ⚠️ Nessun prezzo, ed è una scelta del contratto e non di questa pagina: un
+                     prezzo scritto a mano qui sarebbe un secondo prezzo accanto a quello che la
+                     cassa aggiorna. Il rimando al menu è ciò che sta al suo posto.
+                */}
+                <a
+                  href="/menu"
+                  class="border-bordo hover:border-inchiostro mt-9 inline-flex items-center gap-2 border-b pb-1.5 text-[15.5px] font-semibold transition-colors"
+                >
+                  Tutto il menu <Freccia />
+                </a>
+              </div>
+            </div>
+          </section>
+        </>
+      )
+    }
+  </main>
+</Base>

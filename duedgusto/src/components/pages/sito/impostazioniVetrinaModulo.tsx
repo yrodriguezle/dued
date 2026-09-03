@@ -45,7 +45,7 @@ export type ValoriImpostazioniVetrina = {
   metaDescrizioneDefault: string;
   immagineOgId: number | null;
   /**
-   * I tre slot immagine delle pagine.
+   * I quattro slot immagine delle pagine.
    *
    * ⚠️ Stanno nei valori del modulo pur non essendo ancora modificabili da nessun campo: è la
    * stessa ragione per cui ci sta `turnstileSiteKey`. L'assegnazione del server è **totale**,
@@ -56,6 +56,7 @@ export type ValoriImpostazioniVetrina = {
   immagineEroeHomeId: number | null;
   immagineRitrattoLocaleId: number | null;
   immagineEroeAperitivoId: number | null;
+  immagineEroePiattoId: number | null;
   oraInizioTemaSera: string;
   // ── I testi che il sito scrive in prima persona ─────────────────────────────────────
   // Ogni sezione del sito che li usa NON si rende quando sono vuoti, e le due pagine
@@ -67,6 +68,16 @@ export type ValoriImpostazioniVetrina = {
   aperitivoTesto: string;
   aperitivoPunti: string;
   aperitivoCategorie: string;
+  piattoTitolo: string;
+  piattoTesto: string;
+  /**
+   * Il giorno del piatto: **0 = lunedì … 6 = domenica**.
+   *
+   * ⚠️ È un `number` e non una stringa, a differenza delle coordinate e del punteggio: quelli
+   *    hanno uno stato «non inserito» che solo `""` rappresenta onestamente, questo no — la
+   *    tendina ha sempre una voce scelta, e il campo non è nullable nemmeno a database.
+   */
+  piattoGiorno: number;
   // ── Reputazione ────────────────────────────────────────────────────────────────────
   /**
    * Testuali per la stessa ragione delle coordinate: `""` è l'unica rappresentazione onesta
@@ -105,6 +116,7 @@ export const VALORI_VUOTI: ValoriImpostazioniVetrina = {
   immagineEroeHomeId: null,
   immagineRitrattoLocaleId: null,
   immagineEroeAperitivoId: null,
+  immagineEroePiattoId: null,
   oraInizioTemaSera: "",
   claimVetrina: "",
   storiaTitolo: "",
@@ -113,6 +125,12 @@ export const VALORI_VUOTI: ValoriImpostazioniVetrina = {
   aperitivoTesto: "",
   aperitivoPunti: "",
   aperitivoCategorie: "",
+  piattoTitolo: "",
+  piattoTesto: "",
+  // ⚠️ 2 = mercoledì, lo stesso default del modello: un modulo vuoto e una riga appena creata
+  //    devono mostrare la stessa cosa, altrimenti aprire la scheda e salvarla senza toccare
+  //    niente sposterebbe il giorno.
+  piattoGiorno: 2,
   punteggioGoogle: "",
   numeroRecensioniGoogle: "",
   urlProfiloGoogle: "",
@@ -154,6 +172,7 @@ export function valoriDaImpostazioni(impostazioni?: ImpostazioniVetrina | null):
     immagineEroeHomeId: impostazioni.immagineEroeHomeId ?? null,
     immagineRitrattoLocaleId: impostazioni.immagineRitrattoLocaleId ?? null,
     immagineEroeAperitivoId: impostazioni.immagineEroeAperitivoId ?? null,
+    immagineEroePiattoId: impostazioni.immagineEroePiattoId ?? null,
     oraInizioTemaSera: testo(impostazioni.oraInizioTemaSera),
     claimVetrina: testo(impostazioni.claimVetrina),
     storiaTitolo: testo(impostazioni.storiaTitolo),
@@ -162,6 +181,9 @@ export function valoriDaImpostazioni(impostazioni?: ImpostazioniVetrina | null):
     aperitivoTesto: testo(impostazioni.aperitivoTesto),
     aperitivoPunti: testo(impostazioni.aperitivoPunti),
     aperitivoCategorie: testo(impostazioni.aperitivoCategorie),
+    piattoTitolo: testo(impostazioni.piattoTitolo),
+    piattoTesto: testo(impostazioni.piattoTesto),
+    piattoGiorno: impostazioni.piattoGiorno ?? VALORI_VUOTI.piattoGiorno,
     punteggioGoogle: numeroTestuale(impostazioni.punteggioGoogle),
     numeroRecensioniGoogle: numeroTestuale(impostazioni.numeroRecensioniGoogle),
     urlProfiloGoogle: testo(impostazioni.urlProfiloGoogle),
@@ -289,6 +311,27 @@ export function inputAperitivo(valori: ValoriImpostazioniVetrina): PaginaAperiti
   };
 }
 
+/**
+ * I campi della scheda **Piatto della settimana**: nome, descrizione, giorno e lo slot della
+ * fotografia.
+ *
+ * 🔴 `piattoTesto` svuotato **fa sparire la pagina dal sito**: 404, navigazione e sitemap. Come
+ *    per la storia del locale, `nullSeVuoto` è ciò che permette a uno svuotamento di arrivare
+ *    fino al database invece di essere scartato per strada.
+ *
+ * ⚠️ `piattoGiorno` si spedisce **sempre**, anche quando la pagina non esiste: non è nullable e
+ *    l'assegnazione del server è totale, quindi ometterlo non lo lascerebbe com'è — lo
+ *    porterebbe a zero, cioè a lunedì.
+ */
+export function inputPiatto(valori: ValoriImpostazioniVetrina): PaginaPiattoInput {
+  return {
+    piattoTitolo: nullSeVuoto(valori.piattoTitolo),
+    piattoTesto: nullSeVuoto(valori.piattoTesto),
+    piattoGiorno: valori.piattoGiorno,
+    immagineEroePiattoId: valori.immagineEroePiattoId,
+  };
+}
+
 /** Un campo facoltativo vuoto non è un errore: si valida solo ciò che è stato scritto. */
 function urlFacoltativo(messaggio: string) {
   return z.string().refine((valore) => valore.trim() === "" || z.string().url().safeParse(valore.trim()).success, { message: messaggio });
@@ -405,6 +448,18 @@ const schemaPaginaAperitivo = z.object({
 });
 
 /**
+ * ⚠️ A differenza delle altre due schede editoriali, questa **una regola ce l'ha**: il giorno è
+ *    un indice, e un indice fuori scala non è un campo malcompilato — è un titolo che dice
+ *    «Piatto del undefined» su una pagina pubblica. Il `CHECK` a database e il resolver lo
+ *    rifiutano entrambi; qui lo si dice all'amministratore prima del viaggio, con una frase.
+ */
+const schemaPaginaPiatto = z.object({
+  piattoTitolo: z.string(),
+  piattoTesto: z.string(),
+  piattoGiorno: z.number().int().min(0, "Scegli un giorno della settimana.").max(6, "Scegli un giorno della settimana."),
+});
+
+/**
  * Il traduttore da esito Zod alla forma che Formik si aspetta, **uno solo** per tutte e quattro
  * le schede: quattro copie di sei righe divergerebbero al primo campo annidato.
  */
@@ -436,4 +491,8 @@ export function validaPaginaLocale(valori: ValoriImpostazioniVetrina): Record<st
 
 export function validaPaginaAperitivo(valori: ValoriImpostazioniVetrina): Record<string, string> | undefined {
   return erroriDi(schemaPaginaAperitivo, valori);
+}
+
+export function validaPaginaPiatto(valori: ValoriImpostazioniVetrina): Record<string, string> | undefined {
+  return erroriDi(schemaPaginaPiatto, valori);
 }

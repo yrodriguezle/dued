@@ -216,7 +216,7 @@ public class MappaPagineVetrinaTests
             })
         ];
 
-        PianoImmagini piano = RuoliImmaginiVetrina.Risolvi(null, null, null, galleria);
+        PianoImmagini piano = RuoliImmaginiVetrina.Risolvi(null, null, null, null, galleria);
 
         // Con dodici fotografie tutte e tre le griglie sono piene: la loro lunghezza È l'ampiezza.
         piano.GrigliaHome.Should().HaveCount(RuoliImmaginiVetrina.AmpiezzaFinestra);

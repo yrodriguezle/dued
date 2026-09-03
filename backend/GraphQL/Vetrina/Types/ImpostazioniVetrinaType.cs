@@ -86,11 +86,19 @@ public class ImpostazioniVetrinaType : ObjectGraphType<ImpostazioniVetrina>
 
         Field("immagineEroeAperitivoId", x => x.ImmagineEroeAperitivoId, nullable: true)
             .Description("L'immagine grande in cima alla pagina «Aperitivo». 🔴 Vuota: la pagina "
-                + "esce SENZA immagine di testata. È l'unico slot senza ripiego, e la ragione è "
-                + "che il ripiego di prima — l'ultima foto caricata — faceva cambiare questa "
-                + "immagine a ogni caricamento in galleria, anche fatto per un'altra pagina.");
+                + "esce SENZA immagine di testata. Senza ripiego, perché il ripiego di prima — "
+                + "l'ultima foto caricata — faceva cambiare questa immagine a ogni caricamento in "
+                + "galleria, anche fatto per un'altra pagina.");
         Field<MediaAssetType>("immagineEroeAperitivo")
             .Resolve(context => context.Source.ImmagineEroeAperitivo);
+
+        Field("immagineEroePiattoId", x => x.ImmagineEroePiattoId, nullable: true)
+            .Description("La fotografia della pagina «Piatto della settimana». 🔴 Vuota: la "
+                + "pagina esce SENZA fotografia. Senza ripiego, e qui la ragione è più forte che "
+                + "altrove: la pagina promette UN piatto, e una foto presa dalla galleria per "
+                + "posizione ne mostrerebbe un altro.");
+        Field<MediaAssetType>("immagineEroePiatto")
+            .Resolve(context => context.Source.ImmagineEroePiatto);
 
         // ── Tema ─────────────────────────────────────────────────────────────────────────
         Field("oraInizioTemaSera", x => x.OraInizioTemaSera)
@@ -113,6 +121,16 @@ public class ImpostazioniVetrinaType : ObjectGraphType<ImpostazioniVetrina>
         Field("aperitivoCategorie", x => x.AperitivoCategorie, nullable: true)
             .Description("Quali categorie di vetrina mostra la pagina dell'aperitivo, una per "
                 + "riga. Esiste per non dedurle: ogni deduzione si romperebbe in silenzio.");
+        Field("piattoTitolo", x => x.PiattoTitolo, nullable: true)
+            .Description("Il nome del piatto della settimana. Da solo NON fa esistere la pagina.");
+        Field("piattoTesto", x => x.PiattoTesto, nullable: true)
+            .Description("La descrizione del piatto. 🔴 È questa a far esistere la pagina: "
+                + "vuota, /piatto-del-giorno risponde 404 e sparisce dalla navigazione.");
+        Field("piattoGiorno", x => x.PiattoGiorno)
+            .Description("Il giorno del piatto: 0 = lunedì … 6 = domenica — la stessa "
+                + "indicizzazione dei giorni operativi della cassa, NON quella di DayOfWeek. "
+                + "Decide la parola nel titolo e nella navigazione; l'indirizzo della pagina non "
+                + "cambia mai.");
 
         // ── Reputazione ──────────────────────────────────────────────────────────────────
         Field("punteggioGoogle", x => x.PunteggioGoogle, nullable: true)

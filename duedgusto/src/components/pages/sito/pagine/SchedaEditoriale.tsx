@@ -22,10 +22,11 @@ import PageTitleContext from "../../../layout/headerBar/PageTitleContext";
 import { formStatuses } from "../../../../common/globals/constants";
 
 /**
- * La parte **comune** alle tre schede che possiedono dei campi — Home, Il locale, Aperitivo.
+ * La parte **comune** alle quattro schede che possiedono dei campi — Home, Il locale,
+ * Aperitivo, Piatto della settimana.
  *
  * ─────────────────────────────────────────────────────────────────────────────────────────
- * 🔴 **Una sola implementazione della conferma di sparizione.** Due pagine su cinque
+ * 🔴 **Una sola implementazione della conferma di sparizione.** Tre pagine su sei
  *    scompaiono dal sito quando il loro testo si svuota, e la conferma che lo annuncia è
  *    l'unico punto del prodotto in cui salvare **cancella un URL**. Scritta due volte,
  *    divergerebbe: la prima correzione andrebbe su una sola delle due e nessuno se ne
@@ -51,12 +52,12 @@ interface SchedaEditorialeProps {
    */
   salva: (valori: ValoriImpostazioniVetrina) => Promise<unknown>;
   /** Il campo del modulo che porta lo slot immagine di questa pagina. */
-  campoSlot: "immagineEroeHomeId" | "immagineRitrattoLocaleId" | "immagineEroeAperitivoId";
+  campoSlot: "immagineEroeHomeId" | "immagineRitrattoLocaleId" | "immagineEroeAperitivoId" | "immagineEroePiattoId";
   /**
    * Il campo il cui **corpo** decide se la pagina esiste. Assente: la pagina esiste sempre.
    * `nome` è come si chiama il campo in pagina, non il nome della colonna.
    */
-  campoDiEsistenza?: { chiave: "storiaTesto" | "aperitivoTesto"; nome: string };
+  campoDiEsistenza?: { chiave: "storiaTesto" | "aperitivoTesto" | "piattoTesto"; nome: string };
   testiPropri: ReactNode;
   /**
    * ⚠️ **Non c'è alcun `testiEreditati`**, e l'assenza è il punto: i testi ereditati arrivano

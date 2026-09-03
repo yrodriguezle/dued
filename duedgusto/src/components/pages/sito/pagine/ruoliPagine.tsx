@@ -7,7 +7,7 @@
  * La domanda dell'utente era letterale: *«ogni pagina del sito una voce di menu, e lì mi dici
  * quante immagini posso caricare e i testi da cambiare»*. La prima metà è questa dichiarazione.
  *
- * 🔴 **Due letture, una sola scrittura.** Le cinque schede di pagina contano da qui, e la
+ * 🔴 **Due letture, una sola scrittura.** Le sei schede di pagina contano da qui, e la
  *    libreria media scrive da qui i ruoli accanto a ogni immagine. Due elenchi che si
  *    corrispondono per disciplina divergono al primo ritocco, e divergerebbero in silenzio: la
  *    scheda direbbe «3 foto» e la libreria ne segnerebbe due. Aggiungere un ruolo qui lo fa
@@ -26,11 +26,11 @@
  * ─────────────────────────────────────────────────────────────────────────────────────────
  */
 
-/** Le cinque pagine del sito. Le stesse di `sito/src/lib/rotte.ts`, che ne resta la sorgente. */
-export type PaginaSito = "home" | "menu" | "aperitivo" | "locale" | "contatti";
+/** Le sei pagine del sito. Le stesse di `sito/src/lib/rotte.ts`, che ne resta la sorgente. */
+export type PaginaSito = "home" | "menu" | "aperitivo" | "piatto" | "locale" | "contatti";
 
-/** I sei ruoli del piano, con i nomi esatti che il backend rende. */
-export type ChiaveRuoloImmagine = "eroeHome" | "grigliaHome" | "fotoMenu" | "ritrattoLocale" | "quadrateLocale" | "eroeAperitivo";
+/** I sette ruoli del piano, con i nomi esatti che il backend rende. */
+export type ChiaveRuoloImmagine = "eroeHome" | "grigliaHome" | "fotoMenu" | "ritrattoLocale" | "quadrateLocale" | "eroeAperitivo" | "eroePiatto";
 
 export type RuoloImmaginePagina = {
   chiave: ChiaveRuoloImmagine;
@@ -50,14 +50,16 @@ export type RuoloImmaginePagina = {
   /**
    * Che cosa rende la pagina quando il posto è vuoto. `null` = **niente**.
    *
-   * 🔴 Per `eroeAperitivo` è `null` **per decisione**, non per dimenticanza: vedi la voce.
+   * 🔴 Per `eroeAperitivo` e `eroePiatto` è `null` **per decisione**, non per dimenticanza:
+   *    vedi le due voci.
    */
   ripiego: string | null;
 };
 
 /**
- * Il piano, per intero. Le sei righe corrispondono uno a uno ai sei campi di
- * `RuoliImmaginiVetrina` e alle sei regole di `backend/Services/Vetrina/RuoliImmaginiVetrina.cs`.
+ * Il piano, per intero. Le sette righe corrispondono uno a uno ai sette campi di
+ * `RuoliImmaginiVetrina` e alle sette regole di
+ * `backend/Services/Vetrina/RuoliImmaginiVetrina.cs`.
  *
  * 🔴 **Nessun numero di posti è scritto qui.** Fino alla fase precedente le griglie dichiaravano
  *    `posti: 3`, e quel 3 era la **seconda scrittura** di `AmpiezzaFinestra` sul server: due
@@ -123,6 +125,18 @@ export const RUOLI_IMMAGINI: readonly RuoloImmaginePagina[] = [
     //    lo dice a chiare lettere, perché è l'unico punto in cui il sito mostra meno di prima.
     ripiego: null,
   },
+  {
+    chiave: "eroePiatto",
+    pagina: "piatto",
+    etichetta: "fotografia del piatto",
+    descrizione: "La fotografia del piatto, accanto al racconto.",
+    singolo: true,
+    // 🔴 NESSUN ripiego, come l'aperitivo — e qui la ragione è più forte. Quella pagina promette
+    //    UN piatto: una foto scelta dalla posizione in galleria mostrerebbe al visitatore un
+    //    piatto diverso da quello descritto. Non è un'immagine mancante, è un'immagine che mente,
+    //    ed è il caso in cui «meglio niente» smette di essere una preferenza di stile.
+    ripiego: null,
+  },
 ];
 
 /** Le etichette delle pagine, **identiche** a quelle di `sito/src/lib/rotte.ts`. */
@@ -130,6 +144,11 @@ export const ETICHETTE_PAGINE: Record<PaginaSito, string> = {
   home: "Home",
   menu: "Menu",
   aperitivo: "Aperitivo",
+  // ⚠️ Il nome CANONICO, non quello che il visitatore legge: sul sito la voce si chiama «Piatto
+  //    del mercoledì», col giorno che si sceglie da questa scheda. È `etichetta` in `rotte.ts`;
+  //    l'altro è `etichettaPubblica`, e una voce di pannello che si rinominasse da sola a ogni
+  //    salvataggio si sposterebbe sotto i piedi a chi la cerca.
+  piatto: "Piatto della settimana",
   locale: "Il locale",
   contatti: "Contatti",
 };
@@ -139,6 +158,10 @@ export const PERCORSI_SITO: Record<PaginaSito, string> = {
   home: "/",
   menu: "/menu",
   aperitivo: "/aperitivo",
+  // ⚠️ L'indirizzo NON segue il giorno, e non deve: uno slug che diventasse
+  //    `/piatto-del-giovedi` romperebbe ogni link condiviso e ogni voce indicizzata a ogni
+  //    cambio di tendina, senza alcun sintomo visibile da qui.
+  piatto: "/piatto-del-giorno",
   locale: "/locale",
   contatti: "/contatti",
 };
@@ -148,6 +171,7 @@ export const PERCORSI_PANNELLO: Record<PaginaSito, string> = {
   home: "/gestionale/sito/pagine/home",
   menu: "/gestionale/sito/pagine/menu",
   aperitivo: "/gestionale/sito/pagine/aperitivo",
+  piatto: "/gestionale/sito/pagine/piatto-del-giorno",
   locale: "/gestionale/sito/pagine/locale",
   contatti: "/gestionale/sito/pagine/contatti",
 };

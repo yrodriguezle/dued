@@ -3,7 +3,7 @@
 // ─────────────────────────────────────────────────────────────────────────────────────────
 // 🔴 PERCHÉ QUESTO TEST ESISTE. La richiesta originale dell'utente era letterale: *«ogni pagina
 //    del sito una voce di menu, e lì mi dici quante immagini posso caricare»*. La risposta vive
-//    in `duedgusto/…/pagine/ruoliPagine.tsx`, che dichiara i sei ruoli con la pagina che li
+//    in `duedgusto/…/pagine/ruoliPagine.tsx`, che dichiara i sette ruoli con la pagina che li
 //    ospita; le immagini vere le prendono i `.astro`, che leggono `ruoli.<nome>` dalla rotta
 //    pubblica. Sono due dichiarazioni in due progetti diversi e finora si corrispondevano **per
 //    disciplina**: un ruolo aggiunto al sito e non al pannello non produce alcun errore, produce
@@ -38,11 +38,12 @@ const RADICE_REPO = dirname(radiceSito);
 const RUOLI_PANNELLO = join(RADICE_REPO, 'duedgusto/src/components/pages/sito/pagine/ruoliPagine.tsx');
 const INDEX = join(radiceSito, 'src/pages/index.astro');
 
-/** Le cinque pagine, dal nome che il pannello usa al file che le rende. */
+/** Le sei pagine, dal nome che il pannello usa al file che le rende. */
 const PAGINE = {
   home: 'src/pages/index.astro',
   menu: 'src/pages/menu.astro',
   aperitivo: 'src/pages/aperitivo.astro',
+  piatto: 'src/pages/piatto-del-giorno.astro',
   locale: 'src/pages/locale.astro',
   contatti: 'src/pages/contatti.astro',
 };
@@ -73,8 +74,8 @@ test('la scansione trova davvero le due dichiarazioni', () => {
   const pannello = ruoliDelPannello();
   const sito = ruoliDelSito();
 
-  assert.equal(pannello.length, 6, `letti ${pannello.length} ruoli da ruoliPagine.tsx invece di 6: la scansione non riconosce più la forma di RUOLI_IMMAGINI`);
-  assert.ok(sito.length >= 6, `letti solo ${sito.length} usi di ruoli.* nei .astro: la scansione non riconosce più le letture del sito`);
+  assert.equal(pannello.length, 7, `letti ${pannello.length} ruoli da ruoliPagine.tsx invece di 7: la scansione non riconosce più la forma di RUOLI_IMMAGINI`);
+  assert.ok(sito.length >= 7, `letti solo ${sito.length} usi di ruoli.* nei .astro: la scansione non riconosce più le letture del sito`);
 });
 
 test('🔴 ogni ruolo che una pagina del sito consuma è nominato dalla scheda di quella pagina', () => {

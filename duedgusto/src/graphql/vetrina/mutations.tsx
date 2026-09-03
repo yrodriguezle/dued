@@ -100,6 +100,23 @@ export const mutationMutatePaginaAperitivo: TypedDocumentNode<MutatePaginaData<"
   }
 `;
 
+/**
+ * Nome, descrizione, giorno e fotografia del piatto della settimana.
+ *
+ * ⚠️ `piattoGiorno` viaggia **sempre**, anche a pagina non pubblicata: l'assegnazione del server
+ * è totale e non è un campo nullable, quindi ometterlo lo porterebbe a zero — cioè a lunedì.
+ */
+export const mutationMutatePaginaPiatto: TypedDocumentNode<MutatePaginaData<"mutatePaginaPiatto">, { input: PaginaPiattoInput }> = gql`
+  ${impostazioniVetrinaFragment}
+  mutation MutatePaginaPiatto($input: PaginaPiattoInput!) {
+    vetrina {
+      mutatePaginaPiatto(input: $input) {
+        ...ImpostazioniVetrinaFragment
+      }
+    }
+  }
+`;
+
 // ============ PRODOTTI VETRINA ============
 
 interface MutateProdottoVetrinaData {

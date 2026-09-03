@@ -3,7 +3,7 @@
 // ─────────────────────────────────────────────────────────────────────────────────────────
 // 🔴 PERCHÉ QUESTO TEST ESISTE, e perché la mappa senza di lui sarebbe PEGGIO di nessuna mappa.
 //    `backend/Services/Vetrina/MappaPagineVetrina.cs` dichiara quali valori ogni pagina del sito
-//    mostra e dove si modificano; le cinque schede del gestionale costruiscono da lì le proprie
+//    mostra e dove si modificano; le sei schede del gestionale costruiscono da lì le proprie
 //    sezioni. È una SECONDA scrittura — la prima sono i `.astro` — e due scritture divergono:
 //    qualcuno aggiunge una lettura a `locale.astro`, la scheda «Il locale» non la impara mai, e
 //    l'amministratore ha una mappa che ORIENTA CON SICUREZZA NELLA DIREZIONE SBAGLIATA. Per uno
@@ -31,13 +31,13 @@
 // ─────────────────────────────────────────────────────────────────────────────────────────
 // ⚠️ COME SI DEFINISCE «QUESTA PAGINA LEGGE QUEL CAMPO», che è la sola decisione di merito.
 //
-//    Non basta guardare i cinque file di pagina: il piè di pagina mostra indirizzo e orari su
+//    Non basta guardare i sei file di pagina: il piè di pagina mostra indirizzo e orari su
 //    OGNI pagina, e una mappa che dicesse «/menu mostra solo l'insegna» sarebbe falsa. Si segue
 //    quindi il grafo degli import `.astro`, e si distinguono due ambiti:
 //
 //      • la CORNICE — `Base.astro` e ciò che importa: intestazione, piè di pagina, barra mobile,
 //        dati strutturati. È su tutte le pagine, e la mappa la dichiara UNA volta sola sotto
-//        `PaginaVetrina.Cornice`. Ripetere quelle sedici voci su cinque pagine avrebbe fatto
+//        `PaginaVetrina.Cornice`. Ripetere quelle sedici voci su sei pagine avrebbe fatto
 //        dire alla scheda «Menu» che quella pagina possiede l'indirizzo;
 //      • il CORPO di una pagina — il suo `.astro` più i componenti che rende e che non stanno
 //        nella cornice (`Mappa`, `OrariSettimana`, `Recensioni`, …).
@@ -68,11 +68,12 @@ import { senzaCommenti, sorgenti, radiceSito } from './_scansione.mjs';
 const RADICE_REPO = dirname(radiceSito);
 const MAPPA = join(RADICE_REPO, 'backend/Services/Vetrina/MappaPagineVetrina.cs');
 
-/** Le cinque pagine, dal nome dell'enum C# al file che le rende. */
+/** Le sei pagine, dal nome dell'enum C# al file che le rende. */
 const PAGINE = {
   Home: 'src/pages/index.astro',
   Menu: 'src/pages/menu.astro',
   Aperitivo: 'src/pages/aperitivo.astro',
+  Piatto: 'src/pages/piatto-del-giorno.astro',
   Locale: 'src/pages/locale.astro',
   Contatti: 'src/pages/contatti.astro',
 };
@@ -165,7 +166,7 @@ function letturePiane(testo) {
  * l'oggetto stesso della mappa.
  *
  * La regola è volutamente minima — un solo passaggio, dichiarazione locale con `const` — e copre
- * i due casi reali del progetto (`testi.storia`, `testi.aperitivo`).
+ * i tre casi reali del progetto (`testi.storia`, `testi.aperitivo`, `testi.piatto`).
  *
  * ⚠️ Ciò che NON copre, dichiarato: un oggetto passato come **proprietà** a un componente
  *    (`<Recensioni reputazione={sito.reputazione} />`) viene letto dentro l'altro file con un
@@ -196,7 +197,7 @@ function percorsiDelGrafo(files) {
 }
 
 /**
- * Gli ambiti: la cornice e i cinque corpi di pagina, con i loro file e i loro percorsi.
+ * Gli ambiti: la cornice e i sei corpi di pagina, con i loro file e i loro percorsi.
  * 🔴 Il corpo di una pagina è il suo grafo **meno** la cornice: è la sottrazione che permette
  *    alla mappa di dichiarare una volta sola ciò che ogni pagina mostra.
  */
@@ -259,7 +260,7 @@ test('la scansione trova davvero la mappa e i sorgenti del sito', () => {
 
   // E i due lati sono entrambi popolati: un lato vuoto è contenuto in qualunque altro.
   assert.ok(scope[CORNICE].percorsi.size >= 10, `la cornice legge solo ${scope[CORNICE].percorsi.size} percorsi: la scansione dei .astro non riconosce più le espressioni sito.*`);
-  assert.ok(new Set(voci.map((voce) => voce.pagina)).size === 6, `la mappa dichiara voci per ${new Set(voci.map((voce) => voce.pagina)).size} ambiti invece che per sei (cornice + cinque pagine)`);
+  assert.ok(new Set(voci.map((voce) => voce.pagina)).size === 7, `la mappa dichiara voci per ${new Set(voci.map((voce) => voce.pagina)).size} ambiti invece che per sette (cornice + sei pagine)`);
 });
 
 // ── ② Nessun campo letto e non dichiarato ─────────────────────────────────────────────────
@@ -358,7 +359,7 @@ test('🔴 né il gestionale né il backend importano alcunché dal progetto del
 
 // ── La mappa parla delle pagine che il sito ha davvero ────────────────────────────────────
 
-test('gli ambiti della mappa sono la cornice e le cinque pagine del sito, non altri', () => {
+test('gli ambiti della mappa sono la cornice e le sei pagine del sito, non altri', () => {
   // Una voce che nominasse una pagina inesistente non farebbe fallire nulla di quanto sopra:
   // `scope[voce.pagina]` sarebbe `undefined` e il test ③ esploderebbe con un errore oscuro
   // invece di dire cosa non va. Meglio dirlo qui, per nome.

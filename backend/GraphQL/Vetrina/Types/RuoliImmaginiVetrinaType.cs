@@ -6,8 +6,8 @@ using duedgusto.Services.Vetrina;
 namespace duedgusto.GraphQL.Vetrina.Types;
 
 /// <summary>
-/// Un ruolo <b>singolo</b> — l'eroe della home, il ritratto del locale, l'eroe dell'aperitivo —
-/// con l'immagine che lo ricopre adesso e <b>da dove viene</b>.
+/// Un ruolo <b>singolo</b> — l'eroe della home, il ritratto del locale, l'eroe dell'aperitivo, la
+/// fotografia del piatto — con l'immagine che lo ricopre adesso e <b>da dove viene</b>.
 ///
 /// <para>🔴 L'oggetto esiste <b>sempre</b>, anche quando nessuna immagine ricopre il ruolo:
 /// <c>immagine</c> è <c>null</c> e <c>origine</c> continua a dire perché. Un ruolo che sparisse
@@ -105,6 +105,14 @@ public class RuoliImmaginiVetrinaType : ObjectGraphType<PianoImmagini>
                 + "pagina esce senza immagine di testata.")
             .Resolve(context => new RuoloImmagineVetrina(
                 context.Source.EroeAperitivo, context.Source.OrigineEroeAperitivo));
+
+        Field<NonNullGraphType<RuoloImmagineVetrinaType>>("eroePiatto")
+            .Description("La fotografia del piatto della settimana. 🔴 NESSUN ripiego, e qui la "
+                + "ragione è più forte che altrove: la pagina promette UN piatto, e una foto "
+                + "presa dalla posizione mostrerebbe al visitatore un piatto diverso da quello "
+                + "descritto.")
+            .Resolve(context => new RuoloImmagineVetrina(
+                context.Source.EroePiatto, context.Source.OrigineEroePiatto));
 
         // ── Le tre griglie: posizione, e la posizione qui è ancora onesta ────────────────
         // Sono davvero «foto del locale», e va bene che compaiano su più pagine: non hanno un

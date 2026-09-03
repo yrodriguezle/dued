@@ -568,8 +568,20 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<ImpostazioniVetrina>(entity =>
         {
             entity
-                .ToTable("ImpostazioniVetrina", t => t.HasCheckConstraint(
-                    "CK_ImpostazioniVetrina_Singleton", "`ImpostazioniVetrinaId` = 1"))
+                .ToTable("ImpostazioniVetrina", t =>
+                {
+                    t.HasCheckConstraint(
+                        "CK_ImpostazioniVetrina_Singleton", "`ImpostazioniVetrinaId` = 1");
+
+                    // 🔴 L'indice del giorno è un intero, e un intero accetta 7 — che non è un
+                    //    giorno. Il vincolo sta a database e non solo nel resolver perché il
+                    //    danno di un valore fuori scala è **muto**: il sito indicizzerebbe
+                    //    `GIORNI[7]`, cioè `undefined`, e scriverebbe «Il piatto del undefined»
+                    //    in un titolo, in un `<h1>` e nei dati per i motori di ricerca.
+                    t.HasCheckConstraint(
+                        "CK_ImpostazioniVetrina_PiattoGiorno",
+                        "`PiattoGiorno` BETWEEN 0 AND 6");
+                })
                 .HasCharSet("utf8mb4")
                 .UseCollation("utf8mb4_unicode_ci")
                 .HasKey(x => x.ImpostazioniVetrinaId);
@@ -679,6 +691,20 @@ public class AppDbContext : DbContext
             entity.Property(x => x.AperitivoCategorie)
                 .HasColumnType("text");
 
+            entity.Property(x => x.PiattoTitolo)
+                .HasMaxLength(200);
+
+            entity.Property(x => x.PiattoTesto)
+                .HasColumnType("text");
+
+            // 🔴 Il default sta anche a DATABASE, e non solo nell'inizializzatore del modello:
+            //    la colonna nasce su una riga che esiste già, e senza un default MySQL la
+            //    riempirebbe di zeri — cioè metterebbe il piatto di lunedì su ogni installazione
+            //    esistente, in silenzio. Con il default la riga preesistente nasce al mercoledì,
+            //    che è lo stesso valore che vedrebbe un'installazione nuova.
+            entity.Property(x => x.PiattoGiorno)
+                .HasDefaultValue(2);
+
             // ── Reputazione ───────────────────────────────────────────────────────────────
             // decimal(2,1): da 0.0 a 9.9, cioè esattamente la forma di un punteggio su cinque.
             // Un decimal(9,2) accetterebbe 4712,50 stelle senza che nulla protesti.
@@ -704,12 +730,13 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.ImmagineOgId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // ── I tre slot immagine delle pagine ──────────────────────────────────────────
+            // ── I quattro slot immagine delle pagine ──────────────────────────────────────
             // Stessa forma dell'anteprima social, per le stesse due ragioni, e vale ripeterle
-            // perché qui si moltiplicano per tre:
+            // perché qui si moltiplicano per quattro:
             //
-            // 🔴 WithMany() esplicito e SENZA argomento su tutte e tre. Con la navigazione
-            //    inversa EF creerebbe tre collezioni su MediaAsset, cioè tre colonne ombra su
+            // 🔴 WithMany() esplicito e SENZA argomento su tutti e quattro. Con la navigazione
+            //    inversa EF creerebbe quattro collezioni su MediaAsset, cioè quattro colonne
+            //    ombra su
             //    una tabella che questa change ha promesso di non toccare — e la migrazione le
             //    porterebbe senza che nessuno le abbia chieste.
             //
@@ -730,6 +757,11 @@ public class AppDbContext : DbContext
             entity.HasOne(x => x.ImmagineEroeAperitivo)
                 .WithMany()
                 .HasForeignKey(x => x.ImmagineEroeAperitivoId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.ImmagineEroePiatto)
+                .WithMany()
+                .HasForeignKey(x => x.ImmagineEroePiattoId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.Property(x => x.CreatedAt)

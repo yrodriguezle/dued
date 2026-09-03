@@ -34,6 +34,7 @@ import {
   House,
   UtensilsCrossed,
   Martini,
+  ChefHat,
   Armchair,
   MapPin,
   type LucideIcon,
@@ -109,6 +110,10 @@ export const iconMapping: Record<string, LucideIcon> = {
   House,
   UtensilsCrossed,
   Martini,
+  // ⚠️ `ChefHat` e non `Soup` o `Utensils`: il piatto della settimana è la pagina del cuoco che
+  //    sceglie, e `UtensilsCrossed` è già la pagina «Menu» — due voci con la stessa posata
+  //    sarebbero indistinguibili proprio dove stanno una accanto all'altra.
+  ChefHat,
   Armchair,
   MapPin,
 };

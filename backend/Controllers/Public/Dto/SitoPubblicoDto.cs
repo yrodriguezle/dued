@@ -50,7 +50,8 @@ public record SitoPubblicoDto(
 public record TestiPubbliciDto(
     string? Claim,
     StoriaPubblicaDto? Storia,
-    AperitivoPubblicoDto? Aperitivo);
+    AperitivoPubblicoDto? Aperitivo,
+    PiattoPubblicoDto? Piatto);
 
 /// <summary>La storia del locale. Esiste solo se c'è il testo: un titolo da solo non è una storia.</summary>
 public record StoriaPubblicaDto(string? Titolo, string Testo);
@@ -80,6 +81,47 @@ public record AperitivoPubblicoDto(
     string Testo,
     IReadOnlyList<string> Punti,
     IReadOnlyList<string> Categorie);
+
+/// <summary>
+/// Il piatto della settimana: la fotografia grande, il nome e il racconto.
+///
+/// <para>🔴 L'oggetto <b>intero</b> è <c>null</c> quando il testo non è scritto, e in quel caso
+/// <c>/piatto-del-giorno</c> risponde <c>404</c> e sparisce dalla navigazione. È la stessa regola
+/// di <see cref="StoriaPubblicaDto"/> e <see cref="AperitivoPubblicoDto"/>: <b>un titolo da solo
+/// non è una pagina</b>, e una voce di menu che si apre su un titolo e nient'altro promette
+/// qualcosa che non mantiene.</para>
+///
+/// <para>⚠️ <b>La fotografia non è qui.</b> Sta in <c>/api/public/galleria</c>, nel ruolo
+/// <c>eroePiatto</c>, come ogni altra immagine di pagina: le immagini hanno una dichiarazione
+/// propria — il piano dei ruoli — e portarne una dentro i testi sarebbe la seconda scrittura che
+/// quel piano esiste per togliere. La conseguenza è che <b>testo e fotografia arrivano da due
+/// letture</b>, e la pagina esiste in base al primo: una pagina con il testo e senza foto è uno
+/// stato legittimo (esce senza fotografia), il contrario non si rende affatto.</para>
+///
+/// <para>⚠️ <b>Nessun prezzo</b>, e non è una dimenticanza: un prezzo scritto qui sarebbe un
+/// secondo prezzo accanto a quello di listino che la cassa aggiorna, cioè la classe di bug che il
+/// resto di questo contratto evita per costruzione.</para>
+/// </summary>
+/// <param name="Giorno">
+/// Il giorno della settimana, <b>0 = lunedì … 6 = domenica</b>.
+///
+/// <para>🔴 <b>Stessa indicizzazione di <see cref="OrariPubbliciDto.GiorniOperativi"/></b>, con
+/// cui condivide la risposta: due convenzioni diverse per «che giorno è» nello stesso payload
+/// darebbero un fuori-di-uno che nessun test coglie e che si vede solo guardando il sito.</para>
+///
+/// <para>⚠️ È un <b>numero</b> e non il nome del giorno: la parola che il visitatore legge la
+/// compone il consumatore, che è anche l'unico a sapere in che lingua sta scrivendo. Un
+/// «Mercoledì» deciso qui sarebbe testo del sito nascosto in un DTO — la stessa ragione per cui
+/// <see cref="ChiusuraPubblicaDto.Motivo"/> è un codice e non un'etichetta.</para>
+///
+/// <para>⚠️ Il valore è <b>sempre</b> fra 0 e 6: lo impongono un <c>CHECK</c> a database e la
+/// validazione del resolver di amministrazione. Il consumatore non ha bisogno di un ramo per il
+/// caso fuori scala — ma nemmeno di fidarsi, se indicizza un elenco di sette nomi.</para>
+/// </param>
+public record PiattoPubblicoDto(
+    string? Titolo,
+    string Testo,
+    int Giorno);
 
 /// <summary>
 /// Il giudizio medio, quando c'è.

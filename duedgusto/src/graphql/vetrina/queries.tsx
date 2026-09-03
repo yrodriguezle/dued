@@ -62,6 +62,11 @@ export const getRuoliImmaginiVetrina: TypedDocumentNode<GetRuoliImmaginiData, Re
           origine
           immagine { ...MediaAssetFragment }
         }
+        eroePiatto {
+          mediaAssetId
+          origine
+          immagine { ...MediaAssetFragment }
+        }
         grigliaHome { ...MediaAssetFragment }
         fotoMenu { ...MediaAssetFragment }
         quadrateLocale { ...MediaAssetFragment }

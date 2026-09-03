@@ -178,6 +178,8 @@ type ImpostazioniVetrina = {
    */
   immagineEroeAperitivoId?: number | null;
   immagineEroeAperitivo?: MediaAsset | null;
+  immagineEroePiattoId?: number | null;
+  immagineEroePiatto?: MediaAsset | null;
   // ── Tema ───────────────────────────────────────────────────────────────────
   /** Forma "HH:mm". È un dato, non un calcolo: il confronto con l'ora corrente resta lato client. */
   oraInizioTemaSera: string;
@@ -204,6 +206,12 @@ type ImpostazioniVetrina = {
    * traccia.
    */
   aperitivoCategorie?: string | null;
+  // ── Il piatto della settimana ──────────────────────────────────────────────
+  piattoTitolo?: string | null;
+  /** 🔴 Vuoto: /piatto-del-giorno non esiste. È il testo a far esistere la pagina. */
+  piattoTesto?: string | null;
+  /** 0 = lunedì … 6 = domenica. Non nullable: la tendina ha sempre una voce scelta. */
+  piattoGiorno?: number;
   // ── Reputazione ────────────────────────────────────────────────────────────
   /** Da 1 a 5. 🔴 Va insieme al conteggio: il sito mostra i due numeri insieme o nessuno. */
   punteggioGoogle?: number | null;
@@ -226,7 +234,7 @@ type ImpostazioniVetrina = {
  * marca temporale, nessun campo di orario.
  *
  * 🔴 **I testi editoriali e la reputazione non sono più qui.** Erano dieci campi e sono passati
- * a `PaginaHomeInput`, `PaginaLocaleInput` e `PaginaAperitivoInput`, perché appartengono a **una**
+ * alle quattro schede di pagina (`PaginaHomeInput` e le altre), perché appartengono a **una**
  * pagina e la scheda di quella pagina è l'unico posto da cui si scrivono. Lo schema del server è
  * cambiato di conseguenza: questo tipo e `ImpostazioniVetrinaInputType.cs` si deployano insieme.
  *
@@ -316,6 +324,29 @@ type PaginaAperitivoInput = {
 };
 
 /**
+ * I campi che la scheda **Piatto della settimana** possiede.
+ *
+ * 🔴 `piattoTesto` vuoto significa che `/piatto-del-giorno` **non esiste**, esattamente come per
+ *    `/locale` e `/aperitivo`.
+ *
+ * ⚠️ `piattoGiorno` è l'unico campo **non opzionale** di tutti gli input di scheda: non è
+ *    nullable a database e l'assegnazione del server è totale, quindi ometterlo non lo
+ *    lascerebbe com'è — lo porterebbe a zero, cioè a lunedì.
+ */
+type PaginaPiattoInput = {
+  piattoTitolo?: string | null;
+  piattoTesto?: string | null;
+  /** 0 = lunedì … 6 = domenica. La stessa indicizzazione dei giorni operativi della cassa. */
+  piattoGiorno: number;
+  /**
+   * 🔴 Vuoto: la pagina esce **senza** fotografia. Senza ripiego, come l'aperitivo — e qui la
+   * ragione è più forte: una foto presa dalla galleria per posizione mostrerebbe un piatto
+   * diverso da quello descritto.
+   */
+  immagineEroePiattoId?: number | null;
+};
+
+/**
  * Da dove viene l'immagine che ricopre un ruolo **singolo**.
  *
  * 🔴 È ciò che permette alla scheda di dire «scelta da te» invece di «è la prima della galleria,
@@ -349,6 +380,7 @@ type RuoliImmaginiVetrina = {
   eroeHome: RuoloImmagineVetrina;
   ritrattoLocale: RuoloImmagineVetrina;
   eroeAperitivo: RuoloImmagineVetrina;
+  eroePiatto: RuoloImmagineVetrina;
   grigliaHome: MediaAsset[];
   fotoMenu: MediaAsset[];
   quadrateLocale: MediaAsset[];
@@ -373,7 +405,7 @@ type RuoliImmaginiVetrina = {
  * «questa pagina non possiede alcun testo» e «l'indirizzo che vedi nel piè di pagina si cambia
  * qui», senza far sembrare l'indirizzo un campo di quella pagina.
  */
-type PaginaVetrinaMappa = "CORNICE" | "HOME" | "MENU" | "APERITIVO" | "LOCALE" | "CONTATTI";
+type PaginaVetrinaMappa = "CORNICE" | "HOME" | "MENU" | "APERITIVO" | "PIATTO" | "LOCALE" | "CONTATTI";
 
 /**
  * Dove un valore si **modifica**.
@@ -382,7 +414,7 @@ type PaginaVetrinaMappa = "CORNICE" | "HOME" | "MENU" | "APERITIVO" | "LOCALE" |
  * cassa (una sola sorgente, ed è ciò che rende impossibile «il sito dice 21, la cassa 19») e le
  * citazioni nell'anagrafica delle recensioni.
  */
-type SchedaVetrinaMappa = "IMPOSTAZIONI" | "HOME" | "LOCALE" | "APERITIVO" | "IMPOSTAZIONI_CASSA" | "RECENSIONI_SITO";
+type SchedaVetrinaMappa = "IMPOSTAZIONI" | "HOME" | "LOCALE" | "APERITIVO" | "PIATTO" | "IMPOSTAZIONI_CASSA" | "RECENSIONI_SITO";
 
 /**
  * Una riga della mappa pagina → campo, servita dal backend.

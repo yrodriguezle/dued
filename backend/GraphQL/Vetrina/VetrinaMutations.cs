@@ -177,6 +177,18 @@ public partial class VetrinaMutations : ObjectGraphType
                     dbContext, context.GetArgument<PaginaAperitivoInput>("input"));
             });
 
+        Field<ImpostazioniVetrinaType>("mutatePaginaPiatto")
+            .Argument<NonNullGraphType<PaginaPiattoInputType>>(
+                "input", "I campi della pagina «Piatto della settimana»: l'assegnazione è totale su questi e solo su questi")
+            .ResolveAsync(async context =>
+            {
+                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                await GuardAmministratore(context, dbContext);
+
+                return await ApplicaPaginaPiattoAsync(
+                    dbContext, context.GetArgument<PaginaPiattoInput>("input"));
+            });
+
         // ── Recensioni riportate ─────────────────────────────────────────────────────────
         // ⚠️ Qui esiste un ramo di CREAZIONE, al contrario di mutateProdottoVetrina. Non è
         //    un'incoerenza: i prodotti nascono in cassa dal listino, e una vetrina che sapesse
@@ -408,13 +420,14 @@ public partial class VetrinaMutations : ObjectGraphType
     /// che <b>nomina il referente</b>: "impossibile eliminare, è in uso" costringerebbe a
     /// cercarlo a mano, e la ricerca è esattamente l'informazione che il server già possiede.
     ///
-    /// <para>🔴 <b>I referenti sono CINQUE, e la verifica di tutti precede il disco.</b> Il
-    /// primo sono i <b>prodotti</b>; gli altri quattro sono gli <b>slot immagine delle
+    /// <para>🔴 <b>I referenti sono SEI, e la verifica di tutti precede il disco.</b> Il
+    /// primo sono i <b>prodotti</b>; gli altri cinque sono gli <b>slot immagine delle
     /// impostazioni del sito</b> — l'anteprima social
-    /// (<see cref="ImpostazioniVetrina.ImmagineOgId"/>) e i tre slot di pagina
+    /// (<see cref="ImpostazioniVetrina.ImmagineOgId"/>) e i quattro slot di pagina
     /// (<see cref="ImpostazioniVetrina.ImmagineEroeHomeId"/>,
     /// <see cref="ImpostazioniVetrina.ImmagineRitrattoLocaleId"/>,
-    /// <see cref="ImpostazioniVetrina.ImmagineEroeAperitivoId"/>), tutti con
+    /// <see cref="ImpostazioniVetrina.ImmagineEroeAperitivoId"/>,
+    /// <see cref="ImpostazioniVetrina.ImmagineEroePiattoId"/>), tutti con
     /// <c>DeleteBehavior.Restrict</c>. Il conteggio è scritto qui perché questa docstring è la
     /// sola documentazione del metodo: quando diceva "DUE" e i referenti erano già quattro,
     /// sarebbe stata una descrizione <b>falsa</b> nel punto in cui si va a leggere per capire
@@ -452,14 +465,14 @@ public partial class VetrinaMutations : ObjectGraphType
             .Select(p => p.Nome)
             .ToListAsync();
 
-        // ── Referenti 2-5: i quattro slot immagine delle impostazioni del sito ──────────
-        // L'anteprima social (nata con ImpostazioniVetrina) e i tre slot di pagina. Si leggono
+        // ── Referenti 2-6: i cinque slot immagine delle impostazioni del sito ──────────
+        // L'anteprima social (nata con ImpostazioniVetrina) e i quattro slot di pagina. Si leggono
         // QUI, insieme all'altro e prima di qualunque scrittura su disco, e non più in basso:
         // fra questa riga e storage.EliminaAsync non deve poter entrare nulla.
         //
-        // 🔴 UNA query sola, che restituisce già il RUOLO in prosa invece di quattro booleani da
-        //    ricomporre in un messaggio: quattro AnyAsync sarebbero quattro giri sul database e,
-        //    soprattutto, quattro occasioni di dimenticarne uno nel ramo che formatta l'errore.
+        // 🔴 UNA query sola, che restituisce già il RUOLO in prosa invece di cinque booleani da
+        //    ricomporre in un messaggio: cinque AnyAsync sarebbero cinque giri sul database e,
+        //    soprattutto, cinque occasioni di dimenticarne uno nel ramo che formatta l'errore.
         //    La riga è una sola (singleton), quindi l'ordine dei casi conta solo quando la stessa
         //    foto ricopre più ruoli: si nomina il primo, e chi lo toglie riesegue e trova il
         //    successivo.
@@ -467,14 +480,17 @@ public partial class VetrinaMutations : ObjectGraphType
             .Where(impostazioni => impostazioni.ImmagineOgId == mediaAssetId
                 || impostazioni.ImmagineEroeHomeId == mediaAssetId
                 || impostazioni.ImmagineRitrattoLocaleId == mediaAssetId
-                || impostazioni.ImmagineEroeAperitivoId == mediaAssetId)
+                || impostazioni.ImmagineEroeAperitivoId == mediaAssetId
+                || impostazioni.ImmagineEroePiattoId == mediaAssetId)
             .Select(impostazioni => impostazioni.ImmagineOgId == mediaAssetId
                 ? "l'immagine di anteprima social del sito"
                 : impostazioni.ImmagineEroeHomeId == mediaAssetId
                     ? "l'immagine grande della pagina Home"
                     : impostazioni.ImmagineRitrattoLocaleId == mediaAssetId
                         ? "il ritratto della pagina «Il locale»"
-                        : "l'immagine grande della pagina «Aperitivo»")
+                        : impostazioni.ImmagineEroeAperitivoId == mediaAssetId
+                            ? "l'immagine grande della pagina «Aperitivo»"
+                            : "la fotografia della pagina «Piatto della settimana»")
             .FirstOrDefaultAsync();
 
         if (inUso.Count > 0)
@@ -544,13 +560,13 @@ public partial class VetrinaMutations : ObjectGraphType
     }
 
     /// <summary>
-    /// Ricarica le <b>quattro</b> navigazioni immagine dopo un salvataggio, e le ricarica tutte
-    /// e quattro da <b>ognuna</b> delle quattro scritture.
+    /// Ricarica le <b>cinque</b> navigazioni immagine dopo un salvataggio, e le ricarica tutte
+    /// e cinque da <b>ognuna</b> delle cinque scritture.
     ///
-    /// <para>⚠️ <b>Non è una comodità: il tipo di ritorno è uno solo.</b> Le quattro mutation
+    /// <para>⚠️ <b>Non è una comodità: il tipo di ritorno è uno solo.</b> Le cinque mutation
     /// rendono <c>ImpostazioniVetrina</c>, e il client legge lo stesso fragment da tutte e
-    /// quattro — quindi una risposta che portasse a casa solo la navigazione del proprio slot
-    /// scriverebbe <c>null</c> in cache sugli altri tre. Il lazy loading è disattivato in questo
+    /// cinque — quindi una risposta che portasse a casa solo la navigazione del proprio slot
+    /// scriverebbe <c>null</c> in cache sulle altre quattro. Il lazy loading è disattivato in questo
     /// progetto, quindi una navigazione non caricata <b>non solleva alcun errore</b>: il campo
     /// risponde <c>null</c>, che è indistinguibile da «non ancora scelta».</para>
     /// </summary>
@@ -562,6 +578,7 @@ public partial class VetrinaMutations : ObjectGraphType
         await voce.Reference(x => x.ImmagineEroeHome).LoadAsync();
         await voce.Reference(x => x.ImmagineRitrattoLocale).LoadAsync();
         await voce.Reference(x => x.ImmagineEroeAperitivo).LoadAsync();
+        await voce.Reference(x => x.ImmagineEroePiatto).LoadAsync();
     }
 
     /// <summary>
@@ -766,6 +783,46 @@ public partial class VetrinaMutations : ObjectGraphType
         impostazioni.AperitivoCategorie = NullSeVuoto(input.AperitivoCategorie);
 
         impostazioni.ImmagineEroeAperitivoId = input.ImmagineEroeAperitivoId;
+
+        impostazioni.UpdatedAt = DateTime.UtcNow;
+
+        await dbContext.SaveChangesAsync();
+
+        await RicaricaImmaginiAsync(dbContext, impostazioni);
+        return impostazioni;
+    }
+
+    /// <summary>
+    /// Scrive i campi della pagina <b>«Piatto della settimana»</b> con assegnazione totale sul
+    /// proprio sottoinsieme: nome, descrizione, giorno e lo slot della fotografia.
+    ///
+    /// <para>🔴 <b>Il giorno si valida qui, e non solo a database.</b> Il <c>CHECK</c> esiste ed è
+    /// l'ultima difesa, ma un valore fuori scala che arrivasse fin lì produrrebbe un errore grezzo
+    /// di MySQL nell'interfaccia; validandolo prima, chi sbaglia legge una frase che dice quale
+    /// intervallo vale. ⚠️ La validazione precede la lettura della riga, come per le coordinate:
+    /// un input rifiutato non deve poter creare il singleton.</para>
+    /// </summary>
+    public static async Task<ImpostazioniVetrina> ApplicaPaginaPiattoAsync(
+        AppDbContext dbContext, PaginaPiattoInput input)
+    {
+        // ── Validazioni, tutte prima di leggere o creare la riga ─────────────────────────
+        if (input.PiattoGiorno is < 0 or > 6)
+        {
+            throw new ExecutionError(
+                $"Il giorno del piatto vale {input.PiattoGiorno}, che non è un giorno: "
+                + "sono ammessi i valori da 0 (lunedì) a 6 (domenica).");
+        }
+
+        await VerificaImmagineAssegnabileAsync(dbContext, input.ImmagineEroePiattoId);
+
+        ImpostazioniVetrina impostazioni = await CaricaOCreaSingletonAsync(dbContext);
+
+        // ── ASSEGNAZIONE TOTALE, sui quattro campi di QUESTA scheda ─────────────────────
+        impostazioni.PiattoTitolo = NullSeVuoto(input.PiattoTitolo);
+        impostazioni.PiattoTesto = NullSeVuoto(input.PiattoTesto);
+        impostazioni.PiattoGiorno = input.PiattoGiorno;
+
+        impostazioni.ImmagineEroePiattoId = input.ImmagineEroePiattoId;
 
         impostazioni.UpdatedAt = DateTime.UtcNow;
 

@@ -191,7 +191,7 @@ public class SuperficiePubblicaTests
             typeof(RuoliImmaginiDto),
             [
                 "EroeHome", "GrigliaHome", "FotoMenu",
-                "RitrattoLocale", "QuadrateLocale", "EroeAperitivo",
+                "RitrattoLocale", "QuadrateLocale", "EroeAperitivo", "EroePiatto",
             ]
         },
 
@@ -200,9 +200,14 @@ public class SuperficiePubblicaTests
         //    facile che entri un campo di troppo: è l'unico che cresce per ragioni
         //    *editoriali* invece che di dominio, e la tentazione di aggiungerci una nota
         //    interna «tanto è testo» è concreta. L'elenco esatto sta qui apposta.
-        { typeof(TestiPubbliciDto), ["Claim", "Storia", "Aperitivo"] },
+        { typeof(TestiPubbliciDto), ["Claim", "Storia", "Aperitivo", "Piatto"] },
         { typeof(StoriaPubblicaDto), ["Titolo", "Testo"] },
         { typeof(AperitivoPubblicoDto), ["Titolo", "Testo", "Punti", "Categorie"] },
+        // 🔴 Tre campi, e NESSUN prezzo: il piatto della settimana è testo libero, non un
+        //    prodotto, e un prezzo qui sarebbe un secondo prezzo accanto a quello che la cassa
+        //    aggiorna. `Giorno` è un numero — 0 = lunedì — e non il nome del giorno: la parola
+        //    la compone il sito, che è l'unico a sapere in che lingua sta scrivendo.
+        { typeof(PiattoPubblicoDto), ["Titolo", "Testo", "Giorno"] },
         { typeof(ReputazionePubblicaDto), ["Punteggio", "Numero", "UrlProfilo"] },
         // ⚠️ Nessuna data e nessun `Pubblicata`: la rotta pubblica restituisce SOLO le
         //    pubblicate, quindi il flag non ha nulla da dire al visitatore, e le marche

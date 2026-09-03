@@ -4,9 +4,9 @@
 // 🔴 PERCHÉ QUESTO TEST ESISTE. `rotte.ts` è la sorgente unica delle pagine del sito: la usano
 //    navigazione, piè di pagina, 404 e sitemap. Il gestionale adesso ha una scheda per ciascuna
 //    di quelle pagine, e le schede vivono a **database**, seedate da `SeedMenusSito.cs`. Sono
-//    due liste in due progetti diversi, e due liste divergono: qualcuno aggiunge una sesta
-//    pagina al sito, nessuno aggiunge la scheda, e l'amministratore non ha più alcun posto da
-//    cui governarla. Il guasto non si manifesta come un errore — si manifesta come una voce di
+//    due liste in due progetti diversi, e due liste divergono: qualcuno aggiunge una pagina al
+//    sito, nessuno aggiunge la scheda, e l'amministratore non ha più alcun posto da cui
+//    governarla. Il guasto non si manifesta come un errore — si manifesta come una voce di
 //    menu che non c'è, cioè come niente.
 //
 // ⚠️ Il confronto vive **nei test del sito** e non in quelli del backend, per la stessa ragione
@@ -38,6 +38,14 @@ const PREFISSO_SCHEDE = '/gestionale/sito/pagine/';
  * ⚠️ La regex copre entrambe le forme in cui `ROTTE` è scritto — voce su una riga sola e voce
  *    spezzata su più righe — perché `\s*` attraversa gli a capo. Le due chiavi sono sempre
  *    adiacenti e in quest'ordine.
+ */
+/**
+ * ⚠️ Si legge `etichetta`, che è il nome **canonico** della pagina, e non `etichettaPubblica`:
+ *    quella è il nome che il visitatore legge e può dipendere dal contenuto — «Piatto del
+ *    mercoledì», col giorno che si sceglie dal gestionale. Una voce di pannello che rispecchiasse
+ *    il nome pubblico si rinominerebbe da sola a ogni salvataggio, e questo confronto sarebbe
+ *    rosso a seconda del giorno impostato in produzione. Sono due nomi per due pubblici, e il
+ *    pannello rispecchia quello che non cambia.
  */
 function pagineDelSito() {
   const testo = senzaCommenti(readFileSync(ROTTE, 'utf8'));
@@ -73,8 +81,8 @@ test('la scansione trova davvero le due liste', () => {
   const pagine = pagineDelSito();
   const voci = vociDelPannello();
 
-  assert.ok(pagine.length >= 5, `lette solo ${pagine.length} pagine da rotte.ts: la scansione non riconosce più la forma di ROTTE`);
-  assert.ok(voci.length >= 9, `lette solo ${voci.length} voci da SeedMenusSito.cs: la scansione non riconosce più la forma del seed`);
+  assert.ok(pagine.length >= 6, `lette solo ${pagine.length} pagine da rotte.ts: la scansione non riconosce più la forma di ROTTE`);
+  assert.ok(voci.length >= 10, `lette solo ${voci.length} voci da SeedMenusSito.cs: la scansione non riconosce più la forma del seed`);
 });
 
 test('ogni pagina del sito ha la sua scheda nel pannello, con la stessa etichetta', () => {
@@ -104,26 +112,26 @@ test('ogni pagina del sito ha la sua scheda nel pannello, con la stessa etichett
   assert.deepEqual(divergenti, [], `etichette divergenti fra sito e pannello:\n  ${divergenti.join('\n  ')}`);
 });
 
-test("l'ordine del sottomenu mette le cinque pagine davanti alle risorse trasversali", () => {
+test("l'ordine del sottomenu mette le sei pagine davanti alle risorse trasversali", () => {
   // 🔴 È il valore del change, non un dettaglio: prima la sezione elencava quattro ENTITÀ e chi
   //    voleva sapere «cosa c'è sulla pagina del locale» non aveva dove guardare. Appendere le
   //    pagine in coda avrebbe rimesso «Libreria media» davanti a «Home».
-  const voci = vociDelPannello().filter((voce) => voce.posizione >= 1 && voce.posizione <= 9);
+  const voci = vociDelPannello().filter((voce) => voce.posizione >= 1 && voce.posizione <= 10);
   const schede = voci.filter((voce) => voce.percorso.startsWith(PREFISSO_SCHEDE));
   const risorse = voci.filter((voce) => !voce.percorso.startsWith(PREFISSO_SCHEDE));
 
-  assert.equal(schede.length, 5);
+  assert.equal(schede.length, 6);
   assert.equal(risorse.length, 4);
   assert.deepEqual(
     schede.map((voce) => voce.posizione).sort((a, b) => a - b),
-    [1, 2, 3, 4, 5]
+    [1, 2, 3, 4, 5, 6]
   );
   assert.deepEqual(
     risorse.map((voce) => voce.posizione).sort((a, b) => a - b),
-    [6, 7, 8, 9]
+    [7, 8, 9, 10]
   );
 
-  // ⚠️ E le cinque schede stanno nello stesso ORDINE in cui il sito elenca le sue pagine: il
+  // ⚠️ E le sei schede stanno nello stesso ORDINE in cui il sito elenca le sue pagine: il
   //    pannello rispecchia il sito anche nella successione, non solo nei nomi.
   const ordineSito = pagineDelSito().map((pagina) => schedaDi(pagina.percorso));
   const ordinePannello = [...schede].sort((a, b) => a.posizione - b.posizione).map((voce) => voce.percorso);
@@ -149,6 +157,6 @@ test('ogni voce del sottomenu ha un nome di icona, e sono tutte diverse', () => 
   // frontend lo verifica `duedgusto/…/__tests__/iconeDelSeed.test.tsx`; qui si verifica che
   // siano dichiarati e distinti, perché due voci con la stessa icona sono indistinguibili.
   const icone = vociDelPannello().map((voce) => voce.icona);
-  assert.equal(icone.length, 9);
+  assert.equal(icone.length, 10);
   assert.deepEqual([...new Set(icone)].length, icone.length, `icone ripetute nel sottomenu Sito: ${icone.join(', ')}`);
 });

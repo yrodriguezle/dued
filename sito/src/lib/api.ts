@@ -190,6 +190,7 @@ export const RUOLI_VUOTI: RuoliImmagini = {
   ritrattoLocale: null,
   quadrateLocale: [],
   eroeAperitivo: null,
+  eroePiatto: null,
 };
 
 /**

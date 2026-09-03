@@ -1,12 +1,12 @@
 namespace duedgusto.Services.Vetrina;
 
 /// <summary>
-/// Dove un testo compare sul sito: una delle cinque pagine, oppure la <b>cornice</b> condivisa.
+/// Dove un testo compare sul sito: una delle sei pagine, oppure la <b>cornice</b> condivisa.
 ///
 /// <para>🔴 <see cref="Cornice"/> non è una pagina e non è un ripiego: è ciò che
 /// <c>Base.astro</c> e i suoi componenti — intestazione, piè di pagina, barra mobile, dati
 /// strutturati — rendono su <b>tutte</b> le pagine. Senza questo valore la mappa avrebbe due
-/// forme entrambe sbagliate: ripetere sedici voci su cinque pagine (e far dire alla scheda
+/// forme entrambe sbagliate: ripetere sedici voci su sei pagine (e far dire alla scheda
 /// «Menu» che quella pagina possiede l'indirizzo), oppure tacerle del tutto (e far dire alla
 /// stessa scheda che <c>/menu</c> mostra solo l'insegna, mentre il piè di pagina mostra
 /// indirizzo e orari). La distinzione fra <i>«lo mostra il corpo di questa pagina»</i> e
@@ -19,6 +19,7 @@ public enum PaginaVetrina
     Home,
     Menu,
     Aperitivo,
+    Piatto,
     Locale,
     Contatti,
 }
@@ -38,6 +39,7 @@ public enum SchedaVetrina
     Home,
     Locale,
     Aperitivo,
+    Piatto,
 
     /// <summary>Le impostazioni operative della cassa: gli orari hanno UNA sola sorgente.</summary>
     ImpostazioniCassa,
@@ -169,6 +171,15 @@ public static class MappaPagineVetrina
         new(PaginaVetrina.Aperitivo, "AperitivoPunti", "testi.aperitivo.punti", SchedaVetrina.Aperitivo, "Cosa è compreso nell'aperitivo", "Una voce per riga. Ne vengono pubblicate al massimo sei."),
         new(PaginaVetrina.Aperitivo, "AperitivoCategorie", "testi.aperitivo.categorie", SchedaVetrina.Aperitivo, "Categorie di vetrina mostrate nell'aperitivo", "Una per riga, col nome esatto della categoria: il sito non indovina per somiglianza."),
         new(PaginaVetrina.Aperitivo, "OraInizioTemaSera", "oraInizioTemaSera", SchedaVetrina.Impostazioni, "Ora di inizio del tema serale", "Da quell'ora questa pagina passa al tema scuro."),
+
+        // ── Il piatto della settimana ────────────────────────────────────────────────────────
+        // ⚠️ Il giorno sta qui insieme ai testi e non fra le impostazioni: non è un parametro del
+        //    sito come l'ora del tema serale — è ciò che dà il titolo a QUESTA pagina, e chi lo
+        //    cerca lo cerca nella sua scheda.
+        new(PaginaVetrina.Piatto, "InsegnaPubblica", "insegna", SchedaVetrina.Impostazioni, "Insegna pubblica", null),
+        new(PaginaVetrina.Piatto, "PiattoTitolo", "testi.piatto.titolo", SchedaVetrina.Piatto, "Nome del piatto", "Da solo NON fa esistere la pagina: è la descrizione a farlo. Vuoto, la pagina si intitola col solo giorno."),
+        new(PaginaVetrina.Piatto, "PiattoTesto", "testi.piatto.testo", SchedaVetrina.Piatto, "Descrizione del piatto", "Svuotandola, /piatto-del-giorno risponde 404 e sparisce dalla navigazione del sito."),
+        new(PaginaVetrina.Piatto, "PiattoGiorno", "testi.piatto.giorno", SchedaVetrina.Piatto, "Giorno della settimana", "Decide la parola nel titolo e nella navigazione: «Piatto del mercoledì». L'indirizzo della pagina NON cambia — resta /piatto-del-giorno — così i link condivisi continuano a funzionare."),
 
         // ── Il locale ────────────────────────────────────────────────────────────────────────
         new(PaginaVetrina.Locale, "InsegnaPubblica", "insegna", SchedaVetrina.Impostazioni, "Insegna pubblica", null),

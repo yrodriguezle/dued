@@ -26,7 +26,7 @@ public enum OrigineRuolo
 }
 
 /// <summary>
-/// Chi ricopre quale ruolo, adesso, su tutte e quattro le pagine che pescano dalla galleria.
+/// Chi ricopre quale ruolo, adesso, su tutte e cinque le pagine che pescano dalla galleria.
 ///
 /// <para>Un piano solo per tutte le pagine, e non uno per pagina: le finestre si sovrappongono
 /// (la 2ª foto è insieme prima della griglia della home, seconda del menu e ritratto del locale)
@@ -39,9 +39,13 @@ public enum OrigineRuolo
 /// <param name="RitrattoLocale">Il ritratto verticale di <c>/locale</c>.</param>
 /// <param name="QuadrateLocale">Le tre quadrate di <c>/locale</c>.</param>
 /// <param name="EroeAperitivo">
-/// L'immagine grande in cima a <c>/aperitivo</c>. 🔴 <b>È l'unico ruolo singolo che può essere
-/// <c>null</c> con una galleria non vuota</b>: non ha ripiego posizionale. Vedi
-/// <see cref="RuoliImmaginiVetrina"/>.
+/// L'immagine grande in cima a <c>/aperitivo</c>. 🔴 <b>Può essere <c>null</c> con una galleria
+/// non vuota</b>: non ha ripiego posizionale. Vedi <see cref="RuoliImmaginiVetrina"/>.
+/// </param>
+/// <param name="EroePiatto">
+/// La fotografia di <c>/piatto-del-giorno</c>. 🔴 <b>Come l'eroe dell'aperitivo, senza ripiego</b>
+/// — e qui la ragione è più forte che altrove: quella pagina promette <i>un</i> piatto, e una foto
+/// scelta dalla posizione mostrerebbe al visitatore un piatto diverso da quello descritto.
 /// </param>
 public sealed record PianoImmagini(
     MediaAsset? EroeHome,
@@ -50,9 +54,11 @@ public sealed record PianoImmagini(
     MediaAsset? RitrattoLocale,
     IReadOnlyList<MediaAsset> QuadrateLocale,
     MediaAsset? EroeAperitivo,
+    MediaAsset? EroePiatto,
     OrigineRuolo OrigineEroeHome,
     OrigineRuolo OrigineRitrattoLocale,
-    OrigineRuolo OrigineEroeAperitivo);
+    OrigineRuolo OrigineEroeAperitivo,
+    OrigineRuolo OrigineEroePiatto);
 
 /// <summary>
 /// Chi sta ricoprendo quale ruolo, adesso. 🔴 <b>Sede UNICA della regola</b>: fino a questo change
@@ -66,8 +72,9 @@ public sealed record PianoImmagini(
 /// <c>MenuLimiti</c> e di <c>RegoleVetrina</c>.</para>
 ///
 /// <para>🔴 <b>A slot vuoti il piano riproduce, immagine per immagine, ciò che il sito rende
-/// oggi — con UNA eccezione deliberata, l'eroe dell'aperitivo.</b> Le cinque coincidenze sono
-/// verificate una a una, su gallerie da 0, 1, 2, 3, 5 e 6 immagini, in
+/// oggi — con UNA eccezione deliberata, l'eroe dell'aperitivo.</b> (Il sesto ruolo, l'eroe del
+/// piatto, non ha un «com'era»: la sua pagina nasce con questo ruolo.) Le cinque coincidenze
+/// sono verificate una a una, su gallerie da 0, 1, 2, 3, 5 e 6 immagini, in
 /// <c>Unit/Services/RuoliImmaginiVetrinaTests.cs</c>:</para>
 ///
 /// <list type="table">
@@ -78,6 +85,7 @@ public sealed record PianoImmagini(
 ///   <item><term>RitrattoLocale</term><description>slot · <c>galleria[1] ?? galleria[0]</c> · <c>locale.astro:38</c></description></item>
 ///   <item><term>QuadrateLocale</term><description>finestra <c>[2..5)</c> · — · <c>locale.astro:39</c> — <c>galleria.slice(2, 5)</c></description></item>
 ///   <item><term>EroeAperitivo</term><description>slot · 🔴 <b>NESSUN ripiego</b> · <c>aperitivo.astro:50</c> era <c>galleria.at(-1)</c></description></item>
+///   <item><term>EroePiatto</term><description>slot · 🔴 <b>NESSUN ripiego</b> · ruolo nuovo, non esisteva nel sito</description></item>
 /// </list>
 ///
 /// <para>🔴 <b>Perché l'eroe dell'aperitivo non ha ripiego, e perché è una differenza voluta.</b>
@@ -117,11 +125,11 @@ public static class RuoliImmaginiVetrina
     internal const int AmpiezzaFinestra = 3;
 
     /// <summary>
-    /// Il piano dei ruoli a partire dai <b>tre identificativi</b> degli slot e dalla galleria già
+    /// Il piano dei ruoli a partire dai <b>quattro identificativi</b> degli slot e dalla galleria già
     /// selezionata e ordinata dal chiamante (cartella <c>galleria</c>, pubblicate, per
     /// <c>Ordinamento</c>).
     ///
-    /// <para>🔴 <b>Prende i tre <c>int?</c> e non l'entità</b>, per la stessa ragione per cui
+    /// <para>🔴 <b>Prende i quattro <c>int?</c> e non l'entità</b>, per la stessa ragione per cui
     /// <c>RegoleVetrina.PrezzoEffettivo</c> prende i due valori e non il <c>Prodotto</c>: così
     /// resta chiamabile dopo una proiezione SQL, dove l'entità non esiste più, e resta esercitabile
     /// dai test senza costruire un'<c>ImpostazioniVetrina</c>. L'overload di comodo che accetta
@@ -138,6 +146,7 @@ public static class RuoliImmaginiVetrina
         int? eroeHomeId,
         int? ritrattoLocaleId,
         int? eroeAperitivoId,
+        int? eroePiattoId,
         IReadOnlyList<MediaAsset> galleria)
     {
         ArgumentNullException.ThrowIfNull(galleria);
@@ -145,14 +154,16 @@ public static class RuoliImmaginiVetrina
         MediaAsset? slotEroeHome = DallaGalleria(galleria, eroeHomeId);
         MediaAsset? slotRitrattoLocale = DallaGalleria(galleria, ritrattoLocaleId);
         MediaAsset? slotEroeAperitivo = DallaGalleria(galleria, eroeAperitivoId);
+        MediaAsset? slotEroePiatto = DallaGalleria(galleria, eroePiattoId);
 
         // Ripieghi, uno per ruolo singolo, identici agli indici che i .astro usavano — tranne
-        // l'aperitivo, che non ne ha (vedi la docstring di classe).
+        // l'aperitivo e il piatto, che non ne hanno (vedi la docstring di classe).
         MediaAsset? eroeHome = slotEroeHome ?? galleria.ElementAtOrDefault(0);
         MediaAsset? ritrattoLocale = slotRitrattoLocale
             ?? galleria.ElementAtOrDefault(1)
             ?? galleria.ElementAtOrDefault(0);
         MediaAsset? eroeAperitivo = slotEroeAperitivo;
+        MediaAsset? eroePiatto = slotEroePiatto;
 
         return new PianoImmagini(
             EroeHome: eroeHome,
@@ -161,9 +172,11 @@ public static class RuoliImmaginiVetrina
             RitrattoLocale: ritrattoLocale,
             QuadrateLocale: Finestra(galleria, da: 2, escluso: ritrattoLocale),
             EroeAperitivo: eroeAperitivo,
+            EroePiatto: eroePiatto,
             OrigineEroeHome: Origine(slotEroeHome),
             OrigineRitrattoLocale: Origine(slotRitrattoLocale),
-            OrigineEroeAperitivo: Origine(slotEroeAperitivo));
+            OrigineEroeAperitivo: Origine(slotEroeAperitivo),
+            OrigineEroePiatto: Origine(slotEroePiatto));
     }
 
     /// <summary>
@@ -183,6 +196,7 @@ public static class RuoliImmaginiVetrina
             (impostazioni ?? throw new ArgumentNullException(nameof(impostazioni))).ImmagineEroeHomeId,
             impostazioni.ImmagineRitrattoLocaleId,
             impostazioni.ImmagineEroeAperitivoId,
+            impostazioni.ImmagineEroePiattoId,
             galleria);
 
     /// <summary>

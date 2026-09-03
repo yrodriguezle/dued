@@ -245,8 +245,11 @@ public class SeedImpostazioniVetrinaTests
         entita.FindProperty(nameof(ImpostazioniVetrina.ImpostazioniVetrinaId))!
             .ValueGenerated.Should().Be(Microsoft.EntityFrameworkCore.Metadata.ValueGenerated.Never);
 
-        entita.GetCheckConstraints().Should().ContainSingle()
-            .Which.Name.Should().Be("CK_ImpostazioniVetrina_Singleton");
+        // ⚠️ Si asserisce l'INSIEME e non «uno solo»: i CHECK di questa tabella sono due, e
+        //    l'uguaglianza è ciò che rende rosso sia un vincolo perso sia uno aggiunto di
+        //    nascosto. Un `Contain` sul solo singleton resterebbe verde perdendo l'altro.
+        entita.GetCheckConstraints().Select(vincolo => vincolo.Name).Should().BeEquivalentTo(
+            ["CK_ImpostazioniVetrina_Singleton", "CK_ImpostazioniVetrina_PiattoGiorno"]);
     }
 
     /// <summary>

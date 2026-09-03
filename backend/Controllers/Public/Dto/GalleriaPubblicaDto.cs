@@ -44,10 +44,10 @@ public record GalleriaPubblicaDto(
 /// per ruolo, nessun indice.
 ///
 /// <para>🔴 <b>Un ruolo singolo vuoto è uno stato legittimo e frequente</b>, non un guasto: con
-/// la galleria vuota lo sono tutti, e <see cref="EroeAperitivo"/> lo è anche a galleria piena
-/// finché l'amministratore non sceglie — quel ruolo <b>non ha ripiego posizionale</b>, per
-/// decisione presa in questo change. Il consumatore che riceve <c>null</c> non rende la sezione,
-/// che è la regola già in vigore su tutto il resto del sito.</para>
+/// la galleria vuota lo sono tutti, e <see cref="EroeAperitivo"/> e <see cref="EroePiatto"/> lo
+/// sono anche a galleria piena finché l'amministratore non sceglie — quei due ruoli <b>non hanno
+/// ripiego posizionale</b>. Il consumatore che riceve <c>null</c> non rende la sezione, che è la
+/// regola già in vigore su tutto il resto del sito.</para>
 ///
 /// <para>⚠️ Le tre griglie sono liste, <b>mai <c>null</c></b>, e possono avere meno di tre
 /// elementi (o zero) quando la galleria è corta: il numero di foto è un fatto della galleria, non
@@ -63,4 +63,5 @@ public record RuoliImmaginiDto(
     IReadOnlyList<ImmaginePubblicaDto> FotoMenu,
     ImmaginePubblicaDto? RitrattoLocale,
     IReadOnlyList<ImmaginePubblicaDto> QuadrateLocale,
-    ImmaginePubblicaDto? EroeAperitivo);
+    ImmaginePubblicaDto? EroeAperitivo,
+    ImmaginePubblicaDto? EroePiatto);

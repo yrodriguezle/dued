@@ -24,6 +24,7 @@ export const PAGINA_MAPPA: Record<PaginaSito, PaginaVetrinaMappa> = {
   home: "HOME",
   menu: "MENU",
   aperitivo: "APERITIVO",
+  piatto: "PIATTO",
   locale: "LOCALE",
   contatti: "CONTATTI",
 };
@@ -31,7 +32,7 @@ export const PAGINA_MAPPA: Record<PaginaSito, PaginaVetrinaMappa> = {
 /**
  * Dove si va a modificare il valore.
  *
- * ⚠️ Due destinazioni su sei **non** sono schede del sito, ed è il motivo per cui la mappa le
+ * ⚠️ Due destinazioni su sette **non** sono schede del sito, ed è il motivo per cui la mappa le
  *    nomina: chi cerca gli orari o le citazioni dei clienti dentro una scheda di pagina non li
  *    trova, e senza un rimando esplicito conclude che non si possano cambiare.
  */
@@ -40,6 +41,7 @@ export const DESTINAZIONI: Record<SchedaVetrinaMappa, { etichetta: string; perco
   HOME: { etichetta: "Sito → Home", percorso: PERCORSI_PANNELLO.home },
   LOCALE: { etichetta: "Sito → Il locale", percorso: PERCORSI_PANNELLO.locale },
   APERITIVO: { etichetta: "Sito → Aperitivo", percorso: PERCORSI_PANNELLO.aperitivo },
+  PIATTO: { etichetta: "Sito → Piatto della settimana", percorso: PERCORSI_PANNELLO.piatto },
   IMPOSTAZIONI_CASSA: { etichetta: "impostazioni della cassa", percorso: "/gestionale/settings" },
   RECENSIONI_SITO: { etichetta: "Recensioni sito", percorso: "/gestionale/sito/recensioni" },
 };
@@ -49,6 +51,7 @@ const SCHEDA_DELLA_PAGINA: Partial<Record<PaginaSito, SchedaVetrinaMappa>> = {
   home: "HOME",
   locale: "LOCALE",
   aperitivo: "APERITIVO",
+  piatto: "PIATTO",
 };
 
 /**
@@ -112,7 +115,7 @@ export type TestiDellaPagina = {
  * 🔴 La divisione è **derivata**, non dichiarata: «di proprietà» significa *la scheda di questa
  *    pagina è anche la sede in cui il campo si modifica*. È la stessa regola che la partizione
  *    della scrittura impone sul server, quindi le due non possono divergere — e un campo che
- *    cambiasse proprietario si sposterebbe da solo, in tutte e cinque le schede insieme.
+ *    cambiasse proprietario si sposterebbe da solo, in tutte le schede insieme.
  */
 export function testiDellaPagina(mappa: VocePaginaVetrina[], pagina: PaginaSito): TestiDellaPagina {
   const dellaPagina = mappa.filter((voce) => voce.pagina === PAGINA_MAPPA[pagina]);

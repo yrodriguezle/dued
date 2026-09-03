@@ -50,7 +50,7 @@ public class RuoliImmaginiVetrinaTests
         Enumerable.Range(1, quante).Select(Immagine).ToList();
 
     private static PianoImmagini ASlotVuoti(IReadOnlyList<MediaAsset> galleria) =>
-        RuoliImmaginiVetrina.Risolvi(null, null, null, galleria);
+        RuoliImmaginiVetrina.Risolvi(null, null, null, null, galleria);
 
     // ── 🔴 Il test portante: a slot vuoti il piano è il sito di oggi (task 2.3) ───────────
 
@@ -173,7 +173,8 @@ public class RuoliImmaginiVetrinaTests
         MediaAsset terza = galleria[2];
 
         PianoImmagini piano = RuoliImmaginiVetrina.Risolvi(
-            eroeHomeId: terza.MediaAssetId, ritrattoLocaleId: null, eroeAperitivoId: null, galleria);
+            eroeHomeId: terza.MediaAssetId, ritrattoLocaleId: null, eroeAperitivoId: null,
+            eroePiattoId: null, galleria);
 
         piano.EroeHome.Should().BeSameAs(terza);
         piano.GrigliaHome.Should().NotContain(terza, "l'eroe non si ripete dentro la sua griglia");
@@ -192,7 +193,8 @@ public class RuoliImmaginiVetrinaTests
         MediaAsset quarta = galleria[3];
 
         PianoImmagini piano = RuoliImmaginiVetrina.Risolvi(
-            eroeHomeId: null, ritrattoLocaleId: quarta.MediaAssetId, eroeAperitivoId: null, galleria);
+            eroeHomeId: null, ritrattoLocaleId: quarta.MediaAssetId, eroeAperitivoId: null,
+            eroePiattoId: null, galleria);
 
         piano.RitrattoLocale.Should().BeSameAs(quarta);
         piano.QuadrateLocale.Should().NotContain(quarta);
@@ -235,6 +237,7 @@ public class RuoliImmaginiVetrinaTests
             eroeHomeId: galleria[1].MediaAssetId,
             ritrattoLocaleId: galleria[2].MediaAssetId,
             eroeAperitivoId: galleria[0].MediaAssetId,
+            eroePiattoId: null,
             galleria);
 
         piano.FotoMenu.Should().Equal(galleria[0], galleria[1], galleria[2]);
@@ -251,6 +254,7 @@ public class RuoliImmaginiVetrinaTests
             eroeHomeId: galleria[4].MediaAssetId,
             ritrattoLocaleId: galleria[5].MediaAssetId,
             eroeAperitivoId: galleria[3].MediaAssetId,
+            eroePiattoId: galleria[2].MediaAssetId,
             galleria);
 
         piano.EroeHome.Should().BeSameAs(galleria[4]);
@@ -288,6 +292,7 @@ public class RuoliImmaginiVetrinaTests
             eroeHomeId: fuoriGalleria,
             ritrattoLocaleId: fuoriGalleria,
             eroeAperitivoId: fuoriGalleria,
+            eroePiattoId: fuoriGalleria,
             galleria);
 
         piano.EroeHome.Should().BeSameAs(galleria[0]);
@@ -310,11 +315,11 @@ public class RuoliImmaginiVetrinaTests
         List<MediaAsset> galleria = Galleria(5);
 
         PianoImmagini piano = RuoliImmaginiVetrina.Risolvi(
-            eroeHomeId: 999, ritrattoLocaleId: 998, eroeAperitivoId: 997, galleria);
+            eroeHomeId: 999, ritrattoLocaleId: 998, eroeAperitivoId: 997, eroePiattoId: 996, galleria);
 
         IEnumerable<MediaAsset> nominate =
         [
-            .. new[] { piano.EroeHome, piano.RitrattoLocale, piano.EroeAperitivo }
+            .. new[] { piano.EroeHome, piano.RitrattoLocale, piano.EroeAperitivo, piano.EroePiatto }
                 .OfType<MediaAsset>(),
             .. piano.GrigliaHome, .. piano.FotoMenu, .. piano.QuadrateLocale,
         ];
@@ -343,7 +348,7 @@ public class RuoliImmaginiVetrinaTests
     [InlineData(3)]
     [InlineData(5)]
     [InlineData(6)]
-    public void Risolvi_DallEntita_CoincideConLaFirmaAtreIdentificativi(int quanteImmagini)
+    public void Risolvi_DallEntita_CoincideConLaFirmaAQuattroIdentificativi(int quanteImmagini)
     {
         List<MediaAsset> galleria = Galleria(quanteImmagini);
 
@@ -356,40 +361,93 @@ public class RuoliImmaginiVetrinaTests
         int? eroeHome = galleria.ElementAtOrDefault(0)?.MediaAssetId;
         int? ritratto = galleria.ElementAtOrDefault(1)?.MediaAssetId;
         int? eroeAperitivo = galleria.ElementAtOrDefault(2)?.MediaAssetId;
+        int? eroePiatto = galleria.ElementAtOrDefault(3)?.MediaAssetId;
 
         var impostazioni = new ImpostazioniVetrina
         {
             ImmagineEroeHomeId = eroeHome,
             ImmagineRitrattoLocaleId = ritratto,
             ImmagineEroeAperitivoId = eroeAperitivo,
+            ImmagineEroePiattoId = eroePiatto,
         };
 
         RuoliImmaginiVetrina.Risolvi(impostazioni, galleria)
             .Should().BeEquivalentTo(
-                RuoliImmaginiVetrina.Risolvi(eroeHome, ritratto, eroeAperitivo, galleria));
+                RuoliImmaginiVetrina.Risolvi(
+                    eroeHome, ritratto, eroeAperitivo, eroePiatto, galleria));
     }
 
     /// <summary>
-    /// L'overload legge <b>le tre colonne giuste, nell'ordine giusto</b>. Il test precedente
+    /// L'overload legge <b>le quattro colonne giuste, nell'ordine giusto</b>. Il test precedente
     /// confronta due chiamate fra loro; questo verifica il risultato contro valori attesi scritti
     /// a mano, così uno scambio fra due parametri non può passare inosservato per simmetria.
     /// </summary>
     [Fact]
-    public void Risolvi_DallEntita_NonScambiaLeTreColonne()
+    public void Risolvi_DallEntita_NonScambiaLeQuattroColonne()
     {
         List<MediaAsset> galleria = Galleria(6);
 
         var impostazioni = new ImpostazioniVetrina
         {
-            ImmagineEroeHomeId = galleria[3].MediaAssetId,
-            ImmagineRitrattoLocaleId = galleria[4].MediaAssetId,
-            ImmagineEroeAperitivoId = galleria[5].MediaAssetId,
+            ImmagineEroeHomeId = galleria[2].MediaAssetId,
+            ImmagineRitrattoLocaleId = galleria[3].MediaAssetId,
+            ImmagineEroeAperitivoId = galleria[4].MediaAssetId,
+            ImmagineEroePiattoId = galleria[5].MediaAssetId,
         };
 
         PianoImmagini piano = RuoliImmaginiVetrina.Risolvi(impostazioni, galleria);
 
-        piano.EroeHome.Should().BeSameAs(galleria[3]);
-        piano.RitrattoLocale.Should().BeSameAs(galleria[4]);
-        piano.EroeAperitivo.Should().BeSameAs(galleria[5]);
+        piano.EroeHome.Should().BeSameAs(galleria[2]);
+        piano.RitrattoLocale.Should().BeSameAs(galleria[3]);
+        piano.EroeAperitivo.Should().BeSameAs(galleria[4]);
+        piano.EroePiatto.Should().BeSameAs(galleria[5]);
+    }
+
+    /// <summary>
+    /// 🔴 <b>La fotografia del piatto non ha ripiego, nemmeno a galleria piena.</b> È la stessa
+    /// regola dell'eroe dell'aperitivo, e qui la ragione è più forte: la pagina promette
+    /// <i>quel</i> piatto, e una foto scelta per posizione ne mostrerebbe un altro — un'immagine
+    /// che <b>mente</b>, non un'immagine mancante.
+    /// </summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(3)]
+    [InlineData(6)]
+    public void Risolvi_ASlotVuoto_IlPiattoNonHaAlcunRipiego(int quanteImmagini)
+    {
+        List<MediaAsset> galleria = Galleria(quanteImmagini);
+
+        PianoImmagini piano = RuoliImmaginiVetrina.Risolvi(
+            new ImpostazioniVetrina(), galleria);
+
+        piano.EroePiatto.Should().BeNull(
+            "il ruolo non ha ripiego posizionale: a slot vuoto la pagina esce senza fotografia");
+        piano.OrigineEroePiatto.Should().Be(OrigineRuolo.Posizione);
+    }
+
+    /// <summary>
+    /// La fotografia del piatto <b>non partecipa ad alcuna finestra</b>: la sua pagina non ha
+    /// griglie, quindi sceglierla non deve spostare nulla sulle altre pagine. Senza questa
+    /// verifica, un <c>escluso</c> passato per errore alla finestra sbagliata farebbe scorrere la
+    /// griglia della home a ogni scelta fatta su una pagina che non c'entra.
+    /// </summary>
+    [Fact]
+    public void Risolvi_ConSoloIlPiattoScelto_NonSpostaNessunAltraPagina()
+    {
+        List<MediaAsset> galleria = Galleria(6);
+
+        PianoImmagini senza = RuoliImmaginiVetrina.Risolvi(null, null, null, null, galleria);
+        PianoImmagini con = RuoliImmaginiVetrina.Risolvi(
+            null, null, null, galleria[1].MediaAssetId, galleria);
+
+        con.EroePiatto.Should().BeSameAs(galleria[1]);
+        con.OrigineEroePiatto.Should().Be(OrigineRuolo.Slot);
+
+        con.EroeHome.Should().BeSameAs(senza.EroeHome);
+        con.GrigliaHome.Should().Equal(senza.GrigliaHome);
+        con.FotoMenu.Should().Equal(senza.FotoMenu);
+        con.RitrattoLocale.Should().BeSameAs(senza.RitrattoLocale);
+        con.QuadrateLocale.Should().Equal(senza.QuadrateLocale);
     }
 }
