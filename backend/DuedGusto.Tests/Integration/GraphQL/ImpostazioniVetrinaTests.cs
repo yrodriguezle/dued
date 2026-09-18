@@ -4,6 +4,7 @@ using GraphQL;
 
 using duedgusto.GraphQL.Vetrina;
 using duedgusto.GraphQL.Vetrina.Types;
+using duedgusto.Services.Media;
 using DuedGusto.Tests.Helpers;
 
 namespace DuedGusto.Tests.Integration.GraphQL;
@@ -866,6 +867,83 @@ public class ImpostazioniVetrinaTests : IDisposable
         _dbContext.ImpostazioniVetrina.Should().BeEmpty(
             "il rifiuto precede l'upsert: non deve restare nemmeno un'entità agganciata in "
             + "stato Added");
+    }
+
+    /// <summary>
+    /// 🔴 <b>Assegnare una foto a uno slot di pagina la PORTA in galleria.</b> Il piano dei ruoli
+    /// risolve gli slot dentro la sola cartella <c>galleria</c>: senza questo spostamento, una
+    /// foto scelta da un'altra cartella veniva accettata dal salvataggio e poi <b>ignorata dal
+    /// sito</b> — riquadro vuoto, nessun errore, nessuna riga di log. La catena era muta in tutti
+    /// e tre i passaggi, ed è il difetto che questo comportamento chiude.
+    /// </summary>
+    [Theory]
+    [InlineData(Scheda.Home, "ImmagineEroeHomeId")]
+    [InlineData(Scheda.Locale, "ImmagineRitrattoLocaleId")]
+    [InlineData(Scheda.Aperitivo, "ImmagineEroeAperitivoId")]
+    [InlineData(Scheda.Piatto, "ImmagineEroePiattoId")]
+    public async Task Mutation_DiPagina_ConSlotSuMediaFuoriGalleria_LoPortaInGalleria(
+        Scheda scheda, string slot)
+    {
+        MediaAsset fuori = await CreaMedia("scelta-da-generale.jpg");
+        fuori.Cartella.Should().Be("generale", "il caso in prova parte da un'altra cartella");
+
+        object input = Activator.CreateInstance(TipoInput(scheda))!;
+        TipoInput(scheda).GetProperty(slot)!.SetValue(input, fuori.MediaAssetId);
+        await SalvaScheda(scheda, input);
+
+        MediaAsset dopo = await _dbContext.MediaAssets
+            .FirstAsync(m => m.MediaAssetId == fuori.MediaAssetId);
+        dopo.Cartella.Should().Be(CartelleVetrina.Galleria,
+            "altrimenti il piano dei ruoli non la trova e la pagina esce senza fotografia");
+    }
+
+    /// <summary>
+    /// ⚠️ E lo spostamento <b>non</b> tocca gli altri due referenti: l'immagine di un prodotto e
+    /// l'anteprima social non sono in galleria <b>per definizione</b> — una appartiene a un
+    /// articolo di listino, l'altra al sito intero. Spostarle sarebbe una modifica di dati che
+    /// nessuno ha chiesto, e le farebbe comparire nelle griglie che pescano per posizione.
+    /// </summary>
+    [Fact]
+    public async Task Mutation_DellAnteprimaSocial_NonPortaLImmagineInGalleria()
+    {
+        MediaAsset anteprima = await CreaMedia("og.jpg");
+
+        var input = (ImpostazioniVetrinaInput)Activator.CreateInstance(typeof(ImpostazioniVetrinaInput))!;
+        input.InsegnaPubblica = "X"; input.Via = "V"; input.Cap = "36016";
+        input.Citta = "Thiene"; input.Provincia = "VI"; input.Paese = "IT";
+        input.OraInizioTemaSera = "18:00";
+        input.ImmagineOgId = anteprima.MediaAssetId;
+        await VetrinaMutations.ApplicaImpostazioniVetrinaAsync(_dbContext, input);
+
+        MediaAsset dopo = await _dbContext.MediaAssets
+            .FirstAsync(m => m.MediaAssetId == anteprima.MediaAssetId);
+        dopo.Cartella.Should().Be("generale",
+            "l'anteprima social è del sito intero, non una foto di galleria");
+    }
+
+    /// <summary>
+    /// Un'immagine che è <b>già</b> in galleria non viene toccata: nessuna scrittura inutile, e
+    /// soprattutto nessun <c>Ordinamento</c> alterato di straforo — è quello che decide chi
+    /// ricopre i ruoli pescati per posizione.
+    /// </summary>
+    [Fact]
+    public async Task Mutation_DiPagina_ConSlotGiaInGalleria_NonAlteraIlMedia()
+    {
+        MediaAsset dentro = await CreaMedia("gia-in-galleria.jpg");
+        dentro.Cartella = CartelleVetrina.Galleria;
+        dentro.Ordinamento = 7;
+        await _dbContext.SaveChangesAsync();
+
+        await SalvaScheda(Scheda.Piatto, new PaginaPiattoInput
+        {
+            PiattoGiorno = 2,
+            ImmagineEroePiattoId = dentro.MediaAssetId,
+        });
+
+        MediaAsset dopo = await _dbContext.MediaAssets
+            .FirstAsync(m => m.MediaAssetId == dentro.MediaAssetId);
+        dopo.Cartella.Should().Be(CartelleVetrina.Galleria);
+        dopo.Ordinamento.Should().Be(7, "lo spostamento non deve riordinare la galleria");
     }
 
     [Theory]

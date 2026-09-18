@@ -702,7 +702,7 @@ public partial class VetrinaMutations : ObjectGraphType
 
         // La stessa regola «esiste ed è pubblicata» dell'anteprima social e dell'immagine di un
         // prodotto: si chiama la sede unica, non si riscrive.
-        await VerificaImmagineAssegnabileAsync(dbContext, input.ImmagineEroeHomeId);
+        await AssegnaAllaGalleriaAsync(dbContext, input.ImmagineEroeHomeId);
 
         ImpostazioniVetrina impostazioni = await CaricaOCreaSingletonAsync(dbContext);
 
@@ -737,7 +737,7 @@ public partial class VetrinaMutations : ObjectGraphType
         AppDbContext dbContext, PaginaLocaleInput input)
     {
         // ── Validazioni, tutte prima di leggere o creare la riga ─────────────────────────
-        await VerificaImmagineAssegnabileAsync(dbContext, input.ImmagineRitrattoLocaleId);
+        await AssegnaAllaGalleriaAsync(dbContext, input.ImmagineRitrattoLocaleId);
 
         ImpostazioniVetrina impostazioni = await CaricaOCreaSingletonAsync(dbContext);
 
@@ -769,7 +769,7 @@ public partial class VetrinaMutations : ObjectGraphType
         AppDbContext dbContext, PaginaAperitivoInput input)
     {
         // ── Validazioni, tutte prima di leggere o creare la riga ─────────────────────────
-        await VerificaImmagineAssegnabileAsync(dbContext, input.ImmagineEroeAperitivoId);
+        await AssegnaAllaGalleriaAsync(dbContext, input.ImmagineEroeAperitivoId);
 
         ImpostazioniVetrina impostazioni = await CaricaOCreaSingletonAsync(dbContext);
 
@@ -813,7 +813,7 @@ public partial class VetrinaMutations : ObjectGraphType
                 + "sono ammessi i valori da 0 (lunedì) a 6 (domenica).");
         }
 
-        await VerificaImmagineAssegnabileAsync(dbContext, input.ImmagineEroePiattoId);
+        await AssegnaAllaGalleriaAsync(dbContext, input.ImmagineEroePiattoId);
 
         ImpostazioniVetrina impostazioni = await CaricaOCreaSingletonAsync(dbContext);
 
@@ -943,10 +943,10 @@ public partial class VetrinaMutations : ObjectGraphType
     /// sta compilando una scheda deve capire cosa fare, non leggere un vincolo di
     /// integrità.</para>
     /// </summary>
-    internal static async Task VerificaImmagineAssegnabileAsync(
+    internal static async Task<MediaAsset?> VerificaImmagineAssegnabileAsync(
         AppDbContext dbContext, int? immagineId)
     {
-        if (immagineId is not int id) return;
+        if (immagineId is not int id) return null;
 
         MediaAsset immagine = await dbContext.MediaAssets
             .FirstOrDefaultAsync(m => m.MediaAssetId == id)
@@ -958,6 +958,55 @@ public partial class VetrinaMutations : ObjectGraphType
                 $"L'immagine \"{immagine.NomeOriginale}\" non è pubblicata e non può essere "
                 + "assegnata. Pubblicala dalla libreria media, oppure scegline un'altra.");
         }
+
+        // 🔴 Si restituisce l'ENTITÀ, e tracciata: il chiamante che deve anche spostarla di
+        //    cartella (vedi AssegnaAllaGalleriaAsync) la modifica su questa istanza, e il
+        //    SaveChangesAsync di fine resolver persiste tutto insieme. Una seconda lettura
+        //    aprirebbe una finestra fra il controllo e la scrittura, sulla stessa riga.
+        return immagine;
+    }
+
+    /// <summary>
+    /// Il controllo degli <b>slot immagine di pagina</b>: come
+    /// <see cref="VerificaImmagineAssegnabileAsync"/>, e in più <b>porta l'immagine nella
+    /// cartella <c>galleria</c></b> se non ci sta già.
+    ///
+    /// <para>🔴 <b>Perché esiste, e che difetto chiude.</b> Il piano dei ruoli
+    /// (<see cref="RuoliImmaginiVetrina"/>) risolve gli slot <b>dentro la sola galleria</b>:
+    /// un'immagine in un'altra cartella non si trova, il ruolo ricade sul ripiego e la pagina esce
+    /// senza fotografia. Fino a qui la catena era muta in tutti e tre i passaggi — il selettore
+    /// offriva ogni media, il salvataggio accettava, il sito ignorava — e chi aveva appena scelto
+    /// una foto vedeva un riquadro vuoto senza un errore da nessuna parte, su nessun log.</para>
+    ///
+    /// <para>⚠️ <b>È una scrittura su un'ALTRA entità</b>, decisa da un salvataggio che parla di
+    /// un'altra cosa, e va saputo: assegnare una foto a una pagina la fa <b>entrare in
+    /// galleria</b>, quindi diventa candidata anche per le griglie che pescano per posizione
+    /// (griglia della home, foto del listino, quadrate del locale). La foto spostata <b>non</b>
+    /// finisce in coda: prende il posto che le assegna (<c>Ordinamento</c>,
+    /// <c>MediaAssetId</c>). Oggi non ne sposta nessuna, perché con gli <c>Ordinamento</c> tutti
+    /// a 0 decide l'identificativo, e le foto fuori galleria hanno identificativi più alti delle
+    /// prime della galleria, da cui le finestre pescano. Ma è una conseguenza dei dati, non una
+    /// garanzia del codice: una foto più vecchia, o un <c>Ordinamento</c> valorizzato a mano, la
+    /// porta in testa.</para>
+    ///
+    /// <para>⚠️ <b>NON si applica all'immagine di prodotto né all'anteprima social.</b> Quelle due
+    /// non sono in galleria <b>per definizione</b> — una appartiene a un articolo di listino,
+    /// l'altra al sito intero — e spostarle sarebbe una modifica di dati che nessuno ha chiesto.
+    /// I quattro chiamanti sono e devono restare i quattro slot di pagina.</para>
+    /// </summary>
+    private static async Task AssegnaAllaGalleriaAsync(AppDbContext dbContext, int? immagineId)
+    {
+        MediaAsset? immagine = await VerificaImmagineAssegnabileAsync(dbContext, immagineId);
+        if (immagine is null || immagine.Cartella == CartelleVetrina.Galleria)
+        {
+            return;
+        }
+
+        // ⚠️ Il valore assegnato è la costante, non una stringa scritta qui: la cartella è
+        //    persistita in forma canonica (minuscola, senza spazi), e un "Galleria" letterale
+        //    creerebbe un raggruppamento che la selezione della galleria non riconosce — cioè
+        //    lo stesso guasto, spostato di un passo.
+        immagine.Cartella = CartelleVetrina.Galleria;
     }
 
     internal static bool FocaleValida(string focale)
