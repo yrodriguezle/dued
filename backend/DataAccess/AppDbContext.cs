@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using duedgusto.Models;
 
 namespace duedgusto.DataAccess;
@@ -6,6 +7,17 @@ namespace duedgusto.DataAccess;
 public class AppDbContext : DbContext
 {
     private readonly IConfiguration _configuration;
+
+    // 🔴 Gli istanti del punto vendita si scrivono con DateTime.UtcNow, ma la colonna "datetime" di
+    //    MySQL non conserva il fuso: EF li rilegge con Kind=Unspecified, GraphQL li serializza
+    //    senza "Z" e il browser li interpreta come ora LOCALE — cioè mostra l'ora UTC, due ore
+    //    indietro d'estate. Il converter restituisce al valore letto il Kind con cui era stato
+    //    scritto; la scrittura resta invariata.
+    // ⚠️ Solo sugli istanti, non sulle colonne-data (RegistroCassa.Data e simili): marcare UTC una
+    //    mezzanotte "di calendario" la farebbe slittare di giorno in ogni fuso a ovest di Greenwich.
+    private static readonly ValueConverter<DateTime, DateTime> IstanteUtc = new(
+        v => v,
+        v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
 
     public AppDbContext(DbContextOptions<AppDbContext> options, IConfiguration configuration) : base(options)
     {
@@ -1030,6 +1042,7 @@ public class AppDbContext : DbContext
 
             entity.Property(x => x.DataOra)
                 .HasColumnType("datetime")
+                .HasConversion(IstanteUtc)
                 .IsRequired();
 
             entity.Property(x => x.CreatedAt)
@@ -1129,16 +1142,20 @@ public class AppDbContext : DbContext
 
             entity.Property(x => x.ApertoIl)
                 .HasColumnType("datetime")
+                .HasConversion(IstanteUtc)
                 .IsRequired();
 
             entity.Property(x => x.ChiusoIl)
-                .HasColumnType("datetime");
+                .HasColumnType("datetime")
+                .HasConversion(IstanteUtc);
 
             entity.Property(x => x.AnnullatoIl)
-                .HasColumnType("datetime");
+                .HasColumnType("datetime")
+                .HasConversion(IstanteUtc);
 
             entity.Property(x => x.StornatoIl)
-                .HasColumnType("datetime");
+                .HasColumnType("datetime")
+                .HasConversion(IstanteUtc);
 
             entity.Property(x => x.CreatedAt)
                 .HasColumnType("datetime")
@@ -1222,6 +1239,7 @@ public class AppDbContext : DbContext
 
             entity.Property(x => x.DataOra)
                 .HasColumnType("datetime")
+                .HasConversion(IstanteUtc)
                 .IsRequired();
 
             entity.Property(x => x.CreatedAt)
