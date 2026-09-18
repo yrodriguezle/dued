@@ -4,9 +4,17 @@
 # Config tramite .env nella stessa cartella. Vedi .env.example.
 #
 # Uso:
-#   ./restore-prod-to-local.sh            # dump + restore
-#   ./restore-prod-to-local.sh --dump     # solo dump (scarica .sql.gz, no restore)
-#   ./restore-prod-to-local.sh --no-drop  # restore senza DROP/CREATE DB
+#   ./restore-prod-to-local.sh              # dump + restore + media
+#   ./restore-prod-to-local.sh --dump       # solo dump (scarica .sql.gz, no restore, no media)
+#   ./restore-prod-to-local.sh --no-drop    # restore senza DROP/CREATE DB
+#   ./restore-prod-to-local.sh --no-media   # salta la sincronizzazione dei media
+#   ./restore-prod-to-local.sh --solo-media # solo i media, nessun tocco al database
+#
+# I media (le fotografie caricate dalla libreria del sito: galleria, prodotti, anteprima
+# social) si scaricano INSIEME al database e non a parte, ed e' il punto: il dump porta tutte
+# le righe MediaAsset, e senza i file corrispondenti il locale ha un database che promette
+# fotografie che non esistono. Il sintomo non e' un errore ma un riquadro vuoto, in una pagina
+# che in produzione e' piena.
 #
 # Autenticazione SSH:
 #   SSH_KEY + SSH_PASSPHRASE -> chiave protetta, sbloccata via SSH_ASKPASS (non interattivo)
@@ -32,12 +40,18 @@ err()   { echo -e "${c_r}[ERR ]${c_0} $*" >&2; }
 die()   { err "$*"; exit 1; }
 
 # --- Flags ---
+DO_DUMP=true
 DO_RESTORE=true
 DO_DROP=true
+DO_MEDIA=true
 for arg in "$@"; do
   case "$arg" in
-    --dump)    DO_RESTORE=false ;;
-    --no-drop) DO_DROP=false ;;
+    # --dump si ferma al .sql.gz: niente restore e NIENTE media. Chi lo usa vuole un
+    # artefatto da archiviare, non un ambiente locale allineato.
+    --dump)       DO_RESTORE=false; DO_MEDIA=false ;;
+    --no-drop)    DO_DROP=false ;;
+    --no-media)   DO_MEDIA=false ;;
+    --solo-media) DO_DUMP=false; DO_RESTORE=false ;;
     -h|--help) grep '^#' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) die "Flag sconosciuto: $arg" ;;
   esac
@@ -50,6 +64,19 @@ set -a; . "$ENV_FILE"; set +a
 # --- Defaults ---
 SSH_PORT="${SSH_PORT:-22}"
 LOCAL_MODE="${LOCAL_MODE:-native}"
+
+# I media: la radice sull'host di produzione e quella locale.
+#
+# Il default remoto e' il bind mount dichiarato in docker-compose.yml (/opt/duedgusto/media ->
+# /app/media): si sincronizza la cartella DELL'HOST, non quella dentro il container, perche' e'
+# la prima a sopravvivere ai deploy ed e' quella che il backup di produzione conserva.
+#
+# Il default locale e' backend/media, cioe' esattamente il ripiego che Program.cs applica in
+# Development quando MEDIA_ROOT non e' impostata. Chi ha una MEDIA_ROOT diversa in locale
+# valorizzi LOCAL_MEDIA_DIR nel .env: il default indovinato scriverebbe le fotografie in una
+# cartella che il backend non legge, e la diagnosi sarebbe "il sync non ha funzionato".
+REMOTE_MEDIA_DIR="${REMOTE_MEDIA_DIR:-/opt/duedgusto/media}"
+LOCAL_MEDIA_DIR="${LOCAL_MEDIA_DIR:-$SCRIPT_DIR/../../backend/media}"
 
 # --- Validazione minima ---
 : "${SSH_HOST:?SSH_HOST mancante in .env}"
@@ -132,6 +159,7 @@ DUMP_FILE="$DUMP_DIR/${PROD_DB_NAME}_prod_${STAMP}.sql.gz"
 # ============================================================
 # 1. DUMP da prod (mysqldump dentro container, via SSH)
 # ============================================================
+if [ "$DO_DUMP" = true ]; then
 info "Dump da prod $SSH_TARGET (container $REMOTE_MYSQL_CONTAINER)..."
 
 # Password passata al container via env MYSQL_PWD (non in process list).
@@ -156,15 +184,12 @@ fi
 [ -s "$DUMP_FILE" ] || { rm -f "$DUMP_FILE"; die "Dump vuoto: $DUMP_FILE"; }
 DUMP_SIZE=$(du -h "$DUMP_FILE" | cut -f1)
 info "Dump OK: $DUMP_FILE ($DUMP_SIZE)"
-
-if [ "$DO_RESTORE" = false ]; then
-  info "Solo dump richiesto. Fine."
-  exit 0
 fi
 
 # ============================================================
 # 2. RESTORE in locale
 # ============================================================
+if [ "$DO_RESTORE" = true ]; then
 DROP_SQL="DROP DATABASE IF EXISTS \`${LOCAL_DB_NAME:-$PROD_DB_NAME}\`; CREATE DATABASE \`${LOCAL_DB_NAME:-$PROD_DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 
 if [ "$LOCAL_MODE" = "native" ]; then
@@ -209,4 +234,68 @@ else
 fi
 
 info "Restore COMPLETATO. DB locale allineato a prod."
-info "Avvia backend per applicare eventuali migrazioni: cd backend && dotnet run"
+fi
+
+# ============================================================
+# 3. MEDIA da prod (rsync via SSH)
+# ============================================================
+#
+# 🔴 SI SINCRONIZZA TUTTA LA RADICE, non la sola galleria, e non e' pigrizia. Sul disco i file
+#    stanno sotto <chiave>/<larghezza>.<formato>: la "cartella" editoriale (galleria, generale)
+#    e' una COLONNA del database, non una directory, quindi "solo le foto della galleria" non e'
+#    un sottoinsieme che il filesystem sappia esprimere. E anche potendo, sarebbe la cosa
+#    sbagliata: il dump del punto 1 porta TUTTE le righe MediaAsset — prodotti e anteprima
+#    social comprese — e un locale con meno file del suo database mostra riquadri vuoti dove la
+#    produzione ha fotografie.
+#
+# ⚠️ --delete: e' un MIRROR, e cancella in locale i file che prod non ha piu'. E' la controparte
+#    del DROP + CREATE del punto 2: un file locale la cui riga e' appena sparita dal database e'
+#    esattamente l'incoerenza che questo script esiste per togliere. Chi tiene fotografie di
+#    prova solo in locale le perde qui, e deve saperlo prima.
+if [ "$DO_MEDIA" = true ]; then
+  command -v rsync >/dev/null 2>&1 || die "rsync non installato."
+
+  # Il comando di shell remoto per rsync, come STRINGA: -e non accetta un array.
+  # ⚠️ Le stesse opzioni di SSH_OPTS, ricomposte a mano. Sono due scritture, e per ora e' il
+  #    prezzo dell'interfaccia di rsync; divergendo, il sync dei media userebbe una porta o una
+  #    chiave diverse dal dump — e fallirebbe DOPO che il database e' gia' stato sostituito.
+  RSYNC_RSH="ssh -p $SSH_PORT -o ConnectTimeout=15"
+  RSYNC_CMD=(rsync)
+  if [ -n "${SSH_KEY:-}" ]; then
+    RSYNC_RSH="$RSYNC_RSH -i '$SSH_KEY' -o IdentitiesOnly=yes -o PasswordAuthentication=no -o KbdInteractiveAuthentication=no -o NumberOfPasswordPrompts=0"
+  else
+    RSYNC_RSH="$RSYNC_RSH -o PubkeyAuthentication=no"
+    # sshpass -e e non -p: la password arriva dall'ambiente e non dalla riga di comando,
+    # quindi non compare in `ps` — dove, con -p, la vedrebbe ogni utente della macchina.
+    SSHPASS="$SSH_PASSWORD" ; export SSHPASS
+    RSYNC_CMD=(sshpass -e rsync)
+  fi
+
+  mkdir -p "$LOCAL_MEDIA_DIR"
+  # I path si normalizzano DOPO mkdir: `cd` su una cartella che non esiste ancora fallisce, e
+  # senza forma assoluta il messaggio di log direbbe "../../backend/media", che non aiuta chi
+  # poi va a cercarla.
+  LOCAL_MEDIA_DIR="$(cd "$LOCAL_MEDIA_DIR" && pwd)"
+
+  warn "Mirror dei media: $SSH_TARGET:$REMOTE_MEDIA_DIR -> $LOCAL_MEDIA_DIR (i file locali in piu' vengono ELIMINATI)."
+
+  # La barra finale su entrambi i lati: senza quella sulla sorgente, rsync annida la cartella
+  # remota dentro quella locale e i media finiscono in backend/media/media/ — dove il backend
+  # non li cerca, e senza alcun errore.
+  if ! "${RSYNC_CMD[@]}" -az --delete --stats -e "$RSYNC_RSH" "$SSH_TARGET:$REMOTE_MEDIA_DIR/" "$LOCAL_MEDIA_DIR/"; then
+    die "Sincronizzazione dei media fallita. Il database e' gia' allineato: rilancia con --solo-media."
+  fi
+
+  MEDIA_FILE_COUNT=$(find "$LOCAL_MEDIA_DIR" -type f | wc -l | tr -d ' ')
+  MEDIA_SIZE=$(du -sh "$LOCAL_MEDIA_DIR" | cut -f1)
+  info "Media OK: $MEDIA_FILE_COUNT file, $MEDIA_SIZE in $LOCAL_MEDIA_DIR"
+fi
+
+# ⚠️ Il consiglio finale si stampa solo se il database e' stato davvero sostituito: dopo un
+#    --dump o un --solo-media non c'e' alcuna migrazione da applicare, e suggerirlo lascerebbe
+#    credere che il locale sia stato allineato.
+if [ "$DO_RESTORE" = true ]; then
+  info "Avvia backend per applicare eventuali migrazioni: cd backend && dotnet run"
+else
+  info "Fatto."
+fi

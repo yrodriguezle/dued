@@ -17,12 +17,26 @@
   di proposito: senza, una chiave che non si sblocca fa provare a ssh la password,
   e i tentativi falliti fanno bannare l'IP da fail2ban sul server.
 
+  I media (le fotografie caricate dalla libreria del sito: galleria, prodotti, anteprima
+  social) si scaricano INSIEME al database e non a parte: il dump porta tutte le righe
+  MediaAsset, e senza i file corrispondenti il locale ha un database che promette fotografie
+  che non esistono. Il sintomo non e' un errore ma un riquadro vuoto.
+
+  ⚠️ Windows non ha rsync, quindi qui il mirror si fa SVUOTANDO la cartella locale e
+  ricopiando tutto con pscp/scp. Stesso esito del gemello .sh, senza il trasferimento
+  incrementale: sono decine di megabyte, e un rsync da procurarsi (WSL, cwrsync) sarebbe una
+  dipendenza in piu' per risparmiare secondi.
+
 .EXAMPLE
-  .\restore-prod-to-local.ps1            # dump + restore
+  .\restore-prod-to-local.ps1              # dump + restore + media
 .EXAMPLE
-  .\restore-prod-to-local.ps1 -Dump      # solo dump (scarica .sql.gz, no restore)
+  .\restore-prod-to-local.ps1 -Dump        # solo dump (scarica .sql.gz, no restore, no media)
 .EXAMPLE
-  .\restore-prod-to-local.ps1 -NoDrop    # restore senza DROP/CREATE DB
+  .\restore-prod-to-local.ps1 -NoDrop      # restore senza DROP/CREATE DB
+.EXAMPLE
+  .\restore-prod-to-local.ps1 -NoMedia     # salta la sincronizzazione dei media
+.EXAMPLE
+  .\restore-prod-to-local.ps1 -SoloMedia   # solo i media, nessun tocco al database
 
 .NOTES
   Se bloccato dalla execution policy:
@@ -30,9 +44,17 @@
 #>
 [CmdletBinding()]
 param(
-    [switch]$Dump,     # solo dump, niente restore (equivale a --dump)
-    [switch]$NoDrop    # restore senza DROP/CREATE DB (equivale a --no-drop)
+    [switch]$Dump,      # solo dump, niente restore NE' media (equivale a --dump)
+    [switch]$NoDrop,    # restore senza DROP/CREATE DB (equivale a --no-drop)
+    [switch]$NoMedia,   # salta i media (equivale a --no-media)
+    [switch]$SoloMedia  # solo i media, nessun tocco al database (equivale a --solo-media)
 )
+
+# I tre interruttori derivati, calcolati una volta sola: sparsi nel corpo, la combinazione
+# -Dump + -SoloMedia darebbe due risposte diverse in due punti diversi.
+$DoDump    = -not $SoloMedia
+$DoRestore = -not ($Dump -or $SoloMedia)
+$DoMedia   = -not ($Dump -or $NoMedia)
 
 $ErrorActionPreference = 'Stop'
 
@@ -78,6 +100,12 @@ function Require-Cfg([string]$name) {
 # --- Defaults ---
 $SshPort   = Get-Cfg 'SSH_PORT' '22'
 $LocalMode = Get-Cfg 'LOCAL_MODE' 'native'
+
+# I media: radice sull'host di produzione e radice locale. Stessi default del gemello .sh —
+# il lato host del bind mount di docker-compose.yml, e il ripiego che Program.cs applica in
+# Development quando MEDIA_ROOT non e' impostata.
+$RemoteMediaDir = Get-Cfg 'REMOTE_MEDIA_DIR' '/opt/duedgusto/media'
+$LocalMediaDir  = Get-Cfg 'LOCAL_MEDIA_DIR'  (Join-Path $ScriptDir '..\..\backend\media')
 
 # --- Validazione minima ---
 $SshHost         = Require-Cfg 'SSH_HOST'
@@ -207,6 +235,7 @@ $DumpFile = Join-Path $DumpDir "${ProdDbName}_prod_${Stamp}.sql.gz"
 # ============================================================
 # 1. DUMP da prod (mysqldump dentro container, via SSH)
 # ============================================================
+if ($DoDump) {
 Info "Dump da prod $SshTarget (container $RemoteContainer)..."
 
 # Password passata al container via env MYSQL_PWD (non in process list).
@@ -229,7 +258,10 @@ try {
 } finally {
     $out.Close()
     $proc.WaitForExit()
-    Stop-SshAgent
+    # ⚠️ L'agent serve ANCORA ai media: chiuderlo qui farebbe fallire lo scp con una chiave
+    #    protetta da passphrase (NumberOfPasswordPrompts=0 non lascia chiederla al prompt).
+    #    Se i media non servono si chiude subito; altrimenti a fine script.
+    if (-not $DoMedia) { Stop-SshAgent }
 }
 if ($proc.ExitCode -ne 0) {
     # Niente .sql.gz da 0 byte in giro: sembrerebbe un dump valido.
@@ -246,14 +278,16 @@ if (-not (Test-Path $DumpFile) -or (Get-Item $DumpFile).Length -eq 0) {
 $DumpSize = '{0:N1} MB' -f ((Get-Item $DumpFile).Length / 1MB)
 Info "Dump OK: $DumpFile ($DumpSize)"
 
-if ($Dump) {
+if (-not $DoRestore -and -not $DoMedia) {
     Info 'Solo dump richiesto. Fine.'
     exit 0
+}
 }
 
 # ============================================================
 # 2. RESTORE in locale
 # ============================================================
+if ($DoRestore) {
 $LocalDbName = Get-Cfg 'LOCAL_DB_NAME' $ProdDbName
 $DropSql = "DROP DATABASE IF EXISTS ``$LocalDbName``; CREATE DATABASE ``$LocalDbName`` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 
@@ -335,4 +369,70 @@ if ($LocalMode -eq 'native') {
 }
 
 Info 'Restore COMPLETATO. DB locale allineato a prod.'
-Info 'Avvia backend per applicare eventuali migrazioni: cd backend && dotnet run'
+}
+
+# ============================================================
+# 3. MEDIA da prod (pscp/scp)
+# ============================================================
+#
+# 🔴 SI SCARICA TUTTA LA RADICE, non la sola galleria. Sul disco i file stanno sotto
+#    <chiave>/<larghezza>.<formato>: la "cartella" editoriale (galleria, generale) e' una
+#    COLONNA del database, non una directory, quindi "solo le foto della galleria" non e' un
+#    sottoinsieme che il filesystem sappia esprimere. E anche potendo, sarebbe la cosa
+#    sbagliata: il dump porta TUTTE le righe MediaAsset, e un locale con meno file del suo
+#    database mostra riquadri vuoti dove la produzione ha fotografie.
+#
+# ⚠️ La cartella locale si SVUOTA prima di ricopiare: e' la controparte del DROP + CREATE del
+#    punto 2, ed e' anche l'unico modo di ottenere un mirror senza rsync. Chi tiene fotografie
+#    di prova solo in locale le perde qui, e deve saperlo prima.
+if ($DoMedia) {
+    # pscp e' il gemello di plink e prende la stessa -pw; con una chiave si usa lo scp di
+    # OpenSSH, presente su Windows 10+. Il criterio e' lo stesso del blocco SSH qui sopra,
+    # perche' due criteri diversi userebbero due credenziali diverse — e il secondo
+    # fallirebbe DOPO che il database e' gia' stato sostituito.
+    if ($SshKey) {
+        $ScpExe  = 'scp'
+        $ScpArgs = @('-r', '-P', $SshPort, '-o', 'ConnectTimeout=15', '-i', $SshKey,
+                     '-o', 'IdentitiesOnly=yes',
+                     '-o', 'PasswordAuthentication=no',
+                     '-o', 'KbdInteractiveAuthentication=no',
+                     '-o', 'NumberOfPasswordPrompts=0')
+    } elseif ($SshPassword -and (Get-Command 'pscp' -ErrorAction SilentlyContinue)) {
+        $ScpExe  = 'pscp'
+        $ScpArgs = @('-r', '-batch', '-P', $SshPort, '-pw', $SshPassword)
+    } else {
+        $ScpExe  = 'scp'
+        $ScpArgs = @('-r', '-P', $SshPort, '-o', 'ConnectTimeout=15', '-o', 'PubkeyAuthentication=no')
+        if ($SshPassword) { Warn 'SSH_PASSWORD impostata ma pscp.exe non trovato: scp chiedera'' la password al prompt.' }
+    }
+
+    if (-not (Test-Path $LocalMediaDir)) { New-Item -ItemType Directory -Path $LocalMediaDir -Force | Out-Null }
+    $LocalMediaDir = (Resolve-Path $LocalMediaDir).Path
+
+    Warn "Mirror dei media: ${SshTarget}:$RemoteMediaDir -> $LocalMediaDir (il contenuto locale viene SVUOTATO)."
+    Get-ChildItem -Path $LocalMediaDir -Force | Remove-Item -Recurse -Force
+
+    # La barra e il punto finali: `<dir>/.` copia il CONTENUTO della cartella remota, non la
+    # cartella stessa. Senza, i media finiscono in backend\media\media\ — dove il backend non
+    # li cerca, e senza alcun errore.
+    & $ScpExe @ScpArgs "${SshTarget}:$RemoteMediaDir/." $LocalMediaDir
+    if ($LASTEXITCODE -ne 0) {
+        Die "Sincronizzazione dei media fallita (exit $LASTEXITCODE). Il database e' gia' allineato: rilancia con -SoloMedia."
+    }
+
+    $MediaFiles = @(Get-ChildItem -Path $LocalMediaDir -Recurse -File)
+    $MediaSize  = '{0:N1} MB' -f ((($MediaFiles | Measure-Object -Property Length -Sum).Sum) / 1MB)
+    Info "Media OK: $($MediaFiles.Count) file, $MediaSize in $LocalMediaDir"
+}
+
+# Idempotente: se il dump l'ha gia' chiuso (nessun media da scaricare) non fa nulla.
+Stop-SshAgent
+
+# ⚠️ Il consiglio finale si stampa solo se il database e' stato davvero sostituito: dopo un
+#    -SoloMedia non c'e' alcuna migrazione da applicare, e suggerirlo lascerebbe credere che
+#    il locale sia stato allineato.
+if ($DoRestore) {
+    Info 'Avvia backend per applicare eventuali migrazioni: cd backend && dotnet run'
+} else {
+    Info 'Fatto.'
+}
