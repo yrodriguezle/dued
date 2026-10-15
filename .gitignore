@@ -42,6 +42,9 @@ node_modules/
 *.key
 *.crt
 
+# Six Labors ImageSharp Split License — chiave segreta, mai nel repository (è pubblico)
+sixlabors.lic
+
 # Docker/Production data
 mysql-data/
 backups/

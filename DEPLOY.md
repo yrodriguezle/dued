@@ -155,6 +155,29 @@ cd /srv/duedgusto
 bash deploy/scripts/deploy.sh
 ```
 
+### 3.5 Licenza Six Labors (ImageSharp)
+
+ImageSharp (la libreria che elabora le immagini del backend) dalla versione 3.2.0 richiede
+una licenza per le build **RELEASE**: senza, `dotnet publish -c Release` fallisce e il deploy
+si ferma a metà. DuedGusto usa la **Split License**, gratuita sotto 1M$ di fatturato annuo
+(oltre quella soglia serve la licenza commerciale).
+
+1. Registrarsi su https://sixlabors.com/pricing/ e scegliere la **Split License**.
+2. Generare una chiave indicando come **assembly name** `duedgusto` — è il nome esatto del
+   progetto .NET, ed è il valore che il controllo di licenza confronta.
+3. Scaricare il file `sixlabors.lic` generato.
+4. Copiarlo sul server **fuori dal repository** (il repo è pubblico):
+
+```bash
+mkdir -p /opt/duedgusto/secrets
+# copiare il file scaricato in /opt/duedgusto/secrets/sixlabors.lic
+chmod 600 /opt/duedgusto/secrets/sixlabors.lic
+```
+
+`deploy.sh` copia il file nel build context solo durante la build e lo rimuove subito dopo:
+la chiave non finisce mai né nel repository né nell'immagine finale (lo stage runtime copia
+solo i binari pubblicati).
+
 ---
 
 ## 4. Certificato SSL
@@ -368,6 +391,8 @@ immagine di testata**. E' una differenza voluta e visibile dal primo deploy, non
 │   └── dist/                    # Build frontend servita da Nginx
 ├── backups/
 │   └── duedgusto_*.sql.gz       # Backup database compressi
+├── secrets/
+│   └── sixlabors.lic            # Licenza Six Labors (ImageSharp), chmod 600
 └── logs/
     ├── deploy.log
     └── backup.log

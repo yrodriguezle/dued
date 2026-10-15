@@ -50,6 +50,19 @@ if [[ -z "${SITO_ORIGINE_PUBBLICA:-}" ]]; then
     exit 1
 fi
 
+# 🔴 La licenza Six Labors (Split License) NON sta nel repository, che e' pubblico:
+#    vive sul server in /opt/duedgusto/secrets/sixlabors.lic e viene copiata nel build
+#    context solo durante la build (vedi il blocco della build qui sotto). Senza di essa
+#    la build RELEASE di ImageSharp (>= 3.2.0) fallisce dopo minuti di compilazione:
+#    meglio fermarsi qui, subito, con il file da mettere a posto.
+if [[ ! -f "$APP_DIR/secrets/sixlabors.lic" ]]; then
+    echo "ERRORE: licenza Six Labors assente in $APP_DIR/secrets/sixlabors.lic." >&2
+    echo "Scaricarla da https://sixlabors.com/pricing/ (Split License, gratuita sotto" >&2
+    echo "1M\$ di fatturato annuo), indicando come assembly name 'duedgusto', poi salvarla" >&2
+    echo "sul server in $APP_DIR/secrets/sixlabors.lic con permessi 600." >&2
+    exit 1
+fi
+
 log "=== Inizio deploy DuedGusto ==="
 
 # Backup pre-deploy (skip se i container non esistono ancora)
@@ -183,7 +196,14 @@ fi
 
 log "Build e restart container Docker..."
 cd "$REPO_DIR"
+
+# La licenza Six Labors arriva nel build context SOLO per la durata della build: il
+# Dockerfile la include con `COPY . .` e il targets di ImageSharp la trova ricorsivamente
+# come **/sixlabors.lic. Si rimuove subito dopo per non lasciare il file nel working tree
+# del repository (il prossimo 'git stash --include-untracked' lo eliminerebbe comunque).
+cp "$APP_DIR/secrets/sixlabors.lic" "$REPO_DIR/backend/sixlabors.lic"
 docker compose build backend sito
+rm -f "$REPO_DIR/backend/sixlabors.lic"
 docker tag duedgusto-backend:latest "duedgusto-backend:$VERSION"
 docker tag duedgusto-sito:latest "duedgusto-sito:$VERSION" 2>/dev/null || true
 docker compose up -d
