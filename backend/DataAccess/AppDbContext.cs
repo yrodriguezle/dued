@@ -43,6 +43,7 @@ public class AppDbContext : DbContext
     public DbSet<DenominazioneMoneta> DenominazioniMoneta { get; set; }
     public DbSet<RegistroCassa> RegistriCassa { get; set; }
     public DbSet<ConteggioMoneta> ConteggiMoneta { get; set; }
+    public DbSet<CategoriaSpesa> CategorieSpesa { get; set; }
     public DbSet<SpesaCassa> SpeseCassa { get; set; }
     public DbSet<RegistroCassaIva> RegistriCassaIva { get; set; }
 
@@ -336,6 +337,41 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
+        modelBuilder.Entity<CategoriaSpesa>(entity =>
+        {
+            entity
+                .ToTable("CategorieSpesa")
+                .HasCharSet("utf8mb4")
+                .UseCollation("utf8mb4_unicode_ci")
+                .HasKey(x => x.Id);
+
+            entity.Property(x => x.Id)
+                .ValueGeneratedOnAdd();
+
+            entity.Property(x => x.Nome)
+                .HasMaxLength(50)
+                .IsRequired();
+
+            entity.Property(x => x.Attiva)
+                .IsRequired()
+                .HasDefaultValue(true);
+
+            entity.Property(x => x.Ordine)
+                .IsRequired();
+
+            entity.Property(x => x.CreatedAt)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.Property(x => x.UpdatedAt)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+
+            // Il nome è l'identità logica consumata dal frontend: unico per evitare doppioni.
+            entity.HasIndex(x => x.Nome)
+                .IsUnique();
+        });
+
         modelBuilder.Entity<SpesaCassa>(entity =>
         {
             entity
@@ -355,14 +391,13 @@ public class AppDbContext : DbContext
                 .HasColumnType("decimal(10,2)")
                 .IsRequired();
 
-            entity.Property(x => x.Categoria)
-                .HasConversion<string>()
-                .HasMaxLength(20)
-                .IsRequired()
-                .HasDefaultValue(CategoriaSpesa.Altro)
-                // Sentinel = Altro (valore di default CLR della proprietà): così un valore esplicito
-                // Affitto (CLR default dell'enum) viene inviato al DB e non scambiato per "non impostato".
-                .HasSentinel(CategoriaSpesa.Altro);
+            entity.Property(x => x.CategoriaId)
+                .IsRequired();
+
+            entity.HasOne(x => x.Categoria)
+                .WithMany(c => c.Spese)
+                .HasForeignKey(x => x.CategoriaId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(x => x.RegistroCassa)
                 .WithMany(x => x.SpeseCassa)
@@ -881,6 +916,11 @@ public class AppDbContext : DbContext
                 .HasColumnType("decimal(10,2)")
                 .IsRequired()
                 .HasDefaultValue(3.20m);
+
+            entity.Property(x => x.SaldoInizialeCassa)
+                .HasColumnType("decimal(10,2)")
+                .IsRequired()
+                .HasDefaultValue(0.00m);
 
             entity.Property(x => x.CreatedAt)
                 .HasColumnType("datetime")
@@ -1479,9 +1519,13 @@ public class AppDbContext : DbContext
             entity.Property(x => x.MetodoPagamento)
                 .HasMaxLength(50);
 
-            entity.Property(x => x.Categoria)
-                .HasConversion<string>()
-                .HasMaxLength(20);
+            entity.Property(x => x.CategoriaId)
+                .IsRequired(false);
+
+            entity.HasOne(x => x.Categoria)
+                .WithMany(c => c.Pagamenti)
+                .HasForeignKey(x => x.CategoriaId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             entity.Property(x => x.Note)
                 .HasColumnType("text");

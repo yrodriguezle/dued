@@ -53,6 +53,7 @@ builder.Services.AddScoped<ChiusuraMensileService>();
 // Fornitori Services
 builder.Services.AddScoped<RegistroCassaSyncService>();
 builder.Services.AddScoped<DocumentiFornitoreService>();
+builder.Services.AddScoped<CategoriaSpesaService>();
 
 // Fornitori Orchestrators
 builder.Services.AddScoped<FornitoreOrchestrator>();
@@ -63,6 +64,7 @@ builder.Services.AddScoped<PagamentoFornitoreOrchestrator>();
 // GestioneCassa Orchestrators
 builder.Services.AddScoped<MutateRegistroCassaOrchestrator>();
 builder.Services.AddScoped<MutateSpesaCassaOrchestrator>();
+builder.Services.AddScoped<CategoriaSpesaOrchestrator>();
 builder.Services.AddScoped<ChiudiRegistroCassaOrchestrator>();
 builder.Services.AddScoped<RiapriRegistroCassaOrchestrator>();
 builder.Services.AddScoped<EliminaRegistroCassaOrchestrator>();
@@ -369,6 +371,8 @@ using (IServiceScope scope = app.Services.CreateScope())
         // anche su un database che non la contiene. Resta qui, dopo SeedMenus, solo perché
         // assegna la voce a TUTTI i ruoli e quel seed è ciò che li crea al primo avvio.
         await SeedMenusVendita.Initialize(services);
+        // ✅ «Liquidità» nasce accanto a Vendita e Cassa, di primo livello.
+        await SeedMenusLiquidita.Initialize(services);
         // Dopo SeedMenusVendita, e non per una dipendenza: «Ordini» non guarda «Vendita» né
         // alcun padre, essendo anch'essa di primo livello. Sta qui perché è la sua sorella in
         // barra, e trovarle vicine nel seed dice che sono una coppia.
@@ -382,6 +386,7 @@ using (IServiceScope scope = app.Services.CreateScope())
         await SeedImpostazioniVetrina.Initialize(services);
         await SeedCashDenominations.Initialize(services);
         await SeedBusinessSettings.Initialize(services);
+        await SeedCategorieSpesa.Initialize(services);
     }
 
     // Caricamento una-tantum del listino 2026 dal foglio Excel: OFF per default,

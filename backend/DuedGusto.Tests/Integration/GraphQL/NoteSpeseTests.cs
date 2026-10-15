@@ -41,6 +41,19 @@ public class NoteSpeseTests : IDisposable
         return registro;
     }
 
+    private async Task<int> CategoriaIdAsync(string nome)
+    {
+        CategoriaSpesa? categoria = await _dbContext.CategorieSpesa
+            .FirstOrDefaultAsync(c => c.Nome == nome);
+        if (categoria == null)
+        {
+            categoria = new CategoriaSpesa { Nome = nome, Attiva = true, Ordine = await _dbContext.CategorieSpesa.CountAsync() };
+            _dbContext.CategorieSpesa.Add(categoria);
+            await _dbContext.SaveChangesAsync();
+        }
+        return categoria.Id;
+    }
+
     [Fact]
     public async Task SpesaCassa_NoteEDescrizione_SonoIndipendenti()
     {
@@ -51,7 +64,7 @@ public class NoteSpeseTests : IDisposable
             RegistroCassaId = registro.Id,
             Descrizione = "Stipendio Dore",
             Importo = 700m,
-            Categoria = CategoriaSpesa.Stipendi,
+            CategoriaId = await CategoriaIdAsync("Stipendi"),
             Note = "+300 dallo stipendio di Doris"
         });
         await _dbContext.SaveChangesAsync();
@@ -74,7 +87,7 @@ public class NoteSpeseTests : IDisposable
             RegistroCassaId = registro.Id,
             Descrizione = "Affitto",
             Importo = 900m,
-            Categoria = CategoriaSpesa.Affitto
+            CategoriaId = await CategoriaIdAsync("Affitto")
         });
         await _dbContext.SaveChangesAsync();
         _dbContext.ChangeTracker.Clear();
@@ -92,7 +105,7 @@ public class NoteSpeseTests : IDisposable
             DataPagamento = new DateTime(2026, 6, 30),
             Importo = 1380m,
             MetodoPagamento = "Bonifico",
-            Categoria = CategoriaSpesa.Stipendi,
+            CategoriaId = await CategoriaIdAsync("Stipendi"),
             Descrizione = "Stipendio Doris",
             Note = "-300 girati a Dore"
         });
@@ -117,7 +130,7 @@ public class NoteSpeseTests : IDisposable
             DataPagamento = new DateTime(2026, 6, 2),
             Importo = 127m,
             MetodoPagamento = "Contanti",
-            Categoria = null,
+            CategoriaId = null,
             Note = "Pagamento da registro cassa del 02/06/2026"
         });
         await _dbContext.SaveChangesAsync();

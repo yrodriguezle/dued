@@ -61,6 +61,12 @@ public class BusinessSettings
     public decimal GiornaleImportoFeriale { get; set; } = 3.20m;
 
     /// <summary>
+    /// Saldo iniziale della cassa (default 0): base della liquidità cumulativa mostrata
+    /// nella view dedicata. Non è un movimento, è il punto di partenza configurato dall'utente.
+    /// </summary>
+    public decimal SaldoInizialeCassa { get; set; } = 0.00m;
+
+    /// <summary>
     /// Data di creazione della configurazione
     /// </summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

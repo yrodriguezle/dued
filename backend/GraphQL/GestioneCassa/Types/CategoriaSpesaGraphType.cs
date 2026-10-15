@@ -4,25 +4,42 @@ using duedgusto.Models;
 namespace duedgusto.GraphQL.GestioneCassa.Types;
 
 /// <summary>
-/// Enum GraphQL per <see cref="CategoriaSpesa"/> che espone i nomi .NET verbatim
-/// (<c>Affitto|Utenze|Stipendi|Altro</c>) invece del CONSTANT_CASE applicato di default da
-/// GraphQL.NET (<c>AFFITTO|UTENZE|...</c>).
-/// <para>
-/// Il valore è persistito come stringa PascalCase (<c>HasConversion&lt;string&gt;()</c> in
-/// <c>AppDbContext</c>) ed è nella stessa forma nel frontend (union <c>CategoriaSpesa</c> e
-/// tendina della griglia spese): un unico formato su DB, API e client. Senza questo tipo la
-/// coercizione della variabile fallisce con
-/// <c>Unable to convert 'Altro' to 'CategoriaSpesa'</c>.
-/// </para>
-/// Va usato al posto di <c>EnumerationGraphType&lt;CategoriaSpesa&gt;</c> in TUTTI i field:
-/// due registrazioni con casing diverso per lo stesso nome di tipo non possono coesistere.
+/// Tipo GraphQL per la categoria di spesa configurabile. Espone il <see cref="CategoriaSpesa.Nome"/>
+/// come stringa: il frontend continua a trattare la categoria come valore stringa (tendina),
+/// mentre l'<see cref="CategoriaSpesa.Id"/> è la chiave esterna persistita su spese e pagamenti.
 /// </summary>
-public class CategoriaSpesaGraphType : EnumerationGraphType<CategoriaSpesa>
+public class CategoriaSpesaGraphType : ObjectGraphType<CategoriaSpesa>
 {
     public CategoriaSpesaGraphType()
     {
         Name = "CategoriaSpesa";
+        Field(x => x.Id);
+        Field(x => x.Nome);
+        Field(x => x.Attiva);
+        Field(x => x.Ordine);
     }
+}
 
-    protected override string ChangeEnumCase(string val) => val;
+/// <summary>
+/// Input per <c>mutateCategoriaSpesa</c>: upsert di UNA categoria configurabile.
+/// </summary>
+public class CategoriaSpesaInput
+{
+    /// <summary>Null = creazione; valorizzato = aggiornamento.</summary>
+    public int? CategoriaId { get; set; }
+    public string Nome { get; set; } = string.Empty;
+    public bool? Attiva { get; set; }
+    public int? Ordine { get; set; }
+}
+
+public class CategoriaSpesaInputType : InputObjectGraphType<CategoriaSpesaInput>
+{
+    public CategoriaSpesaInputType()
+    {
+        Name = "CategoriaSpesaInput";
+        Field(x => x.CategoriaId, nullable: true);
+        Field(x => x.Nome);
+        Field(x => x.Attiva, nullable: true);
+        Field(x => x.Ordine, nullable: true);
+    }
 }

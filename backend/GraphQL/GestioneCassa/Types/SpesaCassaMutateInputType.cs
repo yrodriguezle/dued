@@ -1,5 +1,4 @@
 using GraphQL.Types;
-using duedgusto.Models;
 
 namespace duedgusto.GraphQL.GestioneCassa.Types;
 
@@ -21,7 +20,9 @@ public class SpesaCassaMutateInput
 
     public string Descrizione { get; set; } = string.Empty;
     public decimal Importo { get; set; }
-    public CategoriaSpesa Categoria { get; set; } = CategoriaSpesa.Altro;
+
+    /// <summary>Nome della categoria (stringa). Se assente/null, default "Altro".</summary>
+    public string? Categoria { get; set; }
 
     /// <summary>Annotazione libera, distinta dalla descrizione.</summary>
     public string? Note { get; set; }
@@ -36,9 +37,7 @@ public class SpesaCassaMutateInputType : InputObjectGraphType<SpesaCassaMutateIn
         Field(x => x.Data, type: typeof(DateTimeGraphType));
         Field(x => x.Descrizione);
         Field(x => x.Importo);
-        // CategoriaSpesaGraphType, MAI EnumerationGraphType<CategoriaSpesa>: quello espone i
-        // valori in CONSTANT_CASE e fa fallire la coercizione delle variabili.
-        Field(x => x.Categoria, type: typeof(NonNullGraphType<CategoriaSpesaGraphType>));
+        Field(x => x.Categoria, nullable: true);
         Field(x => x.Note, nullable: true);
     }
 }

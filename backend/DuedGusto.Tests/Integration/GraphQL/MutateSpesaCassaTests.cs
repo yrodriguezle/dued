@@ -31,8 +31,9 @@ public class MutateSpesaCassaTests : IDisposable
         IUnitOfWork uow = new UnitOfWork(_dbContext);
         var chiusuraService = new ChiusuraMensileService(_dbContext, new ChiusuraMensileValidator(_dbContext));
         var syncService = new RegistroCassaSyncService(uow);
+        var categorie = new CategoriaSpesaService(_dbContext);
         var eventBus = new Mock<IEventBus>();
-        _orchestrator = new MutateSpesaCassaOrchestrator(uow, chiusuraService, syncService, eventBus.Object);
+        _orchestrator = new MutateSpesaCassaOrchestrator(uow, chiusuraService, syncService, categorie, eventBus.Object);
     }
 
     public void Dispose()
@@ -60,7 +61,7 @@ public class MutateSpesaCassaTests : IDisposable
         DateTime data,
         decimal importo = 100m,
         string descrizione = "Affitto",
-        CategoriaSpesa categoria = CategoriaSpesa.Affitto,
+        string categoria = "Affitto",
         int? spesaId = null) => new()
         {
             SpesaId = spesaId,
@@ -86,7 +87,8 @@ public class MutateSpesaCassaTests : IDisposable
         SpesaCassa spesa = await _orchestrator.ExecuteAsync(Input(data, 250m), utente.Id);
 
         spesa.Id.Should().BeGreaterThan(0);
-        spesa.Categoria.Should().Be(CategoriaSpesa.Affitto);
+        CategoriaSpesa categoria = (await _dbContext.CategorieSpesa.FindAsync(spesa.CategoriaId))!;
+        categoria.Nome.Should().Be("Affitto");
 
         RegistroCassa registro = RegistroAllaData(data);
         registro.Stato.Should().Be("DRAFT");
@@ -148,7 +150,7 @@ public class MutateSpesaCassaTests : IDisposable
 
         SpesaCassa prima = await _orchestrator.ExecuteAsync(Input(data, 100m, "Affitto"), utente.Id);
         SpesaCassa seconda = await _orchestrator.ExecuteAsync(
-            Input(data, 50m, "Luce", CategoriaSpesa.Utenze), utente.Id);
+            Input(data, 50m, "Luce", "Utenze"), utente.Id);
 
         prima.RegistroCassaId.Should().Be(seconda.RegistroCassaId);
         _dbContext.RegistriCassa.Count(r => r.Data.Date == data.Date).Should().Be(1);
@@ -230,7 +232,7 @@ public class MutateSpesaCassaTests : IDisposable
         var data = new DateTime(2026, 3, 10);
         await _orchestrator.ExecuteAsync(Input(data, 100m, "Affitto"), utente.Id);
         SpesaCassa daEliminare = await _orchestrator.ExecuteAsync(
-            Input(data, 40m, "Luce", CategoriaSpesa.Utenze), utente.Id);
+            Input(data, 40m, "Luce", "Utenze"), utente.Id);
 
         bool esito = await _orchestrator.EliminaAsync(daEliminare.Id);
 
@@ -277,7 +279,7 @@ public class MutateSpesaCassaTests : IDisposable
         var data = new DateTime(2026, 3, 10);
 
         await _orchestrator.ExecuteAsync(Input(data, 100m, "Affitto"), utente.Id);
-        await _orchestrator.ExecuteAsync(Input(data, 50m, "Luce", CategoriaSpesa.Utenze), utente.Id);
+        await _orchestrator.ExecuteAsync(Input(data, 50m, "Luce", "Utenze"), utente.Id);
 
         _dbContext.RegistriCassaMensili
             .Count(rm => rm.ChiusuraId == chiusura.ChiusuraId).Should().Be(1);

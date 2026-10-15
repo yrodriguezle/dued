@@ -19,6 +19,8 @@ public class BusinessSettingsType : ObjectGraphType<BusinessSettings>
             .Description("Costo del giornale il sabato");
         Field(x => x.GiornaleImportoFeriale)
             .Description("Costo del giornale negli altri giorni operativi");
+        Field(x => x.SaldoInizialeCassa)
+            .Description("Saldo iniziale della cassa, base della liquidità cumulativa");
         Field(x => x.CreatedAt);
         Field(x => x.UpdatedAt);
     }

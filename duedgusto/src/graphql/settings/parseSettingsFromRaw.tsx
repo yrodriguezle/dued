@@ -10,6 +10,7 @@ export interface RawBusinessSettings {
   vatRate: number;
   giornaleImportoSabato: number;
   giornaleImportoFeriale: number;
+  saldoInizialeCassa?: number;
   updatedAt?: string;
   createdAt?: string;
 }

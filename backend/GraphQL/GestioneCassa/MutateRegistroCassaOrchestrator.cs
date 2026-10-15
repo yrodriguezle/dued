@@ -20,6 +20,7 @@ public class MutateRegistroCassaOrchestrator
     private readonly IUnitOfWork _unitOfWork;
     private readonly ChiusuraMensileService _chiusuraService;
     private readonly DocumentiFornitoreService _documentiService;
+    private readonly CategoriaSpesaService _categorie;
     private readonly IEventBus _eventBus;
     private readonly ILogger<MutateRegistroCassaOrchestrator> _logger;
 
@@ -27,12 +28,14 @@ public class MutateRegistroCassaOrchestrator
         IUnitOfWork unitOfWork,
         ChiusuraMensileService chiusuraService,
         DocumentiFornitoreService documentiService,
+        CategoriaSpesaService categorie,
         IEventBus eventBus,
         ILogger<MutateRegistroCassaOrchestrator> logger)
     {
         _unitOfWork = unitOfWork;
         _chiusuraService = chiusuraService;
         _documentiService = documentiService;
+        _categorie = categorie;
         _eventBus = eventBus;
         _logger = logger;
     }
@@ -58,7 +61,7 @@ public class MutateRegistroCassaOrchestrator
             registro.TotaleChiusura = totaleChiusura;
 
             // === Spese giornaliere ===
-            decimal totaleSpese = AggiungiSpese(registro, input.Spese);
+            decimal totaleSpese = await AggiungiSpese(registro, input.Spese);
 
             // === Pagamenti fornitori (algoritmo 7-step) ===
             // Save per garantire che registro.Id sia disponibile per registri nuovi
@@ -159,7 +162,7 @@ public class MutateRegistroCassaOrchestrator
         return totale;
     }
 
-    private static decimal AggiungiSpese(RegistroCassa registroCassa, List<SpesaCassaInput> speseInput)
+    private async Task<decimal> AggiungiSpese(RegistroCassa registroCassa, List<SpesaCassaInput> speseInput)
     {
         decimal totaleSpese = 0;
         foreach (SpesaCassaInput spesaInput in speseInput)
@@ -168,7 +171,7 @@ public class MutateRegistroCassaOrchestrator
             {
                 Descrizione = spesaInput.Descrizione,
                 Importo = spesaInput.Importo,
-                Categoria = spesaInput.Categoria ?? CategoriaSpesa.Altro
+                CategoriaId = await _categorie.RisolviIdAsync(spesaInput.Categoria)
             });
             totaleSpese += spesaInput.Importo;
         }
@@ -254,7 +257,7 @@ public class MutateRegistroCassaOrchestrator
         }
     }
 
-    private static async Task UpdatePagamentiEsistenti(
+    private async Task UpdatePagamentiEsistenti(
         DataAccess.AppDbContext db,
         List<PagamentoFornitore> toUpdate,
         Dictionary<int, PagamentoFornitoreRegistroInput> inputById)
@@ -264,7 +267,7 @@ public class MutateRegistroCassaOrchestrator
             PagamentoFornitoreRegistroInput inp = inputById[existing.PagamentoId];
             existing.Importo = inp.Importo;
             existing.MetodoPagamento = inp.MetodoPagamento;
-            existing.Categoria = inp.Categoria;
+            existing.CategoriaId = await _categorie.RisolviIdAsync(inp.Categoria);
             existing.UpdatedAt = DateTime.UtcNow;
 
             if (existing.FatturaId.HasValue)
@@ -346,7 +349,7 @@ public class MutateRegistroCassaOrchestrator
                 DataPagamento = dataRegistro,
                 Importo = pagInput.Importo,
                 MetodoPagamento = pagInput.MetodoPagamento,
-                Categoria = pagInput.Categoria,
+                CategoriaId = await _categorie.RisolviIdAsync(pagInput.Categoria),
                 Note = $"Pagamento da registro cassa del {dataRegistro:dd/MM/yyyy}",
                 RegistroCassaId = registroCassa.Id,
             });

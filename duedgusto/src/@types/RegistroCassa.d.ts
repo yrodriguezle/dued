@@ -16,9 +16,28 @@ interface RiepilogoGiornaliero {
 type TipoDenominazioneMoneta = "COIN" | "BANKNOTE";
 type StatoRegistroCassa = "DRAFT" | "CLOSED" | "RECONCILED";
 
-// Categoria di una spesa (registro cassa + chiusura mensile). Sede condivisa:
-// usata dalla colonna Categoria della griglia spese del registro e della chiusura.
-type CategoriaSpesa = "Affitto" | "Utenze" | "Stipendi" | "Altro";
+// Categoria di una spesa (registro cassa + chiusura mensile). È il NOME stringa della
+// categoria (ora configurabile): la tendina consuma stringhe libere, non più una enum chiusa.
+type CategoriaSpesa = string;
+
+// Categoria di spesa CONFIGURABILE (entità lato server). Il `nome` è la stringa che
+// la tendina consuma ed è l'identità logica; `id` è la FK persistita su spese/pagamenti.
+type CategoriaSpesaEntity = {
+  __typename: "CategoriaSpesa";
+  id: number;
+  nome: string;
+  attiva: boolean;
+  ordine: number;
+};
+
+// Liquidità cumulativa della cassa (query `liquiditaCassa`).
+type LiquiditaCassa = {
+  __typename: "LiquiditaCassa";
+  totaleVendite: number;
+  totaleSpese: number;
+  saldoIniziale: number;
+  liquidita: number;
+};
 
 // DenominazioneMoneta
 type DenominazioneMoneta = {

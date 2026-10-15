@@ -97,6 +97,11 @@ public class SettingsMutations : ObjectGraphType
 
                             settings.GiornaleImportoFeriale = input.GiornaleImportoFeriale.Value;
                         }
+
+                        if (input.SaldoInizialeCassa.HasValue)
+                        {
+                            settings.SaldoInizialeCassa = input.SaldoInizialeCassa.Value;
+                        }
                     }
 
                     settings.UpdatedAt = DateTime.UtcNow;

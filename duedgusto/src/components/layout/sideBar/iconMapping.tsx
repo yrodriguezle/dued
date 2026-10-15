@@ -37,6 +37,7 @@ import {
   ChefHat,
   Armchair,
   MapPin,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 
@@ -116,4 +117,7 @@ export const iconMapping: Record<string, LucideIcon> = {
   ChefHat,
   Armchair,
   MapPin,
+  // ⚠️ `Wallet` per «Liquidità», voce di primo livello affianco a Cassa. Come `HandCoins`
+  //    («Vendita») il nome descrive il contenuto: la cassa cumulativa che la view mostra.
+  Wallet,
 };

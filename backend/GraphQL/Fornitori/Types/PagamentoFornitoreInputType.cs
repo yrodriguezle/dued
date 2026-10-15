@@ -14,8 +14,8 @@ public class PagamentoFornitoreInput
     public string? MetodoPagamento { get; set; }
     public string? Descrizione { get; set; }
     public string? Note { get; set; }
-    // Categoria opzionale: valorizzata per le spese fisse tracciate, NULL per i pagamenti documentali.
-    public CategoriaSpesa? Categoria { get; set; }
+    // Categoria opzionale (nome stringa): valorizzata per le spese fisse tracciate, NULL per i pagamenti documentali.
+    public string? Categoria { get; set; }
 }
 
 public class PagamentoFornitoreInputType : InputObjectGraphType<PagamentoFornitoreInput>
@@ -32,6 +32,6 @@ public class PagamentoFornitoreInputType : InputObjectGraphType<PagamentoFornito
         Field(x => x.MetodoPagamento, nullable: true);
         Field(x => x.Descrizione, nullable: true);
         Field(x => x.Note, nullable: true);
-        Field(x => x.Categoria, type: typeof(CategoriaSpesaGraphType));
+        Field(x => x.Categoria, nullable: true);
     }
 }

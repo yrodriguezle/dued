@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using duedgusto.DataAccess;
 using duedgusto.GraphQL.GestioneCassa;
 using duedgusto.Models;
+using duedgusto.Services.Fornitori;
 
 namespace duedgusto.SeedData;
 
@@ -131,6 +132,11 @@ public static class SeedRegistriCassaStorici
         int inseriti = 0, completati = 0, saltati = 0;
         decimal totaleIncassi = 0, totaleSpese = 0;
 
+        CategoriaSpesa categoriaAltro = await db.CategorieSpesa
+            .FirstOrDefaultAsync(c => c.Nome == CategoriaSpesaService.NomeDefault)
+            ?? throw new InvalidOperationException("Categoria di default 'Altro' non trovata: eseguire prima il seed delle categorie.");
+        int idCategoriaAltro = categoriaAltro.Id;
+
         foreach (GiornoStorico giorno in giorni)
         {
             DateTime data = DateTime.ParseExact(giorno.Data, "yyyy-MM-dd", CultureInfo.InvariantCulture);
@@ -185,7 +191,7 @@ public static class SeedRegistriCassaStorici
                         ? "Fornitori / spese del giorno"
                         : giorno.DescrizioneSpesa.Trim(),
                     Importo = giorno.Spese,
-                    Categoria = CategoriaSpesa.Altro,
+                    CategoriaId = idCategoriaAltro,
                 });
             }
 

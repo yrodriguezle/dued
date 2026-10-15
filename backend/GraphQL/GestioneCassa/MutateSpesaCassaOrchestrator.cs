@@ -29,17 +29,20 @@ public class MutateSpesaCassaOrchestrator
     private readonly IUnitOfWork _unitOfWork;
     private readonly ChiusuraMensileService _chiusuraService;
     private readonly RegistroCassaSyncService _syncService;
+    private readonly CategoriaSpesaService _categorie;
     private readonly IEventBus _eventBus;
 
     public MutateSpesaCassaOrchestrator(
         IUnitOfWork unitOfWork,
         ChiusuraMensileService chiusuraService,
         RegistroCassaSyncService syncService,
+        CategoriaSpesaService categorie,
         IEventBus eventBus)
     {
         _unitOfWork = unitOfWork;
         _chiusuraService = chiusuraService;
         _syncService = syncService;
+        _categorie = categorie;
         _eventBus = eventBus;
     }
 
@@ -95,7 +98,7 @@ public class MutateSpesaCassaOrchestrator
 
             esistente.Descrizione = input.Descrizione;
             esistente.Importo = input.Importo;
-            esistente.Categoria = input.Categoria;
+            esistente.CategoriaId = await _categorie.RisolviIdAsync(input.Categoria);
             esistente.Note = input.Note;
 
             await _unitOfWork.SaveChangesAsync();

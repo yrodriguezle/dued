@@ -14,6 +14,7 @@ export const UPDATE_BUSINESS_SETTINGS = gql`
         vatRate
         giornaleImportoSabato
         giornaleImportoFeriale
+        saldoInizialeCassa
       }
     }
   }

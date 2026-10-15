@@ -13,13 +13,16 @@ public class PagamentoFornitoreOrchestrator
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly RegistroCassaSyncService _syncService;
+    private readonly CategoriaSpesaService _categorie;
 
     public PagamentoFornitoreOrchestrator(
         IUnitOfWork unitOfWork,
-        RegistroCassaSyncService syncService)
+        RegistroCassaSyncService syncService,
+        CategoriaSpesaService categorie)
     {
         _unitOfWork = unitOfWork;
         _syncService = syncService;
+        _categorie = categorie;
     }
 
     public async Task<PagamentoFornitore> MutateAsync(PagamentoFornitoreInput input, int utenteId)
@@ -51,7 +54,9 @@ public class PagamentoFornitoreOrchestrator
             payment.DataPagamento = input.DataPagamento;
             payment.Importo = input.Importo;
             payment.MetodoPagamento = input.MetodoPagamento;
-            payment.Categoria = input.Categoria;
+            payment.CategoriaId = input.Categoria == null
+                ? null
+                : await _categorie.RisolviIdAsync(input.Categoria);
             payment.Descrizione = input.Descrizione;
             payment.Note = input.Note;
             payment.UpdatedAt = DateTime.UtcNow;

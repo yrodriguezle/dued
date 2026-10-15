@@ -233,3 +233,41 @@ export const getDdtNonPagatiPerFornitore: TypedDocumentNode<GetDdtNonPagatiData,
       }
     }
   }`);
+
+// ============ QUERY: categorie di spesa configurabili ============
+interface GetCategorieSpesaData {
+  gestioneCassa: {
+    categorieSpesa: CategoriaSpesaEntity[];
+  };
+}
+
+export const getCategorieSpesa: TypedDocumentNode<GetCategorieSpesaData> = gql(`
+  query GetCategorieSpesa {
+    gestioneCassa {
+      categorieSpesa {
+        id
+        nome
+        attiva
+        ordine
+      }
+    }
+  }`);
+
+// ============ QUERY: liquidità cumulativa ============
+interface GetLiquiditaCassaData {
+  gestioneCassa: {
+    liquiditaCassa: LiquiditaCassa;
+  };
+}
+
+export const getLiquiditaCassa: TypedDocumentNode<GetLiquiditaCassaData> = gql(`
+  query GetLiquiditaCassa {
+    gestioneCassa {
+      liquiditaCassa {
+        totaleVendite
+        totaleSpese
+        saldoIniziale
+        liquidita
+      }
+    }
+  }`);

@@ -65,6 +65,9 @@ public class SeedRegistriCassaStoriciTests
             });
         }
 
+        // Categoria di default richiesta dal seed dell'import storico.
+        db.CategorieSpesa.Add(new CategoriaSpesa { Nome = "Altro", Attiva = true, Ordine = 0 });
+
         db.SaveChanges();
         return db;
     }
@@ -281,12 +284,13 @@ public class SeedRegistriCassaStoriciTests
         int id = await AggiungiGiornoApertoAsync(db, new DateTime(2026, 7, 6));
 
         // Una spesa collegata: c'e' qualcosa da perdere, quindi non va toccato.
+        int altroid = await db.CategorieSpesa.Where(c => c.Nome == "Altro").Select(c => c.Id).FirstAsync();
         db.SpeseCassa.Add(new SpesaCassa
         {
             RegistroCassaId = id,
             Descrizione = "spesa inserita a mano",
             Importo = 12.50m,
-            Categoria = CategoriaSpesa.Altro,
+            CategoriaId = altroid,
         });
         await db.SaveChangesAsync();
 

@@ -35,6 +35,7 @@ const validationSchema = z.object({
   vatRate: z.number().min(0, "IVA non può essere negativa").max(100, "IVA non può essere maggiore di 100"),
   giornaleImportoSabato: z.number().min(0, "Il costo non può essere negativo"),
   giornaleImportoFeriale: z.number().min(0, "Il costo non può essere negativo"),
+  saldoInizialeCassa: z.number().optional(),
   settingsId: z.number().optional(),
 });
 
@@ -137,6 +138,7 @@ function SettingsDetails() {
               vatRate: Number(values.vatRate),
               giornaleImportoSabato: Number(values.giornaleImportoSabato),
               giornaleImportoFeriale: Number(values.giornaleImportoFeriale),
+              saldoInizialeCassa: Number(values.saldoInizialeCassa ?? 0),
               updatedAt: values.updatedAt,
             },
           },

@@ -83,5 +83,24 @@ public class GestioneCassaMutations : ObjectGraphType
                 int registroCassaId = context.GetArgument<int>("registroCassaId");
                 return await orchestrator.ExecuteAsync(registroCassaId);
             });
+
+        // ── Categorie di spesa configurabili ──────────────────────────────
+        Field<CategoriaSpesaGraphType>("mutateCategoriaSpesa")
+            .Argument<NonNullGraphType<CategoriaSpesaInputType>>("categoria", "Categoria da creare o aggiornare")
+            .ResolveAsync(async context =>
+            {
+                CategoriaSpesaOrchestrator orchestrator = GraphQLService.GetService<CategoriaSpesaOrchestrator>(context);
+                CategoriaSpesaInput input = context.GetArgument<CategoriaSpesaInput>("categoria");
+                return await orchestrator.MutateAsync(input);
+            });
+
+        Field<BooleanGraphType>("eliminaCategoriaSpesa")
+            .Argument<NonNullGraphType<IntGraphType>>("categoriaId")
+            .ResolveAsync(async context =>
+            {
+                CategoriaSpesaOrchestrator orchestrator = GraphQLService.GetService<CategoriaSpesaOrchestrator>(context);
+                int categoriaId = context.GetArgument<int>("categoriaId");
+                return await orchestrator.EliminaAsync(categoriaId);
+            });
     }
 }

@@ -3,6 +3,7 @@ import FormikNumberField from "../../common/form/FormikNumberField";
 import FormikTextField from "../../common/form/FormikTextField";
 import PeriodoProgrammazioneSection from "./PeriodoProgrammazioneSection";
 import GiorniNonLavorativiSection from "./GiorniNonLavorativiSection";
+import CategorieSpesaSection from "./CategorieSpesaSection";
 
 const TIMEZONES = [
   { value: "Europe/Rome", label: "Roma (CEST/CET)" },
@@ -135,11 +136,44 @@ function BusinessSettingsForm({ periodi, giorniNonLavorativi }: BusinessSettings
         </div>
       </Paper>
 
+      {/* Sezione: Cassa — saldo iniziale per la liquidità cumulativa */}      <Paper
+        variant="outlined"
+        sx={{ p: 2.5 }}
+      >
+        <Typography
+          variant="subtitle1"
+          fontWeight={600}
+          sx={{ mb: 0.5 }}
+        >
+          Cassa
+        </Typography>
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ display: "block", mb: 2 }}
+        >
+          Saldo di partenza della cassa: è la base su cui si somma la liquidità cumulativa (entrate − uscite).
+        </Typography>
+        <div className="grid grid-cols-12 gap-4">
+          <div className="col-span-6 sm:col-span-3 lg:col-span-2">
+            <FormikNumberField
+              name="saldoInizialeCassa"
+              label="Saldo iniziale (€)"
+              fullWidth
+              decimals={2}
+            />
+          </div>
+        </div>
+      </Paper>
+
       {/* Sezione: Periodi di apertura (include orari) */}
       <PeriodoProgrammazioneSection periodi={periodi} />
 
       {/* Sezione: Giorni Non Lavorativi */}
       <GiorniNonLavorativiSection giorniNonLavorativi={giorniNonLavorativi} />
+
+      {/* Sezione: Categorie di spesa configurabili */}
+      <CategorieSpesaSection />
     </Box>
   );
 }

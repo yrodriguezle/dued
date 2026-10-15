@@ -14,6 +14,7 @@ public class BusinessSettingsInput
     public decimal? VatRate { get; set; }
     public decimal? GiornaleImportoSabato { get; set; }
     public decimal? GiornaleImportoFeriale { get; set; }
+    public decimal? SaldoInizialeCassa { get; set; }
 }
 
 public class BusinessSettingsInputType : InputObjectGraphType<BusinessSettingsInput>
@@ -30,5 +31,6 @@ public class BusinessSettingsInputType : InputObjectGraphType<BusinessSettingsIn
         Field(x => x.VatRate, nullable: true);
         Field(x => x.GiornaleImportoSabato, nullable: true);
         Field(x => x.GiornaleImportoFeriale, nullable: true);
+        Field(x => x.SaldoInizialeCassa, nullable: true);
     }
 }

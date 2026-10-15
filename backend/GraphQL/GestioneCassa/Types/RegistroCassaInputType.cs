@@ -25,8 +25,8 @@ public class PagamentoFornitoreRegistroInput
     /// </summary>
     public decimal? ImportoIva { get; set; }
 
-    // Categoria opzionale: valorizzata per le spese fisse tracciate, NULL per i pagamenti documentali.
-    public CategoriaSpesa? Categoria { get; set; }
+    // Categoria opzionale (nome stringa): valorizzata per le spese fisse tracciate, NULL per i pagamenti documentali.
+    public string? Categoria { get; set; }
 }
 
 public class PagamentoFornitoreRegistroInputType : InputObjectGraphType<PagamentoFornitoreRegistroInput>
@@ -47,7 +47,7 @@ public class PagamentoFornitoreRegistroInputType : InputObjectGraphType<Pagament
         Field(x => x.DataDdt, type: typeof(DateTimeGraphType));
         Field(x => x.AliquotaIva, nullable: true);
         Field(x => x.ImportoIva, nullable: true);
-        Field(x => x.Categoria, type: typeof(CategoriaSpesaGraphType));
+        Field(x => x.Categoria, nullable: true);
     }
 }
 

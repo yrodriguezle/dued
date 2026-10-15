@@ -30,6 +30,17 @@ public class GestioneCassaQueries : ObjectGraphType
                     .ToListAsync();
             });
 
+        // Categorie di spesa configurabili, ordinate (attive e non, per la vista di gestione).
+        Field<ListGraphType<NonNullGraphType<CategoriaSpesaGraphType>>, List<CategoriaSpesa>>("categorieSpesa")
+            .ResolveAsync(async context =>
+            {
+                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+                return await dbContext.CategorieSpesa
+                    .OrderBy(c => c.Ordine)
+                    .ThenBy(c => c.Nome)
+                    .ToListAsync();
+            });
+
         // Get single cash register by ID
         Field<RegistroCassaType, RegistroCassa>("registroCassa")
             .Argument<NonNullGraphType<DateTimeGraphType>>("data")
@@ -169,6 +180,33 @@ public class GestioneCassaQueries : ObjectGraphType
                         d.Pagamenti.Sum(p => p.Importo) < (d.Importo ?? 0))
                     .ToListAsync();
             });
+
+        // Liquidità cumulativa: differenza (TotaleVendite − SpeseFornitori − SpeseGiornaliere)
+        // su TUTTI i registri, più il saldo iniziale configurato. Deve coincidere al centesimo
+        // con la differenza gestionale della chiusura mensile (stesse formule di
+        // aggregaRegistriPerMese / ChiusuraMensile).
+        Field<LiquiditaCassaType, LiquiditaCassa>("liquiditaCassa")
+            .ResolveAsync(async context =>
+            {
+                AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
+
+                List<RegistroCassa> registri = await dbContext.RegistriCassa
+                    .ToListAsync();
+
+                decimal totaleVendite = registri.Sum(r => r.TotaleVendite);
+                decimal totaleSpese = registri.Sum(r => r.SpeseFornitori + r.SpeseGiornaliere);
+
+                BusinessSettings? settings = await dbContext.BusinessSettings.FirstOrDefaultAsync();
+                decimal saldoIniziale = settings?.SaldoInizialeCassa ?? 0m;
+
+                return new LiquiditaCassa
+                {
+                    TotaleVendite = totaleVendite,
+                    TotaleSpese = totaleSpese,
+                    SaldoIniziale = saldoIniziale,
+                    Liquidita = totaleVendite - totaleSpese + saldoIniziale
+                };
+            });
     }
 }
 
@@ -192,5 +230,25 @@ public class RegistroCassaKPIType : ObjectGraphType<RegistroCassaKPI>
         Field(x => x.VenditeMese);
         Field(x => x.MediaMese);
         Field(x => x.TrendSettimana);
+    }
+}
+
+public class LiquiditaCassa
+{
+    public decimal TotaleVendite { get; set; }
+    public decimal TotaleSpese { get; set; }
+    public decimal SaldoIniziale { get; set; }
+    public decimal Liquidita { get; set; }
+}
+
+public class LiquiditaCassaType : ObjectGraphType<LiquiditaCassa>
+{
+    public LiquiditaCassaType()
+    {
+        Name = "LiquiditaCassa";
+        Field(x => x.TotaleVendite);
+        Field(x => x.TotaleSpese);
+        Field(x => x.SaldoIniziale);
+        Field(x => x.Liquidita);
     }
 }

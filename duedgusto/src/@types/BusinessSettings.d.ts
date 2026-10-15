@@ -9,6 +9,7 @@ type BusinessSettings = {
   vatRate: number; // 0.22 (22%)
   giornaleImportoSabato: number; // costo del giornale il sabato
   giornaleImportoFeriale: number; // costo del giornale negli altri giorni operativi
+  saldoInizialeCassa?: number; // saldo iniziale della cassa, base della liquidità cumulativa
   updatedAt?: string;
   createdAt?: string;
 };
@@ -23,6 +24,7 @@ type BusinessSettingsInput = {
   vatRate: number;
   giornaleImportoSabato: number;
   giornaleImportoFeriale: number;
+  saldoInizialeCassa?: number;
 };
 
 type PeriodoProgrammazione = {

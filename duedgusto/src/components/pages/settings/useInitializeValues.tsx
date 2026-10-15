@@ -19,6 +19,7 @@ function useInitializeValues({ skipInitialize }: UseInitializeValuesProps) {
       vatRate: 0,
       giornaleImportoSabato: 0,
       giornaleImportoFeriale: 0,
+      saldoInizialeCassa: 0,
       settingsId: 0,
     };
     return initialValues;

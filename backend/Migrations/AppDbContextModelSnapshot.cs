@@ -92,6 +92,11 @@ namespace duedgusto.Migrations
                         .HasColumnType("json")
                         .HasDefaultValue("[true,true,true,true,true,false,false]");
 
+                    b.Property<decimal>("SaldoInizialeCassa")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(10,2)")
+                        .HasDefaultValue(0.00m);
+
                     b.Property<string>("Timezone")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -112,6 +117,48 @@ namespace duedgusto.Migrations
                     b.HasKey("SettingsId");
 
                     b.ToTable("BusinessSettings", (string)null);
+
+                    MySqlEntityTypeBuilderExtensions.HasCharSet(b, "utf8mb4");
+                    MySqlEntityTypeBuilderExtensions.UseCollation(b, "utf8mb4_unicode_ci");
+                });
+
+            modelBuilder.Entity("duedgusto.Models.CategoriaSpesa", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Attiva")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true);
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<int>("Ordine")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Nome")
+                        .IsUnique();
+
+                    b.ToTable("CategorieSpesa", (string)null);
 
                     MySqlEntityTypeBuilderExtensions.HasCharSet(b, "utf8mb4");
                     MySqlEntityTypeBuilderExtensions.UseCollation(b, "utf8mb4_unicode_ci");
@@ -988,9 +1035,8 @@ namespace duedgusto.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("PagamentoId"));
 
-                    b.Property<string>("Categoria")
-                        .HasMaxLength(20)
-                        .HasColumnType("varchar(20)");
+                    b.Property<int?>("CategoriaId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
@@ -1028,6 +1074,8 @@ namespace duedgusto.Migrations
                         .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
 
                     b.HasKey("PagamentoId");
+
+                    b.HasIndex("CategoriaId");
 
                     b.HasIndex("DataPagamento");
 
@@ -1541,12 +1589,8 @@ namespace duedgusto.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Categoria")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(20)
-                        .HasColumnType("varchar(20)")
-                        .HasDefaultValue("Altro");
+                    b.Property<int>("CategoriaId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Descrizione")
                         .IsRequired()
@@ -1563,6 +1607,8 @@ namespace duedgusto.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CategoriaId");
 
                     b.HasIndex("RegistroCassaId");
 
@@ -1862,6 +1908,11 @@ namespace duedgusto.Migrations
 
             modelBuilder.Entity("duedgusto.Models.PagamentoFornitore", b =>
                 {
+                    b.HasOne("duedgusto.Models.CategoriaSpesa", "Categoria")
+                        .WithMany("Pagamenti")
+                        .HasForeignKey("CategoriaId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("duedgusto.Models.DocumentoTrasporto", "Ddt")
                         .WithMany("Pagamenti")
                         .HasForeignKey("DdtId")
@@ -1876,6 +1927,8 @@ namespace duedgusto.Migrations
                         .WithMany("PagamentiFornitori")
                         .HasForeignKey("RegistroCassaId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Categoria");
 
                     b.Navigation("Ddt");
 
@@ -1986,11 +2039,19 @@ namespace duedgusto.Migrations
 
             modelBuilder.Entity("duedgusto.Models.SpesaCassa", b =>
                 {
+                    b.HasOne("duedgusto.Models.CategoriaSpesa", "Categoria")
+                        .WithMany("Spese")
+                        .HasForeignKey("CategoriaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("duedgusto.Models.RegistroCassa", "RegistroCassa")
                         .WithMany("SpeseCassa")
                         .HasForeignKey("RegistroCassaId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Categoria");
 
                     b.Navigation("RegistroCassa");
                 });
@@ -2037,6 +2098,13 @@ namespace duedgusto.Migrations
                     b.Navigation("GiorniNonLavorativi");
 
                     b.Navigation("Periodi");
+                });
+
+            modelBuilder.Entity("duedgusto.Models.CategoriaSpesa", b =>
+                {
+                    b.Navigation("Pagamenti");
+
+                    b.Navigation("Spese");
                 });
 
             modelBuilder.Entity("duedgusto.Models.ChiusuraMensile", b =>

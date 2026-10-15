@@ -8,9 +8,12 @@ public class SpesaCassa
     public decimal Importo { get; set; }
 
     /// <summary>
-    /// Categoria della spesa (NON tracciata / contanti). NOT NULL, default <see cref="CategoriaSpesa.Altro"/>.
+    /// Categoria della spesa (NON tracciata / contanti). NOT NULL: riferimento alla categoria
+    /// configurabile; il default storico "Altro" è garantito dalla migrazione/seed.
     /// </summary>
-    public CategoriaSpesa Categoria { get; set; } = CategoriaSpesa.Altro;
+    public int CategoriaId { get; set; }
+
+    public CategoriaSpesa Categoria { get; set; } = null!;
 
     /// <summary>
     /// Annotazione libera sulla riga, distinta dalla <see cref="Descrizione"/>.

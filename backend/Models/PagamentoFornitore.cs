@@ -42,6 +42,8 @@ namespace duedgusto.Models
         /// Categoria della spesa (spesa fissa TRACCIATA). Nullable: valorizzata solo per le spese fisse
         /// pagate in modo tracciato; NULL per i pagamenti documentali (fatture/DDT fornitori).
         /// </summary>
+        public int? CategoriaId { get; set; }
+
         public CategoriaSpesa? Categoria { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

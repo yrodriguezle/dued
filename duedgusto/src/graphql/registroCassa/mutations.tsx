@@ -200,3 +200,52 @@ export const mutationEliminaSpesaCassa: TypedDocumentNode<EliminaSpesaCassaData,
     }
   }
 `;
+
+// ============ MUTATION: categorie di spesa configurabili ============
+export interface CategoriaSpesaInput {
+  categoriaId?: number | null;
+  nome: string;
+  attiva?: boolean | null;
+  ordine?: number | null;
+}
+
+interface MutateCategoriaSpesaData {
+  gestioneCassa: {
+    mutateCategoriaSpesa: CategoriaSpesaEntity;
+  };
+}
+
+interface MutateCategoriaSpesaValues {
+  categoria: CategoriaSpesaInput;
+}
+
+export const mutationMutateCategoriaSpesa: TypedDocumentNode<MutateCategoriaSpesaData, MutateCategoriaSpesaValues> = gql`
+  mutation MutateCategoriaSpesa($categoria: CategoriaSpesaInput!) {
+    gestioneCassa {
+      mutateCategoriaSpesa(categoria: $categoria) {
+        id
+        nome
+        attiva
+        ordine
+      }
+    }
+  }
+`;
+
+interface EliminaCategoriaSpesaData {
+  gestioneCassa: {
+    eliminaCategoriaSpesa: boolean;
+  };
+}
+
+interface EliminaCategoriaSpesaValues {
+  categoriaId: number;
+}
+
+export const mutationEliminaCategoriaSpesa: TypedDocumentNode<EliminaCategoriaSpesaData, EliminaCategoriaSpesaValues> = gql`
+  mutation EliminaCategoriaSpesa($categoriaId: Int!) {
+    gestioneCassa {
+      eliminaCategoriaSpesa(categoriaId: $categoriaId)
+    }
+  }
+`;
