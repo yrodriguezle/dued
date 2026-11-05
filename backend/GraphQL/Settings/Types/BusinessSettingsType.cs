@@ -21,6 +21,9 @@ public class BusinessSettingsType : ObjectGraphType<BusinessSettings>
             .Description("Costo del giornale negli altri giorni operativi");
         Field(x => x.SaldoInizialeCassa)
             .Description("Saldo iniziale della cassa, base della liquidità cumulativa");
+        Field<StringGraphType>("dataInizioLiquidita")
+            .Description("Data di partenza della liquidità cumulativa (yyyy-MM-dd), null = tutto lo storico")
+            .Resolve(ctx => ctx.Source.DataInizioLiquidita?.ToString("yyyy-MM-dd"));
         Field(x => x.CreatedAt);
         Field(x => x.UpdatedAt);
     }

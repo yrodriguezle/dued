@@ -922,6 +922,9 @@ public class AppDbContext : DbContext
                 .IsRequired()
                 .HasDefaultValue(0.00m);
 
+            entity.Property(x => x.DataInizioLiquidita)
+                .HasColumnType("date");
+
             entity.Property(x => x.CreatedAt)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");

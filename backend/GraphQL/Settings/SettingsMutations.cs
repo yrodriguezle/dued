@@ -102,6 +102,23 @@ public class SettingsMutations : ObjectGraphType
                         {
                             settings.SaldoInizialeCassa = input.SaldoInizialeCassa.Value;
                         }
+
+                        // Stringa vuota = rimuove la data di partenza (liquidità su tutto lo storico)
+                        if (input.DataInizioLiquidita != null)
+                        {
+                            if (string.IsNullOrWhiteSpace(input.DataInizioLiquidita))
+                            {
+                                settings.DataInizioLiquidita = null;
+                            }
+                            else if (DateOnly.TryParse(input.DataInizioLiquidita, out DateOnly dataInizioLiquidita))
+                            {
+                                settings.DataInizioLiquidita = dataInizioLiquidita;
+                            }
+                            else
+                            {
+                                throw new ExecutionError("Data di partenza della liquidità non valida");
+                            }
+                        }
                     }
 
                     settings.UpdatedAt = DateTime.UtcNow;

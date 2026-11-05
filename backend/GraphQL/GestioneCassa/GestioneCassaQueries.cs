@@ -190,13 +190,21 @@ public class GestioneCassaQueries : ObjectGraphType
             {
                 AppDbContext dbContext = GraphQLService.GetService<AppDbContext>(context);
 
-                List<RegistroCassa> registri = await dbContext.RegistriCassa
-                    .ToListAsync();
+                BusinessSettings? settings = await dbContext.BusinessSettings.FirstOrDefaultAsync();
+
+                // Data di partenza (inclusa): le spese pregresse non sono state inserite,
+                // quindi i registri precedenti non concorrono alla liquidità.
+                IQueryable<RegistroCassa> registriQuery = dbContext.RegistriCassa;
+                if (settings?.DataInizioLiquidita is DateOnly dataInizio)
+                {
+                    DateTime da = dataInizio.ToDateTime(TimeOnly.MinValue);
+                    registriQuery = registriQuery.Where(r => r.Data >= da);
+                }
+
+                List<RegistroCassa> registri = await registriQuery.ToListAsync();
 
                 decimal totaleVendite = registri.Sum(r => r.TotaleVendite);
                 decimal totaleSpese = registri.Sum(r => r.SpeseFornitori + r.SpeseGiornaliere);
-
-                BusinessSettings? settings = await dbContext.BusinessSettings.FirstOrDefaultAsync();
                 decimal saldoIniziale = settings?.SaldoInizialeCassa ?? 0m;
 
                 return new LiquiditaCassa
@@ -204,6 +212,7 @@ public class GestioneCassaQueries : ObjectGraphType
                     TotaleVendite = totaleVendite,
                     TotaleSpese = totaleSpese,
                     SaldoIniziale = saldoIniziale,
+                    DataInizio = settings?.DataInizioLiquidita?.ToString("yyyy-MM-dd"),
                     Liquidita = totaleVendite - totaleSpese + saldoIniziale
                 };
             });
@@ -238,6 +247,7 @@ public class LiquiditaCassa
     public decimal TotaleVendite { get; set; }
     public decimal TotaleSpese { get; set; }
     public decimal SaldoIniziale { get; set; }
+    public string? DataInizio { get; set; }
     public decimal Liquidita { get; set; }
 }
 
@@ -249,6 +259,7 @@ public class LiquiditaCassaType : ObjectGraphType<LiquiditaCassa>
         Field(x => x.TotaleVendite);
         Field(x => x.TotaleSpese);
         Field(x => x.SaldoIniziale);
+        Field(x => x.DataInizio, nullable: true);
         Field(x => x.Liquidita);
     }
 }

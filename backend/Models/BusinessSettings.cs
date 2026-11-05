@@ -67,6 +67,13 @@ public class BusinessSettings
     public decimal SaldoInizialeCassa { get; set; } = 0.00m;
 
     /// <summary>
+    /// Data di partenza della liquidità cumulativa (inclusa). Se valorizzata, la liquidità
+    /// considera solo i registri di cassa dal giorno indicato in poi (le spese pregresse non
+    /// sono state inserite); se null considera tutto lo storico.
+    /// </summary>
+    public DateOnly? DataInizioLiquidita { get; set; }
+
+    /// <summary>
     /// Data di creazione della configurazione
     /// </summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

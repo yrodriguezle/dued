@@ -69,6 +69,9 @@ namespace duedgusto.Migrations
                         .HasColumnType("varchar(3)")
                         .HasDefaultValue("EUR");
 
+                    b.Property<DateOnly?>("DataInizioLiquidita")
+                        .HasColumnType("date");
+
                     b.Property<decimal>("GiornaleImportoFeriale")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("decimal(10,2)")
