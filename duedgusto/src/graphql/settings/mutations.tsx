@@ -15,6 +15,7 @@ export const UPDATE_BUSINESS_SETTINGS = gql`
         giornaleImportoSabato
         giornaleImportoFeriale
         saldoInizialeCassa
+        dataInizioLiquidita
       }
     }
   }

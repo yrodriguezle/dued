@@ -10,6 +10,7 @@ type BusinessSettings = {
   giornaleImportoSabato: number; // costo del giornale il sabato
   giornaleImportoFeriale: number; // costo del giornale negli altri giorni operativi
   saldoInizialeCassa?: number; // saldo iniziale della cassa, base della liquidità cumulativa
+  dataInizioLiquidita?: string | null; // "YYYY-MM-DD": la liquidità parte da questa data (null = tutto lo storico)
   updatedAt?: string;
   createdAt?: string;
 };
@@ -25,6 +26,7 @@ type BusinessSettingsInput = {
   giornaleImportoSabato: number;
   giornaleImportoFeriale: number;
   saldoInizialeCassa?: number;
+  dataInizioLiquidita?: string | null;
 };
 
 type PeriodoProgrammazione = {

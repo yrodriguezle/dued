@@ -20,6 +20,7 @@ function useInitializeValues({ skipInitialize }: UseInitializeValuesProps) {
       giornaleImportoSabato: 0,
       giornaleImportoFeriale: 0,
       saldoInizialeCassa: 0,
+      dataInizioLiquidita: "",
       settingsId: 0,
     };
     return initialValues;

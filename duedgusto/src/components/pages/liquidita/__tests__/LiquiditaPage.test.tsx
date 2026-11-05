@@ -60,16 +60,18 @@ function creaMese(mese: number, totaleVendite: number, totaleSpese: number): Rie
 
 describe("LiquiditaPage", () => {
   const mockSetTitle = vi.fn();
+  let dataInizioMock: string | null = null;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    dataInizioMock = null;
     mockUseQuery.mockImplementation((query: unknown) => {
       // getLiquiditaCassa
       if ((query as { kind?: string }) && typeof query === "object" && "definitions" in (query as object)) {
         const doc = query as { definitions?: { name?: { value?: string } }[] };
         const name = doc.definitions?.map((d) => d.name?.value).join(",") ?? "";
         if (name.includes("GetLiquiditaCassa")) {
-          return { data: { gestioneCassa: { liquiditaCassa: { totaleVendite: 1000, totaleSpese: 400, saldoIniziale: 50, liquidita: 650 } } }, loading: false, error: undefined, refetch: vi.fn() };
+          return { data: { gestioneCassa: { liquiditaCassa: { totaleVendite: 1000, totaleSpese: 400, saldoIniziale: 50, dataInizio: dataInizioMock, liquidita: 650 } } }, loading: false, error: undefined, refetch: vi.fn() };
         }
         if (name.includes("GetCategorieSpesa")) {
           return { data: { gestioneCassa: { categorieSpesa: [{ id: 1, nome: "Beni", attiva: true, ordine: 0 }, { id: 2, nome: "Altro", attiva: true, ordine: 1 }] } }, loading: false, error: undefined };
@@ -121,6 +123,16 @@ describe("LiquiditaPage", () => {
     // Un mese con dati: Marzo ha vendite 700 (spese 300 → differenza 400).
     expect(screen.getByText("700,00")).toBeInTheDocument();
     expect(screen.getByText("200,00")).toBeInTheDocument();
+  });
+
+  it("con una data di partenza il riepilogo mensile parte dal suo mese", () => {
+    dataInizioMock = `${new Date().getFullYear()}-03-15`;
+    renderPage();
+
+    expect(screen.queryByText("Gennaio")).not.toBeInTheDocument();
+    expect(screen.queryByText("Febbraio")).not.toBeInTheDocument();
+    expect(screen.getByText("Marzo")).toBeInTheDocument();
+    expect(screen.getByText("Dicembre")).toBeInTheDocument();
   });
 
   it("monta la griglia spese riusata", () => {

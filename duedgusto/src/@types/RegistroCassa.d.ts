@@ -36,6 +36,7 @@ type LiquiditaCassa = {
   totaleVendite: number;
   totaleSpese: number;
   saldoIniziale: number;
+  dataInizio: string | null;
   liquidita: number;
 };
 

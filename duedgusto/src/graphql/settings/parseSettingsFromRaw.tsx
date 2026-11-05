@@ -11,6 +11,7 @@ export interface RawBusinessSettings {
   giornaleImportoSabato: number;
   giornaleImportoFeriale: number;
   saldoInizialeCassa?: number;
+  dataInizioLiquidita?: string | null;
   updatedAt?: string;
   createdAt?: string;
 }
@@ -61,6 +62,7 @@ export function parseSettingsFromRaw(rawData: RawSettingsData | null | undefined
         openingTime: rawSettings.openingTime?.substring(0, 5) || "",
         closingTime: rawSettings.closingTime?.substring(0, 5) || "",
         operatingDays: parseOperatingDays(rawSettings.operatingDays),
+        dataInizioLiquidita: rawSettings.dataInizioLiquidita ?? "",
       }
     : null;
 

@@ -267,6 +267,7 @@ export const getLiquiditaCassa: TypedDocumentNode<GetLiquiditaCassaData> = gql(`
         totaleVendite
         totaleSpese
         saldoIniziale
+        dataInizio
         liquidita
       }
     }

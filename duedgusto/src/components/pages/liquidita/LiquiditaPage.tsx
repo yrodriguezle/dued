@@ -66,6 +66,23 @@ function LiquiditaPage() {
 
   const dataDefault = dayjs().format("YYYY-MM-DD");
 
+  // Il riepilogo mensile parte dalla data di partenza configurata nelle impostazioni:
+  // anni e mesi precedenti non vengono mostrati (le spese pregresse non sono state inserite).
+  const annoInizio = liquidita?.dataInizio ? Number(liquidita.dataInizio.slice(0, 4)) : null;
+  const meseInizio = liquidita?.dataInizio ? Number(liquidita.dataInizio.slice(5, 7)) : null;
+  const anniSelezionabili = useMemo(
+    () => [annoCorrente, annoCorrente - 1, annoCorrente - 2].filter((a) => annoInizio === null || a >= annoInizio),
+    [annoCorrente, annoInizio]
+  );
+  const annoVisualizzato = anniSelezionabili.includes(anno) ? anno : (anniSelezionabili[anniSelezionabili.length - 1] ?? anno);
+  useEffect(() => {
+    if (annoVisualizzato !== anno) setAnno(annoVisualizzato);
+  }, [annoVisualizzato, anno]);
+  const mesiVisibili = useMemo(
+    () => mesi.filter((m) => annoInizio === null || annoVisualizzato > annoInizio || (annoVisualizzato === annoInizio && m.mese >= (meseInizio ?? 1))),
+    [mesi, annoInizio, meseInizio, annoVisualizzato]
+  );
+
   const persistence = useMemo<SpeseDataGridPersistence>(() => {
     const errore = (message: string) => {
       showToast({ type: "error", position: "bottom-right", message, toastId: "liquidita-spese-error" });
@@ -182,6 +199,13 @@ function LiquiditaPage() {
         >
           Cassa cumulativa
         </Typography>
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ display: "block", mb: 2, mt: -1.5 }}
+        >
+          {liquidita?.dataInizio ? `Calcolata dal ${liquidita.dataInizio.split("-").reverse().join("/")}` : "Calcolata su tutto lo storico"}
+        </Typography>
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5 }}>
           <KPICard
             label="Liquidità disponibile"
@@ -224,10 +248,10 @@ function LiquiditaPage() {
             <Select
               labelId="liquidita-anno-label"
               label="Anno"
-              value={anno}
+              value={annoVisualizzato}
               onChange={(e) => setAnno(Number(e.target.value))}
             >
-              {[annoCorrente, annoCorrente - 1, annoCorrente - 2].map((a) => (
+              {anniSelezionabili.map((a) => (
                 <MenuItem
                   key={a}
                   value={a}
@@ -249,7 +273,7 @@ function LiquiditaPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {mesi.map((m) => (
+              {mesiVisibili.map((m) => (
                 <TableRow key={m.mese}>
                   <TableCell>{MESI_LABEL[m.mese - 1]}</TableCell>
                   <TableCell align="right">{formatCurrency(m.totaleVendite)}</TableCell>

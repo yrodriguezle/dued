@@ -1,5 +1,6 @@
 import { Paper, Typography, Box, MenuItem } from "@mui/material";
 import FormikNumberField from "../../common/form/FormikNumberField";
+import FormikDateField from "../../common/form/FormikDateField";
 import FormikTextField from "../../common/form/FormikTextField";
 import PeriodoProgrammazioneSection from "./PeriodoProgrammazioneSection";
 import GiorniNonLavorativiSection from "./GiorniNonLavorativiSection";
@@ -152,7 +153,7 @@ function BusinessSettingsForm({ periodi, giorniNonLavorativi }: BusinessSettings
           color="text.secondary"
           sx={{ display: "block", mb: 2 }}
         >
-          Saldo di partenza della cassa: è la base su cui si somma la liquidità cumulativa (entrate − uscite).
+          Saldo di partenza della cassa e data da cui parte la liquidità cumulativa (entrate − uscite): i giorni precedenti non vengono considerati.
         </Typography>
         <div className="grid grid-cols-12 gap-4">
           <div className="col-span-6 sm:col-span-3 lg:col-span-2">
@@ -161,6 +162,14 @@ function BusinessSettingsForm({ periodi, giorniNonLavorativi }: BusinessSettings
               label="Saldo iniziale (€)"
               fullWidth
               decimals={2}
+            />
+          </div>
+          <div className="col-span-6 sm:col-span-3 lg:col-span-2">
+            <FormikDateField
+              name="dataInizioLiquidita"
+              label="Data di partenza"
+              fullWidth
+              slotProps={{ inputLabel: { shrink: true } }}
             />
           </div>
         </div>

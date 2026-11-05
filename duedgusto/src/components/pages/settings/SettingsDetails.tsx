@@ -36,6 +36,7 @@ const validationSchema = z.object({
   giornaleImportoSabato: z.number().min(0, "Il costo non può essere negativo"),
   giornaleImportoFeriale: z.number().min(0, "Il costo non può essere negativo"),
   saldoInizialeCassa: z.number().optional(),
+  dataInizioLiquidita: z.string().nullish(),
   settingsId: z.number().optional(),
 });
 
@@ -139,6 +140,8 @@ function SettingsDetails() {
               giornaleImportoSabato: Number(values.giornaleImportoSabato),
               giornaleImportoFeriale: Number(values.giornaleImportoFeriale),
               saldoInizialeCassa: Number(values.saldoInizialeCassa ?? 0),
+              // stringa vuota = rimuove la data di partenza (tutto lo storico)
+              dataInizioLiquidita: values.dataInizioLiquidita ?? "",
               updatedAt: values.updatedAt,
             },
           },
