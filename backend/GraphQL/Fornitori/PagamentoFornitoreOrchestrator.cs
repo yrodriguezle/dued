@@ -46,6 +46,8 @@ public class PagamentoFornitoreOrchestrator
             else
             {
                 payment = new PagamentoFornitore();
+                if (input.CreatedAt is { } createdAt) payment.CreatedAt = createdAt;
+                payment.Ordine = input.Ordine;
                 _unitOfWork.PagamentiFornitori.Add(payment);
             }
 

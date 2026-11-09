@@ -1043,8 +1043,8 @@ namespace duedgusto.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                        .HasColumnType("datetime(3)")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP(3)");
 
                     b.Property<DateTime>("DataPagamento")
                         .HasColumnType("date");
@@ -1067,6 +1067,9 @@ namespace duedgusto.Migrations
 
                     b.Property<string>("Note")
                         .HasColumnType("text");
+
+                    b.Property<int?>("Ordine")
+                        .HasColumnType("int");
 
                     b.Property<int?>("RegistroCassaId")
                         .HasColumnType("int");
@@ -1595,6 +1598,11 @@ namespace duedgusto.Migrations
                     b.Property<int>("CategoriaId")
                         .HasColumnType("int");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime(3)")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP(3)");
+
                     b.Property<string>("Descrizione")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -1605,6 +1613,9 @@ namespace duedgusto.Migrations
 
                     b.Property<string>("Note")
                         .HasColumnType("longtext");
+
+                    b.Property<int?>("Ordine")
+                        .HasColumnType("int");
 
                     b.Property<int>("RegistroCassaId")
                         .HasColumnType("int");

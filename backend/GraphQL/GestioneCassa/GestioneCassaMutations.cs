@@ -49,6 +49,17 @@ public class GestioneCassaMutations : ObjectGraphType
                 return await orchestrator.EliminaAsync(spesaId);
             });
 
+        // Salva l'ordine scelto trascinando le righe della griglia spese fisse. Tocca solo la
+        // colonna Ordine: non ricalcola registri né importi.
+        Field<BooleanGraphType>("riordinaSpeseFisse")
+            .Argument<NonNullGraphType<ListGraphType<NonNullGraphType<RigaOrdineInputType>>>>("righe", "Righe con la nuova posizione")
+            .ResolveAsync(async context =>
+            {
+                MutateSpesaCassaOrchestrator orchestrator = GraphQLService.GetService<MutateSpesaCassaOrchestrator>(context);
+                List<RigaOrdineInput> righe = context.GetArgument<List<RigaOrdineInput>>("righe");
+                return await orchestrator.RiordinaAsync(righe);
+            });
+
         Field<RegistroCassaType>("chiudiRegistroCassa")
             .Argument<NonNullGraphType<IntGraphType>>("registroCassaId")
             .ResolveAsync(async context =>

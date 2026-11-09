@@ -48,6 +48,13 @@ namespace duedgusto.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+        /// <summary>
+        /// Posizione scelta dall'utente fra le righe dello stesso giorno nella griglia spese fisse
+        /// (trascinamento). Null = mai riordinata: la riga segue l'ordine di inserimento
+        /// (<see cref="CreatedAt"/>) dopo quelle riordinate.
+        /// </summary>
+        public int? Ordine { get; set; }
+
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         // Navigation properties

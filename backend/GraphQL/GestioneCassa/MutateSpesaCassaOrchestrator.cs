@@ -88,6 +88,8 @@ public class MutateSpesaCassaOrchestrator
             if (esistente == null)
             {
                 esistente = new SpesaCassa { RegistroCassaId = destinazione.Id };
+                if (input.CreatedAt is { } createdAt) esistente.CreatedAt = createdAt;
+                esistente.Ordine = input.Ordine;
                 db.SpeseCassa.Add(esistente);
             }
             else if (esistente.RegistroCassaId != destinazione.Id)
@@ -155,7 +157,65 @@ public class MutateSpesaCassaOrchestrator
         return true;
     }
 
+    /// <summary>
+    /// Salva la posizione delle righe della griglia spese fisse. Solo presentazione: nessun
+    /// importo cambia, quindi non si ricalcolano i registri e vale il solo guard sul mese chiuso.
+    /// Tutto o niente: una riga sconosciuta o in un mese chiuso annulla l'intera operazione.
+    /// </summary>
+    public async Task<bool> RiordinaAsync(IReadOnlyCollection<RigaOrdineInput> righe)
+    {
+        if (righe.Count == 0) return true;
+
+        AppDbContext db = _unitOfWork.Context;
+
+        var daTipoSconosciuto = righe.FirstOrDefault(r => r.Tipo != TipoSpesa && r.Tipo != TipoPagamento);
+        if (daTipoSconosciuto != null)
+        {
+            throw new ExecutionError($"Tipo di riga non valido: '{daTipoSconosciuto.Tipo}'. Atteso SPESA o PAGAMENTO.");
+        }
+
+        int[] speseIds = righe.Where(r => r.Tipo == TipoSpesa).Select(r => r.Id).Distinct().ToArray();
+        int[] pagamentiIds = righe.Where(r => r.Tipo == TipoPagamento).Select(r => r.Id).Distinct().ToArray();
+
+        List<SpesaCassa> spese = await db.SpeseCassa
+            .Include(s => s.RegistroCassa)
+            .Where(s => speseIds.Contains(s.Id))
+            .ToListAsync();
+        List<PagamentoFornitore> pagamenti = await db.PagamentiFornitori
+            .Where(p => pagamentiIds.Contains(p.PagamentoId))
+            .ToListAsync();
+
+        int? speseMancanti = speseIds.Cast<int?>().FirstOrDefault(id => spese.All(s => s.Id != id));
+        if (speseMancanti != null) throw new ExecutionError($"Spesa con id {speseMancanti} non trovata.");
+        int? pagamentiMancanti = pagamentiIds.Cast<int?>().FirstOrDefault(id => pagamenti.All(p => p.PagamentoId != id));
+        if (pagamentiMancanti != null) throw new ExecutionError($"Pagamento con id {pagamentiMancanti} non trovato.");
+
+        IEnumerable<DateTime> date = spese.Select(s => s.RegistroCassa!.Data.Date)
+            .Concat(pagamenti.Select(p => p.DataPagamento.Date))
+            .Distinct();
+        foreach (DateTime data in date)
+        {
+            await GestioneCassaGuards.GuardMeseChiuso(_chiusuraService, data);
+        }
+
+        await _unitOfWork.ExecuteInTransactionAsync(async () =>
+        {
+            foreach (RigaOrdineInput riga in righe)
+            {
+                if (riga.Tipo == TipoSpesa) spese.First(s => s.Id == riga.Id).Ordine = riga.Ordine;
+                else pagamenti.First(p => p.PagamentoId == riga.Id).Ordine = riga.Ordine;
+            }
+            await _unitOfWork.SaveChangesAsync();
+            return true;
+        });
+
+        return true;
+    }
+
     // ───────────────────────────────────────────────
+
+    private const string TipoSpesa = "SPESA";
+    private const string TipoPagamento = "PAGAMENTO";
 
     private static async Task GuardRegistroNonRiconciliato(AppDbContext db, DateTime data)
     {

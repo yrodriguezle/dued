@@ -394,6 +394,10 @@ public class AppDbContext : DbContext
             entity.Property(x => x.CategoriaId)
                 .IsRequired();
 
+            entity.Property(x => x.CreatedAt)
+                .HasColumnType("datetime(3)")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP(3)");
+
             entity.HasOne(x => x.Categoria)
                 .WithMany(c => c.Spese)
                 .HasForeignKey(x => x.CategoriaId)
@@ -1533,9 +1537,11 @@ public class AppDbContext : DbContext
             entity.Property(x => x.Note)
                 .HasColumnType("text");
 
+            // Al millisecondo: serve a ordinare per inserimento anche righe salvate con un
+            // solo clic (vedi SpesaCassa.CreatedAt).
             entity.Property(x => x.CreatedAt)
-                .HasColumnType("datetime")
-                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                .HasColumnType("datetime(3)")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP(3)");
 
             entity.Property(x => x.UpdatedAt)
                 .HasColumnType("datetime")

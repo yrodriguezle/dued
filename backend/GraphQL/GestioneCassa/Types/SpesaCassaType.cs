@@ -26,6 +26,8 @@ public class SpesaCassaType : ObjectGraphType<SpesaCassa>
                 return categoria?.Nome ?? "Altro";
             });
         Field(x => x.Note, nullable: true);
+        Field(x => x.CreatedAt, type: typeof(DateTimeGraphType));
+        Field(x => x.Ordine, nullable: true);
     }
 }
 

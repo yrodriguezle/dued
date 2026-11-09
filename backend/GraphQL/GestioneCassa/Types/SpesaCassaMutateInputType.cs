@@ -26,6 +26,15 @@ public class SpesaCassaMutateInput
 
     /// <summary>Annotazione libera, distinta dalla descrizione.</summary>
     public string? Note { get; set; }
+
+    /// <summary>
+    /// Solo in creazione: posizione di inserimento da conservare quando una riga cambia forma
+    /// (contanti ⇄ tracciata) e viene ricreata nell'altra tabella. Assente = adesso.
+    /// </summary>
+    public DateTime? CreatedAt { get; set; }
+
+    /// <summary>Solo in creazione: posizione scelta dall'utente, da conservare insieme a <see cref="CreatedAt"/>.</summary>
+    public int? Ordine { get; set; }
 }
 
 public class SpesaCassaMutateInputType : InputObjectGraphType<SpesaCassaMutateInput>
@@ -39,5 +48,7 @@ public class SpesaCassaMutateInputType : InputObjectGraphType<SpesaCassaMutateIn
         Field(x => x.Importo);
         Field(x => x.Categoria, nullable: true);
         Field(x => x.Note, nullable: true);
+        Field(x => x.CreatedAt, type: typeof(DateTimeGraphType), nullable: true);
+        Field(x => x.Ordine, nullable: true);
     }
 }

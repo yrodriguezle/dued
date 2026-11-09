@@ -40,6 +40,7 @@ public class PagamentoFornitoreType : ObjectGraphType<PagamentoFornitore>
         Field("descrizione", x => x.Descrizione, nullable: true);
         Field("note", x => x.Note, nullable: true);
         Field("createdAt", x => x.CreatedAt, type: typeof(DateTimeGraphType));
+        Field("ordine", x => x.Ordine, nullable: true);
         Field("updatedAt", x => x.UpdatedAt, type: typeof(DateTimeGraphType));
 
         Field<FatturaAcquistoType>("fattura")

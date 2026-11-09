@@ -97,6 +97,35 @@ public class MutateSpesaCassaTests : IDisposable
     }
 
     /// <summary>
+    /// Ricreare una riga in un'altra forma (cambio metodo di pagamento) non deve farla saltare:
+    /// il chiamante riporta l'istante originale e la creazione lo rispetta.
+    /// </summary>
+    [Fact]
+    public async Task Create_ConCreatedAtDelChiamante_ConservaLaPosizioneDiInserimento()
+    {
+        Utente utente = SeedUtente();
+        var data = new DateTime(2026, 3, 10);
+        var originale = new DateTime(2026, 3, 10, 8, 30, 15, 123, DateTimeKind.Utc);
+
+        SpesaCassaMutateInput input = Input(data, 250m);
+        input.CreatedAt = originale;
+        SpesaCassa spesa = await _orchestrator.ExecuteAsync(input, utente.Id);
+
+        spesa.CreatedAt.Should().Be(originale);
+    }
+
+    [Fact]
+    public async Task Create_SenzaCreatedAt_UsaLIstanteDellInserimento()
+    {
+        Utente utente = SeedUtente();
+        DateTime prima = DateTime.UtcNow.AddSeconds(-1);
+
+        SpesaCassa spesa = await _orchestrator.ExecuteAsync(Input(new DateTime(2026, 3, 10), 50m), utente.Id);
+
+        spesa.CreatedAt.Should().BeAfter(prima);
+    }
+
+    /// <summary>
     /// Una spesa fissa deve poter cadere su un giorno di chiusura (qui una domenica):
     /// GuardGiornoOperativoConPeriodi NON si applica.
     /// </summary>
@@ -123,6 +152,111 @@ public class MutateSpesaCassaTests : IDisposable
 
         await act.Should().ThrowAsync<ExecutionError>().WithMessage("*chiuso*");
     }
+
+    #region Riordino
+
+    private async Task<PagamentoFornitore> SeedPagamentoTracciato(RegistroCassa registro, DateTime data)
+    {
+        CategoriaSpesa categoria = _dbContext.CategorieSpesa.First(c => c.Nome == "Affitto");
+        var pagamento = new PagamentoFornitore
+        {
+            RegistroCassaId = registro.Id,
+            DataPagamento = data,
+            Importo = 1000m,
+            MetodoPagamento = "Bonifico",
+            CategoriaId = categoria.Id,
+            Descrizione = "Stipendio",
+        };
+        _dbContext.PagamentiFornitori.Add(pagamento);
+        await _dbContext.SaveChangesAsync();
+        return pagamento;
+    }
+
+    [Fact]
+    public async Task Riordina_SalvaLaPosizioneSiaSuSpeseSiaSuPagamenti()
+    {
+        Utente utente = SeedUtente();
+        var data = new DateTime(2026, 3, 10);
+        SpesaCassa spesa = await _orchestrator.ExecuteAsync(Input(data, 250m), utente.Id);
+        PagamentoFornitore pagamento = await SeedPagamentoTracciato(RegistroAllaData(data), data);
+
+        await _orchestrator.RiordinaAsync(
+        [
+            new RigaOrdineInput { Tipo = "PAGAMENTO", Id = pagamento.PagamentoId, Ordine = 1 },
+            new RigaOrdineInput { Tipo = "SPESA", Id = spesa.Id, Ordine = 2 },
+        ]);
+
+        _dbContext.ChangeTracker.Clear();
+        _dbContext.PagamentiFornitori.Single(p => p.PagamentoId == pagamento.PagamentoId).Ordine.Should().Be(1);
+        _dbContext.SpeseCassa.Single(s => s.Id == spesa.Id).Ordine.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Riordina_NonToccaImportiNeTotaliDelRegistro()
+    {
+        Utente utente = SeedUtente();
+        var data = new DateTime(2026, 3, 10);
+        SpesaCassa spesa = await _orchestrator.ExecuteAsync(Input(data, 250m), utente.Id);
+        decimal speseGiornalierePrima = RegistroAllaData(data).SpeseGiornaliere;
+
+        await _orchestrator.RiordinaAsync([new RigaOrdineInput { Tipo = "SPESA", Id = spesa.Id, Ordine = 5 }]);
+
+        _dbContext.ChangeTracker.Clear();
+        RegistroAllaData(data).SpeseGiornaliere.Should().Be(speseGiornalierePrima);
+        _dbContext.SpeseCassa.Single(s => s.Id == spesa.Id).Importo.Should().Be(250m);
+    }
+
+    [Fact]
+    public async Task Riordina_RigaInesistente_LanciaEdEEsclusaDallOperazione()
+    {
+        Utente utente = SeedUtente();
+        SpesaCassa spesa = await _orchestrator.ExecuteAsync(Input(new DateTime(2026, 3, 10), 250m), utente.Id);
+
+        Func<Task> act = () => _orchestrator.RiordinaAsync(
+        [
+            new RigaOrdineInput { Tipo = "SPESA", Id = spesa.Id, Ordine = 1 },
+            new RigaOrdineInput { Tipo = "SPESA", Id = 9999, Ordine = 2 },
+        ]);
+
+        await act.Should().ThrowAsync<ExecutionError>().WithMessage("*9999*");
+        _dbContext.ChangeTracker.Clear();
+        _dbContext.SpeseCassa.Single(s => s.Id == spesa.Id).Ordine.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Riordina_TipoNonValido_LanciaExecutionError()
+    {
+        Func<Task> act = () => _orchestrator.RiordinaAsync([new RigaOrdineInput { Tipo = "ALTRO", Id = 1, Ordine = 1 }]);
+
+        await act.Should().ThrowAsync<ExecutionError>().WithMessage("*Tipo di riga non valido*");
+    }
+
+    [Fact]
+    public async Task Riordina_MeseChiuso_LanciaExecutionError()
+    {
+        Utente utente = SeedUtente();
+        SpesaCassa spesa = await _orchestrator.ExecuteAsync(Input(new DateTime(2026, 4, 15), 80m), utente.Id);
+        _dbContext.ChiusureMensili.Add(new ChiusuraMensile { Anno = 2026, Mese = 4, Stato = "CHIUSA" });
+        await _dbContext.SaveChangesAsync();
+
+        Func<Task> act = () => _orchestrator.RiordinaAsync([new RigaOrdineInput { Tipo = "SPESA", Id = spesa.Id, Ordine = 1 }]);
+
+        await act.Should().ThrowAsync<ExecutionError>().WithMessage("*chiuso*");
+    }
+
+    [Fact]
+    public async Task Create_ConOrdineDelChiamante_LoConserva()
+    {
+        Utente utente = SeedUtente();
+        SpesaCassaMutateInput input = Input(new DateTime(2026, 3, 10), 40m);
+        input.Ordine = 3;
+
+        SpesaCassa spesa = await _orchestrator.ExecuteAsync(input, utente.Id);
+
+        spesa.Ordine.Should().Be(3);
+    }
+
+    #endregion
 
     [Fact]
     public async Task Create_RegistroRiconciliato_LanciaExecutionError()

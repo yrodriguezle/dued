@@ -22,6 +22,20 @@ public class SpesaCassa
     /// </summary>
     public string? Note { get; set; }
 
+    /// <summary>
+    /// Istante di inserimento, al millisecondo. Insieme a <see cref="PagamentoFornitore.CreatedAt"/>
+    /// dà alla griglia spese della chiusura mensile un ordine di inserimento unico fra le due
+    /// tabelle: gli id sono sequenze indipendenti e non si possono confrontare.
+    /// </summary>
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// Posizione scelta dall'utente fra le righe dello stesso giorno nella griglia spese fisse
+    /// (trascinamento). Null = mai riordinata: la riga segue l'ordine di inserimento
+    /// (<see cref="CreatedAt"/>) dopo quelle riordinate.
+    /// </summary>
+    public int? Ordine { get; set; }
+
     // Navigation properties
     public RegistroCassa RegistroCassa { get; set; } = null!;
 }
