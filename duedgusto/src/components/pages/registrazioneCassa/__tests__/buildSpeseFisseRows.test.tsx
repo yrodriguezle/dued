@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import buildSpeseFisseRows, { CATEGORIE_FISSE } from "../buildSpeseFisseRows";
 
-type SpesaMock = { id: number; descrizione: string; importo: number; categoria: CategoriaSpesa; note?: string | null };
+type SpesaMock = { id: number; descrizione: string; importo: number; categoria: CategoriaSpesa; note?: string | null; createdAt?: string; ordine?: number | null };
 type PagamentoMock = {
   pagamentoId: number;
   fatturaId: number | null;
@@ -12,6 +12,8 @@ type PagamentoMock = {
   categoria: CategoriaSpesa | null;
   descrizione?: string | null;
   note: string | null;
+  createdAt?: string;
+  ordine?: number | null;
 };
 
 function registro(
@@ -183,5 +185,71 @@ describe("buildSpeseFisseRows — causale e nota sono campi distinti", () => {
 
     expect(righe[0].description).toBe("Spesa fissa tracciata (Utenze)");
     expect(righe[0].note).toBeUndefined();
+  });
+
+  it("a parità di giorno segue l'ordine di inserimento, anche fra spese e pagamenti", () => {
+    const righe = buildSpeseFisseRows([
+      registro("2026-05-31", {
+        spese: [
+          spesa({ id: 2, descrizione: "Luce", createdAt: "2026-05-31T10:00:02.000Z" }),
+        ],
+        pagamenti: [
+          pagamento({ pagamentoId: 9, descrizione: "Stipendio A", createdAt: "2026-05-31T10:00:01.000Z" }),
+          pagamento({ pagamentoId: 1, descrizione: "Stipendio B", createdAt: "2026-05-31T10:00:03.000Z" }),
+        ],
+      }),
+    ]);
+
+    // Prima il pagamento inserito per primo, poi la spesa, poi l'ultimo pagamento:
+    // né il tipo di riga né l'id (tabelle diverse) decidono la posizione.
+    expect(righe.map((r) => r.description)).toEqual(["Stipendio A", "Luce", "Stipendio B"]);
+  });
+
+  it("righe inserite nello stesso secondo si ordinano ai millisecondi", () => {
+    const righe = buildSpeseFisseRows([
+      registro("2026-05-31", {
+        spese: [spesa({ id: 1, descrizione: "Seconda", createdAt: "2026-05-31T10:00:00.900Z" })],
+        pagamenti: [pagamento({ pagamentoId: 5, descrizione: "Prima", createdAt: "2026-05-31T10:00:00.100Z" })],
+      }),
+    ]);
+    expect(righe.map((r) => r.description)).toEqual(["Prima", "Seconda"]);
+  });
+
+  it("il giorno resta il primo criterio, prima dell'istante di inserimento", () => {
+    const righe = buildSpeseFisseRows([
+      registro("2026-05-31", { registroId: 2, spese: [spesa({ id: 1, descrizione: "Fine mese", createdAt: "2026-05-01T08:00:00.000Z" })] }),
+      registro("2026-05-02", { registroId: 1, spese: [spesa({ id: 2, descrizione: "Inizio mese", createdAt: "2026-05-20T08:00:00.000Z" })] }),
+    ]);
+    expect(righe.map((r) => r.description)).toEqual(["Inizio mese", "Fine mese"]);
+  });
+
+  it("la posizione scelta trascinando batte l'ordine di inserimento; le righe mai riordinate vengono dopo", () => {
+    const righe = buildSpeseFisseRows([
+      registro("2026-05-31", {
+        spese: [
+          spesa({ id: 1, descrizione: "Vecchia, riordinata terza", createdAt: "2026-05-31T08:00:00.000Z", ordine: 3 }),
+          spesa({ id: 2, descrizione: "Nuova mai riordinata", createdAt: "2026-05-31T12:00:00.000Z", ordine: null }),
+        ],
+        pagamenti: [
+          pagamento({ pagamentoId: 7, descrizione: "Tracciata, riordinata prima", createdAt: "2026-05-31T11:00:00.000Z", ordine: 1 }),
+          pagamento({ pagamentoId: 8, descrizione: "Tracciata, riordinata seconda", createdAt: "2026-05-31T09:00:00.000Z", ordine: 2 }),
+        ],
+      }),
+    ]);
+
+    expect(righe.map((r) => r.description)).toEqual([
+      "Tracciata, riordinata prima",
+      "Tracciata, riordinata seconda",
+      "Vecchia, riordinata terza",
+      "Nuova mai riordinata",
+    ]);
+  });
+
+  it("l'ordine scelto vale dentro il giorno: il giorno resta il primo criterio", () => {
+    const righe = buildSpeseFisseRows([
+      registro("2026-05-31", { registroId: 2, spese: [spesa({ id: 1, descrizione: "Fine mese", ordine: 1 })] }),
+      registro("2026-05-02", { registroId: 1, spese: [spesa({ id: 2, descrizione: "Inizio mese", ordine: 9 })] }),
+    ]);
+    expect(righe.map((r) => r.description)).toEqual(["Inizio mese", "Fine mese"]);
   });
 });

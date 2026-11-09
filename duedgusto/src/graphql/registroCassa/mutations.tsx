@@ -149,6 +149,10 @@ export interface SpesaCassaMutateInput {
   note?: string | null;
   importo: number;
   categoria: CategoriaSpesa;
+  /** Solo in creazione: conserva la posizione di inserimento di una riga ricreata. */
+  createdAt?: string;
+  /** Solo in creazione: conserva la posizione scelta trascinando. */
+  ordine?: number | null;
 }
 
 interface MutateSpesaCassaData {
@@ -197,6 +201,32 @@ export const mutationEliminaSpesaCassa: TypedDocumentNode<EliminaSpesaCassaData,
   mutation EliminaSpesaCassa($spesaId: Int!) {
     gestioneCassa {
       eliminaSpesaCassa(spesaId: $spesaId)
+    }
+  }
+`;
+
+// ============ MUTATION: ordine delle righe della griglia spese fisse ============
+export interface RigaOrdineInput {
+  /** SPESA = SpesaCassa, PAGAMENTO = PagamentoFornitore: gli id sono di tabelle diverse. */
+  tipo: "SPESA" | "PAGAMENTO";
+  id: number;
+  ordine: number;
+}
+
+interface RiordinaSpeseFisseData {
+  gestioneCassa: {
+    riordinaSpeseFisse: boolean;
+  };
+}
+
+interface RiordinaSpeseFisseValues {
+  righe: RigaOrdineInput[];
+}
+
+export const mutationRiordinaSpeseFisse: TypedDocumentNode<RiordinaSpeseFisseData, RiordinaSpeseFisseValues> = gql`
+  mutation RiordinaSpeseFisse($righe: [RigaOrdineInput!]!) {
+    gestioneCassa {
+      riordinaSpeseFisse(righe: $righe)
     }
   }
 `;

@@ -28,4 +28,8 @@ type PagamentoFornitoreInput = {
    * documento): è ciò che le distingue dai pagamenti documentali, dove resta null.
    */
   categoria?: CategoriaSpesa;
+  /** Solo in creazione: conserva la posizione di inserimento di una riga ricreata. */
+  createdAt?: string;
+  /** Solo in creazione: conserva la posizione scelta trascinando. */
+  ordine?: number | null;
 };

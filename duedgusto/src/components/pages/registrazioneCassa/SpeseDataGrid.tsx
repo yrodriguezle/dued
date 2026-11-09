@@ -2,6 +2,7 @@
 import { useMemo, useState, forwardRef, useCallback, useEffect, useRef, memo } from "react";
 import { Box, Typography, useMediaQuery, useTheme } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import SaveIcon from "@mui/icons-material/Save";
 import RemoveIcon from "@mui/icons-material/Remove";
 import PaymentIcon from "@mui/icons-material/Payment";
 import EditIcon from "@mui/icons-material/Edit";
@@ -12,7 +13,7 @@ import Datagrid from "../../common/datagrid/Datagrid";
 import { withDatagridStatus } from "../../common/datagrid/datagridUtils";
 import { DatagridStatus } from "../../../common/globals/constants";
 import { DatagridColDef, ValidationError, DatagridCellValueChangedEvent, DatagridData } from "../../common/datagrid/@types/Datagrid";
-import { GridReadyEvent, RowDoubleClickedEvent, ICellRendererParams } from "ag-grid-community";
+import { GridReadyEvent, RowDoubleClickedEvent, RowDragEndEvent, RowDragEnterEvent, ICellRendererParams } from "ag-grid-community";
 import formatCurrency from "../../../common/bones/formatCurrency";
 import PagamentoFornitoreDialog from "./PagamentoFornitoreDialog";
 import OverflowToolbar, { OverflowAction } from "../../common/toolbar/OverflowToolbar";
@@ -32,10 +33,16 @@ export interface SpeseGridRow extends Spese {
   registroCassaId?: number | null;
   /** Annotazione libera sulla riga, distinta dalla causale. */
   note?: string;
+  /** Istante di inserimento della riga sul server. Ordina il giorno; passato alla ricreazione per non far saltare la riga. */
+  createdAt?: string;
+  /** Posizione scelta trascinando le righe dello stesso giorno; null = mai riordinata. */
+  ordine?: number | null;
 }
 
 // Colonne opzionali abilitabili dal chiamante.
 export interface SpeseDataGridColumns {
+  /** Mostra la colonna "Tipo" (RIC/FA/DDT). Default true; in chiusura mensile è sempre vuota e si nasconde. */
+  showTipo?: boolean;
   /** Mostra la colonna "Data" (giorno di competenza). */
   showData?: boolean;
   /** Mostra la colonna "Categoria" con editor a tendina. */
@@ -71,6 +78,11 @@ export interface SpeseDataGridPersistence {
   createSupplierPayment: (row: SpeseGridRow) => Promise<number | null | void>;
   updateSupplierPayment: (row: SpeseGridRow) => Promise<void>;
   deleteSupplierPayment: (row: SpeseGridRow) => Promise<void>;
+  /**
+   * Salva l'ordine scelto trascinando. Riceve TUTTE le righe già sul server, nell'ordine
+   * mostrato dalla griglia. Se assente, le righe non sono trascinabili.
+   */
+  reorderExpenses?: (rows: SpeseGridRow[]) => Promise<void>;
 }
 
 interface SpeseDataGridProps {
@@ -79,6 +91,8 @@ interface SpeseDataGridProps {
   // Data del registro/mese (YYYY-MM-DD): default per nuove righe e calcolo Giornale.
   date?: string;
   columns?: SpeseDataGridColumns;
+  /** Altezza CSS della griglia (default 300px). */
+  gridHeight?: string;
   persistence?: SpeseDataGridPersistence;
   /**
    * Predicato che marca una riga pagamento come non modificabile in QUESTA griglia.
@@ -88,6 +102,15 @@ interface SpeseDataGridProps {
    * un discriminante utilizzabile.
    */
   isPaymentReadOnly?: (row: SpeseGridRow) => boolean;
+  /**
+   * Con `persistence`, sospende il salvataggio per-riga: modifiche, nuove righe e
+   * cancellazioni restano in sospeso finché l'utente non preme «Salva». Le callback di
+   * `persistence` devono lanciare in caso di errore e NON ricaricare i dati da sole:
+   * il riallineamento avviene una volta sola, in `onSaved`, a salvataggio completato.
+   */
+  manualSave?: boolean;
+  /** Chiamata dopo un salvataggio manuale riuscito (tipicamente il refetch). */
+  onSaved?: () => unknown;
   onCellChange?: () => void;
   onExpensesChange?: (totalAmount: number, receiptAmount: number) => void;
 }
@@ -120,12 +143,24 @@ function sumSpese(rows: SpeseGridRow[]) {
   );
 }
 
+// Righe nell'ordine in cui la griglia le mostra (senza ordinamento per colonna attivo).
+function leggiRighe(api: GridReadyEvent<DatagridData<SpeseGridRow>>["api"]) {
+  const rows: DatagridData<SpeseGridRow>[] = [];
+  api.forEachNode((node) => {
+    if (node.data) rows.push(node.data);
+  });
+  return rows;
+}
+
 const SpeseDataGrid = memo(
   forwardRef<GridReadyEvent<DatagridData<SpeseGridRow>>, SpeseDataGridProps>(
-    ({ initialExpenses, isLocked, date, columns, persistence, isPaymentReadOnly, onCellChange, onExpensesChange }, ref) => {
+    ({ initialExpenses, isLocked, date, columns, gridHeight = "300px", persistence, isPaymentReadOnly, manualSave, onSaved, onCellChange, onExpensesChange }, ref) => {
       const muiTheme = useTheme();
       const isSmallScreen = useMediaQuery(muiTheme.breakpoints.down("sm"));
       const isMobile = isSmallScreen && navigator.maxTouchPoints > 0;
+      // Su telefono le colonne flex non devono comprimersi fino a rendere illeggibili gli
+      // importi: sotto questa larghezza minima la griglia scorre in orizzontale.
+      const minWidthFor = useCallback((desktop: number, phone: number) => (isSmallScreen ? phone : desktop), [isSmallScreen]);
 
       // Costo giornale da Impostazioni. `?? undefined` normalizza il null delle
       // impostazioni non ancora caricate, così il fallback scatta correttamente.
@@ -133,6 +168,9 @@ const SpeseDataGrid = memo(
       const giornaleImportoFeriale = useStore((state) => state.settings?.giornaleImportoFeriale ?? undefined);
 
       const hasPersistence = !!persistence;
+      // Salvataggio manuale: le modifiche si accumulano e partono solo dal pulsante «Salva».
+      const isManualSave = hasPersistence && !!manualSave;
+      const showTipo = columns?.showTipo ?? true;
       const showData = !!columns?.showData;
       const showCategoria = !!columns?.showCategoria;
       const categoriaOptions = columns?.categoriaOptions ?? DEFAULT_CATEGORIE;
@@ -142,6 +180,8 @@ const SpeseDataGrid = memo(
       const showMetodoPagamento = !!columns?.showMetodoPagamento;
       const showNote = !!columns?.showNote;
       const defaultCategoria = columns?.defaultCategoria ?? "Altro";
+      // Trascinabili solo col salvataggio manuale: l'ordine è una modifica da confermare con «Salva».
+      const canReorder = isManualSave && !!persistence?.reorderExpenses && !isLocked;
 
       const [validationErrors, setValidationErrors] = useState<Map<number, ValidationError[]>>(new Map());
       const [dialogOpen, setDialogOpen] = useState(false);
@@ -152,6 +192,20 @@ const SpeseDataGrid = memo(
       // Righe con create in corso: evita doppio insert se l'utente committa più celle
       // prima che il server risponda con l'id.
       const creatingRowsRef = useRef<Set<SpeseGridRow>>(new Set());
+      // Salvataggio manuale: righe modificate/nuove e righe salvate da eliminare, in attesa di «Salva».
+      const dirtyRowsRef = useRef<Set<DatagridData<SpeseGridRow>>>(new Set());
+      const deletedRowsRef = useRef<Set<DatagridData<SpeseGridRow>>>(new Set());
+      // Il trascinamento è un'unica modifica in sospeso, qualunque sia il numero di spostamenti.
+      const orderDirtyRef = useRef(false);
+      // Ordine delle righe all'inizio del trascinamento: serve a ripristinarlo se la posizione non è valida.
+      const dragStartOrderRef = useRef<DatagridData<SpeseGridRow>[] | null>(null);
+      const [pendingCount, setPendingCount] = useState(0);
+      const [isSaving, setIsSaving] = useState(false);
+      const [saveError, setSaveError] = useState<string | null>(null);
+
+      const syncPendingCount = useCallback(() => {
+        setPendingCount(dirtyRowsRef.current.size + deletedRowsRef.current.size + (orderDirtyRef.current ? 1 : 0));
+      }, []);
 
       // La modificabilità di un pagamento dipende dal contesto: la decide il chiamante.
       const isReadOnlyPayment = useCallback(
@@ -255,6 +309,25 @@ const SpeseDataGrid = memo(
 
       const items = useMemo(() => initialExpenses || [], [initialExpenses]);
 
+      // Nuovi dati dal server = la griglia riparte da lì: le righe in sospeso non esistono più.
+      useEffect(() => {
+        dirtyRowsRef.current.clear();
+        deletedRowsRef.current.clear();
+        orderDirtyRef.current = false;
+        setPendingCount(0);
+      }, [items]);
+
+      // Con modifiche non salvate, chiudere o ricaricare la scheda chiede conferma.
+      useEffect(() => {
+        if (pendingCount === 0) return;
+        const avvisa = (e: BeforeUnloadEvent) => {
+          e.preventDefault();
+          e.returnValue = "";
+        };
+        window.addEventListener("beforeunload", avvisa);
+        return () => window.removeEventListener("beforeunload", avvisa);
+      }, [pendingCount]);
+
       // Cambiando giorno la griglia NON si rimonta (Apollo serve dalla cache quando si
       // torna su un giorno già visitato, quindi il parent non passa dallo stato di
       // caricamento): senza questo effetto onGridReady non riparte e il riepilogo
@@ -273,7 +346,7 @@ const SpeseDataGrid = memo(
             headerName: "Data",
             field: "data",
             width: 120,
-            minWidth: 110,
+            minWidth: minWidthFor(110, 120),
             // La "Data" è editabile anche sui pagamenti fornitore senza registro
             // (registroCassaId == null), via il callback di persistenza per-riga.
             // I pagamenti origine-cassa (registroCassaId != null) restano read-only.
@@ -283,44 +356,46 @@ const SpeseDataGrid = memo(
           });
         }
 
-        defs.push({
-          headerName: "Tipo",
-          field: "documentType",
-          width: 120,
-          minWidth: 100,
-          editable: false,
-          valueGetter: (params) => {
-            if (params.data?.isPagamentoFornitore) {
-              const senzaDocumento = params.data.fatturaId == null && params.data.ddtId == null;
-              // Le spese fisse tracciate non hanno documento: etichettarle "DDT" mentirebbe.
-              if (senzaDocumento) return showMetodoPagamento ? "" : "DDT";
-              return params.data.documentType === "FA" ? "FA" : "DDT";
-            }
-            // In chiusura la categoria copre la classificazione → nessun "RIC".
-            return showCategoria ? "" : "RIC";
-          },
-          cellRenderer: (params: ICellRendererParams<DatagridData<SpeseGridRow>>) => {
-            const label = params.valueFormatted ?? params.value;
-            const rowData = params.data;
-            if (!showPagamentoFornitore || !rowData?.isPagamentoFornitore || isLocked || isReadOnlyPayment(rowData)) return label;
-            return (
-              <Box
-                sx={{ display: "flex", alignItems: "center", gap: 0.5, cursor: "pointer" }}
-                onClick={() => openEditDialog(rowData)}
-              >
-                <EditIcon sx={{ fontSize: 14, color: "primary.main" }} />
-                {label}
-              </Box>
-            );
-          },
-        });
+        if (showTipo) {
+          defs.push({
+            headerName: "Tipo",
+            field: "documentType",
+            width: 120,
+            minWidth: 100,
+            editable: false,
+            valueGetter: (params) => {
+              if (params.data?.isPagamentoFornitore) {
+                const senzaDocumento = params.data.fatturaId == null && params.data.ddtId == null;
+                // Le spese fisse tracciate non hanno documento: etichettarle "DDT" mentirebbe.
+                if (senzaDocumento) return showMetodoPagamento ? "" : "DDT";
+                return params.data.documentType === "FA" ? "FA" : "DDT";
+              }
+              // In chiusura la categoria copre la classificazione → nessun "RIC".
+              return showCategoria ? "" : "RIC";
+            },
+            cellRenderer: (params: ICellRendererParams<DatagridData<SpeseGridRow>>) => {
+              const label = params.valueFormatted ?? params.value;
+              const rowData = params.data;
+              if (!showPagamentoFornitore || !rowData?.isPagamentoFornitore || isLocked || isReadOnlyPayment(rowData)) return label;
+              return (
+                <Box
+                  sx={{ display: "flex", alignItems: "center", gap: 0.5, cursor: "pointer" }}
+                  onClick={() => openEditDialog(rowData)}
+                >
+                  <EditIcon sx={{ fontSize: 14, color: "primary.main" }} />
+                  {label}
+                </Box>
+              );
+            },
+          });
+        }
 
         if (showCategoria) {
           defs.push({
             headerName: "Categoria",
             field: "categoria",
             width: 140,
-            minWidth: 110,
+            minWidth: minWidthFor(110, 130),
             editable: (params) =>
               !isLocked
               && (showMetodoPagamento
@@ -342,7 +417,7 @@ const SpeseDataGrid = memo(
             headerName: "Pagamento",
             field: "paymentMethod",
             width: 130,
-            minWidth: 110,
+            minWidth: minWidthFor(110, 130),
             // Decide la destinazione della riga: Contanti → SpesaCassa, altro →
             // PagamentoFornitore senza documento. Sui pagamenti già legati a una fattura
             // o a un DDT il metodo si cambia dal documento, non da qui.
@@ -357,7 +432,7 @@ const SpeseDataGrid = memo(
           headerName: "Causale",
           field: "description",
           flex: 2,
-          minWidth: 80,
+          minWidth: minWidthFor(80, 160),
           // In chiusura anche le spese fisse tracciate sono righe libere senza documento:
           // la causale resta editabile finché il pagamento non è read-only.
           editable: (params) =>
@@ -372,7 +447,7 @@ const SpeseDataGrid = memo(
             headerName: "Note",
             field: "note",
             flex: 2,
-            minWidth: 100,
+            minWidth: minWidthFor(100, 160),
             // Stessa regola della Causale: e un'annotazione della riga, non del documento.
             editable: (params) =>
               !isLocked
@@ -386,7 +461,9 @@ const SpeseDataGrid = memo(
           headerName: "Importo",
           field: "amount",
           flex: 1,
-          minWidth: 70,
+          minWidth: minWidthFor(70, 110),
+          // Su telefono la griglia scorre in orizzontale: l'importo resta sempre in vista a destra.
+          pinned: isSmallScreen ? "right" : undefined,
           editable: (params) =>
             !isLocked
             && (showMetodoPagamento
@@ -402,9 +479,12 @@ const SpeseDataGrid = memo(
           valueFormatter: (params) => formatCurrency(params.value),
         });
 
+        // La maniglia di trascinamento sta sulla prima colonna.
+        if (canReorder && defs.length > 0) defs[0] = { ...defs[0], rowDrag: true };
+
         return defs;
       }, [isLocked, openEditDialog, showData, showCategoria, categoriaOptions, isReadOnlyPayment,
-          showMetodoPagamento, showNote, showPagamentoFornitore]);
+          showMetodoPagamento, showNote, showPagamentoFornitore, showTipo, canReorder, minWidthFor, isSmallScreen]);
 
       const handleCellValueChanged = useCallback(
         (event: DatagridCellValueChangedEvent<SpeseGridRow>) => {
@@ -413,8 +493,14 @@ const SpeseDataGrid = memo(
               const newAmount = parseFloat(String(event.newValue)) || 0;
               event.data.amount = Math.max(0, newAmount);
             }
-            // Persistenza per-riga.
-            if (persistence) {
+            if (isManualSave) {
+              // Salvataggio manuale: la riga resta in sospeso fino a «Salva».
+              if (!isReadOnlyPayment(event.data)) {
+                dirtyRowsRef.current.add(event.data);
+                syncPendingCount();
+              }
+            } else if (persistence) {
+              // Persistenza per-riga.
               if (showMetodoPagamento) {
                 // Con la colonna Pagamento la riga può cambiare natura (contanti ⇄ tracciata):
                 // la griglia non prova a indovinare la mutation, delega al chiamante che
@@ -433,7 +519,45 @@ const SpeseDataGrid = memo(
           onCellChange?.();
           reportExpenses(event.api);
         },
-        [isReadOnlyPayment, onCellChange, persistence, persistExpenseRow, reportExpenses, showMetodoPagamento]
+        [isManualSave, isReadOnlyPayment, onCellChange, persistence, persistExpenseRow, reportExpenses, showMetodoPagamento, syncPendingCount]
+      );
+
+      const handleRowDragEnter = useCallback((event: RowDragEnterEvent<DatagridData<SpeseGridRow>>) => {
+        dragStartOrderRef.current = leggiRighe(event.api);
+      }, []);
+
+      // L'ordine vale dentro il giorno: la riga trascinata deve restare fra righe dello stesso
+      // giorno (o ai margini dei giorni vicini). Altrimenti tornerebbe al suo posto al salvataggio
+      // e il trascinamento sembrerebbe ignorato: meglio rifiutarlo subito.
+      const handleRowDragEnd = useCallback(
+        (event: RowDragEndEvent<DatagridData<SpeseGridRow>>) => {
+          const prima = dragStartOrderRef.current;
+          dragStartOrderRef.current = null;
+          const dopo = leggiRighe(event.api);
+          const mossa = event.node.data;
+          if (!prima || !mossa) return;
+
+          const cambiato = dopo.some((row, i) => row !== prima[i]);
+          if (!cambiato) return;
+
+          const idx = dopo.indexOf(mossa);
+          const precedente = idx > 0 ? dopo[idx - 1] : undefined;
+          const successiva = idx < dopo.length - 1 ? dopo[idx + 1] : undefined;
+          const giorno = (mossa.data ?? "").split("T")[0];
+          const valida =
+            (!precedente || (precedente.data ?? "").split("T")[0] <= giorno)
+            && (!successiva || giorno <= (successiva.data ?? "").split("T")[0]);
+
+          if (!valida) {
+            event.api.setGridOption("rowData", prima);
+            return;
+          }
+
+          orderDirtyRef.current = true;
+          syncPendingCount();
+          onCellChange?.();
+        },
+        [onCellChange, syncPendingCount]
       );
 
       const handleGridReady = useCallback(
@@ -490,7 +614,17 @@ const SpeseDataGrid = memo(
         const selected = gridEventRef.current.api.getSelectedRows() as DatagridData<SpeseGridRow>[];
         if (selected.length === 0) return;
 
-        if (persistence) {
+        if (isManualSave) {
+          // Salvataggio manuale: le righe già sul server si eliminano con «Salva»; quelle
+          // nuove spariscono subito. I pagamenti read-only restano dove sono.
+          const removable = selected.filter((row) => !isReadOnlyPayment(row));
+          removable.forEach((row) => {
+            dirtyRowsRef.current.delete(row);
+            if ((row.spesaId ?? 0) > 0 || (row.pagamentoId ?? 0) > 0) deletedRowsRef.current.add(row);
+          });
+          gridEventRef.current.api.applyTransaction({ remove: removable });
+          syncPendingCount();
+        } else if (persistence) {
           // Persistenza per-riga: elimina lato server le righe già salvate; le righe
           // nuove non salvate vengono solo rimosse localmente. I pagamenti origine
           // cassa (read-only) sono ignorati.
@@ -513,7 +647,67 @@ const SpeseDataGrid = memo(
         }
         reportExpenses(gridEventRef.current.api);
         onCellChange?.();
-      }, [isReadOnlyPayment, onCellChange, persistence, reportExpenses]);
+      }, [isManualSave, isReadOnlyPayment, onCellChange, persistence, reportExpenses, syncPendingCount]);
+
+      // Salvataggio manuale: applica in sequenza le righe in sospeso, poi le cancellazioni.
+      // Al primo errore si ferma e conserva ciò che non è ancora partito: niente refetch,
+      // che azzererebbe le modifiche non salvate.
+      const handleSave = useCallback(async () => {
+        if (!persistence || isSaving) return;
+        const api = gridEventRef.current?.api;
+        // Chiude l'eventuale cella in editing: il suo valore entra fra le righe in sospeso.
+        api?.stopEditing();
+
+        const isSalvata = (row: SpeseGridRow) => (row.spesaId ?? 0) > 0 || (row.pagamentoId ?? 0) > 0;
+        const inSospeso = Array.from(dirtyRowsRef.current).filter((row) => !deletedRowsRef.current.has(row));
+        // Riga nuova mai compilata: non c'è nulla da salvare, la si scarta.
+        const vuote = inSospeso.filter((row) => !isSalvata(row) && !row.description?.trim() && !(row.amount > 0));
+        const daSalvare = inSospeso.filter((row) => !vuote.includes(row));
+
+        if (daSalvare.some((row) => !speseSchema.safeParse({ description: row.description, amount: row.amount }).success)) {
+          setSaveError("Compila la causale di ogni riga (e un importo valido) prima di salvare.");
+          return;
+        }
+
+        if (vuote.length > 0) {
+          vuote.forEach((row) => dirtyRowsRef.current.delete(row));
+          api?.applyTransaction({ remove: vuote as DatagridData<SpeseGridRow>[] });
+          syncPendingCount();
+        }
+
+        setIsSaving(true);
+        setSaveError(null);
+        try {
+          await daSalvare.reduce<Promise<void>>(async (prev, row) => {
+            await prev;
+            await persistExpenseRow(row);
+            dirtyRowsRef.current.delete(row);
+            syncPendingCount();
+          }, Promise.resolve());
+
+          await Array.from(deletedRowsRef.current).reduce<Promise<void>>(async (prev, row) => {
+            await prev;
+            if (row.isPagamentoFornitore) await persistence.deleteSupplierPayment(row);
+            else await persistence.deleteExpense(row);
+            deletedRowsRef.current.delete(row);
+            syncPendingCount();
+          }, Promise.resolve());
+
+          if (orderDirtyRef.current && persistence.reorderExpenses && api) {
+            // Le righe nuove hanno ormai un id: l'ordine si salva dopo, su tutte quelle sul server.
+            const righeSalvate = leggiRighe(api).filter(isSalvata);
+            await persistence.reorderExpenses(righeSalvate);
+            orderDirtyRef.current = false;
+            syncPendingCount();
+          }
+
+          await onSaved?.();
+        } catch (err: unknown) {
+          setSaveError(err instanceof Error && err.message ? err.message : "Errore nel salvataggio delle spese.");
+        } finally {
+          setIsSaving(false);
+        }
+      }, [isSaving, onSaved, persistExpenseRow, persistence, syncPendingCount]);
 
       // Spesa "GIORNALE": importo dalle impostazioni, distinto tra sabato e altri giorni. Solo cassa.
       const handleAddGiornale = useCallback(() => {
@@ -531,9 +725,19 @@ const SpeseDataGrid = memo(
 
       const toolbarActions = useMemo<OverflowAction[]>(() => {
         const actions: OverflowAction[] = [
-          { key: "add", label: "Nuova riga", icon: <AddIcon fontSize="small" />, onClick: handleAddRow, disabled: isLocked || isEditing },
-          { key: "delete", label: "Cancella riga", icon: <RemoveIcon fontSize="small" />, onClick: handleDeleteSelected, disabled: isLocked || selectedCount === 0 },
+          { key: "add", label: "Nuova riga", icon: <AddIcon fontSize="small" />, onClick: handleAddRow, disabled: isLocked || isEditing || isSaving },
+          { key: "delete", label: "Cancella riga", icon: <RemoveIcon fontSize="small" />, onClick: handleDeleteSelected, disabled: isLocked || isSaving || selectedCount === 0 },
         ];
+        if (isManualSave) {
+          actions.push({
+            key: "save",
+            label: pendingCount > 0 ? `Salva (${pendingCount})` : "Salva",
+            icon: <SaveIcon fontSize="small" />,
+            onClick: () => void handleSave(),
+            // Resta attivo durante l'editing: premerlo chiude la cella e ne raccoglie il valore.
+            disabled: isLocked || isSaving || (pendingCount === 0 && !isEditing),
+          });
+        }
         if (showGiornale) {
           actions.push({ key: "giornale", label: "Giornale", icon: <MenuBookIcon fontSize="small" />, onClick: handleAddGiornale, disabled: isLocked || !date });
         }
@@ -541,7 +745,7 @@ const SpeseDataGrid = memo(
           actions.push({ key: "fornitore", label: "Pagamento fornitore", icon: <PaymentIcon fontSize="small" />, onClick: () => setDialogOpen(true), disabled: isLocked });
         }
         return actions;
-      }, [handleAddRow, handleDeleteSelected, handleAddGiornale, isLocked, isEditing, selectedCount, showGiornale, showPagamentoFornitore, date]);
+      }, [handleAddRow, handleDeleteSelected, handleAddGiornale, handleSave, isLocked, isEditing, isManualSave, isSaving, pendingCount, selectedCount, showGiornale, showPagamentoFornitore, date]);
 
       return (
         <Box>
@@ -577,7 +781,7 @@ const SpeseDataGrid = memo(
           >
             <Datagrid<SpeseGridRow>
               gridId="expenses"
-              height="300px"
+              height={gridHeight}
               items={items}
               columnDefs={columnDefs}
               readOnly={isLocked}
@@ -590,14 +794,38 @@ const SpeseDataGrid = memo(
               hideToolbar={true}
               validationSchema={speseSchema}
               onValidationErrors={setValidationErrors}
-              showRowNumbers={true}
+              showRowNumbers={!isSmallScreen}
               onCellValueChanged={handleCellValueChanged}
               onGridReady={handleGridReady}
               onRowDoubleClicked={handleRowDoubleClicked}
+              rowDragManaged={canReorder}
+              animateRows={canReorder}
+              onRowDragEnter={handleRowDragEnter}
+              onRowDragEnd={handleRowDragEnd}
               suppressRowHoverHighlight={false}
               defaultColDef={{ sortable: false, suppressMovable: true, resizable: true, minWidth: 50 }}
             />
           </Box>
+          {isManualSave && pendingCount > 0 && !saveError && (
+            <Typography
+              color="warning.main"
+              variant="caption"
+              display="block"
+              sx={{ mt: 1 }}
+            >
+              Modifiche non salvate: premi «Salva» per confermarle.
+            </Typography>
+          )}
+          {saveError && (
+            <Typography
+              color="error"
+              variant="caption"
+              display="block"
+              sx={{ mt: 1 }}
+            >
+              {saveError} Le modifiche non ancora salvate restano in griglia: correggi e premi «Salva» di nuovo.
+            </Typography>
+          )}
           {validationErrors.size > 0 && (
             <Box sx={{ mt: 1 }}>
               {Array.from(validationErrors.entries()).map(([rowIndex, errors]) => (

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 
 // ── Mock delle dipendenze (pattern ProfilePage.test.tsx: vi.mock dei moduli hook, NON MockedProvider) ──
 
@@ -170,8 +170,33 @@ function renderMonthlyClosureDetails(id = 5) {
 describe("MonthlyClosureDetails (smoke)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
     setupStore();
     setupQueries();
+  });
+
+  it("non mostra l'avviso sulle giornate chiuse ma non riconciliate (c'è un registro CLOSED)", () => {
+    renderMonthlyClosureDetails(5);
+    expect(screen.queryByText(/non ancora riconciliat/)).not.toBeInTheDocument();
+  });
+
+  it("il riepilogo dei registri è aperto di default e ricorda la scelta di chiuderlo", () => {
+    const { unmount } = renderMonthlyClosureDetails(5);
+    expect(screen.getByText("Data")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText("Comprimi registri giornalieri"));
+    expect(localStorage.getItem("chiusura-mensile-registri-espansi")).toBe("0");
+    unmount();
+
+    renderMonthlyClosureDetails(5);
+    expect(screen.getByLabelText("Espandi registri giornalieri")).toBeInTheDocument();
+    expect(screen.queryByText("Data")).not.toBeInTheDocument();
+  });
+
+  it("passa alla griglia spese un'altezza maggiore del default", () => {
+    renderMonthlyClosureDetails(5);
+    const calls = speseGridProps.mock.calls;
+    expect(calls[calls.length - 1][0].gridHeight).toBe("max(420px, 60vh)");
   });
 
   it("monta senza errori in modalità :id con chiusura BOZZA e mostra i KPI gestionali + la griglia spese", () => {
@@ -203,6 +228,11 @@ describe("MonthlyClosureDetails (smoke)", () => {
     const props = calls[calls.length - 1][0];
     expect(props.isLocked).toBe(false);
     expect(props.persistence).toBeDefined();
+    // Niente autosave: le righe si confermano col pulsante «Salva», che poi ricarica i dati.
+    expect(props.manualSave).toBe(true);
+    // Le righe sono trascinabili: la persistenza sa salvare l'ordine.
+    expect(typeof props.persistence.reorderExpenses).toBe("function");
+    expect(typeof props.onSaved).toBe("function");
     // Solo le categorie fisse: la minuta quotidiana resta sul registro giornaliero.
     expect(props.columns.categoriaOptions).toEqual(["Affitto", "Utenze", "Stipendi"]);
     // Il dialog fornitore è disattivato: pretende fornitore e documento, che una
@@ -210,6 +240,8 @@ describe("MonthlyClosureDetails (smoke)", () => {
     expect(props.columns.showPagamentoFornitore).toBe(false);
     expect(props.columns.showMetodoPagamento).toBe(true);
     expect(props.columns.showData).toBe(true);
+    // "Tipo" (RIC/FA/DDT) è sempre vuota in chiusura mensile: nascosta.
+    expect(props.columns.showTipo).toBe(false);
   });
 
   it("mette la griglia spese in sola lettura quando il mese è chiuso", () => {

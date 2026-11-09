@@ -42,6 +42,10 @@ type SpesaCassaRidotta = {
   importo: number;
   categoria: CategoriaSpesa;
   note: string | null;
+  /** Istante di inserimento (ms): ordina le righe del giorno insieme ai pagamenti. */
+  createdAt?: string;
+  /** Posizione scelta trascinando le righe; null = mai riordinata. */
+  ordine?: number | null;
 };
 
 /** Pagamento del giorno. `categoria` valorizzata = spesa fissa tracciata; null = documentale. */
@@ -56,6 +60,10 @@ type PagamentoFornitoreRidotto = {
   /** Causale della riga. Campo proprio; prima le spese fisse tracciate riusavano `note`. */
   descrizione: string | null;
   note: string | null;
+  /** Istante di inserimento (ms): ordina le righe del giorno insieme alle spese. */
+  createdAt?: string;
+  /** Posizione scelta trascinando le righe; null = mai riordinata. */
+  ordine?: number | null;
 };
 
 type RegistroCassaMensile = {

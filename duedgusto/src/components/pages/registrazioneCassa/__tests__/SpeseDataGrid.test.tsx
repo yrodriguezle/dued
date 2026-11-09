@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, act } from "@testing-library/react";
 
 // AG Grid Enterprise non gira in modo affidabile in jsdom: sostituiamo il Datagrid con uno
@@ -6,6 +6,9 @@ import { render, act } from "@testing-library/react";
 // di SpeseDataGrid (persistenza per-riga, editabilità colonna Data, cancellazione).
 type DatagridColDefLike = {
   field?: string;
+  minWidth?: number;
+  pinned?: string;
+  rowDrag?: boolean;
   editable?: boolean | ((params: { data?: unknown }) => boolean);
   valueGetter?: (params: { data?: unknown }) => unknown;
 };
@@ -14,6 +17,10 @@ type CapturedDatagridProps = {
   onGridReady?: (event: { api: unknown }) => void;
   onCellValueChanged?: (event: { data: unknown; colDef: { field?: string }; newValue?: unknown; api: unknown }) => void;
   additionalToolbarButtons?: React.ReactNode;
+  rowDragManaged?: boolean;
+  showRowNumbers?: boolean;
+  onRowDragEnter?: (event: { api: unknown }) => void;
+  onRowDragEnd?: (event: { api: unknown; node: { data: unknown } }) => void;
 };
 let capturedDatagridProps: CapturedDatagridProps | null = null;
 vi.mock("../../../common/datagrid/Datagrid", () => ({
@@ -24,7 +31,7 @@ vi.mock("../../../common/datagrid/Datagrid", () => ({
 }));
 
 // OverflowToolbar: cattura le azioni della toolbar (per invocare direttamente onClick).
-type ToolbarAction = { key: string; onClick: () => void };
+type ToolbarAction = { key: string; label: string; onClick: () => void };
 let capturedActions: ToolbarAction[] = [];
 vi.mock("../../../common/toolbar/OverflowToolbar", () => ({
   default: (props: { actions: ToolbarAction[] }) => {
@@ -57,6 +64,17 @@ function makeFakeApi(selectedRows: unknown[] = []) {
     ensureIndexVisible: vi.fn(),
     setFocusedCell: vi.fn(),
     startEditingCell: vi.fn(),
+    stopEditing: vi.fn(),
+    setGridOption: vi.fn(),
+  };
+}
+
+// API con righe vere: forEachNode le scorre nell'ordine corrente, così si simula il
+// trascinamento riordinando l'array fra onRowDragEnter e onRowDragEnd.
+function makeApiConRighe(rows: unknown[]) {
+  return {
+    ...makeFakeApi(),
+    forEachNode: vi.fn((cb: (node: { data: unknown }) => void) => rows.forEach((data) => cb({ data }))),
   };
 }
 
@@ -151,6 +169,86 @@ describe("SpeseDataGrid — modificabilità dei pagamenti decisa dal chiamante",
     });
 
     expect(persistence.updateSupplierPayment).not.toHaveBeenCalled();
+  });
+});
+
+describe("SpeseDataGrid — larghezza minima delle colonne su telefono", () => {
+  const originaleMatchMedia = window.matchMedia;
+  const minWidthDi = (field: string) => capturedDatagridProps!.columnDefs.find((c) => c.field === field)!.minWidth!;
+  const colonne = { showData: true, showCategoria: true, showNote: true, showMetodoPagamento: true };
+
+  const simulaTelefono = () => {
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: true,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
+  };
+
+  afterEach(() => {
+    window.matchMedia = originaleMatchMedia;
+  });
+
+  it("su desktop le larghezze minime restano quelle compatte", () => {
+    renderGrid({ columns: colonne });
+    expect(minWidthDi("amount")).toBe(70);
+    expect(minWidthDi("description")).toBe(80);
+  });
+
+  it("su desktop mostra la numerazione e non fissa l'importo", () => {
+    renderGrid({ columns: colonne });
+    expect(capturedDatagridProps!.showRowNumbers).toBe(true);
+    expect(capturedDatagridProps!.columnDefs.find((c) => c.field === "amount")!.pinned).toBeUndefined();
+  });
+
+  it("su telefono toglie la colonna di numerazione e fissa l'importo a destra", () => {
+    simulaTelefono();
+    renderGrid({ columns: colonne });
+    expect(capturedDatagridProps!.showRowNumbers).toBe(false);
+    expect(capturedDatagridProps!.columnDefs.find((c) => c.field === "amount")!.pinned).toBe("right");
+    // Le altre colonne scorrono: solo l'importo è fisso.
+    expect(capturedDatagridProps!.columnDefs.filter((c) => c.pinned).map((c) => c.field)).toEqual(["amount"]);
+  });
+
+  it("su telefono importo, causale e note hanno una larghezza minima leggibile (la griglia scorre in orizzontale)", () => {
+    simulaTelefono();
+    renderGrid({ columns: colonne });
+    expect(minWidthDi("amount")).toBeGreaterThanOrEqual(110);
+    expect(minWidthDi("description")).toBeGreaterThanOrEqual(160);
+    expect(minWidthDi("note")).toBeGreaterThanOrEqual(160);
+    expect(minWidthDi("data")).toBeGreaterThanOrEqual(120);
+    expect(minWidthDi("categoria")).toBeGreaterThanOrEqual(130);
+    expect(minWidthDi("paymentMethod")).toBeGreaterThanOrEqual(130);
+  });
+});
+
+describe("SpeseDataGrid — colonna Tipo", () => {
+  const campi = () => capturedDatagridProps!.columnDefs.map((c) => c.field);
+
+  it("di default c'è (registro cassa: RIC/FA/DDT)", () => {
+    renderGrid();
+    expect(campi()).toContain("documentType");
+  });
+
+  it("con showTipo=false non viene renderizzata", () => {
+    renderGrid({ columns: { showData: true, showCategoria: true, showTipo: false } });
+    expect(campi()).not.toContain("documentType");
+    expect(campi()).toContain("description");
+  });
+
+  it("senza la colonna Tipo la maniglia di trascinamento passa alla prima colonna rimasta", () => {
+    renderGrid({
+      persistence: { ...makePersistence(), reorderExpenses: vi.fn(async () => undefined) },
+      manualSave: true,
+      columns: { showData: true, showTipo: false },
+    });
+    expect(capturedDatagridProps!.columnDefs[0].field).toBe("data");
+    expect(capturedDatagridProps!.columnDefs[0].rowDrag).toBe(true);
   });
 });
 
@@ -265,6 +363,233 @@ describe("SpeseDataGrid — persistenza per-riga (CON persistence)", () => {
 
     expect(persistence.deleteSupplierPayment).toHaveBeenCalledTimes(1);
     expect(persistence.deleteSupplierPayment).toHaveBeenCalledWith(selected[0]);
+  });
+});
+
+describe("SpeseDataGrid — salvataggio manuale (manualSave)", () => {
+  const salva = () => capturedActions.find((a) => a.key === "save")!;
+
+  it("senza manualSave non c'è il pulsante Salva (non-regressione)", () => {
+    renderGrid({ persistence: makePersistence() });
+    expect(capturedActions.find((a) => a.key === "save")).toBeUndefined();
+  });
+
+  it("modificare o creare una riga NON chiama il server finché non si preme Salva", async () => {
+    const persistence = makePersistence();
+    renderGrid({ persistence, manualSave: true });
+    const api = makeFakeApi();
+    act(() => capturedDatagridProps!.onGridReady!({ api }));
+
+    const esistente = { description: "Affitto", amount: 600, spesaId: 5, isPagamentoFornitore: false };
+    const nuova = { description: "Luce", amount: 80, spesaId: -1, isPagamentoFornitore: false };
+    await act(async () => {
+      capturedDatagridProps!.onCellValueChanged!({ data: esistente, colDef: { field: "amount" }, newValue: 600, api });
+      capturedDatagridProps!.onCellValueChanged!({ data: nuova, colDef: { field: "amount" }, newValue: 80, api });
+    });
+
+    expect(persistence.updateExpense).not.toHaveBeenCalled();
+    expect(persistence.createExpense).not.toHaveBeenCalled();
+    expect(salva().label).toBe("Salva (2)");
+  });
+
+  it("Salva scrive tutte le righe in sospeso e poi chiama onSaved", async () => {
+    const persistence = makePersistence();
+    const onSaved = vi.fn();
+    renderGrid({ persistence, manualSave: true, onSaved });
+    const api = makeFakeApi();
+    act(() => capturedDatagridProps!.onGridReady!({ api }));
+
+    const esistente = { description: "Affitto", amount: 600, spesaId: 5, isPagamentoFornitore: false };
+    const nuova = { description: "Luce", amount: 80, spesaId: -1, isPagamentoFornitore: false };
+    await act(async () => {
+      capturedDatagridProps!.onCellValueChanged!({ data: esistente, colDef: { field: "amount" }, newValue: 600, api });
+      capturedDatagridProps!.onCellValueChanged!({ data: nuova, colDef: { field: "amount" }, newValue: 80, api });
+    });
+    await act(async () => salva().onClick());
+
+    expect(api.stopEditing).toHaveBeenCalled();
+    expect(persistence.updateExpense).toHaveBeenCalledWith(esistente);
+    expect(persistence.createExpense).toHaveBeenCalledWith(nuova);
+    expect(onSaved).toHaveBeenCalledTimes(1);
+    expect(salva().label).toBe("Salva");
+  });
+
+  it("cancellare una riga salvata la elimina dal server solo con Salva", async () => {
+    const persistence = makePersistence();
+    const selezionata = { spesaId: 7, description: "Vecchia", amount: 10, isPagamentoFornitore: false };
+    renderGrid({ persistence, manualSave: true });
+    const api = makeFakeApi([selezionata]);
+    act(() => capturedDatagridProps!.onGridReady!({ api }));
+
+    await act(async () => capturedActions.find((a) => a.key === "delete")!.onClick());
+    expect(persistence.deleteExpense).not.toHaveBeenCalled();
+    expect(api.applyTransaction).toHaveBeenCalledWith({ remove: [selezionata] });
+
+    await act(async () => salva().onClick());
+    expect(persistence.deleteExpense).toHaveBeenCalledWith(selezionata);
+  });
+
+  it("senza causale non salva nulla e mostra l'errore", async () => {
+    const persistence = makePersistence();
+    const { getByText } = renderGrid({ persistence, manualSave: true });
+    const api = makeFakeApi();
+    act(() => capturedDatagridProps!.onGridReady!({ api }));
+
+    const incompleta = { description: "", amount: 50, spesaId: -1, isPagamentoFornitore: false };
+    await act(async () => {
+      capturedDatagridProps!.onCellValueChanged!({ data: incompleta, colDef: { field: "amount" }, newValue: 50, api });
+    });
+    await act(async () => salva().onClick());
+
+    expect(persistence.createExpense).not.toHaveBeenCalled();
+    expect(getByText(/Compila la causale/)).toBeTruthy();
+  });
+
+  it("se il server fallisce non chiama onSaved e tiene le righe in sospeso per riprovare", async () => {
+    const persistence = makePersistence();
+    (persistence.updateExpense as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("Sessione scaduta"));
+    const onSaved = vi.fn();
+    const { getByText } = renderGrid({ persistence, manualSave: true, onSaved });
+    const api = makeFakeApi();
+    act(() => capturedDatagridProps!.onGridReady!({ api }));
+
+    const esistente = { description: "Affitto", amount: 600, spesaId: 5, isPagamentoFornitore: false };
+    await act(async () => {
+      capturedDatagridProps!.onCellValueChanged!({ data: esistente, colDef: { field: "amount" }, newValue: 600, api });
+    });
+    await act(async () => salva().onClick());
+
+    expect(onSaved).not.toHaveBeenCalled();
+    expect(getByText(/Sessione scaduta/)).toBeTruthy();
+    expect(salva().label).toBe("Salva (1)");
+
+    await act(async () => salva().onClick());
+    expect(persistence.updateExpense).toHaveBeenCalledTimes(2);
+    expect(onSaved).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("SpeseDataGrid — trascinamento e salvataggio dell'ordine", () => {
+  const persistenceConOrdine = () => ({ ...makePersistence(), reorderExpenses: vi.fn(async () => undefined) });
+  const salva = () => capturedActions.find((a) => a.key === "save")!;
+  const riga = (spesaId: number, data: string, extra: Record<string, unknown> = {}) => ({
+    description: `r${spesaId}`, amount: 10, spesaId, data, isPagamentoFornitore: false, ...extra,
+  });
+
+  it("senza reorderExpenses o senza manualSave le righe non sono trascinabili", () => {
+    renderGrid({ persistence: makePersistence(), manualSave: true });
+    expect(capturedDatagridProps!.columnDefs[0].rowDrag).toBeFalsy();
+    expect(capturedDatagridProps!.rowDragManaged).toBe(false);
+
+    renderGrid({ persistence: persistenceConOrdine() });
+    expect(capturedDatagridProps!.rowDragManaged).toBe(false);
+  });
+
+  it("con manualSave e reorderExpenses la prima colonna ha la maniglia e il drag è gestito", () => {
+    renderGrid({ persistence: persistenceConOrdine(), manualSave: true });
+    expect(capturedDatagridProps!.columnDefs[0].rowDrag).toBe(true);
+    expect(capturedDatagridProps!.rowDragManaged).toBe(true);
+  });
+
+  it("un trascinamento valido è una modifica in sospeso e Salva scrive l'ordine delle righe sul server", async () => {
+    const persistence = persistenceConOrdine();
+    const onSaved = vi.fn();
+    const a = riga(1, "2026-05-10");
+    const b = riga(2, "2026-05-10");
+    const c = riga(3, "2026-05-10");
+    const rows = [a, b, c];
+    renderGrid({ persistence, manualSave: true, onSaved });
+    const api = makeApiConRighe(rows);
+    act(() => capturedDatagridProps!.onGridReady!({ api }));
+
+    act(() => capturedDatagridProps!.onRowDragEnter!({ api }));
+    rows.splice(0, rows.length, c, a, b); // c trascinata in cima
+    act(() => capturedDatagridProps!.onRowDragEnd!({ api, node: { data: c } }));
+
+    expect(salva().label).toBe("Salva (1)");
+    expect(persistence.reorderExpenses).not.toHaveBeenCalled();
+
+    await act(async () => salva().onClick());
+
+    expect(persistence.reorderExpenses).toHaveBeenCalledWith([c, a, b]);
+    expect(onSaved).toHaveBeenCalledTimes(1);
+    expect(salva().label).toBe("Salva");
+  });
+
+  it("rifiuta e ripristina un trascinamento che porta la riga in un altro giorno", () => {
+    const persistence = persistenceConOrdine();
+    const a = riga(1, "2026-05-10");
+    const b = riga(2, "2026-05-20");
+    const rows = [a, b];
+    renderGrid({ persistence, manualSave: true });
+    const api = makeApiConRighe(rows);
+    act(() => capturedDatagridProps!.onGridReady!({ api }));
+
+    act(() => capturedDatagridProps!.onRowDragEnter!({ api }));
+    rows.splice(0, rows.length, b, a); // b (20) sopra a (10): giorno sbagliato
+    act(() => capturedDatagridProps!.onRowDragEnd!({ api, node: { data: b } }));
+
+    expect(api.setGridOption).toHaveBeenCalledWith("rowData", [a, b]);
+    expect(salva().label).toBe("Salva");
+  });
+
+  it("un trascinamento che non cambia l'ordine non crea modifiche in sospeso", () => {
+    const a = riga(1, "2026-05-10");
+    const b = riga(2, "2026-05-10");
+    const rows = [a, b];
+    renderGrid({ persistence: persistenceConOrdine(), manualSave: true });
+    const api = makeApiConRighe(rows);
+    act(() => capturedDatagridProps!.onGridReady!({ api }));
+
+    act(() => capturedDatagridProps!.onRowDragEnter!({ api }));
+    act(() => capturedDatagridProps!.onRowDragEnd!({ api, node: { data: a } }));
+
+    expect(salva().label).toBe("Salva");
+    expect(api.setGridOption).not.toHaveBeenCalled();
+  });
+
+  it("l'ordine salva solo le righe già sul server, dopo aver salvato quelle nuove", async () => {
+    const persistence = persistenceConOrdine();
+    const esistente = riga(5, "2026-05-10");
+    const nuova = riga(-1, "2026-05-10");
+    const rows = [nuova, esistente];
+    renderGrid({ persistence, manualSave: true });
+    const api = makeApiConRighe(rows);
+    act(() => capturedDatagridProps!.onGridReady!({ api }));
+
+    await act(async () => {
+      capturedDatagridProps!.onCellValueChanged!({ data: nuova, colDef: { field: "amount" }, newValue: 10, api });
+    });
+    act(() => capturedDatagridProps!.onRowDragEnter!({ api }));
+    rows.splice(0, rows.length, esistente, nuova);
+    act(() => capturedDatagridProps!.onRowDragEnd!({ api, node: { data: esistente } }));
+    await act(async () => salva().onClick());
+
+    // createExpense risponde 123 e la griglia patcha l'id sulla riga nuova.
+    expect(persistence.createExpense).toHaveBeenCalledTimes(1);
+    expect(persistence.reorderExpenses).toHaveBeenCalledWith([esistente, nuova]);
+    expect(nuova.spesaId).toBe(123);
+  });
+
+  it("se salvare l'ordine fallisce, non ricarica e l'ordine resta in sospeso", async () => {
+    const persistence = persistenceConOrdine();
+    persistence.reorderExpenses.mockRejectedValueOnce(new Error("Mese chiuso"));
+    const onSaved = vi.fn();
+    const a = riga(1, "2026-05-10");
+    const b = riga(2, "2026-05-10");
+    const rows = [a, b];
+    const { getByText } = renderGrid({ persistence, manualSave: true, onSaved });
+    const api = makeApiConRighe(rows);
+    act(() => capturedDatagridProps!.onGridReady!({ api }));
+
+    act(() => capturedDatagridProps!.onRowDragEnter!({ api }));
+    rows.splice(0, rows.length, b, a);
+    act(() => capturedDatagridProps!.onRowDragEnd!({ api, node: { data: b } }));
+    await act(async () => salva().onClick());
+
+    expect(onSaved).not.toHaveBeenCalled();
+    expect(getByText(/Mese chiuso/)).toBeTruthy();
+    expect(salva().label).toBe("Salva (1)");
   });
 });
 

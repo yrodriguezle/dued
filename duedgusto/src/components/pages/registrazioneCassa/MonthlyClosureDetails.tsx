@@ -58,7 +58,7 @@ import formatCurrency from "../../../common/bones/formatCurrency";
 import { aggregaRegistriPerMese } from "../../../common/registroCassa/aggregaRegistri";
 import SpeseDataGrid, { METODO_CONTANTI, SpeseDataGridPersistence, SpeseGridRow } from "./SpeseDataGrid";
 import buildSpeseFisseRows, { CATEGORIE_FISSE } from "./buildSpeseFisseRows";
-import { mutationMutateSpesaCassa, mutationEliminaSpesaCassa } from "../../../graphql/registroCassa/mutations";
+import { mutationMutateSpesaCassa, mutationEliminaSpesaCassa, mutationRiordinaSpeseFisse, RigaOrdineInput } from "../../../graphql/registroCassa/mutations";
 import { mutationMutatePagamentoFornitore, mutationDeletePagamentoFornitore } from "../../../graphql/fornitori/mutations";
 import { parseDateForGraphQL, parseDateOnlyForGraphQL } from "../../../common/date/date";
 
@@ -66,6 +66,26 @@ const MOTIVO_LABELS: Record<CodiceMotivo, string> = {
   ATTIVITA_NON_AVVIATA: "Attività non avviata",
   CHIUSURA_PROGRAMMATA: "Chiusura programmata",
   EVENTO_ECCEZIONALE: "Evento eccezionale",
+};
+
+// Il riepilogo dei registri giornalieri ricorda l'ultima scelta (aperto di default).
+// localStorage può mancare o lanciare (finestra privata, dati bloccati): si resta sul default.
+const REGISTRI_ESPANSI_KEY = "chiusura-mensile-registri-espansi";
+
+const leggiRegistriEspansi = (): boolean => {
+  try {
+    return localStorage.getItem(REGISTRI_ESPANSI_KEY) !== "0";
+  } catch {
+    return true;
+  }
+};
+
+const salvaRegistriEspansi = (espansi: boolean) => {
+  try {
+    localStorage.setItem(REGISTRI_ESPANSI_KEY, espansi ? "1" : "0");
+  } catch {
+    // Preferenza solo di comodo: se non si può salvare, non è un errore.
+  }
 };
 
 const MonthlyClosureDetails = () => {
@@ -88,12 +108,17 @@ const MonthlyClosureDetails = () => {
   const [aggiornaGiorniEsclusi, { loading: excludeLoading }] = useMutation(mutationAggiornaGiorniEsclusi);
   const [mutateSpesaCassa] = useMutation(mutationMutateSpesaCassa);
   const [eliminaSpesaCassa] = useMutation(mutationEliminaSpesaCassa);
+  const [riordinaSpeseFisse] = useMutation(mutationRiordinaSpeseFisse);
   const [mutatePagamentoFornitore] = useMutation(mutationMutatePagamentoFornitore);
   const [eliminaPagamentoFornitore] = useMutation(mutationDeletePagamentoFornitore);
 
   const palette = useChartPalette();
   const [giorniMancantiModalOpen, setGiorniMancantiModalOpen] = useState(false);
-  const [registriEspansi, setRegistriEspansi] = useState(true);
+  const [registriEspansi, setRegistriEspansi] = useState(leggiRegistriEspansi);
+  const toggleRegistriEspansi = useCallback(() => {
+    salvaRegistriEspansi(!registriEspansi);
+    setRegistriEspansi(!registriEspansi);
+  }, [registriEspansi]);
 
   const anno = chiusuraMensile?.anno ?? newAnno;
   const mese = chiusuraMensile?.mese ?? newMese;
@@ -101,7 +126,6 @@ const MonthlyClosureDetails = () => {
   const isDraft = isNewMode || chiusuraMensile?.stato === statoChiusuraMensile.BOZZA;
 
   const registriInclusi = useMemo(() => chiusuraMensile?.registriInclusi ?? [], [chiusuraMensile?.registriInclusi]);
-  const registriNonRiconciliati = useMemo(() => registriInclusi.filter((ri) => ri.registro.stato === statoRegistroCassa.CLOSED), [registriInclusi]);
 
   const { giorniMancanti } = useQueryValidaCompletezzaRegistri({
     anno,
@@ -170,20 +194,6 @@ const MonthlyClosureDetails = () => {
       return d.year() === chiusuraMensile.anno && d.month() + 1 === chiusuraMensile.mese;
     };
 
-    const errore = (message: string) => {
-      showToast({ type: "error", position: "bottom-right", message, toastId: "spese-fisse-error" });
-    };
-
-    const esegui = async <T,>(azione: () => Promise<T>): Promise<T | undefined> => {
-      try {
-        return await azione();
-      } catch (err: unknown) {
-        errore(err instanceof Error ? err.message : "Errore nel salvataggio della spesa");
-        await refetch();
-        return undefined;
-      }
-    };
-
     const isTracciata = (row: SpeseGridRow) => (row.paymentMethod ?? METODO_CONTANTI) !== METODO_CONTANTI;
 
     const salvaSpesaContanti = async (row: SpeseGridRow) => {
@@ -196,6 +206,9 @@ const MonthlyClosureDetails = () => {
             note: row.note || null,
             importo: row.amount,
             categoria: row.categoria ?? "Utenze",
+            // Letto solo in creazione: una riga ricreata (cambio metodo) resta al suo posto.
+            createdAt: row.createdAt,
+            ordine: row.ordine ?? undefined,
           },
         },
       });
@@ -217,36 +230,51 @@ const MonthlyClosureDetails = () => {
             descrizione: row.description,
             note: row.note || null,
             categoria: row.categoria ?? "Utenze",
+            // Letto solo in creazione: una riga ricreata (cambio metodo) resta al suo posto.
+            createdAt: row.createdAt,
+            ordine: row.ordine ?? undefined,
           },
         },
       });
       return res.data?.fornitori.mutatePagamentoFornitore?.pagamentoId ?? null;
     };
 
-    // Cambiare metodo su una riga già salvata ne cambia la natura: si elimina la
-    // vecchia forma e si ricrea nell'altra.
+    // Cambiare metodo su una riga già salvata ne cambia la natura: si crea la nuova
+    // forma e SOLO DOPO si elimina la vecchia. Se la creazione fallisce la riga resta
+    // dov'è; se fallisse l'eliminazione resterebbe un doppione visibile, mai una perdita.
+    // Gli errori salgono alla griglia (nessun toast né refetch qui): il riallineamento
+    // avviene una volta sola, a salvataggio completato.
     const salvaRiga = async (row: SpeseGridRow) => {
       if (!dataNelMese(row)) {
-        errore("La data deve cadere nel mese della chiusura.");
-        await refetch();
-        return null;
+        throw new Error("La data deve cadere nel mese della chiusura.");
       }
 
       const tracciata = isTracciata(row);
-      const eraSpesa = (row.spesaId ?? 0) > 0;
-      const eraPagamento = (row.pagamentoId ?? 0) > 0;
+      const vecchioSpesaId = (row.spesaId ?? 0) > 0 ? row.spesaId! : null;
+      const vecchioPagamentoId = (row.pagamentoId ?? 0) > 0 ? row.pagamentoId! : null;
+      const cambiaNatura = (tracciata && vecchioSpesaId != null) || (!tracciata && vecchioPagamentoId != null);
 
-      if (tracciata && eraSpesa) {
-        await eliminaSpesaCassa({ variables: { spesaId: row.spesaId! } });
-        row.spesaId = undefined;
-      } else if (!tracciata && eraPagamento) {
-        await eliminaPagamentoFornitore({ variables: { pagamentoId: row.pagamentoId! } });
-        row.pagamentoId = undefined;
+      // Se la natura cambia la riga si ricrea da zero: l'id vecchio non va riusato.
+      const daSalvare: SpeseGridRow = cambiaNatura
+        ? { ...row, spesaId: undefined, pagamentoId: undefined, isPagamentoFornitore: tracciata }
+        : { ...row, isPagamentoFornitore: tracciata };
+      const nuovoId = tracciata ? await salvaPagamentoTracciato(daSalvare) : await salvaSpesaContanti(daSalvare);
+
+      if (cambiaNatura) {
+        if (vecchioSpesaId != null) await eliminaSpesaCassa({ variables: { spesaId: vecchioSpesaId } });
+        if (vecchioPagamentoId != null) await eliminaPagamentoFornitore({ variables: { pagamentoId: vecchioPagamentoId } });
       }
 
+      // La riga della griglia punta ora alla forma nuova, così un secondo «Salva» la aggiorna.
       row.isPagamentoFornitore = tracciata;
-      const nuovoId = tracciata ? await salvaPagamentoTracciato(row) : await salvaSpesaContanti(row);
-      await refetch();
+      if (cambiaNatura) {
+        row.spesaId = undefined;
+        row.pagamentoId = undefined;
+      }
+      if (nuovoId != null) {
+        if (tracciata) row.pagamentoId = nuovoId;
+        else row.spesaId = nuovoId;
+      }
       return nuovoId;
     };
 
@@ -256,21 +284,36 @@ const MonthlyClosureDetails = () => {
       } else if ((row.spesaId ?? 0) > 0) {
         await eliminaSpesaCassa({ variables: { spesaId: row.spesaId! } });
       }
-      await refetch();
+    };
+
+    // L'ordine vale dentro il giorno: ogni riga prende la sua posizione (1, 2, 3…) fra quelle
+    // dello stesso giorno, nell'ordine mostrato dalla griglia. Spese e pagamenti condividono
+    // la numerazione, ma gli id no: il tipo dice a quale tabella appartiene la riga.
+    const riordinaRighe = async (rows: SpeseGridRow[]) => {
+      const perGiorno = new Map<string, number>();
+      const righe = rows.map<RigaOrdineInput>((row) => {
+        const giorno = dataRiga(row).split("T")[0];
+        const ordine = (perGiorno.get(giorno) ?? 0) + 1;
+        perGiorno.set(giorno, ordine);
+        const tracciata = (row.pagamentoId ?? 0) > 0;
+        return { tipo: tracciata ? "PAGAMENTO" : "SPESA", id: (tracciata ? row.pagamentoId : row.spesaId)!, ordine };
+      });
+      await riordinaSpeseFisse({ variables: { righe } });
     };
 
     // La griglia in questa modalità instrada tutto su create/update/deleteExpense:
     // le tre callback "supplier" restano per il contratto e coprono il dialog fattura.
     return {
-      createExpense: (row) => esegui(() => salvaRiga(row)),
-      updateExpense: async (row) => { await esegui(() => salvaRiga(row)); },
-      deleteExpense: async (row) => { await esegui(() => eliminaRiga(row)); },
-      createSupplierPayment: (row) => esegui(() => salvaRiga(row)),
-      updateSupplierPayment: async (row) => { await esegui(() => salvaRiga(row)); },
-      deleteSupplierPayment: async (row) => { await esegui(() => eliminaRiga(row)); },
+      createExpense: (row) => salvaRiga(row),
+      updateExpense: async (row) => { await salvaRiga(row); },
+      deleteExpense: (row) => eliminaRiga(row),
+      createSupplierPayment: (row) => salvaRiga(row),
+      updateSupplierPayment: async (row) => { await salvaRiga(row); },
+      deleteSupplierPayment: (row) => eliminaRiga(row),
+      reorderExpenses: riordinaRighe,
     };
-  }, [chiusuraMensile, dataDefaultSpese, refetch, mutateSpesaCassa, eliminaSpesaCassa,
-      mutatePagamentoFornitore, eliminaPagamentoFornitore]);
+  }, [chiusuraMensile, dataDefaultSpese, mutateSpesaCassa, eliminaSpesaCassa,
+      mutatePagamentoFornitore, eliminaPagamentoFornitore, riordinaSpeseFisse]);
 
   const handleEscludiSelezionati = useCallback(async () => {
     if (!chiusuraMensile) return;
@@ -535,18 +578,6 @@ const MonthlyClosureDetails = () => {
           </Alert>
         )}
 
-        {/* Alert registri non riconciliati — informativo, non blocca la chiusura */}
-        {registriNonRiconciliati.length > 0 && (
-          <Alert
-            severity="info"
-            sx={{ mb: 2 }}
-          >
-            {registriNonRiconciliati.length === 1
-              ? "1 giornata è chiusa ma non ancora riconciliata"
-              : `${registriNonRiconciliati.length} giornate sono chiuse ma non ancora riconciliate`}
-          </Alert>
-        )}
-
         <div className="grid grid-cols-12 gap-4">
           {/* KPI gestionali (stile Vista mensile) - Differenza in hero + banda a 6 */}
           <div className="col-span-12">
@@ -624,7 +655,7 @@ const MonthlyClosureDetails = () => {
                 sx={{ p: 2 }}
               >
                 <Box
-                  onClick={() => setRegistriEspansi((v) => !v)}
+                  onClick={toggleRegistriEspansi}
                   sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", userSelect: "none" }}
                 >
                   <Typography
@@ -715,7 +746,9 @@ const MonthlyClosureDetails = () => {
                 initialExpenses={gridSpeseFisse}
                 isLocked={!isDraft}
                 date={dataDefaultSpese}
+                gridHeight="max(420px, 60vh)"
                 columns={{
+                  showTipo: false,
                   showData: true,
                   showCategoria: true,
                   categoriaOptions: CATEGORIE_FISSE,
@@ -727,6 +760,8 @@ const MonthlyClosureDetails = () => {
                 }}
                 isPaymentReadOnly={(row) => row.fatturaId != null || row.ddtId != null}
                 persistence={isDraft ? persistenceSpese : undefined}
+                manualSave
+                onSaved={() => refetch()}
               />
             </Paper>
           </div>

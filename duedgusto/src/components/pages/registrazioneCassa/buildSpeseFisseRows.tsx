@@ -20,8 +20,10 @@ const isFissa = (categoria?: CategoriaSpesa | null): categoria is CategoriaSpesa
  * - Pagamenti: tenuti solo se hanno una categoria fissa. I pagamenti documentali
  *   (fatture/DDT fornitori) hanno `categoria` null e restano fuori.
  * - La colonna Data viene dal registro genitore: `SpesaCassa` non ha una data propria.
- * - Ordine stabile per data e id: la griglia ricostruisce le righe a ogni refetch e
- *   senza un ordine deterministico salterebbero di posto.
+ * - Ordine stabile: data, poi la posizione scelta trascinando (`ordine`; le righe mai
+ *   riordinate vengono dopo), poi l'istante di inserimento (`createdAt`, comune a spese e
+ *   pagamenti), poi id. Gli id sono sequenze di tabelle diverse e non dicono chi è
+ *   arrivato prima: ordinare per quelli faceva saltare le righe a ogni refetch.
  */
 function buildSpeseFisseRows(registriInclusi: RegistroCassaMensile[]): SpeseGridRow[] {
   const righe = registriInclusi
@@ -35,6 +37,8 @@ function buildSpeseFisseRows(registriInclusi: RegistroCassaMensile[]): SpeseGrid
           spesaId: s.id,
           description: s.descrizione,
           note: s.note ?? undefined,
+          createdAt: s.createdAt,
+          ordine: s.ordine,
           amount: s.importo,
           categoria: s.categoria,
           data,
@@ -50,6 +54,8 @@ function buildSpeseFisseRows(registriInclusi: RegistroCassaMensile[]): SpeseGrid
           // le righe scritte prima che i due campi fossero separati.
           description: p.descrizione?.trim() || p.note?.trim() || `Spesa fissa tracciata (${p.categoria})`,
           note: p.descrizione?.trim() ? (p.note ?? undefined) : undefined,
+          createdAt: p.createdAt,
+          ordine: p.ordine,
           amount: p.importo,
           categoria: p.categoria as CategoriaSpesa,
           data,
@@ -65,6 +71,16 @@ function buildSpeseFisseRows(registriInclusi: RegistroCassaMensile[]): SpeseGrid
 
   return righe.sort((a, b) => {
     if (a.data !== b.data) return (a.data ?? "").localeCompare(b.data ?? "");
+    const aOrdine = a.ordine ?? null;
+    const bOrdine = b.ordine ?? null;
+    if (aOrdine !== bOrdine) {
+      if (aOrdine === null) return 1;
+      if (bOrdine === null) return -1;
+      return aOrdine - bOrdine;
+    }
+    const aInserita = a.createdAt ? Date.parse(a.createdAt) : 0;
+    const bInserita = b.createdAt ? Date.parse(b.createdAt) : 0;
+    if (aInserita !== bInserita) return aInserita - bInserita;
     const aFornitore = a.isPagamentoFornitore ? 1 : 0;
     const bFornitore = b.isPagamentoFornitore ? 1 : 0;
     if (aFornitore !== bFornitore) return aFornitore - bFornitore;
