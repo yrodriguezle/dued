@@ -11,6 +11,7 @@ import { DatagridData } from "../../common/datagrid/@types/Datagrid";
 import { CashCountRowData } from "./useCashCountData";
 import { statoRegistroCassa } from "../../../common/globals/constants";
 import { focusFirstEditableCell } from "../../common/datagrid/navigation/editableCells";
+import { isRigaPagamentoLibero } from "./pagamentiRegistro";
 
 // IncomeRow ed ExpenseRow sono i tipi ambient dichiarati in src/@types/RegistroCassa.d.ts
 
@@ -118,6 +119,9 @@ const RegistroCassaForm: React.FC<RegistroCassaFormProps> = ({
             isLocked={isLocked && !isClosed}
             date={formik.values.date}
             columns={{ showCategoria: true }}
+            // I pagamenti senza documento (spese fisse) si modificano dalla chiusura mensile:
+            // qui si vedono, contano nei totali e restano al salvataggio.
+            isPaymentReadOnly={isRigaPagamentoLibero}
             onCellChange={onCellChange}
             onExpensesChange={onExpensesChange}
           />

@@ -25,7 +25,7 @@ import PageTitleContext from "../../layout/headerBar/PageTitleContext";
 import useQueryDenominations from "../../../graphql/registroCassa/useQueryDenominations";
 import useQueryRegistroCassa from "../../../graphql/registroCassa/useQueryRegistroCassa";
 import useSubmitRegistroCassa from "../../../graphql/registroCassa/useSubmitRegistroCassa";
-import { PagamentoFornitoreRegistroInput, RegistroCassaInput } from "../../../graphql/registroCassa/mutations";
+import { RegistroCassaInput } from "../../../graphql/registroCassa/mutations";
 import useCloseCashRegister from "../../../graphql/registroCassa/useCloseCashRegister";
 import useReopenCashRegister from "../../../graphql/registroCassa/useReopenCashRegister";
 import { getRegistroCassa } from "../../../graphql/registroCassa/queries";
@@ -35,6 +35,7 @@ import { toast } from "react-toastify";
 import { getCurrentDate, getFormattedDate, getWeekdayName, isValidDate, parseDateForGraphQL } from "../../../common/date/date";
 import useCashCountData from "./useCashCountData";
 import syncExpenseRowsWithPagamenti from "./syncExpenseRowsWithPagamenti";
+import { buildPagamentiInput, buildPagamentoRows } from "./pagamentiRegistro";
 
 // Schema per Formik - solo campi del form, NON include dati delle griglie
 const Schema = z.object({
@@ -191,24 +192,7 @@ function RegistroCassaDetails() {
 
         // Separa spese normali da pagamenti fornitore
         const normalExpenses = expenses.filter((row: Spese) => !row.isPagamentoFornitore);
-        const pagamentiFornitore: PagamentoFornitoreRegistroInput[] = expenses
-          .filter((row: Spese) => row.isPagamentoFornitore && row.fornitoreId)
-          .map((row: Spese) => ({
-            fornitoreId: row.fornitoreId!,
-            numeroDdt: row.ddtNumber || "",
-            importo: row.amount,
-            metodoPagamento: row.paymentMethod || undefined,
-            tipoDocumento: row.documentType || "DDT",
-            numeroFattura: row.invoiceNumber || undefined,
-            pagamentoId: row.pagamentoId,
-            fatturaId: row.fatturaId,
-            ddtId: row.ddtId,
-            dataFattura: row.dataFattura,
-            dataDdt: row.dataDdt,
-            aliquotaIva: row.aliquotaIva ?? undefined,
-            importoIva: row.importoIva ?? undefined,
-            categoria: row.categoria,
-          }));
+        const pagamentiFornitore = buildPagamentiInput(expenses);
 
         // Converti gli array in campi per il backend (nomi italiani)
         const input: RegistroCassaInput = {
@@ -438,43 +422,7 @@ function RegistroCassaDetails() {
           amount: e.importo,
           categoria: e.categoria,
         })) || [];
-      const pagamentoFornitoreExpenses: Spese[] =
-        registroCassa.pagamentiFornitori?.map((p: PagamentoFornitoreRegistro) => {
-          const hasInvoice = !!p.fattura;
-          const nomeFornitore = hasInvoice ? p.fattura?.fornitore?.ragioneSociale || "Fornitore" : p.ddt?.fornitore?.ragioneSociale || "Fornitore";
-          const fornitoreIdVal = hasInvoice ? p.fattura?.fornitore?.fornitoreId : p.ddt?.fornitore?.fornitoreId;
-          const docType: "FA" | "DDT" = hasInvoice ? "FA" : "DDT";
-          const docLabel = hasInvoice ? `FA ${p.fattura?.numeroFattura || ""}` : `DDT ${p.ddt?.numeroDdt || ""}`;
-
-          // Ripristina aliquotaIva dal fornitore collegato
-          const fornitoreAliquota = hasInvoice
-            ? p.fattura?.fornitore?.aliquotaIva
-            : p.ddt?.fornitore?.aliquotaIva;
-
-          // Fattura con IVA digitata: si ripristina com'è invece di riderivarla dall'aliquota
-          // del fornitore. La modalità è il campo persistito, non una deduzione dagli importi.
-          const ivaDigitata =
-            hasInvoice && p.fattura?.ivaCalcolata === false ? p.fattura?.importoIva : undefined;
-
-          return {
-            description: `Pagamento ${nomeFornitore} - ${docLabel}`,
-            amount: p.importo,
-            isPagamentoFornitore: true,
-            fornitoreId: fornitoreIdVal,
-            ddtNumber: p.ddt?.numeroDdt,
-            paymentMethod: p.metodoPagamento,
-            documentType: docType,
-            invoiceNumber: p.fattura?.numeroFattura,
-            pagamentoId: p.pagamentoId,
-            fatturaId: p.fattura?.fatturaId,
-            ddtId: p.ddt?.ddtId,
-            dataFattura: p.fattura?.dataFattura,
-            dataDdt: p.ddt?.dataDdt,
-            aliquotaIva: fornitoreAliquota ?? undefined,
-            importoIva: ivaDigitata ?? undefined,
-            categoria: p.categoria ?? undefined,
-          };
-        }) || [];
+      const pagamentoFornitoreExpenses: Spese[] = buildPagamentoRows(registroCassa.pagamentiFornitori);
       setInitialExpenses([...pagamentoFornitoreExpenses, ...normalExpenses]);
     } else {
       // Initialize with current date for new entry

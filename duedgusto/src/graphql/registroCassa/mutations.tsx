@@ -22,7 +22,8 @@ export interface SpesaCassaInput {
 
 export interface PagamentoFornitoreRegistroInput {
   pagamentoId?: number;
-  fornitoreId: number;
+  // Assente solo per i pagamenti liberi già salvati (senza documento): per i nuovi è obbligatorio.
+  fornitoreId?: number;
   numeroDdt: string;
   importo: number;
   metodoPagamento?: string;
@@ -37,6 +38,8 @@ export interface PagamentoFornitoreRegistroInput {
   importoIva?: number;
   // Categoria (opzionale): valorizzata solo per le spese fisse pagate in modo tracciato.
   categoria?: CategoriaSpesa;
+  // Causale dei pagamenti liberi (senza documento).
+  descrizione?: string;
 }
 
 export interface RegistroCassaInput {

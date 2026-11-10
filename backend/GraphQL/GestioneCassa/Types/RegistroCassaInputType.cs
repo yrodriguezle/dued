@@ -6,7 +6,12 @@ namespace duedgusto.GraphQL.GestioneCassa.Types;
 public class PagamentoFornitoreRegistroInput
 {
     public int? PagamentoId { get; set; }
-    public int FornitoreId { get; set; }
+    /// <summary>
+    /// Fornitore del documento. Null per i pagamenti "liberi" (senza fattura né DDT: spese fisse
+    /// con causale e categoria) già esistenti, che il form rimanda con il loro <see cref="PagamentoId"/>.
+    /// Obbligatorio per i pagamenti nuovi.
+    /// </summary>
+    public int? FornitoreId { get; set; }
     public string NumeroDdt { get; set; } = string.Empty;
     public decimal Importo { get; set; }
     public string? MetodoPagamento { get; set; }
@@ -27,6 +32,9 @@ public class PagamentoFornitoreRegistroInput
 
     // Categoria opzionale (nome stringa): valorizzata per le spese fisse tracciate, NULL per i pagamenti documentali.
     public string? Categoria { get; set; }
+
+    /// <summary>Causale dei pagamenti liberi (senza documento). Ignorata per fatture e DDT.</summary>
+    public string? Descrizione { get; set; }
 }
 
 public class PagamentoFornitoreRegistroInputType : InputObjectGraphType<PagamentoFornitoreRegistroInput>
@@ -35,7 +43,7 @@ public class PagamentoFornitoreRegistroInputType : InputObjectGraphType<Pagament
     {
         Name = "PagamentoFornitoreRegistroInput";
         Field(x => x.PagamentoId, nullable: true);
-        Field(x => x.FornitoreId);
+        Field(x => x.FornitoreId, nullable: true);
         Field(x => x.NumeroDdt);
         Field(x => x.Importo);
         Field(x => x.MetodoPagamento, nullable: true);
@@ -48,6 +56,7 @@ public class PagamentoFornitoreRegistroInputType : InputObjectGraphType<Pagament
         Field(x => x.AliquotaIva, nullable: true);
         Field(x => x.ImportoIva, nullable: true);
         Field(x => x.Categoria, nullable: true);
+        Field(x => x.Descrizione, nullable: true);
     }
 }
 

@@ -270,6 +270,12 @@ public class MutateRegistroCassaOrchestrator
             existing.CategoriaId = await _categorie.RisolviIdAsync(inp.Categoria);
             existing.UpdatedAt = DateTime.UtcNow;
 
+            // Pagamento libero (nessun documento): la causale è sua e il form può cambiarla.
+            if (existing.FatturaId is null && existing.DdtId is null && !string.IsNullOrWhiteSpace(inp.Descrizione))
+            {
+                existing.Descrizione = inp.Descrizione.Trim();
+            }
+
             if (existing.FatturaId.HasValue)
             {
                 FatturaAcquisto? linkedFattura = await db.FattureAcquisto.FindAsync(existing.FatturaId.Value);
@@ -302,9 +308,9 @@ public class MutateRegistroCassaOrchestrator
         }
 
         decimal aliquota = inp.AliquotaIva ?? 22m;
-        if (inp.AliquotaIva == null)
+        if (inp.AliquotaIva == null && inp.FornitoreId.HasValue)
         {
-            Fornitore? fornitore = await db.Set<Fornitore>().FindAsync(inp.FornitoreId);
+            Fornitore? fornitore = await db.Set<Fornitore>().FindAsync(inp.FornitoreId.Value);
             if (fornitore?.AliquotaIva != null)
                 aliquota = fornitore.AliquotaIva.Value;
         }
@@ -323,13 +329,18 @@ public class MutateRegistroCassaOrchestrator
         HashSet<int> fattureConsumate = [];
         HashSet<int> ddtConsumati = [];
 
+        if (inputNew.Any(p => p.FornitoreId is null))
+        {
+            throw new ExecutionError("Un nuovo pagamento fornitore richiede il fornitore.");
+        }
+
         foreach (PagamentoFornitoreRegistroInput pagInput in inputNew)
         {
             // Numero/data del documento dipendono dal tipo (FA usa NumeroFattura/DataFattura,
             // DDT usa NumeroDdt/DataDdt). La creazione/collegamento è delegata al servizio condiviso.
             bool isFattura = pagInput.TipoDocumento == "FA";
             var dati = new DocumentiFornitoreService.DatiDocumento(
-                FornitoreId: pagInput.FornitoreId,
+                FornitoreId: pagInput.FornitoreId!.Value,
                 TipoDocumento: pagInput.TipoDocumento,
                 Numero: isFattura ? pagInput.NumeroFattura : pagInput.NumeroDdt,
                 DataDocumento: isFattura ? pagInput.DataFattura : pagInput.DataDdt,

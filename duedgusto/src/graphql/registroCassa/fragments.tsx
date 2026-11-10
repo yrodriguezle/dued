@@ -71,6 +71,7 @@ export const registroCassaFragment = `
       metodoPagamento
       dataPagamento
       categoria
+      descrizione
       note
       ddt {
         ddtId

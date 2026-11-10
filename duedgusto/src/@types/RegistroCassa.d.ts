@@ -78,6 +78,8 @@ type PagamentoFornitoreRegistro = {
   metodoPagamento?: string;
   dataPagamento?: string;
   note?: string;
+  // Causale dei pagamenti senza documento (spese fisse tracciate).
+  descrizione?: string | null;
   // Categoria (nullable): valorizzata solo per le spese fisse pagate in modo tracciato.
   categoria?: CategoriaSpesa | null;
   ddt?: {
